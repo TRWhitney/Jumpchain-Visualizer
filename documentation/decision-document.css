@@ -1,0 +1,86 @@
+.decision-document .lede {
+  max-width: 62ch;
+  margin: -1.5rem 0 1.5rem;
+  color: var(--muted);
+  font-size: clamp(1.08rem, 2vw, 1.25rem);
+  line-height: 1.55;
+}
+
+.decision-document .status-note {
+  max-width: 72ch;
+  padding: 1rem 1.15rem;
+  background: var(--accent-soft);
+  border-left: 0.3rem solid var(--accent);
+  border-radius: 0.25rem;
+}
+
+.decision-document table {
+  width: 100%;
+  margin: 1.3rem 0 1.8rem;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.decision-document th,
+.decision-document td {
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.decision-document th {
+  background: var(--code);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.decision-record {
+  margin: 1.3rem 0 1.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+}
+
+.decision-record > div {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+}
+
+.decision-record > div + div {
+  border-top: 1px solid var(--border);
+}
+
+.decision-record dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.decision-record dd {
+  margin: 0;
+}
+
+@media (max-width: 42rem) {
+  .decision-document table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .decision-record > div {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+}
+
+@media print {
+  .decision-document .status-note,
+  .decision-document th {
+    background: transparent;
+  }
+}

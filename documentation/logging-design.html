@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Discussion draft for local application logging, privacy, retention, event structure, and support export in Jumpchain Visualizer.">
+  <title>Logging Design | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="logging-design.css">
+  <script src="documentation.js" defer></script>
+  <script src="logging-design.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home">
+      <span class="site-mark" aria-hidden="true">JV</span>
+      <span>Jumpchain Visualizer <small>Documentation</small></span>
+    </a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html">Overview</a>
+      <a href="application-design.html">Application</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="chain-tracker-design.html">Chain Tracker</a>
+      <a href="chain-portability.html">Portability</a>
+      <a href="supplements-design.html">Supplements</a>
+      <a href="settings-design.html">Settings</a>
+      <a href="logging-design.html" aria-current="page">Logging</a>
+      <a href="tags-design.html">Tags</a>
+      <a href="markup.html">Markup</a>
+      <a href="editor-design.html">Editor design</a>
+      <a href="choice-rendering-design.html">Controls</a>
+    </nav>
+  </header>
+
+  <div class="page-shell">
+    <aside class="sidebar" aria-labelledby="contents-heading">
+      <div class="sidebar-inner">
+        <h2 id="contents-heading">On this page</h2>
+        <nav id="table-of-contents" aria-label="Logging design sections">
+          <p class="toc-fallback">Section links appear when JavaScript is available.</p>
+        </nav>
+      </div>
+    </aside>
+
+    <main id="content" class="document logging-document" tabindex="-1">
+      <article>
+        <p class="eyebrow">Accepted direction</p>
+        <h1>Logging design</h1>
+        <p class="lede">A local-first, structured record of application behavior that helps diagnose failures without quietly becoming analytics, surveillance, or a second persistence model.</p>
+
+        <div class="logging-status" role="note">
+          <strong>Status: logging direction settled.</strong> Logs exist only for the current application session, the complete viewer lives under Settings → Developer → Logs, crash reports include full application stack and environment details for manual GitHub reporting, and selected user-facing events may project to configurable toast notifications.
+        </div>
+
+        <h2>Purpose and Boundaries</h2>
+        <p>Logging exists to explain what the application attempted, what failed, and which subsystem was involved. It does not establish user intent or authoritative chain state. Choices, grants, rolls, undo history, package snapshots, and autosave recovery remain in their owning domain stores.</p>
+        <div class="logging-boundaries" data-toc-ignore>
+          <article><h3>Diagnostic log</h3><p>Structured session events for troubleshooting parsing, storage, rendering, routing, and recovery.</p></article>
+          <article><h3>Activity history</h3><p>User-visible domain history such as reorders or removals. This belongs to chain/editor state and may reference a diagnostic correlation ID.</p></article>
+          <article><h3>Telemetry</h3><p>Transmission to a developer-controlled service. This is out of scope for the initial version and must never be implied by local logging.</p></article>
+        </div>
+
+        <h2>Confirmed Principles</h2>
+        <ul>
+          <li>Use one application logging service rather than scattered production <code>console</code> calls.</li>
+          <li>Emit structured event records with stable event names and bounded attributes; prose is for display, not machine identity.</li>
+          <li>Logging must not be required for application correctness, undo, recovery, or security enforcement.</li>
+          <li>No event is transmitted automatically. Export is an explicit user action with a redaction preview.</li>
+          <li>Imported content is untrusted. Event names come from application code, while imported values are sanitized, length-limited attributes.</li>
+          <li>Failure to write a log must not recursively log or break the operation being observed.</li>
+          <li>A registered event may include user-notification metadata. The toast is a presentation of that event, not a second independently emitted event.</li>
+        </ul>
+
+        <h2>Event Streams</h2>
+        <div class="logging-table-wrap">
+          <table>
+            <thead><tr><th>Stream</th><th>Examples</th><th>Retention direction</th><th>User-facing?</th></tr></thead>
+            <tbody>
+              <tr><td>Runtime diagnostics</td><td>Startup, route load, parser failure, renderer exception, storage failure</td><td>Bounded current-session buffer only</td><td>Developer Logs viewer/export</td></tr>
+              <tr><td>Security and recovery</td><td>Blocked asset, rejected import, permission loss, corrupted local record</td><td>Same session lifetime as every other event</td><td>Actionable notification plus log detail</td></tr>
+              <tr><td>Domain activity</td><td>Jump removed, chain reordered, package version added, companion import changed</td><td>Owned by domain history, not diagnostic retention</td><td>History/undo interface</td></tr>
+              <tr><td>Development trace</td><td>Parser timing, cache behavior, render invalidation</td><td>Temporary opt-in session only</td><td>Developer/support mode</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Structured Event Contract</h2>
+        <p>The proposed record shape follows the general field separation used by the stable <a href="https://opentelemetry.io/docs/specs/otel/logs/data-model/">OpenTelemetry Logs Data Model</a> without requiring an OpenTelemetry backend.</p>
+        <pre><code>{
+  "timestamp": "2026-07-10T18:42:31.442Z",
+  "severity": "warn",
+  "eventName": "logging.buffer.near_limit",
+  "category": "logging",
+  "sessionId": "session-scoped-random-id",
+  "correlationId": "operation-scoped-random-id",
+  "appVersion": "0.1.0",
+  "routeKind": "chain",
+  "attributes": {
+    "usageBand": "high",
+    "operation": "session-log"
+  },
+  "notification": {
+    "class": "recovery",
+    "messageKey": "logging.buffer.near_limit",
+    "dedupeKey": "session-log-capacity"
+  },
+  "error": null
+}</code></pre>
+        <dl class="logging-field-list">
+          <div><dt><code>eventName</code></dt><dd>Stable dotted identifier selected from an application-owned catalog.</dd></div>
+          <div><dt><code>severity</code></dt><dd><code>debug</code>, <code>info</code>, <code>warn</code>, <code>error</code>, or <code>fatal</code>.</dd></div>
+          <div><dt><code>sessionId</code></dt><dd>Random per-launch correlation value, never a user or installation identifier.</dd></div>
+          <div><dt><code>correlationId</code></dt><dd>Connects events produced by one import, save, render, or recovery operation.</dd></div>
+          <div><dt><code>attributes</code></dt><dd>Allowlisted scalar values with per-field type and length limits.</dd></div>
+          <div><dt><code>notification</code></dt><dd>Optional application-owned toast class, localized message key, and debounce/deduplication key.</dd></div>
+          <div><dt><code>error</code></dt><dd>Application error code, sanitized message, cause chain, and full application stack trace when an error exists.</dd></div>
+        </dl>
+
+        <h3>Severity Semantics</h3>
+        <ul>
+          <li><strong>Debug:</strong> detailed control-flow or performance context, disabled outside a temporary diagnostic session.</li>
+          <li><strong>Info:</strong> expected lifecycle boundary such as startup completed or package validation completed.</li>
+          <li><strong>Warn:</strong> recoverable degradation, blocked unsafe input, or state requiring attention.</li>
+          <li><strong>Error:</strong> an operation failed and did not produce its intended result.</li>
+          <li><strong>Fatal:</strong> the application cannot initialize or continue its durable workspace safely.</li>
+        </ul>
+        <p>An allowed negative point balance is domain state, not automatically an error. A transition into or out of that state may emit a bounded informational event, while the authoritative signed balance remains in the chain entry.</p>
+
+        <h2>User-Facing Toast Notifications</h2>
+        <p>Some registered events carry notification metadata and may be projected as toasts. Every event still appears in the session log even when notifications are disabled globally or for its class. Toast settings affect presentation only.</p>
+        <p>Initial trigger classes are:</p>
+        <ul>
+          <li><strong>Action confirmations:</strong> explicit save, export, copy, add, remove, and reorder completion.</li>
+          <li><strong>Editor activity:</strong> autosave, formatting, quick fixes, and preview recovery.</li>
+          <li><strong>Chain activity:</strong> Jump changes, companion imports, supplement changes, rolls, and negative-balance transitions.</li>
+          <li><strong>Validation:</strong> newly relevant diagnostics and blocked operations.</li>
+          <li><strong>Errors and recovery:</strong> failed operations, permission loss, fallback recovery, and crashes.</li>
+        </ul>
+        <p>The event catalog supplies a localized message key and stable <code>dedupeKey</code>. Input-driven notification candidates wait 500 ms after the last related input. Repeated events with the same class and dedupe key update the existing toast and increment its occurrence count instead of creating another toast. This debounce applies to toast presentation; diagnostic events may still be coalesced separately with their suppressed-event count.</p>
+        <ul>
+          <li>The maximum-visible setting limits simultaneous toasts; additional toasts queue by severity and event time.</li>
+          <li>The duration setting applies after the latest coalesced update. Hover, keyboard focus, and pointer interaction pause dismissal.</li>
+          <li>Errors use an assertive announcement; other classes use a polite live region.</li>
+          <li>Closing a toast never clears or acknowledges the underlying log entry or diagnostic.</li>
+          <li>Disabling notifications immediately dismisses noninteractive toasts and stops new projections without disabling logging.</li>
+        </ul>
+
+        <h2>Privacy and Security Filter</h2>
+        <p>The <a href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html">OWASP Logging Cheat Sheet</a> recommends excluding secrets and treating personal data, file paths, and other identifiers carefully. It also calls for sanitizing untrusted event data to prevent log injection. For this application:</p>
+        <div class="logging-privacy-grid" data-toc-ignore>
+          <section><h3>Never record</h3><ul><li>access tokens, permission handles, or credentials</li><li>raw Jump source, descriptions, images, or pasted content</li><li>chain, companion, author, or filesystem names</li><li>full filesystem paths or browser URLs with query/fragment data</li><li>complete exported chain or tag-profile documents</li></ul></section>
+          <section><h3>Record only in bounded form</h3><ul><li>application-owned error codes</li><li>line and column numbers without source excerpts</li><li>package hash prefixes or session-local pseudonyms</li><li>counts, duration bands, and storage-usage bands</li><li>sanitized browser/runtime capability names</li></ul></section>
+        </div>
+        <ul>
+          <li>Replace carriage returns, line feeds, control characters, and invalid Unicode before storage or display.</li>
+          <li>Reject unknown attribute keys at the logging boundary; do not serialize arbitrary objects.</li>
+          <li>Cap individual attribute values, event size, stack depth, and events per time window.</li>
+          <li>The viewer renders values as text only. Logged content never becomes HTML, Markdown, CSS, or a command.</li>
+          <li>Crash reports include complete application frames and cause chains. User-directory prefixes, filesystem paths outside the installed source tree, tokens, and imported values remain redacted.</li>
+        </ul>
+
+        <h2>Session Lifetime, Crashes, and Export</h2>
+        <p>All diagnostic events live only in a bounded in-memory session buffer. Normal exit, restart, and process termination discard the buffer. Security and recovery events do not receive separate persistence.</p>
+        <ul>
+          <li>The session ring retains at most 2,000 events or 10 MiB, whichever limit is reached first, and evicts the oldest low-severity events first.</li>
+          <li>Clear Session immediately discards the in-memory diagnostic buffer but not domain activity history.</li>
+          <li>Export creates versioned JSON Lines containing the current filtered or complete session after showing severity counts and redaction rules.</li>
+          <li>A caught unhandled exception opens a crash surface containing application/runtime/OS versions, architecture, route kind, relevant settings, the correlated session-event tail, the complete application stack and cause chain, and redaction notes.</li>
+          <li>The crash surface provides Copy Report, Save Report, and Open GitHub Issues actions. Nothing is posted automatically; the user reviews and submits it.</li>
+          <li>A hard native termination that prevents the crash surface from running may only reach the launcher or runtime standard-error output. The application documents this limitation rather than claiming guaranteed crash capture.</li>
+          <li>No background upload, beacon, remote crash report, protected security ring, or stable installation identifier exists.</li>
+        </ul>
+
+        <h2>Interactive Viewer Concept</h2>
+        <p>This complete viewer lives under Settings → Developer → Logs. The standalone copy below documents filtering, full event details, stack traces, session export/clear, report copying, and the manual GitHub handoff.</p>
+        <div class="logging-viewer" data-toc-ignore>
+          <header><div><p>Session diagnostics</p><h3>Recent events</h3></div><div><button type="button" data-log-export>Export…</button><button type="button" data-log-clear>Clear session</button></div></header>
+          <div class="logging-viewer-toolbar">
+            <label><span class="sr-only">Search logged events</span><input type="search" data-logging-search placeholder="Find event or category"></label>
+            <div role="group" aria-label="Minimum severity"><button type="button" data-log-level="debug" aria-pressed="true">Debug+</button><button type="button" data-log-level="info" aria-pressed="false">Info+</button><button type="button" data-log-level="warn" aria-pressed="false">Warn+</button><button type="button" data-log-level="error" aria-pressed="false">Error+</button></div>
+          </div>
+          <div class="logging-event-layout">
+            <div id="logging-event-list" class="logging-event-list" aria-label="Filtered local diagnostic events">
+              <button type="button" data-log-event data-severity="info" data-search="app lifecycle app.started startup"><span class="log-severity info">Info</span><code>app.started</code><time>18:42:02</time></button>
+              <button type="button" data-log-event data-severity="warn" data-search="logging buffer logging.buffer.near_limit session"><span class="log-severity warn">Warn</span><code>logging.buffer.near_limit</code><time>18:42:31</time></button>
+              <button type="button" data-log-event data-severity="error" data-search="package parser package.parse.failed imported"><span class="log-severity error">Error</span><code>package.parse.failed</code><time>18:43:10</time></button>
+              <button type="button" data-log-event data-severity="debug" data-search="renderer debug renderer.cache.reused"><span class="log-severity debug">Debug</span><code>renderer.cache.reused</code><time>18:43:12</time></button>
+              <p class="logging-empty" data-logging-empty hidden>No events match the current filters.</p>
+            </div>
+            <section class="logging-event-detail" aria-label="Selected log event details"><p>Selected event</p><h4 data-logging-detail-title>logging.buffer.near_limit</h4><dl><div><dt>Severity</dt><dd data-logging-detail-severity>Warn</dd></div><div><dt>Category</dt><dd data-logging-detail-category>logging</dd></div><div><dt>Correlation</dt><dd data-logging-detail-correlation>op-7f2c</dd></div><div><dt>Safe attributes</dt><dd data-logging-detail-attributes><code>usageBand=high</code><br><code>operation=session-log</code></dd></div></dl><div class="logging-stack"><strong>Stack trace</strong><pre data-logging-detail-stack>SessionBufferWarning: session log nearing its limit
+  at SessionLog.append (logging/session-log.ts:84:11)
+  at AutosaveCoordinator.commit (editor/autosave.ts:219:7)</pre></div><div class="logging-report-actions"><button type="button" data-log-copy-report>Copy report</button><button type="button" data-log-github>Open GitHub Issues…</button></div><p class="logging-viewer-message" data-logging-message role="status"></p></section>
+          </div>
+        </div>
+
+        <h2>Initial Event Catalog</h2>
+        <ul>
+          <li><code>app.started</code>, <code>app.start_failed</code></li>
+          <li><code>route.open_failed</code></li>
+          <li><code>storage.write_failed</code>, <code>storage.recovery_used</code>, <code>logging.buffer.near_limit</code></li>
+          <li><code>package.import.started</code>, <code>package.import.completed</code>, <code>package.parse.failed</code>, <code>package.asset.blocked</code></li>
+          <li><code>editor.preview.recovered</code>, <code>editor.autosave.failed</code></li>
+          <li><code>renderer.failed</code></li>
+          <li><code>chain.validation.failed</code>, <code>chain.balance.negative_entered</code>, <code>chain.balance.negative_resolved</code></li>
+          <li><code>settings.value_rejected</code></li>
+        </ul>
+        <p>The catalog is closed by default: feature code must register a stable event name and attribute schema before emitting it.</p>
+
+        <h2>Correlation and Failure Handling</h2>
+        <p>One user operation receives one random correlation ID that follows parsing, validation, storage, and rendering events. This borrows the correlation principle standardized for distributed systems by <a href="https://www.w3.org/TR/trace-context-2/">W3C Trace Context</a> without requiring network trace headers in a local-only application.</p>
+        <ul>
+          <li>Logging writes are asynchronous and batched outside critical rendering input paths.</li>
+          <li>A saturated or unavailable session buffer emits at most one console-level emergency notice and never falls back to persistent storage.</li>
+          <li>Rate limits coalesce repeated identical failures and retain a suppressed-event count.</li>
+          <li>Fatal events attempt a final bounded write, but the recovery screen must not wait indefinitely for it.</li>
+        </ul>
+
+        <h2>Decision Record: Structured Session Logging</h2>
+        <dl class="logging-decision">
+          <div><dt>Status</dt><dd>Accepted</dd></div>
+          <div><dt>Context</dt><dd>The application needs useful failure evidence without a server dependency or accidental collection of private Jump and chain content.</dd></div>
+          <div><dt>Decision</dt><dd>Use a centralized structured logger and bounded in-memory session ring. Expose the full viewer under Settings → Developer → Logs. Include reviewed full application stacks and environment details in manual exports, but never persist or transmit logs automatically.</dd></div>
+          <div><dt>Consequences</dt><dd>Feature code uses registered event schemas; every launch starts with an empty log; recoverable crashes can produce useful GitHub reports, while hard termination cannot guarantee an in-app report.</dd></div>
+        </dl>
+
+        <h2>Settled Decisions</h2>
+        <ul>
+          <li>Every log class, including security and recovery, is session-only.</li>
+          <li>The complete viewer is a Logs subtab of the Developer category in Settings.</li>
+          <li>Reports contain full application stack traces and useful local environment/version information after privacy redaction.</li>
+          <li>Users copy, save, and post reports to the project&#39;s GitHub Issues page themselves.</li>
+          <li>No remote crash collection or separately protected security retention is planned.</li>
+          <li>Notification preferences change toast projection, not which events enter the session log.</li>
+        </ul>
+
+        <h2>Research References</h2>
+        <ul>
+          <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html">OWASP Logging Cheat Sheet</a> — event selection, sensitive-data exclusion, sanitization, protection, and logging failure testing.</li>
+          <li><a href="https://opentelemetry.io/docs/specs/otel/logs/data-model/">OpenTelemetry Logs Data Model</a> — stable structured fields, severity, attributes, timestamps, and correlation context.</li>
+          <li><a href="https://www.w3.org/TR/trace-context-2/">W3C Trace Context Level 2</a> — interoperable correlation identifiers and propagation concepts.</li>
+        </ul>
+      </article>
+      <a class="back-to-top" href="#content">Back to top</a>
+    </main>
+  </div>
+</body>
+</html>

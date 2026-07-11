@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "format": 1,
+  "name": "Jumpchain definition format 1",
+  "source": "../documentation/markup.html",
+  "lexical": {
+    "encoding": "UTF-8",
+    "lineEnding": "LF",
+    "indent": "two spaces",
+    "tabs": "error",
+    "comment": "full-line # comments only",
+    "handlePattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+    "integerPattern": "^-?(?:0|[1-9][0-9]*)$",
+    "hexColorPattern": "^#[0-9A-Fa-f]{6}$",
+    "assetPathSeparator": "/",
+    "fieldOrder": "insignificant except conditional variants and source-ordered collections",
+    "duplicateScalarField": "error"
+  },
+  "files": {
+    "jump.jdef": {
+      "required": true,
+      "topLevel": ["jump", "resource", "section", "choice", "theme", "section-layout", "choice-layout", "trait-layout"],
+      "counts": { "jump": { "min": 1, "max": 1 }, "section": { "min": 1 } }
+    },
+    "choices.jdef": {
+      "required": false,
+      "topLevel": ["choice"]
+    },
+    "layout.jdef": {
+      "required": false,
+      "topLevel": ["theme", "section-layout", "choice-layout", "trait-layout"]
+    }
+  },
+  "types": {
+    "quotedString": { "syntax": "double quoted", "placeholders": true },
+    "renderableScalar": { "syntax": "double quoted", "placeholders": true, "conditionalVariants": true },
+    "richText": {
+      "syntax": "triple-quoted fenced body",
+      "placeholders": true,
+      "formatting": ["paragraph", "bold", "italic", "strikethrough", "underline", "unordered-list", "table"],
+      "forbiddenFormatting": ["raw-html", "link", "autolink", "task-checkbox", "heading", "blockquote", "code"]
+    },
+    "handle": { "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+    "handleReference": { "type": "handle", "forwardReferences": true },
+    "integer": { "pattern": "^-?(?:0|[1-9][0-9]*)$" },
+    "boolean": { "enum": [true, false] },
+    "tag": { "syntax": ["bare", "quoted"], "canonicalization": "NFKC, case fold, whitespace/underscore/dash runs to one ASCII space, trim" },
+    "color": {
+      "oneOf": ["hexColor", "colorToken"],
+      "builtInTokens": ["black", "white", "gray", "red", "orange", "yellow", "green", "blue", "purple", "brown", "pink"]
+    },
+    "spacing": { "enum": ["none", "xs", "sm", "md", "lg", "xl", "2xl"] },
+    "size": { "enum": ["xs", "sm", "md", "lg", "xl", "2xl"] },
+    "align": { "enum": ["start", "center", "end", "stretch"] },
+    "justify": { "enum": ["start", "center", "end", "between"] },
+    "textAlign": { "enum": ["start", "center", "end", "justify"] },
+    "costAmount": {
+      "oneOf": ["integer", "costToken", "awardToken"],
+      "costTokens": ["trivial", "small", "medium", "large", "major", "extreme"],
+      "awardTokens": ["add_trivial", "add_small", "add_medium", "add_large", "add_major", "add_extreme"]
+    },
+    "grantAmount": {
+      "oneOf": ["integer", "grantToken"],
+      "grantTokens": ["trivial", "small", "medium", "large", "major", "extreme"]
+    },
+    "propertyValue": { "oneOf": ["quotedString", "integer", "boolean"] }
+  },
+  "conditionalFields": {
+    "allowed": ["name", "alt", "content", "option"],
+    "syntax": "<field> when <expression>:",
+    "baseFallback": true,
+    "matching": "first matching variant in source order; base only when none match",
+    "repeatedFieldAssociation": "An option variant belongs to the immediately preceding base option at the same owner and indentation. A different base option starts a new variant group.",
+    "expression": {
+      "operators": ["!", "=", "!=", "<", "<=", ">", ">=", "and", "or"],
+      "precedence": ["parentheses", "!", "comparisons", "and", "or"],
+      "functionCalls": false,
+      "arithmetic": false,
+      "coercion": false
+    }
+  },
+  "declarations": {
+    "jump": {
+      "contexts": ["top-level"],
+      "fields": {
+        "format": { "type": "integer", "min": 1, "max": 1, "required": true, "const": 1 },
+        "name": { "type": "renderableScalar", "min": 1, "max": 1, "required": true },
+        "author": { "type": "quotedString", "min": 1, "repeatable": true, "setLike": true },
+        "version": { "type": "quotedString", "min": 1, "max": 1, "required": true },
+        "starting-points": { "type": "integer", "min": 0, "max": 1, "default": 1000 },
+        "points-name": { "type": "renderableScalar", "min": 0, "max": 1, "default": "Choice Points" },
+        "points-abbreviation": { "type": "renderableScalar", "min": 0, "max": 1, "default": "CP" },
+        "section-layout": { "type": "handleReference:section-layout", "min": 0, "max": 1 },
+        "choice-layout": { "type": "handleReference:choice-layout", "min": 0, "max": 1 },
+        "trait-layout": { "type": "handleReference:trait-layout", "min": 0, "max": 1 }
+      },
+      "children": {}
+    },
+    "resource": {
+      "contexts": ["top-level"],
+      "fields": {
+        "handle": { "type": "handle", "min": 1, "max": 1, "required": true, "reserved": ["jump_points"] },
+        "name": { "type": "renderableScalar", "min": 1, "max": 1, "required": true },
+        "abbreviation": { "type": "renderableScalar", "min": 0, "max": 1 },
+        "initial": { "type": "integer", "min": 0, "max": 1, "default": 0 }
+      },
+      "children": {}
+    },
+    "section": {
+      "contexts": ["top-level"],
+      "fields": {
+        "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
+        "name": { "type": "renderableScalar", "min": 1, "max": 1, "required": true },
+        "layout": { "type": "handleReference:section-layout", "min": 0, "max": 1 }
+      },
+      "children": {
+        "choice-source": { "min": 0, "repeatable": true, "ordered": true },
+        "text": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "text" },
+        "image": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "image" }
+      }
+    },
+    "choice-source": {
+      "contexts": ["section"],
+      "fields": {
+        "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
+        "group": { "type": "tag", "min": 0, "max": 1 },
+        "mode": { "type": "enum", "values": ["single", "multi"], "min": 0, "max": 1, "default": "multi" },
+        "resolution": { "type": "enum", "values": ["random", "either"], "min": 0, "max": 1, "default": "manual" }
+      },
+      "children": {}
+    },
+    "choice": {
+      "contexts": ["top-level"],
+      "fields": {
+        "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
+        "name": { "type": "renderableScalar", "min": 1, "max": 1, "required": true },
+        "layout": { "type": "handleReference:choice-layout", "min": 0, "max": 1 },
+        "species": { "type": "renderableScalar", "min": 0, "max": 1 },
+        "tag": { "type": "tag", "min": 0, "repeatable": true, "setLike": true },
+        "group": { "type": "tag", "min": 0, "repeatable": true, "setLike": true },
+        "selection": { "type": "enum", "values": ["toggle", "text", "integer", "select"], "min": 0, "max": 1, "default": "toggle" },
+        "min": { "type": "integer", "min": 0, "max": 1 },
+        "max": { "type": "integer", "min": 0, "max": 1 },
+        "resolution": { "type": "enum", "values": ["random", "either"], "min": 0, "max": 1, "default": "manual" },
+        "option": { "type": "renderableScalar", "min": 0, "repeatable": true, "ordered": true, "exactDuplicate": "error" }
+      },
+      "children": {
+        "text": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "text" },
+        "image": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "image" },
+        "input": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "input" },
+        "cost": { "min": 0, "repeatable": true, "uniqueBy": "resolved resource" },
+        "grant": { "min": 0, "repeatable": true, "ordered": true }
+      }
+    },
+    "text": {
+      "contexts": ["section", "choice", "grant:perk", "grant:item", "grant:companion", "grant:trait"],
+      "fields": {
+        "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
+        "content": { "type": "richText", "min": 0, "max": 1, "conditionalVariants": true }
+      },
+      "children": {},
+      "empty": "warning"
+    },
+    "image": {
+      "contexts": ["section", "choice", "grant:perk", "grant:item", "grant:companion", "grant:trait"],
+      "fields": {
+        "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
+        "src": { "type": "quotedString:packageRelativeAssetPath", "min": 0, "max": 1, "exportRequired": true },
+        "alt": { "type": "renderableScalar", "min": 0, "max": 1, "conditionalVariants": true, "omission": "accessibility warning" }
+      },
+      "children": {}
+    },
+    "input": {
+      "contexts": ["choice"],
+      "fields": {
+        "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
+        "selection": { "type": "enum", "values": ["text", "integer", "select", "companions"], "min": 1, "max": 1, "required": true },
+        "min": { "type": "integer", "min": 0, "max": 1 },
+        "max": { "type": "integer", "min": 0, "max": 1 },
+        "option": { "type": "renderableScalar", "min": 0, "repeatable": true, "ordered": true, "exactDuplicate": "error" }
+      },
+      "children": {
+        "grant": { "min": 0, "repeatable": true, "ordered": true }
+      }
+    },
+    "cost": {
+      "contexts": ["choice"],
+      "forms": {
+        "scalar": { "type": "costAmount", "resource": "jump_points", "mode": "flat" },
+        "block": {
+          "fields": {
+            "resource": { "type": "handleReference:resource", "min": 1, "max": 1, "required": true },
+            "amount": { "type": "costAmount", "min": 1, "max": 1, "required": true },
+            "mode": { "type": "enum", "values": ["flat", "each"], "min": 0, "max": 1, "default": "flat" }
+          }
+        }
+      }
+    },
+    "grant": {
+      "contexts": ["choice", "input"],
+      "forms": {
+        "scalar": { "type": "enum", "values": ["perk", "item", "companion"] },
+        "block": {
+          "fields": {
+            "kind": { "type": "enum", "values": ["perk", "item", "companion", "resource", "trait", "property", "companion-import"], "min": 1, "max": 1, "required": true },
+            "name": { "type": "renderableScalar", "min": 0, "max": 1 },
+            "layout": { "type": "handleReference:trait-layout", "min": 0, "max": 1 },
+            "tag": { "type": "tag", "min": 0, "repeatable": true, "setLike": true },
+            "resource": { "type": "handleReference:resource", "min": 0, "max": 1 },
+            "amount": { "type": "grantAmount", "min": 0, "max": 1 },
+            "handle": { "type": "handle", "min": 0, "max": 1 },
+            "value": { "type": "propertyValue", "min": 0, "max": 1 }
+          },
+          "children": {
+            "text": { "min": 0, "repeatable": true },
+            "image": { "min": 0, "repeatable": true }
+          }
+        }
+      }
+    },
+    "theme": {
+      "contexts": ["top-level"],
+      "fields": {
+        "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
+        "name": { "type": "renderableScalar", "min": 0, "max": 1 },
+        "color": { "type": "hexColor", "min": 1, "max": 1, "required": true }
+      },
+      "children": {}
+    },
+    "section-layout": { "contexts": ["top-level"], "fieldSet": "layoutDeclaration", "root": "sectionLayoutRoot" },
+    "choice-layout": { "contexts": ["top-level"], "fieldSet": "layoutDeclaration", "root": "choiceLayoutRoot" },
+    "trait-layout": { "contexts": ["top-level"], "fieldSet": "layoutDeclaration", "root": "traitLayoutRoot" }
+  },
+  "fieldSets": {
+    "layoutDeclaration": {
+      "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
+      "name": { "type": "renderableScalar", "min": 0, "max": 1 }
+    },
+    "containerPresentation": {
+      "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
+      "gap": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
+      "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
+      "background": { "type": "color", "min": 0, "max": 1 },
+      "align": { "type": "align", "min": 0, "max": 1, "default": "stretch" },
+      "justify": { "type": "justify", "min": 0, "max": 1, "default": "start" },
+      "text-align": { "type": "textAlign", "min": 0, "max": 1, "default": "start" },
+      "text-size": { "type": "size", "min": 0, "max": 1, "default": "md" },
+      "text-color": { "type": "color", "min": 0, "max": 1 }
+    },
+    "contentLeafPresentation": {
+      "target": { "type": "handleReference:owner-local-content", "min": 1, "max": 1, "required": true },
+      "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
+      "background": { "type": "color", "min": 0, "max": 1 },
+      "align": { "type": "align", "min": 0, "max": 1 },
+      "text-align": { "type": "textAlign", "min": 0, "max": 1 },
+      "text-size": { "type": "size", "min": 0, "max": 1 },
+      "text-color": { "type": "color", "min": 0, "max": 1 }
+    }
+  },
+  "layoutNodes": {
+    "stack": { "kind": "container", "fields": "containerPresentation", "children": "layoutNode*" },
+    "inline": { "kind": "container", "fields": "containerPresentation", "children": "layoutNode*" },
+    "wrap": { "kind": "container", "fields": "containerPresentation", "children": "layoutNode*" },
+    "grid": {
+      "kind": "container",
+      "fields": "containerPresentation",
+      "additionalFields": { "columns": { "type": "integer", "minimum": 1, "maximum": 12, "required": true } },
+      "children": "layoutNode*"
+    },
+    "slot": { "kind": "leaf", "compact": "slot: <target>", "blockFields": "contentLeafPresentation", "targetsByLayout": { "section": ["name", "roll"], "choice": ["name", "cost", "control", "roll", "tags"], "trait": ["name"] } },
+    "text": { "kind": "leaf", "compact": "text: <target>", "blockFields": "contentLeafPresentation", "targetNamespace": "text" },
+    "input": { "kind": "leaf", "compact": "input: <target>", "blockFields": "contentLeafPresentation", "targetNamespace": "input" },
+    "image": {
+      "kind": "leaf",
+      "compact": "image: <target>",
+      "blockFields": "contentLeafPresentation",
+      "targetNamespace": "image",
+      "additionalFields": {
+        "size": { "type": "size", "exclusiveWith": ["width", "height"] },
+        "width": { "type": "size", "exclusiveWith": ["size"] },
+        "height": { "type": "size", "exclusiveWith": ["size"] },
+        "fit": { "type": "enum", "values": ["contain", "cover"] }
+      }
+    },
+    "rule": { "kind": "leaf", "fields": {}, "children": false },
+    "expand": {
+      "kind": "special",
+      "allowedLayouts": ["section-layout"],
+      "fields": {
+        "source": { "type": "handleReference:choice-source", "min": 0, "max": 1, "requiredUnless": "rendered section has exactly one choice-source" },
+        "using": { "type": "handleReference:choice-layout", "min": 0, "max": 1 }
+      },
+      "children": false,
+      "uniqueBy": "source"
+    }
+  },
+  "roots": {
+    "sectionLayoutRoot": { "exactlyOne": true, "allowed": ["stack", "inline", "wrap", "grid"], "descendants": ["stack", "inline", "wrap", "grid", "slot", "text", "image", "rule", "expand"] },
+    "choiceLayoutRoot": { "exactlyOne": true, "allowed": ["stack", "inline", "wrap", "grid"], "descendants": ["stack", "inline", "wrap", "grid", "slot", "text", "image", "input", "rule"] },
+    "traitLayoutRoot": { "exactlyOne": true, "allowed": ["stack", "inline", "wrap", "grid"], "descendants": ["stack", "inline", "wrap", "grid", "slot", "text", "image", "rule"] }
+  },
+  "semanticConstraints": [
+    { "code": "choice.species.requires_origins_group", "rule": "species is valid only when the choice has canonical group origins" },
+    { "code": "choice.integer.bounds", "rule": "integer min must not exceed max; random/either requires both finite bounds" },
+    { "code": "choice.select.options", "rule": "option is valid only for selection select; zero options is a warning" },
+    { "code": "choice.resolution.domain", "rule": "choice resolution is valid only for integer or select" },
+    { "code": "cost.unique_resource", "rule": "a choice has at most one cost per resolved resource" },
+    { "code": "cost.each.integer_only", "rule": "mode each requires selection integer and explicit min >= 0" },
+    { "code": "input.bounds", "rule": "min/max are valid for integer and companions; companions requires max > 0 and defaults min to 0" },
+    { "code": "input.options", "rule": "option is valid only for selection select" },
+    { "code": "grant.resource.fields", "rule": "kind resource requires resource and amount and permits neither to be omitted" },
+    { "code": "grant.property.fields", "rule": "kind property requires handle; omitted value copies the owning control" },
+    { "code": "grant.companion_import.context", "rule": "kind companion-import is valid only directly under input selection companions" },
+    { "code": "grant.companion_import.budget_pair", "rule": "resource and amount must be both present or both absent" },
+    { "code": "grant.visible.fields", "rule": "name, layout, tag, text, and image are valid only for perk, item, companion, and trait; layout is trait-layout and valid only for trait" },
+    { "code": "layout.container_handles", "rule": "container handles are unique within one layout" },
+    { "code": "layout.typed_target", "rule": "typed leaves resolve only in the matching owner-local namespace; absent targets warn and collapse" },
+    { "code": "layout.expand.source", "rule": "expand source resolves in the rendered section and each source may be expanded at most once" },
+    { "code": "package.asset_path", "rule": "asset paths are relative, remain within assets, and resolve to supported graphical files" }
+  ]
+}

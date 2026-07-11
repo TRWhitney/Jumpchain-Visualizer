@@ -1,0 +1,9 @@
+jump
+  format: 1
+  name: "Minimal Jump"
+  author: "Anonymous"
+  version: "1.0"
+
+section
+  handle: introduction
+  name: "Introduction"

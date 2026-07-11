@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "format": 1,
+  "cases": [
+    { "name": "minimal-valid", "directory": "fixtures/minimal-valid", "exportValid": true, "diagnostics": [] },
+    { "name": "representative-valid", "directory": "fixtures/representative-valid", "exportValid": true, "diagnostics": [] },
+    { "name": "ungrouped-wip", "directory": "fixtures/ungrouped-wip", "exportValid": true, "diagnostics": ["warning:choice.unreachable"] },
+    { "name": "duplicate-primary-cost", "directory": "fixtures/duplicate-primary-cost", "exportValid": false, "diagnostics": ["error:cost.unique_resource"] }
+  ]
+}

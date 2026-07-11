@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Runtime, module, persistence, security, and testing architecture for Jumpchain Visualizer.">
+  <title>Architecture | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="decision-document.css">
+  <script src="documentation.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home"><span class="site-mark" aria-hidden="true">JV</span><span>Jumpchain Visualizer <small>Documentation</small></span></a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html">Overview</a><a href="application-design.html">Application</a><a href="architecture.html" aria-current="page">Architecture</a><a href="chain-tracker-design.html">Chain Tracker</a><a href="chain-portability.html">Portability</a><a href="supplements-design.html">Supplements</a><a href="settings-design.html">Settings</a><a href="logging-design.html">Logging</a><a href="tags-design.html">Tags</a><a href="markup.html">Markup</a><a href="editor-design.html">Editor design</a><a href="choice-rendering-design.html">Controls</a>
+    </nav>
+  </header>
+  <div class="page-shell">
+    <aside class="sidebar" aria-labelledby="contents-heading"><div class="sidebar-inner"><h2 id="contents-heading">On this page</h2><nav id="table-of-contents" aria-label="Architecture sections"><p class="toc-fallback">Section links appear when JavaScript is available.</p></nav></div></aside>
+    <main id="content" class="document decision-document" tabindex="-1">
+    <article>
+      <header>
+        <p class="eyebrow">Accepted technical baseline</p>
+        <h1>Application architecture</h1>
+        <p class="lede">One offline-first application codebase runs primarily as a packaged Tauri desktop app and secondarily in an ordinary browser. Pure domain and rendering code is shared; environment-specific capabilities enter only through explicit ports.</p>
+        <div class="status-note" role="note"><strong>Status: accepted baseline.</strong> Windows, Linux, and macOS are equal targets. Browser operation is supported but is not the primary user surface. Rust is an accepted contributor requirement. Signing and notarization are distribution concerns and do not constrain the architecture.</div>
+      </header>
+
+      <h2>Architecture Drivers</h2>
+      <ul>
+        <li>ship one application and one product experience rather than separate desktop and web products</li>
+        <li>run fully locally with no hosted backend, paid service, commercial component, account, or telemetry dependency</li>
+        <li>develop and exercise the complete interface in a normal browser</li>
+        <li>package native artifacts for Windows, Linux, and macOS without adopting platform-specific application logic</li>
+        <li>treat Jump packages, chain archives, assets, markup, and Story content as untrusted input</li>
+        <li>share parsing, evaluation, rendering, supplement, and interaction behavior between Editor preview and Chain Tracker</li>
+        <li>keep persistence and operating-system APIs replaceable and directly testable</li>
+      </ul>
+
+      <h2>Selected Technology Baseline</h2>
+      <table>
+        <thead><tr><th>Concern</th><th>Selection</th><th>Boundary</th></tr></thead>
+        <tbody>
+          <tr><td>Desktop shell</td><td>Tauri 2</td><td>Window lifecycle, capability enforcement, native commands, and platform packaging</td></tr>
+          <tr><td>UI</td><td>React + TypeScript</td><td>Application composition and view rendering; no domain rules in components</td></tr>
+          <tr><td>Build and browser development</td><td>Vite</td><td>One frontend build consumed by browser mode and Tauri</td></tr>
+          <tr><td>Accessible primitives</td><td>React Aria Components</td><td>Unstyled interaction behavior for overlays, tabs, menus, collections, and focus management; application CSS owns presentation</td></tr>
+          <tr><td>Source editor</td><td>CodeMirror 6</td><td>Text editing, folding, completion, lint display, decorations, and Live Preview behavior</td></tr>
+          <tr><td>Markup grammar</td><td>Lezer</td><td>Incremental, error-tolerant concrete syntax tree transformed into the application AST</td></tr>
+          <tr><td>Desktop persistence</td><td>SQLite behind Rust repositories</td><td>No general SQL capability is exposed to the frontend</td></tr>
+          <tr><td>Browser persistence</td><td>IndexedDB adapter</td><td>Secondary persistent runtime using the same repository contracts</td></tr>
+          <tr><td>Unit/component tests</td><td>Vitest, including Browser Mode</td><td>Pure TypeScript, component, and repository-contract tests</td></tr>
+          <tr><td>Browser end to end</td><td>Playwright</td><td>Primary UI flows in Chromium, Firefox, and WebKit</td></tr>
+          <tr><td>Packaged smoke tests</td><td>WebdriverIO Tauri service</td><td>Small native-boundary suite using its free embedded provider</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Desktop and Browser Profiles</h2>
+      <h3>Desktop profile</h3>
+      <ul>
+        <li>The Tauri package is the primary supported user surface.</li>
+        <li>Each operating system receives its normal native artifact from the same source tree. One binary is not expected to run across all operating systems.</li>
+        <li>SQLite, native dialogs, application-data storage, content-addressed package files, and atomic filesystem replacement are provided by Rust commands.</li>
+        <li>Unsigned packages are allowed. The architecture does not depend on a signing service, store, updater, or paid distribution account.</li>
+      </ul>
+      <h3>Browser profile</h3>
+      <ul>
+        <li>The same compiled React application runs against browser adapters and remains useful beyond automated testing.</li>
+        <li>IndexedDB stores application state. File inputs and downloads provide portable import/export; optional browser file APIs may enhance convenience but are never required.</li>
+        <li>No local companion server is required. A static development or production build is sufficient.</li>
+        <li>Browser capability limitations are surfaced honestly. The UI never pretends an IndexedDB record is a durable external project folder.</li>
+      </ul>
+
+      <h2>Editor Workspace Ownership</h2>
+      <p>Desktop authoring projects use a user-selected external directory as their canonical source. The directory contains <code>jump.jdef</code>, optional <code>choices.jdef</code> and <code>layout.jdef</code>, and <code>assets/</code>. This keeps projects compatible with version control, ordinary text editors, filesystem tools, and manual backups.</p>
+      <ul>
+        <li>SQLite stores the workspace registry, recent-project metadata, search/diagnostic indexes, and recovery bookkeeping; it is not the authoritative source for project text or assets.</li>
+        <li>An application-data recovery mirror retains versioned unsaved/autosave state so temporary permission loss, unavailable drives, crashes, or interrupted writes do not silently discard work.</li>
+        <li>The recovery mirror never silently replaces newer readable project files. Recovery is an explicit comparison and restore operation when disk and mirror differ.</li>
+        <li>Installed <code>.jmp</code> packages are immutable content-addressed library copies and are never edited in place. Editing an installed package first creates or selects a separate authoring project.</li>
+        <li>Browser projects are owned by IndexedDB because durable external-directory access is not assumed. Source-project import and export move them between the browser and ordinary files.</li>
+        <li>Desktop and browser workspaces implement the same workspace repository contract even though their durability mechanisms differ.</li>
+      </ul>
+
+      <h2>External Project Changes</h2>
+      <p>Desktop workspaces watch their canonical project directory for changes made by other editors, version-control tools, and filesystem operations.</p>
+      <ul>
+        <li>If the affected file has no unsaved Editor changes, the application reloads it automatically and refreshes diagnostics and preview.</li>
+        <li>If the affected file has unsaved Editor changes, autosave for that file pauses and the Editor presents <strong>Compare</strong>, <strong>Keep Editor Version</strong>, and <strong>Use Disk Version</strong>. Neither version is discarded before the author resolves the conflict.</li>
+        <li><strong>Keep Editor Version</strong> writes the Editor buffer as a new deliberate save. <strong>Use Disk Version</strong> replaces the buffer only after the disk version has been preserved by recovery bookkeeping.</li>
+        <li>External asset changes reload automatically unless the application is simultaneously replacing that asset, in which case the same conflict rule applies.</li>
+        <li>An unavailable directory or lost permission is treated as a recoverable workspace outage, never as an empty project. The recovery mirror remains available until the canonical directory can be read again or the author explicitly restores elsewhere.</li>
+      </ul>
+
+      <h2>Ports and Adapters</h2>
+      <p>Application and domain modules depend on TypeScript interfaces. The composition root selects desktop or browser implementations once during startup.</p>
+      <pre><code class="language-text">Application and domain services
+  PackageLibrary
+  WorkspaceRepository
+  ChainRepository
+  SettingsRepository
+  FileSelectionPort
+  ArchivePort
+  Clock
+  IdGenerator
+  SessionLogger
+
+Desktop adapters                 Browser adapters
+  Tauri commands                   IndexedDB repositories
+  SQLite repositories              Virtual/in-memory workspaces
+  native dialogs                   file inputs and downloads
+  app-data filesystem              browser archive bridge
+</code></pre>
+      <p>Contract tests run against every adapter. Environment checks do not spread through feature code; only the composition root knows which runtime is active.</p>
+
+      <h2>Module Boundaries</h2>
+      <pre><code class="language-text">src/
+  app/           routes, startup, composition, workspace registry
+  domain/        chains, actors, choices, costs, grants, tags, commands
+  markup/        Lezer integration, AST, schema, validator, formatter
+  renderer/      layouts, controls, rich content, preview sandbox
+  editor/        project navigation, structured/source editing, diagnostics
+  tracker/       chain workspace, history views, inventory, companions
+  supplements/   application-owned module contracts and datasets
+  platform/      TypeScript ports and browser adapters
+  ui/            accessible unstyled primitives and application styling
+
+crates/
+  archive-core/  bounded ZIP inspection, paths, hashes; native and WASM
+  persistence/   SQLite repositories and migrations
+
+src-tauri/
+  commands/      narrow capability-checked desktop entry points
+  capabilities/  explicit Tauri permissions
+  application/   window lifecycle and adapter composition
+</code></pre>
+      <p>Dependencies point inward: UI and adapters depend on application/domain contracts; domain code never imports React, Tauri, SQLite, browser globals, or filesystem APIs.</p>
+
+      <h2>Domain State and Commands</h2>
+      <ul>
+        <li>Packages are immutable values identified by their complete archive hash.</li>
+        <li>Chains, Editor workspaces, settings, and tag profiles are separate aggregates with explicit schema versions.</li>
+        <li>User actions enter through commands that validate intent, produce a new authoritative state, record undo information where applicable, and commit through one repository transaction.</li>
+        <li>Budgets, conditions, grants, historical views, and supplement effects are pure derived calculations. Persisted snapshots needed for unresolved packages are explicitly versioned state, not an accidental cache.</li>
+        <li>React observes application services through narrow stores/subscriptions. React component state is limited to ephemeral view concerns.</li>
+      </ul>
+
+      <h2>Markup and Renderer Pipeline</h2>
+      <pre><code class="language-text">Source text
+  → Lezer concrete syntax tree
+  → typed format AST
+  → schema and semantic diagnostics
+  → canonical package model
+  → evaluation model
+  → shared renderer
+</code></pre>
+      <ul>
+        <li>Lezer’s recovery tree supports active editing but never replaces semantic validation.</li>
+        <li>The typed AST, not the Lezer tree, is the stable application boundary.</li>
+        <li>Structured edits and Quick Fixes produce minimal source edits. Source remains canonical.</li>
+        <li>The same renderer executes in Editor preview and Chain Tracker; preview swaps persistent state for a disposable sandbox.</li>
+        <li>Renderable text is tokenized into an allowlisted model. Imported text never reaches <code>dangerouslySetInnerHTML</code>, raw CSS, or executable browser content.</li>
+      </ul>
+
+      <h2>Persistence Model</h2>
+      <p>Desktop storage uses a hybrid SQLite and content-addressed-filesystem model:</p>
+      <ul>
+        <li>SQLite stores searchable metadata, aggregate versions, relationships, migration state, and transactional JSON payloads.</li>
+        <li>Installed <code>.jmp</code> archives live under application data by SHA-256 rather than as database blobs.</li>
+        <li>Complex chain and supplement state stays in versioned aggregate payloads instead of being fragmented into UI-shaped relational tables.</li>
+        <li>Indexes duplicate only stable fields needed for lists and search. Aggregate payloads remain authoritative.</li>
+        <li>Autosave commits one aggregate transaction. File exports use write-to-temporary, flush, and atomic replacement where supported.</li>
+        <li>Every persisted schema has ordered, deterministic migrations and recovery tests.</li>
+      </ul>
+      <p>Browser IndexedDB uses the same aggregate and index split. Repository contracts define behavior, not SQLite-specific queries.</p>
+
+      <h2>Trusted Native Boundary</h2>
+      <ul>
+        <li>Rust owns bounded ZIP inspection, entry/path validation, decompression limits, graphical asset signature checks, complete archive hashing, SQLite access, and final atomic file operations.</li>
+        <li><code>archive-core</code> is written without Tauri dependencies and compiled natively for desktop and to WebAssembly for browser imports, minimizing security-rule drift.</li>
+        <li>The frontend receives validated bounded data and structured diagnostics, never unrestricted native paths or a shell/command-execution primitive.</li>
+        <li>Tauri capabilities grant only the commands needed by the main application window. Remote navigation and arbitrary child webviews are disabled.</li>
+        <li>All upstream links open through a validated HTTPS external-navigation command.</li>
+      </ul>
+
+      <h2>Testing Architecture</h2>
+      <ol>
+        <li>Vitest Node tests cover pure parsing transformations, validators, commands, evaluation, supplements, migrations, and serializers.</li>
+        <li>Vitest Browser Mode covers components requiring real layout, selection, focus, input, and browser APIs.</li>
+        <li>Playwright runs complete browser-profile workflows in Chromium, Firefox, and WebKit with deterministic adapters and visual artifacts.</li>
+        <li>Cargo tests cover archive attacks, hashing, path containment, SQLite transactions, migrations, and filesystem recovery.</li>
+        <li>Repository and archive contract suites execute against every implementation.</li>
+        <li>A small WebdriverIO suite exercises the built Tauri application, IPC permissions, native dialogs through controlled adapters, and startup/recovery on each operating system.</li>
+      </ol>
+
+      <h2>ADR: Tauri Shell with Shared Browser Runtime</h2>
+      <dl class="decision-record">
+        <div><dt>Status</dt><dd>Accepted</dd></div>
+        <div><dt>Context</dt><dd>The product needs local files, persistence, and native packages without maintaining a separate browser product or purchasing a runtime/component license.</dd></div>
+        <div><dt>Decision</dt><dd>Use Tauri 2 around one React/TypeScript/Vite application. Put domain logic in pure TypeScript, privileged persistence and filesystem operations behind Rust commands, and supply browser adapters for the same ports.</dd></div>
+        <div><dt>Consequences</dt><dd>Contributors need Rust and Node/pnpm. Each operating system needs its own build. Webview differences require Chromium/WebKit coverage. Most UI and domain development remains ordinary browser work, while native security and persistence receive focused Rust and packaged-app tests.</dd></div>
+      </dl>
+
+      <h2>Architecture Status</h2>
+      <p>No architecture decisions block implementation. The platform, runtime profiles, workspace ownership, external-change handling, primary module boundaries, persistence direction, security boundary, and test layers are settled. Detailed implementation planning may refine internal code organization without replacing this accepted baseline.</p>
+
+      <h2>Primary References</h2>
+      <ul>
+        <li><a href="https://v2.tauri.app/start/frontend/vite/">Tauri Vite integration</a></li>
+        <li><a href="https://v2.tauri.app/security/capabilities/">Tauri capabilities</a></li>
+        <li><a href="https://v2.tauri.app/develop/tests/webdriver/">Tauri WebDriver and browser-mode testing</a></li>
+        <li><a href="https://lezer.codemirror.net/docs/guide/">Lezer incremental parsing and recovery</a></li>
+        <li><a href="https://codemirror.net/docs/extensions/">CodeMirror language, folding, completion, and lint extensions</a></li>
+        <li><a href="https://react-aria.adobe.com/getting-started">React Aria Components</a></li>
+        <li><a href="https://vitest.dev/guide/browser/">Vitest Browser Mode</a></li>
+        <li><a href="https://playwright.dev/docs/browsers">Playwright browser coverage</a></li>
+      </ul>
+    </article>
+    </main>
+  </div>
+</body>
+</html>

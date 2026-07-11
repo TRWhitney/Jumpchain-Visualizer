@@ -1,0 +1,1762 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Design direction for the Jumpchain authoring markup language and package structure.">
+  <title>Markup Design | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="documentation.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home">
+      <span class="site-mark" aria-hidden="true">JV</span>
+      <span>Jumpchain Visualizer <small>Documentation</small></span>
+    </a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html">Overview</a>
+      <a href="application-design.html">Application</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="chain-tracker-design.html">Chain Tracker</a>
+      <a href="chain-portability.html">Portability</a>
+      <a href="supplements-design.html">Supplements</a>
+      <a href="settings-design.html">Settings</a>
+      <a href="logging-design.html">Logging</a>
+      <a href="tags-design.html">Tags</a>
+      <a href="markup.html" aria-current="page">Markup</a>
+      <a href="editor-design.html">Editor design</a>
+      <a href="choice-rendering-design.html">Controls</a>
+    </nav>
+  </header>
+
+  <div class="page-shell">
+    <aside class="sidebar" aria-labelledby="contents-heading">
+      <div class="sidebar-inner">
+        <h2 id="contents-heading">On this page</h2>
+        <nav id="table-of-contents" aria-label="Markup design sections">
+          <p class="toc-fallback">Section links appear when JavaScript is available.</p>
+        </nav>
+      </div>
+    </aside>
+
+    <main id="content" class="document" tabindex="-1">
+      <article>
+        <p class="eyebrow">Language specification</p>
+<h1>Markup Design</h1>
+<h2>Purpose</h2>
+<p>This document captures the agreed design direction for the jump authoring
+markup language and its package structure.</p>
+<p>It is intentionally separate from <code>ARCHITECTURE.md</code> so markup decisions can
+evolve without turning the architecture document into a grab bag of unrelated
+details.</p>
+<h2>Design Goals</h2>
+<p>The markup language should solve the main authoring problems encountered with a
+JSON-based approach:</p>
+<ul>
+<li>large files should remain readable by humans</li>
+<li>nested structure should not require heavy bracket and comma management</li>
+<li>prose-heavy content should be pleasant to write and review</li>
+<li>syntax should stay regular enough for reliable tooling and validation</li>
+<li>the language should not drift into a general-purpose programming language</li>
+</ul>
+<p>The markup remains an authoring and interchange format, not the canonical
+in-memory model.</p>
+<h2>Current Direction</h2>
+<p>The current agreed direction is:</p>
+<ul>
+<li>use a bespoke domain-specific markup language</li>
+<li>favor indentation and keywords over JSON-style object/array literals</li>
+<li>keep a small number of explicit syntax forms for clarity</li>
+<li>use fenced rich-text bodies for prose content</li>
+<li>use a rigid package structure instead of user-defined imports/includes</li>
+<li>keep semantic declarations and presentation declarations separate</li>
+</ul>
+<h2>Syntax Principles</h2>
+<h3>1. Indentation Plus Keywords</h3>
+<p>The language should be primarily indentation-based and declaration-oriented.</p>
+<p>It should not feel like a generic serialized data dump. It should read like a
+structured document DSL.</p>
+<p>The preferred shape is:</p>
+<ul>
+<li>declarations begin with a keyword</li>
+<li>fields use <code>name: value</code></li>
+<li>containment is indicated by indentation</li>
+<li>repeated declarations are preferred over general-purpose inline arrays</li>
+</ul>
+<h3>2. Explicitness Where It Prevents Ambiguity</h3>
+<p>The language should reduce punctuation heavily, but not chase pure
+whitespace-only grammar.</p>
+<p>Some explicit syntax is desirable to keep parsing and authoring unambiguous,
+especially for:</p>
+<ul>
+<li>multiline rich text</li>
+<li>nested declaration blocks</li>
+<li>references</li>
+<li>layout structures</li>
+</ul>
+<h3>3. Quoted Strings Are User-Facing Strings</h3>
+<p>Double-quoted scalar strings should be treated as user-facing/renderable string
+values rather than structural identifiers.</p>
+<p>This gives the language a simple visual rule:</p>
+<ul>
+<li>quoted strings are for user-facing text values</li>
+<li>bare values are for structural identifiers and symbolic references</li>
+</ul>
+<p>Quoted scalar strings support the escapes <code>\&quot;</code>, <code>\\</code>,
+<code>\n</code>, <code>\r</code>, and <code>\t</code>. Raw Unicode characters are
+valid directly. Any other escape sequence is an error. Authors should use the
+triple-quoted fenced form for multiline prose instead of constructing long bodies
+from escaped newlines.</p>
+<p>A quoted scalar must open and close on the same physical line. Reaching the end
+of the line without a closing quote is a syntax error; Editor recovery remains
+limited to that line rather than consuming following declarations.</p>
+<p>Examples of values that should stay bare:</p>
+<ul>
+<li><code>handle</code></li>
+<li><code>group</code></li>
+<li><code>layout</code></li>
+<li><code>source</code></li>
+</ul>
+<p>This distinction makes the language easier to scan and gives placeholder
+interpolation a clear scope.</p>
+<h3>4. Rich Text Uses Triple-Quoted Fenced Bodies</h3>
+<p>Rich-text fields such as <code>content</code> accept either a same-line quoted string or
+a triple-quoted fenced body. Both forms produce the same Markdown-capable value
+and support placeholder interpolation. The quoted form is convenient for short
+content; the fenced form is preferred for multiline prose.</p>
+<p>Example:</p>
+<pre><code class="language-text">text
+  handle: description
+  content:
+    &quot;&quot;&quot;
+    Markdown goes here.
+
+    **Bold** and *italic* should work.
+    &quot;&quot;&quot;
+</code></pre>
+<p>This is currently preferred over a custom markdown-only fence because it is
+visually obvious and easy to validate.</p>
+<p>The opening and closing <code>&quot;&quot;&quot;</code> fences are recognized only when they
+appear alone at the fenced body’s indentation level. The same three-character
+sequence inside an ordinary line of prose is literal content and needs no escape.</p>
+<p>When parsing the body, the fence’s indentation is removed from every content
+line and any additional indentation is preserved for Markdown. A nonblank content
+line indented less than the fence is an error.</p>
+<p>The newline after the opening fence and the newline before the closing fence
+are structural and are not part of the rendered value. Blank lines deliberately
+authored between those boundaries, including additional leading or trailing blank
+lines, are preserved.</p>
+<p>V1 rich text intentionally supports only plain paragraphs, bold, italic,
+strikethrough, underline, unordered bullet lists, and tables. Raw HTML, links and
+automatic links, task checkboxes, headings, block quotes, code constructs, and
+other Markdown extensions are not rendered as formatting. Tables remain supported
+because they are common enough in Jump prose despite their heavier authoring cost.</p>
+<p>Inline delimiters are <code>**bold**</code>, <code>*italic*</code>,
+<code>~~strikethrough~~</code>, and <code>++underline++</code>. The underline extension
+exists because Markdown has no standard underline delimiter and raw HTML is not
+allowed.</p>
+<h3>5. Repetition Is Usually Repeated Declarations</h3>
+<p>Repeated declarations are the default list form.</p>
+<p>Examples:</p>
+<pre><code class="language-text">tag: magic
+tag: combat
+group: perks
+</code></pre>
+<p>Comma-separated list fields are not supported in v1. Repetition is the only list form, giving the parser, formatter, and structured editor one canonical representation.</p>
+<h2>Core Grammar Mechanics</h2>
+<p>The following mechanical rules are settled for the first version of the
+language. Declaration-specific sections may narrow these rules where a field is
+intentionally repeatable or ordered.</p>
+<h3>Encoding and Line Endings</h3>
+<ul>
+<li>source files must be valid UTF-8; invalid byte sequences are errors and are not guessed as another encoding</li>
+<li>a UTF-8 byte-order mark is accepted on input, but explicit formatting removes it</li>
+<li>LF and CRLF line endings are accepted, and ordinary editing preserves the existing style</li>
+<li>explicit formatting and distributable package export emit LF line endings</li>
+</ul>
+<h3>Whitespace and Comments</h3>
+<ul>
+<li>each indentation level is exactly two spaces</li>
+<li>tabs used for indentation are a diagnostic error</li>
+<li>a line whose first non-whitespace character is <code>#</code> is a comment</li>
+<li>inline comments are not supported in v1; this keeps values such as
+<code>color: #3366cc</code> unambiguous</li>
+<li>inside a triple-quoted fenced body, a line beginning with <code>#</code> is literal Markdown content rather than a comment</li>
+</ul>
+<h3>Scalar Literals</h3>
+<ul>
+<li>integer literals are base-ten values matching <code>-?[0-9]+</code>; leading <code>+</code>, digit separators, decimals, and exponent notation are not supported</li>
+<li>leading zeroes and negative zero are accepted, but explicit formatting emits the canonical numeric value, so <code>007</code> becomes <code>7</code> and <code>-0</code> becomes <code>0</code></li>
+<li>boolean literals are exactly the lowercase bare tokens <code>true</code> and <code>false</code>; quoted equivalents are strings, and aliases or differently cased forms are invalid</li>
+<li>v1 has no <code>null</code> literal; optional fields are unset by omission, and clearing one through structured editing removes it from source</li>
+<li>a field with a colon but no same-line value introduces an indented value only when that field explicitly supports one, such as a fenced <code>content</code> body; it never implicitly means an empty string, which is written as <code>&quot;&quot;</code></li>
+</ul>
+<h3>Field Order and Repetition</h3>
+<ul>
+<li>fields may be written in any order unless their declaration explicitly gives
+them ordered semantics</li>
+<li>the formatter emits a canonical field order</li>
+<li>duplicate non-repeatable fields are errors rather than implicit overrides</li>
+<li>ordered repeated declarations, including conditional text variants and layout
+children, retain source order</li>
+</ul>
+<h3>Handles and References</h3>
+<ul>
+<li>top-level handles occupy separate namespaces by declaration kind</li>
+<li>owned <code>text</code>, <code>image</code>, and <code>input</code> handles are scoped to their owner and declaration kind; the same handle may be reused across those kinds</li>
+<li><code>choice-source</code> handles are scoped to their section</li>
+<li>layout container handles are scoped to their layout</li>
+<li>forward references and references across package files are allowed</li>
+<li>references are resolved and validated after all package files have been
+merged</li>
+<li>user-facing section and choice names are not identity keys and may repeat without a diagnostic; interfaces disambiguate them with containing context or handles when necessary</li>
+<li>choice <code>group</code> names occupy one package-wide membership namespace across every file and section</li>
+<li>a section-local <code>choice-source</code> group selector resolves against that package-wide namespace</li>
+<li>group names use the same canonical <code>^[a-z0-9]+(?:_[a-z0-9]+)*$</code> syntax as handles; tags remain unrelated free-text strings</li>
+<li>resource names use that same canonical syntax so costs and grants cannot create visually ambiguous duplicate balances</li>
+</ul>
+<h3>Package Order</h3>
+<p>Where declaration order has observable meaning, the merged order is
+deterministic: declarations in <code>jump.jdef</code> come first, followed by
+<code>choices.jdef</code>, then <code>layout.jdef</code>; source order is retained within each
+file. Declaration-specific ordering rules still apply after that merge.</p>
+<h3>Errors, Recovery, and Formatting</h3>
+<ul>
+<li>unknown fields are errors and diagnostics should suggest a close known
+spelling when possible</li>
+<li>the source editor may recover from only deterministic, low-risk errors whose
+repair does not require guessing author intent</li>
+<li>when deterministic recovery is not possible, preview retains the last valid
+document while showing the current diagnostics</li>
+<li>editing preserves the author&#39;s formatting; an explicit format action applies
+canonical indentation, field order, and spacing</li>
+</ul>
+<p>The exact field compatibility matrix for each declaration kind remains to be
+specified.</p>
+<h2>Package Structure</h2>
+<h3>Rigid Project Structure</h3>
+<p>The package structure should be fixed by the language/tooling rather than left
+to author-defined imports/includes.</p>
+<p>This avoids turning file organization into a module system.</p>
+<h3>Distributable Container</h3>
+<p>A distributable Jump package uses the user-facing <code>.jmp</code> extension and is
+internally a standard ZIP archive. The application presents it as one Jump package;
+the ZIP implementation detail remains available to standard inspection tools without
+being exposed in ordinary workflows.</p>
+<p>Canonical exports place <code>jump.jdef</code>, optional companion definition files,
+and <code>assets/</code> directly at the archive root. Import also accepts the complete
+package beneath one enclosing directory, then treats that directory as the package
+root.</p>
+<p>Archive validation rules:</p>
+<ul>
+<li>only regular files are permitted; symbolic links, hard links, device entries, and other special archive entries are rejected</li>
+<li>absolute paths, parent traversal with <code>..</code>, and any normalized path escaping the package root are rejected</li>
+<li>paths that collide after separator normalization, Unicode normalization, or case folding are errors so a package has the same contents on case-sensitive and case-insensitive platforms</li>
+<li>the archive root is limited to the known <code>.jdef</code> files and <code>assets/</code>; additional regular asset files may remain even when no current declaration references them</li>
+<li>import applies implementation-defined limits to entry count, individual compressed and expanded size, total expanded size, compression ratio, image dimensions, and decoded image memory; exceeding a limit rejects the package with a clear safety diagnostic rather than partially importing it</li>
+</ul>
+<p>Every file beneath <code>assets/</code>, referenced or not, must be a valid graphical
+asset in the initial allowlist: PNG, JPEG, GIF, WebP, or AVIF. Validation checks the
+filename extension against detected file signatures and requires the corresponding
+image decoder to validate the content. A mismatched extension, malformed image,
+unsupported format, non-graphical file, or file exceeding decode limits rejects the
+entire import with a prominent potentially unsafe-package diagnostic. SVG is not
+accepted in v1 because it may contain scripts, external references, and other active
+content. Import never exposes rejected asset bytes to a renderer and never keeps a
+partial package.</p>
+<h3>Current File Roles</h3>
+<h4><code>jump.jdef</code></h4>
+<p>Required.</p>
+<p>Responsibilities:</p>
+<ul>
+<li>declare the jump root</li>
+<li>define package identity and metadata</li>
+<li>contain package-wide secondary <code>resource</code> declarations</li>
+<li>act as the primary file in single-file mode</li>
+<li>allow other top-level declaration kinds when the author chooses not to split
+them out</li>
+</ul>
+<h4><code>choices.jdef</code></h4>
+<p>Optional.</p>
+<p>Responsibilities:</p>
+<ul>
+<li>contain only top-level <code>choice</code> declarations</li>
+</ul>
+<h4><code>layout.jdef</code></h4>
+<p>Optional.</p>
+<p>Responsibilities:</p>
+<ul>
+<li>contain only top-level <code>theme</code> declarations</li>
+<li>contain only top-level <code>section-layout</code> declarations</li>
+<li>contain only top-level <code>choice-layout</code> declarations</li>
+<li>contain only top-level <code>trait-layout</code> declarations</li>
+</ul>
+<h4><code>assets/</code></h4>
+<p>Optional.</p>
+<p>Responsibilities:</p>
+<ul>
+<li>hold referenced images and similar external files</li>
+</ul>
+<h3>Merge Rules</h3>
+<p>The loader should merge the package into one canonical jump document.</p>
+<p>Current direction:</p>
+<ul>
+<li><code>jump.jdef</code> is always authoritative for jump/package identity</li>
+<li><code>choices.jdef</code> and <code>layout.jdef</code> are organizational companion files, not
+independent modules</li>
+<li>there is no file-level import/include syntax</li>
+</ul>
+<h3>Mixed Placement Policy</h3>
+<p>The current agreed policy is intentionally soft for author ergonomics:</p>
+<ul>
+<li><code>jump.jdef</code> may contain everything in single-file mode</li>
+<li>if <code>choices.jdef</code> exists, mixed placement remains valid but should produce a
+warning</li>
+<li>if <code>layout.jdef</code> exists, mixed placement of presentation declarations remains
+valid but should produce a warning</li>
+</ul>
+<p>Tooling should help the user normalize the package rather than merely complain.</p>
+<p>The editor should eventually support guided extraction, such as:</p>
+<ul>
+<li>moving top-level <code>choice</code> declarations into <code>choices.jdef</code></li>
+<li>moving <code>theme</code>, <code>section-layout</code>, <code>choice-layout</code>, and <code>trait-layout</code>
+declarations into <code>layout.jdef</code></li>
+</ul>
+<h2>Top-Level Declarations</h2>
+<p>The agreed direction is to keep the grammar consistent across files.</p>
+<p>Top-level declarations should use the same syntax everywhere. File type limits
+which declarations are allowed in that file, but declarations do not change
+shape depending on location.</p>
+<h3>Current Allowed Declaration Kinds</h3>
+<h4>In <code>jump.jdef</code></h4>
+<ul>
+<li>exactly one top-level <code>jump</code></li>
+<li>top-level <code>resource</code></li>
+<li>top-level <code>section</code></li>
+<li>top-level <code>choice</code></li>
+<li>top-level <code>theme</code></li>
+<li>top-level <code>section-layout</code></li>
+<li>top-level <code>choice-layout</code></li>
+<li>top-level <code>trait-layout</code></li>
+<li>other declaration kinds may be added later if needed</li>
+</ul>
+<h4>In <code>choices.jdef</code></h4>
+<ul>
+<li>top-level <code>choice</code> only</li>
+</ul>
+<h4>In <code>layout.jdef</code></h4>
+<ul>
+<li>top-level <code>theme</code> only</li>
+<li>top-level <code>section-layout</code> only</li>
+<li>top-level <code>choice-layout</code> only</li>
+<li>top-level <code>trait-layout</code> only</li>
+</ul>
+<h2>Declaration Shape</h2>
+<h3>Keyword-Only Start</h3>
+<p>Declarations should begin with a keyword only.</p>
+<p>Identity should not be positional.</p>
+<p>Preferred form:</p>
+<pre><code class="language-text">choice
+  handle: flight
+  name: &quot;Flight&quot;
+</code></pre>
+<p>Not:</p>
+<pre><code class="language-text">choice flight
+  name: &quot;Flight&quot;
+</code></pre>
+<p>This keeps the language regular and simplifies parser and editor behavior.</p>
+<h3>Handles Are Author-Facing, Not Internal IDs</h3>
+<p>The author-facing reference token should be called <code>handle</code>, not <code>id</code>.</p>
+<p>Internal IDs remain model-only.</p>
+<h3>Handle Requirements</h3>
+<p>For top-level referenceable declarations other than the unique root <code>jump</code>:</p>
+<ul>
+<li><code>section</code> and <code>choice</code> require both a stable <code>handle</code> and a user-facing <code>name</code></li>
+<li>every <code>choice-source</code> and owned <code>text</code>, <code>image</code>, and <code>input</code> block requires a stable <code>handle</code></li>
+<li>every top-level <code>theme</code>, <code>section-layout</code>, <code>choice-layout</code>, and <code>trait-layout</code> declaration requires a stable <code>handle</code></li>
+<li>if <code>handle</code> exists, <code>name</code> may be omitted where that makes sense</li>
+<li>presentation declarations may rely on their required handle alone; a user-facing <code>name</code> is optional</li>
+</ul>
+<h3>Derived Handles</h3>
+<p>Tooling may generate required handles for author convenience, but generated handles are materialized into source and remain stable afterward.</p>
+<p>Current direction:</p>
+<ul>
+<li>when creating a declaration with a required handle, tooling may derive and immediately write an initial handle from its <code>name</code> or conventional role</li>
+<li>derived handles should be normalized consistently</li>
+<li>renaming a declaration does not automatically change a materialized handle</li>
+</ul>
+<p>Current agreed handle syntax:</p>
+<ul>
+<li>authored handles must match <code>^[a-z0-9]+(?:_[a-z0-9]+)*$</code></li>
+<li>lowercase ASCII letters, digits, and single separating underscores are the only allowed characters</li>
+<li>handles may begin with digits</li>
+<li>uppercase letters, whitespace, hyphens, punctuation, repeated underscores, and leading or trailing underscores are invalid rather than silently normalized by the parser</li>
+<li>the Editor may generate a canonical handle or offer a deterministic Quick Fix, but the corrected canonical value is written into source</li>
+</ul>
+<p>Current generation examples:</p>
+<ul>
+<li><code>&quot;My Thing!&quot; -&gt; my_thing</code></li>
+<li><code>&quot;3 Perks&quot; -&gt; 3_perks</code></li>
+</ul>
+<h3>Handle Generation</h3>
+<p>Generated handles are conveniences for creating required source fields, not implicit identities.</p>
+<p>Current collision rule:</p>
+<ul>
+<li>collisions should not be silently resolved by automatic suffixing in saved
+source</li>
+<li>collisions should instead produce diagnostics and prompt explicit
+author correction</li>
+</ul>
+<h2>Semantic vs Presentation Separation</h2>
+<h3>Sections Reference Layouts; They Do Not Inline Layout</h3>
+<p>Sections should reference layouts by handle rather than containing their own
+inline layout trees.</p>
+<p>This should be true in both single-file mode and split-file mode.</p>
+<p>Example direction:</p>
+<pre><code class="language-text">section
+  handle: origins
+  name: &quot;Origins&quot;
+  layout: origin_section
+</code></pre>
+<p>with the presentation declared separately:</p>
+<pre><code class="language-text">section-layout
+  handle: origin_section
+</code></pre>
+<h3>Choices Follow the Same Rule</h3>
+<p>Choices should not inline their presentation template.</p>
+<p>They should reference a <code>choice-layout</code> by handle where needed, or inherit from
+section/jump/system defaults.</p>
+<p>This keeps presentation concerns out of semantic declarations.</p>
+<h2>Layout Resolution</h2>
+<p>The parser/runtime should have built-in default layouts for sections and
+choices.</p>
+<p>These built-ins apply when the author does not specify anything more specific.</p>
+<p>If a section, choice, Jump default, or expansion override explicitly names a layout declaration that does not exist, the Editor reports a warning and previews with the applicable built-in default layout. The unresolved reference is an error in a distributable package. This differs from an absent typed content target inside an existing reusable layout, which is valid and simply collapses.</p>
+<h3>Section Layout Precedence</h3>
+<p>Current direction:</p>
+<ol>
+<li>section-specific layout reference</li>
+<li>jump-level default section layout</li>
+<li>built-in section layout</li>
+</ol>
+<h3>Choice Layout Precedence</h3>
+<p>Current direction:</p>
+<ol>
+<li>choice-specific layout reference</li>
+<li>choice-layout specified by the section expansion using that choice</li>
+<li>jump-level default choice layout</li>
+<li>built-in choice layout</li>
+</ol>
+<p>The layout used by a section expansion should be presentation-only for that
+rendering context. It should not mutate the choice definition itself.</p>
+<p>This means a choice-layout may be selected from several places:</p>
+<ul>
+<li>directly on the <code>choice</code></li>
+<li>on the <code>expand</code> node inside the surrounding <code>section-layout</code></li>
+<li>from a jump-level default</li>
+<li>from a built-in system default</li>
+</ul>
+<p>The section expansion override is contextual presentation only. It does not
+rewrite the choice&#39;s own preferred layout.</p>
+<h3>Trait Layout Direction</h3>
+<p>Trait display should be author-controllable through a dedicated <code>trait-layout</code>
+declaration.</p>
+<p>Current direction:</p>
+<ul>
+<li><code>trait-layout</code> is a top-level presentation declaration</li>
+<li>it should not be fundamentally different from a <code>choice-layout</code></li>
+<li>it should use the same general layout-tree grammar</li>
+<li>its initial built-in slot vocabulary should remain minimal</li>
+</ul>
+<p>Current minimal slot direction:</p>
+<ul>
+<li><code>name</code></li>
+</ul>
+<p>Additional trait-owned <code>text</code> and <code>image</code> content should be placed through
+typed handled-content leaves, just as prose and visuals are handled in
+<code>choice-layout</code>.</p>
+<h2>Layout Node Vocabulary</h2>
+<h3>Built-In Default Layouts</h3>
+<p>The renderer provides intentionally plain built-in section and choice layouts. Authors use them automatically when neither the declaration nor the Jump root selects an authored layout.</p>
+<p>Built-in layouts render only their supported built-in slots and, for sections, declared choice sources. They do not discover or automatically place arbitrary owned <code>text</code>, <code>image</code>, or <code>input</code> blocks. Those blocks render only when an authored layout references them explicitly, avoiding nonstandard discovery rules and unintentional hodgepodge presentation.</p>
+<p>The selected default section presentation is a vertical <code>stack</code> with standard spacing: the section <code>name</code> slot appears first, followed by every choice source in declaration order. Each source receives a compact source wrapper containing its contextual <code>roll</code> slot and one <code>expand</code>; an inapplicable roll slot collapses.</p>
+<p>The selected default choice presentation is a compact vertical <code>stack</code>. An <code>inline</code> header places <code>name</code> and <code>cost</code> apart, followed by <code>tags</code>, then an <code>inline</code> action row containing <code>control</code> and choice-level <code>roll</code>. This includes every built-in choice slot without discovering arbitrary owned blocks.</p>
+<p>Built-in layout containers are implementation-owned and do not expose author-facing handles. Equivalent authored layouts use ordinary handled containers.</p>
+<p>At runtime, empty or inapplicable slots reserve no space. A container whose children all collapse for that reason also collapses. The structured layout editor still shows those nodes as authoring placeholders so their positions remain understandable.</p>
+<p>Authored layouts replace presentation only; they do not change semantic membership or state.</p>
+<p>The current agreed direction for layout trees is:</p>
+<ul>
+<li>exactly one root node per <code>section-layout</code>, <code>choice-layout</code>, or
+<code>trait-layout</code></li>
+<li>the root node must be a container: <code>stack</code>, <code>inline</code>, <code>wrap</code>, or <code>grid</code></li>
+<li><code>text</code>, <code>image</code>, <code>input</code>, <code>slot</code>, <code>rule</code>, and <code>expand</code> are never valid as the layout root</li>
+<li>container nodes:<ul>
+<li><code>stack</code></li>
+<li><code>inline</code></li>
+<li><code>wrap</code></li>
+<li><code>grid</code></li>
+</ul>
+</li>
+<li>leaf/special nodes:<ul>
+<li><code>text</code></li>
+<li><code>image</code></li>
+<li><code>input</code></li>
+<li><code>slot</code></li>
+<li><code>rule</code></li>
+<li><code>expand</code></li>
+</ul>
+<p>A <code>grid</code> requires <code>columns</code> as an integer from 1 through 12. This is the authored maximum; responsive rendering may reduce the effective count for narrower space but never exceeds it.</p>
+<p>Each direct grid child occupies one cell in source order. V1 has no row-span or column-span fields; authors compose wider regions with nested containers or a different surrounding layout.</p>
+</li>
+</ul>
+<h3>Node Shape</h3>
+<p>Container nodes are nested declaration blocks with author-defined handles.</p>
+<p>Simple leaf references use a compact scalar form.</p>
+<p>Typed <code>text</code>, <code>image</code>, and <code>input</code> references, as well as <code>slot</code>, support equivalent compact and block forms. Compact leaves use forms such as <code>text: description</code>, <code>image: visual</code>, <code>input: quantity</code>, or <code>slot: cost</code>. A block leaf requires <code>target</code> and may add presentation fields:</p>
+<pre><code class="language-text">text
+  target: description
+  padding: sm
+
+slot
+  target: cost
+  align: end
+</code></pre>
+<p>A horizontal separator is a standalone targetless leaf:</p>
+<pre><code class="language-text">rule</code></pre>
+<p><code>rule</code> renders a theme-aware horizontal line across its available layout width. It has no target, handle, child nodes, or v1 presentation fields; surrounding containers control its spacing. Other leaf nodes likewise do not have handles or children. A typed leaf’s block form does not create a different semantic node; it only provides room for presentation fields.</p>
+<p>The same typed content target or <code>slot</code> target may appear more than once in one layout. Each occurrence is an independent presentation node over the same underlying content or control. The generic <code>ref</code> form is not supported because declaration-kind namespaces allow matching handles.</p>
+<p>A typed content leaf whose target is not present on a particular section or choice is valid and collapses without reserving runtime space. This permits one authored layout to be reused across content with different optional fields. The Editor warns about an absent target by default and shows the leaf as a structured-authoring placeholder; users may suppress that diagnostic with <code>editor.warnMissingLayoutTargets</code>. A missing target does not make a distributable package invalid.</p>
+<p>Current container-handle rules:</p>
+<ul>
+<li>every <code>stack</code>, <code>inline</code>, <code>wrap</code>, and <code>grid</code> node must declare a <code>handle</code></li>
+<li>container handles must be unique within their owning <code>section-layout</code>, <code>choice-layout</code>, or <code>trait-layout</code></li>
+<li>container handles use the same normalization rules as other authored handles</li>
+<li>container handles identify levels for authoring, navigation, diagnostics, and refactoring</li>
+<li>the nested source structure remains authoritative for parent/child relationships; a handle identifies a container but does not define its parent</li>
+<li>when a layout is created, tooling should give its root container the explicit handle <code>root</code>; authors may rename it</li>
+<li>containers may temporarily have no children; this produces a warning, shows an authoring placeholder in the Editor, and contributes no runtime content</li>
+</ul>
+<p>Example direction:</p>
+<pre><code class="language-text">choice-layout
+  handle: origin_card
+
+  inline
+    handle: card
+    gap: md
+    align: start
+
+    image: visual
+
+    stack
+      handle: details
+      gap: sm
+      slot: name
+      text: description
+      slot: cost
+
+    slot: control
+</code></pre>
+<pre><code class="language-text">section-layout
+  handle: origin_section
+
+  stack
+    handle: root
+    gap: md
+    text: intro_text
+
+    expand
+      source: main
+      using: origin_card
+</code></pre>
+<h3>Expansion Scope</h3>
+<p><code>expand</code> should remain intentionally narrow in v1.</p>
+<p>Current direction:</p>
+<ul>
+<li><code>expand</code> is valid only inside <code>section-layout</code> in v1</li>
+<li><code>expand</code> is not valid inside <code>choice-layout</code> or <code>trait-layout</code></li>
+<li><code>expand</code> targets a named section-local choice source</li>
+<li><code>expand</code> may specify <code>using</code> for a <code>choice-layout</code> override</li>
+<li><code>expand</code> should not query descriptive tags or groups directly</li>
+<li>direct expansion of individually named choices can wait until there is a
+concrete need</li>
+<li>an <code>expand</code> naming a choice source absent from the rendered section produces an Editor warning and a distributable-package error; unlike optional typed content leaves, source expansion is structural and does not silently collapse in a valid package</li>
+<li>one section layout may expand a given choice-source target at most once; duplicate expansion is an error because it would render the same interactive controls repeatedly</li>
+<li>a section with no <code>choice-source</code> is a valid informational section and produces no source-related warning</li>
+<li>a declared choice source that currently matches no choices produces a warning</li>
+<li>when an explicit section layout omits a populated choice source, the source remains valid but produces an unreachable-source warning</li>
+</ul>
+<h3>Choice Sources</h3>
+<p>Sections need a semantic way to associate choices with themselves without
+making layouts decide membership.</p>
+<p>Current direction:</p>
+<ul>
+<li>a <code>section</code> may define one or more nested <code>choice-source</code> declarations</li>
+<li>each <code>choice-source</code> has a required section-local <code>handle</code></li>
+<li>each <code>choice-source</code> accepts zero or one <code>group</code> selector</li>
+<li>a source without a group is valid WIP structure but cannot contain choices and produces a warning</li>
+<li><code>group</code> is not repeatable on <code>choice-source</code> in v1; authors combine existing categories by adding one shared group to the relevant choices</li>
+<li>a <code>choice-source</code> is where semantic membership/filtering is declared</li>
+<li><code>expand source: ...</code> resolves against those section-local handles</li>
+</ul>
+<p>Current rules:</p>
+<ul>
+<li>if a section has exactly one <code>choice-source</code>, <code>expand</code> may omit <code>source</code>, but the source declaration still requires its handle</li>
+<li>if <code>source</code> is omitted when the rendered section has zero or multiple choice sources, the Editor warns and renders no expansion for that node during recovery; the ambiguity is a distributable-package error</li>
+<li>the handle is the stable identity used by layout references and persisted source-level roll records</li>
+<li>renaming, reordering, or adding other sources does not change an existing source handle</li>
+<li><code>choice-source</code> should own grouped pick behavior such as <code>single</code> vs <code>multi</code>
+rather than forcing those concepts onto each individual choice</li>
+</ul>
+<p>Example direction:</p>
+<pre><code class="language-text">section
+  handle: origins
+  name: &quot;Origins&quot;
+  layout: origin_section
+
+  choice-source
+    handle: main
+    group: origins
+    mode: single
+</code></pre>
+<p>In this model:</p>
+<ul>
+<li>the <code>section</code> decides which choices are associated with it</li>
+<li>the <code>section-layout</code> decides where those associated choices render</li>
+</ul>
+<h3>Slot Vocabulary</h3>
+<p>The initial built-in slot vocabulary is intentionally small.</p>
+<p>Current direction:</p>
+<ul>
+<li><code>name</code></li>
+<li><code>cost</code></li>
+<li><code>control</code></li>
+<li><code>roll</code></li>
+<li><code>tags</code></li>
+</ul>
+<p>Current scope:</p>
+<ul>
+<li><code>name</code>, <code>cost</code>, <code>control</code>, and <code>tags</code> are built-in choice-layout slots</li>
+<li><code>roll</code> is a built-in slot wherever the current render context exposes a roll
+control, including:<ul>
+<li><code>choice-layout</code> for choice-level <code>resolution</code></li>
+<li>section/source rendering contexts for source-level <code>resolution</code></li>
+</ul>
+</li>
+</ul>
+<p>Prose and visual content should not use dedicated built-in slots. They should
+be referenced through handled <code>text</code>, <code>image</code>, and <code>input</code> declarations via
+matching typed layout leaves.</p>
+<h2>Jump Direction</h2>
+<p>The top-level <code>jump</code> declaration is the place for root jump metadata and
+jump-wide defaults.</p>
+<p>Every Jump has an implicit engine-owned primary resource with the stable handle <code>jump_points</code>. It defaults to the display name <q>Choice Points</q>, abbreviation <q>CP</q>, and starting balance 1000. Authors never need to declare this resource, and supplements may rely on it existing.</p>
+<p>Every secondary resource referenced by costs or grants requires an authored <code>resource</code> declaration. Its <code>initial</code> field is optional and defaults to zero. Undeclared secondary-resource references are distributable-package errors, while the Editor retains them as WIP diagnostics.</p>
+<p>Secondary resources are top-level declarations in <code>jump.jdef</code>, alongside <code>jump</code> and <code>section</code>; they are not nested inside the root Jump declaration.</p>
+<p>Current direction:</p>
+<ul>
+<li>no <code>handle</code></li>
+<li>required integer <code>format</code></li>
+<li><code>name</code></li>
+<li>one or more repeated <code>author</code> fields</li>
+<li>required <code>version</code></li>
+<li>optional <code>starting-points</code></li>
+<li>optional <code>points-name</code></li>
+<li>optional <code>points-abbreviation</code></li>
+<li>optional default <code>section-layout</code></li>
+<li>optional default <code>choice-layout</code></li>
+<li>optional default <code>trait-layout</code></li>
+</ul>
+<p>Current rules:</p>
+<ul>
+<li><code>jump</code> is unique per package, so a handle adds no value here</li>
+<li><code>format</code> is required and selects the markup schema used to parse the package; the first schema uses <code>format: 1</code></li>
+<li>a package declaring a newer format than the application supports is rejected with a compatibility diagnostic that identifies the required newer application support</li>
+<li>the parser does not attempt best-effort interpretation of an unknown format</li>
+<li>supported older formats are deterministically migrated in memory to the current canonical model without rewriting installed package source</li>
+<li>the Editor offers an explicit, reviewable format-upgrade action for older source projects; merely opening or previewing the project does not upgrade its files</li>
+<li>logical package identity is the declared Jump <code>name</code> together with its repeated <code>author</code> values; identity collisions are visible metadata conflicts for the community and application to surface rather than being hidden behind generated identifiers</li>
+<li>identity comparison applies Unicode normalization, trims leading and trailing whitespace, collapses internal whitespace, and compares case-insensitively while preserving authored text for display</li>
+<li>versions with the same name and author identity remain distinguishable by their displayed <code>version</code> and application-computed exact-content hashes</li>
+<li>at least one <code>author</code> is required and the field is repeatable rather than packed into a list</li>
+<li>a work without an identified author uses an explicit user-facing value such as <code>author: &quot;Anonymous&quot;</code> rather than omitting the field</li>
+<li>author order is preserved for display but does not affect logical package identity; identity compares the authors as an order-independent set</li>
+<li>repeating the same author value within one Jump declaration is an error</li>
+<li><code>version</code> is required user-facing metadata so installed releases can be distinguished in the library and chain</li>
+<li><code>version</code> is user-facing metadata, not the system&#39;s authoritative internal
+compatibility key</li>
+<li><code>starting-points</code> defaults to <code>1000</code>, <code>points-name</code> defaults to <code>&quot;Choice Points&quot;</code>, and <code>points-abbreviation</code> defaults to <code>&quot;CP&quot;</code></li>
+<li><code>starting-points</code> accepts any literal integer, including an authored negative starting balance, and does not accept symbolic cost tokens</li>
+<li>these fields change presentation or initial balance without changing the engine-owned <code>jump_points</code> handle</li>
+<li>internal compatibility/version tracking should continue to rely on stronger
+internal mechanisms such as hashing rather than trusting authored <code>version</code>
+strings as machine truth</li>
+</ul>
+<p>Example direction:</p>
+<pre><code class="language-text">jump
+  format: 1
+  name: &quot;Example Jump&quot;
+  author: &quot;Author One&quot;
+  author: &quot;Author Two&quot;
+  version: &quot;1.0&quot;
+  starting-points: 1000
+  points-name: &quot;Choice Points&quot;
+  points-abbreviation: &quot;CP&quot;
+  section-layout: default_section
+  choice-layout: default_choice
+  trait-layout: default_trait
+</code></pre>
+<h2>Resource Direction</h2>
+<p>Secondary currencies are top-level package-wide declarations in <code>jump.jdef</code>. Their current field direction is:</p>
+<ul>
+<li>required canonical <code>handle</code></li>
+<li>required <code>name</code></li>
+<li>optional <code>abbreviation</code></li>
+<li>optional <code>initial</code>, defaulting to <code>0</code></li>
+</ul>
+<p>The handle is the stable identity used by costs, grants, balances, conditions, and summaries. It occupies the package-wide resource namespace and may not use the reserved engine handle <code>jump_points</code>.</p>
+<p>The required name supplies expanded balance, tooltip, diagnostic, and accessibility text.</p>
+<p>When abbreviation is omitted, compact interfaces use the full name or a visibly truncated form whose complete name remains available on hover and focus.</p>
+<p><code>initial</code> accepts a literal integer only, including negative values for authored debt or deficit mechanics. Symbolic cost-scale tokens are not valid starting balances. This authored starting state is not blocked by the user setting that governs optional overspending.</p>
+<pre><code class="language-text">resource
+  handle: warehouse_points
+  name: &quot;Warehouse Points&quot;
+  abbreviation: &quot;WP&quot;
+  initial: 150
+</code></pre>
+<h2>Section Direction</h2>
+<p>Sections should stay semantically lean.</p>
+<p>Current direction:</p>
+<ul>
+<li>required <code>handle</code></li>
+<li>required <code>name</code></li>
+<li><code>layout?</code></li>
+<li>repeated nested <code>choice-source</code></li>
+<li>nested <code>text</code></li>
+<li>nested <code>image</code></li>
+</ul>
+<p>Current rules:</p>
+<ul>
+<li><code>handle</code> is the section’s stable package-local identity for navigation, owned choice sources, and layout references</li>
+<li>renaming a section does not automatically change its handle</li>
+<li><code>name</code> is required semantic navigation and accessibility text even when the selected section layout does not visibly render a heading</li>
+<li>a valid distributable package contains at least one top-level <code>section</code></li>
+<li>zero choices are valid, allowing an informational package, but a zero-section project remains an incomplete Editor draft and cannot be exported as a valid package</li>
+<li>sections do not inline layout trees</li>
+<li>sections do not own nested <code>choice</code> declarations</li>
+<li>source order defines section order in v1</li>
+<li>section prose should be expressed through nested <code>text</code> blocks rather than
+special prose fields</li>
+<li>sections do not currently need their own <code>tags</code></li>
+</ul>
+<p>Example direction:</p>
+<pre><code class="language-text">section
+  handle: origins
+  name: &quot;Origins&quot;
+  layout: origin_section
+
+  choice-source
+    handle: main
+    group: origins
+
+  text
+    handle: description
+    content:
+      &quot;&quot;&quot;
+      Choose an origin.
+      &quot;&quot;&quot;
+
+  image
+    handle: banner
+    src: &quot;origins.png&quot;
+    alt: &quot;A banner for the origins section&quot;
+</code></pre>
+<h2>Ownership of Content Blocks</h2>
+<p>Content should stay local by default.</p>
+<p>Current direction:</p>
+<ul>
+<li><code>section</code> owns its <code>text</code> and <code>image</code> blocks</li>
+<li><code>choice</code> owns its content fields and subordinate content blocks</li>
+<li>layouts reference handled owned content with typed <code>text</code>, <code>image</code>, or <code>input</code> leaves</li>
+<li>layouts use <code>slot</code> only for the small built-in slot vocabulary such as
+<code>name</code>, <code>cost</code>, <code>control</code>, <code>roll</code>, and <code>tags</code></li>
+<li>only genuinely reusable/global declarations belong at the top level</li>
+</ul>
+<p>This avoids turning the language into a global registry of every content node.</p>
+<h2>Section-Owned Blocks</h2>
+<p>Because layouts need to reference section-owned blocks, those blocks need
+author-facing handles.</p>
+<p>Current direction:</p>
+<ul>
+<li>every owned <code>text</code>, <code>image</code>, and <code>input</code> block requires a stable owner-local <code>handle</code></li>
+<li>tooling may generate conventional initial handles such as <code>description</code> or <code>visual</code>, but writes them into source</li>
+<li>renaming or rearranging surrounding content does not change the block handle</li>
+</ul>
+<p>Auxiliary prose should be represented as generic <code>text</code> blocks rather than as
+special one-off text fields or role-tagged variants.</p>
+<h3><code>text</code> Direction</h3>
+<p>The current direction for <code>text</code> is intentionally lean:</p>
+<ul>
+<li>required <code>handle</code></li>
+<li>optional <code>content:</code></li>
+<li>zero or more <code>content when ...:</code></li>
+</ul>
+<p>A text block may contain only conditional variants and renders nothing when none match. A block with neither base content nor conditional variants is allowed as WIP structure and produces a warning.</p>
+<p>Example direction:</p>
+<pre><code class="language-text">text
+  handle: description
+  content:
+    &quot;&quot;&quot;
+    Base text.
+    &quot;&quot;&quot;
+
+  content when rank = 2:
+    &quot;&quot;&quot;
+    Alternate text.
+    &quot;&quot;&quot;
+</code></pre>
+<p>This replaces the earlier idea of special prose fields like <code>description:</code>.
+Prose should be authored uniformly as <code>text</code> blocks, with default renderers
+looking for documented conventional handles such as <code>description</code> where that is
+useful.</p>
+<h3>Placeholder Direction</h3>
+<p>Placeholder interpolation should be supported in renderable string content
+using property handles such as <code>{{companion_name}}</code>.</p>
+<p>Current direction:</p>
+<ul>
+<li>placeholders are allowed in user-facing/renderable string values</li>
+<li>placeholders are allowed in <code>text.content</code></li>
+<li>placeholders are allowed in quoted scalar strings such as <code>name</code> and <code>alt</code></li>
+<li>placeholders are not allowed in structural/reference fields</li>
+<li>a placeholder naming no property defined by package grants produces an Editor warning and a distributable-package error</li>
+<li>a known property that is currently unset for the active actor renders as an empty string without a diagnostic</li>
+<li>if a <code>name</code> contains placeholders, it must not be used for implicit handle
+derivation</li>
+</ul>
+<p>This keeps runtime interpolation out of parse-time structural identity.</p>
+<h3><code>image</code> Direction</h3>
+<p>The current direction for <code>image</code> is also intentionally lean:</p>
+<ul>
+<li>required <code>handle</code></li>
+<li>optional WIP <code>src</code></li>
+<li>optional <code>alt</code></li>
+</ul>
+<p>Example direction:</p>
+<pre><code class="language-text">image
+  handle: banner
+  src: &quot;origins.png&quot;
+  alt: &quot;A banner for the origins section&quot;
+</code></pre>
+<p>Current rules:</p>
+<ul>
+<li>an image may temporarily omit <code>src</code>; it produces a warning and renders a compact authoring placeholder identified by its handle</li>
+<li>an image without <code>src</code> is incomplete for package export even though the Editor can preserve and preview the WIP block</li>
+<li><code>src</code> is local/project-relative only in v1</li>
+<li>remote image URLs are not part of the format</li>
+<li>asset paths use portable forward slashes and must resolve inside the package directory</li>
+<li>absolute paths, URI schemes, parent traversal with <code>..</code>, and any normalized path that escapes the package are errors</li>
+<li>a safe path whose referenced file is missing produces an Editor warning and a missing-image placeholder during authoring</li>
+<li>a missing referenced asset is an error when exporting or importing a distributable package</li>
+<li>omitted <code>alt</code> renders as empty alternative text and produces an accessibility warning by default</li>
+<li>users may suppress the missing-alt warning through <code>editor.warnMissingImageAlt</code>; suppression changes diagnostics only and does not modify package source</li>
+<li><code>alt</code> is a renderable text field and may therefore use placeholders and
+conditional <code>when</code> variants just like other renderable text fields</li>
+<li>image sizing belongs in layout/presentation, not in the semantic <code>image</code>
+declaration</li>
+</ul>
+<p>This same generic <code>image</code> block model should apply to choice-owned visual
+content as well. The difference is ownership context, not syntax. In practice,
+default choice layouts may look for an image block with a conventional handle
+such as <code>visual</code>.</p>
+<h3><code>input</code> Direction</h3>
+<p>Inputs should be minimal structural declarations owned by a <code>choice</code>.</p>
+<p>Current direction:</p>
+<ul>
+<li>required <code>handle</code></li>
+<li>required <code>selection</code></li>
+<li>optional <code>min</code> and <code>max</code> where the selection kind supports a
+bounded count</li>
+</ul>
+<p>Current supported <code>selection</code> values:</p>
+<ul>
+<li><code>text</code></li>
+<li><code>integer</code></li>
+<li><code>select</code></li>
+<li><code>companions</code></li>
+</ul>
+<p>Inputs have no default selection kind because text, integer, select, and companion roster controls have different state and validation requirements.</p>
+<p>Example direction:</p>
+<pre><code class="language-text">input
+  handle: companion_name_input
+  selection: text
+
+  grant
+    kind: property
+    handle: companion_name
+</code></pre>
+<p>Inputs do not need a <code>name</code> field. If the rendered UI needs visible labeling,
+that labeling should come from nearby authored content, typically <code>text</code>
+blocks, rather than from a special input-only label field.</p>
+<p>When the owning choice becomes unselected, nested input values remain stored as dormant chain-entry state so reselection restores them. Dormant inputs do not apply grants, properties, costs, or other effects. Removing the chain entry deletes them with the rest of that entry’s state.</p>
+<p><code>selection: companions</code> is a runtime roster picker rather than an authored
+string list:</p>
+<ul>
+<li>its values are stable companion record identities, not names or authored
+options</li>
+<li>the available roster contains companions that exist at the current chain-entry
+evaluation point</li>
+<li><code>max</code> is required and must be a positive integer</li>
+<li><code>min</code> defaults to <code>0</code> and must not exceed <code>max</code></li>
+<li>the input prevents selecting the same companion more than once</li>
+<li>authors label and explain the picker with nearby owned <code>text</code>, as with other
+inputs</li>
+</ul>
+<h2>Choice Direction</h2>
+<p>Choices should be structured around:</p>
+<ul>
+<li>identity and organization</li>
+<li>owned content</li>
+<li>mechanics</li>
+</ul>
+<p>Current direction:</p>
+<ul>
+<li>required <code>handle</code></li>
+<li><code>name</code></li>
+<li><code>layout?</code></li>
+<li><code>species?</code> for Origin choices</li>
+<li>repeated <code>tag</code></li>
+<li>zero or more repeated <code>group</code> fields</li>
+<li>nested <code>text</code></li>
+<li>nested <code>image</code></li>
+<li>nested <code>input</code></li>
+<li>optional <code>selection</code></li>
+<li>repeated nested mechanics declarations such as <code>cost</code> and <code>grant</code></li>
+</ul>
+<p>Current rules:</p>
+<ul>
+<li><code>handle</code> is the stable package-local identity used by saved selections, costs, grants, roll results, and references</li>
+<li>the Editor may generate the initial handle from the choice name, but renaming the displayed choice does not automatically change its handle</li>
+<li><code>name</code> should remain required on <code>choice</code></li>
+<li>a choice may declare no groups; it remains valid and available in Editor navigation but is unreachable by v1 section choice sources</li>
+<li>an ungrouped choice produces a warning rather than a package-validity error</li>
+<li>a choice may belong to multiple distinct groups, but repeating the same canonical group on one choice is an error because membership is set-like</li>
+<li><code>layout</code> remains optional because section expansion usually supplies layout
+context</li>
+<li><code>species</code> is optional and valid only on a choice that belongs to the conventional
+<code>origins</code> group</li>
+<li><code>selection</code> should default to <code>toggle</code> when omitted</li>
+<li>current preferred <code>selection</code> values are:<ul>
+<li><code>toggle</code></li>
+<li><code>text</code></li>
+<li><code>integer</code></li>
+<li><code>select</code></li>
+</ul>
+</li>
+<li><code>integer</code> may carry <code>min</code> and <code>max</code></li>
+<li><code>text</code>, <code>integer</code>, and <code>select</code> choices have an explicit unset state distinct from every valid value</li>
+<li>a non-toggle choice applies its costs and grants only while it has a value</li>
+<li>empty or whitespace-only text is unset; integer zero remains a valid value when allowed by the bounds</li>
+<li>every non-toggle choice control must let the user return to unset, which removes its costs and grants during recalculation</li>
+<li>manual integer selections may omit either or both bounds</li>
+<li>an integer choice using <code>resolution: random</code> or <code>resolution: either</code> requires finite <code>min</code> and <code>max</code> values</li>
+<li><code>min</code> and <code>max</code> are inclusive</li>
+<li>integer random resolution samples uniformly from every integer in the inclusive range</li>
+<li>v1 has no integer <code>step</code> field; integer controls advance by one, and sparse numeric domains use <code>selection: select</code></li>
+<li><code>resolution</code> is optional and applies only where the choice&#39;s own selection
+domain can be randomly resolved</li>
+<li>current preferred <code>resolution</code> values are:<ul>
+<li><code>random</code></li>
+<li><code>either</code></li>
+</ul>
+</li>
+<li>prose should be authored as nested <code>text</code> blocks with conventional handles
+such as <code>description</code></li>
+<li>choice-owned visual content should be authored as nested <code>image</code> blocks with
+conventional handles such as <code>visual</code></li>
+</ul>
+<p>Example direction:</p>
+<pre><code class="language-text">choice
+  handle: flight
+  name: &quot;Flight&quot;
+  layout: perk_card
+
+  tag: movement
+  tag: perk
+  group: perks
+
+  text
+    handle: description
+    content:
+      &quot;&quot;&quot;
+      You can fly.
+      &quot;&quot;&quot;
+
+  image
+    handle: visual
+    src: &quot;flight.png&quot;
+    alt: &quot;A figure in flight&quot;
+
+  input
+    handle: custom_name_input
+    selection: text
+
+    grant
+      kind: property
+      handle: custom_name
+
+  selection: toggle
+
+  cost
+    resource: jump_points
+    amount: 100
+
+  grant: perk
+</code></pre>
+<h3>Optional Origin Species</h3>
+<p>An Origin may identify the species it gives the selected actor so the Chain Tracker
+can label the current Jump without inferring species from names, prose, tags, or images.</p>
+<p>Current direction:</p>
+<ul>
+<li><code>species</code> is an optional user-facing quoted string on a choice in
+<code>group: origins</code></li>
+<li>when that Origin is selected, its value becomes the actor&#39;s displayed Jump species</li>
+<li>when omitted, the Chain Tracker uses an active Bestial Body Mod presentation such as
+<q>Wolf Demi-Human</q>, or defaults to <q>Human</q> when no such presentation applies</li>
+<li><code>species</code> is descriptive metadata, not a tag, prerequisite, power category,
+or durable identity key</li>
+<li>an explicitly authored Origin species takes precedence over the fallback but does not
+rewrite Body Mod presentation; for example, Jump species may be <q>Elf</q> while a Bestial
+Body Mod is summarized separately as <q>Wolf Demi-Human</q></li>
+<li>if evaluation somehow produces multiple active Origin species values for one actor,
+the result is ambiguous and receives a diagnostic rather than silently choosing one</li>
+</ul>
+<p>Example direction:</p>
+<pre><code class="language-text">choice
+  handle: moon_elf
+  name: &quot;Moon Elf&quot;
+  group: origins
+  species: &quot;Elf&quot;
+
+  text
+    handle: description
+    content:
+      &quot;&quot;&quot;
+      You were raised among the moonlit courts.
+      &quot;&quot;&quot;
+</code></pre>
+<h3>Choice Defaults and Inheritance</h3>
+<p>The current agreed defaults are:</p>
+<ul>
+<li>omitted <code>selection</code> means <code>toggle</code></li>
+<li>omitted <code>layout</code> means the choice uses contextual or default layout</li>
+<li>omitted <code>resolution</code> means manual-only entry/selection</li>
+</ul>
+<h3>Choice Resolution Direction</h3>
+<p>Rolling is not a separate selection kind. It is one way a selection is
+resolved.</p>
+<p>Current direction:</p>
+<ul>
+<li>choice-level <code>resolution</code> applies to choice-level value domains such as:<ul>
+<li><code>integer</code></li>
+<li><code>select</code></li>
+</ul>
+</li>
+<li>current preferred authored values are:<ul>
+<li><code>random</code></li>
+<li><code>either</code></li>
+</ul>
+</li>
+<li>omitted <code>resolution</code> means manual-only</li>
+<li>if <code>resolution: random</code>, the value must be rolled and cannot be manually set</li>
+<li>if <code>resolution: either</code>, the user may roll for a free value or manually
+choose and incur normal cost rules</li>
+<li>for flat-cost integer and select choices, the exact recorded rolled value is free; another current value uses normal cost, and returning to the recorded value restores free resolution</li>
+<li>for an integer choice with <code>cost mode: each</code>, the rolled integer is a free-rank allowance: selecting that many or fewer ranks is free, while selecting more charges only for ranks above the allowance</li>
+<li>a random-only integer may be cleared to its normal unset state without erasing the stored roll; when rerolls are disabled, Claim restores that stored result without generating another roll</li>
+<li>if a choice supports rolling, <code>slot: roll</code> should be available to position
+the roll control separately from the normal control</li>
+</ul>
+<p>Example direction:</p>
+<pre><code class="language-text">choice
+  handle: age
+  name: &quot;Age&quot;
+  selection: integer
+  min: 18
+  max: 45
+  resolution: either
+
+  cost
+    amount: small
+    mode: flat
+
+  grant
+    kind: property
+    handle: age
+</code></pre>
+<h3>Choice-Source Mode And Resolution</h3>
+<p>Grouped pick behavior should live on <code>choice-source</code>, not on each individual
+choice.</p>
+<p>Current direction:</p>
+<ul>
+<li><code>choice-source</code> may declare:<ul>
+<li><code>mode: single</code></li>
+<li><code>mode: multi</code></li>
+</ul>
+</li>
+<li>omitted <code>mode</code> defaults to <code>multi</code></li>
+<li><code>choice-source</code> may also declare <code>resolution</code> where the group itself is what
+is being randomly resolved</li>
+<li>source-level rolling applies to both <code>mode: single</code> and <code>mode: multi</code></li>
+<li>a roll on <code>mode: multi</code> selects exactly one currently available child choice; already-selected children remain eligible</li>
+<li>the rolled child is free while it remains the recorded roll result; if it was already manually selected, that existing selection becomes the rolled selection and its ordinary cost is removed during recalculation rather than toggling it off or creating a duplicate</li>
+<li>the recorded child may be unselected without erasing its roll record; selecting it again restores its free cost</li>
+<li>multi sources do not allow duplicate selections, so the roll pool contains each eligible child at most once; a reroll also excludes the current recorded roll result so replacement produces a different result</li>
+<li>rerolling replaces the prior rolled result rather than adding another rolled selection; the previous result becomes unselected unless it is independently required by another state rule</li>
+<li>each chain entry records whether each source-level roll has occurred and which child it produced</li>
+<li>without the user setting <code>chain.allowRerolls</code>, a recorded roll cannot be rolled again; Editor preview rolls are nonpersistent sandbox state</li>
+<li>removing a chain entry deletes its choices and roll records, so adding the package again creates a fresh entry whose rolls have not occurred</li>
+<li>if source-level rolling is present, <code>slot: roll</code> in the relevant rendered
+context should position the group roll control rather than forcing a roll
+button onto each child choice</li>
+</ul>
+<p>Choice controls, cost badges, roll affordances, and result communication for every supported combination are catalogued separately in <a href="choice-rendering-design.html">Controls</a>.</p>
+<p>The current agreed grant direction is:</p>
+<ul>
+<li>common grants such as <code>grant: perk</code> or <code>grant: item</code> should inherit from the
+choice by default</li>
+<li>inherited values should include the choice <code>name</code>, conventional descriptive
+<code>text</code> blocks such as <code>description</code>, and <code>tag</code> values unless explicitly
+overridden later</li>
+</ul>
+<h3>Cost Direction</h3>
+<p>Costs should support both a common shorthand and an explicit multi-resource
+block form.</p>
+<p>Current direction:</p>
+<ul>
+<li><code>cost: 100</code> means a cost against the jump&#39;s primary currency</li>
+<li><code>cost: small</code>-style shorthand should also be valid using the symbolic cost
+scale</li>
+<li>costs against different resources are cumulative</li>
+<li>a choice may declare at most one cost for each resource</li>
+<li>two shorthand costs are an error because both apply to the primary currency</li>
+<li>a shorthand cost and an explicit block naming the primary currency are also a
+duplicate-resource error</li>
+<li>the explicit block form is used for non-primary or otherwise more detailed
+costs</li>
+<li>alternative-payment groups are not part of the v1 cost syntax; multiple valid
+cost declarations all apply</li>
+</ul>
+<p>Example direction:</p>
+<pre><code class="language-text">cost: 100
+
+cost
+  resource: supplement_points
+  amount: 50
+</code></pre>
+<p>Both costs in this example apply. Repeating a cost for the same resource is an
+error and should be consolidated by the author:</p>
+<pre><code class="language-text"># Invalid: both declarations cost primary currency.
+cost: 100
+cost: 100
+
+# Valid equivalent.
+cost: 200
+</code></pre>
+<p>Current rules:</p>
+<ul>
+<li>shorthand cost applies only to the primary jump currency</li>
+<li>block-form <code>cost</code> requires an explicit <code>resource</code>; omitting it is an error rather than another way to address primary currency</li>
+<li>block-form <code>cost</code> requires <code>amount</code>; an incomplete cost block is an error rather than useful WIP structure</li>
+<li>block-form <code>amount</code> accepts the same numeric, zero, cost-token, and <code>add_*</code> token forms as primary-currency shorthand</li>
+<li>cost blocks accept <code>mode: flat</code> or <code>mode: each</code>; omitted mode defaults to <code>flat</code></li>
+<li><code>flat</code> applies the resolved amount once whenever the choice is selected</li>
+<li><code>each</code> is valid only on an integer choice and multiplies the resolved amount by the selected integer value</li>
+<li>an integer choice using <code>mode: each</code> requires an explicit <code>min</code> of zero or greater; negative quantities are invalid because they would reverse cost meaning</li>
+<li>a positive amount spends the resource and a negative amount awards its absolute value while the choice is selected</li>
+<li><code>cost: -100</code> is the concise drawback form for awarding 100 units of primary currency</li>
+<li>omitted cost and <code>cost: 0</code> both mean free; explicit zero is valid even though omission is shorter</li>
+<li>negative symbolic syntax such as <code>-small</code> is invalid; symbolic awards use the explicit inverse token family such as <code>add_small</code></li>
+<li>cost accumulation is across distinct resources, not repeated declarations for
+the same resource</li>
+</ul>
+<h3>Grant Direction</h3>
+<p>Grant shorthand should exist only where the granted thing is usually the same
+thing the choice is visibly about.</p>
+<p>Current shorthand direction:</p>
+<ul>
+<li><code>grant: perk</code></li>
+<li><code>grant: item</code></li>
+<li><code>grant: companion</code></li>
+</ul>
+<p>These shorthand forms inherit by default from the choice unless explicitly
+overridden later.</p>
+<p>Current inherited values include:</p>
+<ul>
+<li><code>choice.name</code></li>
+<li>conventional descriptive <code>text</code> such as <code>description</code></li>
+<li>conventional visual <code>image</code> such as <code>visual</code> where relevant</li>
+<li><code>choice.tag</code></li>
+</ul>
+<p>Common shorthand grants may coexist with other grant declarations on the same
+choice.</p>
+<h3>Block-Form Grants</h3>
+<p>Block-form grants are required for kinds that are not naturally represented by
+the choice&#39;s own visible identity.</p>
+<p>Every block-form grant requires an explicit <code>kind</code>. A block without one is an error rather than useful WIP structure.</p>
+<p>Grant declarations do not have author-facing handles in v1 because no markup construct references a grant. The application tracks provenance through the exact installed-package hash, owning choice or input handle, immutable grant position, and any runtime record ID created after acquisition.</p>
+<p>A <code>kind: resource</code> grant requires both a canonical <code>resource</code> reference and an <code>amount</code>. Omitting either is an error.</p>
+<p>Resource-grant <code>amount</code> accepts any literal integer, including zero and negative values, or one of the base symbolic magnitudes <code>trivial</code>, <code>small</code>, <code>medium</code>, <code>large</code>, <code>major</code>, and <code>extreme</code>. Positive and symbolic values add to the resource; negative integers remove from it. The <code>add_*</code> token family is not valid here because the grant context already communicates addition.</p>
+<p>Current required block-form kinds:</p>
+<ul>
+<li><code>resource</code></li>
+<li><code>trait</code></li>
+<li><code>property</code></li>
+<li><code>companion</code></li>
+<li><code>companion-import</code></li>
+</ul>
+<p>Example directions:</p>
+<pre><code class="language-text">grant
+  kind: resource
+  resource: jump_points
+  amount: 100
+</code></pre>
+<pre><code class="language-text">grant
+  kind: trait
+  name: &quot;Dragon Form&quot;
+  layout: dragon_trait
+</code></pre>
+<pre><code class="language-text">grant
+  kind: property
+  handle: gender
+  value: &quot;female&quot;
+</code></pre>
+<pre><code class="language-text">grant
+  kind: companion
+  name: &quot;Ember Fox&quot;
+</code></pre>
+<pre><code class="language-text">input
+  handle: imported_companions
+  selection: companions
+  max: 2
+
+  grant
+    kind: companion-import
+    resource: jump_points
+    amount: 600
+</code></pre>
+<h3>Companion Grant Direction</h3>
+<p><code>grant: companion</code> is the common shorthand for a choice visibly about
+acquiring one companion. It inherits the choice name, conventional description and
+visual content, and tags in the same manner as perk and item shorthand grants.</p>
+<p>The block form <code>kind: companion</code> creates the same durable companion record
+while allowing inherited fields to be overridden. The engine assigns the record a
+stable identity; the authored name is display content and is never used as an
+identity key. Removing or deactivating the originating grant produces dependency
+review for later imports and owned records rather than silently retargeting them.</p>
+<h3>Companion Import Direction</h3>
+<p><code>kind: companion-import</code> is valid only as a grant nested directly in an
+<code>input</code> whose selection is <code>companions</code>. For every selected stable
+companion identity, it creates participation state scoped to the current chain
+entry.</p>
+<p>Current rules:</p>
+<ul>
+<li>importing does not create a new chain companion; it records that an existing
+companion participates in this Jump run</li>
+<li>the participation state records the current chain-entry ID in that companion&#39;s
+import history</li>
+<li>the import is active only while both the owning choice/input and selected
+companion identity remain active</li>
+<li>an active import makes that companion available in the Chain Tracker actor
+selector for this entry</li>
+<li><code>resource</code> and <code>amount</code> are optional as a pair; omitting both grants
+participation without an initial resource budget</li>
+<li>when present, every selected companion receives the full authored
+<code>amount</code> in a separate actor-owned balance for the named
+<code>resource</code>; the amount is not divided among them</li>
+<li>while rendering as an imported companion, ordinary costs, rolls, properties,
+perks, items, and other grants belong to that companion&#39;s state for this entry</li>
+<li>the same companion may have only one active <code>companion-import</code> grant in a
+chain entry; a duplicate import is an error rather than a second allowance</li>
+<li>removing a selected companion after they have made choices requires impact
+review and removes that companion&#39;s entry-scoped selections and grants if
+confirmed</li>
+</ul>
+<h3>Trait Direction</h3>
+<p>Traits are user-visible catchall grants for things that are not standard perks
+or items.</p>
+<p>Current direction:</p>
+<ul>
+<li><code>trait</code> should remain user-visible</li>
+<li>a trait grant inherits the owning choice’s name, conventional description and visual content, and tags by default</li>
+<li>explicit trait-grant fields override only the inherited fields they provide</li>
+<li><code>trait</code> may carry owned <code>text</code> and <code>image</code> content just like other visible
+grant-like content</li>
+<li>a trait grant may specify an optional <code>layout</code></li>
+<li>when omitted, trait display should fall back to the jump default <code>trait-layout</code>
+or a built-in trait layout if one exists</li>
+<li>the app may later support trait-specific collected-grant layouts so authors
+can control how traits are displayed distinctly from standard perks/items</li>
+</ul>
+<h3>Property Direction</h3>
+<p>Properties are persistent engine values granted by authored content.</p>
+<p>Current direction:</p>
+<ul>
+<li>every <code>kind: property</code> grant requires a canonical <code>handle</code> naming the destination property</li>
+<li><code>property</code> values may come from:<ul>
+<li>a literal <code>value</code></li>
+<li>the primary control of a <code>choice</code></li>
+<li>the associated control of a nested <code>input</code></li>
+</ul>
+</li>
+<li>when <code>value</code> is present, it writes that authored constant instead of copying the owning choice or input control</li>
+<li>when <code>value</code> is omitted, the property grant copies its owning control value</li>
+<li>literal <code>value</code> supports quoted strings, integers, and the bare booleans <code>true</code> and <code>false</code></li>
+<li>there is no literal null value; when the owning choice becomes inactive, its property grant is removed and the property may return to unset</li>
+<li>properties are readable in <code>when</code> conditions and placeholders</li>
+<li>multiple active grants may write one property only when they resolve to the same typed value; this produces an informational diagnostic</li>
+<li>differing active values for one property are an ambiguity error; property evaluation never uses source order or last-write-wins behavior</li>
+<li>properties do not use the shorthand inheritance model meant for perks/items</li>
+<li>reserved engine-critical properties such as <code>gender</code> should use documented
+standardized values</li>
+</ul>
+<p>Ordinary authored properties do not require separate top-level declarations in
+markup. They come into existence through the grants that write them.</p>
+<h3>Selection Option Direction</h3>
+<p>Selections such as <code>select</code> should support repeated quoted options:</p>
+<pre><code class="language-text">option: &quot;Male&quot;
+option: &quot;Female&quot;
+option: &quot;Other&quot;
+</code></pre>
+<p>Current direction:</p>
+<ul>
+<li>options are renderable quoted strings</li>
+<li>the quoted option text is also its selected and persisted value; options do not require handles, separate values, or block declarations</li>
+<li>one select domain may not repeat an identical option string; an exact duplicate is an error because it almost certainly indicates an authoring mistake</li>
+<li>a select domain may contain zero options as valid WIP structure; it produces a warning, renders as a disabled empty control, and cannot be randomly resolved until at least one option is available</li>
+<li>options may use <code>when</code> variants just like other renderable text</li>
+<li>select-like properties resolve to strings</li>
+<li><code>when</code> comparisons against those properties use quoted strings</li>
+<li>changing option text creates a changed value in that package version; immutable packages already present in chains retain their original option text and state</li>
+<li>if the currently selected value is no longer present in the resolved option
+set, that should produce a diagnostic rather than silently remapping or
+erasing the selection</li>
+</ul>
+<p>Current reserved engine property set:</p>
+<ul>
+<li><code>gender</code></li>
+</ul>
+<h3>Grant Override Semantics</h3>
+<p>When block-form grants override only part of the inherited common case, the
+override should be additive rather than all-or-nothing.</p>
+<p>Current direction:</p>
+<ul>
+<li>explicitly provided fields override inherited ones</li>
+<li>omitted fields may still inherit where inheritance is meaningful</li>
+</ul>
+<h2>Tag System Direction</h2>
+<p>Tags are free-text, author-defined semantic metadata and the primary search
+vocabulary for perks, items, companions, and other content accrued by a
+chain. Detailed identity, relationship, search, badge, color, and user-override
+behavior is maintained in the separate <a href="tags-design.html">Tag System Design</a>.</p>
+<p>Markup tags are deliberately only strings:</p>
+<pre><code class="language-text">choice
+  name: &quot;Reality Warping&quot;
+  tag: magic
+
+  grant
+    kind: perk
+    tag: &quot;Reality Alteration&quot;
+</code></pre>
+<p>Current rules:</p>
+<ul>
+<li><code>choice</code> continues to accept repeated <code>tag</code> fields</li>
+<li>block-form <code>grant</code> declarations may add tags to the granted record</li>
+<li>common grants inherit choice tags under the existing inheritance rules</li>
+<li>tag inheritance is strictly additive; grant tags cannot replace or remove choice tags, and there is no tag-removal field</li>
+<li>text, image, layout, and theme declarations are not taggable</li>
+<li>sections remain untagged in v1 unless a concrete navigation need appears</li>
+<li>bare and quoted forms are both string values; quoting allows whitespace and
+punctuation</li>
+<li>runtime tag identity applies Unicode compatibility normalization and case folding, converts every run of whitespace, underscores, and Unicode dash punctuation to one ASCII space, and trims the result</li>
+<li>a tag whose canonical identity is empty is an error, as is repeating the same canonical identity on one owner</li>
+<li>badges do not preserve cosmetic source spelling; each canonical word is displayed with its first letter capitalized except for the lowercase particles <code>a</code>, <code>an</code>, <code>and</code>, <code>as</code>, <code>at</code>, <code>but</code>, <code>by</code>, <code>for</code>, <code>from</code>, <code>in</code>, <code>nor</code>, <code>of</code>, <code>on</code>, <code>or</code>, <code>per</code>, <code>the</code>, <code>to</code>, <code>via</code>, and <code>vs</code>; particle position does not change this rule</li>
+<li>there are no tag declarations, handles, author relationships, or author badge
+styles</li>
+</ul>
+<p>The application uses the canonical identity for display, searching, relationships, and styling while leaving imported source text unchanged. For example, <code>lord_of_the-great_rings</code> displays as <q>Lord of the Great Rings</q>. Parent/child and alias
+rules are user-owned settings. Badge styling, animation, and color families use
+built-in defaults or user settings. None of them change the Jump document.</p>
+<h2>Layout Fields and Value Types</h2>
+<h3>Field Placement</h3>
+<p>Presentation fields should live in presentation/layout declarations rather than
+in semantic content declarations.</p>
+<p>Current direction:</p>
+<ul>
+<li>semantic blocks remain presentation-free</li>
+<li>presentation fields may appear on:<ul>
+<li><code>stack</code></li>
+<li><code>inline</code></li>
+<li><code>wrap</code></li>
+<li><code>grid</code></li>
+<li><code>slot</code></li>
+<li><code>text</code></li>
+<li><code>image</code></li>
+<li><code>input</code></li>
+</ul>
+</li>
+<li><code>expand</code> remains focused on expansion/layout selection concerns rather than
+styling</li>
+</ul>
+<p><code>slot</code> and the typed content nodes remain leaves. They may carry presentation fields, but they do
+not gain child nodes.</p>
+<h3>Diagnostic Policy</h3>
+<p>Layout-field compatibility uses these levels:</p>
+<ul>
+<li>an unknown presentation field is an error</li>
+<li>a known field on a node type that does not support it, such as <code>columns</code> on <code>stack</code>, is an error</li>
+<li>a supported field with no practical effect for the referenced content, such as <code>text-color</code> on an <code>image</code> leaf, produces a warning rather than a parse failure</li>
+<li>mutually exclusive supported fields, such as <code>size</code> together with <code>width</code> or <code>height</code>, are an error</li>
+</ul>
+<p>Information diagnostics explain meaningful valid behavior when no author action is required. They should be contextual and sparse rather than emitted for every ordinary default. Useful examples include noting identical active property writers, explaining why an inapplicable slot collapsed when its node is inspected, and showing the canonical identity or generated label of a normalized tag on demand.</p>
+<h3>Tokens vs Raw Values</h3>
+<p>The current agreed value policy is:</p>
+<ul>
+<li><code>gap</code>, <code>padding</code>, and <code>text-size</code> use constrained tokens only</li>
+<li><code>background</code> and <code>text-color</code> may use either tokens or explicit hex values</li>
+<li>alignment-related fields use constrained keyword sets</li>
+<li>image sizing controls should exist in layout/presentation rather than in the
+semantic <code>image</code> declaration</li>
+</ul>
+<p>The current agreed image-sizing controls are:</p>
+<ul>
+<li><code>size</code></li>
+<li><code>width</code></li>
+<li><code>height</code></li>
+<li><code>fit</code></li>
+</ul>
+<p>Current rules:</p>
+<ul>
+<li><code>size</code> is the simple tokenized shorthand for common visual sizes</li>
+<li><code>width</code> and <code>height</code> are tokenized for non-square cases</li>
+<li><code>fit</code> should remain narrow in v1, using only <code>contain</code> or <code>cover</code></li>
+<li><code>size</code> should be mutually exclusive with <code>width</code>/<code>height</code></li>
+<li>these controls belong on an <code>image</code> leaf, and would only belong on <code>slot</code> if a future
+built-in slot actually renders visual content</li>
+<li>they do not belong on the semantic <code>image</code> declaration</li>
+</ul>
+<p>Current agreed image size tokens:</p>
+<ul>
+<li><code>xs</code></li>
+<li><code>sm</code></li>
+<li><code>md</code></li>
+<li><code>lg</code></li>
+<li><code>xl</code></li>
+<li><code>2xl</code></li>
+</ul>
+<p>Current agreed <code>fit</code> values:</p>
+<ul>
+<li><code>contain</code></li>
+<li><code>cover</code></li>
+</ul>
+<h3>Agreed Token Sets</h3>
+<p>Current agreed spacing tokens:</p>
+<ul>
+<li><code>none</code></li>
+<li><code>xs</code></li>
+<li><code>sm</code></li>
+<li><code>md</code></li>
+<li><code>lg</code></li>
+<li><code>xl</code></li>
+<li><code>2xl</code></li>
+</ul>
+<p>Current agreed text-size tokens:</p>
+<ul>
+<li><code>xs</code></li>
+<li><code>sm</code></li>
+<li><code>md</code></li>
+<li><code>lg</code></li>
+<li><code>xl</code></li>
+<li><code>2xl</code></li>
+</ul>
+<p>Current agreed alignment tokens:</p>
+<ul>
+<li><code>align</code><ul>
+<li><code>start</code></li>
+<li><code>center</code></li>
+<li><code>end</code></li>
+<li><code>stretch</code></li>
+</ul>
+</li>
+<li><code>justify</code><ul>
+<li><code>start</code></li>
+<li><code>center</code></li>
+<li><code>end</code></li>
+<li><code>between</code></li>
+</ul>
+</li>
+<li><code>text-align</code><ul>
+<li><code>start</code></li>
+<li><code>center</code></li>
+<li><code>end</code></li>
+<li><code>justify</code></li>
+</ul>
+</li>
+</ul>
+<p>Current agreed built-in color tokens:</p>
+<ul>
+<li><code>black</code></li>
+<li><code>white</code></li>
+<li><code>gray</code></li>
+<li><code>red</code></li>
+<li><code>orange</code></li>
+<li><code>yellow</code></li>
+<li><code>green</code></li>
+<li><code>blue</code></li>
+<li><code>purple</code></li>
+<li><code>brown</code></li>
+<li><code>pink</code></li>
+</ul>
+<p>These are intentionally simple shorthand colors. Authors who want semantic
+meaning should prefer <code>theme</code> declarations, and authors who want precision may
+use hex values directly.</p>
+<h3>Cost Scale Direction</h3>
+<p>Cost shorthand should support both literal numbers and a framework-default
+symbolic cost scale.</p>
+<p>Current agreed cost-scale tokens:</p>
+<ul>
+<li><code>trivial</code></li>
+<li><code>small</code></li>
+<li><code>medium</code></li>
+<li><code>large</code></li>
+<li><code>major</code></li>
+<li><code>extreme</code></li>
+</ul>
+<p>Current agreed symbolic award tokens:</p>
+<ul>
+<li><code>add_trivial</code></li>
+<li><code>add_small</code></li>
+<li><code>add_medium</code></li>
+<li><code>add_large</code></li>
+<li><code>add_major</code></li>
+<li><code>add_extreme</code></li>
+</ul>
+<p>Current framework-default mapping:</p>
+<ul>
+<li><code>trivial = 100</code></li>
+<li><code>small = 200</code></li>
+<li><code>medium = 400</code></li>
+<li><code>large = 600</code></li>
+<li><code>major = 800</code></li>
+<li><code>extreme = 1200</code></li>
+</ul>
+<p>Each <code>add_*</code> token awards the corresponding positive scale amount. For example, <code>cost: add_small</code> awards 200 primary points. Numeric negative costs remain available for literal award values.</p>
+<p>This scale is intentionally domain-oriented rather than reusing visual size
+tokens such as <code>xs</code>/<code>sm</code>/<code>md</code>.</p>
+<p>This preserves accessibility and system-controlled scaling while still allowing
+authors precise control over color.</p>
+<h3>Theming</h3>
+<p>Theming should be supported early rather than deferred.</p>
+<p>Current direction:</p>
+<ul>
+<li>the system provides a built-in set of color tokens</li>
+<li>jumps may define additional theme tokens</li>
+<li>built-in tokens and jump-defined theme tokens are part of the same effective
+color-token space</li>
+<li>color-accepting fields may use either:<ul>
+<li>a color token</li>
+<li>a six-digit <code>#RRGGBB</code> hex color value</li>
+</ul>
+</li>
+<li>three-digit shorthand and alpha-bearing hex forms are invalid in v1</li>
+<li>hexadecimal digits are case-insensitive; the formatter emits uppercase digits</li>
+</ul>
+<p>Current conflict rule:</p>
+<ul>
+<li>built-in color token names are reserved</li>
+<li>theme declarations must not redefine built-in color token names</li>
+<li>a theme token name conflict with a built-in color token should be a
+diagnostic error rather than a silent override</li>
+</ul>
+<p>The exact declaration shape for theme definitions is now settled at a high
+level: themes exist to reduce repetition and provide a generic path forward
+beyond hardcoded color names.</p>
+<h3>Theme Declaration Direction</h3>
+<p>The current declaration direction for themes is:</p>
+<ul>
+<li>use a top-level <code>theme</code> declaration</li>
+<li>allow <code>theme</code> in <code>jump.jdef</code></li>
+<li>allow <code>theme</code> in <code>layout.jdef</code></li>
+<li>use the same mixed-placement warning model as other split-file declarations</li>
+<li>define one token per declaration rather than a large map/blob structure</li>
+<li>require exactly one <code>color</code> per theme declaration; missing or repeated color fields are errors</li>
+</ul>
+<p>Example direction:</p>
+<pre><code class="language-text">theme
+  handle: primary
+  color: #3366cc
+
+theme
+  handle: accent
+  color: #ff9900
+</code></pre>
+<p>This means the effective color-token space is a union of:</p>
+<ul>
+<li>reserved built-in color names</li>
+<li>user-defined non-conflicting theme token names</li>
+</ul>
+<h2>Conditional Renderable Text</h2>
+<p>Rank- or count-dependent renderable text is a real authoring need.</p>
+<p>The current agreed direction is:</p>
+<ul>
+<li>support conditional variants on renderable text fields</li>
+<li>current renderable text fields include:<ul>
+<li><code>content</code></li>
+<li><code>name</code></li>
+<li><code>alt</code></li>
+</ul>
+</li>
+<li>do not introduce a general conditional-field pattern beyond renderable text
+fields in v1</li>
+</ul>
+<p>This keeps conditional prose readable and keeps validation narrower and easier
+to explain.</p>
+<h3>Condition Scope for Renderable Text Variants</h3>
+<p>The condition language for renderable text <code>when</code> variants should remain
+intentionally narrow and readable in v1.</p>
+<p>Current preferred examples:</p>
+<ul>
+<li><code>rank = 1</code></li>
+<li><code>rank &gt;= 2</code></li>
+<li><code>count = 3</code></li>
+<li><code>count &gt;= 4</code></li>
+<li><code>gender = &quot;female&quot;</code></li>
+<li><code>supplement_mode = &quot;gauntlet&quot;</code></li>
+<li><code>companion_name</code></li>
+<li><code>!companion_name</code></li>
+</ul>
+<p>Arbitrary rule expressions are not currently desired in this syntax.</p>
+<p>V1 condition expressions support property truthiness, <code>!</code> falsiness, equality and inequality, numeric comparisons, <code>and</code>, <code>or</code>, and parentheses. Function calls and arithmetic are not supported.</p>
+<p>Precedence is parentheses, then <code>!</code>, then comparisons, then <code>and</code>, then <code>or</code>. Negation may apply to a property or a parenthesized expression.</p>
+<p>Bare-property truthiness treats unset as false, uses a boolean’s value, treats integer zero as false and other integers as true, and treats empty strings as false and nonempty strings as true.</p>
+<p>Comparisons do not coerce types. Strings compare with quoted strings, integers with integers, and booleans with bare <code>true</code> or <code>false</code>. Ordering operators accept integers only. A statically provable type mismatch is an authoring error.</p>
+<p>At runtime, conditions and placeholders read the currently viewed actor’s property state as of the selected chain entry. This includes retained properties from earlier entries and effects from the selected entry’s current choices, but never properties acquired later in the chain. Companion view evaluates against that companion rather than silently reading the Jumper’s state.</p>
+<p>A condition referencing a property that no package grant defines produces a WIP warning in the Editor and is an error when exporting or importing a distributable package.</p>
+<h3>Variant Matching Order</h3>
+<p><code>when</code> variants are evaluated from top to bottom. The first matching variant
+wins, and evaluation stops. Base renderable text is used only when no variant
+matches.</p>
+<p>Variant source order is therefore meaningful and must be preserved by the
+formatter. More specific conditions normally belong before broader conditions.</p>
+<pre><code class="language-text">content when rank &gt;= 4:
+  """
+  Mastered description.
+  """
+
+content when rank &gt;= 2:
+  """
+  Improved description.
+  """
+</code></pre>
+<p>A broad earlier condition can make a later condition unreachable. For example,
+placing <code>rank &gt;= 2</code> before <code>rank &gt;= 4</code> means the latter can never be
+selected. The validator should warn when it can statically prove this kind of
+shadowing and should identify the earlier variant responsible.</p>
+<h2>Companion Participation</h2>
+<p>Companion acquisition and per-Jump participation are distinct mechanics:</p>
+<ul>
+<li><code>grant: companion</code> or <code>kind: companion</code> creates a durable companion
+record in the chain</li>
+<li><code>selection: companions</code> selects existing companion records by stable runtime
+identity</li>
+<li>a nested <code>kind: companion-import</code> grant authorizes those selected companions
+for the current chain entry and may initialize a separate resource balance for
+each</li>
+</ul>
+<p>Complete example:</p>
+<pre><code class="language-text">choice
+  handle: import_companions
+  name: &quot;Companion Import&quot;
+  selection: toggle
+  cost: 200
+
+  text
+    handle: description
+    content:
+      &quot;&quot;&quot;
+      Import up to two existing companions. Each receives 600 points.
+      &quot;&quot;&quot;
+
+  input
+    handle: imported_companions
+    selection: companions
+    min: 1
+    max: 2
+
+    grant
+      kind: companion-import
+      resource: jump_points
+      amount: 600
+</code></pre>
+<p>A <code>kind: companion-import</code> grant may omit both <code>resource</code> and <code>amount</code> to authorize participation without granting a spendable balance. If either field is present, both are required and initialize that selected companion’s entry-scoped resource balance. Its amount uses the resource-grant amount rules.</p>
+<p><code>kind: companion-import</code> is valid only as a nested grant of an <code>input</code> with <code>selection: companions</code>. Other placements are errors because they provide no selected roster to target.</p>
+<p>The Chain Tracker evaluates this in order: the Jumper buys the choice, the input
+offers eligible stable companion records, and each selected identity receives an
+entry-scoped actor state with 600 <code>jump_points</code>. Only then does that companion
+appear in the current Jump&#39;s actor selector. Names remain presentation and may
+change without breaking the import reference.</p>
+<h2>Editor Boundary</h2>
+<p>Editor-specific workflow, diagnostics, migrations, and tooling concerns should
+be tracked in a separate editor design document rather than expanded further in
+this markup document.</p>
+<h2>Frozen Format 1 Schema</h2>
+<p>The format 1 field cardinalities, layout grammar, contextual constraints, and
+initial conformance cases are frozen in the machine-readable
+<a href="../schema/format-1.json"><code>schema/format-1.json</code></a> contract and
+<a href="../schema/conformance.json"><code>schema/conformance.json</code></a> manifest.
+The HTML specification remains the normative explanation; the machine contract is
+the parser, validator, language-service, and fixture source of truth. A change that
+accepts or rejects different source is a format change and must not be smuggled in as
+an implementation detail.</p>
+<h3>Declaration Cardinality Summary</h3>
+<table>
+<thead><tr><th>Declaration</th><th>Required fields</th><th>Repeatable fields or children</th><th>Optional/defaulted fields</th></tr></thead>
+<tbody>
+<tr><td><code>jump</code></td><td><code>format</code>, <code>name</code>, one or more <code>author</code>, <code>version</code></td><td><code>author</code></td><td>point presentation and three default layout references</td></tr>
+<tr><td><code>resource</code></td><td><code>handle</code>, <code>name</code></td><td>none</td><td><code>abbreviation</code>; <code>initial</code> defaults to 0</td></tr>
+<tr><td><code>section</code></td><td><code>handle</code>, <code>name</code></td><td><code>choice-source</code>, <code>text</code>, <code>image</code></td><td><code>layout</code></td></tr>
+<tr><td><code>choice-source</code></td><td><code>handle</code></td><td>none</td><td><code>group</code>; <code>mode</code> defaults to multi; omitted resolution is manual</td></tr>
+<tr><td><code>choice</code></td><td><code>handle</code>, <code>name</code></td><td><code>tag</code>, <code>group</code>, <code>option</code>, owned blocks, costs, grants</td><td>layout/species/control fields; selection defaults to toggle</td></tr>
+<tr><td><code>text</code></td><td><code>handle</code></td><td>conditional <code>content</code> variants</td><td>base <code>content</code></td></tr>
+<tr><td><code>image</code></td><td><code>handle</code>; <code>src</code> for export</td><td>conditional <code>alt</code> variants</td><td><code>src</code> during WIP and <code>alt</code> with diagnostics</td></tr>
+<tr><td><code>input</code></td><td><code>handle</code>, <code>selection</code></td><td><code>option</code>, <code>grant</code></td><td>selection-dependent <code>min</code>/<code>max</code></td></tr>
+<tr><td><code>theme</code></td><td><code>handle</code>, one <code>color</code></td><td>none</td><td><code>name</code></td></tr>
+<tr><td>layout declarations</td><td><code>handle</code>, exactly one container root</td><td>nested layout nodes</td><td><code>name</code></td></tr>
+</tbody>
+</table>
+<h3>Finalized Association Rules</h3>
+<ul>
+<li><code>choice.name</code> is required; the earlier shorthand list that displayed it without a required marker does not make nameless choices valid.</li>
+<li>Block-form visible grants support <code>perk</code>, <code>item</code>, <code>companion</code>, and <code>trait</code>. This makes the already-agreed partial inheritance and grant-specific tags expressible without introducing another declaration shape.</li>
+<li>Conditional variants of singular fields belong to that field on the current owner. Because <code>option</code> is repeatable, an <code>option when ...</code> variant belongs to the immediately preceding base <code>option</code> at the same indentation. A new base option starts a new variant group. This preserves scalar options and avoids option blocks.</li>
+<li><code>section</code> owns text, images, and choice sources. Interactive <code>input</code> blocks remain choice-owned because their values activate choice mechanics and grants.</li>
+<li>Grant fields are kind-checked. Resource and property mechanics cannot accidentally accept visible-content fields, and companion imports remain valid only directly under a companion-selection input.</li>
+<li>Every authored layout has exactly one handled container root. Grid requires <code>columns</code> from 1 through 12; typed leaves use their matching owner-local namespace; <code>expand</code> remains section-layout-only.</li>
+</ul>
+<h3>Schema Change Policy</h3>
+<p>Corrections that only improve diagnostics, recovery, documentation, or editor
+assistance may retain format 1 when they do not change the valid source language.
+Any new declaration, field, scalar form, node kind, or contextual placement that
+changes validity requires an explicit schema revision and migration review. The
+initial fixtures deliberately cover a minimal informational Jump, a representative
+layout-and-choice package, a valid warning-bearing WIP case, and a duplicate-resource
+cost error; implementation expands this corpus whenever a parser or validator defect
+is found. Building exhaustive positive and negative fixtures for every declaration,
+node, diagnostic, and interaction is an implementation step after the design contract
+is complete; it does not remain an open language-design decision.</p>
+      </article>
+      <a class="back-to-top" href="#content">Back to top</a>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Living registry of Jumpchain Visualizer application settings and defaults.">
+  <title>Settings Design | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="tags-design.css">
+  <link rel="stylesheet" href="logging-design.css">
+  <link rel="stylesheet" href="settings-design.css">
+  <script src="documentation.js" defer></script>
+  <script src="tags-design.js" defer></script>
+  <script src="logging-design.js" defer></script>
+  <script src="settings-design.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home">
+      <span class="site-mark" aria-hidden="true">JV</span>
+      <span>Jumpchain Visualizer <small>Documentation</small></span>
+    </a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html">Overview</a>
+      <a href="application-design.html">Application</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="chain-tracker-design.html">Chain Tracker</a>
+      <a href="chain-portability.html">Portability</a>
+      <a href="supplements-design.html">Supplements</a>
+      <a href="settings-design.html" aria-current="page">Settings</a>
+      <a href="logging-design.html">Logging</a>
+      <a href="tags-design.html">Tags</a>
+      <a href="markup.html">Markup</a>
+      <a href="editor-design.html">Editor design</a>
+      <a href="choice-rendering-design.html">Controls</a>
+    </nav>
+  </header>
+
+  <div class="page-shell">
+    <aside class="sidebar" aria-labelledby="contents-heading">
+      <div class="sidebar-inner">
+        <h2 id="contents-heading">On this page</h2>
+        <nav id="table-of-contents" aria-label="Settings design sections">
+          <p class="toc-fallback">Section links appear when JavaScript is available.</p>
+        </nav>
+      </div>
+    </aside>
+
+    <main id="content" class="document settings-document" tabindex="-1">
+      <article>
+        <p class="eyebrow">Living preference registry</p>
+        <h1>Settings design</h1>
+        <p class="lede">The authoritative list of configurable application behavior, including defaults, allowed values, scope, persistence, and decision status.</p>
+
+        <div class="settings-status" role="note">
+          <strong>Current state:</strong> appearance, accent color, motion, Editor save mode, Chain Tracker behavior, notification presentation, keybinding overrides, and the user tag profile are confirmed. Session logs are available as a Developer utility rather than persisted settings.
+        </div>
+
+        <h2>Purpose</h2>
+        <p>This page prevents preferences from being invented ad hoc during feature implementation. A behavior belongs here only when users have a meaningful reason to choose between supported alternatives. Document semantics, package content, and author presentation choices belong in the Jump package or markup—not in application settings.</p>
+
+        <h2>Settings Principles</h2>
+        <ul>
+          <li>Defaults should serve most users without requiring setup.</li>
+          <li>Settings solve genuine preference, accessibility, environment, or compatibility needs; they do not replace a clear product decision.</li>
+          <li>Application settings are user-local and must not alter the portability or meaning of a Jump package.</li>
+          <li>Each setting has a stable key, explicit default, bounded value type, scope, validation rule, and migration story.</li>
+          <li>Unsupported or invalid stored values fall back safely to the documented default and produce a recoverable diagnostic.</li>
+          <li>Security-sensitive values and filesystem permissions are not ordinary settings and must not be stored in this registry as plain preference data.</li>
+        </ul>
+
+        <h2>Presentation and Routing</h2>
+        <p>Settings uses the agreed <a href="application-design.html#route-backed-settings-overlay">route-backed overlay</a>. Opening it from Home or a workspace pushes <code>/settings</code>, preserves the prior route underneath as inert content, and restores that route on Close, Escape, or Back. Opening <code>/settings</code> directly renders the same content as a full page.</p>
+        <p>The initial surface includes persistent categories, global setting search, visible defaults, and a per-setting Reset action. The Settings frame keeps one compact, stable height across categories; each category and complex editor scrolls inside its own content region instead of resizing the dialog. Changes normally apply immediately; settings that cannot apply safely without restart must say so before the user changes them.</p>
+
+        <h3>Settings Search</h3>
+        <p>Search covers every category and matches visible labels, stable setting keys, descriptions, allowed values, and maintained aliases. Results identify their owning category. Selecting a result clears the query, opens that category, and focuses the setting. Clearing an unfinished search restores the category that was selected before searching.</p>
+
+        <h2>Confirmed Settings</h2>
+        <div class="settings-table-wrap">
+          <table class="settings-registry">
+            <thead>
+              <tr><th>Key</th><th>Default</th><th>Allowed values</th><th>Scope</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>appearance.theme</code></td>
+                <td><code>system</code></td>
+                <td><code>system</code>, <code>light</code>, <code>dark</code></td>
+                <td>Application</td>
+                <td>Users may follow the operating-system theme or explicitly select Light or Dark.</td>
+              </tr>
+              <tr>
+                <td><code>appearance.accentColor</code></td>
+                <td><code>#d4af37</code></td>
+                <td>Validated six-digit sRGB hexadecimal color</td>
+                <td>Application</td>
+                <td>The current gold remains the default, while users may choose any base accent. Accessible UI variants are derived for the active theme.</td>
+              </tr>
+              <tr>
+                <td><code>accessibility.motion</code></td>
+                <td><code>system</code></td>
+                <td><code>system</code>, <code>reduced</code>, <code>full</code></td>
+                <td>Application</td>
+                <td>System follows <code>prefers-reduced-motion</code>; Reduced suppresses nonessential motion; Full explicitly enables the normal motion profile.</td>
+              </tr>
+              <tr>
+                <td><code>editor.saveMode</code></td>
+                <td><code>autosave</code></td>
+                <td><code>autosave</code>, <code>explicit</code></td>
+                <td>Editor</td>
+                <td>Autosave is the normal workflow; explicit saving remains available when automatic persistence is undesirable or unreliable.</td>
+              </tr>
+              <tr>
+                <td><code>editor.warnMissingImageAlt</code></td>
+                <td><code>true</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Editor</td>
+                <td>Authors may suppress accessibility warnings for image blocks that omit alternative text without changing the package or renderer.</td>
+              </tr>
+              <tr>
+                <td><code>editor.warnMissingLayoutTargets</code></td>
+                <td><code>true</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Editor</td>
+                <td>Authors may suppress warnings for typed layout leaves absent from some content; missing targets remain valid and collapse at runtime.</td>
+              </tr>
+              <tr>
+                <td><code>chain.allowMultiplePackageVersions</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Chain Tracker</td>
+                <td>Controls only whether the Chain Tracker’s Add action may add a second installed version of a logical package already present in that chain. It does not affect installation, chain import, or existing entries.</td>
+              </tr>
+              <tr>
+                <td><code>chain.allowNegativePointBalances</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Chain Tracker</td>
+                <td>Users may permit the Jumper, or a companion granted a positive point budget for the current run, to select choices beyond their remaining primary Jump points.</td>
+              </tr>
+              <tr>
+                <td><code>chain.allowRerolls</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Chain Tracker</td>
+                <td>By default, every source-level roll may occur once for a chain entry. Users may opt into replacing recorded roll results.</td>
+              </tr>
+              <tr>
+                <td><code>notifications.enabled</code></td>
+                <td><code>true</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Application</td>
+                <td>Users can disable all toast projections without disabling session logging or underlying diagnostics.</td>
+              </tr>
+              <tr>
+                <td><code>notifications.maxVisible</code></td>
+                <td><code>3</code></td>
+                <td>Integer from <code>1</code> through <code>5</code></td>
+                <td>Application</td>
+                <td>Bounds simultaneous toast obstruction while allowing queued events to appear as space becomes available.</td>
+              </tr>
+              <tr>
+                <td><code>notifications.durationMs</code></td>
+                <td><code>5000</code></td>
+                <td><code>3000</code>, <code>5000</code>, <code>8000</code>, <code>15000</code></td>
+                <td>Application</td>
+                <td>Controls automatic toast dismissal; interaction pauses the timer.</td>
+              </tr>
+              <tr>
+                <td><code>notifications.classes</code></td>
+                <td>Confirmations, Chain, Validation, and Errors/Recovery enabled; Editor activity disabled</td>
+                <td>Boolean values for each application-owned trigger class</td>
+                <td>Application</td>
+                <td>Users can suppress toast classes based on the action that produced them without changing event severity or log capture.</td>
+              </tr>
+              <tr>
+                <td><code>keybindings.overrides</code></td>
+                <td>Empty override map</td>
+                <td>Validated action-to-chord mappings</td>
+                <td>Application</td>
+                <td>All documented shortcuts are rebindable, platform labels are shown correctly, and conflicts must be identified before saving.</td>
+              </tr>
+              <tr>
+                <td><code>tags.profile</code></td>
+                <td>Built-in categories and badge presets; no user relationships or overrides</td>
+                <td>Versioned tag entries, reciprocal alias links, one optional parent per tag, and bounded badge-presentation values</td>
+                <td>Application</td>
+                <td>Users can organize accrued free-text tags and customize their badge rendering without changing imported Jump documents.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Candidate Settings</h2>
+        <p>No unresolved candidate settings are currently registered. New candidates should remain in this section until their user need, default, allowed values, and scope are accepted.</p>
+        <p>The user-owned tag profile is now confirmed and represented by the Tags page below. Its detailed relationship, chart, badge, and transfer rules remain in <a href="tags-design.html">Tag System Design</a>. Jump authors still provide only free-text tag strings.</p>
+
+        <h3>Accent Color Safety</h3>
+        <p><code>appearance.accentColor</code> stores only a normalized six-digit sRGB hex value. The raw base color may be used for decorative swatches, but the application derives separate accessible tokens for text, focus indicators, borders, filled controls, and subtle surfaces in Light and Dark themes. Derived tokens must retain the selected hue as closely as possible while meeting the applicable contrast requirement. Raw setting text must never be interpolated directly into styles.</p>
+
+        <h3>Notification Projection</h3>
+        <p>Toast preferences control the user-facing projection of registered events described in <a href="logging-design.html">Logging Design</a>. Disabling a toast class does not suppress its session log entry, diagnostic, state transition, or undo record. Input-driven candidates are debounced for 500 ms and repeated matching events update one toast rather than creating a stream of duplicates.</p>
+
+        <h2>Interactive Settings Surface</h2>
+        <p>The category navigation, accent picker, search, notification preview, tag-profile editor, and Developer session-log viewer are interactive. Changing the accent updates this Settings preview while preserving the current gold as the Reset default. The Tags page uses the accepted editor from <a href="tags-design.html">Tag System Design</a>.</p>
+
+        <div class="settings-mockup" data-toc-ignore aria-label="Interactive Settings surface concept">
+          <aside aria-label="Settings categories">
+            <div class="settings-mock-title"><span aria-hidden="true">⚙</span><strong>Settings</strong></div>
+            <label class="settings-mock-search"><span class="sr-only">Search settings</span><input id="mock-settings-search" type="search" placeholder="Search settings"></label>
+            <nav role="tablist" aria-label="Setting category">
+              <button id="settings-general-tab" type="button" role="tab" aria-selected="true" aria-controls="settings-general-panel">General</button>
+              <button id="settings-editor-tab" type="button" role="tab" aria-selected="false" aria-controls="settings-editor-panel" tabindex="-1">Editor</button>
+              <button id="settings-chain-tab" type="button" role="tab" aria-selected="false" aria-controls="settings-chain-panel" tabindex="-1">Chain Tracker</button>
+              <button id="settings-notifications-tab" type="button" role="tab" aria-selected="false" aria-controls="settings-notifications-panel" tabindex="-1">Notifications</button>
+              <button id="settings-tags-tab" type="button" role="tab" aria-selected="false" aria-controls="settings-tags-panel" tabindex="-1">Tags</button>
+              <button id="settings-keys-tab" type="button" role="tab" aria-selected="false" aria-controls="settings-keys-panel" tabindex="-1">Key bindings</button>
+              <button id="settings-accessibility-tab" type="button" role="tab" aria-selected="false" aria-controls="settings-accessibility-panel" tabindex="-1">Accessibility</button>
+              <button id="settings-developer-tab" type="button" role="tab" aria-selected="false" aria-controls="settings-developer-panel" tabindex="-1">Developer</button>
+            </nav>
+          </aside>
+          <div class="settings-mock-content">
+            <header>
+              <div><p>Application settings</p><h3>Preferences</h3></div>
+              <button type="button" aria-label="Close Settings">×</button>
+            </header>
+
+            <section id="settings-search-panel" class="settings-search-panel" aria-labelledby="settings-search-heading" aria-live="polite" hidden>
+              <h4 id="settings-search-heading">Search results <span id="mock-settings-search-count"></span></h4>
+              <div class="settings-search-list">
+                <button type="button" data-settings-search-entry data-settings-search-text="appearance theme system light dark color mode" data-settings-category="general" data-settings-focus="mock-theme"><span><strong>Appearance</strong><small><code>appearance.theme</code> · General</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="accent color colour hex gold theme appearance" data-settings-category="general" data-settings-focus="mock-accent"><span><strong>Accent color</strong><small><code>appearance.accentColor</code> · General</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="saving save autosave explicit persistence editor" data-settings-category="editor" data-settings-focus="mock-save-mode"><span><strong>Saving</strong><small><code>editor.saveMode</code> · Editor</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="editor image alt alternative text accessibility warning missing suppress" data-settings-category="editor" data-settings-focus="mock-warn-missing-alt"><span><strong>Missing image alt warning</strong><small><code>editor.warnMissingImageAlt</code> · Editor</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="editor layout missing absent target reusable warning suppress text image input" data-settings-category="editor" data-settings-focus="mock-warn-missing-layout-targets"><span><strong>Missing layout target warning</strong><small><code>editor.warnMissingLayoutTargets</code> · Editor</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="chain add second package version multiple parallel installed jumps" data-settings-category="chain" data-settings-focus="mock-multiple-package-versions"><span><strong>Add another package version</strong><small><code>chain.allowMultiplePackageVersions</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="chain negative point balance overspend over budget currency companion jumper choices" data-settings-category="chain" data-settings-focus="mock-negative-point-balances"><span><strong>Negative point balances</strong><small><code>chain.allowNegativePointBalances</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="chain reroll rerolls roll random replace result choices" data-settings-category="chain" data-settings-focus="mock-allow-rerolls"><span><strong>Allow rerolls</strong><small><code>chain.allowRerolls</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="notifications toast popups enabled disabled maximum duration length confirmations editor chain validation errors recovery debounce" data-settings-category="notifications" data-settings-focus="mock-notifications-enabled"><span><strong>Toast notifications</strong><small><code>notifications.*</code> · Notifications</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="tags tag profile category parent aliases relationships badges colors gradients presentation import export json acquired content" data-settings-category="tags" data-settings-focus="tag-profile-search"><span><strong>Tag profile</strong><small><code>tags.profile</code> · Tags</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="keyboard key bindings shortcuts quick add quick fix find overrides" data-settings-category="keys"><span><strong>Key bindings</strong><small><code>keybindings.overrides</code> · Key bindings</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="motion animation reduced full system accessibility" data-settings-category="accessibility" data-settings-focus="mock-motion"><span><strong>Motion</strong><small><code>accessibility.motion</code> · Accessibility</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="developer logs logging viewer stack trace crash report github debug session export clear" data-settings-category="developer" data-settings-focus="developer-logs-tab"><span><strong>Session logs</strong><small>Developer → Logs</small></span><span aria-hidden="true">→</span></button>
+              </div>
+              <p id="mock-settings-no-results" class="settings-search-empty" hidden>No settings match this search.</p>
+            </section>
+
+            <section id="settings-general-panel" role="tabpanel" aria-labelledby="settings-general-tab">
+              <h4>General</h4>
+              <div class="setting-row">
+                <div><label for="mock-theme">Appearance</label><p>Choose the application color theme.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><select id="mock-theme"><option>Use system setting</option><option>Light</option><option>Dark</option></select></div>
+              </div>
+              <div class="setting-row">
+                <div><label for="mock-accent">Accent color</label><p>Choose the base color used to derive accessible application accents.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><div class="accent-color-control"><input id="mock-accent" type="color" value="#d4af37"><output id="mock-accent-value" for="mock-accent">#D4AF37</output><button id="mock-accent-reset" type="button">Reset</button></div></div>
+              </div>
+              <div class="setting-explanation">Home is always the root destination. Startup redirection is an agreed application behavior, not a configurable preference.</div>
+            </section>
+
+            <section id="settings-editor-panel" role="tabpanel" aria-labelledby="settings-editor-tab" hidden>
+              <h4>Editor</h4>
+              <div class="setting-row">
+                <div><label for="mock-save-mode">Saving</label><p>Choose how source and structured changes are committed.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><select id="mock-save-mode"><option>Autosave</option><option>Explicit save</option></select></div>
+              </div>
+              <div class="setting-row">
+                <div><label for="mock-warn-missing-alt">Missing image alt warning</label><p>Warn when an image omits alternative text.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-warn-missing-alt"><input id="mock-warn-missing-alt" type="checkbox" checked><span>Show accessibility warning</span></label></div>
+              </div>
+              <div class="setting-row">
+                <div><label for="mock-warn-missing-layout-targets">Missing layout target warning</label><p>Warn when reusable layouts name content absent from a particular owner.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-warn-missing-layout-targets"><input id="mock-warn-missing-layout-targets" type="checkbox" checked><span>Show missing-target warning</span></label></div>
+              </div>
+              <div class="setting-explanation">Autosave remains the default. Explicit mode exposes Save and requires leave confirmation for unresolved changes. Disabling either warning changes diagnostics only; it does not alter package content or rendering. Missing typed layout targets remain valid and collapse at runtime.</div>
+            </section>
+
+            <section id="settings-chain-panel" role="tabpanel" aria-labelledby="settings-chain-tab" hidden>
+              <h4>Chain Tracker</h4>
+              <div class="setting-row">
+                <div><label for="mock-multiple-package-versions">Add another package version</label><p>Allow Add to place a second installed version of a logical Jump package into the current chain. Existing and imported entries are unaffected.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-multiple-package-versions"><input id="mock-multiple-package-versions" type="checkbox"><span>Allow second version</span></label></div>
+              </div>
+              <div class="setting-row">
+                <div><label for="mock-negative-point-balances">Negative point balances</label><p>Permit eligible actors to overspend their primary Jump points.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-negative-point-balances"><input id="mock-negative-point-balances" type="checkbox"><span>Allow negative balances</span></label></div>
+              </div>
+              <div class="setting-row">
+                <div><label for="mock-allow-rerolls">Rerolls</label><p>Allow a recorded random result to be replaced for the same chain entry.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-allow-rerolls"><input id="mock-allow-rerolls" type="checkbox"><span>Allow rerolls</span></label></div>
+              </div>
+              <div class="setting-explanation">All three settings are off by default. Parallel versions never duplicate an exact version or update existing entries. Negative balances apply to the Jumper and to companions granted a positive point budget in that run. Without rerolls, a source-level roll is locked after its first stored result; removing the chain entry deletes that roll record along with the entry.</div>
+            </section>
+
+            <section id="settings-notifications-panel" class="settings-notifications-panel" role="tabpanel" aria-labelledby="settings-notifications-tab" hidden>
+              <h4>Notifications</h4>
+              <div class="setting-row">
+                <div><label for="mock-notifications-enabled">Toast notifications</label><p>Show user-facing projections of selected session log events.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-notifications-enabled"><input id="mock-notifications-enabled" type="checkbox" checked><span>Enable toast notifications</span></label></div>
+              </div>
+              <div class="setting-row">
+                <div><label for="mock-notifications-max">Maximum visible</label><p>Additional notifications wait in the queue.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><select id="mock-notifications-max"><option>1 toast</option><option>2 toasts</option><option selected>3 toasts</option><option>4 toasts</option><option>5 toasts</option></select></div>
+              </div>
+              <div class="setting-row">
+                <div><label for="mock-notifications-duration">Toast duration</label><p>Interaction pauses automatic dismissal.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><select id="mock-notifications-duration"><option value="3000">3 seconds</option><option value="5000" selected>5 seconds</option><option value="8000">8 seconds</option><option value="15000">15 seconds</option></select></div>
+              </div>
+              <fieldset class="notification-class-settings"><legend>Trigger classes</legend><label><input type="checkbox" data-notification-class="confirmations" checked><span><strong>Action confirmations</strong><small>Save, export, copy, add, remove, and reorder completion</small></span></label><label><input type="checkbox" data-notification-class="editor"><span><strong>Editor activity</strong><small>Autosave, formatting, quick fixes, and preview recovery</small></span></label><label><input type="checkbox" data-notification-class="chain" checked><span><strong>Chain activity</strong><small>Jumps, companions, supplements, rolls, and balances</small></span></label><label><input type="checkbox" data-notification-class="validation" checked><span><strong>Validation</strong><small>New diagnostics and blocked operations</small></span></label><label><input type="checkbox" data-notification-class="errors" checked><span><strong>Errors and recovery</strong><small>Failed operations, permission loss, fallback recovery, and crashes</small></span></label></fieldset>
+              <div class="settings-toast-demo"><button id="mock-toast-preview" type="button">Preview toast</button><div id="mock-toast-stage" class="settings-toast-stage" aria-live="polite" aria-label="Toast preview"></div></div>
+              <div class="setting-explanation">Input-driven toast candidates wait 500 ms after the last related input. Repeated events with the same trigger class and deduplication key update one toast and its occurrence count instead of creating more toasts.</div>
+            </section>
+
+            <section id="settings-tags-panel" class="settings-tags-panel" role="tabpanel" aria-labelledby="settings-tags-tab" hidden>
+              <div class="tag-profile-editor" data-toc-ignore>
+                <header class="tag-profile-toolbar">
+                  <div><p>User tag profile</p><h4>Category, relationship, and badge editor</h4></div>
+                  <div><button id="tag-json-import" type="button">Import JSON</button><button id="tag-json-export" type="button">Export JSON</button></div>
+                </header>
+
+                <section id="tag-json-panel" class="tag-json-panel" aria-labelledby="tag-json-heading" hidden>
+                  <div><p>Portable user configuration</p><h4 id="tag-json-heading">Export tag profile JSON</h4></div>
+                  <label for="tag-json-content">JSON document</label>
+                  <textarea id="tag-json-content" spellcheck="false"></textarea>
+                  <div class="tag-json-import-options" hidden>
+                    <label for="tag-json-mode">Import behavior</label>
+                    <select id="tag-json-mode"><option value="merge">Merge with this profile</option><option value="replace">Replace manual/imported tags and overrides</option></select>
+                  </div>
+                  <p id="tag-json-message" role="status">Export includes user relationships and presentation, not acquired records or Jump content.</p>
+                  <div><button id="tag-json-apply" type="button" hidden>Review and apply import</button><button id="tag-json-close" type="button">Close</button></div>
+                </section>
+
+                <div class="tag-profile-workspace">
+                  <aside class="tag-profile-list-pane" aria-labelledby="tag-profile-list-heading">
+                    <div class="tag-profile-list-fixed">
+                      <h4 id="tag-profile-list-heading">Tags</h4>
+                      <label><span class="sr-only">Find tag</span><input id="tag-profile-search" type="search" placeholder="Find tag"></label>
+                    </div>
+                    <div id="tag-profile-list" class="tag-profile-list"></div>
+                    <div class="tag-profile-add-actions">
+                      <button id="tag-add-acquired" type="button">Refresh acquired tags</button>
+                      <button id="tag-add-manual" type="button">Enter tag manually</button>
+                    </div>
+                    <section id="tag-acquired-picker" class="tag-add-panel" aria-labelledby="tag-acquired-heading" hidden>
+                      <h5 id="tag-acquired-heading">Newly detected tags</h5>
+                      <ul>
+                        <li data-acquired-tag="Flight">Flight <small>3 records</small></li>
+                        <li data-acquired-tag="Ice Control">Ice Control <small>2 records</small></li>
+                        <li data-acquired-tag="Cooking">Cooking <small>1 record</small></li>
+                        <li data-acquired-tag="Charisma">Charisma <small>4 records</small></li>
+                      </ul>
+                      <p>All detected strings are added. Existing normalized strings are not duplicated.</p>
+                      <div><button id="tag-acquired-apply" type="button">Add all detected</button><button type="button" data-close-tag-add>Cancel</button></div>
+                    </section>
+                    <section id="tag-manual-entry" class="tag-add-panel" aria-labelledby="tag-manual-heading" hidden>
+                      <h5 id="tag-manual-heading">Enter tag string</h5>
+                      <label><span>Tag</span><input id="tag-manual-name" type="text" placeholder="Example: Summoning"></label>
+                      <p id="tag-manual-message" role="status">New tags begin under Miscellaneous.</p>
+                      <div><button id="tag-manual-apply" type="button">Add tag</button><button type="button" data-close-tag-add>Cancel</button></div>
+                    </section>
+                  </aside>
+
+                  <section class="tag-profile-form-pane" aria-labelledby="tag-profile-form-heading">
+                    <header><div><p id="tag-profile-source">Built-in category</p><h4 id="tag-profile-form-heading">Physical</h4></div><div class="tag-profile-form-actions"><button id="tag-profile-delete" type="button" hidden>Delete</button><button id="tag-profile-reset" type="button">Reset</button></div></header>
+                    <div class="tag-profile-form-scroll">
+                      <fieldset>
+                        <legend>Identity and category</legend>
+                        <label class="field-wide"><span>Tag string</span><input id="tag-profile-name" type="text" readonly></label>
+                        <label id="tag-profile-parent-field" class="field-wide"><span>Parent</span><select id="tag-profile-parent"></select><small class="field-lock-reason">🔒 Built-in categories are always top level.</small></label>
+                        <div class="tag-alias-editor field-wide">
+                          <span>Aliases</span>
+                          <div id="tag-profile-alias-list" class="tag-alias-list"></div>
+                          <div class="tag-alias-add"><select id="tag-profile-alias-target" aria-label="Tag to link as an alias"></select><button id="tag-profile-alias-add" type="button">Link alias</button></div>
+                          <small>Alias links are reciprocal. Linking two tags once updates both entries and creates only one relationship.</small>
+                        </div>
+                      </fieldset>
+
+                      <fieldset>
+                        <legend>Background and border</legend>
+                        <label><span>Background</span><select id="tag-profile-background"><option value="solid">Solid</option><option value="gradient">Gradient</option><option value="transparent">Transparent</option></select></label>
+                        <label id="tag-profile-solid-field"><span>Solid color</span><input id="tag-profile-solid-color" type="color"><small class="field-lock-reason">🔒 Available when Background is Solid.</small></label>
+                        <div id="tag-gradient-editor" class="tag-gradient-editor field-wide">
+                          <div class="tag-gradient-heading"><div><span>Gradient stops</span><small>Drag interior nodes to position them.</small></div><button id="tag-gradient-add" type="button">+ Add stop</button></div>
+                          <div id="tag-gradient-track" class="tag-gradient-track" aria-label="Gradient stop positions"></div>
+                          <div class="tag-gradient-stop-controls">
+                            <label><span>Selected color</span><input id="tag-gradient-stop-color" type="color"></label>
+                            <label id="tag-gradient-position-field"><span>Position</span><span class="tag-gradient-position"><input id="tag-gradient-stop-position" type="range" min="0" max="100" step="1"><output id="tag-gradient-stop-output">50%</output></span><small class="field-lock-reason">🔒 Endpoint positions stay at 0% and 100%.</small></label>
+                            <button id="tag-gradient-remove" type="button">Remove stop</button>
+                            <label><span>Angle</span><input id="tag-profile-angle" type="number" min="0" max="360" step="1"></label>
+                          </div>
+                          <p class="field-lock-reason">🔒 Gradient controls are available when Background is Gradient.</p>
+                        </div>
+                        <label><span>Border color</span><input id="tag-profile-border-color" type="color"></label>
+                        <label><span>Border width</span><select id="tag-profile-border-width"><option value="none">None</option><option value="thin">Thin</option><option value="medium">Medium</option></select></label>
+                        <label><span>Corner style</span><select id="tag-profile-corners"><option value="pill">Pill</option><option value="rounded">Rounded</option><option value="square">Square</option></select></label>
+                        <label><span>Padding</span><select id="tag-profile-padding"><option value="compact">Compact</option><option value="standard">Standard</option><option value="roomy">Roomy</option></select></label>
+                      </fieldset>
+
+                      <fieldset>
+                        <legend>Text</legend>
+                        <label><span>Text color mode</span><select id="tag-profile-text-mode"><option value="auto">Automatic contrast</option><option value="custom">Custom</option></select></label>
+                        <label id="tag-profile-text-color-field"><span>Text color</span><input id="tag-profile-text-color" type="color"><small class="field-lock-reason">🔒 Choose Custom text color mode to edit.</small></label>
+                        <label><span>Weight</span><select id="tag-profile-weight"><option value="normal">Normal</option><option value="medium">Medium</option><option value="bold">Bold</option></select></label>
+                        <label><span>Style</span><select id="tag-profile-font-style"><option value="normal">Normal</option><option value="italic">Italic</option></select></label>
+                        <label><span>Decoration</span><select id="tag-profile-decoration"><option value="none">None</option><option value="underline">Underline</option><option value="strike">Strike</option></select></label>
+                        <label><span>Text effect</span><select id="tag-profile-text-effect" aria-describedby="tag-profile-effects-note"><option value="none">None</option><option value="outline">Outline</option><option value="shadow">Drop shadow</option><option value="glow">Glow</option></select></label>
+                        <p id="tag-profile-effects-note" class="field-note field-wide">Text effects are static presets. Animation is configured separately.</p>
+                      </fieldset>
+
+                      <fieldset>
+                        <legend>Animation</legend>
+                        <div class="tag-animation-field">
+                          <span>Animation</span>
+                          <div id="tag-profile-animation" class="tag-animation-select">
+                            <button id="tag-animation-button" class="tag-animation-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="tag-animation-menu" aria-describedby="tag-profile-animation-note"><span id="tag-animation-value">None</span><span aria-hidden="true">▾</span></button>
+                            <div id="tag-animation-menu" class="tag-animation-menu" role="listbox" aria-label="Tag animation" hidden>
+                              <button type="button" role="option" aria-selected="true" data-animation-value="none"><span data-animation-preview>None</span></button>
+                              <button type="button" role="option" aria-selected="false" data-animation-value="rainbow"><span data-animation-preview>Rainbow</span></button>
+                              <button type="button" role="option" aria-selected="false" data-animation-value="marquee"><span data-animation-preview>Marquee</span></button>
+                              <button type="button" role="option" aria-selected="false" data-animation-value="ghost"><span data-animation-preview>Ghost</span></button>
+                              <button type="button" role="option" aria-selected="false" data-animation-value="bounce"><span data-animation-preview>Bounce</span></button>
+                            </div>
+                          </div>
+                        </div>
+                        <p id="tag-profile-animation-note" class="field-note">Reduced Motion shows the original text color at full opacity without movement.</p>
+                      </fieldset>
+                    </div>
+                  </section>
+
+                  <aside class="tag-profile-preview-pane" aria-labelledby="tag-profile-preview-heading">
+                    <header><p>Live badge preview</p><h4 id="tag-profile-preview-heading">Physical</h4></header>
+                    <div class="tag-profile-preview-surface is-dark"><span id="tag-profile-preview-dark">Physical</span></div>
+                    <div class="tag-profile-preview-surface is-light"><span id="tag-profile-preview-light">Physical</span></div>
+                    <dl>
+                      <div><dt>Source</dt><dd id="tag-preview-source">Built-in</dd></div>
+                      <div><dt>Parent</dt><dd id="tag-preview-parent">Top level</dd></div>
+                      <div><dt>Aliases</dt><dd id="tag-preview-aliases">None</dd></div>
+                      <div><dt>Appearance</dt><dd id="tag-preview-appearance">Built-in preset</dd></div>
+                    </dl>
+                    <p>Changes affect this user profile only. The source Jump remains unchanged.</p>
+                  </aside>
+                </div>
+              </div>
+            </section>
+
+            <section id="settings-keys-panel" role="tabpanel" aria-labelledby="settings-keys-tab" hidden>
+              <h4>Key bindings</h4>
+              <div class="keybinding-list">
+                <div><span>Quick Add</span><kbd>Ctrl/⌘ Enter</kbd><button type="button">Change</button></div>
+                <div><span>Quick Fix</span><kbd>Ctrl/⌘ .</kbd><button type="button">Change</button></div>
+                <div><span>Find</span><kbd>Ctrl/⌘ F</kbd><button type="button">Change</button></div>
+              </div>
+              <div class="setting-explanation">Overrides are user-local. Duplicate or platform-reserved bindings must be reported before the change is accepted.</div>
+            </section>
+
+            <section id="settings-accessibility-panel" role="tabpanel" aria-labelledby="settings-accessibility-tab" hidden>
+              <h4>Accessibility</h4>
+              <div class="setting-row">
+                <div><label for="mock-motion">Motion</label><p>Control nonessential interface animation.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><select id="mock-motion"><option>Use system setting</option><option>Reduce motion</option><option>Full motion</option></select></div>
+              </div>
+              <div class="setting-explanation">Reduced motion removes or shortens nonessential animation without hiding state changes or progress feedback.</div>
+            </section>
+
+            <section id="settings-developer-panel" class="settings-developer-panel" role="tabpanel" aria-labelledby="settings-developer-tab" hidden>
+              <div class="settings-subtabs" role="tablist" aria-label="Developer settings pages"><button id="developer-overview-tab" type="button" role="tab" aria-selected="true" aria-controls="developer-overview-panel">Overview</button><button id="developer-logs-tab" type="button" role="tab" aria-selected="false" aria-controls="developer-logs-panel" tabindex="-1">Logs</button></div>
+              <section id="developer-overview-panel" class="developer-subpanel" role="tabpanel" aria-labelledby="developer-overview-tab"><h4>Developer</h4><div class="setting-row"><div><label for="mock-debug-session">Debug events</label><p>Include detailed debug events until the application exits.</p></div><div><span class="setting-state agreed">Session only</span><label class="setting-check" for="mock-debug-session"><input id="mock-debug-session" type="checkbox"><span>Capture debug events</span></label></div></div><div class="setting-explanation">Logs are never persisted between launches. This session control is not stored as a preference.</div></section>
+              <section id="developer-logs-panel" class="developer-subpanel developer-logs-panel" role="tabpanel" aria-labelledby="developer-logs-tab" hidden>
+                <div class="logging-viewer" data-toc-ignore>
+                  <header><div><p>Session diagnostics</p><h3>Recent events</h3></div><div><button type="button" data-log-export>Export…</button><button type="button" data-log-clear>Clear session</button></div></header>
+                  <div class="logging-viewer-toolbar"><label><span class="sr-only">Search logged events</span><input type="search" data-logging-search placeholder="Find event or category"></label><div role="group" aria-label="Minimum severity"><button type="button" data-log-level="debug" aria-pressed="true">Debug+</button><button type="button" data-log-level="info" aria-pressed="false">Info+</button><button type="button" data-log-level="warn" aria-pressed="false">Warn+</button><button type="button" data-log-level="error" aria-pressed="false">Error+</button></div></div>
+                  <div class="logging-event-layout"><div class="logging-event-list" aria-label="Filtered session diagnostic events"><button type="button" data-log-event data-severity="info" data-search="app lifecycle app.started startup"><span class="log-severity info">Info</span><code>app.started</code><time>18:42:02</time></button><button type="button" data-log-event data-severity="warn" data-search="logging buffer logging.buffer.near_limit session"><span class="log-severity warn">Warn</span><code>logging.buffer.near_limit</code><time>18:42:31</time></button><button type="button" data-log-event data-severity="error" data-search="package parser package.parse.failed imported"><span class="log-severity error">Error</span><code>package.parse.failed</code><time>18:43:10</time></button><button type="button" data-log-event data-severity="debug" data-search="renderer debug renderer.cache.reused"><span class="log-severity debug">Debug</span><code>renderer.cache.reused</code><time>18:43:12</time></button><p class="logging-empty" data-logging-empty hidden>No events match the current filters.</p></div><section class="logging-event-detail" aria-label="Selected log event details"><p>Selected event</p><h4 data-logging-detail-title>logging.buffer.near_limit</h4><dl><div><dt>Severity</dt><dd data-logging-detail-severity>Warn</dd></div><div><dt>Category</dt><dd data-logging-detail-category>logging</dd></div><div><dt>Correlation</dt><dd data-logging-detail-correlation>op-7f2c</dd></div><div><dt>Safe attributes</dt><dd data-logging-detail-attributes><code>usageBand=high</code><code>operation=session-log</code></dd></div></dl><div class="logging-stack"><strong>Stack trace</strong><pre data-logging-detail-stack>SessionBufferWarning: session log nearing its limit
+  at SessionLog.append (logging/session-log.ts:84:11)
+  at EventPipeline.emit (logging/event-pipeline.ts:52:9)</pre></div><div class="logging-report-actions"><button type="button" data-log-copy-report>Copy report</button><button type="button" data-log-github>Open GitHub Issues…</button></div><p class="logging-viewer-message" data-logging-message role="status"></p></section></div>
+                </div>
+              </section>
+            </section>
+          </div>
+        </div>
+
+        <h3>Tag Profile Scope and Transfer</h3>
+        <ul>
+          <li>The Tags page edits <code>tags.profile</code>; it does not add tag relationships or presentation fields to Jump markup.</li>
+          <li>Built-in categories are always present. Normalized strings found on accrued records are synchronized into the editor, and users may also enter strings manually.</li>
+          <li>Parents, reciprocal alias links, and badge overrides are user-local. Changing them affects search expansion and rendering without rewriting imported content.</li>
+          <li>The tag profile has dedicated versioned JSON import and export because it is intentionally shareable. Acquired records and Jump source are never included.</li>
+          <li>Per-tag Reset restores a built-in preset or returns a custom tag to parent-derived presentation, depending on the selected tag’s source.</li>
+          <li>Manual and imported profile-only tags may be deleted. Deletion automatically removes their alias links and reparents direct children; built-ins and tags sourced from accrued content remain protected.</li>
+        </ul>
+
+        <h2>Persistence and Migration</h2>
+        <ul>
+          <li>Settings persist independently from Jump packages and Chain records.</li>
+          <li>The persisted object carries a schema version and is migrated before use.</li>
+          <li>Missing keys receive current defaults; migrations do not rewrite unrelated preferences.</li>
+          <li>A Reset action restores one setting, one category, or the complete registry without deleting projects or chains.</li>
+          <li>General preference import/export remains deferred. The tag profile is the explicit exception and has its own versioned JSON transfer format.</li>
+          <li>Developer session logs and the debug-capture toggle never persist; every application launch starts with an empty log and debug capture disabled.</li>
+        </ul>
+
+        <h2>Setting Definition Template</h2>
+        <p>New settings added to this document should record:</p>
+        <dl class="setting-template">
+          <div><dt>Key</dt><dd>Stable namespaced identifier.</dd></div>
+          <div><dt>Status</dt><dd>Candidate, agreed, deprecated, or removed.</dd></div>
+          <div><dt>Scope</dt><dd>Application, Editor, Chain Tracker, accessibility, or another explicit owner.</dd></div>
+          <div><dt>Type and values</dt><dd>Bounded value representation and validation rules.</dd></div>
+          <div><dt>Default</dt><dd>Behavior when the key is absent or invalid.</dd></div>
+          <div><dt>Application timing</dt><dd>Immediate, next workspace load, or restart required.</dd></div>
+          <div><dt>Persistence</dt><dd>Where it is stored and whether it may synchronize or export.</dd></div>
+          <div><dt>Rationale</dt><dd>The concrete user need that justifies configurability.</dd></div>
+        </dl>
+
+        <h2>Open Settings Decisions</h2>
+        <p>No Settings-surface decisions are currently open. New candidates will be added here as application, Editor, and Chain Tracker design introduces genuine user preferences.</p>
+      </article>
+      <a class="back-to-top" href="#content">Back to top</a>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Design draft for the Jumpchain authoring editor.">
+  <title>Editor Design Draft | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="editor-design.css">
+  <script src="editor-design.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home">
+      <span class="site-mark" aria-hidden="true">JV</span>
+      <span>Jumpchain Visualizer <small>Documentation</small></span>
+    </a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html">Overview</a>
+      <a href="application-design.html">Application</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="chain-tracker-design.html">Chain Tracker</a>
+      <a href="chain-portability.html">Portability</a>
+      <a href="supplements-design.html">Supplements</a>
+      <a href="settings-design.html">Settings</a>
+      <a href="logging-design.html">Logging</a>
+      <a href="tags-design.html">Tags</a>
+      <a href="markup.html">Markup</a>
+      <a href="editor-design.html" aria-current="page">Editor design</a>
+      <a href="choice-rendering-design.html">Controls</a>
+    </nav>
+  </header>
+
+  <main id="content" class="design-document" tabindex="-1">
+    <header class="design-hero">
+      <p class="eyebrow">Agreed editor design</p>
+      <h1>Editor properties</h1>
+      <p class="lede">The agreed authoring experience for creating valid Jumpchain packages without requiring authors to memorize the markup language. The interactive controls make the accepted behavior concrete and remain implementation references rather than production widgets.</p>
+      <div class="status-note" role="note">
+        <strong>Draft premise:</strong> the saved <code>.jdef</code> text remains canonical. Structured controls, raw source, and preview are synchronized views of the same parsed document.
+      </div>
+    </header>
+
+    <section class="agreed-section" aria-labelledby="agreed-heading">
+      <div class="section-heading">
+        <p class="eyebrow">Agreed behavior</p>
+        <h2 id="agreed-heading">Current editor decisions</h2>
+      </div>
+      <div class="decision-summary-grid">
+        <article>
+          <h3>Resilient preview</h3>
+          <p>Source updates are debounced while an author types. Invalid source keeps the last valid preview, while deterministic parser recovery may render a safely repaired interpretation with a visible warning.</p>
+        </article>
+        <article>
+          <h3>Interactive preview sandbox</h3>
+          <p>Preview supports the same selections, controls, conditional states, and reactions as the finished browser. Preview choices are temporary and never persist into the user’s chain. Layouts and content rendered through them can expose color-coded node bounds for placement debugging.</p>
+        </article>
+        <article>
+          <h3>Autosave by default</h3>
+          <p>Autosave and recovery are the default. The persistence layer must support a setting that switches to explicit saves if autosave is undesirable or unreliable in a user’s environment.</p>
+        </article>
+        <article>
+          <h3>Automatic file placement</h3>
+          <p>New declarations go to the appropriate package file automatically: jump and sections to <code>jump.jdef</code>, choices to <code>choices.jdef</code>, and layouts and themes to <code>layout.jdef</code>.</p>
+        </article>
+        <article>
+          <h3>Intent-preserving repair</h3>
+          <p>Low-risk corrections may recover parsing and preview automatically when intent is unambiguous, but source text changes only through Quick Fix or formatting. Ambiguous corrections remain diagnostics with explicit actions.</p>
+        </article>
+        <article>
+          <h3>Package scope</h3>
+          <p>The initial package remains limited to <code>jump.jdef</code>, <code>choices.jdef</code>, <code>layout.jdef</code>, and <code>assets/</code>.</p>
+        </article>
+        <article>
+          <h3>Structured content by default</h3>
+          <p>Selecting semantic content opens Structured. Selecting a physical package file opens Source, because the file itself is the author’s chosen editing target.</p>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="properties-heading">
+      <div class="section-heading">
+        <p class="eyebrow">Proposed baseline</p>
+        <h2 id="properties-heading">What the editor needs to do</h2>
+      </div>
+      <div class="property-grid">
+        <article class="property-card">
+          <p class="property-stage">Foundation</p>
+          <h3>One document, several views</h3>
+          <ul>
+            <li>Structured editing and source editing share one undo history.</li>
+            <li>Visual actions create minimal, predictable text edits.</li>
+            <li>Formatting is preserved except where the formatter is explicitly invoked.</li>
+            <li>Dirty state, autosave, crash recovery, save, and revert behave consistently.</li>
+          </ul>
+        </article>
+        <article class="property-card">
+          <p class="property-stage">Navigation</p>
+          <h3>Project and semantic outline</h3>
+          <ul>
+            <li>Package explorer for <code>jump.jdef</code>, companion files, and assets.</li>
+            <li>Semantic outline for sections, choices, layouts, themes, and traits.</li>
+            <li>Search by name, handle, tag, group, or declaration type.</li>
+            <li>Go to definition, find references, breadcrumbs, and recent locations.</li>
+          </ul>
+        </article>
+        <article class="property-card">
+          <p class="property-stage">Creation</p>
+          <h3>Guided declaration editing</h3>
+          <ul>
+            <li>Insert palette for valid declarations at the current location.</li>
+            <li>Context-aware field suggestions, defaults, and constrained value pickers.</li>
+            <li>Purpose-built rich text, image, selection, cost, grant, and layout controls.</li>
+            <li>Keyboard-first creation plus drag reordering where order is meaningful.</li>
+          </ul>
+        </article>
+        <article class="property-card">
+          <p class="property-stage">Feedback</p>
+          <h3>Preview and diagnostics</h3>
+          <ul>
+            <li>Debounced live preview with source-to-preview selection synchronization.</li>
+            <li>Errors, warnings, and suggestions inline and in a filterable problems panel.</li>
+            <li>Quick fixes for safe operations; explanations before destructive changes.</li>
+            <li>Preview controls for screen size, theme, rank, properties, and conditional states.</li>
+          </ul>
+        </article>
+        <article class="property-card">
+          <p class="property-stage">Refactoring</p>
+          <h3>Safe structural changes</h3>
+          <ul>
+            <li>Rename handles and update all references atomically.</li>
+            <li>Materialize derived handles when references or collisions require stability.</li>
+            <li>Extract choices and layouts into companion files.</li>
+            <li>Detect broken references, duplicate handles, and semantic conflicts.</li>
+          </ul>
+        </article>
+        <article class="property-card">
+          <p class="property-stage">Assets and access</p>
+          <h3>Human-safe project handling</h3>
+          <ul>
+            <li>Import, preview, rename, and locate project-relative assets.</li>
+            <li>Require and preview image alternative text.</li>
+            <li>Never discard invalid or unsaved source silently.</li>
+            <li>Full keyboard operation, visible focus, zoom support, and announced diagnostics.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="mockup-section" aria-labelledby="mockup-heading">
+      <div class="section-heading">
+        <p class="eyebrow">Concept mockup</p>
+        <h2 id="mockup-heading">Adaptive three-pane workspace</h2>
+        <p>The Content view keeps every declaration searchable and groups longer lists into collapsible sections. Its Content/Files tabs and content search remain visible while only the declarations beneath them scroll. Sidebar entry names truncate with an ellipsis when space is insufficient and expose the complete name as a hover hint. Content selections retain the author’s last Structured or Source tab; package files open in Source without overwriting that content preference. The Source tab uses the language-aware editing surface documented below, populated with the current selection. The preview stays contextual to the current selection. When the current preview is a layout or uses one, Show bounds reveals color-coded containers, slots, and content references around the populated preview data; hovering one boundary identifies it in the debugger readout without covering the content. A compact diagnostics strip remains available at the bottom, previews the highest-priority problem, and opens its scrollable details upward without changing the mockup height.</p>
+      </div>
+
+      <div class="editor-mockup" aria-label="Interactive editor concept">
+        <div class="mock-toolbar">
+          <span class="mock-project-name">Example Jump</span>
+          <span id="mock-save-state" class="mock-save-state">Saved</span>
+          <span class="mock-spacer"></span>
+          <div class="mock-add-menu">
+            <button id="mock-add-button" class="mock-primary-action" type="button" aria-expanded="false" aria-controls="mock-add-options">Add</button>
+            <div id="mock-add-options" class="mock-add-options" hidden>
+              <button type="button" data-add-kind="section">Section</button>
+              <button type="button" data-add-kind="choice">Choice</button>
+              <button type="button" data-add-kind="section layout">Section layout</button>
+              <button type="button" data-add-kind="choice layout">Choice layout</button>
+              <button type="button" data-add-kind="theme">Theme</button>
+              <button type="button" data-add-kind="asset">Asset</button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="mock-explorer">
+          <div class="mock-rail-tabs" role="tablist" aria-label="Navigation view">
+            <button id="content-tab" type="button" role="tab" aria-selected="true" aria-controls="content-panel">Content</button>
+            <button id="files-tab" type="button" role="tab" aria-selected="false" aria-controls="files-panel" tabindex="-1">Files</button>
+          </div>
+          <div id="content-panel" class="mock-rail-panel" role="tabpanel" aria-labelledby="content-tab">
+            <label class="mock-nav-search">
+              <span class="sr-only">Find jump content</span>
+              <input id="mock-content-search" type="search" placeholder="Find content">
+            </label>
+            <div class="mock-nav-scroll" aria-label="Jump content">
+              <button class="mock-nav-item" type="button" data-mock-view="jump">Jump details</button>
+              <details class="mock-nav-group" open>
+                <summary>Sections <span>2</span></summary>
+                <button class="mock-nav-item active" type="button" data-mock-view="origins" aria-current="page">Origins</button>
+                <button class="mock-nav-item" type="button" data-mock-view="perks">Perks</button>
+              </details>
+              <details class="mock-nav-group" open>
+                <summary>Choices <span>5</span></summary>
+                <details class="mock-choice-subgroup" open>
+                  <summary>Origins <span>2</span></summary>
+                  <button class="mock-nav-item" type="button" data-mock-view="dragon">Dragon</button>
+                  <button class="mock-nav-item" type="button" data-mock-view="human">Human</button>
+                </details>
+                <details class="mock-choice-subgroup" open>
+                  <summary>Perks <span>3</span></summary>
+                  <button class="mock-nav-item" type="button" data-mock-view="arcane-study">Arcane Study</button>
+                  <button class="mock-nav-item" type="button" data-mock-view="flight">Flight</button>
+                  <button class="mock-nav-item" type="button" data-mock-view="unbreakable">Unbreakable</button>
+                </details>
+              </details>
+              <details class="mock-nav-group">
+                <summary>Layouts <span>3</span></summary>
+                <button class="mock-nav-item mock-layout-nav-item" type="button" data-mock-view="origin-section-layout"><span>origin_section</span><small>Section layout</small></button>
+                <button class="mock-nav-item mock-layout-nav-item" type="button" data-mock-view="origin-card-layout"><span>origin_card</span><small>Choice layout</small></button>
+                <button class="mock-nav-item mock-layout-nav-item" type="button" data-mock-view="perk-card-layout"><span>perk_card</span><small>Choice layout</small></button>
+              </details>
+              <details class="mock-nav-group">
+                <summary>Themes <span>2</span></summary>
+                <button class="mock-nav-item" type="button" data-mock-view="primary-theme">primary</button>
+                <button class="mock-nav-item" type="button" data-mock-view="accent-theme">accent</button>
+              </details>
+            </div>
+          </div>
+          <div id="files-panel" class="mock-rail-panel" role="tabpanel" aria-labelledby="files-tab" hidden>
+            <div class="mock-nav-scroll" aria-label="Package files">
+              <p class="mock-nav-label">Package files</p>
+              <button class="mock-nav-item active" type="button" data-mock-view="jump-file" aria-current="page">jump.jdef</button>
+              <button class="mock-nav-item" type="button" data-mock-view="choices-file">choices.jdef</button>
+              <button class="mock-nav-item" type="button" data-mock-view="layout-file">layout.jdef</button>
+              <button class="mock-nav-item" type="button" data-mock-view="assets">assets/</button>
+            </div>
+          </div>
+        </aside>
+
+        <section class="mock-editor" aria-label="Selected content">
+          <div class="mock-tabs" role="tablist" aria-label="Editing representation">
+            <button id="structured-tab" type="button" role="tab" aria-selected="true" aria-controls="structured-panel">Structured</button>
+            <button id="source-tab" type="button" role="tab" aria-selected="false" aria-controls="source-panel" tabindex="-1">Source</button>
+          </div>
+          <div id="structured-panel" class="mock-editor-panel" role="tabpanel" aria-labelledby="structured-tab"></div>
+          <div id="source-panel" class="mock-editor-panel mock-source-panel" role="tabpanel" aria-labelledby="source-tab" hidden></div>
+        </section>
+
+        <aside class="mock-inspector">
+          <div class="mock-tabs" role="tablist" aria-label="Context view">
+            <button id="preview-tab" type="button" role="tab" aria-selected="true" aria-controls="preview-panel">Preview</button>
+            <button id="properties-tab" type="button" role="tab" aria-selected="false" aria-controls="properties-panel" tabindex="-1">Properties</button>
+          </div>
+          <div id="preview-panel" class="mock-inspector-panel" role="tabpanel" aria-labelledby="preview-tab"></div>
+          <div id="properties-panel" class="mock-inspector-panel mock-properties" role="tabpanel" aria-labelledby="properties-tab" hidden></div>
+        </aside>
+
+        <div id="mock-feedback" class="mock-feedback" role="status" hidden></div>
+
+        <section class="mock-diagnostics" aria-label="Document diagnostics">
+          <div class="mock-diagnostics-bar">
+            <button id="mock-diagnostics-toggle" class="mock-diagnostics-toggle" type="button" aria-expanded="false" aria-controls="mock-diagnostics-details">
+              <span class="mock-diagnostics-chevron" aria-hidden="true">›</span>
+              <span>Diagnostics</span>
+            </button>
+            <div class="mock-diagnostics-filters" aria-label="Filter diagnostics by severity">
+              <button class="mock-diagnostic-filter is-error" type="button" data-diagnostic-filter="error" aria-pressed="true" title="Toggle errors">
+                <span class="mock-diagnostic-icon" aria-hidden="true">×</span>
+                <span data-diagnostic-count="error">1</span>
+                <span class="sr-only">errors</span>
+              </button>
+              <button class="mock-diagnostic-filter is-warning" type="button" data-diagnostic-filter="warning" aria-pressed="true" title="Toggle warnings">
+                <span class="mock-diagnostic-icon" aria-hidden="true">!</span>
+                <span data-diagnostic-count="warning">2</span>
+                <span class="sr-only">warnings</span>
+              </button>
+              <button class="mock-diagnostic-filter is-info" type="button" data-diagnostic-filter="info" aria-pressed="true" title="Toggle information">
+                <span class="mock-diagnostic-icon" aria-hidden="true">i</span>
+                <span data-diagnostic-count="info">2</span>
+                <span class="sr-only">information messages</span>
+              </button>
+            </div>
+            <div id="mock-diagnostics-summary" class="mock-diagnostics-summary" aria-live="polite"></div>
+          </div>
+          <div id="mock-diagnostics-details" class="mock-diagnostics-details" hidden>
+            <div class="mock-diagnostic-item is-error" data-diagnostic-severity="error" data-diagnostic-summary="Primary currency has more than one cost declaration.">
+              <span class="mock-diagnostic-icon" aria-hidden="true">×</span>
+              <span>Primary currency has more than one cost declaration.</span>
+              <code>choices.jdef:42</code>
+            </div>
+            <div class="mock-diagnostic-item is-warning" data-diagnostic-severity="warning" data-diagnostic-summary="A broader condition shadows a later rank variant.">
+              <span class="mock-diagnostic-icon" aria-hidden="true">!</span>
+              <span><code>rank &gt;= 2</code> shadows the later <code>rank &gt;= 4</code> variant.</span>
+              <code>choices.jdef:67</code>
+            </div>
+            <div class="mock-diagnostic-item is-warning" data-diagnostic-severity="warning" data-diagnostic-summary="A choice is stored outside its conventional package file.">
+              <span class="mock-diagnostic-icon" aria-hidden="true">!</span>
+              <span>Choice is valid here, but would normally be stored in choices.jdef.</span>
+              <code>jump.jdef:31</code>
+            </div>
+            <div class="mock-diagnostic-item is-info" data-diagnostic-severity="info">
+              <span class="mock-diagnostic-icon" aria-hidden="true">i</span>
+              <span>Preview is showing the last valid document while source is incomplete.</span>
+              <code>choices.jdef</code>
+            </div>
+            <div class="mock-diagnostic-item is-info" data-diagnostic-severity="info">
+              <span class="mock-diagnostic-icon" aria-hidden="true">i</span>
+              <span>The formatter can place this declaration in canonical field order.</span>
+              <code>jump.jdef:8</code>
+            </div>
+            <p id="mock-diagnostics-empty" class="mock-diagnostics-empty" hidden>No diagnostic classes are included.</p>
+          </div>
+        </section>
+      </div>
+    </section>
+
+
+    <section class="source-support-section" aria-labelledby="source-support-heading">
+      <div class="section-heading">
+        <p class="eyebrow">Source authoring draft</p>
+        <h2 id="source-support-heading">Language-aware source editor</h2>
+        <p>Source editing should feel like a purpose-built language tool, not a plain text area. Folding, resilient preview, find, inline completion, Quick Fix, and the context palette below are interactive.</p>
+      </div>
+
+      <div class="source-feature-grid">
+        <article>
+          <h3>Editing essentials</h3>
+          <p>Line numbers, declaration and block folding, syntax highlighting, indentation guides, auto-indentation, <kbd>Ctrl/⌘ F</kbd> search and replace, multi-cursor editing, and durable undo/redo.</p>
+        </article>
+        <article>
+          <h3>Language intelligence</h3>
+          <p>Contextual ghost text accepted with <kbd>Tab</kbd>, a full <kbd>Ctrl/⌘ Space</kbd> completion list, field and token documentation, handle suggestions, definitions, references, safe rename, symbols, and formatting.</p>
+        </article>
+        <article>
+          <h3>Diagnostics and preview</h3>
+          <p>Inline errors and warnings, preview-only deterministic recovery, <kbd>Ctrl/⌘ .</kbd> Quick Fix source edits, explicit actions for ambiguous fixes, debounced parsing, and a clearly marked last-valid or safely recovered preview.</p>
+        </article>
+      </div>
+
+      <div class="source-interaction-contract">
+        <article>
+          <h3>Completion is narrow by default</h3>
+          <p>Ghost text shows only the highest-ranked valid suggestion. It considers file role, enclosing declaration, indentation, cursor position, fields already present, repeatability, valid values, and package handles. <kbd>Tab</kbd> accepts it only while visible; otherwise Tab indents normally.</p>
+        </article>
+        <article>
+          <h3>One context palette</h3>
+          <p><kbd>Ctrl/⌘ Enter</kbd> opens a palette for the cursor location. It replaces a separate cheat sheet by listing valid fields and child declarations together with relevant editor commands. Every entry displays its accelerator, preserving fast keyboard-oriented insertion without requiring authors to memorize hidden shortcuts.</p>
+        </article>
+        <article>
+          <h3>Recovery does not rewrite</h3>
+          <p>Safe parser recovery may keep preview current, but it does not silently change source or move the cursor. Quick Fix commits a deterministic repair; formatting may commit all outstanding deterministic repairs. All defaults are rebindable and displayed using platform-appropriate key labels.</p>
+        </article>
+      </div>
+
+      <div class="source-editor-demo" aria-label="Interactive source editor concept">
+        <div class="source-demo-toolbar">
+          <span><strong>jump.jdef</strong> / Origins</span>
+          <div class="source-demo-actions">
+            <button id="source-demo-find" type="button" aria-expanded="false" aria-controls="source-find-bar">Find <kbd>Ctrl/⌘ F</kbd></button>
+            <button id="source-demo-palette" type="button" aria-expanded="false" aria-controls="source-context-palette">Quick add <kbd>Ctrl/⌘ Enter</kbd></button>
+            <button id="source-demo-type" type="button">Simulate invalid syntax</button>
+          </div>
+        </div>
+        <div id="source-find-bar" class="source-find-bar" hidden>
+          <label>Find <input id="source-find-input" type="search" value="choice-source"></label>
+          <span id="source-find-count">1 of 1</span>
+          <button id="source-find-close" type="button" aria-label="Close find">×</button>
+        </div>
+        <div class="source-code-stage">
+          <div id="source-code-demo" class="source-code-demo" aria-label="Jump definition source example" tabindex="0">
+            <div class="source-line fold-owner" data-source-group="jump"><span class="source-line-number">1</span><button class="source-fold" type="button" data-source-fold="jump" aria-expanded="true" aria-label="Collapse jump declaration">▾</button><code><span class="token-keyword">jump</span></code></div>
+            <div class="source-line" data-source-ancestors="jump"><span class="source-line-number">2</span><span class="source-fold-spacer"></span><code>  <span class="token-field">name</span>: <span class="token-string">"Example Jump"</span></code></div>
+            <div class="source-line" data-source-ancestors="jump"><span class="source-line-number">3</span><span class="source-fold-spacer"></span><code>  <span class="token-field">author</span>: <span class="token-string">"Author One"</span></code></div>
+            <div class="source-line" data-source-ancestors="jump"><span class="source-line-number">4</span><span class="source-fold-spacer"></span><code>  <span class="token-field">version</span>: <span class="token-string">"1.0"</span></code></div>
+            <div class="source-line blank" data-source-ancestors="jump"><span class="source-line-number">5</span><span class="source-fold-spacer"></span><code></code></div>
+            <div class="source-line fold-owner" data-source-group="section"><span class="source-line-number">6</span><button class="source-fold" type="button" data-source-fold="section" aria-expanded="true" aria-label="Collapse section declaration">▾</button><code><span class="token-keyword">section</span></code></div>
+            <div class="source-line" data-source-ancestors="section"><span class="source-line-number">7</span><span class="source-fold-spacer"></span><code>  <span class="token-field">handle</span>: <span class="token-reference">origins</span></code></div>
+            <div class="source-line" data-source-ancestors="section"><span class="source-line-number">8</span><span class="source-fold-spacer"></span><code>  <span class="token-field">name</span>: <span class="token-string">"Origins"</span></code></div>
+            <div class="source-line" data-source-ancestors="section"><span class="source-line-number">9</span><span class="source-fold-spacer"></span><code>  <span class="token-field">layout</span>: <span class="token-reference">origin_section</span></code></div>
+            <div class="source-line blank" data-source-ancestors="section"><span class="source-line-number">10</span><span class="source-fold-spacer"></span><code></code></div>
+            <div class="source-line fold-owner source-find-match" data-source-group="choice-source" data-source-ancestors="section"><span class="source-line-number">11</span><button class="source-fold" type="button" data-source-fold="choice-source" aria-expanded="true" aria-label="Collapse choice source">▾</button><code>  <span class="token-keyword">choice-source</span></code></div>
+            <div class="source-line" data-source-ancestors="section choice-source"><span class="source-line-number">12</span><span class="source-fold-spacer"></span><code>    <span class="token-field">handle</span>: <span class="token-reference">main</span></code></div>
+            <div class="source-line" data-source-ancestors="section choice-source"><span class="source-line-number">13</span><span class="source-fold-spacer"></span><code>    <span class="token-field">group</span>: <span class="token-reference">origins</span></code></div>
+            <div class="source-line diagnostic-line" data-source-ancestors="section choice-source"><span class="source-line-number">14</span><span class="source-fold-spacer"></span><code>    <span class="token-field">mode</span> <span class="token-reference diagnostic-token">single</span></code></div>
+            <div id="source-ghost-line" class="source-line source-ghost-line" data-source-ancestors="section choice-source"><span class="source-line-number">15</span><span class="source-fold-spacer"></span><code>    <span class="token-ghost"><span class="token-field">resolution</span>: <span class="token-reference">either</span></span> <kbd>Tab</kbd></code></div>
+          </div>
+          <aside id="source-context-palette" class="source-context-palette" aria-label="Context actions for choice source" hidden>
+            <header>
+              <div><strong>Quick add</strong><small>choice-source · main</small></div>
+              <button id="source-palette-close" type="button" aria-label="Close context palette">×</button>
+            </header>
+            <p class="source-palette-label">Valid unused fields</p>
+            <button id="source-palette-resolution" type="button" data-source-palette-action="resolution"><span><code>resolution</code><small>random or either</small></span><kbd>R</kbd></button>
+            <p id="source-palette-no-fields" class="source-palette-empty" hidden>All available fields are already present.</p>
+            <p class="source-palette-label">Relevant commands</p>
+            <button id="source-palette-quick-fix" type="button" data-source-palette-action="quick-fix"><span>Quick Fix<small>Write the recovered colon</small></span><kbd>Ctrl/⌘ .</kbd></button>
+            <button type="button" data-source-palette-action="find"><span>Find<small>Search this file</small></span><kbd>Ctrl/⌘ F</kbd></button>
+            <button type="button" data-source-palette-action="completion"><span>All completions<small>Show valid values and handles</small></span><kbd>Ctrl/⌘ Space</kbd></button>
+            <button type="button" data-source-palette-action="fold"><span>Fold current block<small>Collapse choice-source</small></span><kbd>Ctrl/⌘ Shift [</kbd></button>
+          </aside>
+        </div>
+        <div class="source-demo-status">
+          <span id="source-demo-diagnostic">Warning: preview inferred the missing “:” after <code>mode</code>; press <kbd>Ctrl/⌘ .</kbd> to update source.</span>
+          <strong id="source-preview-status">Preview: safely recovered</strong>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="research-section" aria-labelledby="research-heading">
+      <div class="section-heading">
+        <p class="eyebrow">Research notes</p>
+        <h2 id="research-heading">Why these properties are on the table</h2>
+      </div>
+      <div class="research-list">
+        <article>
+          <h3>Language-aware editing is a bundle, not syntax highlighting</h3>
+          <p>Established editor APIs group diagnostics, completion, hover, definitions, references, symbols, formatting, folding, and code actions. The Jumpchain language service should expose one semantic implementation that every editor view can reuse.</p>
+          <p><a href="https://code.visualstudio.com/api/language-extensions/programmatic-language-features">VS Code programmatic language features</a> · <a href="https://microsoft.github.io/monaco-editor/typedoc/interfaces/editor_editor_api.languages.InlineCompletion.html">Monaco inline completion</a> · <a href="https://codemirror.net/docs/ref/#autocomplete.CompletionContext">CodeMirror completion context</a></p>
+        </article>
+        <article>
+          <h3>Hybrid editors need one authoritative model</h3>
+          <p>VS Code's custom-editor guidance recommends minimal text edits, synchronization in both directions, protection against update loops, and graceful handling of temporarily invalid structured text. Those requirements apply directly to synchronized form/source editing.</p>
+          <p><a href="https://code.visualstudio.com/api/extension-guides/custom-editors">VS Code Custom Editor API</a></p>
+        </article>
+        <article>
+          <h3>Error-tolerant parsing is part of the editing experience</h3>
+          <p>Incremental parser systems represent unrecognized and missing input explicitly, allowing diagnostics and surrounding structure to survive while a user is halfway through an edit.</p>
+          <p><a href="https://tree-sitter.github.io/tree-sitter/using-parsers/queries/1-syntax.html">Tree-sitter error and missing nodes</a></p>
+        </article>
+        <article>
+          <h3>Projectional editing solves validity but introduces interaction risk</h3>
+          <p>Direct AST editors can guarantee structure and present specialized controls, but established projectional-editor documentation acknowledges that deletion behavior can be difficult to predict. A hybrid approach should use familiar form controls and always retain a source escape hatch.</p>
+          <p><a href="https://www.jetbrains.com/help/mps/basic-notions.html">JetBrains MPS projectional editing</a> · <a href="https://www.jetbrains.com/help/mps/editor.html">JetBrains MPS editor behavior</a></p>
+        </article>
+        <article>
+          <h3>Project navigation must be intentionally keyboard-accessible</h3>
+          <p>Tree and grid widgets bring specific focus-management and arrow-key obligations. We should prefer simpler disclosure navigation until the project explorer truly needs full tree behavior.</p>
+          <p><a href="https://www.w3.org/WAI/ARIA/apg/patterns/treeview/">WAI-ARIA tree view pattern</a> · <a href="https://www.w3.org/WAI/ARIA/apg/patterns/grid/">WAI-ARIA grid pattern</a></p>
+        </article>
+        <article>
+          <h3>Local project access needs a fallback</h3>
+          <p>Browser file and directory handles require explicit user permission and are not uniformly available. The product should support both direct folder access where available and portable import/export everywhere else.</p>
+          <p><a href="https://developer.mozilla.org/en-US/docs/Web/API/File_System_API">MDN File System API</a></p>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

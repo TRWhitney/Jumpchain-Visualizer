@@ -1,0 +1,24 @@
+jump
+  format: 1
+  name: "Representative Jump"
+  author: "Schema Working Group"
+  version: "1.0"
+  section-layout: choice_section
+  choice-layout: choice_card
+
+section
+  handle: perks
+  name: "Perks"
+  layout: choice_section
+
+  choice-source
+    handle: main
+    group: perks
+    mode: multi
+
+  text
+    handle: description
+    content:
+      """
+      Choose useful abilities.
+      """

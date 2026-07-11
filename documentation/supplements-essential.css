@@ -1,0 +1,278 @@
+.essential-full-mock,
+.essential-dialog-mock,
+.essential-progression-mock {
+  --essential-accent: #72c8c2;
+  overflow: hidden;
+  color: #e8eeee;
+  background: #1e2324;
+  border: 1px solid #465052;
+  border-radius: 0.45rem;
+  box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 22%);
+}
+
+.essential-full-mock { height: 46rem; }
+.essential-dialog-mock { height: 36rem; }
+.essential-progression-mock { height: 34rem; }
+.essential-full-mock [hidden], .essential-dialog-mock [hidden], .essential-progression-mock [hidden] { display: none !important; }
+.essential-full-mock :is(button, input, select), .essential-dialog-mock button, .essential-progression-mock :is(button, input) { font: inherit; }
+.essential-full-mock :is(button, input, select):focus-visible, .essential-dialog-mock button:focus-visible, .essential-progression-mock :is(button, input):focus-visible { outline: 2px solid var(--essential-accent); outline-offset: 2px; }
+.essential-full-mock :is(h4, h5, h6, p), .essential-dialog-mock :is(h4, h5, h6, p), .essential-progression-mock :is(h4, h5, h6, p) { margin: 0; }
+
+.essential-full-mock > header,
+.essential-dialog-mock > header,
+.essential-progression-mock > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 4.6rem;
+  padding: 0.8rem 1rem;
+  background: #15191a;
+  border-bottom: 1px solid #3d4648;
+}
+
+.essential-full-mock > header p,
+.essential-dialog-mock > header p,
+.essential-progression-mock > header p,
+.essential-full-body > aside > p,
+.essential-workspace > header p,
+.essential-dialog-heading p {
+  color: var(--essential-accent) !important;
+  font-size: 0.64rem !important;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.essential-full-mock > header h4,
+.essential-dialog-mock > header h4,
+.essential-progression-mock > header h4 { margin-top: 0.1rem; color: #fff; font-size: 1.3rem; }
+.essential-full-mock > header div:first-child > span { color: #9ba6a7; font-size: 0.68rem; }
+.essential-balance { display: grid; text-align: right; }
+.essential-balance span { color: #9ba6a7; font-size: 0.62rem; }
+.essential-balance output { color: var(--essential-accent); font-size: 1.15rem; font-weight: 850; }
+.essential-balance output.is-negative, #essential-dialog-balance.is-negative { color: #ff7777; }
+
+.essential-full-body {
+  display: grid;
+  grid-template-columns: 11.5rem minmax(0, 1fr);
+  height: calc(46rem - 4.6rem);
+  min-width: 50rem;
+}
+
+.essential-full-body > aside {
+  overflow-y: auto;
+  padding: 0.8rem 0.6rem;
+  background: #181c1d;
+  border-right: 1px solid #3d4648;
+  scrollbar-gutter: stable;
+}
+
+#essential-category-nav { display: grid; gap: 0.12rem; margin-top: 0.5rem; }
+#essential-category-nav button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.42rem 0.5rem;
+  color: #aeb8b9;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: 0.18rem;
+  cursor: pointer;
+}
+
+#essential-category-nav button:hover { background: #252b2c; }
+#essential-category-nav button[aria-pressed="true"] { color: #fff; background: #293233; border-left-color: var(--essential-accent); }
+#essential-category-nav strong { font-size: 0.68rem; }
+#essential-category-nav small { overflow: hidden; color: #859092; font-size: 0.55rem; text-overflow: ellipsis; white-space: nowrap; }
+
+.essential-workspace { display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; min-height: 0; }
+.essential-workspace > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  background: #1a1f20;
+  border-bottom: 1px solid #3d4648;
+}
+.essential-workspace > header h5 { margin-top: 0.08rem; color: #fff; font-size: 1rem; }
+.essential-workspace > header div > span { color: #9ba6a7; font-size: 0.62rem; }
+#essential-search-label { display: grid; gap: 0.12rem; width: 13rem; color: #8e999a; font-size: 0.55rem; }
+#essential-search { height: 1.9rem; padding: 0.3rem 0.45rem; color: #ecf1f1; background: #141819; border: 1px solid #485254; border-radius: 0.2rem; font-size: 0.62rem; }
+.essential-workspace-content { overflow-y: auto; padding: 0.8rem 0.9rem 1.2rem; scrollbar-gutter: stable; }
+
+.essential-setup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+.essential-mode-field { display: grid; gap: 0.25rem; padding: 0.65rem; background: #272d2e; border: 1px solid #424c4e; border-radius: 0.25rem; }
+.essential-mode-field > span { display: flex; justify-content: space-between; gap: 0.4rem; color: #e8eeee; font-size: 0.67rem; font-weight: 750; }
+.essential-mode-field small { color: #859092; font-size: 0.55rem; font-weight: 500; }
+.essential-mode-field select { width: 100%; height: 2rem; padding: 0.3rem 0.45rem; color: #eef3f3; background: #171b1c; border: 1px solid #4a5557; border-radius: 0.2rem; font-size: 0.64rem; }
+.essential-mode-field p { color: #9ba6a7 !important; font-size: 0.6rem !important; }
+.essential-setup-group { margin-top: 0.75rem; }
+.essential-setup-group h6 { margin-bottom: 0.35rem; color: #fff; font-size: 0.7rem; }
+.essential-toggle-list { display: grid; gap: 0.3rem; }
+.essential-toggle-list label { display: flex; align-items: start; gap: 0.45rem; padding: 0.5rem; color: #d5dddd; background: #252b2c; border: 1px solid #3f484a; border-radius: 0.22rem; font-size: 0.64rem; }
+.essential-toggle-list input { accent-color: var(--essential-accent); }
+.essential-toggle-list span { display: grid; gap: 0.08rem; }
+.essential-toggle-list small { color: #8e999a; font-size: 0.56rem; }
+
+.essential-essence-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.35rem; }
+.essential-essence-grid button { display: grid; gap: 0.1rem; min-height: 3.4rem; padding: 0.5rem; color: #dbe2e2; text-align: left; background: #272d2e; border: 1px solid #424c4e; border-left: 3px solid transparent; border-radius: 0.22rem; cursor: pointer; }
+.essential-essence-grid button[aria-pressed="true"] { background: #293838; border-left-color: var(--essential-accent); }
+.essential-essence-grid strong { font-size: 0.65rem; }
+.essential-essence-grid small { color: #899496; font-size: 0.54rem; }
+.essential-essence-detail { margin-top: 0.55rem; padding: 0.65rem; color: #b5c0c1; background: #23292a; border-left: 3px solid var(--essential-accent); font-size: 0.62rem; }
+.essential-essence-detail strong { color: #fff; }
+.essential-essence-detail p { margin-top: 0.2rem !important; color: #a3adaf !important; font-size: 0.6rem !important; }
+
+.essential-perk-list { display: grid; grid-auto-rows: max-content; gap: 0.3rem; }
+.essential-perk-row { display: grid; grid-template-columns: minmax(0, 1fr) 7.5rem 4rem; gap: 0.55rem; align-items: center; padding: 0.5rem 0.6rem; background: #272d2e; border: 1px solid #414b4d; border-left: 3px solid transparent; border-radius: 0.22rem; }
+.essential-perk-row.is-owned { border-left-color: var(--essential-accent); }
+.essential-perk-copy { min-width: 0; cursor: pointer; }
+.essential-perk-copy strong { color: #f0f4f4; font-size: 0.67rem; }
+.essential-perk-copy span { display: block; overflow: hidden; color: #899496; font-size: 0.56rem; text-overflow: ellipsis; white-space: nowrap; }
+.essential-perk-copy em { display: inline-block; margin-left: 0.3rem; padding: 0.08rem 0.25rem; color: #9ee0dc; background: #243737; border-radius: 999px; font-size: 0.5rem; font-style: normal; }
+.essential-perk-row select { height: 1.8rem; padding: 0.25rem 0.4rem; color: #eaf0f0; background: #171b1c; border: 1px solid #4b5557; border-radius: 0.18rem; font-size: 0.59rem; }
+.essential-perk-cost { color: #aab4b5; text-align: right; font-size: 0.6rem; font-weight: 750; }
+.essential-perk-detail { grid-column: 1 / -1; padding-top: 0.4rem; color: #aab4b5; border-top: 1px solid #424b4d; font-size: 0.6rem; line-height: 1.45; }
+.essential-empty { padding: 1rem; color: #8e999a; text-align: center; font-size: 0.65rem; }
+
+.essential-dialog-mock > header button { width: 2rem; height: 2rem; padding: 0; color: #c8d0d0; background: #292f30; border: 1px solid #4a5557; border-radius: 0.22rem; cursor: pointer; }
+.essential-dialog-body { display: grid; grid-template-columns: 12rem minmax(0, 1fr); height: calc(36rem - 4.6rem); min-width: 50rem; }
+.essential-dialog-body > aside { padding: 0.9rem; background: #181c1d; border-right: 1px solid #3d4648; }
+.essential-dialog-essence { position: relative; width: max-content; }
+.essential-dialog-mark { display: grid; width: 3rem; aspect-ratio: 1; margin-bottom: 0.55rem; place-items: center; color: #102423; background: var(--essential-accent); border: 0; border-radius: 50%; font-size: 1.2rem; font-weight: 900; cursor: help; }
+.essential-dialog-essence [role="tooltip"] { position: absolute; z-index: 3; top: 0; left: 3.4rem; visibility: hidden; width: 13rem; padding: 0.5rem; color: #dfe6e6; background: #111516; border: 1px solid #596567; border-radius: 0.22rem; box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 35%); opacity: 0; pointer-events: none; font-size: 0.57rem; line-height: 1.4; transition: opacity 100ms ease; }
+.essential-dialog-essence:hover [role="tooltip"], .essential-dialog-essence:focus-within [role="tooltip"] { visibility: visible; opacity: 1; }
+.essential-dialog-body > aside h5 { color: #fff; font-size: 0.8rem; }
+.essential-dialog-body > aside > span { color: #8e999a; font-size: 0.61rem; }
+.essential-dialog-body > aside dl { margin: 0.8rem 0; }
+.essential-dialog-body > aside dl > div { display: flex; justify-content: space-between; gap: 0.4rem; padding: 0.35rem 0; border-bottom: 1px solid #353d3f; }
+.essential-dialog-body dt { color: #879294; font-size: 0.56rem; }
+.essential-dialog-body dd { margin: 0; color: #eef3f3; font-size: 0.59rem; font-weight: 700; }
+.essential-dialog-body > aside button { width: 100%; padding: 0.45rem; color: #122221; background: var(--essential-accent); border: 0; border-radius: 0.22rem; font-size: 0.61rem; font-weight: 800; cursor: pointer; }
+.essential-dialog-body > section { overflow-y: auto; padding: 0.8rem 0.9rem 1rem; scrollbar-gutter: stable; }
+.essential-dialog-heading { display: flex; align-items: end; justify-content: space-between; gap: 0.5rem; }
+.essential-dialog-heading h5 { color: #fff; font-size: 0.95rem; }
+.essential-dialog-heading > span { color: #8e999a; font-size: 0.58rem; }
+.essential-dialog-filters { display: flex; gap: 0.3rem; margin: 0.65rem 0; }
+.essential-dialog-filters button { padding: 0.3rem 0.5rem; color: #abb5b6; background: #292f30; border: 1px solid #465052; border-radius: 999px; font-size: 0.58rem; cursor: pointer; }
+.essential-dialog-filters button[aria-pressed="true"] { color: #102322; background: var(--essential-accent); border-color: var(--essential-accent); font-weight: 800; }
+.essential-dialog-abilities { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.essential-dialog-abilities button { padding: 0.3rem 0.45rem; color: #dbe3e3; background: #2a3031; border: 1px solid #485254; border-radius: 999px; font-size: 0.58rem; cursor: pointer; }
+.essential-dialog-abilities button:hover, .essential-dialog-abilities button[aria-expanded="true"] { color: #102322; background: var(--essential-accent); border-color: var(--essential-accent); }
+.essential-dialog-detail { margin-top: 0.55rem; padding: 0.6rem; color: #aeb8b9; background: #242a2b; border-left: 3px solid var(--essential-accent); font-size: 0.61rem; }
+.essential-dialog-detail strong { color: #fff; }
+.essential-dialog-detail p { margin-top: 0.18rem !important; color: #a3adaf !important; font-size: 0.59rem !important; }
+.essential-gauntlet-note { margin-top: 0.7rem !important; padding: 0.55rem; color: #9ea9aa !important; background: #242a2b; border: 1px solid #3e4749; font-size: 0.59rem !important; }
+.essential-gauntlet-note strong { color: #dfe5e5; }
+
+.essential-progression-mock > header button {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: #c8d0d0;
+  background: #292f30;
+  border: 1px solid #4a5557;
+  border-radius: 0.22rem;
+  cursor: pointer;
+}
+
+.essential-progression-body {
+  display: grid;
+  grid-template-columns: 12rem minmax(0, 1fr);
+  height: calc(34rem - 4.6rem);
+  min-width: 50rem;
+}
+
+.essential-progression-body > aside {
+  padding: 0.9rem;
+  background: #181c1d;
+  border-right: 1px solid #3d4648;
+}
+
+.essential-progression-body > aside > p {
+  color: var(--essential-accent) !important;
+  font-size: 0.61rem !important;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.essential-progression-body > aside > strong {
+  display: block;
+  margin-top: 0.12rem;
+  color: var(--essential-accent);
+  font-size: 1.35rem;
+}
+
+.essential-progression-body > aside dl { margin: 0.8rem 0; }
+.essential-progression-body > aside dl > div { display: flex; justify-content: space-between; gap: 0.45rem; padding: 0.38rem 0; border-bottom: 1px solid #353d3f; }
+.essential-progression-body dt { color: #879294; font-size: 0.56rem; }
+.essential-progression-body dd { margin: 0; color: #eef3f3; font-size: 0.59rem; font-weight: 750; }
+.essential-progression-body > aside button { width: 100%; padding: 0.45rem; color: #102322; background: var(--essential-accent); border: 0; border-radius: 0.22rem; font-size: 0.6rem; font-weight: 800; cursor: pointer; }
+.essential-progression-body > section { overflow-y: auto; padding: 0.8rem 0.9rem 1rem; scrollbar-gutter: stable; }
+
+.essential-progress-heading { display: flex; align-items: end; justify-content: space-between; gap: 0.5rem; }
+.essential-progress-heading p { color: var(--essential-accent) !important; font-size: 0.61rem !important; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+.essential-progress-heading h5 { color: #fff; font-size: 0.95rem; }
+.essential-progress-heading > span { color: #9ba6a7; font-size: 0.58rem; }
+
+.essential-progress-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.65rem;
+  padding: 0.6rem;
+  background: #272d2e;
+  border: 1px solid #414b4d;
+  border-radius: 0.24rem;
+}
+
+.essential-progress-panel > div { display: grid; gap: 0.1rem; }
+.essential-progress-panel strong { color: #f0f4f4; font-size: 0.67rem; }
+.essential-progress-panel small { color: #919c9e; font-size: 0.57rem; }
+.essential-progress-panel > button { min-width: 6.6rem; padding: 0.38rem 0.5rem; color: #d8e0e0; background: #303738; border: 1px solid #4b5658; border-radius: 0.2rem; font-size: 0.59rem; cursor: pointer; }
+.essential-progress-panel > button[aria-pressed="true"] { color: #102322; background: var(--essential-accent); border-color: var(--essential-accent); font-weight: 800; }
+.essential-progress-panel > button:disabled { color: #7e888a; cursor: default; opacity: 0.75; }
+
+.essential-questing-panel { grid-template-columns: 1fr; }
+.essential-questing-panel label { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.45rem; padding: 0.42rem; color: #dbe2e2; background: #202526; border-radius: 0.2rem; font-size: 0.6rem; }
+.essential-questing-panel input { accent-color: var(--essential-accent); }
+.essential-questing-panel b { color: var(--essential-accent); font-size: 0.57rem; }
+
+.essential-progress-section { margin-top: 0.75rem; }
+.essential-progress-section h6 { color: #fff; font-size: 0.7rem; }
+.essential-progress-section > p { margin-top: 0.15rem !important; color: #929d9f !important; font-size: 0.58rem !important; }
+.essential-infusion-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.35rem; margin-top: 0.45rem; }
+.essential-infusion-options button { display: grid; gap: 0.08rem; min-height: 3.2rem; padding: 0.45rem; color: #dbe2e2; text-align: left; background: #272d2e; border: 1px solid #414b4d; border-left: 3px solid transparent; border-radius: 0.22rem; cursor: pointer; }
+.essential-infusion-options button[aria-pressed="true"] { background: #293838; border-left-color: var(--essential-accent); }
+.essential-infusion-options button:disabled { color: #788284; opacity: 0.65; cursor: default; }
+.essential-infusion-options strong { font-size: 0.64rem; }
+.essential-infusion-options span { color: #909b9d; font-size: 0.55rem; }
+.essential-progress-note { margin-top: 0.7rem !important; padding: 0.55rem; color: #9da8a9 !important; background: #242a2b; border-left: 3px solid var(--essential-accent); font-size: 0.58rem !important; }
+
+.essential-spend-section > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.essential-spend-section > div:first-child > span { color: var(--essential-accent); font-size: 0.58rem; font-weight: 750; }
+.essential-spend-tools { display: grid !important; grid-template-columns: 9rem minmax(0, 1fr); gap: 0.4rem !important; margin-top: 0.45rem; }
+.essential-spend-tools label { display: grid; gap: 0.12rem; color: #8f9a9c; font-size: 0.54rem; }
+.essential-spend-tools :is(select, input) { width: 100%; height: 1.85rem; padding: 0.28rem 0.4rem; color: #e9efef; background: #171b1c; border: 1px solid #4b5557; border-radius: 0.18rem; font-size: 0.58rem; }
+.essential-progress-purchases { display: grid; grid-auto-rows: max-content; gap: 0.3rem; margin-top: 0.45rem; }
+.essential-progress-purchase { display: grid; grid-template-columns: minmax(0, 1fr) 6.8rem; align-items: center; gap: 0.55rem; padding: 0.5rem 0.55rem; background: #272d2e; border: 1px solid #414b4d; border-left: 3px solid transparent; border-radius: 0.22rem; }
+.essential-progress-purchase.is-acquired { background: #293838; border-left-color: var(--essential-accent); }
+.essential-progress-purchase > div { display: grid; gap: 0.08rem; min-width: 0; }
+.essential-progress-purchase strong { color: #edf2f2; font-size: 0.64rem; }
+.essential-progress-purchase span { color: #909b9d; font-size: 0.55rem; }
+.essential-progress-purchase em { color: #d2c38c; font-size: 0.53rem; font-style: normal; }
+.essential-progress-purchase button { min-height: 1.9rem; padding: 0.3rem 0.45rem; color: #102322; background: var(--essential-accent); border: 1px solid var(--essential-accent); border-radius: 0.2rem; font-size: 0.57rem; font-weight: 800; cursor: pointer; }
+.essential-progress-purchase.is-acquired button { color: #dbe2e2; background: #303738; border-color: #4b5658; }
+.essential-progress-purchase button:disabled { color: #7e888a; background: #292f30; border-color: #424b4d; cursor: default; }
+
+@media (max-width: 54rem) {
+  .essential-full-mock, .essential-dialog-mock, .essential-progression-mock { overflow-x: auto; }
+  .essential-full-mock > *, .essential-dialog-mock > *, .essential-progression-mock > * { min-width: 50rem; }
+}

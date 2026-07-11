@@ -1,0 +1,349 @@
+.logging-document .lede {
+  max-width: 64rem;
+}
+
+.logging-status {
+  margin: 1.25rem 0 1.75rem;
+  padding: 0.9rem 1rem;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 0.35rem;
+}
+
+.logging-boundaries,
+.logging-privacy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.logging-boundaries article,
+.logging-privacy-grid section {
+  padding: 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+}
+
+.logging-boundaries h3,
+.logging-privacy-grid h3 {
+  margin-top: 0;
+}
+
+.logging-privacy-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.logging-table-wrap {
+  overflow-x: auto;
+}
+
+.logging-table-wrap table {
+  min-width: 48rem;
+}
+
+.logging-field-list,
+.logging-decision {
+  display: grid;
+  gap: 0;
+  margin: 1rem 0;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+}
+
+.logging-field-list > div,
+.logging-decision > div {
+  display: grid;
+  grid-template-columns: minmax(9rem, 0.3fr) minmax(0, 1fr);
+  gap: 0.8rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.logging-field-list > div + div,
+.logging-decision > div + div {
+  border-top: 1px solid var(--border);
+}
+
+.logging-field-list dt,
+.logging-field-list dd,
+.logging-decision dt,
+.logging-decision dd {
+  margin: 0;
+}
+
+.logging-field-list dt,
+.logging-decision dt {
+  font-weight: 800;
+}
+
+.logging-viewer {
+  height: 30rem;
+  margin: 1.2rem 0 2rem;
+  overflow: hidden;
+  color: #d8d8d2;
+  background: #20201e;
+  border: 1px solid #41413d;
+  border-radius: 0.45rem;
+  box-shadow: 0 1rem 2.5rem rgb(23 23 23 / 15%);
+  font-size: 0.76rem;
+}
+
+.logging-viewer [hidden] {
+  display: none !important;
+}
+
+.logging-viewer > header {
+  display: flex;
+  min-height: 3.7rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.6rem 0.75rem;
+  background: #171717;
+  border-bottom: 1px solid #41413d;
+}
+
+.logging-viewer :is(h3, h4, p) {
+  margin: 0;
+  color: inherit;
+}
+
+.logging-viewer code {
+  padding: 0;
+  color: #ecece6;
+  background: transparent;
+}
+
+.logging-viewer > header p,
+.logging-event-detail > p {
+  color: #c5a94b;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.logging-viewer > header > div:last-child,
+.logging-viewer-toolbar > div {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.logging-viewer button,
+.logging-viewer input {
+  font: inherit;
+}
+
+.logging-viewer button {
+  min-height: 2rem;
+  padding: 0.3rem 0.55rem;
+  color: #d8d8d2;
+  background: #292927;
+  border: 1px solid #52524c;
+  border-radius: 0.2rem;
+  cursor: pointer;
+}
+
+.logging-viewer button:hover,
+.logging-viewer button:focus-visible {
+  color: #fff;
+  border-color: #9a8130;
+}
+
+.logging-viewer button:focus-visible,
+.logging-viewer input:focus-visible {
+  outline: 2px solid #d4af37;
+  outline-offset: 2px;
+}
+
+.logging-viewer-toolbar {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1fr) auto;
+  gap: 0.6rem;
+  padding: 0.55rem 0.65rem;
+  background: #242422;
+  border-bottom: 1px solid #41413d;
+}
+
+.logging-viewer-toolbar input {
+  width: 100%;
+  min-height: 2rem;
+  padding: 0.3rem 0.45rem;
+  color: #efefe9;
+  background: #171717;
+  border: 1px solid #52524c;
+  border-radius: 0.2rem;
+}
+
+.logging-viewer-toolbar button[aria-pressed="true"] {
+  color: #171717;
+  background: #d4af37;
+  border-color: #d4af37;
+}
+
+.logging-event-layout {
+  display: grid;
+  grid-template-columns: minmax(24rem, 1.25fr) minmax(16rem, 0.75fr);
+  height: calc(100% - 7.8rem);
+  min-height: 0;
+}
+
+.logging-event-list {
+  min-height: 0;
+  overflow: auto;
+  border-right: 1px solid #41413d;
+}
+
+.logging-event-list > button {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr) auto;
+  width: 100%;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.8rem;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #383834;
+  border-radius: 0;
+}
+
+.logging-event-list > button.is-selected {
+  background: #343431;
+  box-shadow: inset 3px 0 #d4af37;
+}
+
+.logging-event-list code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logging-event-list time {
+  color: #85857f;
+  font-variant-numeric: tabular-nums;
+}
+
+.log-severity {
+  padding: 0.12rem 0.35rem;
+  border: 1px solid;
+  border-radius: 999px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.log-severity.debug {
+  color: #aeb9c6;
+  border-color: #59636e;
+}
+
+.log-severity.info {
+  color: #91c9ff;
+  border-color: #3e6d98;
+}
+
+.log-severity.warn {
+  color: #ffd76e;
+  border-color: #96782a;
+}
+
+.log-severity.error {
+  color: #ff9898;
+  border-color: #9a4747;
+}
+
+.logging-event-detail {
+  min-height: 0;
+  overflow: auto;
+  padding: 0.8rem;
+  background: #292927;
+}
+
+.logging-event-detail h4 {
+  margin-top: 0.12rem;
+  color: #fff;
+}
+
+.logging-event-detail dl {
+  margin: 0.8rem 0 0;
+}
+
+.logging-event-detail dl > div {
+  padding: 0.45rem 0;
+  border-top: 1px solid #41413d;
+}
+
+.logging-event-detail dt {
+  color: #85857f;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+}
+
+.logging-event-detail dd {
+  margin: 0.1rem 0 0;
+  color: #d8d8d2;
+}
+
+.logging-event-detail [data-logging-detail-attributes] {
+  display: grid;
+  justify-items: start;
+  gap: 0.15rem;
+}
+
+.logging-stack {
+  margin-top: 0.7rem;
+}
+
+.logging-stack > strong {
+  color: #aaa9a3;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+}
+
+.logging-stack pre {
+  margin: 0.3rem 0 0;
+  padding: 0.55rem;
+  color: #d8d8d2;
+  background: #171717;
+  border-color: #41413d;
+  font-size: 0.62rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.logging-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+.logging-viewer-message {
+  min-height: 1.1rem;
+  margin-top: 0.4rem !important;
+  color: #cfc18d !important;
+  font-size: 0.65rem;
+}
+
+.logging-empty {
+  margin: 0.6rem !important;
+  padding: 0.8rem;
+  color: #aaa9a3 !important;
+  border: 1px dashed #52524c;
+}
+
+@media (max-width: 54rem) {
+  .logging-boundaries,
+  .logging-privacy-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .logging-viewer {
+    overflow-x: auto;
+  }
+
+  .logging-viewer > * {
+    min-width: 46rem;
+  }
+}

@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Design draft for Jumpchain tags, relationships, search, badges, colors, and effects.">
+  <title>Tag System Design | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="tags-design.css">
+  <script src="documentation.js" defer></script>
+  <script src="tags-design.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home">
+      <span class="site-mark" aria-hidden="true">JV</span>
+      <span>Jumpchain Visualizer <small>Documentation</small></span>
+    </a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html">Overview</a>
+      <a href="application-design.html">Application</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="chain-tracker-design.html">Chain Tracker</a>
+      <a href="chain-portability.html">Portability</a>
+      <a href="supplements-design.html">Supplements</a>
+      <a href="settings-design.html">Settings</a>
+      <a href="logging-design.html">Logging</a>
+      <a href="tags-design.html" aria-current="page">Tags</a>
+      <a href="markup.html">Markup</a>
+      <a href="editor-design.html">Editor design</a>
+      <a href="choice-rendering-design.html">Controls</a>
+    </nav>
+  </header>
+
+  <div class="page-shell">
+    <aside class="sidebar" aria-labelledby="contents-heading">
+      <div class="sidebar-inner">
+        <h2 id="contents-heading">On this page</h2>
+        <nav id="table-of-contents" aria-label="Tag system design sections">
+          <p class="toc-fallback">Section links appear when JavaScript is available.</p>
+        </nav>
+      </div>
+    </aside>
+
+    <main id="content" class="document tags-document" tabindex="-1">
+      <article>
+        <p class="eyebrow">Simple metadata and user presentation draft</p>
+        <h1>Tag system design</h1>
+        <p class="lede">Free-text author metadata that makes accrued perks, items, companions, and other records searchable while supporting expressive, user-overridable badges.</p>
+
+        <div class="tags-status" role="note">
+          <strong>Status: tag design settled.</strong> Jump authors supply only repeated string tags. The application supplies badge defaults and search normalization; optional relationships, presentation customization, static text effects, and bounded animation belong to the user and do not extend the Jump markup.
+        </div>
+
+        <h2>Goals</h2>
+        <ul>
+          <li>Authors apply useful string tags without declarations, handles, schemas, or a central vocabulary.</li>
+          <li>Tags inherited by granted perks, items, companions, traits, and properties become the main search vocabulary for a chain’s accrued content.</li>
+          <li>Parent/child relationships make broad category searches useful and keep category badge palettes visually coherent.</li>
+          <li>Tag categories support filtering and aggregate questions such as how many accrued perks are tagged “Magic.”</li>
+          <li>Built-in defaults make every tag readable; users control any custom badge presentation and motion.</li>
+          <li>Unsafe CSS, unreadable color combinations, flashing effects, and invalid user relationships are rejected or safely normalized.</li>
+        </ul>
+
+        <h2>Authoring Model</h2>
+        <p>A tag in a Jump document is only a string. There are no tag declarations, tag handles, relationship blocks, or author styling fields.</p>
+        <pre><code class="language-text">choice
+  handle: reality_warping
+  name: "Reality Warping"
+  tag: "Elemental Magic"
+  tag: magic
+
+  grant
+    kind: perk
+    tag: "Reality Alteration"
+</code></pre>
+        <ul>
+          <li>Bare and quoted values are both strings.</li>
+          <li>Quoting allows whitespace, punctuation, or text that could otherwise be read as structural syntax.</li>
+          <li>Source text remains in the imported package, but runtime identity and badge text use the application’s canonical tag form rather than cosmetic author spelling.</li>
+          <li>The <code>tag</code> field is repeatable; repeating one canonical tag identity on the same owner is an error.</li>
+          <li>Tags carry no behavior. They do not grant mechanics or imply affordability.</li>
+        </ul>
+
+        <h3>Normalization</h3>
+        <ul>
+          <li>Canonical identity applies Unicode compatibility normalization and Unicode case folding.</li>
+          <li>Every run of whitespace, underscores, and Unicode dash punctuation becomes one ASCII space; surrounding space is removed.</li>
+          <li>An empty canonical result is invalid. Matching canonical identities are the same tag across packages, and a duplicate on one owner is an error.</li>
+          <li>Badge text capitalizes the first letter of every canonical word except the lowercase particles <code>a</code>, <code>an</code>, <code>and</code>, <code>as</code>, <code>at</code>, <code>but</code>, <code>by</code>, <code>for</code>, <code>from</code>, <code>in</code>, <code>nor</code>, <code>of</code>, <code>on</code>, <code>or</code>, <code>per</code>, <code>the</code>, <code>to</code>, <code>via</code>, and <code>vs</code>. Particles remain lowercase even when first or last.</li>
+          <li>For example, <code>lord_of_the-great_rings</code> has canonical identity <code>lord of the great rings</code> and displays as <q>Lord of the Great Rings</q>.</li>
+          <li>Imported source spelling remains available in the package for diagnostics, but is not a separate identity or badge label.</li>
+          <li>User relationships and styles target canonical identities, not author-controlled spellings.</li>
+        </ul>
+
+        <h2>Taggable Content and Inheritance</h2>
+        <p>The initial taggable semantic owners are:</p>
+        <ul>
+          <li><code>choice</code></li>
+          <li>explicit <code>grant</code> blocks</li>
+          <li>future declarations that directly create trackable perks, items, companions, traits, properties, or resources</li>
+        </ul>
+        <p>Text, image, layout, and theme declarations are not taggable. Sections remain untagged in v1 unless a concrete navigation need appears.</p>
+        <p>Common grants inherit the choice’s tags under the existing grant-inheritance rule. A block-form grant may add grant-specific tags so one choice can produce separately searchable records. Tags are strictly additive: grant tags never replace or remove inherited choice tags, and there is no tag-removal field.</p>
+
+        <h2>Relationship Model</h2>
+        <p>Relationships are user settings keyed by normalized tag strings. None of this data is authored in or written back to a Jump document.</p>
+        <div class="relationship-grid" data-toc-ignore>
+          <article><h3>Parent and child</h3><p>A user-defined broader/narrower relationship between two strings. The draft allows one parent per string in v1, preventing cycles and keeping derived colors predictable.</p></article>
+          <article><h3>Aliases</h3><p>Separate strings that a user chooses to make search-equivalent, such as “Pyrokinesis” and “Fire Control.” Both source spellings remain intact.</p></article>
+        </div>
+        <p>These two relationships cover category hierarchy and equivalent wording without requiring Jump authors to coordinate a vocabulary. Hierarchy communicates category breadth only. Sharing a parent is not a separate relationship type.</p>
+
+        <h3>Relationship Validation</h3>
+        <ul>
+          <li>A normalized string cannot parent or alias itself.</li>
+          <li>Parent cycles are errors.</li>
+          <li>A pair cannot simultaneously be aliases and have a parent/child relationship.</li>
+          <li>Aliases resolve symmetrically.</li>
+          <li>Removing or changing a relationship never rewrites source tag strings.</li>
+        </ul>
+
+        <h2>Built-in Top-Level Categories</h2>
+        <p>The application provides twelve top-level category tags as a stable summary layer. They do not add declarations to Jump markup. Authors still write ordinary strings, while the user’s relationship settings determine which category contains each string.</p>
+        <div class="category-definition-grid" data-toc-ignore>
+          <article><strong>Physical</strong><p>Body, health, senses, forms, and bodily capability.</p></article>
+          <article><strong>Mental</strong><p>Memory, cognition, learning, emotion, and will.</p></article>
+          <article><strong>Social</strong><p>Communication, relationships, leadership, and reputation.</p></article>
+          <article><strong>Magic</strong><p>Spellcraft and explicitly magical systems or techniques.</p></article>
+          <article><strong>Spiritual</strong><p>Souls, spirits, faith, and spiritual practices.</p></article>
+          <article><strong>Technology</strong><p>Science, computing, engineering, and technological systems.</p></article>
+          <article><strong>Crafting</strong><p>Making, repairing, enchanting, cooking, and other creation skills.</p></article>
+          <article><strong>Combat</strong><p>Offense, weapons, tactics, and direct fighting capability.</p></article>
+          <article><strong>Defense</strong><p>Protection, resistance, recovery, and survival.</p></article>
+          <article><strong>Stealth</strong><p>Concealment, infiltration, disguise, and evasion.</p></article>
+          <article><strong>Meta</strong><p>Chain, Jump, perk, and other rules-facing effects.</p></article>
+          <article><strong>Miscellaneous</strong><p>The fallback for tags with no path to another top-level category.</p></article>
+        </div>
+        <ul>
+          <li>The top-level names and their chart order are built in so profiles remain comparable and the radar does not change shape because categories were reordered. Clockwise from the top, the order is Social, Mental, Spiritual, Magic, Meta, Stealth, Physical, Combat, Defense, Crafting, Technology, and Miscellaneous. Meta and Miscellaneous separate the mental/spiritual and physical/material halves.</li>
+          <li>Users may override every category’s badge style and color.</li>
+          <li>A user may assign any ordinary tag to a category by giving it a parent whose chain reaches that category.</li>
+          <li>An ordinary tag with no path to one of the other eleven categories is treated as a child of Miscellaneous. This fallback is derived and does not write a parent into the Jump document.</li>
+          <li>An alias uses the category of the string it aliases. Conflicting category paths are rejected rather than guessed.</li>
+        </ul>
+
+        <h3>Category Counting</h3>
+        <p>The radar represents inventory counts, not ratings. Each axis is the number of accrued records carrying that category tag or one of its descendants.</p>
+        <ul>
+          <li>A record counts at most once in a category, even when several of its tags resolve to that category.</li>
+          <li>A record may count in several categories when its tags resolve to different top-level categories.</li>
+          <li>Aliases do not add another count.</li>
+          <li>Inherited and grant-specific tags count in the same way as direct tags.</li>
+          <li>A tagged record counts once under Miscellaneous when at least one of its tags has no other category path. Untagged records are not silently categorized.</li>
+          <li>Every radar axis uses the same zero-based count scale. Exact values remain available beside the chart.</li>
+        </ul>
+
+        <h3>Category Radar</h3>
+        <p>This sample profile uses raw accrued-record counts. The radar is a read-only visual summary; the adjacent table is the authoritative representation of the same data. Tag customization is handled independently in the editor mock that follows.</p>
+
+        <div class="category-radar" data-toc-ignore>
+          <figure class="category-radar-figure" aria-labelledby="category-radar-title category-radar-caption">
+            <header class="category-chart-header">
+              <div>
+                <p id="category-chart-eyebrow">Sample chain profile</p>
+                <h4 id="category-radar-title">Accrued records by tag category</h4>
+                <nav id="category-chart-breadcrumbs" aria-label="Chart drilldown path" hidden></nav>
+              </div>
+              <div class="category-chart-actions">
+                <button id="category-chart-back" type="button" hidden>← Back</button>
+                <button id="category-chart-open" type="button" disabled>Open breakdown</button>
+              </div>
+            </header>
+            <svg id="category-radar-svg" viewBox="0 0 520 520" aria-hidden="true" focusable="false"></svg>
+            <figcaption id="category-radar-caption">Select a category to show its axis; double-click the selected category to open its breakdown.</figcaption>
+          </figure>
+
+          <section class="category-radar-data" aria-labelledby="category-counts-heading">
+            <header><div><p id="category-sidebar-eyebrow">Exact values</p><h4 id="category-counts-heading">Category counts</h4></div><label class="category-chart-sort"><span>Sort</span><select id="category-chart-sort"><option value="count">Occurrences</option><option value="tag">Tag A–Z</option></select></label></header>
+            <table id="category-chart-table">
+              <caption class="sr-only">Accrued record count for each built-in tag category</caption>
+              <thead><tr><th scope="col">Category</th><th scope="col">Records</th></tr></thead>
+              <tbody id="category-chart-rows">
+                <tr data-radar-row="social"><th scope="row"><button type="button" data-radar-category="social"><span class="category-list-badge is-soft" style="--category-color:#a93572;--category-to:#7b2452">Social</span></button></th><td>8</td></tr>
+                <tr data-radar-row="mental"><th scope="row"><button type="button" data-radar-category="mental"><span class="category-list-badge is-gradient" style="--category-color:#4f46a5;--category-to:#312e81">Mental</span></button></th><td>12</td></tr>
+                <tr data-radar-row="spiritual"><th scope="row"><button type="button" data-radar-category="spiritual"><span class="category-list-badge is-outline" style="--category-color:#16806f;--category-to:#0e594e">Spiritual</span></button></th><td>7</td></tr>
+                <tr data-radar-row="magic"><th scope="row"><button type="button" data-radar-category="magic"><span class="category-list-badge is-gradient" style="--category-color:#6d3bb3;--category-to:#45247a">Magic</span></button></th><td>21</td></tr>
+                <tr data-radar-row="meta"><th scope="row"><button type="button" data-radar-category="meta"><span class="category-list-badge is-outline" style="--category-color:#7b3f8c;--category-to:#542a60">Meta</span></button></th><td>5</td></tr>
+                <tr data-radar-row="stealth"><th scope="row"><button type="button" data-radar-category="stealth"><span class="category-list-badge is-gradient" style="--category-color:#475569;--category-to:#293443">Stealth</span></button></th><td>11</td></tr>
+                <tr data-radar-row="physical"><th scope="row"><button type="button" data-radar-category="physical"><span class="category-list-badge is-solid" style="--category-color:#a93645;--category-to:#7f2430">Physical</span></button></th><td>18</td></tr>
+                <tr data-radar-row="combat"><th scope="row"><button type="button" data-radar-category="combat"><span class="category-list-badge is-solid" style="--category-color:#922b21;--category-to:#671e17">Combat</span></button></th><td>16</td></tr>
+                <tr data-radar-row="defense"><th scope="row"><button type="button" data-radar-category="defense"><span class="category-list-badge is-outline" style="--category-color:#35755e;--category-to:#245241">Defense</span></button></th><td>14</td></tr>
+                <tr data-radar-row="crafting"><th scope="row"><button type="button" data-radar-category="crafting"><span class="category-list-badge is-soft" style="--category-color:#9a4d00;--category-to:#6b3500">Crafting</span></button></th><td>9</td></tr>
+                <tr data-radar-row="technology"><th scope="row"><button type="button" data-radar-category="technology"><span class="category-list-badge is-solid" style="--category-color:#2563a8;--category-to:#194777">Technology</span></button></th><td>10</td></tr>
+                <tr data-radar-row="miscellaneous"><th scope="row"><button type="button" data-radar-category="miscellaneous"><span class="category-list-badge is-soft" style="--category-color:#68707c;--category-to:#454b54">Miscellaneous</span></button></th><td>6</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+
+        <h3>Radar and Breakdown Interaction</h3>
+        <ul>
+          <li>Clicking an axis, point, label, or sidebar category selects it, colors its header, and emphasizes the radial line. This changes inspection state only.</li>
+          <li>The sidebar can sort by occurrence count or tag name. Sorting changes only the list order; radar axes, pie slices, colors, and chart geometry remain fixed.</li>
+          <li>Double-clicking the already selected category opens its pie breakdown. The visible Open breakdown button provides the same action without requiring a double-click.</li>
+          <li>Every breakdown includes records tagged directly with the current category as well as its child tags.</li>
+          <li>A pie shows at most nine named slices plus one ellipsis slice. The ellipsis represents the combined remainder; opening it shows the next largest hidden elements without losing their total.</li>
+          <li>Hovering a slice highlights its sidebar row and exposes its name, count, and compact alias summary. Hovering a row provides the same correlation.</li>
+          <li>Clicking a slice or sidebar row pulls that slice outward. Double-clicking a slice with children opens its child breakdown.</li>
+          <li>A visible Back button unwinds one level at a time, including an ellipsis remainder, until it returns to the radar. Breadcrumbs can jump directly to an earlier level.</li>
+          <li>Aliases never become separate slices or add counts. The sidebar shows the first alias followed by <code>+N</code>; the complete alias list remains available as hover/focus text.</li>
+          <li>For keyboard use, Enter selects a radar category and Enter again opens it. In pie mode, Enter pulls out a row and Enter again drills into it when children exist.</li>
+        </ul>
+
+        <h3>Tag Profile Editor Mock</h3>
+        <p>The profile editor is independent from the radar and edits the user’s reusable tag list. It always includes all built-in categories, automatically adds normalized tag strings found on acquired records, and accepts strings the user enters manually. It does not alter imported Jump documents. The Refresh action in this mock simulates the automatic synchronization that would occur when the chain changes.</p>
+
+        <div class="tag-profile-editor" data-toc-ignore>
+          <header class="tag-profile-toolbar">
+            <div><p>User tag profile</p><h4>Category, relationship, and badge editor</h4></div>
+            <div><button id="tag-json-import" type="button">Import JSON</button><button id="tag-json-export" type="button">Export JSON</button></div>
+          </header>
+
+          <section id="tag-json-panel" class="tag-json-panel" aria-labelledby="tag-json-heading" hidden>
+            <div><p>Portable user configuration</p><h4 id="tag-json-heading">Export tag profile JSON</h4></div>
+            <label for="tag-json-content">JSON document</label>
+            <textarea id="tag-json-content" spellcheck="false"></textarea>
+            <div class="tag-json-import-options" hidden>
+              <label for="tag-json-mode">Import behavior</label>
+              <select id="tag-json-mode"><option value="merge">Merge with this profile</option><option value="replace">Replace manual/imported tags and overrides</option></select>
+            </div>
+            <p id="tag-json-message" role="status">Export includes user relationships and presentation, not acquired records or Jump content.</p>
+            <div><button id="tag-json-apply" type="button" hidden>Review and apply import</button><button id="tag-json-close" type="button">Close</button></div>
+          </section>
+
+          <div class="tag-profile-workspace">
+            <aside class="tag-profile-list-pane" aria-labelledby="tag-profile-list-heading">
+              <div class="tag-profile-list-fixed">
+                <h4 id="tag-profile-list-heading">Tags</h4>
+                <label><span class="sr-only">Find tag</span><input id="tag-profile-search" type="search" placeholder="Find tag"></label>
+              </div>
+              <div id="tag-profile-list" class="tag-profile-list"></div>
+              <div class="tag-profile-add-actions">
+                <button id="tag-add-acquired" type="button">Refresh acquired tags</button>
+                <button id="tag-add-manual" type="button">Enter tag manually</button>
+              </div>
+              <section id="tag-acquired-picker" class="tag-add-panel" aria-labelledby="tag-acquired-heading" hidden>
+                <h5 id="tag-acquired-heading">Newly detected tags</h5>
+                <ul>
+                  <li data-acquired-tag="Flight">Flight <small>3 records</small></li>
+                  <li data-acquired-tag="Ice Control">Ice Control <small>2 records</small></li>
+                  <li data-acquired-tag="Cooking">Cooking <small>1 record</small></li>
+                  <li data-acquired-tag="Charisma">Charisma <small>4 records</small></li>
+                </ul>
+                <p>All detected strings are added. Existing normalized strings are not duplicated.</p>
+                <div><button id="tag-acquired-apply" type="button">Add all detected</button><button type="button" data-close-tag-add>Cancel</button></div>
+              </section>
+              <section id="tag-manual-entry" class="tag-add-panel" aria-labelledby="tag-manual-heading" hidden>
+                <h5 id="tag-manual-heading">Enter tag string</h5>
+                <label><span>Tag</span><input id="tag-manual-name" type="text" placeholder="Example: Summoning"></label>
+                <p id="tag-manual-message" role="status">New tags begin under Miscellaneous.</p>
+                <div><button id="tag-manual-apply" type="button">Add tag</button><button type="button" data-close-tag-add>Cancel</button></div>
+              </section>
+            </aside>
+
+            <section class="tag-profile-form-pane" aria-labelledby="tag-profile-form-heading">
+              <header><div><p id="tag-profile-source">Built-in category</p><h4 id="tag-profile-form-heading">Physical</h4></div><div class="tag-profile-form-actions"><button id="tag-profile-delete" type="button" hidden>Delete</button><button id="tag-profile-reset" type="button">Reset</button></div></header>
+              <div class="tag-profile-form-scroll">
+                <fieldset>
+                  <legend>Identity and category</legend>
+                  <label class="field-wide"><span>Tag string</span><input id="tag-profile-name" type="text" readonly></label>
+                  <label id="tag-profile-parent-field" class="field-wide"><span>Parent</span><select id="tag-profile-parent"></select><small class="field-lock-reason">🔒 Built-in categories are always top level.</small></label>
+                  <div class="tag-alias-editor field-wide">
+                    <span>Aliases</span>
+                    <div id="tag-profile-alias-list" class="tag-alias-list"></div>
+                    <div class="tag-alias-add"><select id="tag-profile-alias-target" aria-label="Tag to link as an alias"></select><button id="tag-profile-alias-add" type="button">Link alias</button></div>
+                    <small>Alias links are reciprocal. Linking two tags once updates both entries and creates only one relationship.</small>
+                  </div>
+                </fieldset>
+
+                <fieldset>
+                  <legend>Background and border</legend>
+                  <label><span>Background</span><select id="tag-profile-background"><option value="solid">Solid</option><option value="gradient">Gradient</option><option value="transparent">Transparent</option></select></label>
+                  <label id="tag-profile-solid-field"><span>Solid color</span><input id="tag-profile-solid-color" type="color"><small class="field-lock-reason">🔒 Available when Background is Solid.</small></label>
+                  <div id="tag-gradient-editor" class="tag-gradient-editor field-wide">
+                    <div class="tag-gradient-heading"><div><span>Gradient stops</span><small>Drag interior nodes to position them.</small></div><button id="tag-gradient-add" type="button">+ Add stop</button></div>
+                    <div id="tag-gradient-track" class="tag-gradient-track" aria-label="Gradient stop positions"></div>
+                    <div class="tag-gradient-stop-controls">
+                      <label><span>Selected color</span><input id="tag-gradient-stop-color" type="color"></label>
+                      <label id="tag-gradient-position-field"><span>Position</span><span class="tag-gradient-position"><input id="tag-gradient-stop-position" type="range" min="0" max="100" step="1"><output id="tag-gradient-stop-output">50%</output></span><small class="field-lock-reason">🔒 Endpoint positions stay at 0% and 100%.</small></label>
+                      <button id="tag-gradient-remove" type="button">Remove stop</button>
+                      <label><span>Angle</span><input id="tag-profile-angle" type="number" min="0" max="360" step="1"></label>
+                    </div>
+                    <p class="field-lock-reason">🔒 Gradient controls are available when Background is Gradient.</p>
+                  </div>
+                  <label><span>Border color</span><input id="tag-profile-border-color" type="color"></label>
+                  <label><span>Border width</span><select id="tag-profile-border-width"><option value="none">None</option><option value="thin">Thin</option><option value="medium">Medium</option></select></label>
+                  <label><span>Corner style</span><select id="tag-profile-corners"><option value="pill">Pill</option><option value="rounded">Rounded</option><option value="square">Square</option></select></label>
+                  <label><span>Padding</span><select id="tag-profile-padding"><option value="compact">Compact</option><option value="standard">Standard</option><option value="roomy">Roomy</option></select></label>
+                </fieldset>
+
+                <fieldset>
+                  <legend>Text</legend>
+                  <label><span>Text color mode</span><select id="tag-profile-text-mode"><option value="auto">Automatic contrast</option><option value="custom">Custom</option></select></label>
+                  <label id="tag-profile-text-color-field"><span>Text color</span><input id="tag-profile-text-color" type="color"><small class="field-lock-reason">🔒 Choose Custom text color mode to edit.</small></label>
+                  <label><span>Weight</span><select id="tag-profile-weight"><option value="normal">Normal</option><option value="medium">Medium</option><option value="bold">Bold</option></select></label>
+                  <label><span>Style</span><select id="tag-profile-font-style"><option value="normal">Normal</option><option value="italic">Italic</option></select></label>
+                  <label><span>Decoration</span><select id="tag-profile-decoration"><option value="none">None</option><option value="underline">Underline</option><option value="strike">Strike</option></select></label>
+                  <label><span>Text effect</span><select id="tag-profile-text-effect" aria-describedby="tag-profile-effects-note"><option value="none">None</option><option value="outline">Outline</option><option value="shadow">Drop shadow</option><option value="glow">Glow</option></select></label>
+                  <p id="tag-profile-effects-note" class="field-note field-wide">Text effects are static presets. Animation is configured separately.</p>
+                </fieldset>
+
+                <fieldset>
+                  <legend>Animation</legend>
+                  <div class="tag-animation-field">
+                    <span>Animation</span>
+                    <div id="tag-profile-animation" class="tag-animation-select">
+                      <button id="tag-animation-button" class="tag-animation-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="tag-animation-menu" aria-describedby="tag-profile-animation-note"><span id="tag-animation-value">None</span><span aria-hidden="true">▾</span></button>
+                      <div id="tag-animation-menu" class="tag-animation-menu" role="listbox" aria-label="Tag animation" hidden>
+                        <button type="button" role="option" aria-selected="true" data-animation-value="none"><span data-animation-preview>None</span></button>
+                        <button type="button" role="option" aria-selected="false" data-animation-value="rainbow"><span data-animation-preview>Rainbow</span></button>
+                        <button type="button" role="option" aria-selected="false" data-animation-value="marquee"><span data-animation-preview>Marquee</span></button>
+                        <button type="button" role="option" aria-selected="false" data-animation-value="ghost"><span data-animation-preview>Ghost</span></button>
+                        <button type="button" role="option" aria-selected="false" data-animation-value="bounce"><span data-animation-preview>Bounce</span></button>
+                      </div>
+                    </div>
+                  </div>
+                  <p id="tag-profile-animation-note" class="field-note">Reduced Motion shows the original text color at full opacity without movement.</p>
+                </fieldset>
+              </div>
+            </section>
+
+            <aside class="tag-profile-preview-pane" aria-labelledby="tag-profile-preview-heading">
+              <header><p>Live badge preview</p><h4 id="tag-profile-preview-heading">Physical</h4></header>
+              <div class="tag-profile-preview-surface is-dark"><span id="tag-profile-preview-dark">Physical</span></div>
+              <div class="tag-profile-preview-surface is-light"><span id="tag-profile-preview-light">Physical</span></div>
+              <dl>
+                <div><dt>Source</dt><dd id="tag-preview-source">Built-in</dd></div>
+                <div><dt>Parent</dt><dd id="tag-preview-parent">Top level</dd></div>
+                <div><dt>Aliases</dt><dd id="tag-preview-aliases">None</dd></div>
+                <div><dt>Appearance</dt><dd id="tag-preview-appearance">Built-in preset</dd></div>
+              </dl>
+              <p>Changes affect this user profile only. The source Jump remains unchanged.</p>
+            </aside>
+          </div>
+        </div>
+
+        <h3>JSON Transfer Format</h3>
+        <p>Users can export their complete tag profile as versioned JSON and import a shared profile by file or pasted text. The mock uses pasted text so the data is visible during design.</p>
+        <pre><code class="language-json">{
+  "schemaVersion": 1,
+  "tags": [
+    {
+      "name": "Pyrokinesis",
+      "source": "acquired",
+      "parent": "Magic",
+      "appearanceSource": "custom",
+      "presentation": {
+        "background": "gradient",
+        "colors": ["#d9480f", "#9b330b", "#df753f"],
+        "positions": [0, 42, 100],
+        "angle": 120,
+        "borderColor": "#d9480f",
+        "borderWidth": "thin",
+        "corners": "pill",
+        "padding": "compact",
+        "textMode": "auto",
+        "textColor": "#ffffff",
+        "weight": "bold",
+        "fontStyle": "normal",
+        "decoration": "none",
+        "textEffect": "none",
+        "animation": "none"
+      }
+    },
+    {
+      "name": "Fire Control",
+      "source": "acquired",
+      "parent": "Magic",
+      "appearanceSource": "derived"
+    }
+  ],
+  "aliasLinks": [
+    { "tags": ["Fire Control", "Pyrokinesis"] }
+  ]
+}</code></pre>
+        <ul>
+          <li>Export contains built-in overrides, custom tags, parents, aliases, and bounded presentation values. It never contains acquired records or Jump source.</li>
+          <li>Import validates the schema and shows conflicts before applying changes. Merge is the default; replacing manual/imported tags and current overrides requires an explicit choice. Built-ins and strings still present on acquired records cannot be removed by import.</li>
+          <li>Built-ins match by their stable built-in name. Imported custom tags match by normalized string.</li>
+          <li><code>source</code> records export provenance only. A newly shared tag is labeled Imported; a matching local tag retains its existing provenance.</li>
+          <li>Each reciprocal alias relationship is serialized once in <code>aliasLinks</code>. Direction and duplicated declarations are not part of the data model.</li>
+          <li>Unknown fields do not execute or become CSS. Invalid colors, relationship cycles, duplicate normalized strings, and unsupported values are rejected with diagnostics.</li>
+          <li>Text effects serialize as <code>none</code>, <code>outline</code>, <code>shadow</code>, or <code>glow</code>. Animation serializes as <code>none</code>, <code>rainbow</code>, <code>marquee</code>, <code>ghost</code>, or <code>bounce</code>.</li>
+        </ul>
+
+        <h2>Search and Filtering</h2>
+        <p>The Chain Tracker search index for every accrued record contains:</p>
+        <ul>
+          <li>the record name and descriptive text</li>
+          <li>direct canonical tag identities and their generated badge labels</li>
+          <li>aliases from user relationship settings</li>
+          <li>ancestor strings from user relationship settings</li>
+          <li>the originating Jump and grant kind</li>
+        </ul>
+        <p>With the example user relationships configured, typing “fire control” finds a Pyrokinesis-tagged perk, while typing “magic” finds direct Magic records and descendants such as Pyrokinesis. Without those relationships, search matches only the normalized strings actually present in the imported content. A selected parent filter includes descendants by default and offers an Exact option.</p>
+        <p>Search is case-insensitive and tolerant of spacing, but not fuzzy enough to merge semantically unrelated tags. Misspellings may be suggested separately without changing stored identity.</p>
+
+        <h2>Badge Presentation Model</h2>
+        <p>A badge presentation may define bounded values in these groups:</p>
+        <div class="badge-capability-grid" data-toc-ignore>
+          <article><h3>Text</h3><p>Foreground color or automatic contrast; normal, medium, or bold weight; normal or italic style; optional underline or strike only where it does not imply interaction.</p></article>
+          <article><h3>Text effects</h3><p>None, Outline, Drop shadow, or Glow. These are bounded static presets rather than arbitrary effect parameters, and the renderer may suppress an effect when necessary to preserve legibility.</p></article>
+          <article><h3>Background</h3><p>Transparent, solid color, or a two-to-six-stop linear gradient with a bounded angle and positioned stops. Every point behind text must remain readable.</p></article>
+          <article><h3>Motion effects</h3><p>None, Rainbow, Marquee, Ghost, or Bounce. Rainbow cycles text hue from the configured foreground; Marquee turns one letter gold at a time; Ghost fades the text between full and low opacity; Bounce lifts letters in sequence to form a wave.</p></article>
+          <article><h3>Border and shape</h3><p>Border color and width, compact-to-roomy padding, and bounded corner styles. Shape may reinforce category relationships but cannot obscure the label.</p></article>
+          <article><h3>Fallback</h3><p>A static, solid, high-contrast badge is always available when a requested effect cannot render safely.</p></article>
+        </div>
+
+        <h3>Badge List Rendering</h3>
+        <p>When a record has several tags, their badges render as one horizontal list beside one another with a small consistent gap. The list wraps onto another horizontal row only when the available width is exhausted; tags are not presented as a vertical field-per-line list.</p>
+
+        <h3>Presentation Precedence</h3>
+        <ol>
+          <li>Accessibility enforcement and platform capability constraints.</li>
+          <li>User override for one normalized tag string.</li>
+          <li>Appearance derived from that tag’s configured parent.</li>
+          <li>The built-in category preset or deterministic application fallback.</li>
+        </ol>
+        <p>Jump authors have no presentation layer for tags. Built-in defaults ensure every string has a badge, while the Tags page in Settings provides user customization.</p>
+
+        <h3>User Override Storage</h3>
+        <p>User relationship and presentation rules live in the tag profile in application settings, never inside an imported Jump or Chain record. Presentation is stored for an exact canonical tag identity; descendants without their own override derive appearance from their configured parent.</p>
+        <p>Overrides change search expansion or rendering only. They never rewrite imported content. A rule that no longer matches any accrued content becomes orphaned and can be reassigned or deleted.</p>
+
+        <h2>Relationship-Derived Colors</h2>
+        <p>Automatic color shifting should use perceptual color operations rather than rotating legacy RGB values:</p>
+        <ol>
+          <li>A user-selected color is an anchor. Without one, a stable hash of the normalized string produces a deterministic built-in hue.</li>
+          <li>A string with a configured parent inherits that parent’s color family and receives a bounded OkLCh hue, chroma, and lightness shift.</li>
+          <li>The normalized child string chooses its position inside the family band. Adding or reordering other children does not recolor existing tags.</li>
+          <li>User-configured aliases share a badge style unless one string has a more specific user override.</li>
+          <li>A user color override on a child starts a new anchored sub-family for its descendants.</li>
+          <li>Gradient stops shift together in the same perceptual space.</li>
+          <li>Final foreground, background, border, and focus colors are adjusted for the active Light or Dark theme and required contrast.</li>
+        </ol>
+        <p>Color is never the only indication of hierarchy or aliasing. Labels, relationship text, grouping, and optional non-color badge cues remain available.</p>
+
+        <h2>Editor Authoring Impact</h2>
+        <ul>
+          <li>Structured choice and grant editors use a free-entry string control with removable chips and normalized duplicate prevention.</li>
+          <li>Completion may suggest strings already used in the current package or workspace, but it always accepts a new string.</li>
+          <li>Source completion suggests existing strings while accepting ordinary bare or quoted values.</li>
+          <li>There is no Tags declaration group, relationship editor, or badge-style editor in the Jump Editor.</li>
+          <li>User relationship and presentation management belongs to the separate tag-profile editor, not Jump authoring.</li>
+          <li>Settings exposes this editor as its own Tags category; the standalone mock remains the detailed design reference.</li>
+          <li>Diagnostics may flag normalized duplicates and offer non-destructive warnings for likely spelling variants.</li>
+        </ul>
+
+        <h3>Tag Profile Reset and Dependency Rules</h3>
+        <ul>
+          <li>For a built-in tag, Reset discards its user presentation override and restores its application preset. It does not remove aliases.</li>
+          <li>For an acquired, manual, or imported tag, Reset discards its presentation override and derives its colors and other appearance fields from its current parent. Later parent appearance changes continue to flow into it until the user edits a presentation field again.</li>
+          <li>Editing any presentation control changes the selected tag’s appearance source to Custom override. Relationship and alias edits do not.</li>
+          <li>Controls unavailable because of another value show a lock treatment and the value that must change: gradient controls require Gradient, solid color requires Solid, and custom text color requires Custom text color mode.</li>
+          <li>Gradient endpoints remain at 0% and 100%. Users can add, select, recolor, drag, reposition, or remove interior stops; a gradient contains two to six stops.</li>
+          <li>Aliases are reciprocal links between two tags already in the profile. Adding or removing the link from either tag updates both views.</li>
+          <li>Delete is available only for manual or imported profile-only tags. Deleting one automatically unlinks its aliases and reparents its direct children to its former parent. Built-ins and tags still sourced from accrued records cannot be deleted.</li>
+          <li>The animation control uses a select-style listbox because native option elements cannot reliably animate. Rainbow, Marquee, Ghost, and Bounce preview directly on their own option labels and on the selected-value label.</li>
+        </ul>
+
+        <h2>Chain Tracker Impact</h2>
+        <ul>
+          <li>Accrued-content search indexes inherited and grant-specific tags at import time and updates the index through package migration.</li>
+          <li>Result cards display a bounded number of badges and expose the remaining tags without forcing every badge into the primary layout.</li>
+          <li>Selecting a badge creates a filter; parent filters include descendants and can switch to Exact.</li>
+          <li>User-configured aliases expand filters and saved queries without replacing the source strings.</li>
+          <li>The Tracker never infers mechanical rules, affordability, or outcomes from badge color or animation.</li>
+        </ul>
+
+        <h2>Interactive Relationship and Search Laboratory</h2>
+        <p>This laboratory isolates relationship and search behavior from presentation editing. Select a configured family member and search accrued content by tag, alias, or parent. None of these controls add fields to Jump markup.</p>
+
+        <div class="tag-lab" data-toc-ignore aria-label="Interactive tag relationship, search, and badge concept">
+          <aside class="tag-tree-panel">
+            <header><p>User relationship profile</p><strong>Supernatural</strong></header>
+            <div class="tag-tree" role="tree" aria-label="Tag relationships">
+              <button type="button" role="treeitem" aria-selected="false" data-tag-key="magic" data-tag-depth="0"><span class="tag-tree-branch" aria-hidden="true">◆</span><span>Magic<small>parent</small></span></button>
+              <button type="button" role="treeitem" aria-selected="true" data-tag-key="pyrokinesis" data-tag-depth="1"><span class="tag-tree-branch" aria-hidden="true">└</span><span>Pyrokinesis<small>alias: Fire Control</small></span></button>
+              <button type="button" role="treeitem" aria-selected="false" data-tag-key="cryokinesis" data-tag-depth="1"><span class="tag-tree-branch" aria-hidden="true">└</span><span>Cryokinesis<small>child of Magic</small></span></button>
+              <button type="button" role="treeitem" aria-selected="false" data-tag-key="telekinesis" data-tag-depth="1"><span class="tag-tree-branch" aria-hidden="true">└</span><span>Telekinesis<small>child of Magic</small></span></button>
+            </div>
+          </aside>
+
+          <section class="tag-results-panel" aria-labelledby="tag-results-heading">
+            <header>
+              <div><p>Accrued content</p><h3 id="tag-results-heading">Search by tags</h3></div>
+              <label><span class="sr-only">Search accrued content</span><input id="tag-lab-search" type="search" placeholder="Try “magic” or “fire control”"></label>
+            </header>
+            <div id="tag-lab-search-note" class="tag-search-note">Showing records matching the selected tag family.</div>
+            <div class="tag-result-list">
+              <article data-result-search="flame sovereign fire control pyrokinesis magic perk cosmic"><div><p>Perk</p><h4>Flame Sovereign</h4></div><div class="tag-badge-row"><span class="tag-badge badge-pyrokinesis">Pyrokinesis</span><span class="tag-badge badge-cosmic">Cosmic</span></div></article>
+              <article data-result-search="frost mantle cryokinesis ice control magic item"><div><p>Item</p><h4>Frost Mantle</h4></div><div class="tag-badge-row"><span class="tag-badge badge-cryokinesis">Cryokinesis</span></div></article>
+              <article data-result-search="unseen hand telekinesis psychokinesis magic perk"><div><p>Perk</p><h4>Unseen Hand</h4></div><div class="tag-badge-row"><span class="tag-badge badge-telekinesis">Telekinesis</span></div></article>
+              <article data-result-search="ember fox pyrokinesis fire control magic companion"><div><p>Companion</p><h4>Ember Fox</h4></div><div class="tag-badge-row"><span class="tag-badge badge-pyrokinesis">Pyrokinesis</span></div></article>
+            </div>
+            <p id="tag-lab-empty" class="tag-lab-empty" hidden>No accrued content matches this search.</p>
+          </section>
+
+        </div>
+
+        <h2>Accessibility and Safety</h2>
+        <ul>
+          <li>Badge text meets 4.5:1 contrast against the least-contrasting point of its background or receives an opaque text backplate/outline that does.</li>
+          <li>Meaningful badge boundaries and interactive states meet 3:1 non-text contrast.</li>
+          <li>Color, gradient intensity, text effects, and animation never serve as the only indication of a category relationship.</li>
+          <li>Reduced Motion disables badge and relationship-transition animations. Rainbow returns to the original text color, Marquee removes its gold sequence, Ghost remains fully opaque, and Bounce remains on the baseline.</li>
+          <li>Automatically running animation can be disabled globally and never flashes at unsafe frequencies.</li>
+          <li>Tag labels remain real text, resize and reflow, and expose any active user relationships to assistive technology.</li>
+          <li>Markup contains strings only. CSS declarations, URLs, scripts, custom fonts, and arbitrary animation definitions are not tag fields.</li>
+        </ul>
+
+        <h2>Validation and Diagnostics</h2>
+        <div class="validation-grid" data-toc-ignore>
+          <article><strong>Error</strong><p>Empty or invalid source string, normalized duplicate on one owner, user relationship cycle or conflict, invalid user color, unsupported effect, or unsafe animation.</p></article>
+          <article><strong>Warning</strong><p>Likely spelling variant, unreadable user palette that requires adjustment, excessive user hierarchy depth, or a user rule with no matching accrued content.</p></article>
+          <article><strong>Information</strong><p>A built-in badge default is active, a user relationship expanded search, or a static reduced-motion fallback replaced animation.</p></article>
+        </div>
+
+        <h2>Research Basis</h2>
+        <ul>
+          <li>Existing Jumpchain organization practices commonly use broad categories including Physical, Mental, Social, Magical, Stealth, Crafting, Spiritual, Meta, Technological, and Other; the working set extends that base with Combat and Defense. <a href="https://www.reddit.com/r/JumpChain/comments/1hgx5vo/what_perk_and_item_categories_do_you_use_for/">JumpChain community organization discussion</a></li>
+          <li>Charts should remain visual enhancements with exact data available as a text description or semantic table, which is why the radar is paired with visible counts. <a href="https://analysisfunction.civilservice.gov.uk/policy-store/charts-a-checklist/">Government Analysis Function accessible chart checklist</a></li>
+          <li>SKOS distinguishes alternate labels from broader and narrower concept links, supporting separate alias and parent/child behavior. <a href="https://www.w3.org/TR/skos-reference/">W3C SKOS Reference</a></li>
+          <li>Perceptually uniform Oklab/OkLCh spaces are designed for evenly spaced color interpolation and hue-preserving mixes. <a href="https://www.w3.org/TR/css-color-4/">CSS Color Module Level 4</a></li>
+          <li>Small text requires 4.5:1 contrast, while meaningful component boundaries and states require 3:1. <a href="https://www.w3.org/TR/WCAG22/">WCAG 2.2</a></li>
+          <li>Color cannot be the only visual means of conveying meaning. <a href="https://www.w3.org/WAI/WCAG22/Understanding/use-of-color">W3C Use of Color guidance</a></li>
+          <li>Nonessential motion should honor user preferences and be disableable. <a href="https://www.w3.org/WAI/WCAG22/Understanding/animation-from-interactions">W3C Animation from Interactions guidance</a></li>
+        </ul>
+
+        <h2>Settled Boundary</h2>
+        <ul>
+          <li>Authors provide repeated strings only. Tags have no declarations, handles, relationships, or presentation fields in markup.</li>
+          <li>The application provides built-in badge defaults.</li>
+          <li>Users own any relationship graph and presentation customization, stored outside imported Jump documents.</li>
+          <li>The radar and drilldown are non-editing count representations and remain independent from tag customization.</li>
+          <li>The user tag-profile editor covers built-ins, tags discovered on acquired records, and manually entered strings.</li>
+          <li>Tag profiles are portable as versioned JSON. Static text effects and animations both use bounded application-defined presets.</li>
+        </ul>
+
+        <h2>Settled User-Layer Decisions</h2>
+        <ol>
+          <li>The twelve-category working set is Physical, Mental, Social, Magic, Spiritual, Technology, Crafting, Combat, Defense, Stealth, Meta, and Miscellaneous.</li>
+          <li>Miscellaneous is a derived fallback for otherwise uncategorized tags; untagged records remain outside the category chart.</li>
+          <li>The radar uses raw accrued-record counts, counts a record once per category, and always exposes the exact values in a table.</li>
+          <li>Aliases are separate strings made search-equivalent by user settings.</li>
+          <li>Each normalized string has at most one user-configured parent in v1.</li>
+          <li>Parent searches include descendants by default, with an Exact option.</li>
+          <li>JSON import defaults to merging by normalized string, while replacement remains an explicit alternative.</li>
+          <li>Alias relationships are undirected links stored once; the editor reflects the link from both tags rather than accepting duplicated free-text lists.</li>
+          <li>Custom tags default to parent-derived appearance. Editing a presentation field creates an override; Reset removes it and returns to the parent-derived appearance.</li>
+          <li>Gradients use two fixed endpoint stops and up to four removable, positionable interior stops.</li>
+          <li>Choice tags are inherited by their grants, while block-form grants may add their own tags for separately searchable outputs. Tag composition is additive only.</li>
+          <li>Manual and imported profile-only tags may be deleted; deletion automatically unlinks aliases and reparents direct children.</li>
+          <li>The animation vocabulary is None, Rainbow, Marquee, Ghost, and Bounce, with static Reduced Motion equivalents.</li>
+        </ol>
+
+        <h2>Tag Design Status</h2>
+        <p>No tag-system design decisions are currently open. Implementation may expose practical issues that require revisiting these decisions, but animation, relationships, inheritance, search behavior, presentation, profile lifecycle, and transfer are all specified for the current version.</p>
+      </article>
+      <a class="back-to-top" href="#content">Back to top</a>
+    </main>
+  </div>
+</body>
+</html>

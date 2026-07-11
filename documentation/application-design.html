@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Design proposal for the Jumpchain Visualizer application shell and routing.">
+  <title>Application Shell Design | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="application-design.css">
+  <script src="documentation.js" defer></script>
+  <script src="application-design.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home">
+      <span class="site-mark" aria-hidden="true">JV</span>
+      <span>Jumpchain Visualizer <small>Documentation</small></span>
+    </a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html">Overview</a>
+      <a href="application-design.html" aria-current="page">Application</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="chain-tracker-design.html">Chain Tracker</a>
+      <a href="chain-portability.html">Portability</a>
+      <a href="supplements-design.html">Supplements</a>
+      <a href="settings-design.html">Settings</a>
+      <a href="logging-design.html">Logging</a>
+      <a href="tags-design.html">Tags</a>
+      <a href="markup.html">Markup</a>
+      <a href="editor-design.html">Editor design</a>
+      <a href="choice-rendering-design.html">Controls</a>
+    </nav>
+  </header>
+
+  <div class="page-shell">
+    <aside class="sidebar" aria-labelledby="contents-heading">
+      <div class="sidebar-inner">
+        <h2 id="contents-heading">On this page</h2>
+        <nav id="table-of-contents" aria-label="Application design sections">
+          <p class="toc-fallback">Section links appear when JavaScript is available.</p>
+        </nav>
+      </div>
+    </aside>
+
+    <main id="content" class="document application-document" tabindex="-1">
+      <article>
+        <p class="eyebrow">Application architecture</p>
+        <h1>Application shell and routing</h1>
+        <p class="lede">A shared application entry point that routes people into authoring or chain tracking without coupling either workspace to the other.</p>
+
+        <div class="proposal-status" role="note">
+          <strong>Status: routing direction agreed.</strong> The shared switch remains visible, Home remains the explicit root destination, declaration-level deep links are postponed, and Settings uses a route-backed overlay. The dedicated <a href="chain-tracker-design.html">Chain Tracker design</a> owns behavior inside its route boundary. Local runtime, packaging, persistence, filesystem, security, and test boundaries are settled in <a href="architecture.html">Application Architecture</a>.
+        </div>
+
+        <h2>Purpose and Scope</h2>
+        <p>The application has two major workspaces:</p>
+        <ul>
+          <li><strong>Editor:</strong> create, validate, and preview Jumpchain packages.</li>
+          <li><strong>Chain Tracker:</strong> import jumps, make selections, and carry state from one jump to the next.</li>
+        </ul>
+        <p>The shell owns entry, navigation, restoration, global settings, and route-level failures. Each workspace owns its internal tools and state. Detailed tracker behavior belongs to the separate <a href="chain-tracker-design.html">Chain Tracker design</a>.</p>
+
+        <h2>Agreed Route Model</h2>
+        <p>Use normal path-based URLs and browser history rather than hash routes. A direct URL should open the corresponding workspace, while Back and Forward should reverse user-visible route changes.</p>
+        <div class="route-table-wrap">
+          <table class="route-table">
+            <thead>
+              <tr><th>Route</th><th>Responsibility</th><th>Restoration behavior</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>/</code></td><td>Start screen and recent work</td><td>Never silently redirects; offers explicit Resume actions.</td></tr>
+              <tr><td><code>/editor</code></td><td>Editor project hub</td><td>Lists recent packages and create/import actions.</td></tr>
+              <tr><td><code>/editor/:workspaceId</code></td><td>Active editor workspace</td><td>Restores the logical project, then requests file permission again if required.</td></tr>
+              <tr><td><code>/chain</code></td><td>Chain Tracker hub</td><td>Lists recent chains and the eventual create/import actions.</td></tr>
+              <tr><td><code>/chain/:chainId</code></td><td>Active chain</td><td>Restores a chain record without putting chain data in the URL.</td></tr>
+              <tr><td><code>/settings</code></td><td><a href="settings-design.html">Application-wide preferences</a></td><td>Overlays the prior route when opened contextually; renders as a full page when opened directly.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Workspace and chain identifiers are application-generated opaque IDs. Local paths, document contents, selections, and permission tokens must not be embedded in URLs.</p>
+
+        <h3>Route State Versus Workspace State</h3>
+        <p>URLs identify meaningful destinations, not every transient control. The selected Editor declaration, panel sizes, folded groups, scroll positions, preview selections, and open diagnostics belong to workspace or session state. Stable declaration-level links are explicitly postponed beyond v1 and may be reconsidered only when there is a concrete sharing or restoration need.</p>
+
+        <h3 id="route-backed-settings-overlay">Route-Backed Settings Overlay</h3>
+        <p>Opening Settings from Home, Editor, or Chain Tracker pushes <code>/settings</code> while retaining the prior route as its background location. Settings appears as a modal layer, the underlying workspace remains mounted and inert, and Back or Close restores the prior route and focus. A refresh or direct visit to <code>/settings</code> has no background location, so the same Settings content renders as a normal full-page destination.</p>
+
+        <h3>Home Organization</h3>
+        <p>Home presents recent Editor workspaces and Chains in separate sections so their origin and available actions remain obvious. Editor entries use the package/project name. Chain entries use the chain or profile name supplied by the user. Display names are labels rather than identifiers, so duplicate names remain valid and opaque route IDs distinguish their records.</p>
+
+        <h2>Interactive Shell Proposal</h2>
+        <p>This mockup demonstrates route ownership rather than either workspace’s full interface. Use the shell navigation, route cards, and Back/Forward controls to compare the three top-level destinations.</p>
+
+        <div class="app-shell-mockup" data-toc-ignore aria-label="Interactive application routing concept">
+          <header class="app-mock-header">
+            <button class="app-mock-brand" type="button" data-app-route="home"><span aria-hidden="true">JV</span><strong>Jumpchain Visualizer</strong></button>
+            <nav aria-label="Mock application workspaces">
+              <button type="button" data-app-route="editor">Editor</button>
+              <button type="button" data-app-route="chain">Chain Tracker</button>
+            </nav>
+            <button class="app-mock-settings" type="button" data-app-route="settings">Settings</button>
+          </header>
+          <div class="app-mock-location" aria-label="Mock browser location">
+            <button id="app-mock-back" type="button" aria-label="Back" disabled>←</button>
+            <button id="app-mock-forward" type="button" aria-label="Forward" disabled>→</button>
+            <code id="app-mock-path">/</code>
+            <span id="app-mock-title">Home · Jumpchain Visualizer</span>
+          </div>
+          <div class="app-mock-views">
+            <section data-app-panel="home" aria-labelledby="app-home-heading">
+              <p class="app-mock-kicker">Choose a workspace</p>
+              <h3 id="app-home-heading" tabindex="-1">What would you like to do?</h3>
+              <div class="app-entry-grid">
+                <article>
+                  <span class="app-entry-icon" aria-hidden="true">✎</span>
+                  <div><h4>Build a Jump</h4><p>Create or continue a package in the Editor.</p></div>
+                  <button type="button" data-app-route="editor">Open Editor</button>
+                </article>
+                <article>
+                  <span class="app-entry-icon" aria-hidden="true">↝</span>
+                  <div><h4>Continue a Chain</h4><p>Track choices across imported jumps.</p></div>
+                  <button type="button" data-app-route="chain">Open Chain Tracker</button>
+                </article>
+              </div>
+              <div class="app-home-recents">
+                <section class="app-recent-section" aria-labelledby="recent-editor-heading">
+                  <h4 id="recent-editor-heading">Editor workspaces</h4>
+                  <div class="app-recent-work">
+                    <span><strong>Example Jump</strong><small>Edited today</small></span>
+                    <button type="button" data-app-route="editor-workspace">Resume</button>
+                  </div>
+                </section>
+                <section class="app-recent-section" aria-labelledby="recent-chains-heading">
+                  <h4 id="recent-chains-heading">Chains</h4>
+                  <div class="app-recent-work">
+                    <span><strong>Morgan</strong><small>12 jumps · opened yesterday</small></span>
+                    <button type="button" data-app-route="chain-workspace">Resume</button>
+                  </div>
+                </section>
+              </div>
+            </section>
+
+            <section data-app-panel="editor" aria-labelledby="app-editor-heading" hidden>
+              <p class="app-mock-kicker">Editor hub</p>
+              <h3 id="app-editor-heading" tabindex="-1">Create or open a Jump package</h3>
+              <p>The hub owns project creation, folder access, portable imports, and recent Editor workspaces. Opening a project moves to its addressable workspace route.</p>
+              <div class="app-route-actions">
+                <button type="button" data-app-route="editor-workspace">Open Example Jump</button>
+                <a href="editor-design.html">View detailed Editor design</a>
+              </div>
+            </section>
+
+            <section data-app-panel="editor-workspace" aria-labelledby="app-editor-workspace-heading" hidden>
+              <p class="app-mock-kicker">Editor workspace</p>
+              <h3 id="app-editor-workspace-heading" tabindex="-1">Example Jump</h3>
+              <p>The established three-pane Editor mounts here. The shell retains responsibility only for the product navigation, route, and application-wide services.</p>
+              <a href="editor-design.html">Open the Editor mockup</a>
+            </section>
+
+            <section data-app-panel="chain" aria-labelledby="app-chain-heading" hidden>
+              <p class="app-mock-kicker">Chain Tracker hub</p>
+              <h3 id="app-chain-heading" tabindex="-1">Continue or begin a chain</h3>
+              <p>This hub lists recent chains and provides create and import actions before opening an addressable chain workspace.</p>
+              <a href="chain-tracker-design.html">View detailed Chain Tracker design</a>
+            </section>
+
+            <section data-app-panel="chain-workspace" aria-labelledby="app-chain-workspace-heading" hidden>
+              <p class="app-mock-kicker">Chain Tracker workspace</p>
+              <h3 id="app-chain-workspace-heading" tabindex="-1">Morgan</h3>
+              <p>The route restores the chain identified by its opaque record ID. The visible profile name is presentation data and does not need to be unique.</p>
+              <a href="chain-tracker-design.html">Open the Chain Tracker mockup</a>
+            </section>
+
+            <div id="app-settings-layer" class="app-settings-layer" hidden>
+              <section class="app-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="app-settings-heading">
+                <header>
+                  <div><p class="app-mock-kicker">Application settings</p><h3 id="app-settings-heading" tabindex="-1">Shared preferences</h3></div>
+                  <button type="button" data-app-close-settings aria-label="Close Settings">×</button>
+                </header>
+                <p>Theme, autosave mode, keyboard bindings, storage behavior, and accessibility preferences are available without unmounting the workspace underneath.</p>
+                <div class="app-settings-example">
+                  <span>Autosave</span><strong>On</strong>
+                  <span>Theme</span><strong>System</strong>
+                  <span>Accent</span><strong>Gold</strong>
+                  <span>Motion</span><strong>System</strong>
+                  <span>Key bindings</span><strong>Default</strong>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <h2>Navigation and Restoration Rules</h2>
+        <ol>
+          <li>Only explicit user activation changes the top-level route.</li>
+          <li>The persistent Editor and Chain Tracker controls always target their hubs; specific recent records open only through explicit Resume actions.</li>
+          <li>Every route change adds or restores a browser history entry; it does not simulate navigation only inside component state.</li>
+          <li>The shell updates the document title and moves focus to the destination heading after a route transition.</li>
+          <li>Editor autosave flushes before leaving its route. In explicit-save mode, unresolved changes require a leave confirmation.</li>
+          <li>Returning to a mounted workspace restores its internal UI state when safe; reopening after a browser restart restores durable state and revalidates external permissions.</li>
+          <li>An unknown or inaccessible workspace ID opens a recovery screen in the correct workspace hub instead of falling back silently to Home.</li>
+          <li>Contextual Settings navigation retains the current workspace as an inert background; direct Settings navigation renders the same content as a full page.</li>
+        </ol>
+
+        <h2>Shared Application Boundary</h2>
+        <div class="boundary-diagram" aria-label="The application shell provides routing and shared services to Editor and Chain Tracker, which both consume the package model">
+          <div class="boundary-shell">
+            <strong>Application shell</strong>
+            <span>Routing · history · settings · workspace registry · notifications · recovery · logging</span>
+          </div>
+          <div class="boundary-branches">
+            <div><strong>Editor</strong><span>Authoring workspace</span></div>
+            <div><strong>Chain Tracker</strong><span>Tracking workspace</span></div>
+          </div>
+          <div class="boundary-model"><strong>Shared package model</strong><span>Parsing · validation · references · migrations</span></div>
+        </div>
+        <p>The shell should not know Editor panes or Chain Tracker selection rules. Shared services expose capabilities through stable interfaces so the larger tracker can be loaded independently and developed later without making Editor startup pay its full cost. The centralized local diagnostic boundary is specified separately in <a href="logging-design.html">Logging Design</a>.</p>
+
+        <h2 id="chain-tracker-boundary">Chain Tracker Boundary</h2>
+        <p>The current application design commits only to:</p>
+        <ul>
+          <li>a distinct <code>/chain</code> hub and <code>/chain/:chainId</code> workspace route</li>
+          <li>independent durable chain records</li>
+          <li>the ability to consume validated Jump packages through the shared package model</li>
+          <li>a shell-level way to move between Editor and Chain Tracker</li>
+        </ul>
+        <p>Tracker navigation, chronology, package selection, historical inventory, companions, supplements, and the shared-renderer boundary are maintained in the <a href="chain-tracker-design.html">dedicated tracker document</a>. This shell document continues to own only routes and shared application services.</p>
+
+        <h2>Security and Privacy</h2>
+        <ul>
+          <li>URLs contain opaque local identifiers, never filesystem paths, document text, permission tokens, or choice data.</li>
+          <li>A restored route is not proof of access. Storage and file permissions are checked again before opening protected content.</li>
+          <li>History state remains small and non-sensitive; durable workspace data stays in the persistence layer.</li>
+          <li>Imported packages are untrusted input and pass through the same parsing, validation, asset, and rendering boundaries in both workspaces.</li>
+        </ul>
+
+        <h2>Accessibility Requirements</h2>
+        <ul>
+          <li>Route changes occur on activation, never merely because a navigation item receives focus.</li>
+          <li>Each route has a unique visible heading and descriptive document title.</li>
+          <li>After client-side navigation, focus moves predictably to the new route heading unless restoration returns the user to a known prior focus target.</li>
+          <li>The Settings overlay traps focus, closes with Escape, marks the background inert, and restores focus to its opener.</li>
+          <li>Persistent shell regions use semantic header, navigation, and main landmarks.</li>
+          <li>Back and Forward restore both the route and an understandable point in that route.</li>
+        </ul>
+
+        <h2>Decision Record: Route-Level Workspaces</h2>
+        <dl class="decision-record">
+          <div><dt>Status</dt><dd>Accepted for the application-shell draft</dd></div>
+          <div><dt>Decision</dt><dd>Editor and Chain Tracker are independently addressable route-level workspaces under one shared application shell.</dd></div>
+          <div><dt>Why</dt><dd>They have different workflows, restoration needs, and implementation size, but share package parsing, settings, storage concerns, and product identity.</dd></div>
+          <div><dt>Consequences</dt><dd>The eventual local runtime must restore deep links or equivalent destinations; route transitions must integrate navigation history and accessibility; workspace state needs an explicit persistence boundary.</dd></div>
+        </dl>
+
+        <h2>Research Basis</h2>
+        <ul>
+          <li>The browser History API supports path changes with associated serializable state and Back/Forward restoration through <code>popstate</code>. <a href="https://developer.mozilla.org/en-US/docs/Web/API/History_API/Working_with_the_History_API">MDN History API guide</a></li>
+          <li>Hash routing is now a legacy fallback; normal path routing produces cleaner, independently addressable destinations. <a href="https://developer.mozilla.org/en-US/docs/Glossary/Hash_routing">MDN hash routing overview</a></li>
+          <li>Single-page views need descriptive titles that change with their topic. <a href="https://www.w3.org/WAI/WCAG21/Understanding/page-titled.html">W3C Page Titled guidance</a></li>
+          <li>Navigation must not occur merely because a control receives focus. <a href="https://www.w3.org/WAI/WCAG21/Understanding/on-focus.html">W3C On Focus guidance</a></li>
+        </ul>
+
+        <h2>Settled Shell Decisions</h2>
+        <ul>
+          <li>The Editor/Chain Tracker switch remains visible inside active workspaces.</li>
+          <li><code>/</code> always shows Home and offers explicit Resume actions rather than silently redirecting.</li>
+          <li>Declaration-level Editor URLs are postponed beyond v1.</li>
+          <li>Settings is a route-backed overlay when opened from another route and a full page when opened directly.</li>
+          <li>Home separates recent Editor workspaces from Chains; chains are labeled by their user-provided profile or chain name.</li>
+          <li>Switching workspaces through the persistent Editor/Chain Tracker controls opens the destination hub; it never chooses a recent project or chain automatically.</li>
+          <li>No other action receives permanent shell space in v1. Create, import, export, search, documentation, and other contextual actions remain in their owning hub, workspace, or Settings page.</li>
+        </ul>
+
+        <h2>Application Shell Status</h2>
+        <p>No application-shell interaction questions remain open for v1. The local-runtime boundary is maintained separately in <a href="architecture.html">Application Architecture</a>.</p>
+      </article>
+      <a class="back-to-top" href="#content">Back to top</a>
+    </main>
+  </div>
+</body>
+</html>

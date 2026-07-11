@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Catalogue of Jumpchain controls, cost badges, ranks, and random resolution behavior.">
+  <title>Controls | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="choice-rendering-design.css">
+  <script src="documentation.js" defer></script>
+  <script src="choice-rendering-design.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home"><span class="site-mark" aria-hidden="true">JV</span><span>Jumpchain Visualizer <small>Documentation</small></span></a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html">Overview</a>
+      <a href="application-design.html">Application</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="chain-tracker-design.html">Chain Tracker</a>
+      <a href="chain-portability.html">Portability</a>
+      <a href="supplements-design.html">Supplements</a>
+      <a href="settings-design.html">Settings</a>
+      <a href="logging-design.html">Logging</a>
+      <a href="tags-design.html">Tags</a>
+      <a href="markup.html">Markup</a>
+      <a href="editor-design.html">Editor design</a>
+      <a href="choice-rendering-design.html" aria-current="page">Controls</a>
+    </nav>
+  </header>
+  <div class="page-shell">
+    <aside class="sidebar" aria-labelledby="contents-heading"><div class="sidebar-inner"><h2 id="contents-heading">On this page</h2><nav id="table-of-contents" aria-label="Controls sections"><p class="toc-fallback">Section links appear when JavaScript is available.</p></nav></div></aside>
+    <main id="content" class="document choice-rendering-document" tabindex="-1">
+      <article>
+        <p class="eyebrow">Shared renderer contract</p>
+        <h1>Controls</h1>
+        <p class="lede">One visual library for manual controls, ranked costs, mutually exclusive and independent selections, and random resolution across Editor preview and the Chain Tracker.</p>
+        <div class="choice-status" role="note"><strong>Status: agreed control catalogue.</strong> Markup owns the semantic fields. This page owns their neutral default rendering and behavior.</div>
+
+        <h2>Rendering Contract</h2>
+        <ul>
+          <li>Rendered Jump controls use neutral renderer defaults. Application accent colors never leak into selection state.</li>
+          <li>Single select uses radio buttons so mutual exclusion is visible. Multi select uses checkboxes so independent selection is visible.</li>
+          <li>Selection does not recolor or outline an entire choice. The native control, its label, and accessible state communicate selection.</li>
+          <li>Normal costs show resolved amounts. Discounts strike the old cost beside the new cost in restrained green. Free costs read <strong>Free</strong> in the same green.</li>
+          <li>Ranked costs show the price per rank, selected rank count, and cumulative total in one badge.</li>
+          <li>Flat and select rolls make the recorded value Free. Moving away applies normal cost; returning restores Free.</li>
+          <li>A ranked roll grants that many free ranks. Selecting fewer remains Free; selecting more charges only for ranks above the rolled allowance.</li>
+          <li>Random-only controls never display an unused authored price. Their badge changes from <strong>Roll for Free</strong> to <strong>Free · Rolled</strong>.</li>
+          <li>Every roll locks after its first result unless Allow rerolls is enabled. The button remains labelled Roll.</li>
+          <li>Clear is disabled whenever its control is already unset and re-enables only when there is a current value or selection to remove.</li>
+        </ul>
+
+        <h2>Control Library</h2>
+        <p>The markup construct <code>choice-source mode: single</code> renders a <strong>Single select</strong> control; <code>mode: multi</code> renders a <strong>Multi select</strong> control. “Source” is document vocabulary, not a separate kind of user-facing control.</p>
+        <div class="render-demo-settings"><label><input id="choice-demo-rerolls" type="checkbox"><span><strong>Allow rerolls</strong><small>Applies to every roll control below.</small></span></label></div>
+
+        <h3>Cost badge variants</h3>
+        <div class="cost-specimen-board" data-toc-ignore aria-label="Cost badge variants">
+          <article><span>Flat · Paid</span><div class="cost-badge-row"><b class="cost-badge">200 CP</b></div></article>
+          <article><span>Flat · Discounted</span><div class="cost-badge-row"><b class="cost-badge is-benefit"><del>200 CP</del><strong>100 CP</strong></b></div></article>
+          <article><span>Flat · Free</span><div class="cost-badge-row"><b class="cost-badge is-benefit">Free</b></div></article>
+          <article><span>Flat · Random-only pending</span><div class="cost-badge-row"><b class="cost-badge is-roll-pending">Roll for Free</b></div></article>
+          <article><span>Flat · Random-only rolled</span><div class="cost-badge-row"><b class="cost-badge is-benefit is-stacked"><strong>Free</strong><span>Rolled</span></b></div></article>
+          <article><span>Flat · Rolled, not claimed</span><div class="cost-badge-row"><b class="cost-badge is-benefit is-stacked"><strong>Free</strong><span>Rolled · Not claimed</span></b></div></article>
+          <article><span>Flat · Either rolled paid</span><div class="cost-badge-row"><b class="cost-badge is-benefit is-stacked"><strong>Free</strong><span>Rolled · was 200 CP</span></b></div></article>
+          <article><span>Flat · Either rolled discount</span><div class="cost-badge-row"><b class="cost-badge is-benefit is-stacked"><strong>Free</strong><span>Rolled · was <del>200 CP</del> 100 CP</span></b></div></article>
+          <article><span>Flat · Either rolled free</span><div class="cost-badge-row"><b class="cost-badge is-benefit is-stacked"><strong>Free</strong><span>Rolled</span></b></div></article>
+          <article><span>Ranks · Paid</span><div class="cost-badge-row"><b class="cost-badge is-ranked"><span>50 CP each</span><strong>2 ranks · 100 CP total</strong></b></div></article>
+          <article><span>Ranks · Discounted</span><div class="cost-badge-row"><b class="cost-badge is-ranked is-benefit"><span><del>100 CP each</del> 50 CP each</span><strong>2 ranks · 100 CP total</strong></b></div></article>
+          <article><span>Ranks · Free</span><div class="cost-badge-row"><b class="cost-badge is-ranked is-benefit"><strong>Free</strong><span>2 ranks</span></b></div></article>
+          <article><span>Ranks · Random-only pending</span><div class="cost-badge-row"><b class="cost-badge is-ranked is-roll-pending"><strong>Roll for Free</strong><span>Rank count pending</span></b></div></article>
+          <article><span>Ranks · Rolled allowance</span><div class="cost-badge-row"><b class="cost-badge is-ranked is-benefit"><strong>Free</strong><span>Up to 2 ranks · Rolled</span></b></div></article>
+          <article><span>Ranks · Rolled, not claimed</span><div class="cost-badge-row"><b class="cost-badge is-ranked is-benefit"><strong>Up to 2 ranks Free</strong><span>Rolled · Not claimed</span></b></div></article>
+          <article><span>Ranks · Below allowance</span><div class="cost-badge-row"><b class="cost-badge is-ranked is-benefit"><strong>Free</strong><span>1 rank selected · 2 rolled</span></b></div></article>
+          <article><span>Ranks · Free and paid</span><div class="cost-badge-row"><b class="cost-badge is-ranked is-mixed"><span>2 ranks Free · Rolled</span><strong>1 paid × 50 CP · 50 CP total</strong></b></div></article>
+          <article><span>Ranks · Discounted excess</span><div class="cost-badge-row"><b class="cost-badge is-ranked is-mixed"><span>2 ranks Free · Rolled</span><strong>1 paid × <del>100 CP</del> 50 CP · 50 CP total</strong></b></div></article>
+          <article><span>Award</span><div class="cost-badge-row"><b class="cost-badge is-award">+100 CP</b></div></article>
+          <article><span>Award · Rolled</span><div class="cost-badge-row"><b class="cost-badge is-benefit is-stacked"><strong>Free</strong><span>Rolled · replaces +100 CP award</span></b></div></article>
+          <article><span>Several resources</span><div class="cost-badge-row"><b class="cost-badge">100 CP</b><b class="cost-badge">2 Gems</b></div></article>
+          <article><span>Several resources · Rolled</span><div class="cost-badge-row"><b class="cost-badge is-benefit is-stacked"><strong>Free</strong><span>Rolled · was 100 CP + 2 Gems</span></b></div></article>
+        </div>
+
+        <h3>All controls and valid roll forms</h3>
+        <p>Flat and per-rank integers each show manual, random-only, and manual-or-roll forms. Select controls and grouped selection controls show the same three resolution forms where random resolution is valid.</p>
+        <div class="control-library-grid" data-toc-ignore aria-label="Complete control library">
+          <article class="control-specimen"><header><span>Toggle · Manual</span><code>selection: toggle</code></header><div class="default-choice-card"><div class="default-choice-heading"><strong>Night Vision</strong><div class="cost-badge-row"><b class="cost-badge">100 CP</b></div></div><div class="default-choice-tags"><span>Perception</span></div><div class="default-choice-actions"><label class="check-control"><input type="checkbox"><span class="sr-only">Take Night Vision</span></label></div></div></article>
+
+          <article class="control-specimen"><header><span>Text · Manual</span><code>selection: text</code></header><div class="default-choice-card"><div class="default-choice-heading"><strong>Alias</strong><div class="cost-badge-row"><b class="cost-badge is-benefit">Free</b></div></div><div class="default-choice-tags"><span>Identity</span></div><div class="default-choice-actions"><label><span class="sr-only">Alias</span><input type="text" placeholder="Unset" data-clear-value></label><button type="button" class="secondary-control" data-clear-control>Clear</button></div></div></article>
+
+          <article class="control-specimen"><header><span>Integer · Manual · Flat</span><code>mode: flat</code></header><div class="default-choice-card"><div class="default-choice-heading"><strong>Extra Lives</strong><div class="cost-badge-row"><b class="cost-badge">200 CP</b></div></div><div class="default-choice-tags"><span>Meta</span></div><div class="default-choice-actions"><label><span class="sr-only">Extra Lives</span><input type="number" min="0" max="5" value="2" data-clear-value></label><span class="control-range">0–5</span><button type="button" class="secondary-control" data-clear-control>Clear</button></div></div></article>
+
+          <article class="control-specimen" data-rank-card data-each-cost="50"><header><span>Integer · Manual · Per rank</span><code>mode: each</code></header><div class="default-choice-card"><div class="default-choice-heading"><strong>Combat Training</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-tags"><span>Combat</span></div><div class="default-choice-actions"><label><span class="sr-only">Combat Training ranks</span><input type="number" min="0" max="5" value="2" data-current-value data-clear-value></label><span class="control-range">0–5 ranks</span><button type="button" class="secondary-control" data-clear-control>Clear</button></div></div></article>
+
+          <article class="control-specimen" data-roll-card data-random-only data-roll-only-integer data-flat-cost="200"><header><span>Integer · Random only · Flat</span><code>resolution: random</code></header><div class="default-choice-card"><div class="default-choice-heading"><strong>Starting Age</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-tags"><span>Identity</span></div><div class="default-choice-actions"><output data-roll-output>Not rolled</output><button type="button" class="roll-control" data-roll-control data-roll-values="18|27|42">Roll</button><button type="button" class="secondary-control" data-clear-control>Clear</button></div></div></article>
+
+          <article class="control-specimen" data-roll-card data-rank-card data-random-only data-roll-only-integer data-each-cost="50"><header><span>Integer · Random only · Per rank</span><code>mode: each</code></header><div class="default-choice-card"><div class="default-choice-heading"><strong>Random Training</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-tags"><span>Training</span></div><div class="default-choice-actions"><output data-roll-output>Not rolled</output><button type="button" class="roll-control" data-roll-control data-roll-values="1|3|5">Roll</button><button type="button" class="secondary-control" data-clear-control>Clear</button></div></div></article>
+
+          <article class="control-specimen" data-roll-card data-flat-cost="300"><header><span>Integer · Manual or roll · Flat</span><code>resolution: either</code></header><div class="default-choice-card"><div class="default-choice-heading"><strong>Power Rank</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-tags"><span>Magic</span></div><div class="default-choice-actions"><label><span class="sr-only">Power Rank</span><input type="number" min="1" max="5" value="2" data-current-value data-clear-value></label><span class="control-range">1–5</span><button type="button" class="roll-control" data-roll-control data-roll-values="2|4|1">Roll</button><button type="button" class="secondary-control" data-clear-control>Clear</button><em class="choice-provenance" data-roll-provenance hidden></em></div></div></article>
+
+          <article class="control-specimen" data-roll-card data-rank-card data-each-cost="50" data-each-original="100"><header><span>Integer · Manual or roll · Per rank</span><code>mode: each</code></header><div class="default-choice-card"><div class="default-choice-heading"><strong>Technique Ranks</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-tags"><span>Combat</span></div><div class="default-choice-actions"><label><span class="sr-only">Technique ranks</span><input type="number" min="0" max="5" value="2" data-current-value data-clear-value></label><span class="control-range">0–5 ranks</span><button type="button" class="roll-control" data-roll-control data-roll-values="2|4|1">Roll</button><button type="button" class="secondary-control" data-clear-control>Clear</button></div></div></article>
+
+          <article class="control-specimen"><header><span>Select · Manual</span><code>selection: select</code></header><div class="default-choice-card"><div class="default-choice-heading"><strong>Starting Region</strong><div class="cost-badge-row"><b class="cost-badge">100 CP</b></div></div><div class="default-choice-tags"><span>Location</span></div><div class="default-choice-actions"><label><span class="sr-only">Starting Region</span><select data-clear-value><option value="">Unset</option><option>North</option><option>Capital</option><option>Coast</option></select></label><button type="button" class="secondary-control" data-clear-control>Clear</button></div></div></article>
+
+          <article class="control-specimen" data-roll-card data-random-only data-flat-cost="100"><header><span>Select · Random only</span><code>resolution: random</code></header><div class="default-choice-card"><div class="default-choice-heading"><strong>Destiny</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-tags"><span>Spiritual</span></div><div class="default-choice-actions"><output data-roll-output>Not rolled</output><button type="button" class="roll-control" data-roll-control data-roll-values="Hero|Sage|Wanderer">Roll</button></div></div></article>
+
+          <article class="control-specimen" data-roll-card data-flat-cost="200"><header><span>Select · Manual or roll</span><code>resolution: either</code></header><div class="default-choice-card"><div class="default-choice-heading"><strong>Element</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-tags"><span>Magic</span></div><div class="default-choice-actions"><label><span class="sr-only">Element</span><select data-current-value data-clear-value><option value="">Unset</option><option>Fire</option><option>Water</option><option>Wind</option></select></label><button type="button" class="roll-control" data-roll-control data-roll-values="Fire|Water|Wind">Roll</button><button type="button" class="secondary-control" data-clear-control>Clear</button><em class="choice-provenance" data-roll-provenance hidden></em></div></div></article>
+
+          <article class="control-specimen selection-specimen" data-group-mode="single"><header><span>Single select · Manual</span><code>mode: single</code></header><div class="group-options"><article data-group-option="scholar" data-cost="100"><div class="default-choice-heading"><strong>Scholar</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-actions"><label class="check-control"><input type="radio" name="single-manual" data-group-control><span>Choose Scholar</span></label></div></article><article data-group-option="wanderer" data-cost="200"><div class="default-choice-heading"><strong>Wanderer</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-actions"><label class="check-control"><input type="radio" name="single-manual" data-group-control><span>Choose Wanderer</span></label></div></article></div><footer><button type="button" class="secondary-control" data-group-clear>Clear</button></footer></article>
+
+          <article class="control-specimen selection-specimen" data-group-mode="single" data-group-random-only><header><span>Single select · Random only</span><code>resolution: random</code></header><div class="group-options"><article data-group-option="scholar" data-cost="100"><div class="default-choice-heading"><strong>Scholar</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-actions"><label class="check-control"><input type="radio" name="single-random" data-group-control disabled><span>Scholar result</span></label><em data-group-state>Eligible</em></div></article><article data-group-option="wanderer" data-cost="200"><div class="default-choice-heading"><strong>Wanderer</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-actions"><label class="check-control"><input type="radio" name="single-random" data-group-control disabled><span>Wanderer result</span></label><em data-group-state>Eligible</em></div></article></div><footer><button type="button" class="roll-control" data-group-roll>Roll</button><button type="button" class="secondary-control" data-group-clear>Clear</button><output data-group-status>No result</output></footer></article>
+
+          <article class="control-specimen selection-specimen" data-group-mode="single"><header><span>Single select · Manual or roll</span><code>resolution: either</code></header><div class="group-options"><article data-group-option="scholar" data-cost="100"><div class="default-choice-heading"><strong>Scholar</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-actions"><label class="check-control"><input type="radio" name="single-either" data-group-control><span>Choose Scholar</span></label><em data-group-state></em></div></article><article data-group-option="wanderer" data-cost="200"><div class="default-choice-heading"><strong>Wanderer</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-actions"><label class="check-control"><input type="radio" name="single-either" data-group-control><span>Choose Wanderer</span></label><em data-group-state></em></div></article></div><footer><button type="button" class="roll-control" data-group-roll>Roll</button><button type="button" class="secondary-control" data-group-clear>Clear</button><output data-group-status>No result</output></footer></article>
+
+          <article class="control-specimen selection-specimen" data-group-mode="multi"><header><span>Multi select · Manual</span><code>mode: multi</code></header><div class="group-options"><article data-group-option="flight" data-cost="100"><div class="default-choice-heading"><strong>Flight</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-actions"><label class="check-control"><input type="checkbox" data-group-control><span>Take Flight</span></label></div></article><article data-group-option="arcane" data-cost="200"><div class="default-choice-heading"><strong>Arcane Study</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-actions"><label class="check-control"><input type="checkbox" data-group-control><span>Take Arcane Study</span></label></div></article></div><footer><span class="spent-total">Spent <output data-group-spent>0 CP</output></span></footer></article>
+
+          <article class="control-specimen selection-specimen" data-group-mode="multi" data-group-random-only><header><span>Multi select · Random only</span><code>resolution: random</code></header><div class="group-options"><article data-group-option="flight" data-cost="100"><div class="default-choice-heading"><strong>Flight</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-actions"><label class="check-control"><input type="checkbox" data-group-control disabled><span>Flight result</span></label><em data-group-state>Eligible</em></div></article><article data-group-option="arcane" data-cost="200"><div class="default-choice-heading"><strong>Arcane Study</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-actions"><label class="check-control"><input type="checkbox" data-group-control disabled><span>Arcane Study result</span></label><em data-group-state>Eligible</em></div></article></div><footer><button type="button" class="roll-control" data-group-roll>Roll</button><button type="button" class="secondary-control" data-group-clear>Clear</button><output data-group-status>No result</output></footer></article>
+
+          <article class="control-specimen selection-specimen" data-group-mode="multi"><header><span>Multi select · Manual or roll</span><code>resolution: either</code></header><div class="group-options"><article data-group-option="flight" data-cost="100"><div class="default-choice-heading"><strong>Flight</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-actions"><label class="check-control"><input type="checkbox" data-group-control><span>Take Flight</span></label><em data-group-state></em></div></article><article data-group-option="arcane" data-cost="200"><div class="default-choice-heading"><strong>Arcane Study</strong><div class="cost-badge-row" data-cost-row></div></div><div class="default-choice-actions"><label class="check-control"><input type="checkbox" data-group-control><span>Take Arcane Study</span></label><em data-group-state></em></div></article></div><footer><button type="button" class="roll-control" data-group-roll>Roll</button><button type="button" class="secondary-control" data-group-clear>Clear</button><output data-group-status>No result</output><span class="spent-total">Spent <output data-group-spent>0 CP</output></span></footer></article>
+        </div>
+
+        <p class="design-note"><strong>Nested inputs:</strong> text, integer, and select inputs reuse the same neutral fields above. Companion roster selection is a checkbox list of existing companions. Nested inputs require an authored layout leaf and therefore are not additional default-choice control modes.</p>
+
+        <h2>Persistence</h2>
+        <ul>
+          <li>Roll occurrence and result are stored separately from the current selection.</li>
+          <li>A random-only integer may be cleared back to unset without deleting its stored result. With rerolls disabled, Claim restores that result without rolling again.</li>
+          <li>Unselecting a rolled multi-select option removes the acquisition but retains its Free badge and roll provenance; checking it again reacquires it for Free.</li>
+          <li>Rerolling replaces the recorded result and unselects the former result. Removing the chain entry deletes both selections and roll records.</li>
+          <li>Editor preview uses the same interactions in nonpersistent sandbox state.</li>
+        </ul>
+      </article>
+      <a class="back-to-top" href="#content">Back to top</a>
+    </main>
+  </div>
+</body>
+</html>

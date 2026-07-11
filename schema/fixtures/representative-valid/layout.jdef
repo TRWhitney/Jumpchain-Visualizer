@@ -1,0 +1,30 @@
+section-layout
+  handle: choice_section
+
+  stack
+    handle: root
+    gap: md
+    slot: name
+    text: description
+
+    expand
+      source: main
+      using: choice_card
+
+choice-layout
+  handle: choice_card
+
+  stack
+    handle: root
+    gap: sm
+
+    inline
+      handle: heading
+      justify: between
+      slot: name
+      slot: cost
+
+    text: description
+    slot: control
+    slot: roll
+    slot: tags

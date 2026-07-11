@@ -1,0 +1,19 @@
+jump
+  format: 1
+  name: "Invalid Duplicate Cost"
+  author: "Anonymous"
+  version: "1.0"
+
+section
+  handle: perks
+  name: "Perks"
+
+choice
+  handle: flight
+  name: "Flight"
+  group: perks
+  cost: 100
+
+  cost
+    resource: jump_points
+    amount: 100

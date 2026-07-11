@@ -1,0 +1,23 @@
+choice
+  handle: flight
+  name: "Flight"
+  group: perks
+  tag: movement
+  selection: integer
+  min: 0
+  max: 3
+  resolution: either
+
+  text
+    handle: description
+    content:
+      """
+      Move freely through the air.
+      """
+
+  cost
+    resource: jump_points
+    amount: 100
+    mode: each
+
+  grant: perk

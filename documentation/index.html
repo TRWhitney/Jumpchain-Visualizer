@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Central design documentation for the Jumpchain Visualizer application.">
+  <title>Documentation Overview | Jumpchain Visualizer</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home">
+      <span class="site-mark" aria-hidden="true">JV</span>
+      <span>Jumpchain Visualizer <small>Documentation</small></span>
+    </a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html" aria-current="page">Overview</a>
+      <a href="application-design.html">Application</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="chain-tracker-design.html">Chain Tracker</a>
+      <a href="chain-portability.html">Portability</a>
+      <a href="supplements-design.html">Supplements</a>
+      <a href="settings-design.html">Settings</a>
+      <a href="logging-design.html">Logging</a>
+      <a href="tags-design.html">Tags</a>
+      <a href="markup.html">Markup</a>
+      <a href="editor-design.html">Editor design</a>
+      <a href="choice-rendering-design.html">Controls</a>
+    </nav>
+  </header>
+
+  <main id="content" class="documentation-home" tabindex="-1">
+    <header class="documentation-hero">
+      <p class="eyebrow">Design library</p>
+      <h1>Jumpchain Visualizer documentation</h1>
+      <p class="lede">The central index for product decisions, interaction mockups, and format specifications. Each document owns one design boundary and links back here.</p>
+    </header>
+
+    <section aria-labelledby="documents-heading">
+      <div class="home-section-heading">
+        <h2 id="documents-heading">Documents</h2>
+        <p>Start with the application shell, then follow the feature-specific documents when implementation needs more detail.</p>
+      </div>
+      <div class="document-card-grid">
+        <article class="document-card">
+          <div class="document-card-status agreed">Agreed draft</div>
+          <h3><a href="application-design.html">Application shell and routing</a></h3>
+          <p>How the app starts, routes between Editor and Chain Tracker, restores work, and separates route state from feature state.</p>
+          <a class="document-card-action" href="application-design.html">Open application design <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="document-card">
+          <div class="document-card-status agreed">Accepted baseline</div>
+          <h3><a href="architecture.html">Application architecture</a></h3>
+          <p>Tauri desktop packaging, browser adapters, shared TypeScript domains, Rust security boundaries, persistence, and testing.</p>
+          <a class="document-card-action" href="architecture.html">Open architecture <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="document-card">
+          <div class="document-card-status agreed">Agreed draft</div>
+          <h3><a href="editor-design.html">Editor design</a></h3>
+          <p>The three-pane authoring workspace, structured and source editing, preview behavior, layouts, diagnostics, and navigation.</p>
+          <a class="document-card-action" href="editor-design.html">Open editor design <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="document-card">
+          <div class="document-card-status agreed">Agreed draft</div>
+          <h3><a href="markup.html">Markup design</a></h3>
+          <p>The <code>.jdef</code> language, package structure, declarations, layouts, costs, grants, and conditional renderable text.</p>
+          <a class="document-card-action" href="markup.html">Open markup design <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="document-card">
+          <div class="document-card-status agreed">Agreed catalogue</div>
+          <h3><a href="choice-rendering-design.html">Controls</a></h3>
+          <p>How supported choice types, cost badges, free rolled results, rerolls, and accessible result communication appear in the shared renderer.</p>
+          <a class="document-card-action" href="choice-rendering-design.html">Open Controls <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="document-card">
+          <div class="document-card-status agreed">Living registry</div>
+          <h3><a href="settings-design.html">Settings design</a></h3>
+          <p>Confirmed preferences, defaults, scope, persistence, keyboard customization, tag profiles, and the interactive Settings surface.</p>
+          <a class="document-card-action" href="settings-design.html">Open settings design <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="document-card">
+          <div class="document-card-status agreed">Agreed draft</div>
+          <h3><a href="logging-design.html">Logging design</a></h3>
+          <p>Structured session diagnostics, configurable toast projections, privacy filtering, event correlation, stack traces, and manual GitHub reports.</p>
+          <a class="document-card-action" href="logging-design.html">Open logging design <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="document-card">
+          <div class="document-card-status agreed">Agreed draft</div>
+          <h3><a href="tags-design.html">Tag system design</a></h3>
+          <p>Simple author-provided tag strings, accrued-content search, and the separate user-owned relationship and badge presentation layer.</p>
+          <a class="document-card-action" href="tags-design.html">Open tag system design <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="document-card">
+          <div class="document-card-status agreed">Agreed draft</div>
+          <h3><a href="chain-tracker-design.html">Chain Tracker design</a></h3>
+          <p>Ordered jumps, built-in and imported package selection, shared Jump interaction, historical inventory, companions, and supplements.</p>
+          <a class="document-card-action" href="chain-tracker-design.html">Open Chain Tracker design <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="document-card">
+          <div class="document-card-status agreed">Agreed contract</div>
+          <h3><a href="chain-portability.html">Chain portability</a></h3>
+          <p>The <code>.jchain</code> container, exact package references, missing-package behavior, portable supplement state, and safe copy-based import.</p>
+          <a class="document-card-action" href="chain-portability.html">Open chain portability <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="document-card">
+          <div class="document-card-status agreed">Agreed draft</div>
+          <h3><a href="supplements-design.html">Supplements design</a></h3>
+          <p>The supported supplement set, compatibility families, main pages, current-Jump tools, Quest Mode, Story editing, and content provenance.</p>
+          <a class="document-card-action" href="supplements-design.html">Open supplements design <span aria-hidden="true">→</span></a>
+        </article>
+      </div>
+    </section>
+
+    <section class="document-map" aria-labelledby="map-heading">
+      <div class="home-section-heading">
+        <h2 id="map-heading">Decision boundaries</h2>
+        <p>The documents relate to one another without duplicating ownership.</p>
+      </div>
+      <div class="document-map-flow" aria-label="Application design routes to Editor and Chain Tracker; Chain Tracker owns supplements; both workspaces use markup, tag system, and logging designs">
+        <div>
+          <a href="application-design.html">Application shell</a>
+          <a href="architecture.html">Architecture</a>
+        </div>
+        <span aria-hidden="true">→</span>
+        <div>
+          <a href="editor-design.html">Editor</a>
+          <a href="chain-tracker-design.html">Chain Tracker</a>
+          <a href="chain-portability.html">Portability</a>
+        </div>
+        <span aria-hidden="true">→</span>
+        <div>
+          <a href="markup.html">Markup</a>
+          <a href="choice-rendering-design.html">Controls</a>
+          <a href="tags-design.html">Tags</a>
+          <a href="logging-design.html">Logging</a>
+          <a href="supplements-design.html">Supplements</a>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

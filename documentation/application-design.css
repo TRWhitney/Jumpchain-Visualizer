@@ -1,0 +1,494 @@
+.application-document .lede {
+  max-width: 50rem;
+  color: var(--muted);
+  font-size: 1.14rem;
+}
+
+.proposal-status {
+  margin: 1.75rem 0 2.5rem;
+  padding: 1rem 1.1rem;
+  background: var(--accent-soft);
+  border-left: 4px solid var(--accent);
+}
+
+.route-table-wrap {
+  margin: 1.3rem 0;
+  overflow-x: auto;
+}
+
+.route-table {
+  width: 100%;
+  min-width: 42rem;
+  border-collapse: collapse;
+  background: var(--surface);
+  font-size: 0.9rem;
+}
+
+.route-table th,
+.route-table td {
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.route-table th {
+  color: #fff;
+  background: #292927;
+}
+
+.route-table td:first-child {
+  white-space: nowrap;
+}
+
+.app-shell-mockup {
+  position: relative;
+  margin: 1.5rem 0 2.5rem;
+  overflow: hidden;
+  color: #deded8;
+  background: #20201e;
+  border: 1px solid #383834;
+  border-radius: 0.5rem;
+  box-shadow: 0 1.5rem 4rem rgb(23 23 23 / 16%);
+  font-size: 0.86rem;
+}
+
+.app-shell-mockup button,
+.app-shell-mockup a {
+  font: inherit;
+}
+
+.app-shell-mockup [hidden] {
+  display: none;
+}
+
+.app-mock-header {
+  display: flex;
+  min-height: 3.4rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.65rem;
+  background: #171717;
+  border-bottom: 1px solid #383834;
+}
+
+.app-mock-brand,
+.app-mock-header nav button,
+.app-mock-settings {
+  min-height: 2.15rem;
+  padding: 0.35rem 0.55rem;
+  color: #bdbdb6;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.2rem;
+  cursor: pointer;
+}
+
+.app-mock-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #fff;
+}
+
+.app-mock-brand > span {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  color: #171717;
+  background: #d4af37;
+  border-radius: 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+.app-mock-header nav {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.app-mock-settings {
+  margin-left: auto;
+}
+
+.app-mock-header button:hover,
+.app-mock-header button[aria-pressed="true"] {
+  color: #fff;
+  background: #333330;
+  border-color: #484843;
+}
+
+.app-shell-mockup button:focus-visible,
+.app-shell-mockup a:focus-visible,
+.app-mock-views h3:focus-visible {
+  outline: 2px solid #d4af37;
+  outline-offset: 2px;
+}
+
+.app-mock-location {
+  display: grid;
+  grid-template-columns: 2rem 2rem minmax(8rem, 1fr) auto;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.6rem;
+  padding: 0.35rem 0.65rem;
+  color: #92928c;
+  background: #292927;
+  border-bottom: 1px solid #383834;
+}
+
+.app-mock-location button {
+  width: 2rem;
+  height: 1.9rem;
+  padding: 0;
+  color: #d0d0ca;
+  background: transparent;
+  border: 1px solid #484843;
+  border-radius: 0.2rem;
+  cursor: pointer;
+}
+
+.app-mock-location button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.app-mock-location code {
+  overflow: hidden;
+  padding: 0.25rem 0.5rem;
+  color: #dcdcd7;
+  background: #20201e;
+  border: 1px solid #41413d;
+  border-radius: 0.2rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-mock-location span {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.app-mock-views {
+  position: relative;
+  min-height: 25rem;
+}
+
+.app-mock-views > section {
+  min-height: 25rem;
+  padding: clamp(1.25rem, 5vw, 3rem);
+}
+
+.app-mock-kicker {
+  margin: 0 0 0.25rem;
+  color: #c5a944;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.app-mock-views h3 {
+  margin: 0 0 0.7rem;
+  color: #fff;
+  font-size: clamp(1.55rem, 4vw, 2.4rem);
+  line-height: 1.15;
+}
+
+.app-mock-views h4 {
+  margin: 0;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.app-mock-views p {
+  max-width: 45rem;
+  color: #aaa9a3;
+}
+
+.app-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.app-entry-grid article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #292927;
+  border: 1px solid #41413d;
+  border-radius: 0.3rem;
+}
+
+.app-entry-icon {
+  display: grid;
+  width: 2.3rem;
+  height: 2.3rem;
+  place-items: center;
+  color: #171717;
+  background: #d4af37;
+  border-radius: 50%;
+  font-size: 1.2rem;
+}
+
+.app-entry-grid article p {
+  margin: 0.2rem 0 0;
+}
+
+.app-entry-grid article button,
+.app-route-actions button,
+.app-recent-work button {
+  grid-column: 1 / -1;
+  min-height: 2.2rem;
+  padding: 0.4rem 0.7rem;
+  color: #171717;
+  background: #d4af37;
+  border: 1px solid #e0c25e;
+  border-radius: 0.2rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.app-home-recents {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.2rem;
+}
+
+.app-recent-section {
+  min-width: 0;
+}
+
+.app-recent-section h4 {
+  margin-bottom: 0.35rem;
+  color: #bdbdb6;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-recent-work {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.8rem;
+  color: #bdbdb6;
+  background: #252523;
+  border: 1px solid #383834;
+  border-radius: 0.25rem;
+}
+
+.app-recent-work > span {
+  display: grid;
+  min-width: 0;
+}
+
+.app-recent-work small {
+  overflow: hidden;
+  color: #85857f;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-recent-work button {
+  grid-column: auto;
+  flex: 0 0 auto;
+  background: transparent;
+  color: #d4bd68;
+  border-color: #61582f;
+}
+
+.app-route-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.app-route-actions a,
+.app-mock-views > section > a {
+  color: #dcc665;
+}
+
+.app-deferred-label {
+  width: fit-content;
+  margin-top: 1.4rem;
+  padding: 0.4rem 0.65rem;
+  color: #c7c7c1;
+  background: #30302d;
+  border: 1px dashed #686860;
+  border-radius: 0.25rem;
+}
+
+.app-settings-layer {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: grid;
+  padding: 1rem;
+  place-items: center;
+  background: rgb(12 12 12 / 62%);
+  backdrop-filter: blur(1px);
+}
+
+.app-settings-dialog {
+  width: min(30rem, 100%);
+  max-height: calc(25rem - 2rem);
+  padding: 1.1rem;
+  overflow: auto;
+  color: #d8d8d2;
+  background: #292927;
+  border: 1px solid #5a5a53;
+  border-radius: 0.35rem;
+  box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 42%);
+}
+
+.app-settings-dialog header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.app-settings-dialog header h3 {
+  margin-bottom: 0;
+  font-size: 1.5rem;
+}
+
+.app-settings-dialog header button {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: #bdbdb6;
+  background: transparent;
+  border: 1px solid #4a4a45;
+  border-radius: 0.2rem;
+  cursor: pointer;
+}
+
+.app-settings-example {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 1rem;
+  border-top: 1px solid #42423e;
+}
+
+.app-settings-example span,
+.app-settings-example strong {
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #42423e;
+}
+
+.app-settings-example span {
+  color: #aaa9a3;
+}
+
+.boundary-diagram {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1.4rem 0;
+  padding: 1rem;
+  background: #20201e;
+  border-radius: 0.4rem;
+  color: #d7d7d2;
+}
+
+.boundary-diagram > div,
+.boundary-branches > div {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.75rem;
+  background: #30302d;
+  border: 1px solid #484843;
+  border-radius: 0.25rem;
+  text-align: center;
+}
+
+.boundary-diagram span {
+  color: #92928c;
+  font-size: 0.78rem;
+}
+
+.boundary-branches {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.boundary-branches .deferred {
+  border-style: dashed;
+}
+
+.decision-record {
+  margin: 1.3rem 0;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+}
+
+.decision-record > div {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+}
+
+.decision-record > div + div {
+  border-top: 1px solid var(--border);
+}
+
+.decision-record dt,
+.decision-record dd {
+  margin: 0;
+  padding: 0.7rem 0.8rem;
+}
+
+.decision-record dt {
+  color: var(--muted);
+  background: #efeee9;
+  font-weight: 800;
+}
+
+@media (max-width: 48rem) {
+  .app-mock-header {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .app-mock-header nav {
+    order: 3;
+    width: 100%;
+  }
+
+  .app-mock-header nav button {
+    flex: 1;
+  }
+
+  .app-mock-location {
+    grid-template-columns: 2rem 2rem minmax(0, 1fr);
+  }
+
+  .app-mock-location span {
+    display: none;
+  }
+
+  .app-entry-grid,
+  .app-home-recents,
+  .boundary-branches {
+    grid-template-columns: 1fr;
+  }
+
+  .app-recent-work,
+  .app-route-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .decision-record > div {
+    grid-template-columns: 1fr;
+  }
+}

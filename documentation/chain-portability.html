@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Chain export, import, package references, unresolved entries, and portable supplement state for Jumpchain Visualizer.">
+  <title>Chain Portability | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="decision-document.css">
+  <script src="documentation.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home"><span class="site-mark" aria-hidden="true">JV</span><span>Jumpchain Visualizer <small>Documentation</small></span></a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html">Overview</a><a href="application-design.html">Application</a><a href="architecture.html">Architecture</a><a href="chain-tracker-design.html">Chain Tracker</a><a href="chain-portability.html" aria-current="page">Portability</a><a href="supplements-design.html">Supplements</a><a href="settings-design.html">Settings</a><a href="logging-design.html">Logging</a><a href="tags-design.html">Tags</a><a href="markup.html">Markup</a><a href="editor-design.html">Editor design</a><a href="choice-rendering-design.html">Controls</a>
+    </nav>
+  </header>
+  <div class="page-shell">
+    <aside class="sidebar" aria-labelledby="contents-heading"><div class="sidebar-inner"><h2 id="contents-heading">On this page</h2><nav id="table-of-contents" aria-label="Chain portability sections"><p class="toc-fallback">Section links appear when JavaScript is available.</p></nav></div></aside>
+    <main id="content" class="document decision-document" tabindex="-1">
+    <article>
+      <header>
+        <p class="eyebrow">Portable chain contract</p>
+        <h1>Chain export and import</h1>
+        <p class="lede">A portable chain preserves the user’s chain state and separately owned supplement data while referring to installed Jump packages by exact content identity. It does not redistribute those packages.</p>
+        <div class="status-note" role="note"><strong>Status: agreed portability contract.</strong> Physical format, package references, missing-package behavior, supplement inclusion, forward compatibility, atomic validation, copy-based import, and export scope are settled.</div>
+      </header>
+
+      <h2><code>.jchain</code> Portable Container</h2>
+      <p>A portable chain uses the user-facing <code>.jchain</code> extension and is internally a ZIP archive. The extension keeps the implementation detail out of ordinary file handling while allowing chain, supplement, and Story state to remain independently versioned.</p>
+      <p>The format 1 archive contains only these root structures:</p>
+      <ul>
+        <li><code>manifest.json</code> — required container format, exporting application version, state-schema requirements, and a file table containing each payload’s path, uncompressed byte length, and SHA-256 digest</li>
+        <li><code>chain.json</code> — required authoritative chain metadata, chronological entries, actor state, selections, rolls, balances, accrued records, unresolved-package snapshots, and package references</li>
+        <li><code>supplements/&lt;module-key&gt;.json</code> — one versioned state document for every supported supplement with preserved state, whether enabled or disabled</li>
+        <li><code>story.json</code> — the separately versioned editable Story supplement state</li>
+      </ul>
+      <p>No Jump package, asset, executable, arbitrary attachment, settings profile, or extra archive path is permitted. JSON is UTF-8, rejects duplicate object keys, and uses arrays wherever source or chronological order is meaningful.</p>
+
+      <h2>Export Boundary</h2>
+      <p>A chain export contains the complete portable state needed to reconstruct the chain but does not embed any <code>.jmp</code> package or its assets. Exported state includes:</p>
+      <ul>
+        <li>chain name/profile metadata and chronological chain-entry records</li>
+        <li>package references, selections, rolls, actor state, balances, accrued records, forms, companion participation, and provenance</li>
+        <li>all enabled and disabled supplement state, stored per module rather than folded into Jump data</li>
+        <li>Story chapters and their editable source representation</li>
+        <li>schema and module-state versions needed to validate or migrate the export</li>
+      </ul>
+      <p>Application settings, the user’s tag profile, session logs, filesystem paths, permission handles, and installed package bytes are not chain state and are not included.</p>
+
+      <h2>Exact Package References</h2>
+      <p>Every chain entry references an installed Jump using both readable metadata and the cryptographic hash of the complete installed <code>.jmp</code> byte stream.</p>
+      <ul>
+        <li>Readable metadata contains the normalized logical identity—Jump name plus the order-independent author set—along with the displayed version.</li>
+        <li>The authoritative reference is <code>SHA-256</code> over every byte of the installed <code>.jmp</code> file. The exported reference uses the form <code>sha256:&lt;64 lowercase hexadecimal digits&gt;</code>.</li>
+        <li>Name, authors, and authored version never substitute for a hash match. They exist for diagnostics, library search, and guided recovery.</li>
+        <li>Other installed versions with the same logical identity do not interfere when the exact referenced hash is installed.</li>
+        <li>A same-identity package with a different hash is surfaced as a version/content mismatch and is never silently attached to the entry.</li>
+      </ul>
+
+      <h2>Unavailable or Unreadable Jumps</h2>
+      <p>Importing a chain never deletes an entry merely because its package cannot be found, opened, or parsed.</p>
+      <ul>
+        <li>The entry remains selectable in chronology and is visibly marked with a package error.</li>
+        <li>Previously stored selections, rolls, accrued records, and actor state remain preserved and visible. They are not ignored or silently recalculated against another package.</li>
+        <li>The Jump pane cannot render substantive package content or accept package-defined choices while the exact package is unavailable.</li>
+        <li>Chain-wide supplements remain usable for that entry. Story and other supplement state are independent of package readability.</li>
+        <li>Installing a readable package with the exact hash resolves the reference and triggers deterministic revalidation.</li>
+      </ul>
+
+      <h2>Multiple Versions and Guided Repair</h2>
+      <p>The installed library may contain several hashes for one name-and-author identity. Exact hashes keep those versions distinct. A reference that can find only a different hash produces an import diagnostic with an optional <q>How to fix this</q> action. Instructions explain how to locate and install the referenced release, inspect installed versions, or manually remove and replace the chain entry. The application does not update an existing entry in place.</p>
+      <p><strong>Narrow setting boundary:</strong> chain import never consults <code>chain.allowMultiplePackageVersions</code>. An imported chain preserves every distinct exact package reference it already contains, including multiple hashes for one logical identity. The setting applies only when a user invokes the Chain Tracker’s Add action and attempts to add a second version of a logical package already present in that chain. Turning the setting off later does not invalidate, remove, merge, or warn about versions already present.</p>
+
+      <h2>Supplement and Story State</h2>
+      <p>Supplement modules own their data independently from Jump entries even when a module records per-entry progression. The chain export includes each module’s versioned state alongside, not inside, package-defined choice state. Disabled modules export their preserved selections as well.</p>
+      <p>Story chapters therefore survive a missing Jump package and remain editable from the supplement surfaces. Chain portability preserves the editable Story representation. The separate human-readable Story export is plain Markdown as specified in <a href="supplements-design.html#story-markdown-export">Supplements design</a>.</p>
+
+      <h2>Atomic Import and Safety</h2>
+      <p>Every chain export is untrusted input. The importer validates and stages the complete archive before creating any local record:</p>
+      <ul>
+        <li>treat every chain export as untrusted input and validate its container, paths, sizes, compression ratios, schemas, counts, strings, hashes, and module-state versions before creating local records</li>
+        <li>reject path traversal, executable payloads, unexpected files, duplicate archive paths, oversized expansion, invalid Unicode, and unknown required structures</li>
+        <li>never trust exported local IDs as authority over existing records; allocate new local chain, actor, and runtime record IDs while preserving internal relationships through import-local mapping</li>
+        <li>show all blocking conflicts before committing and make import atomic, so a failed import creates no partial chain</li>
+      </ul>
+
+      <h2>Schema Compatibility</h2>
+      <p>If the archive requires a newer chain schema, an unknown supplement module with preserved state, or a newer unsupported state schema for any included supplement, import rejects the entire archive with a compatibility message instructing the user to update the application. It never drops, guesses at, or preserves opaque state it cannot validate.</p>
+      <p>Supported older state schemas may be migrated deterministically in memory before the atomic commit. Import does not rewrite the selected <code>.jchain</code> file. A later export from the newly created local chain uses the application’s current supported schemas.</p>
+
+      <h2>Copy-Based Import</h2>
+      <p>Import always creates a new local chain with new internal chain, actor, and runtime-record IDs. Exported identifiers preserve relationships only within that import and never select or overwrite existing local records. The imported chain keeps its exported display name even when another local chain has the same name; names are presentation and need not be unique.</p>
+      <p>The portable export can be used as a manual backup, but importing it creates a copy rather than restoring over the original. Destructive in-place restore, automatic backups, and merge are intentionally outside the v1 portability contract.</p>
+
+      <h2>Current-State Export</h2>
+      <p>Portable export contains current authoritative chain and supplement state only. Undo stacks, activity history, route/session state, and diagnostic logs are local operational records and are not exported. This boundary does not exclude selected choices, recorded rolls, dormant input values, disabled supplement selections, Story chapters, unresolved-package snapshots, or provenance records; those are current authoritative state.</p>
+
+      <h2>Security Consequences</h2>
+      <ul>
+        <li>Package hashes establish exact byte identity, not authorship, trustworthiness, safety, or endorsement.</li>
+        <li>Persisted accrued records from an unresolved package are user state, not executable instructions. They render only through application-owned record schemas.</li>
+        <li>Imported Story source uses the same strict sanitizer as locally authored Story content.</li>
+        <li>No imported path or identifier is allowed to select or overwrite an arbitrary local file or record.</li>
+      </ul>
+    </article>
+    </main>
+  </div>
+</body>
+</html>

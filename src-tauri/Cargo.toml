@@ -1,0 +1,22 @@
+[package]
+name = "jumpchain-visualizer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "jumpchain_visualizer_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.5.6", features = [] }
+
+[dependencies]
+archive-core = { path = "../crates/archive-core" }
+persistence = { path = "../crates/persistence" }
+tauri = { version = "2.11.5", features = [] }
+tauri-plugin-wdio-webdriver = "1.2.0"
+
+[lints]
+workspace = true

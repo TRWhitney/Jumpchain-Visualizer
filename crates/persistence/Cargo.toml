@@ -1,0 +1,12 @@
+[package]
+name = "persistence"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+rusqlite = { version = "0.39.0", features = ["bundled"] }
+
+[lints]
+workspace = true

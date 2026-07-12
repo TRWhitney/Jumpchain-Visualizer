@@ -1,0 +1,2082 @@
+[
+  {
+    "id": "random-chan",
+    "name": "Random-Chan",
+    "price": "+200",
+    "cost": 200,
+    "category": "chain",
+    "sourceLine": 170
+  },
+  {
+    "id": "pseudo-random-chan",
+    "name": "Pseudo-Random-Chan",
+    "price": "+50",
+    "cost": 50,
+    "category": "chain",
+    "sourceLine": 174
+  },
+  {
+    "id": "sadist-chan",
+    "name": "Sadist-Chan",
+    "price": "+150",
+    "cost": 150,
+    "category": "chain",
+    "sourceLine": 176
+  },
+  {
+    "id": "variant-sadist-chan",
+    "name": "Variant Sadist-Chan",
+    "price": "+100",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 184
+  },
+  {
+    "id": "bitch-chan",
+    "name": "Bitch-Chan",
+    "price": "+200",
+    "cost": 200,
+    "category": "chain",
+    "sourceLine": 188
+  },
+  {
+    "id": "no-drawbacks-for-you-san",
+    "name": "No Drawbacks for You!-San",
+    "price": "+200",
+    "cost": 200,
+    "category": "chain",
+    "sourceLine": 193
+  },
+  {
+    "id": "and-only-you",
+    "name": "And Only You!",
+    "price": "Special",
+    "cost": 0,
+    "category": "chain",
+    "sourceLine": 200
+  },
+  {
+    "id": "gauntlet-kun",
+    "name": "Gauntlet-Kun",
+    "price": "Special",
+    "cost": 0,
+    "category": "chain",
+    "sourceLine": 203
+  },
+  {
+    "id": "the-thomas-wolfe-rule",
+    "name": "The Thomas Wolfe Rule",
+    "price": "+100 for a maximum of 8 jumps, then +50 for up to another 8 jumps",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 214
+  },
+  {
+    "id": "the-river-corollary",
+    "name": "The River Corollary",
+    "price": "+100 More",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 237
+  },
+  {
+    "id": "retail-rocker",
+    "name": "Retail Rocker",
+    "price": "Special",
+    "cost": 0,
+    "category": "chain",
+    "sourceLine": 248
+  },
+  {
+    "id": "old-home-week",
+    "name": "Old Home Week",
+    "price": "+100",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 257
+  },
+  {
+    "id": "benefits-package",
+    "name": "Benefits Package",
+    "price": "Costs 300 CP every Jump",
+    "cost": 300,
+    "category": "chain",
+    "sourceLine": 283
+  },
+  {
+    "id": "refresher-course",
+    "name": "Refresher Course",
+    "price": "+100",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 302
+  },
+  {
+    "id": "sadistic-bitch-chan",
+    "name": "Sadistic Bitch-Chan",
+    "price": "Double Value for Jump-Specific Drawbacks",
+    "cost": 0,
+    "category": "chain",
+    "sourceLine": 307
+  },
+  {
+    "id": "cyclopes-psi-ops",
+    "name": "Cyclopes Psi-Ops",
+    "price": "+100 if Single Jump or +50 if Chain",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 318
+  },
+  {
+    "id": "shut-up-jumper",
+    "name": "Shut Up Jumper!",
+    "price": "+200 if Single Jump or +100 if Chain",
+    "cost": 200,
+    "category": "chain",
+    "sourceLine": 325
+  },
+  {
+    "id": "age-of-descent",
+    "name": "Age of Descent",
+    "price": "+50 to +200",
+    "cost": 50,
+    "category": "chain",
+    "sourceLine": 332
+  },
+  {
+    "id": "we-see-you",
+    "name": "We See You",
+    "price": "+200",
+    "cost": 200,
+    "category": "chain",
+    "sourceLine": 341
+  },
+  {
+    "id": "a-giant-adventure",
+    "name": "A Giant Adventure!",
+    "price": "+100 if Single Jump or +50 if Chain",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 346
+  },
+  {
+    "id": "a-little-drawback",
+    "name": "A Little Drawback",
+    "price": "Variant of A Giant Adventure!",
+    "cost": 0,
+    "category": "chain",
+    "sourceLine": 359
+  },
+  {
+    "id": "a-giant-among-jumpers",
+    "name": "A Giant Among Jumpers",
+    "price": "twice the value of A Giant Adventure",
+    "cost": 0,
+    "category": "chain",
+    "sourceLine": 365
+  },
+  {
+    "id": "a-petite-problem",
+    "name": "A Petite Problem",
+    "price": "Variant of A Giant Among Jumpers",
+    "cost": 0,
+    "category": "chain",
+    "sourceLine": 371
+  },
+  {
+    "id": "stochastic-scalar-suckage",
+    "name": "Stochastic Scalar Suckage",
+    "price": "+200",
+    "cost": 200,
+    "category": "chain",
+    "sourceLine": 374
+  },
+  {
+    "id": "ferret-lady",
+    "name": "Ferret Lady",
+    "price": "+108",
+    "cost": 108,
+    "category": "chain",
+    "sourceLine": 379
+  },
+  {
+    "id": "un-bearable",
+    "name": "Un-Bearable",
+    "price": "An Additional +57",
+    "cost": 57,
+    "category": "chain",
+    "sourceLine": 389
+  },
+  {
+    "id": "pose-of-the-day",
+    "name": "Pose of the Day!!!!",
+    "price": "+200",
+    "cost": 200,
+    "category": "chain",
+    "sourceLine": 391
+  },
+  {
+    "id": "do-you-oowoo",
+    "name": "Do You OoWoo?",
+    "price": "+100",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 401
+  },
+  {
+    "id": "stone-sober",
+    "name": "Stone Sober",
+    "price": "+100",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 411
+  },
+  {
+    "id": "in-deep-water",
+    "name": "In Deep Water",
+    "price": "Variable",
+    "cost": 0,
+    "category": "chain",
+    "sourceLine": 420
+  },
+  {
+    "id": "all-the-hats",
+    "name": "All the Hats",
+    "price": "+50",
+    "cost": 50,
+    "category": "chain",
+    "sourceLine": 436
+  },
+  {
+    "id": "gunshy",
+    "name": "Gunshy",
+    "price": "+100 or +200 or +300",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 440
+  },
+  {
+    "id": "milk-white-eyes",
+    "name": "Milk White Eyes",
+    "price": "+50 or +200",
+    "cost": 50,
+    "category": "chain",
+    "sourceLine": 450
+  },
+  {
+    "id": "would-you-like-ketchup-with-that",
+    "name": "Would You Like Ketchup With That?",
+    "price": "+50",
+    "cost": 50,
+    "category": "chain",
+    "sourceLine": 458
+  },
+  {
+    "id": "i-suppose-its-possible-i-was-drunk",
+    "name": "I Suppose It’s Possible I was Drunk",
+    "price": "+200",
+    "cost": 200,
+    "category": "chain",
+    "sourceLine": 462
+  },
+  {
+    "id": "the-jumper-with-no-name",
+    "name": "The Jumper With No Name",
+    "price": "+100",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 474
+  },
+  {
+    "id": "trigger-warning",
+    "name": "Trigger Warning",
+    "price": "+150",
+    "cost": 150,
+    "category": "chain",
+    "sourceLine": 479
+  },
+  {
+    "id": "a-pleasant-headache",
+    "name": "A Pleasant Headache",
+    "price": "+100",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 485
+  },
+  {
+    "id": "crippling-phobia",
+    "name": "Crippling Phobia",
+    "price": "+100",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 492
+  },
+  {
+    "id": "porn-be-gone",
+    "name": "Porn-Be-Gone",
+    "price": "+100",
+    "cost": 100,
+    "category": "chain",
+    "sourceLine": 500
+  },
+  {
+    "id": "universal-punching-bag",
+    "name": "Universal Punching Bag",
+    "price": "+300",
+    "cost": 300,
+    "category": "chain",
+    "sourceLine": 506
+  },
+  {
+    "id": "economic-impact",
+    "name": "Economic Impact",
+    "price": "+50",
+    "cost": 50,
+    "category": "chain",
+    "sourceLine": 515
+  },
+  {
+    "id": "two-player-jumpchain",
+    "name": "Two Player Jumpchain",
+    "price": "SPECIAL",
+    "cost": 0,
+    "category": "companion",
+    "sourceLine": 581
+  },
+  {
+    "id": "all-by-yourself",
+    "name": "All By Yourself",
+    "price": "+200",
+    "cost": 200,
+    "category": "companion",
+    "sourceLine": 592
+  },
+  {
+    "id": "alone-and-unloved",
+    "name": "Alone and Unloved",
+    "price": "Another +200",
+    "cost": 200,
+    "category": "companion",
+    "sourceLine": 599
+  },
+  {
+    "id": "scattered-to-the-winds",
+    "name": "Scattered to the Winds",
+    "price": "+50",
+    "cost": 50,
+    "category": "companion",
+    "sourceLine": 602
+  },
+  {
+    "id": "and-8-shall-be-the-number-of-the-chosen",
+    "name": "And 8 Shall be the Number of the Chosen",
+    "price": "Special",
+    "cost": 0,
+    "category": "companion",
+    "sourceLine": 608
+  },
+  {
+    "id": "single-shot",
+    "name": "Single-Shot",
+    "price": "+100",
+    "cost": 100,
+    "category": "companion",
+    "sourceLine": 615
+  },
+  {
+    "id": "one-and-done",
+    "name": "One and Done",
+    "price": "Another +100",
+    "cost": 100,
+    "category": "companion",
+    "sourceLine": 623
+  },
+  {
+    "id": "one-life-to-lose",
+    "name": "One Life to Lose",
+    "price": "Nothing",
+    "cost": 0,
+    "category": "companion",
+    "sourceLine": 631
+  },
+  {
+    "id": "courting-disaster",
+    "name": "Courting Disaster",
+    "price": "+150 or +50",
+    "cost": 150,
+    "category": "companion",
+    "sourceLine": 639
+  },
+  {
+    "id": "why",
+    "name": "WHY?!",
+    "price": "+100",
+    "cost": 100,
+    "category": "companion",
+    "sourceLine": 644
+  },
+  {
+    "id": "kidnapper-san",
+    "name": "Kidnapper-San",
+    "price": "+100",
+    "cost": 100,
+    "category": "companion",
+    "sourceLine": 652
+  },
+  {
+    "id": "hate-squad",
+    "name": "Hate Squad",
+    "price": "Another +300",
+    "cost": 300,
+    "category": "companion",
+    "sourceLine": 661
+  },
+  {
+    "id": "vortex-of-enemies",
+    "name": "Vortex of Enemies",
+    "price": "An Additional +200",
+    "cost": 200,
+    "category": "companion",
+    "sourceLine": 667
+  },
+  {
+    "id": "dere-for-all",
+    "name": "Dere for All",
+    "price": "+200",
+    "cost": 200,
+    "category": "companion",
+    "sourceLine": 671
+  },
+  {
+    "id": "companion-lockdown",
+    "name": "Companion Lockdown",
+    "price": "+50-200",
+    "cost": 50,
+    "category": "companion",
+    "sourceLine": 683
+  },
+  {
+    "id": "party-limit",
+    "name": "Party Limit",
+    "price": "Special",
+    "cost": 0,
+    "category": "companion",
+    "sourceLine": 694
+  },
+  {
+    "id": "blythe-of-clive",
+    "name": "Blythe of Clive",
+    "price": "+400",
+    "cost": 400,
+    "category": "companion",
+    "sourceLine": 700
+  },
+  {
+    "id": "clyde-the-blithe",
+    "name": "Clyde the Blithe",
+    "price": "Alternate",
+    "cost": 0,
+    "category": "companion",
+    "sourceLine": 718
+  },
+  {
+    "id": "obviously-fake",
+    "name": "Obviously Fake",
+    "price": "+100 item CP",
+    "cost": 100,
+    "category": "warehouse",
+    "sourceLine": 727
+  },
+  {
+    "id": "blatantly-uncool",
+    "name": "Blatantly Uncool",
+    "price": "+200 item CP",
+    "cost": 200,
+    "category": "warehouse",
+    "sourceLine": 735
+  },
+  {
+    "id": "that-cant-be-good",
+    "name": "That Can’t Be Good",
+    "price": "+100",
+    "cost": 100,
+    "category": "warehouse",
+    "sourceLine": 742
+  },
+  {
+    "id": "shipping-ban",
+    "name": "Shipping Ban",
+    "price": "+100 for items",
+    "cost": 100,
+    "category": "warehouse",
+    "sourceLine": 762
+  },
+  {
+    "id": "limited-storage",
+    "name": "Limited Storage",
+    "price": "+100",
+    "cost": 100,
+    "category": "warehouse",
+    "sourceLine": 766
+  },
+  {
+    "id": "warehouse-brand-backpack",
+    "name": "Warehouse Brand Backpack",
+    "price": "Another +100",
+    "cost": 100,
+    "category": "warehouse",
+    "sourceLine": 774
+  },
+  {
+    "id": "limited-access",
+    "name": "Limited Access",
+    "price": "+100",
+    "cost": 100,
+    "category": "warehouse",
+    "sourceLine": 787
+  },
+  {
+    "id": "really-limited-access",
+    "name": "Really Limited Access",
+    "price": "Another +50",
+    "cost": 50,
+    "category": "warehouse",
+    "sourceLine": 793
+  },
+  {
+    "id": "no-access",
+    "name": "No Access",
+    "price": "+300",
+    "cost": 300,
+    "category": "warehouse",
+    "sourceLine": 797
+  },
+  {
+    "id": "share-and-share-alike",
+    "name": "Share and Share Alike",
+    "price": "+50",
+    "cost": 50,
+    "category": "warehouse",
+    "sourceLine": 803
+  },
+  {
+    "id": "ppppp",
+    "name": "PPPPP",
+    "price": "+50 or +100",
+    "cost": 50,
+    "category": "warehouse",
+    "sourceLine": 807
+  },
+  {
+    "id": "remember-the-little-people",
+    "name": "Remember the Little People",
+    "price": "Another +50 or +100",
+    "cost": 50,
+    "category": "warehouse",
+    "sourceLine": 812
+  },
+  {
+    "id": "ready-access",
+    "name": "Ready Access",
+    "price": "+100",
+    "cost": 100,
+    "category": "warehouse",
+    "sourceLine": 815
+  },
+  {
+    "id": "no-insurance",
+    "name": "No Insurance",
+    "price": "Another +200",
+    "cost": 200,
+    "category": "warehouse",
+    "sourceLine": 823
+  },
+  {
+    "id": "limited-warranty",
+    "name": "Limited Warranty",
+    "price": "+100",
+    "cost": 100,
+    "category": "warehouse",
+    "sourceLine": 827
+  },
+  {
+    "id": "voided-warranty",
+    "name": "Voided Warranty",
+    "price": "Another +200",
+    "cost": 200,
+    "category": "warehouse",
+    "sourceLine": 832
+  },
+  {
+    "id": "embargo",
+    "name": "Embargo",
+    "price": "Variable or +100",
+    "cost": 100,
+    "category": "warehouse",
+    "sourceLine": 848
+  },
+  {
+    "id": "old-ways-are-best",
+    "name": "Old Ways Are Best",
+    "price": "Double Value",
+    "cost": 0,
+    "category": "warehouse",
+    "sourceLine": 855
+  },
+  {
+    "id": "reservations-needed",
+    "name": "Reservations Needed",
+    "price": "+50",
+    "cost": 50,
+    "category": "warehouse",
+    "sourceLine": 859
+  },
+  {
+    "id": "shuffle",
+    "name": "SHUFFLE!",
+    "price": "+100-300 for items",
+    "cost": 100,
+    "category": "warehouse",
+    "sourceLine": 867
+  },
+  {
+    "id": "the-warehouse-always-wins",
+    "name": "The Warehouse Always Wins",
+    "price": "Another +100 for items",
+    "cost": 100,
+    "category": "warehouse",
+    "sourceLine": 875
+  },
+  {
+    "id": "real-shuffle",
+    "name": "Real Shuffle",
+    "price": "+50",
+    "cost": 50,
+    "category": "warehouse",
+    "sourceLine": 878
+  },
+  {
+    "id": "oh-god-make-it-stop",
+    "name": "Oh God Make it STOP!",
+    "price": "Another +50-150",
+    "cost": 50,
+    "category": "warehouse",
+    "sourceLine": 883
+  },
+  {
+    "id": "environmental-impact",
+    "name": "Environmental Impact",
+    "price": "+50-200",
+    "cost": 50,
+    "category": "warehouse",
+    "sourceLine": 888
+  },
+  {
+    "id": "open-door-policy",
+    "name": "Open Door Policy",
+    "price": "+50",
+    "cost": 50,
+    "category": "warehouse",
+    "sourceLine": 903
+  },
+  {
+    "id": "interjump-limbo",
+    "name": "InterJump Limbo",
+    "price": "+50",
+    "cost": 50,
+    "category": "warehouse",
+    "sourceLine": 911
+  },
+  {
+    "id": "the-waiting-room",
+    "name": "The Waiting Room",
+    "price": "Another +50",
+    "cost": 50,
+    "category": "warehouse",
+    "sourceLine": 921
+  },
+  {
+    "id": "the-great-interjump-labyrinth",
+    "name": "The Great InterJump Labyrinth",
+    "price": "Another +100",
+    "cost": 100,
+    "category": "warehouse",
+    "sourceLine": 925
+  },
+  {
+    "id": "the-hub",
+    "name": "The Hub",
+    "price": "Special",
+    "cost": 0,
+    "category": "warehouse",
+    "sourceLine": 932
+  },
+  {
+    "id": "perpetual-hubworks",
+    "name": "Perpetual HubWorks",
+    "price": "Special",
+    "cost": 0,
+    "category": "warehouse",
+    "sourceLine": 951
+  },
+  {
+    "id": "hot-water",
+    "name": "Hot Water",
+    "price": "+50",
+    "cost": 50,
+    "category": "starting",
+    "sourceLine": 955
+  },
+  {
+    "id": "hotter-water",
+    "name": "Hotter Water",
+    "price": "Another +50",
+    "cost": 50,
+    "category": "starting",
+    "sourceLine": 963
+  },
+  {
+    "id": "super-hot",
+    "name": "Super Hot",
+    "price": "Another +100",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 969
+  },
+  {
+    "id": "soup",
+    "name": "Soup",
+    "price": "Special",
+    "cost": 0,
+    "category": "starting",
+    "sourceLine": 975
+  },
+  {
+    "id": "flex-start",
+    "name": "Flex Start",
+    "price": "+0 or +100 or +300",
+    "cost": 0,
+    "category": "starting",
+    "sourceLine": 978
+  },
+  {
+    "id": "dietary-restrictions",
+    "name": "Dietary Restrictions",
+    "price": "+100",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 989
+  },
+  {
+    "id": "meal-plan",
+    "name": "Meal Plan",
+    "price": "+100",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1002
+  },
+  {
+    "id": "food-drink",
+    "name": "Food & Drink",
+    "price": "Another +50",
+    "cost": 50,
+    "category": "starting",
+    "sourceLine": 1013
+  },
+  {
+    "id": "counting-calories",
+    "name": "Counting Calories",
+    "price": "Another +50",
+    "cost": 50,
+    "category": "starting",
+    "sourceLine": 1015
+  },
+  {
+    "id": "not-quite-bread-water",
+    "name": "Not Quite Bread & Water",
+    "price": "+100-300",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1019
+  },
+  {
+    "id": "lightweight",
+    "name": "Lightweight",
+    "price": "+100",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1027
+  },
+  {
+    "id": "all-you-can-eat",
+    "name": "All You Can Eat",
+    "price": "Nothing",
+    "cost": 0,
+    "category": "starting",
+    "sourceLine": 1032
+  },
+  {
+    "id": "random-food-allergy",
+    "name": "Random Food Allergy",
+    "price": "+100",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1046
+  },
+  {
+    "id": "plague-of-butterflies",
+    "name": "Plague of Butterflies",
+    "price": "Variable",
+    "cost": 0,
+    "category": "starting",
+    "sourceLine": 1053
+  },
+  {
+    "id": "law-of-unintended-consequences",
+    "name": "Law of Unintended Consequences",
+    "price": "+100 or +200",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1061
+  },
+  {
+    "id": "no-exit",
+    "name": "No Exit",
+    "price": "+50 or +100",
+    "cost": 50,
+    "category": "starting",
+    "sourceLine": 1075
+  },
+  {
+    "id": "bitch-of-destiny",
+    "name": "Bitch of Destiny",
+    "price": "+100 per level",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1083
+  },
+  {
+    "id": "trouble-magnet",
+    "name": "Trouble Magnet",
+    "price": "+200",
+    "cost": 200,
+    "category": "starting",
+    "sourceLine": 1092
+  },
+  {
+    "id": "trouble-central",
+    "name": "Trouble Central",
+    "price": "Another +100",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1098
+  },
+  {
+    "id": "trouble-blackhole",
+    "name": "Trouble Blackhole",
+    "price": "An additional +100",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1106
+  },
+  {
+    "id": "central-casting",
+    "name": "Central Casting",
+    "price": "Nothing",
+    "cost": 0,
+    "category": "starting",
+    "sourceLine": 1108
+  },
+  {
+    "id": "echoed-changes",
+    "name": "Echoed Changes",
+    "price": "Nothing",
+    "cost": 0,
+    "category": "starting",
+    "sourceLine": 1117
+  },
+  {
+    "id": "unjump",
+    "name": "UnJump",
+    "price": "Double Points!",
+    "cost": 0,
+    "category": "starting",
+    "sourceLine": 1122
+  },
+  {
+    "id": "humiliation-conga",
+    "name": "Humiliation Conga",
+    "price": "+100",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1124
+  },
+  {
+    "id": "victim-complex",
+    "name": "Victim Complex",
+    "price": "Another +100",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1137
+  },
+  {
+    "id": "the-prisoners-dilemma",
+    "name": "The Prisoner’s Dilemma",
+    "price": "An Additional +100",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1140
+  },
+  {
+    "id": "there-will-be-a-quiz-on-this",
+    "name": "There Will Be a Quiz on This",
+    "price": "+100",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1143
+  },
+  {
+    "id": "soundtrack-by-jumpchan",
+    "name": "Soundtrack by Jumpchan",
+    "price": "+100-300",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1154
+  },
+  {
+    "id": "aft-gang-agley",
+    "name": "Aft Gang Agley",
+    "price": "+200 or +300",
+    "cost": 200,
+    "category": "starting",
+    "sourceLine": 1162
+  },
+  {
+    "id": "not-so-out-of-context",
+    "name": "Not-So Out Of Context",
+    "price": "+200 if Chain, +100 if Not",
+    "cost": 200,
+    "category": "starting",
+    "sourceLine": 1169
+  },
+  {
+    "id": "contagious-context",
+    "name": "Contagious Context",
+    "price": "Another +100",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1190
+  },
+  {
+    "id": "its-the-little-things-that-matter",
+    "name": "It’s The Little Things That Matter",
+    "price": "+50",
+    "cost": 50,
+    "category": "starting",
+    "sourceLine": 1207
+  },
+  {
+    "id": "semper-preparatus",
+    "name": "Semper Preparatus",
+    "price": "+100",
+    "cost": 100,
+    "category": "starting",
+    "sourceLine": 1213
+  },
+  {
+    "id": "youve-gotta-want-it",
+    "name": "You’ve Gotta Want It!",
+    "price": "+200",
+    "cost": 200,
+    "category": "powers",
+    "sourceLine": 1220
+  },
+  {
+    "id": "one-to-one",
+    "name": "One to One",
+    "price": "+100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1244
+  },
+  {
+    "id": "out-of-context-you-say",
+    "name": "Out of Context, You Say?",
+    "price": "+100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1250
+  },
+  {
+    "id": "you-need-a-minute",
+    "name": "You Need a Minute?",
+    "price": "+50",
+    "cost": 50,
+    "category": "powers",
+    "sourceLine": 1260
+  },
+  {
+    "id": "sleep-changer",
+    "name": "Sleep Changer",
+    "price": "Another +50",
+    "cost": 50,
+    "category": "powers",
+    "sourceLine": 1265
+  },
+  {
+    "id": "alt-form-lockdown",
+    "name": "Alt-form Lockdown",
+    "price": "Another +50",
+    "cost": 50,
+    "category": "powers",
+    "sourceLine": 1267
+  },
+  {
+    "id": "changing-room",
+    "name": "Changing Room",
+    "price": "+50",
+    "cost": 50,
+    "category": "powers",
+    "sourceLine": 1270
+  },
+  {
+    "id": "maintain-the-change",
+    "name": "Maintain the Change",
+    "price": "+100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1274
+  },
+  {
+    "id": "powerscaling",
+    "name": "Powerscaling",
+    "price": "+200",
+    "cost": 200,
+    "category": "powers",
+    "sourceLine": 1282
+  },
+  {
+    "id": "slot-o-matic",
+    "name": "Slot-o-matic",
+    "price": "+200",
+    "cost": 200,
+    "category": "powers",
+    "sourceLine": 1294
+  },
+  {
+    "id": "unemployment",
+    "name": "Unemployment",
+    "price": "Another +100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1307
+  },
+  {
+    "id": "slot-locker",
+    "name": "Slot-Locker",
+    "price": "Another +250 JP",
+    "cost": 250,
+    "category": "powers",
+    "sourceLine": 1309
+  },
+  {
+    "id": "slot-o-matic-jr",
+    "name": "Slot-o-Matic Jr.",
+    "price": "100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1311
+  },
+  {
+    "id": "crybaby",
+    "name": "Crybaby",
+    "price": "+100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1317
+  },
+  {
+    "id": "mindlock",
+    "name": "Mindlock",
+    "price": "+50",
+    "cost": 50,
+    "category": "powers",
+    "sourceLine": 1321
+  },
+  {
+    "id": "freakish",
+    "name": "Freakish",
+    "price": "+100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1326
+  },
+  {
+    "id": "canned-laughter",
+    "name": "Canned Laughter",
+    "price": "+50",
+    "cost": 50,
+    "category": "powers",
+    "sourceLine": 1331
+  },
+  {
+    "id": "is-my-life-funny-to-you",
+    "name": "Is My Life Funny to You?",
+    "price": "+50",
+    "cost": 50,
+    "category": "powers",
+    "sourceLine": 1335
+  },
+  {
+    "id": "pool-segregation",
+    "name": "Pool Segregation",
+    "price": "+150/+200 or +300",
+    "cost": 150,
+    "category": "powers",
+    "sourceLine": 1339
+  },
+  {
+    "id": "the-great-power-down",
+    "name": "The Great Power Down",
+    "price": "+200",
+    "cost": 200,
+    "category": "powers",
+    "sourceLine": 1351
+  },
+  {
+    "id": "bigger-fish",
+    "name": "Bigger Fish",
+    "price": "+300",
+    "cost": 300,
+    "category": "powers",
+    "sourceLine": 1355
+  },
+  {
+    "id": "power-cap",
+    "name": "Power Cap",
+    "price": "+1000 Alternative",
+    "cost": 1000,
+    "category": "powers",
+    "sourceLine": 1360
+  },
+  {
+    "id": "existential-doubt",
+    "name": "Existential Doubt",
+    "price": "+50",
+    "cost": 50,
+    "category": "powers",
+    "sourceLine": 1376
+  },
+  {
+    "id": "respect-my-authority",
+    "name": "Respect My Authority",
+    "price": "+50 or +100",
+    "cost": 50,
+    "category": "powers",
+    "sourceLine": 1400
+  },
+  {
+    "id": "shell-your-own-nuts",
+    "name": "Shell Your Own Nuts",
+    "price": "+50",
+    "cost": 50,
+    "category": "powers",
+    "sourceLine": 1411
+  },
+  {
+    "id": "life-is-your-oyster",
+    "name": "Life Is Your Oyster",
+    "price": "An Additional +50",
+    "cost": 50,
+    "category": "powers",
+    "sourceLine": 1419
+  },
+  {
+    "id": "charge-it",
+    "name": "Charge It",
+    "price": "Permanent Discount on All Perks",
+    "cost": 0,
+    "category": "powers",
+    "sourceLine": 1429
+  },
+  {
+    "id": "luckless",
+    "name": "Luckless",
+    "price": "+100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1452
+  },
+  {
+    "id": "degenerate",
+    "name": "Degenerate",
+    "price": "+100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1454
+  },
+  {
+    "id": "adorkable",
+    "name": "Adorkable",
+    "price": "+100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1459
+  },
+  {
+    "id": "slow-learner",
+    "name": "Slow Learner",
+    "price": "+100 or +50",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1463
+  },
+  {
+    "id": "copyright-protection",
+    "name": "Copyright Protection",
+    "price": "+100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1467
+  },
+  {
+    "id": "arbitrary-skepticism",
+    "name": "Arbitrary Skepticism",
+    "price": "+200/+300",
+    "cost": 200,
+    "category": "powers",
+    "sourceLine": 1471
+  },
+  {
+    "id": "no-alibi",
+    "name": "No Alibi",
+    "price": "+100 or +50",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1475
+  },
+  {
+    "id": "smart-as-you-are",
+    "name": "Smart as You Are",
+    "price": "+100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1480
+  },
+  {
+    "id": "vow-of-poverty",
+    "name": "Vow of Poverty",
+    "price": "+100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1483
+  },
+  {
+    "id": "the-kindness-of-strangers",
+    "name": "The Kindness of Strangers",
+    "price": "Another +100",
+    "cost": 100,
+    "category": "powers",
+    "sourceLine": 1489
+  },
+  {
+    "id": "genre-lock",
+    "name": "Genre Lock",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1497
+  },
+  {
+    "id": "in-the-grim-darkness-of-jumpchain",
+    "name": "In The Grim Darkness of Jumpchain",
+    "price": "+100",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1508
+  },
+  {
+    "id": "jumpchain-is-magic",
+    "name": "Jumpchain is Magic",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1512
+  },
+  {
+    "id": "edge-for-the-edgelord",
+    "name": "Edge for the Edgelord",
+    "price": "+100",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1522
+  },
+  {
+    "id": "insert-laugh-track-here",
+    "name": "Insert Laugh Track Here",
+    "price": "+50/+100",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1529
+  },
+  {
+    "id": "the-always-ticking-clock",
+    "name": "The Always Ticking Clock",
+    "price": "+100",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1536
+  },
+  {
+    "id": "cut-and-paste",
+    "name": "Cut and Paste",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1539
+  },
+  {
+    "id": "exit-light-enter-night",
+    "name": "Exit Light, Enter Night",
+    "price": "+100",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1547
+  },
+  {
+    "id": "romeo-jumper-ette",
+    "name": "Romeo & Jumper-ette",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1553
+  },
+  {
+    "id": "madcap-and-slapstick",
+    "name": "Madcap and Slapstick",
+    "price": "+100",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1559
+  },
+  {
+    "id": "everybody-was-kung-fu-fighting",
+    "name": "Everybody was Kung-Fu Fighting",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1565
+  },
+  {
+    "id": "enter-the-weirdness",
+    "name": "Enter the Weirdness",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1570
+  },
+  {
+    "id": "escalation",
+    "name": "ESCALATION!",
+    "price": "+100",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1576
+  },
+  {
+    "id": "pow-zap-bang",
+    "name": "POW! ZAP! BANG!",
+    "price": "+100",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1581
+  },
+  {
+    "id": "internet-rules-jumpchain",
+    "name": "Internet Rules Jumpchain",
+    "price": "+50/+100",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1585
+  },
+  {
+    "id": "informed-villainy",
+    "name": "Informed Villainy",
+    "price": "+100",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1593
+  },
+  {
+    "id": "without-why",
+    "name": "Without Why",
+    "price": "+200 or +300",
+    "cost": 200,
+    "category": "setting",
+    "sourceLine": 1597
+  },
+  {
+    "id": "without-why-2",
+    "name": "Without, Why?",
+    "price": "+100 or +150",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1608
+  },
+  {
+    "id": "lost-cause",
+    "name": "Lost Cause",
+    "price": "0",
+    "cost": 0,
+    "category": "setting",
+    "sourceLine": 1611
+  },
+  {
+    "id": "why-not-without",
+    "name": "Why Not Without",
+    "price": "+200 or +300",
+    "cost": 200,
+    "category": "setting",
+    "sourceLine": 1616
+  },
+  {
+    "id": "earlier-beginning",
+    "name": "Earlier Beginning",
+    "price": "Another +100",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1637
+  },
+  {
+    "id": "setting-amnesia",
+    "name": "Setting Amnesia",
+    "price": "+200",
+    "cost": 200,
+    "category": "setting",
+    "sourceLine": 1641
+  },
+  {
+    "id": "soft-setting-amnesia",
+    "name": "Soft Setting Amnesia",
+    "price": "Up to +200 Alternative",
+    "cost": 200,
+    "category": "setting",
+    "sourceLine": 1657
+  },
+  {
+    "id": "thats-not-canon",
+    "name": "That’s not Canon!",
+    "price": "+50 Alternative",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1669
+  },
+  {
+    "id": "total-amnesia",
+    "name": "Total Amnesia",
+    "price": "+300-400 Alternative",
+    "cost": 300,
+    "category": "setting",
+    "sourceLine": 1676
+  },
+  {
+    "id": "stronger-imprint",
+    "name": "Stronger Imprint",
+    "price": "Special+100",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1679
+  },
+  {
+    "id": "language-block",
+    "name": "Language Block",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1686
+  },
+  {
+    "id": "3d6-six-times",
+    "name": "3d6 Six Times",
+    "price": "+100",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1692
+  },
+  {
+    "id": "cannot-into-drop-cid",
+    "name": "Cannot Into Drop (CID)",
+    "price": "Special",
+    "cost": 0,
+    "category": "setting",
+    "sourceLine": 1698
+  },
+  {
+    "id": "drop-out",
+    "name": "Drop-Out",
+    "price": "Special",
+    "cost": 0,
+    "category": "setting",
+    "sourceLine": 1705
+  },
+  {
+    "id": "the-long-road",
+    "name": "The Long Road",
+    "price": "+100",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1709
+  },
+  {
+    "id": "the-winding-road",
+    "name": "The Winding Road",
+    "price": "An Additional +100",
+    "cost": 100,
+    "category": "setting",
+    "sourceLine": 1720
+  },
+  {
+    "id": "coin-flip",
+    "name": "Coin Flip",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1727
+  },
+  {
+    "id": "pocket-change",
+    "name": "Pocket Change",
+    "price": "50 or Free",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1731
+  },
+  {
+    "id": "dissing-that-phoria",
+    "name": "Dissing that Phoria",
+    "price": "Another +50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1735
+  },
+  {
+    "id": "yen-for-yang",
+    "name": "Yen for Yang",
+    "price": "Another +50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1739
+  },
+  {
+    "id": "is-this-your-story",
+    "name": "Is This Your Story?",
+    "price": "Variable",
+    "cost": 0,
+    "category": "setting",
+    "sourceLine": 1745
+  },
+  {
+    "id": "must-be-their-story",
+    "name": "Must be Their Story!",
+    "price": "Another +200",
+    "cost": 200,
+    "category": "setting",
+    "sourceLine": 1762
+  },
+  {
+    "id": "invasion-of-the-body-snatcher",
+    "name": "Invasion of the Body Snatcher",
+    "price": "+300",
+    "cost": 300,
+    "category": "setting",
+    "sourceLine": 1769
+  },
+  {
+    "id": "dark-stormy-past",
+    "name": "Dark & Stormy Past",
+    "price": "+50-200",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1786
+  },
+  {
+    "id": "drawback-keeper",
+    "name": "Drawback Keeper",
+    "price": "Special",
+    "cost": 0,
+    "category": "setting",
+    "sourceLine": 1799
+  },
+  {
+    "id": "wrath-of-the-living-drawbacks",
+    "name": "Wrath of the Living Drawbacks",
+    "price": "+200",
+    "cost": 200,
+    "category": "setting",
+    "sourceLine": 1814
+  },
+  {
+    "id": "what-are-drawbacks",
+    "name": "What are Drawbacks?",
+    "price": "Variable",
+    "cost": 0,
+    "category": "setting",
+    "sourceLine": 1824
+  },
+  {
+    "id": "everything-is-worse",
+    "name": "Everything is Worse!",
+    "price": "+300",
+    "cost": 300,
+    "category": "setting",
+    "sourceLine": 1834
+  },
+  {
+    "id": "no-cheese-please",
+    "name": "No Cheese Please",
+    "price": "Special",
+    "cost": 0,
+    "category": "setting",
+    "sourceLine": 1843
+  },
+  {
+    "id": "and-thats-terrible",
+    "name": "And That’s Terrible",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1861
+  },
+  {
+    "id": "candyman",
+    "name": "Candyman",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1867
+  },
+  {
+    "id": "that-bitch",
+    "name": "That Bitch!",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1872
+  },
+  {
+    "id": "you-bitch",
+    "name": "You Bitch!",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1875
+  },
+  {
+    "id": "simple-biology",
+    "name": "Simple Biology",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1880
+  },
+  {
+    "id": "rated-x-for-xylophone",
+    "name": "Rated X for Xylophone",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1886
+  },
+  {
+    "id": "nap-time-for-jumper",
+    "name": "Nap-Time for Jumper",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1890
+  },
+  {
+    "id": "long-dark-nap-time-of-the-soul",
+    "name": "Long Dark Nap-Time of the Soul",
+    "price": "Another +50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1894
+  },
+  {
+    "id": "the-jumper-sleep",
+    "name": "The Jumper-Sleep",
+    "price": "+200",
+    "cost": 200,
+    "category": "setting",
+    "sourceLine": 1897
+  },
+  {
+    "id": "none-so-fabulous",
+    "name": "None So Fabulous",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1903
+  },
+  {
+    "id": "absolutely-fabulous",
+    "name": "Absolutely Fabulous",
+    "price": "Another +50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1906
+  },
+  {
+    "id": "peevish-pets",
+    "name": "Peevish Pets",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1911
+  },
+  {
+    "id": "thats-my-waffle",
+    "name": "THAT’S MY WAFFLE!",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1917
+  },
+  {
+    "id": "all-the-shiny",
+    "name": "All the Shiny",
+    "price": "+50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1923
+  },
+  {
+    "id": "for-the-hoard",
+    "name": "For the Hoard!",
+    "price": "Another +50",
+    "cost": 50,
+    "category": "setting",
+    "sourceLine": 1927
+  },
+  {
+    "id": "oath-of-truth",
+    "name": "Oath of Truth",
+    "price": "+100-200",
+    "cost": 100,
+    "category": "ethos",
+    "sourceLine": 1945
+  },
+  {
+    "id": "oath-of-humility",
+    "name": "Oath of Humility",
+    "price": "+100-200",
+    "cost": 100,
+    "category": "ethos",
+    "sourceLine": 1955
+  },
+  {
+    "id": "oath-of-celibacy",
+    "name": "Oath of Celibacy",
+    "price": "+100-200-300",
+    "cost": 100,
+    "category": "ethos",
+    "sourceLine": 1960
+  },
+  {
+    "id": "oath-of-diligence",
+    "name": "Oath of Diligence",
+    "price": "+100-200",
+    "cost": 100,
+    "category": "ethos",
+    "sourceLine": 1966
+  },
+  {
+    "id": "oath-of-compassion",
+    "name": "Oath of Compassion",
+    "price": "+100-200",
+    "cost": 100,
+    "category": "ethos",
+    "sourceLine": 1973
+  },
+  {
+    "id": "oath-of-patience",
+    "name": "Oath of Patience",
+    "price": "+100-200",
+    "cost": 100,
+    "category": "ethos",
+    "sourceLine": 1978
+  },
+  {
+    "id": "oath-of-temperance",
+    "name": "Oath of Temperance",
+    "price": "+600 or +200",
+    "cost": 600,
+    "category": "ethos",
+    "sourceLine": 1985
+  },
+  {
+    "id": "oath-of-the-jackass",
+    "name": "Oath of the Jackass",
+    "price": "+400",
+    "cost": 400,
+    "category": "ethos",
+    "sourceLine": 1993
+  },
+  {
+    "id": "insane-and-legendary",
+    "name": "Insane and Legendary",
+    "price": "+200",
+    "cost": 200,
+    "category": "challenge",
+    "sourceLine": 2001
+  },
+  {
+    "id": "fair-and-balanced",
+    "name": "Fair and Balanced",
+    "price": "+100",
+    "cost": 100,
+    "category": "challenge",
+    "sourceLine": 2012
+  },
+  {
+    "id": "fission-dance",
+    "name": "Fission Dance",
+    "price": "+200",
+    "cost": 200,
+    "category": "challenge",
+    "sourceLine": 2023
+  },
+  {
+    "id": "fragmented-psyche",
+    "name": "Fragmented Psyche",
+    "price": "Another +100",
+    "cost": 100,
+    "category": "challenge",
+    "sourceLine": 2037
+  },
+  {
+    "id": "im-a-jumper",
+    "name": "I’m a Jumper!",
+    "price": "+50-100",
+    "cost": 50,
+    "category": "challenge",
+    "sourceLine": 2039
+  },
+  {
+    "id": "always-expect-ninjas",
+    "name": "Always Expect Ninjas",
+    "price": "+100-300",
+    "cost": 100,
+    "category": "challenge",
+    "sourceLine": 2045
+  },
+  {
+    "id": "first-rule",
+    "name": "First Rule",
+    "price": "+100 or +50 or +100",
+    "cost": 100,
+    "category": "challenge",
+    "sourceLine": 2067
+  },
+  {
+    "id": "possessed-possessive-possessions",
+    "name": "Possessed Possessive Possessions",
+    "price": "+200 CP for Items",
+    "cost": 200,
+    "category": "challenge",
+    "sourceLine": 2089
+  },
+  {
+    "id": "we-are-all-together",
+    "name": "We Are All Together",
+    "price": "Costs CP",
+    "cost": 0,
+    "category": "challenge",
+    "sourceLine": 2107
+  },
+  {
+    "id": "you-wanted-worthy-opponents",
+    "name": "You Wanted Worthy Opponents?",
+    "price": "+300",
+    "cost": 300,
+    "category": "challenge",
+    "sourceLine": 2116
+  },
+  {
+    "id": "so-many-teef",
+    "name": "SO MANY TEEF!",
+    "price": "+100",
+    "cost": 100,
+    "category": "challenge",
+    "sourceLine": 2126
+  },
+  {
+    "id": "npc-reality-check",
+    "name": "NPC Reality Check",
+    "price": "+50-300",
+    "cost": 50,
+    "category": "challenge",
+    "sourceLine": 2134
+  },
+  {
+    "id": "bio-equipment",
+    "name": "Bio-Equipment",
+    "price": "+100",
+    "cost": 100,
+    "category": "challenge",
+    "sourceLine": 2171
+  },
+  {
+    "id": "npc-blues",
+    "name": "NPC Blues",
+    "price": "+300",
+    "cost": 300,
+    "category": "challenge",
+    "sourceLine": 2178
+  },
+  {
+    "id": "down-out-in-npc-ville",
+    "name": "Down & Out in NPC-Ville",
+    "price": "An Additional +200",
+    "cost": 200,
+    "category": "challenge",
+    "sourceLine": 2200
+  },
+  {
+    "id": "the-best-worst-blessing-curse-evar",
+    "name": "The Best Worst Blessing-Curse EVAR",
+    "price": "+100",
+    "cost": 100,
+    "category": "challenge",
+    "sourceLine": 2206
+  },
+  {
+    "id": "jumpchain-with-bernie",
+    "name": "Jumpchain with Bernie",
+    "price": "+200",
+    "cost": 200,
+    "category": "challenge",
+    "sourceLine": 2222
+  },
+  {
+    "id": "jumper-of-many-worlds",
+    "name": "Jumper of Many Worlds",
+    "price": "+200 CP for Companion Options or +100 CP for anything",
+    "cost": 200,
+    "category": "challenge",
+    "sourceLine": 2245
+  },
+  {
+    "id": "stranger-in-a-strange-land",
+    "name": "Stranger in a Strange Land",
+    "price": "See Text",
+    "cost": 0,
+    "category": "challenge",
+    "sourceLine": 2257
+  },
+  {
+    "id": "soft-stranger",
+    "name": "Soft Stranger",
+    "price": "+100 Alternative",
+    "cost": 100,
+    "category": "challenge",
+    "sourceLine": 2276
+  },
+  {
+    "id": "my-jumper-is-an-idiot",
+    "name": "My Jumper is an Idiot",
+    "price": "SPECIAL",
+    "cost": 0,
+    "category": "challenge",
+    "sourceLine": 2286
+  },
+  {
+    "id": "sealed-jumper-in-a-can",
+    "name": "Sealed Jumper in a Can",
+    "price": "Special",
+    "cost": 0,
+    "category": "challenge",
+    "sourceLine": 2302
+  },
+  {
+    "id": "password-locked",
+    "name": "Password Locked",
+    "price": "Zero / +200",
+    "cost": 200,
+    "category": "challenge",
+    "sourceLine": 2345
+  },
+  {
+    "id": "jumpseed",
+    "name": "JumpSeed",
+    "price": "+200",
+    "cost": 200,
+    "category": "challenge",
+    "sourceLine": 2352
+  },
+  {
+    "id": "so-many-teef-2",
+    "name": "So Many Teef",
+    "price": "Does Not Count as a Bonus",
+    "cost": 0,
+    "category": "challenge",
+    "sourceLine": 2416
+  },
+  {
+    "id": "if-at-first",
+    "name": "If At First",
+    "price": "costs 400 every jump",
+    "cost": 400,
+    "category": "challenge",
+    "sourceLine": 2445
+  },
+  {
+    "id": "if-at-second",
+    "name": "If At Second",
+    "price": "Additional 200 cost every jump",
+    "cost": 200,
+    "category": "challenge",
+    "sourceLine": 2461
+  },
+  {
+    "id": "strangler-in-a-strange-land",
+    "name": "Strangler in a Strange Land",
+    "price": "Variable",
+    "cost": 0,
+    "category": "challenge",
+    "sourceLine": 2471
+  },
+  {
+    "id": "mistaken-identity",
+    "name": "Mistaken Identity?",
+    "price": "+100",
+    "cost": 100,
+    "category": "challenge",
+    "sourceLine": 2475
+  },
+  {
+    "id": "stalking-the-jumper",
+    "name": "Stalking the Jumper",
+    "price": "+200",
+    "cost": 200,
+    "category": "challenge",
+    "sourceLine": 2483
+  },
+  {
+    "id": "the-darkness-inside",
+    "name": "The Darkness Inside",
+    "price": "+100",
+    "cost": 100,
+    "category": "challenge",
+    "sourceLine": 2490
+  },
+  {
+    "id": "bad-touch",
+    "name": "Bad Touch",
+    "price": "Modifier",
+    "cost": 0,
+    "category": "challenge",
+    "sourceLine": 2498
+  }
+]

@@ -1,0 +1,1390 @@
+[
+  {
+    "handle": "lesser_essence_infusion",
+    "name": "Lesser Essence Infusion",
+    "category": "ep_grant",
+    "price": "-50 CP",
+    "values": [50],
+    "sourcePage": 8
+  },
+  {
+    "handle": "greater_essence_infusion",
+    "name": "Greater Essence Infusion",
+    "category": "ep_grant",
+    "price": "-100 CP",
+    "values": [100],
+    "sourcePage": 8
+  },
+  {
+    "handle": "basic_refinements",
+    "name": "Basic Refinements",
+    "category": "basic",
+    "price": "free for all",
+    "values": [],
+    "sourcePage": 9
+  },
+  {
+    "handle": "the_interface",
+    "name": "The Interface",
+    "category": "basic",
+    "price": "benefactor choice",
+    "values": [],
+    "sourcePage": 10
+  },
+  {
+    "handle": "essence_of_the_warlord",
+    "name": "Essence of the Warlord",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "War",
+    "freeGrants": [
+      "Physical Perfection I",
+      "Physical Resilience I",
+      "Heightened Senses I",
+      "Heightened Reactions I",
+      "Mental Prowess I",
+      "Mental Resistance I",
+      "Charismatic I",
+      "Strategic Mastery I",
+      "Leadership Mastery I",
+      "Martial Mastery I",
+      "Inventory I"
+    ]
+  },
+  {
+    "handle": "essence_of_the_scholar",
+    "name": "Essence of the Scholar",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Sch",
+    "freeGrants": [
+      "Mental Prowess I",
+      "Mental Resistance I",
+      "Empathetic I",
+      "Strategic Mastery I",
+      "Scientific Mastery I",
+      "Engineering Mastery I",
+      "Reverse Engineering Mastery I",
+      "Biomedical Mastery I",
+      "Occult Mastery I",
+      "Polyglot",
+      "Trivial Applications"
+    ]
+  },
+  {
+    "handle": "essence_of_the_mad_doctor",
+    "name": "Essence of the Mad Doctor",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Mdr",
+    "freeGrants": [
+      "Physical Resilience I",
+      "Reduced Sustenance I",
+      "Ageless I",
+      "Mental Prowess I",
+      "Mental Resistance I",
+      "Supernatural Resource Recovery I",
+      "Alchemical Mastery I",
+      "Scientific Mastery I",
+      "Biomedical Mastery I",
+      "Occult Mastery I",
+      "Trivial Applications"
+    ]
+  },
+  {
+    "handle": "essence_of_the_crafter",
+    "name": "Essence of the Crafter",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Cra",
+    "freeGrants": [
+      "Environmental Tolerance I",
+      "Mental Prowess I",
+      "Mental Resistance I",
+      "Alchemical Mastery I",
+      "Magical Mastery I",
+      "Strategic Mastery I",
+      "Scientific Mastery I",
+      "Engineering Mastery I",
+      "Reverse Engineering Mastery I",
+      "Biomedical Mastery I",
+      "Inventory I"
+    ]
+  },
+  {
+    "handle": "essence_of_the_assassin",
+    "name": "Essence of the Assassin",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Ass",
+    "freeGrants": [
+      "Physical Perfection I",
+      "Physical Resilience I",
+      "Reduced Sustenance I",
+      "Heightened Senses I",
+      "Heightened Reactions I",
+      "Mental Resistance I",
+      "Martial Mastery I",
+      "Subterfuge Mastery I",
+      "Social Mastery I",
+      "Polyglot",
+      "Morphic Form I"
+    ]
+  },
+  {
+    "handle": "essence_of_the_archmage",
+    "name": "Essence of the Archmage",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Arc",
+    "freeGrants": [
+      "Ageless I",
+      "Mental Prowess I",
+      "Mental Resistance I",
+      "Charismatic I",
+      "Supernatural Resource Recovery I",
+      "Alchemical Mastery I",
+      "Magical Mastery I",
+      "Occult Mastery I",
+      "Social Mastery I",
+      "Polyglot",
+      "Trivial Applications"
+    ]
+  },
+  {
+    "handle": "essence_of_the_brute",
+    "name": "Essence of the Brute",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Bru",
+    "freeGrants": [
+      "Physical Perfection I",
+      "Physical Resilience I",
+      "Reduced Sustenance I",
+      "Environmental Tolerance I",
+      "Ageless I",
+      "Heightened Senses I",
+      "Heightened Reactions I",
+      "Mental Resistance I",
+      "Martial Mastery I",
+      "Wilderness Mastery I",
+      "Power Toggle"
+    ]
+  },
+  {
+    "handle": "essence_of_the_superior",
+    "name": "Essence of the Superior",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Sup",
+    "freeGrants": [
+      "Physical Perfection I",
+      "Physical Resilience I",
+      "Reduced Sustenance I",
+      "Environmental Tolerance I",
+      "Heightened Senses I",
+      "Heightened Reactions I",
+      "Mental Prowess I",
+      "Mental Resistance I",
+      "Martial Mastery I",
+      "Polyglot",
+      "Power Toggle"
+    ]
+  },
+  {
+    "handle": "essence_of_the_lich",
+    "name": "Essence of the Lich",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Lch",
+    "freeGrants": [
+      "Physical Resilience I",
+      "Reduced Sustenance I",
+      "Environmental Tolerance I",
+      "Ageless I",
+      "Undead Physiology I",
+      "Mental Prowess I",
+      "Mental Resistance I",
+      "Alchemical Mastery I",
+      "Magical Mastery I",
+      "Occult Mastery I",
+      "Trivial Applications"
+    ]
+  },
+  {
+    "handle": "essence_of_the_vampire",
+    "name": "Essence of the Vampire",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Vam",
+    "freeGrants": [
+      "Physical Perfection I",
+      "Physical Resilience I",
+      "Reduced Sustenance I",
+      "Environmental Tolerance I",
+      "Ageless I",
+      "Undead Physiology I",
+      "Mental Resistance I",
+      "Empathetic I",
+      "Charismatic I",
+      "Subterfuge Mastery I",
+      "Energy Drain I"
+    ]
+  },
+  {
+    "handle": "essence_of_the_shapeshifter",
+    "name": "Essence of the Shapeshifter",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Sha",
+    "freeGrants": [
+      "Physical Perfection I",
+      "Physical Resilience I",
+      "Environmental Tolerance I",
+      "Ageless I",
+      "Mental Resistance I",
+      "Wild Empathy I",
+      "Biomedical Mastery I",
+      "Wilderness Mastery I",
+      "Form Mastery I",
+      "Morphic Form I",
+      "Reduced Form I"
+    ]
+  },
+  {
+    "handle": "essence_of_the_king",
+    "name": "Essence of the King",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Kng",
+    "freeGrants": [
+      "Mental Prowess I",
+      "Mental Resistance I",
+      "Empathetic I",
+      "Charismatic I",
+      "Unflappable",
+      "Strategic Mastery I",
+      "Leadership Mastery I",
+      "Subterfuge Mastery I",
+      "Social Mastery I",
+      "Polyglot",
+      "Trivial Applications"
+    ]
+  },
+  {
+    "handle": "essence_of_the_beast",
+    "name": "Essence of the Beast",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Bea",
+    "freeGrants": [
+      "Physical Perfection I",
+      "Physical Resilience I",
+      "Reduced Sustenance I",
+      "Ageless I",
+      "Creature Soul I",
+      "Heightened Senses I",
+      "Heightened Reactions I",
+      "Mental Resistance I",
+      "Wild Empathy I",
+      "Wilderness Mastery I",
+      "Form Mastery I"
+    ]
+  },
+  {
+    "handle": "essence_of_the_dragon",
+    "name": "Essence of the Dragon",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Dra",
+    "freeGrants": [
+      "Physical Perfection I",
+      "Physical Resilience I",
+      "Ageless I",
+      "Creature Soul I",
+      "Heightened Senses I",
+      "Heightened Reactions I",
+      "Mental Prowess I",
+      "Mental Resistance I",
+      "Magical Mastery I",
+      "Polyglot",
+      "Form Mastery I"
+    ]
+  },
+  {
+    "handle": "essence_of_the_explorer",
+    "name": "Essence of the Explorer",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Exp",
+    "freeGrants": [
+      "Physical Perfection I",
+      "Physical Resilience I",
+      "Reduced Sustenance I",
+      "Environmental Tolerance I",
+      "Heightened Senses I",
+      "Mental Prowess I",
+      "Mental Resistance I",
+      "Martial Mastery I",
+      "Wilderness Mastery I",
+      "Polyglot",
+      "Inventory I"
+    ]
+  },
+  {
+    "handle": "essence_of_the_healer",
+    "name": "Essence of the Healer",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Hea",
+    "freeGrants": [
+      "Physical Resilience I",
+      "Reduced Sustenance I",
+      "Ageless I",
+      "Mental Prowess I",
+      "Mental Resistance I",
+      "Empathetic I",
+      "Charismatic I",
+      "Wild Empathy I",
+      "Biomedical Mastery I",
+      "Social Mastery I",
+      "Energy Drain I"
+    ]
+  },
+  {
+    "handle": "essence_of_the_elemental",
+    "name": "Essence of the Elemental",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Ele",
+    "freeGrants": [
+      "Physical Perfection I",
+      "Physical Resilience I",
+      "Reduced Sustenance I",
+      "Environmental Tolerance I",
+      "Ageless I",
+      "Elemental Physiology I",
+      "Heightened Senses I",
+      "Heightened Reactions I",
+      "Mental Resistance I",
+      "Magical Mastery I",
+      "Trivial Applications"
+    ]
+  },
+  {
+    "handle": "essence_of_the_druid",
+    "name": "Essence of the Druid",
+    "category": "essence",
+    "price": "Essence selection",
+    "values": [],
+    "sourcePage": 12,
+    "essenceCode": "Dru",
+    "freeGrants": [
+      "Physical Perfection I",
+      "Physical Resilience I",
+      "Reduced Sustenance I",
+      "Ageless I",
+      "Heightened Senses I",
+      "Heightened Reactions I",
+      "Mental Resistance I",
+      "Wild Empathy I",
+      "Biomedical Mastery I",
+      "Wilderness Mastery I",
+      "Trivial Applications"
+    ]
+  },
+  {
+    "handle": "physical_perfection_i_to_iii",
+    "name": "Physical Perfection I to III",
+    "category": "physical",
+    "price": "-50/-100/-200 EP",
+    "values": [50, 100, 200],
+    "sourcePage": 13
+  },
+  {
+    "handle": "physical_resilience_i_to_iii",
+    "name": "Physical Resilience I to III",
+    "category": "physical",
+    "price": "-50/-100/-200 EP",
+    "values": [50, 100, 200],
+    "sourcePage": 13
+  },
+  {
+    "handle": "reduced_sustenance_i_to_iii",
+    "name": "Reduced Sustenance I to III",
+    "category": "physical",
+    "price": "-50/-100/-200 EP",
+    "values": [50, 100, 200],
+    "sourcePage": 13
+  },
+  {
+    "handle": "environmental_tolerance_i_and_ii",
+    "name": "Environmental Tolerance I and II",
+    "category": "physical",
+    "price": "-50/-100 EP",
+    "values": [50, 100],
+    "sourcePage": 13
+  },
+  {
+    "handle": "regeneration_i_to_ii",
+    "name": "Regeneration I to II",
+    "category": "physical",
+    "price": "-100/-200 EP",
+    "values": [100, 200],
+    "sourcePage": 14
+  },
+  {
+    "handle": "ageless_i_to_ii",
+    "name": "Ageless I to II",
+    "category": "physical",
+    "price": "-50/-100 EP",
+    "values": [50, 100],
+    "sourcePage": 14
+  },
+  {
+    "handle": "undead_physiology_i",
+    "name": "Undead Physiology I",
+    "category": "physical",
+    "price": "-50/-100/-200/-400/-600 EP",
+    "values": [50, 100, 200, 400, 600],
+    "sourcePage": 14
+  },
+  {
+    "handle": "elemental_physiology_i",
+    "name": "Elemental Physiology I",
+    "category": "physical",
+    "price": "-50/-100/-200/-400/-600 EP",
+    "values": [50, 100, 200, 400, 600],
+    "sourcePage": 14
+  },
+  {
+    "handle": "creature_soul_i_to_v",
+    "name": "Creature Soul I to V",
+    "category": "physical",
+    "price": "-50/-100/-200/-400/-600 EP",
+    "values": [50, 100, 200, 400, 600],
+    "sourcePage": 15
+  },
+  {
+    "handle": "heightened_senses_i_and_ii",
+    "name": "Heightened Senses I and II",
+    "category": "mental",
+    "price": "-50/-100 EP",
+    "values": [50, 100],
+    "sourcePage": 17
+  },
+  {
+    "handle": "heightened_reactions_i_and_ii",
+    "name": "Heightened Reactions I and II",
+    "category": "mental",
+    "price": "-50/-100 EP",
+    "values": [50, 100],
+    "sourcePage": 17
+  },
+  {
+    "handle": "mental_prowess_i_to_iii",
+    "name": "Mental Prowess I to III",
+    "category": "mental",
+    "price": "-50/-100/-200 EP",
+    "values": [50, 100, 200],
+    "sourcePage": 17
+  },
+  {
+    "handle": "mental_resistance_i_to_iii",
+    "name": "Mental Resistance I to III",
+    "category": "mental",
+    "price": "-50/-100/-200 EP",
+    "values": [50, 100, 200],
+    "sourcePage": 17
+  },
+  {
+    "handle": "blank_i_and_ii",
+    "name": "Blank I and II",
+    "category": "mental",
+    "price": "-100/-200 EP",
+    "values": [100, 200],
+    "sourcePage": 18
+  },
+  {
+    "handle": "empathetic_i_and_ii",
+    "name": "Empathetic I and II",
+    "category": "mental",
+    "price": "-50/-100 EP",
+    "values": [50, 100],
+    "sourcePage": 18
+  },
+  {
+    "handle": "charismatic_i_and_ii",
+    "name": "Charismatic I and II",
+    "category": "mental",
+    "price": "-50/-100 EP",
+    "values": [50, 100],
+    "sourcePage": 18
+  },
+  {
+    "handle": "wild_empathy_i_and_ii",
+    "name": "Wild Empathy I and II",
+    "category": "mental",
+    "price": "-50/-100 EP",
+    "values": [50, 100],
+    "sourcePage": 19
+  },
+  {
+    "handle": "unflappable",
+    "name": "Unflappable",
+    "category": "mental",
+    "price": "-50 EP",
+    "values": [50],
+    "sourcePage": 19
+  },
+  {
+    "handle": "corruption_resistance",
+    "name": "Corruption Resistance",
+    "category": "mental",
+    "price": "-100 EP",
+    "values": [100],
+    "sourcePage": 19
+  },
+  {
+    "handle": "inertia_of_self_i_and_ii",
+    "name": "Inertia of Self I and II",
+    "category": "mental",
+    "price": "-100/-200 EP",
+    "values": [100, 200],
+    "sourcePage": 19
+  },
+  {
+    "handle": "supernatural_resource_recovery_i_to_iv",
+    "name": "Supernatural Resource Recovery I to IV",
+    "category": "mental",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 20
+  },
+  {
+    "handle": "alchemical_mastery_i_to_iv",
+    "name": "Alchemical Mastery I to IV",
+    "category": "skill",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 21
+  },
+  {
+    "handle": "magical_mastery_i_to_iv",
+    "name": "Magical Mastery I to IV",
+    "category": "skill",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 21
+  },
+  {
+    "handle": "strategic_mastery_i_to_iv",
+    "name": "Strategic Mastery I to IV",
+    "category": "skill",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 21
+  },
+  {
+    "handle": "leadership_mastery_i_to_iv",
+    "name": "Leadership Mastery I to IV",
+    "category": "skill",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 21
+  },
+  {
+    "handle": "martial_mastery_i_to_iv",
+    "name": "Martial Mastery I to IV",
+    "category": "skill",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 21
+  },
+  {
+    "handle": "scientific_mastery_i_to_iv",
+    "name": "Scientific Mastery I to IV",
+    "category": "skill",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 21
+  },
+  {
+    "handle": "engineering_mastery_i_to_iv",
+    "name": "Engineering Mastery I to IV",
+    "category": "skill",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 21
+  },
+  {
+    "handle": "reverse_engineering_mastery_i_to_iv",
+    "name": "Reverse Engineering Mastery I to IV",
+    "category": "skill",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 21
+  },
+  {
+    "handle": "biomedical_mastery_i_to_iv",
+    "name": "Biomedical Mastery I to IV",
+    "category": "skill",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 21
+  },
+  {
+    "handle": "occult_mastery_i_to_iv",
+    "name": "Occult Mastery I to IV",
+    "category": "skill",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 21
+  },
+  {
+    "handle": "subterfuge_mastery_i_to_iv",
+    "name": "Subterfuge Mastery I to IV",
+    "category": "skill",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 21
+  },
+  {
+    "handle": "social_mastery_i_to_iv",
+    "name": "Social Mastery I to IV",
+    "category": "skill",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 21
+  },
+  {
+    "handle": "wilderness_mastery_i_to_iv",
+    "name": "Wilderness Mastery I to IV",
+    "category": "skill",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 21
+  },
+  {
+    "handle": "polyglot",
+    "name": "Polyglot",
+    "category": "skill",
+    "price": "-50 EP",
+    "values": [50],
+    "sourcePage": 21
+  },
+  {
+    "handle": "magical_engineer",
+    "name": "Magical Engineer",
+    "category": "skill",
+    "price": "-200 EP",
+    "values": [200],
+    "sourcePage": 22
+  },
+  {
+    "handle": "thanatologist",
+    "name": "Thanatologist",
+    "category": "skill",
+    "price": "-200 EP",
+    "values": [200],
+    "sourcePage": 22
+  },
+  {
+    "handle": "geneticist",
+    "name": "Geneticist",
+    "category": "skill",
+    "price": "-200 EP",
+    "values": [200],
+    "sourcePage": 22
+  },
+  {
+    "handle": "vehicle_empathy",
+    "name": "Vehicle Empathy",
+    "category": "skill",
+    "price": "-100 EP",
+    "values": [100],
+    "sourcePage": 22
+  },
+  {
+    "handle": "tooth_and_claw",
+    "name": "Tooth and Claw",
+    "category": "skill",
+    "price": "-100 EP",
+    "values": [100],
+    "sourcePage": 22
+  },
+  {
+    "handle": "natural_athlete",
+    "name": "Natural Athlete",
+    "category": "skill",
+    "price": "-100 EP",
+    "values": [100],
+    "sourcePage": 22
+  },
+  {
+    "handle": "natural_teacher",
+    "name": "Natural Teacher",
+    "category": "skill",
+    "price": "-100 EP",
+    "values": [100],
+    "sourcePage": 22
+  },
+  {
+    "handle": "field_technician",
+    "name": "Field Technician",
+    "category": "skill",
+    "price": "-100 EP",
+    "values": [100],
+    "sourcePage": 22
+  },
+  {
+    "handle": "physical_perfection_iv_and_v",
+    "name": "Physical Perfection IV and V",
+    "category": "supernatural",
+    "price": "-400/-600 EP",
+    "values": [400, 600],
+    "sourcePage": 24
+  },
+  {
+    "handle": "physical_resilience_iv_and_v",
+    "name": "Physical Resilience IV and V",
+    "category": "supernatural",
+    "price": "-400/-600 EP",
+    "values": [400, 600],
+    "sourcePage": 24
+  },
+  {
+    "handle": "environmental_tolerance_iii_and_iv",
+    "name": "Environmental Tolerance III and IV",
+    "category": "supernatural",
+    "price": "-200/400 EP",
+    "values": [200, 400],
+    "sourcePage": 24
+  },
+  {
+    "handle": "regeneration_iii",
+    "name": "Regeneration III",
+    "category": "supernatural",
+    "price": "-600 EP",
+    "values": [600],
+    "sourcePage": 24
+  },
+  {
+    "handle": "elemental_resistance_i_to_iv",
+    "name": "Elemental Resistance I to IV",
+    "category": "supernatural",
+    "price": "-100/-200/-400/-600 EP",
+    "values": [100, 200, 400, 600],
+    "sourcePage": 24
+  },
+  {
+    "handle": "heightened_senses_iii",
+    "name": "Heightened Senses III",
+    "category": "supernatural",
+    "price": "-200 EP",
+    "values": [200],
+    "sourcePage": 24
+  },
+  {
+    "handle": "unusual_senses",
+    "name": "Unusual Senses",
+    "category": "supernatural",
+    "price": "-200 EP",
+    "values": [200],
+    "sourcePage": 25
+  },
+  {
+    "handle": "heightened_reactions_iii_and_iv",
+    "name": "Heightened Reactions III and IV",
+    "category": "supernatural",
+    "price": "-200/-400 EP",
+    "values": [200, 400],
+    "sourcePage": 25
+  },
+  {
+    "handle": "mental_prowess_iv",
+    "name": "Mental Prowess IV",
+    "category": "supernatural",
+    "price": "-400 EP",
+    "values": [400],
+    "sourcePage": 25
+  },
+  {
+    "handle": "empathetic_iii",
+    "name": "Empathetic III",
+    "category": "supernatural",
+    "price": "-200 EP",
+    "values": [200],
+    "sourcePage": 25
+  },
+  {
+    "handle": "charismatic_iii",
+    "name": "Charismatic III",
+    "category": "supernatural",
+    "price": "-200 EP",
+    "values": [200],
+    "sourcePage": 25
+  },
+  {
+    "handle": "form_mastery_i_to_iii",
+    "name": "Form Mastery I to III",
+    "category": "supernatural",
+    "price": "-50/-100/-200 EP",
+    "values": [50, 100, 200],
+    "sourcePage": 25
+  },
+  {
+    "handle": "morphic_form_i_to_iii",
+    "name": "Morphic Form I to III",
+    "category": "supernatural",
+    "price": "-50/-100/-200 EP",
+    "values": [50, 100, 200],
+    "sourcePage": 26
+  },
+  {
+    "handle": "reduced_form_i_to_iv",
+    "name": "Reduced Form I to IV",
+    "category": "supernatural",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 26
+  },
+  {
+    "handle": "enlarged_form_i_to_iv",
+    "name": "Enlarged Form I to IV",
+    "category": "supernatural",
+    "price": "-100/-200/-400/-600 EP",
+    "values": [100, 200, 400, 600],
+    "sourcePage": 26
+  },
+  {
+    "handle": "animal_form_i_and_ii",
+    "name": "Animal Form I and II",
+    "category": "supernatural",
+    "price": "-100/-200 EP",
+    "values": [100, 200],
+    "sourcePage": 27
+  },
+  {
+    "handle": "fantastic_beast_form_i_and_ii",
+    "name": "Fantastic Beast Form I and II",
+    "category": "supernatural",
+    "price": "-400/-600 EP",
+    "values": [400, 600],
+    "sourcePage": 27
+  },
+  {
+    "handle": "intangible_form_i_and_ii",
+    "name": "Intangible Form I and II",
+    "category": "supernatural",
+    "price": "-400/-600 EP",
+    "values": [400, 600],
+    "sourcePage": 28
+  },
+  {
+    "handle": "energy_projection",
+    "name": "Energy Projection",
+    "category": "supernatural",
+    "price": "-100 EP",
+    "values": [100],
+    "sourcePage": 28
+  },
+  {
+    "handle": "material_creation",
+    "name": "Material Creation",
+    "category": "supernatural",
+    "price": "-100 EP",
+    "values": [100],
+    "sourcePage": 28
+  },
+  {
+    "handle": "kinesis_i_to_iv",
+    "name": "Kinesis I to IV",
+    "category": "supernatural",
+    "price": "-100/-200/-400/-600 EP",
+    "values": [100, 200, 400, 600],
+    "sourcePage": 28
+  },
+  {
+    "handle": "flight_i_to_iv",
+    "name": "Flight I to IV",
+    "category": "supernatural",
+    "price": "-100/-200/-400/-600 EP",
+    "values": [100, 200, 400, 600],
+    "sourcePage": 29
+  },
+  {
+    "handle": "spaceflight_i_and_ii",
+    "name": "Spaceflight I and II",
+    "category": "supernatural",
+    "price": "-100/-200 EP",
+    "values": [100, 200],
+    "sourcePage": 29
+  },
+  {
+    "handle": "bodily_reinforcement_techniques_i_and_ii",
+    "name": "Bodily Reinforcement Techniques I and II",
+    "category": "supernatural",
+    "price": "-200/-400 EP",
+    "values": [200, 400],
+    "sourcePage": 29
+  },
+  {
+    "handle": "inventory_i_to_iv",
+    "name": "Inventory I to IV",
+    "category": "supernatural",
+    "price": "-50/-100/-200/-400 EP",
+    "values": [50, 100, 200, 400],
+    "sourcePage": 30
+  },
+  {
+    "handle": "power_toggle",
+    "name": "Power Toggle",
+    "category": "supernatural",
+    "price": "-50 EP",
+    "values": [50],
+    "sourcePage": 30
+  },
+  {
+    "handle": "personal_immunity",
+    "name": "Personal Immunity",
+    "category": "supernatural",
+    "price": "-400 EP",
+    "values": [400],
+    "sourcePage": 30
+  },
+  {
+    "handle": "power_drain_protection",
+    "name": "Power Drain Protection",
+    "category": "supernatural",
+    "price": "-400 EP",
+    "values": [400],
+    "sourcePage": 31
+  },
+  {
+    "handle": "power_combination_i_to_iii",
+    "name": "Power Combination I to III",
+    "category": "supernatural",
+    "price": "-200/-400/-600 EP",
+    "values": [200, 400, 600],
+    "sourcePage": 31
+  },
+  {
+    "handle": "private_reality",
+    "name": "Private Reality",
+    "category": "supernatural",
+    "price": "-600 EP",
+    "values": [600],
+    "sourcePage": 31
+  },
+  {
+    "handle": "cheat_death_i_and_ii",
+    "name": "Cheat Death I and II",
+    "category": "supernatural",
+    "price": "-400/-600 EP",
+    "values": [400, 600],
+    "sourcePage": 32
+  },
+  {
+    "handle": "reflexive_reinforcement_i_and_ii",
+    "name": "Reflexive Reinforcement I and II",
+    "category": "supernatural",
+    "price": "-400/-600 EP",
+    "values": [400, 600],
+    "sourcePage": 32
+  },
+  {
+    "handle": "master_of_many_arts_i_to_iii",
+    "name": "Master of Many Arts I to III",
+    "category": "supernatural",
+    "price": "-100/-200/-400 EP",
+    "values": [100, 200, 400],
+    "sourcePage": 33
+  },
+  {
+    "handle": "defense_piercing_techniques_i_and_ii",
+    "name": "Defense Piercing Techniques I and II",
+    "category": "supernatural",
+    "price": "-400/-600 EP",
+    "values": [400, 600],
+    "sourcePage": 33
+  },
+  {
+    "handle": "trivial_applications",
+    "name": "Trivial Applications",
+    "category": "supernatural",
+    "price": "-50 EP",
+    "values": [50],
+    "sourcePage": 33
+  },
+  {
+    "handle": "over_caster",
+    "name": "Over-Caster",
+    "category": "supernatural",
+    "price": "-400 EP",
+    "values": [400],
+    "sourcePage": 33
+  },
+  {
+    "handle": "healing_touch_i_to_iv",
+    "name": "Healing Touch I to IV",
+    "category": "supernatural",
+    "price": "-100/-200/-400/-600 EP",
+    "values": [100, 200, 400, 600],
+    "sourcePage": 34
+  },
+  {
+    "handle": "energy_drain_i_to_v",
+    "name": "Energy Drain I to V",
+    "category": "supernatural",
+    "price": "-50/-100/-200/-400/-600 EP",
+    "values": [50, 100, 200, 400, 600],
+    "sourcePage": 34
+  },
+  {
+    "handle": "minion_creation_i_to_iii",
+    "name": "Minion Creation I to III",
+    "category": "supernatural",
+    "price": "-200/-400/-600 EP",
+    "values": [200, 400, 600],
+    "sourcePage": 35
+  },
+  {
+    "handle": "minion_empowerment_i_to_iv",
+    "name": "Minion Empowerment I to IV",
+    "category": "supernatural",
+    "price": "-100/-200/-400/-600 EP",
+    "values": [100, 200, 400, 600],
+    "sourcePage": 35
+  },
+  {
+    "handle": "divinity",
+    "name": "Divinity",
+    "category": "supernatural",
+    "price": "-600 EP; Requires at least one Essence and 1000 in accumulated EP",
+    "values": [600, 1000],
+    "sourcePage": 35
+  },
+  {
+    "handle": "essence_infusion",
+    "name": "Essence Infusion",
+    "category": "item",
+    "price": "-100 EP",
+    "values": [100],
+    "sourcePage": 37
+  },
+  {
+    "handle": "essence_integration",
+    "name": "Essence Integration",
+    "category": "item",
+    "price": "-100 EP",
+    "values": [100],
+    "sourcePage": 37
+  },
+  {
+    "handle": "essential_annexation_i_to_iv",
+    "name": "Essential Annexation I to IV",
+    "category": "item",
+    "price": "-100/-200/-400/-600 EP; requires cosmic warehouse or similar",
+    "values": [100, 200, 400, 600],
+    "sourcePage": 37
+  },
+  {
+    "handle": "essential_item",
+    "name": "Essential Item",
+    "category": "item",
+    "price": "-100 EP",
+    "values": [100],
+    "sourcePage": 37
+  },
+  {
+    "handle": "essence_transfer",
+    "name": "Essence Transfer",
+    "category": "item",
+    "price": "Variable",
+    "values": [],
+    "sourcePage": 38
+  },
+  {
+    "handle": "essence_link_i_and_ii",
+    "name": "Essence Link I and II",
+    "category": "item",
+    "price": "-100/-200 EP",
+    "values": [100, 200],
+    "sourcePage": 38
+  },
+  {
+    "handle": "essential_companion",
+    "name": "Essential Companion",
+    "category": "item",
+    "price": "-100 EP",
+    "values": [100],
+    "sourcePage": 38
+  },
+  {
+    "handle": "dependency",
+    "name": "Dependency",
+    "category": "drawback",
+    "price": "+100 EP",
+    "values": [100],
+    "sourcePage": 40
+  },
+  {
+    "handle": "standout",
+    "name": "Standout",
+    "category": "drawback",
+    "price": "+100/+200/+300 EP",
+    "values": [100, 200, 300],
+    "sourcePage": 40
+  },
+  {
+    "handle": "unnatural_presence",
+    "name": "Unnatural Presence",
+    "category": "drawback",
+    "price": "+100 EP",
+    "values": [100],
+    "sourcePage": 40
+  },
+  {
+    "handle": "elemental_vulnerability",
+    "name": "Elemental Vulnerability",
+    "category": "drawback",
+    "price": "+50 EP",
+    "values": [50],
+    "sourcePage": 40
+  },
+  {
+    "handle": "vulnerability",
+    "name": "Vulnerability",
+    "category": "drawback",
+    "price": "+100/+200 EP",
+    "values": [100, 200],
+    "sourcePage": 40
+  },
+  {
+    "handle": "achilles_heel",
+    "name": "Achilles Heel",
+    "category": "drawback",
+    "price": "+100 EP",
+    "values": [100],
+    "sourcePage": 41
+  },
+  {
+    "handle": "lovable_goof",
+    "name": "Lovable Goof",
+    "category": "drawback",
+    "price": "+100 EP",
+    "values": [100],
+    "sourcePage": 41
+  },
+  {
+    "handle": "compulsions",
+    "name": "Compulsions",
+    "category": "drawback",
+    "price": "+100 EP",
+    "values": [100],
+    "sourcePage": 41
+  },
+  {
+    "handle": "softhearted",
+    "name": "Softhearted",
+    "category": "drawback",
+    "price": "+100 EP",
+    "values": [100],
+    "sourcePage": 41
+  },
+  {
+    "handle": "form_locked_i_and_ii",
+    "name": "Form Locked I and II",
+    "category": "drawback",
+    "price": "+50/+100 EP",
+    "values": [50, 100],
+    "sourcePage": 41
+  },
+  {
+    "handle": "wardrobe_malfunction_i_and_ii",
+    "name": "Wardrobe Malfunction I and II",
+    "category": "drawback",
+    "price": "+50/+100 EP",
+    "values": [50, 100],
+    "sourcePage": 41
+  },
+  {
+    "handle": "cosmetic_refinement",
+    "name": "Cosmetic Refinement",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 9
+  },
+  {
+    "handle": "cosmetic_reconfiguration",
+    "name": "Cosmetic Reconfiguration",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 9
+  },
+  {
+    "handle": "physical_health_refinement",
+    "name": "Physical Health Refinement",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 9
+  },
+  {
+    "handle": "physical_prowess_refinement",
+    "name": "Physical Prowess Refinement",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 9
+  },
+  {
+    "handle": "mental_health_refinement",
+    "name": "Mental Health Refinement",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 9
+  },
+  {
+    "handle": "mental_awareness_refinement",
+    "name": "Mental Awareness Refinement",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 10
+  },
+  {
+    "handle": "spiritual_awareness_refinement",
+    "name": "Spiritual Awareness Refinement",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 10
+  },
+  {
+    "handle": "spiritual_resource_refinement",
+    "name": "Spiritual Resource Refinement",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 10
+  },
+  {
+    "handle": "secondary_powers_refinement",
+    "name": "Secondary Powers Refinement",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 10
+  },
+  {
+    "handle": "morality_refinement",
+    "name": "Morality Refinement",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 10
+  },
+  {
+    "handle": "the_character_sheet",
+    "name": "The Character Sheet",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 10
+  },
+  {
+    "handle": "the_status_window",
+    "name": "The Status Window",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 11
+  },
+  {
+    "handle": "the_party_window",
+    "name": "The Party Window",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 11
+  },
+  {
+    "handle": "the_quest_window",
+    "name": "The Quest Window",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 11
+  },
+  {
+    "handle": "the_timer_window",
+    "name": "The Timer Window",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 11
+  },
+  {
+    "handle": "the_help_menu",
+    "name": "The Help Menu",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 11
+  },
+  {
+    "handle": "push_notifications",
+    "name": "Push Notifications",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 11
+  },
+  {
+    "handle": "accessibility",
+    "name": "Accessibility",
+    "category": "basic_option",
+    "price": "Included option",
+    "values": [],
+    "sourcePage": 11
+  }
+]

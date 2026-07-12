@@ -1,0 +1,1472 @@
+[
+  {
+    "handle": "cosmic_warehouse",
+    "name": "Cosmic Warehouse",
+    "category": "basics",
+    "price": "Free",
+    "sourcePage": 4
+  },
+  {
+    "handle": "second_reality",
+    "name": "SECOND REALITY",
+    "category": "basics",
+    "price": "600 WP",
+    "sourcePage": 4
+  },
+  {
+    "handle": "boxes_and_boxes_and_boxes",
+    "name": "BOXES AND BOXES AND BOXES",
+    "category": "basics",
+    "price": "Free",
+    "sourcePage": 4
+  },
+  {
+    "handle": "starting_space",
+    "name": "STARTING SPACE",
+    "category": "utilities",
+    "price": "Free",
+    "sourcePage": 5
+  },
+  {
+    "handle": "additional_space",
+    "name": "Additional Space",
+    "category": "utilities",
+    "price": "200 WP, Requires Starting Space",
+    "sourcePage": 5
+  },
+  {
+    "handle": "discount_additional_space",
+    "name": "Discount Additional Space",
+    "category": "utilities",
+    "price": "100 WP, Requires Starting Space",
+    "sourcePage": 5
+  },
+  {
+    "handle": "adaptive_inactive_storage",
+    "name": "Adaptive Inactive Storage",
+    "category": "utilities",
+    "price": "200 WP, Requires Starting Space",
+    "sourcePage": 5
+  },
+  {
+    "handle": "antibiotic_field",
+    "name": "ANTIBIOTIC FIELD",
+    "category": "utilities",
+    "price": "Free",
+    "sourcePage": 5
+  },
+  {
+    "handle": "access_key",
+    "name": "ACCESS KEY",
+    "category": "utilities",
+    "price": "Free",
+    "sourcePage": 6
+  },
+  {
+    "handle": "additional_keys",
+    "name": "Additional Keys",
+    "category": "utilities",
+    "price": "50 WP per 4 keys or 50 CP for 1 Key, Requires Access Key",
+    "sourcePage": 6
+  },
+  {
+    "handle": "key_link",
+    "name": "Key Link",
+    "category": "utilities",
+    "price": "50 WP, Requires Access Key, Multiple Purchases Allowed",
+    "sourcePage": 6
+  },
+  {
+    "handle": "the_big_hole",
+    "name": "THE BIG HOLE",
+    "category": "utilities",
+    "price": "50 WP",
+    "sourcePage": 6
+  },
+  {
+    "handle": "the_loft",
+    "name": "THE LOFT",
+    "category": "utilities",
+    "price": "Free",
+    "sourcePage": 6
+  },
+  {
+    "handle": "lofty_loft",
+    "name": "Lofty Loft",
+    "category": "utilities",
+    "price": "50 WP, Requires Loft",
+    "sourcePage": 6
+  },
+  {
+    "handle": "underside",
+    "name": "Underside",
+    "category": "utilities",
+    "price": "100 WP, Requires Lofty Loft",
+    "sourcePage": 6
+  },
+  {
+    "handle": "playing_with_portals",
+    "name": "PLAYING WITH PORTALS",
+    "category": "utilities",
+    "price": "300 WP",
+    "sourcePage": 7
+  },
+  {
+    "handle": "portal_link",
+    "name": "Portal Link",
+    "category": "utilities",
+    "price": "300 WP, Requires Playing With Portals",
+    "sourcePage": 7
+  },
+  {
+    "handle": "portal_control_rod",
+    "name": "Portal Control Rod",
+    "category": "utilities",
+    "price": "200 WP, Requires Playing With Portals",
+    "sourcePage": 7
+  },
+  {
+    "handle": "free_portal",
+    "name": "Free Portal",
+    "category": "utilities",
+    "price": "100 WP, Requires Playing With Portal",
+    "sourcePage": 7
+  },
+  {
+    "handle": "portal_aperture",
+    "name": "Portal Aperture",
+    "category": "utilities",
+    "price": "100 WP, Requires Playing With Portal",
+    "sourcePage": 7
+  },
+  {
+    "handle": "security_system",
+    "name": "SECURITY SYSTEM",
+    "category": "utilities",
+    "price": "Free",
+    "sourcePage": 8
+  },
+  {
+    "handle": "detainment",
+    "name": "Detainment",
+    "category": "utilities",
+    "price": "300 WP, Requires Security System",
+    "sourcePage": 8
+  },
+  {
+    "handle": "security_personnel",
+    "name": "Security Personnel",
+    "category": "utilities",
+    "price": "200 WP, Requires Security System & either Servant Quarters or Your Robots",
+    "sourcePage": 8
+  },
+  {
+    "handle": "force_wall",
+    "name": "Force Wall",
+    "category": "utilities",
+    "price": "200 WP, Requires Security System",
+    "sourcePage": 8
+  },
+  {
+    "handle": "partition_plan",
+    "name": "Partition Plan",
+    "category": "utilities",
+    "price": "100 WP, Requires Force Wall",
+    "sourcePage": 8
+  },
+  {
+    "handle": "automated_weapons_security_system",
+    "name": "Automated Weapons Security System",
+    "category": "utilities",
+    "price": "200 WP, Requires Central Control",
+    "sourcePage": 8
+  },
+  {
+    "handle": "environmentally_neutral",
+    "name": "ENVIRONMENTALLY NEUTRAL",
+    "category": "utilities",
+    "price": "Free",
+    "sourcePage": 9
+  },
+  {
+    "handle": "environmental_controls",
+    "name": "Environmental Controls",
+    "category": "utilities",
+    "price": "200 WP, Requires Environmentally Neutral",
+    "sourcePage": 9
+  },
+  {
+    "handle": "improved_regulation",
+    "name": "Improved Regulation",
+    "category": "utilities",
+    "price": "400 WP, Requires Environmental Controls",
+    "sourcePage": 9
+  },
+  {
+    "handle": "the_question_of_shelving",
+    "name": "THE QUESTION OF SHELVING",
+    "category": "utilities",
+    "price": "Free",
+    "sourcePage": 9
+  },
+  {
+    "handle": "storage_solutions",
+    "name": "Storage Solutions",
+    "category": "utilities",
+    "price": "200 WP, Requires Shelving",
+    "sourcePage": 9
+  },
+  {
+    "handle": "whos_got_the_powa",
+    "name": "WHO’S GOT THE POWA",
+    "category": "utilities",
+    "price": "100 WP",
+    "sourcePage": 10
+  },
+  {
+    "handle": "power_overwhelming",
+    "name": "POWER OVERWHELMING",
+    "category": "utilities",
+    "price": "400 WP, Requires Who’s Got the Powa",
+    "sourcePage": 10
+  },
+  {
+    "handle": "an_intervention",
+    "name": "An Intervention",
+    "category": "utilities",
+    "price": "800 WP, Requires Power Overwhelming",
+    "sourcePage": 10
+  },
+  {
+    "handle": "tashi_station",
+    "name": "Tashi Station",
+    "category": "utilities",
+    "price": "200 WP, Requires Who’s Got the Powa",
+    "sourcePage": 10
+  },
+  {
+    "handle": "digital_extranet",
+    "name": "Digital Extranet",
+    "category": "utilities",
+    "price": "200 WP",
+    "sourcePage": 10
+  },
+  {
+    "handle": "voice_over_warehouse_protocol_cellular_service",
+    "name": "Voice Over Warehouse Protocol Cellular Service",
+    "category": "utilities",
+    "price": "200 WP, Requires Digital Extranet",
+    "sourcePage": 10
+  },
+  {
+    "handle": "neutral_lighting",
+    "name": "NEUTRAL LIGHTING",
+    "category": "utilities",
+    "price": "Free",
+    "sourcePage": 11
+  },
+  {
+    "handle": "natural_lighting",
+    "name": "Natural Lighting",
+    "category": "utilities",
+    "price": "50 WP, Requires Neutral Lighting",
+    "sourcePage": 11
+  },
+  {
+    "handle": "recyclotron",
+    "name": "RECYCLOTRON",
+    "category": "utilities",
+    "price": "200 WP",
+    "sourcePage": 11
+  },
+  {
+    "handle": "fabricator",
+    "name": "Fabricator",
+    "category": "utilities",
+    "price": "200 WP, Requires Recyclotron",
+    "sourcePage": 11
+  },
+  {
+    "handle": "a_week_a_button",
+    "name": "A WEEK & A BUTTON",
+    "category": "utilities",
+    "price": "Free",
+    "sourcePage": 11
+  },
+  {
+    "handle": "a_month",
+    "name": "A Month",
+    "category": "utilities",
+    "price": "50 WP, Requires A Week & A Button",
+    "sourcePage": 11
+  },
+  {
+    "handle": "a_months_return",
+    "name": "A Month’s Return",
+    "category": "utilities",
+    "price": "100 WP, Requires A Month",
+    "sourcePage": 11
+  },
+  {
+    "handle": "pipes_pipes_pipes",
+    "name": "PIPES PIPES PIPES",
+    "category": "utilities",
+    "price": "100 WP",
+    "sourcePage": 12
+  },
+  {
+    "handle": "waterworld",
+    "name": "Waterworld",
+    "category": "utilities",
+    "price": "300 WP, Require Pipes Pipes Pipes",
+    "sourcePage": 12
+  },
+  {
+    "handle": "dynamic_waterworks",
+    "name": "Dynamic Waterworks",
+    "category": "utilities",
+    "price": "100 WP, Requires Supplies not found in this Supplement",
+    "sourcePage": 12
+  },
+  {
+    "handle": "basic_accommodations",
+    "name": "BASIC ACCOMMODATIONS",
+    "category": "utilities",
+    "price": "50 WP",
+    "sourcePage": 13
+  },
+  {
+    "handle": "basic_nutrition",
+    "name": "BASIC NUTRITION",
+    "category": "utilities",
+    "price": "50 WP",
+    "sourcePage": 13
+  },
+  {
+    "handle": "a_little_less_basic",
+    "name": "A Little Less Basic",
+    "category": "utilities",
+    "price": "50 WP, Requires Basic Nutrition",
+    "sourcePage": 13
+  },
+  {
+    "handle": "a_lot_less_basic",
+    "name": "A Lot Less Basic",
+    "category": "utilities",
+    "price": "100 WP, Requires A Little Less Basic",
+    "sourcePage": 13
+  },
+  {
+    "handle": "hallowed_earth",
+    "name": "HALLOWED EARTH",
+    "category": "utilities",
+    "price": "400 WP",
+    "sourcePage": 13
+  },
+  {
+    "handle": "temporal_controls",
+    "name": "TEMPORAL CONTROLS",
+    "category": "utilities",
+    "price": "200 WP",
+    "sourcePage": 14
+  },
+  {
+    "handle": "stasis",
+    "name": "Stasis",
+    "category": "utilities",
+    "price": "200 WP, Requires Temporal Controls",
+    "sourcePage": 14
+  },
+  {
+    "handle": "sectional_time",
+    "name": "Sectional Time",
+    "category": "utilities",
+    "price": "200 WP, Requires Temporal Controls",
+    "sourcePage": 14
+  },
+  {
+    "handle": "eternalizer",
+    "name": "Eternalizer",
+    "category": "utilities",
+    "price": "200 WP, Requires Temporal Controls",
+    "sourcePage": 14
+  },
+  {
+    "handle": "eternal_eternalizer",
+    "name": "Eternal Eternalizer",
+    "category": "utilities",
+    "price": "200 WP, Requires Eternalizer",
+    "sourcePage": 14
+  },
+  {
+    "handle": "reality_extruder",
+    "name": "REALITY EXTRUDER",
+    "category": "utilities",
+    "price": "100 WP",
+    "sourcePage": 14
+  },
+  {
+    "handle": "central_control",
+    "name": "CENTRAL CONTROL",
+    "category": "utilities",
+    "price": "100 WP",
+    "sourcePage": 15
+  },
+  {
+    "handle": "your_robots",
+    "name": "Your Robots",
+    "category": "utilities",
+    "price": "200 WP, Requires Central Control",
+    "sourcePage": 15
+  },
+  {
+    "handle": "maintenance_systems",
+    "name": "Maintenance Systems",
+    "category": "utilities",
+    "price": "100 WP, Requires Your Robots",
+    "sourcePage": 15
+  },
+  {
+    "handle": "calendar_change",
+    "name": "CALENDAR CHANGE",
+    "category": "utilities",
+    "price": "100 WP",
+    "sourcePage": 15
+  },
+  {
+    "handle": "sky_simulator",
+    "name": "SKY SIMULATOR",
+    "category": "cosmetic",
+    "price": "50 WP",
+    "sourcePage": 16
+  },
+  {
+    "handle": "fly_a_kite",
+    "name": "Fly a Kite",
+    "category": "cosmetic",
+    "price": "50 WP, Requires Sky Simulator",
+    "sourcePage": 16
+  },
+  {
+    "handle": "realistic_ground_cover",
+    "name": "Realistic Ground Cover",
+    "category": "cosmetic",
+    "price": "50 WP",
+    "sourcePage": 16
+  },
+  {
+    "handle": "dig_it",
+    "name": "Dig It",
+    "category": "cosmetic",
+    "price": "50 WP, Requires Realistic Ground Cover",
+    "sourcePage": 16
+  },
+  {
+    "handle": "treeline_timber",
+    "name": "TREELINE & TIMBER",
+    "category": "cosmetic",
+    "price": "200 WP",
+    "sourcePage": 16
+  },
+  {
+    "handle": "wildlife_for_your_wild_life",
+    "name": "Wildlife for Your Wild Life",
+    "category": "cosmetic",
+    "price": "100 WP, Requires Treeline & Timber",
+    "sourcePage": 16
+  },
+  {
+    "handle": "the_pond",
+    "name": "THE POND",
+    "category": "cosmetic",
+    "price": "100 WP",
+    "sourcePage": 17
+  },
+  {
+    "handle": "the_meaning_of_life",
+    "name": "The Meaning of Life",
+    "category": "cosmetic",
+    "price": "100 WP, Requires The Pond",
+    "sourcePage": 17
+  },
+  {
+    "handle": "hollow_earth",
+    "name": "HOLLOW EARTH",
+    "category": "cosmetic",
+    "price": "100 WP",
+    "sourcePage": 17
+  },
+  {
+    "handle": "basic_thematics",
+    "name": "BASIC THEMATICS",
+    "category": "cosmetic",
+    "price": "20 WP, Multiple Purchases Allowed",
+    "sourcePage": 18
+  },
+  {
+    "handle": "advanced_thematics",
+    "name": "Advanced Thematics",
+    "category": "cosmetic",
+    "price": "50 WP",
+    "sourcePage": 18
+  },
+  {
+    "handle": "theme_park",
+    "name": "THEME PARK",
+    "category": "cosmetic",
+    "price": "250 WP or 100 WP",
+    "sourcePage": 18
+  },
+  {
+    "handle": "entrance_hall",
+    "name": "ENTRANCE HALL",
+    "category": "facilities",
+    "price": "First Free, Additional Halls are 20 WP each",
+    "sourcePage": 19
+  },
+  {
+    "handle": "the_benefactor_lounge",
+    "name": "The Benefactor Lounge",
+    "category": "facilities",
+    "price": "Optional but Free",
+    "sourcePage": 19
+  },
+  {
+    "handle": "companion_calibration_unit",
+    "name": "COMPANION CALIBRATION UNIT",
+    "category": "facilities",
+    "price": "10 WP",
+    "sourcePage": 19
+  },
+  {
+    "handle": "the_reality_development_board",
+    "name": "THE REALITY DEVELOPMENT BOARD",
+    "category": "facilities",
+    "price": "200 WP",
+    "sourcePage": 19
+  },
+  {
+    "handle": "the_medical_bay",
+    "name": "THE MEDICAL BAY",
+    "category": "facilities",
+    "price": "100 WP",
+    "sourcePage": 20
+  },
+  {
+    "handle": "the_better_bay",
+    "name": "The Better Bay",
+    "category": "facilities",
+    "price": "200 WP, Requires the Medical Bay",
+    "sourcePage": 20
+  },
+  {
+    "handle": "the_counseling_bay",
+    "name": "The Counseling Bay",
+    "category": "facilities",
+    "price": "200 WP, Requires Medical Bay",
+    "sourcePage": 20
+  },
+  {
+    "handle": "the_cybernetics_bay",
+    "name": "The Cybernetics Bay",
+    "category": "facilities",
+    "price": "200 WP, Requires Medical Bay & Workshop",
+    "sourcePage": 20
+  },
+  {
+    "handle": "the_nano_medical_lab",
+    "name": "The Nano-Medical Lab",
+    "category": "facilities",
+    "price": "100 WP, Requires Medical Bay",
+    "sourcePage": 20
+  },
+  {
+    "handle": "the_bio_synthesis_lab",
+    "name": "The Bio-Synthesis Lab",
+    "category": "facilities",
+    "price": "100 WP, Requires Medical Bay",
+    "sourcePage": 20
+  },
+  {
+    "handle": "the_microbiome_replacement_lab",
+    "name": "The Microbiome Replacement Lab",
+    "category": "facilities",
+    "price": "100 WP, Requires Bio-Synthesis Lab",
+    "sourcePage": 20
+  },
+  {
+    "handle": "personal_body_mod_pods",
+    "name": "Personal Body Mod Pods",
+    "category": "facilities",
+    "price": "100 WP for the first, 20 WP to double the number of pods",
+    "sourcePage": 20
+  },
+  {
+    "handle": "connecting_doors",
+    "name": "CONNECTING DOORS",
+    "category": "facilities",
+    "price": "20 WP per pair",
+    "sourcePage": 21
+  },
+  {
+    "handle": "inter_reality_connecting_doors",
+    "name": "Inter-Reality Connecting Doors",
+    "category": "facilities",
+    "price": "50 WP per pair, does not require Connecting Doors",
+    "sourcePage": 21
+  },
+  {
+    "handle": "high_security_inter_reality_connecting_doors",
+    "name": "High Security Inter-Reality Connecting Doors",
+    "category": "facilities",
+    "price": "200 WP per pair, Does not require Connecting Doors or Inter-Reality Connecting Doors",
+    "sourcePage": 21
+  },
+  {
+    "handle": "servants_quarters",
+    "name": "SERVANTS’ QUARTERS",
+    "category": "facilities",
+    "price": "100 WP",
+    "sourcePage": 21
+  },
+  {
+    "handle": "unique_servants",
+    "name": "Unique Servants",
+    "category": "facilities",
+    "price": "50 WP, Requires Servants’ Quarters",
+    "sourcePage": 21
+  },
+  {
+    "handle": "housing_complex",
+    "name": "HOUSING COMPLEX",
+    "category": "facilities",
+    "price": "100 WP",
+    "sourcePage": 22
+  },
+  {
+    "handle": "rooms_for_cheap",
+    "name": "Rooms for Cheap",
+    "category": "facilities",
+    "price": "10 WP, Requires Housing Complex, Multiple Purchases Allowed",
+    "sourcePage": 23
+  },
+  {
+    "handle": "choice_apartments",
+    "name": "Choice Apartments",
+    "category": "facilities",
+    "price": "10 WP or 200 CP, Requires Housing Complex, Multiple Purchases Allowed",
+    "sourcePage": 23
+  },
+  {
+    "handle": "luxury_apartments",
+    "name": "Luxury Apartments",
+    "category": "facilities",
+    "price": "10 WP or 200 CP, Requires Choice Apartments, Multiple Purchases Allowed",
+    "sourcePage": 23
+  },
+  {
+    "handle": "opulent_apartments",
+    "name": "Opulent Apartments",
+    "category": "facilities",
+    "price": "20 WP or 400 CP, Requires Luxury Apartments Multiple Purchases Allowed",
+    "sourcePage": 23
+  },
+  {
+    "handle": "downsizing",
+    "name": "Downsizing",
+    "category": "facilities",
+    "price": "10 WP or 200 CP, Requires Housing Complex, Multiple Purchases Allowed",
+    "sourcePage": 23
+  },
+  {
+    "handle": "upscaling",
+    "name": "Upscaling",
+    "category": "facilities",
+    "price": "50 WP or 100 CP each, Requires Housing Complex",
+    "sourcePage": 24
+  },
+  {
+    "handle": "the_commons",
+    "name": "The Commons",
+    "category": "facilities",
+    "price": "30 WP or 600 CP, Requires at least 1 purchase of Choice Apartments",
+    "sourcePage": 24
+  },
+  {
+    "handle": "the_quadrangle",
+    "name": "The Quadrangle",
+    "category": "facilities",
+    "price": "40 WP or 800 CP, Requires at least 2 purchases of Luxury Apartments",
+    "sourcePage": 24
+  },
+  {
+    "handle": "the_esplanade",
+    "name": "The Esplanade",
+    "category": "facilities",
+    "price": "50 WP or 1000 CP, Requires at least 4 purchases of Opulent Apartments",
+    "sourcePage": 24
+  },
+  {
+    "handle": "a_stellar_nursery",
+    "name": "A Stellar Nursery",
+    "category": "facilities",
+    "price": "100 WP, Requires Medical Bay or Housing Complex",
+    "sourcePage": 24
+  },
+  {
+    "handle": "seraglio_a_gogo",
+    "name": "SERAGLIO-A-GOGO",
+    "category": "facilities",
+    "price": "200 WP",
+    "sourcePage": 25
+  },
+  {
+    "handle": "grand_dining_hall",
+    "name": "GRAND DINING HALL",
+    "category": "facilities",
+    "price": "100 WP",
+    "sourcePage": 25
+  },
+  {
+    "handle": "workshop_row",
+    "name": "WORKSHOP ROW",
+    "category": "extensions",
+    "price": "100 WP, Multiple Purchases Allowed",
+    "sourcePage": 26
+  },
+  {
+    "handle": "infinite_office_worx",
+    "name": "INFINITE OFFICE WORX",
+    "category": "extensions",
+    "price": "10 WP or 50 CP, Multiple Purchases Allowed",
+    "sourcePage": 26
+  },
+  {
+    "handle": "the_library_jumpxandria",
+    "name": "THE LIBRARY JUMPXANDRIA",
+    "category": "extensions",
+    "price": "100 WP",
+    "sourcePage": 27
+  },
+  {
+    "handle": "library_services",
+    "name": "Library Services",
+    "category": "extensions",
+    "price": "100 WP, Requires The Library Jumpxandria",
+    "sourcePage": 27
+  },
+  {
+    "handle": "digital_database",
+    "name": "Digital Database",
+    "category": "extensions",
+    "price": "100 WP, Requires The Library Jumpxandria & Central Control",
+    "sourcePage": 27
+  },
+  {
+    "handle": "starting_collection",
+    "name": "Starting Collection",
+    "category": "extensions",
+    "price": "100 WP, Requires The Library Jumpxandria, Multiple Purchases only 50 WP",
+    "sourcePage": 28
+  },
+  {
+    "handle": "expanded_collection",
+    "name": "Expanded Collection",
+    "category": "extensions",
+    "price": "50 WP or 150 CP, Requires The Library Jumpxandria, Multiple Purchases Allowed",
+    "sourcePage": 28
+  },
+  {
+    "handle": "esoteric_collection",
+    "name": "Esoteric Collection",
+    "category": "extensions",
+    "price": "100 WP or 500 CP, Requires The Library Jumpxandria",
+    "sourcePage": 28
+  },
+  {
+    "handle": "printing_precious",
+    "name": "Printing Precious",
+    "category": "extensions",
+    "price": "150 WP, Requires The Library Jumpxandria & Fabricator, Multiple Purchases Allowed",
+    "sourcePage": 28
+  },
+  {
+    "handle": "a_classy_classroom",
+    "name": "A CLASSY CLASSROOM",
+    "category": "extensions",
+    "price": "10 WP",
+    "sourcePage": 29
+  },
+  {
+    "handle": "gym_nice_ium",
+    "name": "GYM-NICE-IUM",
+    "category": "extensions",
+    "price": "100 WP",
+    "sourcePage": 29
+  },
+  {
+    "handle": "gym_nasty_um",
+    "name": "Gym-Nasty-Um",
+    "category": "extensions",
+    "price": "300 WP, Requires Gym-Nice-Ium & Your Robots",
+    "sourcePage": 29
+  },
+  {
+    "handle": "gym_classy_um",
+    "name": "Gym-Classy-Um",
+    "category": "extensions",
+    "price": "200 WP, Requires Gym-Nasty-Ium & Classroom",
+    "sourcePage": 29
+  },
+  {
+    "handle": "the_big_pool",
+    "name": "THE BIG POOL",
+    "category": "extensions",
+    "price": "10 WP. Requires Pipes Pipes Pipes",
+    "sourcePage": 30
+  },
+  {
+    "handle": "the_bigger_pool",
+    "name": "The Bigger Pool",
+    "category": "extensions",
+    "price": "20 WP, Requires The Big Pool",
+    "sourcePage": 30
+  },
+  {
+    "handle": "lets_have_fun",
+    "name": "Let’s Have Fun",
+    "category": "extensions",
+    "price": "30 WP, Requires The Big Pool",
+    "sourcePage": 30
+  },
+  {
+    "handle": "wellness_centre",
+    "name": "WELLNESS CENTRE",
+    "category": "extensions",
+    "price": "50 WP",
+    "sourcePage": 30
+  },
+  {
+    "handle": "baf_and_booty_works",
+    "name": "Baf and Booty Works",
+    "category": "extensions",
+    "price": "20 WP, Requires Wellness Centre",
+    "sourcePage": 30
+  },
+  {
+    "handle": "a_room_for_your_trophies_and_cigars",
+    "name": "A ROOM FOR YOUR TROPHIES AND CIGARS",
+    "category": "extensions",
+    "price": "10 WP",
+    "sourcePage": 30
+  },
+  {
+    "handle": "pilot_simulator",
+    "name": "PILOT SIMULATOR",
+    "category": "extensions",
+    "price": "50 WP",
+    "sourcePage": 30
+  },
+  {
+    "handle": "entertainment_room",
+    "name": "ENTERTAINMENT ROOM",
+    "category": "extensions",
+    "price": "50 WP",
+    "sourcePage": 31
+  },
+  {
+    "handle": "kit_and_kaboodle",
+    "name": "Kit and Kaboodle",
+    "category": "extensions",
+    "price": "20 WP, Requires Entertainment Room",
+    "sourcePage": 31
+  },
+  {
+    "handle": "the_audacious_auditorium",
+    "name": "The Audacious Auditorium",
+    "category": "extensions",
+    "price": "50 WP, Requires Entertainment Room & Housing Complex",
+    "sourcePage": 31
+  },
+  {
+    "handle": "costume_closet",
+    "name": "Costume Closet",
+    "category": "extensions",
+    "price": "50 WP, Requires Entertainment Room",
+    "sourcePage": 31
+  },
+  {
+    "handle": "propshop_scenery",
+    "name": "Propshop & Scenery",
+    "category": "extensions",
+    "price": "50 WP, Requires Entertainment Room & Workshop Row",
+    "sourcePage": 31
+  },
+  {
+    "handle": "watch_your_arsenal",
+    "name": "WATCH YOUR ARSENAL",
+    "category": "extensions",
+    "price": "200 WP",
+    "sourcePage": 32
+  },
+  {
+    "handle": "the_semi_secret_garden",
+    "name": "THE SEMI-SECRET GARDEN",
+    "category": "extensions",
+    "price": "50 WP",
+    "sourcePage": 32
+  },
+  {
+    "handle": "parkland_paradise",
+    "name": "Parkland Paradise",
+    "category": "extensions",
+    "price": "50 WP, Requires The Semi-Secret Garden",
+    "sourcePage": 32
+  },
+  {
+    "handle": "meditatiation_corners",
+    "name": "Meditatiation Corners",
+    "category": "extensions",
+    "price": "50 WP, Requires The Semi-Secret Garden",
+    "sourcePage": 32
+  },
+  {
+    "handle": "high_courts_low",
+    "name": "High Courts & Low",
+    "category": "extensions",
+    "price": "10 WP, Requires The Semi-Secret Garden",
+    "sourcePage": 32
+  },
+  {
+    "handle": "im_game_room",
+    "name": "I’M GAME ROOM",
+    "category": "extensions",
+    "price": "100 WP",
+    "sourcePage": 33
+  },
+  {
+    "handle": "a_range_of_ranges",
+    "name": "A RANGE OF RANGES",
+    "category": "extensions",
+    "price": "50 WP",
+    "sourcePage": 33
+  },
+  {
+    "handle": "the_garage_of_the_gods",
+    "name": "THE GARAGE OF THE GODS",
+    "category": "extensions",
+    "price": "200 WP",
+    "sourcePage": 34
+  },
+  {
+    "handle": "wide_berth_expansion",
+    "name": "Wide Berth Expansion",
+    "category": "extensions",
+    "price": "20WP or 100 CP, Requires The Garage of the Gods, Multiple Purchases Allowed",
+    "sourcePage": 34
+  },
+  {
+    "handle": "getcha_berths_here_boyo",
+    "name": "Getcha Berths Here, Boyo!",
+    "category": "extensions",
+    "price": "20 WP or 100 CP, Requires The Garage of the Gods, Multiple Purchases Allowed",
+    "sourcePage": 34
+  },
+  {
+    "handle": "adaptor_adaptation",
+    "name": "Adaptor Adaptation",
+    "category": "extensions",
+    "price": "10 WP, Requires The Garage of the Gods, Multiple Purchases Allowed",
+    "sourcePage": 34
+  },
+  {
+    "handle": "fueling_station",
+    "name": "Fueling Station",
+    "category": "extensions",
+    "price": "50 WP, Requires The Garage of the Gods",
+    "sourcePage": 34
+  },
+  {
+    "handle": "eldritch_fueling_station",
+    "name": "Eldritch Fueling Station",
+    "category": "extensions",
+    "price": "150 WP, Requires Fueling Station",
+    "sourcePage": 34
+  },
+  {
+    "handle": "the_big_garage",
+    "name": "The Big Garage",
+    "category": "extensions",
+    "price": "300 WP, Requires The Garage of the Gods",
+    "sourcePage": 34
+  },
+  {
+    "handle": "the_titans_mall",
+    "name": "THE TITAN’S MALL",
+    "category": "extensions",
+    "price": "100 WP",
+    "sourcePage": 35
+  },
+  {
+    "handle": "more_for_more",
+    "name": "More for More",
+    "category": "extensions",
+    "price": "50 WP, Requires The Titan’s Mall",
+    "sourcePage": 35
+  },
+  {
+    "handle": "mall_of_all",
+    "name": "Mall of All",
+    "category": "extensions",
+    "price": "100 WP, Requires More for More",
+    "sourcePage": 35
+  },
+  {
+    "handle": "jump_topic",
+    "name": "Jump Topic",
+    "category": "extensions",
+    "price": "50 WP, Requires The Titan’s Mall",
+    "sourcePage": 35
+  },
+  {
+    "handle": "the_mall_of_mystery",
+    "name": "The Mall of Mystery",
+    "category": "extensions",
+    "price": "200 WP, Requires Mall of All & Jump Topic",
+    "sourcePage": 35
+  },
+  {
+    "handle": "guardians_greenhouse",
+    "name": "GUARDIAN’S GREENHOUSE",
+    "category": "extensions",
+    "price": "100 WP, Requires Pipes Pipes Pipes & either Natural Lighting or Whose Got The Powa",
+    "sourcePage": 36
+  },
+  {
+    "handle": "seeds_and_seedlings",
+    "name": "Seeds and Seedlings",
+    "category": "extensions",
+    "price": "50 WP, Requires Guardian’s Greenhouse",
+    "sourcePage": 36
+  },
+  {
+    "handle": "the_mystical_menagerie",
+    "name": "The Mystical Menagerie",
+    "category": "extensions",
+    "price": "200 WP",
+    "sourcePage": 36
+  },
+  {
+    "handle": "cleaning_supplies",
+    "name": "Cleaning Supplies",
+    "category": "items",
+    "price": "Free",
+    "sourcePage": 37
+  },
+  {
+    "handle": "windows",
+    "name": "WINDOWS",
+    "category": "items",
+    "price": "50 WP",
+    "sourcePage": 37
+  },
+  {
+    "handle": "windows_of_nostalgia",
+    "name": "Windows of Nostalgia",
+    "category": "items",
+    "price": "50 WP",
+    "sourcePage": 37
+  },
+  {
+    "handle": "computer_hub",
+    "name": "COMPUTER HUB",
+    "category": "items",
+    "price": "50 WP",
+    "sourcePage": 37
+  },
+  {
+    "handle": "music_collection",
+    "name": "MUSIC COLLECTION",
+    "category": "items",
+    "price": "20 WP, Multiple Purchases Allowed",
+    "sourcePage": 37
+  },
+  {
+    "handle": "movie_tv_series_collection",
+    "name": "MOVIE & TV SERIES COLLECTION",
+    "category": "items",
+    "price": "50 WP",
+    "sourcePage": 38
+  },
+  {
+    "handle": "pod_rack",
+    "name": "POD RACK",
+    "category": "items",
+    "price": "200 WP for the Rack & 1 Pod, 50 WP per additional Pods",
+    "sourcePage": 38
+  },
+  {
+    "handle": "pod_override_exclusion",
+    "name": "Pod Override Exclusion",
+    "category": "items",
+    "price": "300 WP",
+    "sourcePage": 38
+  },
+  {
+    "handle": "one_art_please",
+    "name": "ONE ART PLEASE",
+    "category": "items",
+    "price": "10 WP or 50 CP, Multiple Purchases Allowed",
+    "sourcePage": 38
+  },
+  {
+    "handle": "its_a_small_multiverse",
+    "name": "IT'S A SMALL MULTIVERSE",
+    "category": "companions",
+    "price": "100 WP",
+    "sourcePage": 39
+  },
+  {
+    "handle": "my_school",
+    "name": "MY SCHOOL",
+    "category": "companions",
+    "price": "30 WP",
+    "sourcePage": 39
+  },
+  {
+    "handle": "my_harem",
+    "name": "MY HAREM",
+    "category": "companions",
+    "price": "300 WP, requires Seraglio-A-Gogo",
+    "sourcePage": 40
+  },
+  {
+    "handle": "my_family",
+    "name": "MY FAMILY",
+    "category": "companions",
+    "price": "100 WP",
+    "sourcePage": 40
+  },
+  {
+    "handle": "many_happy_returns",
+    "name": "Many Happy Returns",
+    "category": "miscellaneous",
+    "price": "200 WP",
+    "sourcePage": 41
+  },
+  {
+    "handle": "more_happy_more_returns",
+    "name": "More Happy, More Returns",
+    "category": "miscellaneous",
+    "price": "50 WP each, Requires Many Happy Returns",
+    "sourcePage": 41
+  },
+  {
+    "handle": "macro_happy_micro_returns",
+    "name": "Macro Happy, Micro Returns",
+    "category": "miscellaneous",
+    "price": "100 WP, Requires Many Happy Returns",
+    "sourcePage": 41
+  },
+  {
+    "handle": "flex_happy_flex_returns",
+    "name": "Flex Happy, Flex Returns",
+    "category": "miscellaneous",
+    "price": "100 WP, Requires Many Happy Returns",
+    "sourcePage": 41
+  },
+  {
+    "handle": "eye_spy",
+    "name": "EYE SPY",
+    "category": "miscellaneous",
+    "price": "100 WP",
+    "sourcePage": 42
+  },
+  {
+    "handle": "jump_recording",
+    "name": "Jump Recording",
+    "category": "miscellaneous",
+    "price": "200 WP or Free",
+    "sourcePage": 42
+  },
+  {
+    "handle": "semi_euclidean",
+    "name": "SEMI-EUCLIDEAN",
+    "category": "miscellaneous",
+    "price": "50 WP",
+    "sourcePage": 42
+  },
+  {
+    "handle": "non_euclidean",
+    "name": "Non-Euclidean",
+    "category": "miscellaneous",
+    "price": "100 WP with Limited Immunity or 200 WP with Full Immunity, Requires Semi-Euclidean",
+    "sourcePage": 42
+  },
+  {
+    "handle": "all_your_stuff",
+    "name": "ALL YOUR STUFF",
+    "category": "miscellaneous",
+    "price": "100 WP",
+    "sourcePage": 43
+  },
+  {
+    "handle": "all_your_pets",
+    "name": "ALL YOUR PETS",
+    "category": "miscellaneous",
+    "price": "Free with All Your Stuff",
+    "sourcePage": 43
+  },
+  {
+    "handle": "companions_stuff",
+    "name": "COMPANION’S STUFF",
+    "category": "miscellaneous",
+    "price": "Special",
+    "sourcePage": 43
+  },
+  {
+    "handle": "all_your_peeps",
+    "name": "ALL YOUR PEEPS",
+    "category": "miscellaneous",
+    "price": "50 WP each or 600 WP for the Unlimited Plan",
+    "sourcePage": 44
+  },
+  {
+    "handle": "personal_realty",
+    "name": "PERSONAL REALTY",
+    "category": "miscellaneous",
+    "price": "3000 WP, Multiple Purchases Allowed",
+    "sourcePage": 44
+  },
+  {
+    "handle": "personal_mini_realty",
+    "name": "Personal Mini-Realty",
+    "category": "miscellaneous",
+    "price": "500 WP, Does Not Require Personal Realty",
+    "sourcePage": 44
+  },
+  {
+    "handle": "shell_by_dyson",
+    "name": "Shell By Dyson",
+    "category": "miscellaneous",
+    "price": "500 WP, Requires Personal Mini-Reality",
+    "sourcePage": 45
+  },
+  {
+    "handle": "he_abides",
+    "name": "HE ABIDES",
+    "category": "limitations",
+    "price": "+10 WP",
+    "sourcePage": 46
+  },
+  {
+    "handle": "astor_hilton",
+    "name": "ASTOR & HILTON",
+    "category": "limitations",
+    "price": "+20 WP",
+    "sourcePage": 46
+  },
+  {
+    "handle": "weregild",
+    "name": "WEREGILD",
+    "category": "limitations",
+    "price": "+50 WP",
+    "sourcePage": 46
+  },
+  {
+    "handle": "bat_cave",
+    "name": "BAT CAVE",
+    "category": "limitations",
+    "price": "+50 WP",
+    "sourcePage": 46
+  },
+  {
+    "handle": "real_bat_cave",
+    "name": "Real Bat Cave",
+    "category": "limitations",
+    "price": "+150 WP",
+    "sourcePage": 46
+  },
+  {
+    "handle": "crowd_scene",
+    "name": "CROWD SCENE",
+    "category": "limitations",
+    "price": "+50 WP",
+    "sourcePage": 47
+  },
+  {
+    "handle": "fluorescent_lighting",
+    "name": "FLUORESCENT LIGHTING",
+    "category": "limitations",
+    "price": "+100 WP",
+    "sourcePage": 47
+  },
+  {
+    "handle": "lost_and_found_section",
+    "name": "LOST AND FOUND SECTION",
+    "category": "limitations",
+    "price": "+100 WP",
+    "sourcePage": 47
+  },
+  {
+    "handle": "zero_time",
+    "name": "ZERO TIME",
+    "category": "limitations",
+    "price": "+100 WP",
+    "sourcePage": 47
+  },
+  {
+    "handle": "warehouse_funk",
+    "name": "WAREHOUSE FUNK",
+    "category": "limitations",
+    "price": "+100 WP",
+    "sourcePage": 47
+  },
+  {
+    "handle": "whorehouse",
+    "name": "WHOREHOUSE",
+    "category": "limitations",
+    "price": "+100 WP",
+    "sourcePage": 47
+  },
+  {
+    "handle": "dangerous_wildlife",
+    "name": "DANGEROUS WILDLIFE",
+    "category": "limitations",
+    "price": "+100 WP, Requires Wildlife for Your Wild Life",
+    "sourcePage": 47
+  },
+  {
+    "handle": "infestation",
+    "name": "INFESTATION",
+    "category": "limitations",
+    "price": "+100 WP",
+    "sourcePage": 48
+  },
+  {
+    "handle": "nasty_creepy_ugh",
+    "name": "Nasty Creepy Ugh",
+    "category": "limitations",
+    "price": "+100 WP, Does Not Require Infestation",
+    "sourcePage": 48
+  },
+  {
+    "handle": "journeying_spirits",
+    "name": "JOURNEYING SPIRITS",
+    "category": "limitations",
+    "price": "+100 WP",
+    "sourcePage": 48
+  },
+  {
+    "handle": "haunted",
+    "name": "Haunted",
+    "category": "limitations",
+    "price": "+100 WP, Requires Journeying Spirits",
+    "sourcePage": 48
+  },
+  {
+    "handle": "ghost_town",
+    "name": "GHOST TOWN",
+    "category": "limitations",
+    "price": "+100 WP, Requires The Village",
+    "sourcePage": 48
+  },
+  {
+    "handle": "warehouse_clock",
+    "name": "WAREHOUSE CLOCK",
+    "category": "limitations",
+    "price": "+100 or +200 WP",
+    "sourcePage": 49
+  },
+  {
+    "handle": "museum_tours",
+    "name": "MUSEUM TOURS",
+    "category": "limitations",
+    "price": "+150 WP",
+    "sourcePage": 49
+  },
+  {
+    "handle": "interstitial_lighting",
+    "name": "INTERSTITIAL LIGHTING",
+    "category": "limitations",
+    "price": "+200 WP",
+    "sourcePage": 49
+  },
+  {
+    "handle": "maintenance_issues",
+    "name": "Maintenance Issues",
+    "category": "limitations",
+    "price": "+200 WP, Requires Interstitial Lighting",
+    "sourcePage": 49
+  },
+  {
+    "handle": "unsecured",
+    "name": "UNSECURED",
+    "category": "limitations",
+    "price": "+200 WP",
+    "sourcePage": 49
+  },
+  {
+    "handle": "real_world_location",
+    "name": "Real World Location",
+    "category": "limitations",
+    "price": "+200 WP, Requires Unsecured",
+    "sourcePage": 49
+  },
+  {
+    "handle": "uncontrolled_portal",
+    "name": "Uncontrolled Portal",
+    "category": "limitations",
+    "price": "+200 WP, Required Unsecured",
+    "sourcePage": 49
+  },
+  {
+    "handle": "natural_disasters",
+    "name": "NATURAL DISASTERS",
+    "category": "limitations",
+    "price": "+200 WP",
+    "sourcePage": 50
+  },
+  {
+    "handle": "dont_look_down",
+    "name": "DON’T LOOK DOWN",
+    "category": "limitations",
+    "price": "+300 WP",
+    "sourcePage": 50
+  },
+  {
+    "handle": "the_labyrinth_of_jumpnos",
+    "name": "THE LABYRINTH OF JUMPNOS",
+    "category": "limitations",
+    "price": "+300 WP",
+    "sourcePage": 50
+  },
+  {
+    "handle": "jumpotaur",
+    "name": "Jumpotaur",
+    "category": "limitations",
+    "price": "+200 WP, Requires The Labyrinth of Jumpnos",
+    "sourcePage": 50
+  },
+  {
+    "handle": "never_the_twain_shall_meet",
+    "name": "NEVER THE TWAIN SHALL MEET",
+    "category": "limitations",
+    "price": "+500 WP or +200 WP if applied only to Second Reality",
+    "sourcePage": 51
+  },
+  {
+    "handle": "big_benefactor",
+    "name": "BIG BENEFACTOR",
+    "category": "limitations",
+    "price": "+500 WP or +50 WP every Jump",
+    "sourcePage": 51
+  },
+  {
+    "handle": "the_woods_are_lovely_dark_and_deep",
+    "name": "THE WOODS ARE LOVELY DARK AND DEEP",
+    "category": "limitations",
+    "price": "+1000 WP, Cannot be Bought Off",
+    "sourcePage": 51
+  }
+]

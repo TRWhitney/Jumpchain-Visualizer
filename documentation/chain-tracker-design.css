@@ -725,8 +725,8 @@
   gap: 0.25rem;
 }
 
-.chain-record-list article > div:last-child span,
-.chain-companion-grid article > div > div span {
+.chain-record-list article > div:last-child span:not(.category-list-badge),
+.chain-companion-grid article > div > div span:not(.category-list-badge) {
   padding: 0.12rem 0.4rem;
   color: #e7e7e1;
   background: #4a3d70;

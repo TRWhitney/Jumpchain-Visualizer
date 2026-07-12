@@ -148,6 +148,13 @@
                 <td>By default, every source-level roll may occur once for a chain entry. Users may opt into replacing recorded roll results.</td>
               </tr>
               <tr>
+                <td><code>chain.warnUpstreamChanges</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Chain Tracker</td>
+                <td>Users may request pre-commit review when reordering or deleting a Jump would invalidate an explicit active downstream reference, such as moving a companion-providing Jump after a later Jump that imports that companion. Ordinary historical changes do not trigger this warning.</td>
+              </tr>
+              <tr>
                 <td><code>notifications.enabled</code></td>
                 <td><code>true</code></td>
                 <td><code>true</code>, <code>false</code></td>
@@ -238,6 +245,7 @@
                 <button type="button" data-settings-search-entry data-settings-search-text="chain add second package version multiple parallel installed jumps" data-settings-category="chain" data-settings-focus="mock-multiple-package-versions"><span><strong>Add another package version</strong><small><code>chain.allowMultiplePackageVersions</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="chain negative point balance overspend over budget currency companion jumper choices" data-settings-category="chain" data-settings-focus="mock-negative-point-balances"><span><strong>Negative point balances</strong><small><code>chain.allowNegativePointBalances</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="chain reroll rerolls roll random replace result choices" data-settings-category="chain" data-settings-focus="mock-allow-rerolls"><span><strong>Allow rerolls</strong><small><code>chain.allowRerolls</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="chain upstream change warning reorder remove delete dependency companion import provider chronology review" data-settings-category="chain" data-settings-focus="mock-warn-upstream-changes"><span><strong>Upstream change warnings</strong><small><code>chain.warnUpstreamChanges</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="notifications toast popups enabled disabled maximum duration length confirmations editor chain validation errors recovery debounce" data-settings-category="notifications" data-settings-focus="mock-notifications-enabled"><span><strong>Toast notifications</strong><small><code>notifications.*</code> · Notifications</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="tags tag profile category parent aliases relationships badges colors gradients presentation import export json acquired content" data-settings-category="tags" data-settings-focus="tag-profile-search"><span><strong>Tag profile</strong><small><code>tags.profile</code> · Tags</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="keyboard key bindings shortcuts quick add quick fix find overrides" data-settings-category="keys"><span><strong>Key bindings</strong><small><code>keybindings.overrides</code> · Key bindings</small></span><span aria-hidden="true">→</span></button>
@@ -291,7 +299,11 @@
                 <div><label for="mock-allow-rerolls">Rerolls</label><p>Allow a recorded random result to be replaced for the same chain entry.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-allow-rerolls"><input id="mock-allow-rerolls" type="checkbox"><span>Allow rerolls</span></label></div>
               </div>
-              <div class="setting-explanation">All three settings are off by default. Parallel versions never duplicate an exact version or update existing entries. Negative balances apply to the Jumper and to companions granted a positive point budget in that run. Without rerolls, a source-level roll is locked after its first stored result; removing the chain entry deletes that roll record along with the entry.</div>
+              <div class="setting-row">
+                <div><label for="mock-warn-upstream-changes">Upstream change warnings</label><p>Review a reorder or deletion before it invalidates an explicit active downstream reference.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-warn-upstream-changes"><input id="mock-warn-upstream-changes" type="checkbox"><span>Warn about upstream changes</span></label></div>
+              </div>
+              <div class="setting-explanation">All four settings are off by default. Parallel versions never duplicate an exact version or update existing entries. Negative balances apply to the Jumper and to companions granted a positive point budget in that run. Without rerolls, a source-level roll is locked after its first stored result; removing the chain entry deletes that roll record along with the entry. Upstream warnings appear only when an explicit active dependency would become invalid—for example, when a companion provider would no longer precede a Jump that imports that companion. Changes to ordinary historical records do not warn, and every committed reorder or deletion remains undoable.</div>
             </section>
 
             <section id="settings-notifications-panel" class="settings-notifications-panel" role="tabpanel" aria-labelledby="settings-notifications-tab" hidden>

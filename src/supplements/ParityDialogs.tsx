@@ -1,5 +1,7 @@
 import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -34,7 +36,12 @@ type Props = {
   close: () => void;
   openPage: (id: ModuleId) => void;
   embedded: boolean;
+  jumpName?: string;
 };
+const CurrentJumpNameContext = createContext("Arcane Realms");
+function CurrentJumpName() {
+  return useContext(CurrentJumpNameContext);
+}
 const roman = (value: number) =>
   ["", "I", "II", "III", "IV", "V"][value] ?? String(value);
 
@@ -520,7 +527,9 @@ function EssentialProgress({ openPage }: Pick<Props, "openPage">) {
           <article className="essential-progress-panel essential-questing-panel">
             <div>
               <strong>Questing challenges</strong>
-              <small>Record challenges completed during Arcane Realms.</small>
+              <small>
+                Record challenges completed during <CurrentJumpName />.
+              </small>
             </div>
             {[
               [50, "Resolve the Highcourt succession"],
@@ -548,7 +557,9 @@ function EssentialProgress({ openPage }: Pick<Props, "openPage">) {
           </article>
         )}
         <div className="essential-progress-section">
-          <h6>EP Infusion purchased in Arcane Realms</h6>
+          <h6>
+            EP Infusion purchased in <CurrentJumpName />
+          </h6>
           <p>
             {state.accessMode === "standard"
               ? `Standard Access permits one Lesser or Greater Essence Infusion${state.variants.some((variant) => ["cumulative", "retroactive"].includes(variant)) ? " from the available cumulative opportunities" : " in this Jump"}.`
@@ -589,11 +600,13 @@ function EssentialProgress({ openPage }: Pick<Props, "openPage">) {
         </div>
         <div className="essential-progress-section essential-spend-section">
           <div>
-            <h6>Spend EP in Arcane Realms</h6>
+            <h6>
+              Spend EP in <CurrentJumpName />
+            </h6>
             <span>{balance} EP available</span>
           </div>
           <p>
-            Purchases made here remain attributed to Arcane Realms · Jump 2.
+            Purchases made here remain attributed to <CurrentJumpName />.
           </p>
           <div className="essential-spend-tools">
             <label>
@@ -1153,7 +1166,9 @@ function RealityProgress({ openPage }: Pick<Props, "openPage">) {
           </button>
         </article>
         <div className="reality-progress-section">
-          <h6>Convert Arcane Realms CP to WP</h6>
+          <h6>
+            Convert <CurrentJumpName /> CP to WP
+          </h6>
           <p>Outside Unlimited Mode, every 50 CP converts to 2 WP.</p>
           <div
             className="reality-conversion-options"
@@ -1182,11 +1197,13 @@ function RealityProgress({ openPage }: Pick<Props, "openPage">) {
         </div>
         <div className="reality-progress-section reality-spend-section">
           <div>
-            <h6>Spend WP in Arcane Realms</h6>
+            <h6>
+              Spend WP in <CurrentJumpName />
+            </h6>
             <span>{balance} WP available</span>
           </div>
           <p>
-            Completed purchases remain attributed to Arcane Realms · Jump 2.
+            Completed purchases remain attributed to <CurrentJumpName />.
           </p>
           <div className="reality-spend-tools">
             <label>
@@ -1743,7 +1760,9 @@ function QuestSummary({ openPage }: Pick<Props, "openPage">) {
           {state.rules.includes("switching") && (
             <div className="quest-special-section">
               <div>
-                <strong>Arcane Realms switching-out quests</strong>
+                <strong>
+                  <CurrentJumpName /> switching-out quests
+                </strong>
                 <small>Added only to this Jump’s quest list.</small>
               </div>
               <form id="quest-custom-form" onSubmit={add}>
@@ -2119,7 +2138,9 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
       <aside>
         <p>Current story</p>
         <strong>Jump 2</strong>
-        <span>Arcane Realms</span>
+        <span>
+          <CurrentJumpName />
+        </span>
         <dl>
           <div>
             <dt>Words</dt>
@@ -2258,12 +2279,13 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
   );
 }
 
-export function ParityDialog({ tool, close, openPage, embedded }: Props) {
+function ParityDialogContent({ tool, close, openPage, embedded }: Props) {
+  const jumpName = useContext(CurrentJumpNameContext);
   if (tool === "essential")
     return (
       <Modal
         title="Essential Body Mod at a glance"
-        kicker="Arcane Realms · Current-Jump projection"
+        kicker={`${jumpName} · Current-Jump projection`}
         className="essential-dialog-mock"
         onClose={close}
         embedded={embedded}
@@ -2275,7 +2297,7 @@ export function ParityDialog({ tool, close, openPage, embedded }: Props) {
     return (
       <Modal
         title="Essential Body Mod progression"
-        kicker="Arcane Realms · Morgan"
+        kicker={`${jumpName} · Morgan`}
         className="essential-progression-mock"
         onClose={close}
         embedded={embedded}
@@ -2287,7 +2309,7 @@ export function ParityDialog({ tool, close, openPage, embedded }: Props) {
     return (
       <Modal
         title="Warehouse at a glance"
-        kicker="Arcane Realms · Persistent space"
+        kicker={`${jumpName} · Persistent space`}
         className="warehouse-dialog-mock"
         onClose={close}
         embedded={embedded}
@@ -2299,7 +2321,7 @@ export function ParityDialog({ tool, close, openPage, embedded }: Props) {
     return (
       <Modal
         title="Personal Reality at a glance"
-        kicker="Arcane Realms · Persistent space"
+        kicker={`${jumpName} · Persistent space`}
         className="reality-dialog-mock"
         onClose={close}
         embedded={embedded}
@@ -2311,7 +2333,7 @@ export function ParityDialog({ tool, close, openPage, embedded }: Props) {
     return (
       <Modal
         title="Personal Reality progression"
-        kicker="Arcane Realms · Morgan"
+        kicker={`${jumpName} · Morgan`}
         className="reality-progression-mock"
         onClose={close}
         embedded={embedded}
@@ -2323,7 +2345,7 @@ export function ParityDialog({ tool, close, openPage, embedded }: Props) {
     return (
       <Modal
         title="Universal Drawbacks this Jump"
-        kicker="Arcane Realms · Morgan"
+        kicker={`${jumpName} · Morgan`}
         className="uds-dialog-mock"
         onClose={close}
         embedded={embedded}
@@ -2335,7 +2357,7 @@ export function ParityDialog({ tool, close, openPage, embedded }: Props) {
     return (
       <Modal
         title="Quest progress"
-        kicker="Arcane Realms · Morgan"
+        kicker={`${jumpName} · Morgan`}
         className="quest-dialog-mock"
         onClose={close}
         embedded={embedded}
@@ -2345,7 +2367,7 @@ export function ParityDialog({ tool, close, openPage, embedded }: Props) {
     );
   return (
     <Modal
-      title="Story · Arcane Realms"
+      title={`Story · ${jumpName}`}
       kicker="Current-Jump chapter editor"
       className="story-dialog-mock"
       onClose={close}
@@ -2353,5 +2375,13 @@ export function ParityDialog({ tool, close, openPage, embedded }: Props) {
     >
       <StoryEditor openPage={openPage} />
     </Modal>
+  );
+}
+
+export function ParityDialog(props: Props) {
+  return (
+    <CurrentJumpNameContext.Provider value={props.jumpName ?? "Arcane Realms"}>
+      <ParityDialogContent {...props} />
+    </CurrentJumpNameContext.Provider>
   );
 }

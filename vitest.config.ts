@@ -4,6 +4,9 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    include: ["react", "react/jsx-dev-runtime", "vitest-browser-react"],
+  },
   test: {
     projects: [
       {

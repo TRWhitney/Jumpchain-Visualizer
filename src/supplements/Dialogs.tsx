@@ -20,11 +20,13 @@ export function SupplementDialog({
   close,
   openPage,
   embedded = false,
+  jumpName = "Arcane Realms",
 }: {
   tool: ToolId;
   close: () => void;
   openPage: (id: ModuleId) => void;
   embedded?: boolean;
+  jumpName?: string;
 }) {
   const { state } = useBodyMod();
   const [bodyDetail, setBodyDetail] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function SupplementDialog({
     return (
       <Modal
         title="Body Mod at a glance"
-        kicker="Arcane Realms · Current-Jump projection"
+        kicker={`${jumpName} · Current-Jump projection`}
         className="bodymod-dialog-mock"
         onClose={close}
         embedded={embedded}
@@ -177,6 +179,7 @@ export function SupplementDialog({
       close={close}
       openPage={openPage}
       embedded={embedded}
+      jumpName={jumpName}
     />
   );
 }

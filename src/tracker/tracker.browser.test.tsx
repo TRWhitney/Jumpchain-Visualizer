@@ -63,20 +63,26 @@ test("canonical tag badges retain their distinct presentation styles", async () 
   await page.getByRole("tab", { name: /^Inventory/ }).click();
   const badges = [
     ...document.querySelectorAll<HTMLElement>(
-      ".chain-record-list .category-list-badge",
+      ".chain-record-list .tag-profile-badge",
     ),
   ];
-  const byStyle = (style: string) =>
-    badges.find((badge) => badge.classList.contains(`is-${style}`));
-  const solid = getComputedStyle(byStyle("solid")!);
-  const gradient = getComputedStyle(byStyle("gradient")!);
-  const soft = getComputedStyle(byStyle("soft")!);
-  const outline = getComputedStyle(byStyle("outline")!);
-  expect(solid.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
-  expect(gradient.backgroundImage).toContain("linear-gradient");
-  expect(soft.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
-  expect(outline.backgroundColor).toBe("rgba(0, 0, 0, 0)");
-  expect(new Set([soft.borderColor, outline.borderColor]).size).toBe(2);
+  const styles = badges.map((badge) => getComputedStyle(badge));
+  expect(
+    new Set(styles.map((style) => style.backgroundColor)).size,
+  ).toBeGreaterThan(6);
+  expect(
+    styles.some((style) => style.backgroundImage.includes("linear-gradient")),
+  ).toBe(true);
+  expect(
+    styles.some((style) => style.backgroundColor === "rgba(0, 0, 0, 0)"),
+  ).toBe(true);
+  expect(
+    styles.some(
+      (style) =>
+        style.backgroundImage === "none" &&
+        style.backgroundColor !== "rgba(0, 0, 0, 0)",
+    ),
+  ).toBe(true);
 });
 
 test("workspace tabs select pages and preserve the bounded frame", async () => {

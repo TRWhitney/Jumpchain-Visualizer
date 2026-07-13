@@ -11,24 +11,10 @@ import {
   type TrackerAction,
   type TrackerState,
 } from "./model";
+import { CanonicalTrackerTagBadge } from "../settings/TagBadge";
 
 export function TagBadge({ tag }: { tag: TagDefinition }) {
-  return (
-    <span
-      className={`category-list-badge is-${tag.style}`}
-      style={
-        {
-          "--category-color": tag.color,
-          "--category-to": tag.to,
-        } as CSSProperties
-      }
-      title={
-        tag.aliases.length ? `Aliases: ${tag.aliases.join(", ")}` : undefined
-      }
-    >
-      {tag.label}
-    </span>
-  );
+  return <CanonicalTrackerTagBadge tag={tag} />;
 }
 
 const pointAt = (index: number, distance: number) => {
@@ -423,7 +409,9 @@ export function TagRadar({
       dispatch({ type: "open-radar-node", value: category });
     else dispatch({ type: "select-radar-category", value: category });
   };
-  const chartColor = selected ? state.tags[selected].color : "#d4af37";
+  const chartColor = selected
+    ? state.tags[selected].color
+    : "var(--app-accent-raw, #d4af37)";
   return (
     <div
       className={`category-radar${selected ? " has-chart-selection" : ""}${isPie ? " is-pie-mode" : ""}`}

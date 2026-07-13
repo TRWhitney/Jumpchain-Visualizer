@@ -60,7 +60,7 @@ test("the real Chain Tracker mounts without duplicate application chrome and ret
     .toHaveAttribute("aria-selected", "true");
   await expect
     .element(page.getByRole("button", { name: "Settings" }))
-    .toBeDisabled();
+    .toBeEnabled();
 });
 
 test("the chain hub creates and renames records and Home limits recents", async () => {
@@ -100,7 +100,12 @@ test("the chain hub creates and renames records and Home limits recents", async 
 });
 
 test("primary-tag name colors are opt-in while summaries remain available", async () => {
-  render(<AppShell preferences={{ colorChainNamesByPrimaryTag: true }} />);
+  render(<AppShell />);
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Chain Tracker" }).click();
+  await page.getByLabelText("Color chain names").click();
+  await page.getByRole("button", { name: "Close Settings" }).click();
+  await nextRouteFocus();
   await expect
     .element(page.getByRole("region", { name: "Chains" }))
     .toBeVisible();
@@ -116,4 +121,30 @@ test("primary-tag name colors are opt-in while summaries remain available", asyn
   );
   expect(coloredNames).toHaveLength(8);
   expect(coloredNames[0].getAttribute("data-primary-tag")).toBe("magic");
+});
+
+test("tag presentation changes project into canonical Inventory badges", async () => {
+  render(<AppShell />);
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Tags" }).click();
+  await page.getByRole("button", { name: /^Primary Tags/ }).click();
+  await page
+    .getByRole("button")
+    .filter({ hasText: /^Physical/ })
+    .click();
+  await page.getByLabelText("Solid color").fill("#00aa55");
+  await page.getByRole("button", { name: "Close Settings" }).click();
+  await page
+    .getByRole("region", { name: "Chains" })
+    .getByRole("button", { name: "Resume" })
+    .first()
+    .click();
+  await page.getByRole("tab", { name: /^Inventory/ }).click();
+  const physical = [
+    ...document.querySelectorAll<HTMLElement>(
+      ".chain-record-list .tag-profile-badge",
+    ),
+  ].find((badge) => badge.textContent === "Physical");
+  expect(physical).toBeDefined();
+  expect(getComputedStyle(physical!).backgroundColor).toBe("rgb(0, 170, 85)");
 });

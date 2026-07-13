@@ -8,6 +8,9 @@
   const searchCount = document.querySelector("#mock-settings-search-count");
   const noSearchResults = document.querySelector("#mock-settings-no-results");
   const searchEntries = [...document.querySelectorAll("[data-settings-search-entry]")];
+  document.querySelectorAll(".setting-state.agreed").forEach((indicator) => {
+    if (indicator.textContent.trim() === "Agreed") indicator.remove();
+  });
   let activeTab = tabs.find((tab) => tab.getAttribute("aria-selected") === "true") || tabs[0];
 
   const showActiveCategory = () => {

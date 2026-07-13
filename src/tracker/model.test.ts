@@ -23,6 +23,11 @@ describe("Chain Tracker aggregate", () => {
     const reference = createReferenceTrackerFixture();
     expect(dense.order).toHaveLength(8);
     expect(Object.keys(dense.packages).length).toBeGreaterThanOrEqual(12);
+    expect(
+      Object.values(dense.packages).every(
+        (packageItem) => packageItem.tags.length,
+      ),
+    ).toBe(true);
     expect(dense.records).toHaveLength(60);
     expect(
       dense.records.filter((record) => record.kind === "perk"),
@@ -146,6 +151,33 @@ describe("Chain Tracker aggregate", () => {
     });
     expect(removed.pending).toBeNull();
     expect(removed.entries["entry-7"]).toBeUndefined();
+  });
+
+  it("applies application package policy without duplicating exact versions", () => {
+    const initial = createDenseTrackerFixture();
+    const blocked = trackerReducer(initial, {
+      type: "add-package",
+      packageId: "arcane-realms-v1-1",
+    });
+    expect(blocked.order).toHaveLength(initial.order.length);
+    const enabled = trackerReducer(initial, {
+      type: "apply-application-settings",
+      preferences: {
+        ...initial.preferences,
+        allowMultiplePackageVersions: true,
+      },
+      tags: initial.tags,
+    });
+    const added = trackerReducer(enabled, {
+      type: "add-package",
+      packageId: "arcane-realms-v1-1",
+    });
+    expect(added.order).toHaveLength(initial.order.length + 1);
+    const duplicate = trackerReducer(added, {
+      type: "add-package",
+      packageId: "arcane-realms-v1-1",
+    });
+    expect(duplicate.order).toHaveLength(added.order.length);
   });
 
   it("derives historical rosters without changing the selected Jump", () => {

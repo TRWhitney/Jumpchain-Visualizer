@@ -576,9 +576,9 @@
   if (profileEditor) {
     const normalizeTag = (value) => value.trim().replace(/\s+/g, " ").normalize("NFKC").toLocaleLowerCase();
     const sourceLabels = {
-      builtin: "Built-in category",
-      acquired: "From acquired content",
-      manual: "Entered manually",
+      builtin: "Built-in",
+      acquired: "Installed jump",
+      manual: "Custom",
       imported: "Imported profile",
     };
     const validHex = (value) => /^#[0-9a-f]{6}$/i.test(value);
@@ -621,15 +621,29 @@
         const tag = createTag(category.label, "builtin", null, category.color, category.style);
         entries.set(normalizeTag(tag.name), tag);
       });
+      [
+        ["Charisma", "Social", "Charm"], ["Leadership", "Social", "Command"],
+        ["Memory", "Mental", "Recall"], ["Learning", "Mental", "Education"],
+        ["Soul", "Spiritual", "Souls"], ["Faith", "Spiritual", "Devotion"],
+        ["Pyrokinesis", "Magic", "Fire Control"], ["Cryokinesis", "Magic", "Ice Control"],
+        ["Summoning", "Magic", "Conjuration"], ["Chain Rules", "Meta", "Chain Mechanics"],
+        ["Concealment", "Stealth", "Hiding"], ["Infiltration", "Stealth", "Penetration"],
+        ["Strength", "Physical", "Might"], ["Adaptation", "Physical", "Adaptability"],
+        ["Weapon", "Combat", "Weapons"], ["Tactics", "Combat", "Battle Tactics"],
+        ["Resistance", "Defense", "Resistances"], ["Barrier", "Defense", "Barriers"],
+        ["Enchanting", "Crafting", "Item Enchantment"], ["Cooking", "Crafting", "Cuisine"],
+        ["Computing", "Technology", "Computer Science"], ["Vehicle", "Technology", "Vehicles"],
+        ["Convenience", "Miscellaneous", "Quality of Life"], ["Novelty", "Miscellaneous", "Gimmick"],
+      ].forEach(([name, parent, alias]) => {
+        const parentTag = entries.get(normalizeTag(parent));
+        const tag = createTag(name, "builtin", parent, parentTag.presentation.colors[0], parentTag.presentation.background === "gradient" ? "gradient" : parentTag.presentation.background === "transparent" ? "outline" : "solid", [alias]);
+        entries.set(normalizeTag(tag.name), tag);
+      });
       return entries;
     };
 
     let profileTags = buildBuiltIns();
     [
-      createTag("Pyrokinesis", "acquired", "Magic", "#d9480f", "gradient", ["Fire Control"]),
-      createTag("Fire Control", "acquired", "Magic", "#c2410c", "gradient", ["Pyrokinesis"]),
-      createTag("Dragon", "acquired", "Miscellaneous", "#8b3f2f"),
-      createTag("Vehicle", "acquired", "Technology", "#2d6f98"),
       createTag("Favorite", "manual", "Miscellaneous", "#8a657d", "outline"),
     ].forEach((tag) => profileTags.set(normalizeTag(tag.name), tag));
 
@@ -696,6 +710,7 @@
     const jsonApply = profileEditor.querySelector("#tag-json-apply");
     let selectedProfileTag = "physical";
     let selectedGradientStop = 1;
+    const collapsedProfileGroups = new Set(["Primary Tags", "Built-In Tags"]);
 
     const stableColorFor = (name) => {
       const palette = Object.values(builtInCategoryData).map((category) => category.color);
@@ -762,7 +777,7 @@
 
     const populateParentOptions = (tag) => {
       parentInput.replaceChildren();
-      if (tag.source === "builtin") {
+      if (tag.source === "builtin" && !tag.parent) {
         const option = new Option("Top level (fixed)", "");
         parentInput.add(option);
         parentInput.disabled = true;
@@ -833,16 +848,31 @@
         return !query || searchable.includes(query);
       });
       const groups = [
-        ["Built-in categories", visible.filter((tag) => tag.source === "builtin")],
-        ["Custom tags", visible.filter((tag) => tag.source !== "builtin")],
+        ["Primary Tags", visible.filter((tag) => tag.source === "builtin" && !tag.parent)],
+        ["Built-In Tags", visible.filter((tag) => tag.source === "builtin" && tag.parent)],
+        ["Acquired Tags", visible.filter((tag) => tag.source !== "builtin")],
       ];
       groups.forEach(([label, groupTags]) => {
-        if (!groupTags.length) return;
+        if (!groupTags.length && query) return;
         const group = document.createElement("section");
         group.className = "tag-profile-group";
         const groupHeading = document.createElement("h5");
-        groupHeading.textContent = label;
+        const groupToggle = document.createElement("button");
+        const visiblyExpanded = !collapsedProfileGroups.has(label) || Boolean(query);
+        groupToggle.type = "button";
+        groupToggle.setAttribute("aria-expanded", String(visiblyExpanded));
+        groupToggle.innerHTML = `<span>${label}</span><small>${groupTags.length}</small><span aria-hidden="true">${visiblyExpanded ? "▾" : "▸"}</span>`;
+        groupToggle.addEventListener("click", () => {
+          if (collapsedProfileGroups.has(label)) collapsedProfileGroups.delete(label);
+          else collapsedProfileGroups.add(label);
+          renderProfileList();
+        });
+        groupHeading.append(groupToggle);
         group.append(groupHeading);
+        if (collapsedProfileGroups.has(label) && !query) {
+          profileList.append(group);
+          return;
+        }
         groupTags.sort((first, second) => first.name.localeCompare(second.name)).forEach((tag) => {
           const key = normalizeTag(tag.name);
           const button = document.createElement("button");
@@ -855,7 +885,7 @@
           const source = document.createElement("small");
           name.textContent = tag.name;
           source.textContent = tag.source === "builtin"
-            ? tag.appearanceSource === "custom" ? "Built-in · Custom" : "Built-in preset"
+            ? tag.parent ? `Built-in · From ${tag.parent}` : "Built-in"
             : `${sourceLabels[tag.source]} · ${tag.appearanceSource === "derived" ? `From ${tag.parent}` : "Custom"}`;
           labelWrapper.append(name, source);
           const color = document.createElement("span");
@@ -1041,7 +1071,7 @@
       const solid = backgroundInput.value === "solid";
       const gradient = backgroundInput.value === "gradient";
       const endpoint = selectedGradientStop === 0 || selectedGradientStop === tag.presentation.colors.length - 1;
-      parentField.classList.toggle("is-locked", tag.source === "builtin");
+      parentField.classList.toggle("is-locked", tag.source === "builtin" && !tag.parent);
       setFieldLocked(solidField, !solid);
       solidColorInput.disabled = !solid;
       setFieldLocked(gradientEditor, !gradient);
@@ -1067,7 +1097,7 @@
       previewSource.textContent = sourceLabels[tag.source] || tag.source;
       previewParent.textContent = tag.parent || "Top level";
       previewAliases.textContent = tag.aliases.length ? tag.aliases.join(", ") : "None";
-      previewAppearance.textContent = tag.appearanceSource === "builtin" ? "Built-in preset" : tag.appearanceSource === "derived" ? `Derived from ${tag.parent || "Miscellaneous"}` : "Custom override";
+      previewAppearance.textContent = tag.appearanceSource === "builtin" ? "Built-in" : tag.appearanceSource === "derived" ? `Derived from ${tag.parent || "Miscellaneous"}` : "Custom override";
     };
 
     const syncProfileForm = () => {
@@ -1075,7 +1105,7 @@
       if (!tag) return;
       const presentation = tag.presentation;
       formHeading.textContent = tag.name;
-      formSource.textContent = `${sourceLabels[tag.source] || tag.source} · ${tag.appearanceSource === "derived" ? `Derived from ${tag.parent}` : tag.appearanceSource === "custom" ? "Custom appearance" : "Built-in preset"}`;
+      formSource.textContent = tag.source === "builtin" && tag.appearanceSource === "builtin" ? "Built-in" : `${sourceLabels[tag.source] || tag.source} · ${tag.appearanceSource === "derived" ? `Derived from ${tag.parent}` : "Custom appearance"}`;
       resetTagButton.textContent = "Reset";
       const resetMeaning = tag.source === "builtin" ? "Reset to the built-in appearance" : `Reset to appearance derived from ${tag.parent || "Miscellaneous"}`;
       resetTagButton.title = resetMeaning;
@@ -1117,7 +1147,7 @@
     const updateRelationshipFields = () => {
       const tag = currentTag();
       if (!tag) return;
-      if (tag.source !== "builtin" && tag.parent !== parentInput.value) {
+      if (!(tag.source === "builtin" && !tag.parent) && tag.parent !== parentInput.value) {
         tag.parent = parentInput.value;
         if (tag.appearanceSource === "derived") {
           deriveAppearanceFromParent(tag);

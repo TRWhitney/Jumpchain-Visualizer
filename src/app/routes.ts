@@ -16,6 +16,7 @@ export type ApplicationRoute =
       path: string;
       chainId: string;
     }
+  | { kind: "settings"; path: "/settings" }
   | { kind: "not-found"; path: string };
 
 const normalizedPath = (pathname: string) => {
@@ -36,6 +37,7 @@ export function routeFromPath(pathname: string): ApplicationRoute {
   if (path === "/") return { kind: "home", path };
   if (path === "/editor") return { kind: "editor-hub", path };
   if (path === "/chain") return { kind: "chain-hub", path };
+  if (path === "/settings") return { kind: "settings", path };
 
   const editorMatch = /^\/editor\/([^/]+)$/.exec(path);
   if (editorMatch) {
@@ -79,6 +81,8 @@ export function titleForRoute(route: ApplicationRoute, chainName?: string) {
       return chainName
         ? `${chainName} · Chain Tracker`
         : "Chain unavailable · Jumpchain Visualizer";
+    case "settings":
+      return "Settings · Jumpchain Visualizer";
     case "not-found":
       return "Page not found · Jumpchain Visualizer";
   }

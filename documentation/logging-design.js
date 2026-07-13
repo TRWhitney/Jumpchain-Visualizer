@@ -95,13 +95,13 @@
     viewer.querySelector("[data-log-copy-report]")?.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(reportText());
-        message.textContent = "Crash report copied. Review it before posting to GitHub.";
+        message.textContent = "Diagnostic report copied. Review it before sharing.";
       } catch {
         message.textContent = "Clipboard access is unavailable in this documentation preview.";
       }
     });
-    viewer.querySelector("[data-log-github]")?.addEventListener("click", () => {
-      message.textContent = "The application would open its GitHub Issues page; attach or paste the reviewed report.";
+    viewer.querySelector("[data-log-save-report]")?.addEventListener("click", () => {
+      message.textContent = "The reviewed diagnostic report would be saved to a user-selected location.";
     });
 
     selectEvent(events[1] ?? events[0]);

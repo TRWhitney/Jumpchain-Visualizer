@@ -41,7 +41,9 @@
 }
 
 .chain-mockup {
-  --chain-accent: #d4af37;
+  --chain-accent: var(--app-accent-raw, #d4af37);
+  --chain-accent-text: var(--app-accent-text, #a98f36);
+  --chain-accent-fill-text: var(--app-accent-fill-text, #171717);
   height: 48rem;
   margin: 1.5rem 0 2.5rem;
   overflow: hidden;
@@ -206,7 +208,7 @@
 .chain-panel-heading p,
 .chain-supplement-panel header p,
 .supplement-renderer > p {
-  color: #a98f36;
+  color: var(--chain-accent-text);
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -498,7 +500,7 @@
 }
 
 .shared-renderer-label span {
-  color: #d4af37;
+  color: var(--chain-accent-text);
   font-weight: 800;
 }
 
@@ -725,8 +727,8 @@
   gap: 0.25rem;
 }
 
-.chain-record-list article > div:last-child span:not(.category-list-badge),
-.chain-companion-grid article > div > div span:not(.category-list-badge) {
+.chain-record-list article > div:last-child > span:not(.tag-profile-badge),
+.chain-companion-grid article > div > div > span:not(.tag-profile-badge) {
   padding: 0.12rem 0.4rem;
   color: #e7e7e1;
   background: #4a3d70;
@@ -758,7 +760,7 @@
 }
 
 .chain-companion-detail > div p {
-  color: #a98f36;
+  color: var(--chain-accent-text);
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -798,7 +800,7 @@
   height: 2.4rem;
   place-items: center;
   color: #171717;
-  background: #d4af37;
+  background: var(--chain-accent);
   border-radius: 50%;
   font-weight: 850;
 }
@@ -1582,7 +1584,7 @@
 
 .inventory-tag-dialog header p,
 .inventory-sonar-page figcaption p {
-  color: #a98f36;
+  color: var(--chain-accent-text);
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -1660,13 +1662,13 @@
 }
 
 .sonar-area {
-  fill: rgb(212 175 55 / 25%);
-  stroke: #d4af37;
+  fill: color-mix(in srgb, var(--chain-accent) 25%, transparent);
+  stroke: var(--chain-accent);
   stroke-width: 2;
 }
 
 .sonar-area.is-selected {
-  fill: rgb(212 175 55 / 40%);
+  fill: color-mix(in srgb, var(--chain-accent) 40%, transparent);
   stroke-width: 3;
 }
 
@@ -1722,7 +1724,7 @@
 }
 
 .chain-form-grid article p {
-  color: #a98f36;
+  color: var(--chain-accent-text);
   font-size: 0.58rem;
   text-transform: uppercase;
 }
@@ -1767,7 +1769,7 @@
 }
 
 .chain-form-detail > div p {
-  color: #a98f36;
+  color: var(--chain-accent-text);
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -1853,7 +1855,7 @@
 }
 
 .supplement-subpage > header p {
-  color: #a98f36;
+  color: var(--chain-accent-text);
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -1965,7 +1967,7 @@
 }
 
 .companion-profile-dialog > header p {
-  color: #a98f36;
+  color: var(--chain-accent-text);
   font-size: 0.58rem;
   text-transform: uppercase;
 }
@@ -2087,7 +2089,7 @@
 }
 
 .record-detail-dialog > header p {
-  color: #a98f36;
+  color: var(--chain-accent-text);
   font-size: 0.58rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2124,7 +2126,7 @@
   margin: 0.75rem 0 1rem;
 }
 
-.record-detail-tags span {
+.record-detail-tags > span:not(.tag-profile-badge) {
   padding: 0.15rem 0.45rem;
   color: #f1edf9;
   background: #4a3d70;
@@ -2143,6 +2145,18 @@
 .record-detail-body > p:last-child {
   color: #c6c6bf;
   line-height: 1.65;
+}
+
+.chain-mockup :is(
+  .chain-mock-mark,
+  .chain-library-source button[aria-pressed="true"],
+  .chain-tag-filters button[aria-pressed="true"],
+  .chain-companion-grid article > span,
+  .inventory-search-toolbar button[aria-pressed="true"],
+  .chain-form-grid button[aria-pressed="true"],
+  .companion-profile-summary > span
+) {
+  color: var(--chain-accent-fill-text);
 }
 
 @media (max-width: 48rem) {

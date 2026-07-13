@@ -5,8 +5,14 @@ import {
   useReducer,
   useRef,
   useState,
+  type Dispatch,
   type CSSProperties,
 } from "react";
+import { SettingsSurface } from "../settings/SettingsSurface";
+import { useOptionalSettings, useSettings } from "../settings/SettingsContext";
+import { SettingsProvider } from "../settings/SettingsProvider";
+import { MemorySettingsRepository } from "../settings/repository";
+import { projectTagDefinitions } from "../settings/tagProfile";
 import { SupplementProviders } from "../supplements/TrackerSupplements";
 import { ChainTracker } from "../tracker/ChainTracker";
 import { createDenseTrackerFixture } from "../tracker/fixtures";
@@ -14,6 +20,7 @@ import { StaticTagRadar } from "../tracker/TagRadar";
 import {
   tagCategories,
   trackerReducer,
+  type TrackerAction,
   type TagDefinition,
 } from "../tracker/model";
 import {
@@ -34,6 +41,8 @@ import {
 import "../../documentation/styles.css";
 import "../../documentation/application-design.css";
 import "../../documentation/chain-tracker-design.css";
+import "../../documentation/settings-design.css";
+import "../../documentation/logging-design.css";
 import "../../documentation/tags-design.css";
 import "../../documentation/supplements-design.css";
 import "../../documentation/supplements-essential.css";
@@ -42,28 +51,42 @@ import "../../documentation/supplements-universal-drawbacks.css";
 import "../supplements/review.css";
 import "../tracker/review.css";
 import "./shell.css";
+import "../settings/settings.css";
 
-type ShellHistoryState = { jvIndex?: number } & Record<string, unknown>;
+type ShellHistoryState = {
+  jvIndex?: number;
+  settingsBackgroundPath?: string;
+} & Record<string, unknown>;
 
 const currentHistoryIndex = () => {
   const value = (window.history.state as ShellHistoryState | null)?.jvIndex;
   return typeof value === "number" ? value : 0;
 };
 
-export type ApplicationPreferences = {
-  colorChainNamesByPrimaryTag: boolean;
-};
+export function AppShell() {
+  const context = useOptionalSettings();
+  const repository = useMemo(() => new MemorySettingsRepository(), []);
+  if (!context)
+    return (
+      <SettingsProvider repository={repository}>
+        <AppShellContent />
+      </SettingsProvider>
+    );
+  return <AppShellContent />;
+}
 
-const defaultApplicationPreferences: ApplicationPreferences = {
-  colorChainNamesByPrimaryTag: false,
-};
-
-export function AppShell({
-  preferences = defaultApplicationPreferences,
-}: {
-  preferences?: ApplicationPreferences;
-} = {}) {
+function AppShellContent() {
+  const { settings, logger } = useSettings();
   const [pathname, setPathname] = useState(window.location.pathname);
+  const [settingsBackgroundPath, setSettingsBackgroundPath] = useState<
+    string | null
+  >(() => {
+    const state = window.history.state as ShellHistoryState | null;
+    return window.location.pathname === "/settings" &&
+      typeof state?.settingsBackgroundPath === "string"
+      ? state.settingsBackgroundPath
+      : null;
+  });
   const [historyIndex, setHistoryIndex] = useState(currentHistoryIndex);
   const [historyMaximum, setHistoryMaximum] = useState(currentHistoryIndex);
   const [trackerState, trackerDispatch] = useReducer(
@@ -77,17 +100,55 @@ export function AppShell({
     createChainRegistryFixture,
   );
   const mainRef = useRef<HTMLElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreSettingsFocus = useRef(false);
   const previousPathname = useRef(pathname);
   const route = useMemo(() => routeFromPath(pathname), [pathname]);
-  const workspace = workspaceForRoute(route);
+  const backgroundRoute = useMemo(
+    () =>
+      route.kind === "settings"
+        ? routeFromPath(settingsBackgroundPath ?? "/")
+        : route,
+    [route, settingsBackgroundPath],
+  );
+  const workspace = workspaceForRoute(backgroundRoute);
   const savedChains = useMemo(
     () => orderedChains(chainRegistry),
     [chainRegistry],
   );
   const activeChain =
-    route.kind === "chain-workspace"
-      ? chainRegistry.chains[route.chainId]
+    backgroundRoute.kind === "chain-workspace"
+      ? chainRegistry.chains[backgroundRoute.chainId]
       : undefined;
+  const projectedTags = useMemo(
+    () => projectTagDefinitions(settings.tags.profile),
+    [settings.tags.profile],
+  );
+  const trackerPreferences = useMemo(
+    () => ({
+      warnUpstreamChanges: settings.chain.warnUpstreamChanges,
+      allowMultiplePackageVersions: settings.chain.allowMultiplePackageVersions,
+      allowNegativePointBalances: settings.chain.allowNegativePointBalances,
+      allowRerolls: settings.chain.allowRerolls,
+    }),
+    [settings.chain],
+  );
+  const effectiveTrackerState = useMemo(
+    () => ({
+      ...trackerState,
+      tags: projectedTags,
+      preferences: trackerPreferences,
+    }),
+    [projectedTags, trackerPreferences, trackerState],
+  );
+
+  useEffect(() => {
+    trackerDispatch({
+      type: "apply-application-settings",
+      preferences: trackerPreferences,
+      tags: projectedTags,
+    });
+  }, [projectedTags, trackerPreferences]);
 
   useEffect(() => {
     const state = (window.history.state as ShellHistoryState | null) ?? {};
@@ -100,6 +161,13 @@ export function AppShell({
           : 0;
       setHistoryIndex(nextIndex);
       setPathname(window.location.pathname);
+      const nextState = event.state as ShellHistoryState | null;
+      setSettingsBackgroundPath(
+        window.location.pathname === "/settings" &&
+          typeof nextState?.settingsBackgroundPath === "string"
+          ? nextState.settingsBackgroundPath
+          : null,
+      );
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -109,34 +177,62 @@ export function AppShell({
     document.title = titleForRoute(route, activeChain?.name);
     if (previousPathname.current === pathname) return;
     previousPathname.current = pathname;
+    if (route.kind === "settings") return;
     window.requestAnimationFrame(() => {
       mainRef.current
         ?.querySelector<HTMLElement>(
           '[data-active-route="true"] [data-route-heading]',
         )
         ?.focus();
+      if (restoreSettingsFocus.current) {
+        restoreSettingsFocus.current = false;
+        settingsButtonRef.current?.focus();
+      }
     });
   }, [activeChain?.name, pathname, route]);
 
   const navigate = useCallback(
-    (nextPath: string) => {
+    (nextPath: string, extraState: Partial<ShellHistoryState> = {}) => {
       if (window.location.pathname === nextPath) return;
       const nextIndex = historyIndex + 1;
-      window.history.pushState({ jvIndex: nextIndex }, "", nextPath);
+      window.history.pushState(
+        { jvIndex: nextIndex, ...extraState },
+        "",
+        nextPath,
+      );
       setHistoryIndex(nextIndex);
       setHistoryMaximum(nextIndex);
       setPathname(nextPath);
+      setSettingsBackgroundPath(
+        nextPath === "/settings" &&
+          typeof extraState.settingsBackgroundPath === "string"
+          ? extraState.settingsBackgroundPath
+          : null,
+      );
     },
     [historyIndex],
   );
 
-  const isActive = (kind: typeof route.kind) => route.kind === kind;
-  const knownEditor = route.kind === "editor-workspace" && route.available;
-  const missingEditor = route.kind === "editor-workspace" && !route.available;
+  const isActive = (kind: typeof backgroundRoute.kind) =>
+    backgroundRoute.kind === kind;
+  const knownEditor =
+    backgroundRoute.kind === "editor-workspace" && backgroundRoute.available;
+  const missingEditor =
+    backgroundRoute.kind === "editor-workspace" && !backgroundRoute.available;
   const knownChain =
-    route.kind === "chain-workspace" && activeChain !== undefined;
+    backgroundRoute.kind === "chain-workspace" && activeChain !== undefined;
   const missingChain =
-    route.kind === "chain-workspace" && activeChain === undefined;
+    backgroundRoute.kind === "chain-workspace" && activeChain === undefined;
+
+  const openSettings = () => {
+    if (route.kind === "settings") return;
+    navigate("/settings", { settingsBackgroundPath: pathname });
+  };
+  const closeSettings = () => {
+    restoreSettingsFocus.current = Boolean(settingsBackgroundPath);
+    if (settingsBackgroundPath && historyIndex > 0) window.history.back();
+    else navigate("/");
+  };
 
   const openChain = useCallback(
     (chain: SavedChain) => {
@@ -152,10 +248,66 @@ export function AppShell({
       if (!normalized) return false;
       const id = `ch-new-${chainRegistry.nextSerial}`;
       chainRegistryDispatch({ type: "create", id, name: normalized });
+      logger.emit("chain.created", { attributes: { jumpCount: 0 } });
       navigate(`/chain/${id}`);
       return true;
     },
-    [chainRegistry.nextSerial, navigate],
+    [chainRegistry.nextSerial, logger, navigate],
+  );
+
+  const effectiveTrackerDispatch = useCallback<Dispatch<TrackerAction>>(
+    (action) => {
+      const nextState = trackerReducer(effectiveTrackerState, action);
+      if (action.type === "add-package") {
+        const packageItem = effectiveTrackerState.packages[action.packageId];
+        const exact = effectiveTrackerState.order.some(
+          (id) =>
+            effectiveTrackerState.entries[id].packageId === action.packageId,
+        );
+        const parallel =
+          packageItem &&
+          effectiveTrackerState.order.some(
+            (id) =>
+              effectiveTrackerState.packages[
+                effectiveTrackerState.entries[id].packageId
+              ]?.logicalId === packageItem.logicalId,
+          );
+        if (exact) {
+          // Opening an existing exact version is navigation, not a mutation.
+        } else if (
+          parallel &&
+          !effectiveTrackerState.preferences.allowMultiplePackageVersions
+        ) {
+          logger.emit("chain.package.blocked", {
+            attributes: { reason: "parallel-version-disabled" },
+          });
+        } else if (
+          packageItem &&
+          nextState.order.length > effectiveTrackerState.order.length
+        ) {
+          logger.emit("chain.package.added", {
+            attributes: {
+              source: packageItem.source,
+              parallelVersion: Boolean(parallel),
+            },
+          });
+        }
+      }
+      if (
+        nextState.order !== effectiveTrackerState.order &&
+        nextState.order.join("\0") !== effectiveTrackerState.order.join("\0")
+      ) {
+        const removed =
+          nextState.order.length < effectiveTrackerState.order.length;
+        logger.emit(removed ? "chain.removed" : "chain.reordered", {
+          attributes: {
+            dependencyReview: Boolean(effectiveTrackerState.pending),
+          },
+        });
+      }
+      trackerDispatch(action);
+    },
+    [effectiveTrackerState, logger],
   );
 
   return (
@@ -191,10 +343,11 @@ export function AppShell({
             </button>
           </nav>
           <button
+            ref={settingsButtonRef}
             className="app-mock-settings"
             type="button"
-            disabled
-            title="Settings are not implemented yet"
+            aria-pressed={route.kind === "settings"}
+            onClick={openSettings}
           >
             Settings
           </button>
@@ -221,7 +374,17 @@ export function AppShell({
           <span>{titleForRoute(route, activeChain?.name)}</span>
         </div>
 
-        <main ref={mainRef} className="app-mock-views app-primary-views">
+        <main
+          ref={mainRef}
+          className="app-mock-views app-primary-views"
+          hidden={route.kind === "settings" && !settingsBackgroundPath}
+          inert={route.kind === "settings" || undefined}
+          aria-hidden={
+            route.kind === "settings" && Boolean(settingsBackgroundPath)
+              ? true
+              : undefined
+          }
+        >
           <section
             hidden={!isActive("home")}
             inert={!isActive("home") || undefined}
@@ -292,9 +455,9 @@ export function AppShell({
                     <RecentChain
                       key={chain.id}
                       chain={chain}
-                      tags={trackerState.tags}
+                      tags={effectiveTrackerState.tags}
                       colorNameByPrimaryTag={
-                        preferences.colorChainNamesByPrimaryTag
+                        settings.chain.colorNamesByPrimaryTag
                       }
                       onOpen={() => openChain(chain)}
                     />
@@ -387,18 +550,19 @@ export function AppShell({
           >
             <ChainHub
               chains={savedChains}
-              tags={trackerState.tags}
-              colorNamesByPrimaryTag={preferences.colorChainNamesByPrimaryTag}
+              tags={effectiveTrackerState.tags}
+              colorNamesByPrimaryTag={settings.chain.colorNamesByPrimaryTag}
               onCreate={createChain}
               onOpen={openChain}
-              onUpdateDetails={(id, name, description) =>
+              onUpdateDetails={(id, name, description) => {
                 chainRegistryDispatch({
                   type: "update-details",
                   id,
                   name,
                   description,
-                })
-              }
+                });
+                logger.emit("chain.details.updated");
+              }}
             />
           </section>
 
@@ -419,10 +583,10 @@ export function AppShell({
             </h1>
             <ChainTracker
               state={{
-                ...trackerState,
-                chainName: activeChain?.name ?? trackerState.chainName,
+                ...effectiveTrackerState,
+                chainName: activeChain?.name ?? effectiveTrackerState.chainName,
               }}
-              dispatch={trackerDispatch}
+              dispatch={effectiveTrackerDispatch}
               showApplicationHeader={false}
             />
           </section>
@@ -459,6 +623,19 @@ export function AppShell({
             </div>
           </section>
         </main>
+        {route.kind === "settings" && (
+          <div
+            className={`app-settings-layer${settingsBackgroundPath ? " is-overlay" : " is-direct"}`}
+            role={settingsBackgroundPath ? "dialog" : undefined}
+            aria-modal={settingsBackgroundPath ? true : undefined}
+            aria-label="Application settings"
+          >
+            <SettingsSurface
+              onClose={closeSettings}
+              direct={!settingsBackgroundPath}
+            />
+          </div>
+        )}
       </div>
     </SupplementProviders>
   );
@@ -643,6 +820,10 @@ function ChainCard({
   const [name, setName] = useState(chain.name);
   const [description, setDescription] = useState(chain.description);
   const inputRef = useRef<HTMLInputElement>(null);
+  const avatarRef = useRef<HTMLDivElement>(null);
+  const [summaryPosition, setSummaryPosition] = useState<CSSProperties | null>(
+    null,
+  );
   const primaryTag = primaryTagForChain(chain);
   const primaryTagDefinition = primaryTag ? tags[primaryTag] : null;
   const totalPerks = tagCategories.reduce(
@@ -655,18 +836,51 @@ function ChainCard({
     if (editing) inputRef.current?.select();
   }, [editing]);
 
+  const positionSummary = () => {
+    const trigger = avatarRef.current?.getBoundingClientRect();
+    if (!trigger) return;
+    const gutter = 12;
+    const width = 18 * 16;
+    const estimatedHeight = 17.5 * 16;
+    const openLeft = trigger.left > window.innerWidth / 2;
+    setSummaryPosition({
+      position: "fixed",
+      left: Math.max(
+        gutter,
+        Math.min(
+          window.innerWidth - width - gutter,
+          openLeft ? trigger.left - width - gutter : trigger.right + gutter,
+        ),
+      ),
+      top: Math.max(
+        gutter,
+        Math.min(trigger.top, window.innerHeight - estimatedHeight - gutter),
+      ),
+    });
+  };
+
   return (
     <article className={`app-chain-card${editing ? " is-editing" : ""}`}>
-      <div className="app-chain-card-avatar">
+      <div
+        ref={avatarRef}
+        className="app-chain-card-avatar"
+        onMouseEnter={positionSummary}
+      >
         <button
           className="app-chain-card-mark"
           type="button"
           aria-describedby={summaryId}
           aria-label={`Show ${chain.name} tag summary`}
+          onFocus={positionSummary}
         >
           {chain.name.slice(0, 1).toUpperCase()}
         </button>
-        <div id={summaryId} className="app-chain-tag-summary" role="tooltip">
+        <div
+          id={summaryId}
+          className="app-chain-tag-summary"
+          role="tooltip"
+          style={summaryPosition ?? undefined}
+        >
           <header>
             <div>
               <span>Perk profile</span>

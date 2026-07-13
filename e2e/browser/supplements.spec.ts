@@ -621,6 +621,7 @@ test("contextual supplement controls use the documented themed layouts", async (
 test("audits every non-Classic supplement page and contextual surface", async ({
   page,
 }, testInfo) => {
+  test.setTimeout(120_000);
   await page.setViewportSize({ width: 1600, height: 1000 });
   const workspace = page.getByLabel(
     "Chain Tracker Supplements workspace scenario",

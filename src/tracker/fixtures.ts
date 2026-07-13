@@ -11,6 +11,7 @@ import {
   type TrackerPreferences,
   type TrackerState,
 } from "./model";
+import { builtinTagDefinitions } from "../settings/builtinTags";
 
 const categoryDetails: Record<
   TagCategory,
@@ -120,60 +121,29 @@ const categoryDetails: Record<
 const slug = (value: string) =>
   value.toLocaleLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
 
-export const trackerTags: Record<string, TagDefinition> = Object.fromEntries(
-  tagCategories.flatMap((id) => {
-    const detail = categoryDetails[id];
-    const category: TagDefinition = {
-      id,
-      label: detail.label,
-      aliases: [],
-      color: detail.color,
-      to: detail.to,
-      style: detail.style,
-    };
-    const children = detail.children.map((label, index): TagDefinition => ({
-      id: slug(label),
-      label,
-      parent: id,
-      aliases: [index === 0 ? `${label} Arts` : `${label} Practice`],
-      color: detail.color,
-      to: detail.to,
-      style: detail.style,
-    }));
-    if (id === "magic") {
-      const aliases: Record<string, readonly string[]> = {
-        pyrokinesis: ["Fire Control", "Flamecraft"],
-        cryokinesis: ["Ice Control"],
-        telekinesis: ["Psychokinesis"],
-      };
-      children.forEach((child, index) => {
-        children[index] = { ...child, aliases: aliases[child.id] ?? [] };
-      });
-    }
-    if (id === "technology")
-      children[0] = { ...children[0], aliases: ["Computer Science"] };
-    const grandchildren: TagDefinition[] =
-      id === "magic"
-        ? [
-            { label: "Fire Projection", aliases: [] },
-            { label: "Heat Control", aliases: ["Thermokinesis"] },
-            { label: "Flame Immunity", aliases: [] },
-          ].map(({ label, aliases }) => ({
-            id: slug(label),
-            label,
-            parent: "pyrokinesis",
-            aliases,
-            color: detail.color,
-            to: detail.to,
-            style: detail.style,
-          }))
-        : [];
-    return [category, ...children, ...grandchildren].map((tag) => [
-      tag.id,
-      tag,
-    ]);
-  }),
-);
+export const trackerTags: Record<string, TagDefinition> = builtinTagDefinitions;
+
+const installedTagStrings: Record<string, readonly string[]> = {
+  "first-step": ["Adaptation", "Beginner's Luck", "Portable Home"],
+  "arcane-realms": ["Magic", "Highcourt Etiquette", "Ley Line Attunement"],
+  "cosmic-odyssey": ["Technology", "Xeno Navigation", "Vacuum Habitation"],
+  "shadow-court": ["Stealth", "Moonlit Oath", "Immortal Politics"],
+  "spirit-road": ["Spiritual", "Shrine Keeping", "Ancestor Dialogue"],
+  "clockwork-sea": ["Vehicles", "Brass Seamanship", "Tidal Machinery"],
+  "war-of-crowns": ["Combat", "Dynastic Claim", "Banner Command"],
+  "last-horizon": ["Meta", "Boundary Walking", "Unmapped Reality"],
+  "arcane-realms-v1-1": [
+    "Magic",
+    "Highcourt Etiquette",
+    "Ley Line Attunement",
+    "Living Grimoire",
+  ],
+  "hero-academy": ["Leadership", "Heroic Curriculum", "Team Exercise"],
+  "ocean-depths": ["Aquatic", "Abyssal Pressure", "Submerged Culture"],
+  "builder-world": ["Crafting", "Settlement Planning", "Civic Logistics"],
+  "dream-archive": ["Mental", "Dream Indexing", "Mnemonic Shelves"],
+  "mythic-kitchen": ["Cooking", "Legendary Ingredient", "Divine Hospitality"],
+};
 
 const packageList: InstalledPackage[] = [
   [
@@ -295,7 +265,10 @@ const packageList: InstalledPackage[] = [
   version,
   source: source as InstalledPackage["source"],
   description,
+  tags: installedTagStrings[id] ?? [],
 }));
+
+export const installedPackages = packageList;
 
 const chainPackageIds = packageList.slice(0, 8).map((item) => item.id);
 
@@ -637,7 +610,13 @@ export function createDenseTrackerFixture(
     forms,
     companions,
     tags: trackerTags,
-    preferences: { warnUpstreamChanges: false, ...preferences },
+    preferences: {
+      warnUpstreamChanges: false,
+      allowMultiplePackageVersions: false,
+      allowNegativePointBalances: false,
+      allowRerolls: false,
+      ...preferences,
+    },
     selectedEntryId: "entry-7",
     inspectionPointId: "entry-7",
     page: "jump",

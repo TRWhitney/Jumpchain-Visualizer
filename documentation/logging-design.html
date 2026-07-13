@@ -50,7 +50,7 @@
         <p class="lede">A local-first, structured record of application behavior that helps diagnose failures without quietly becoming analytics, surveillance, or a second persistence model.</p>
 
         <div class="logging-status" role="note">
-          <strong>Status: logging direction settled.</strong> Logs exist only for the current application session, the complete viewer lives under Settings → Developer → Logs, crash reports include full application stack and environment details for manual GitHub reporting, and selected user-facing events may project to configurable toast notifications.
+          <strong>Status: logging direction settled.</strong> Logs exist only for the current application session, the complete viewer lives under Settings → Developer → Logs, crash reports include full application stack and environment details for reviewed Copy or Save workflows, and selected user-facing events may project to configurable toast notifications.
         </div>
 
         <h2>Purpose and Boundaries</h2>
@@ -167,13 +167,13 @@
           <li>Clear Session immediately discards the in-memory diagnostic buffer but not domain activity history.</li>
           <li>Export creates versioned JSON Lines containing the current filtered or complete session after showing severity counts and redaction rules.</li>
           <li>A caught unhandled exception opens a crash surface containing application/runtime/OS versions, architecture, route kind, relevant settings, the correlated session-event tail, the complete application stack and cause chain, and redaction notes.</li>
-          <li>The crash surface provides Copy Report, Save Report, and Open GitHub Issues actions. Nothing is posted automatically; the user reviews and submits it.</li>
+          <li>The crash surface provides Copy Report and Save Report actions. Nothing is posted or transmitted automatically.</li>
           <li>A hard native termination that prevents the crash surface from running may only reach the launcher or runtime standard-error output. The application documents this limitation rather than claiming guaranteed crash capture.</li>
           <li>No background upload, beacon, remote crash report, protected security ring, or stable installation identifier exists.</li>
         </ul>
 
         <h2>Interactive Viewer Concept</h2>
-        <p>This complete viewer lives under Settings → Developer → Logs. The standalone copy below documents filtering, full event details, stack traces, session export/clear, report copying, and the manual GitHub handoff.</p>
+        <p>This complete viewer lives under Settings → Developer → Logs. The standalone copy below documents filtering, full event details, stack traces, session export/clear, and diagnostic report copying and saving.</p>
         <div class="logging-viewer" data-toc-ignore>
           <header><div><p>Session diagnostics</p><h3>Recent events</h3></div><div><button type="button" data-log-export>Export…</button><button type="button" data-log-clear>Clear session</button></div></header>
           <div class="logging-viewer-toolbar">
@@ -190,7 +190,7 @@
             </div>
             <section class="logging-event-detail" aria-label="Selected log event details"><p>Selected event</p><h4 data-logging-detail-title>logging.buffer.near_limit</h4><dl><div><dt>Severity</dt><dd data-logging-detail-severity>Warn</dd></div><div><dt>Category</dt><dd data-logging-detail-category>logging</dd></div><div><dt>Correlation</dt><dd data-logging-detail-correlation>op-7f2c</dd></div><div><dt>Safe attributes</dt><dd data-logging-detail-attributes><code>usageBand=high</code><br><code>operation=session-log</code></dd></div></dl><div class="logging-stack"><strong>Stack trace</strong><pre data-logging-detail-stack>SessionBufferWarning: session log nearing its limit
   at SessionLog.append (logging/session-log.ts:84:11)
-  at AutosaveCoordinator.commit (editor/autosave.ts:219:7)</pre></div><div class="logging-report-actions"><button type="button" data-log-copy-report>Copy report</button><button type="button" data-log-github>Open GitHub Issues…</button></div><p class="logging-viewer-message" data-logging-message role="status"></p></section>
+  at AutosaveCoordinator.commit (editor/autosave.ts:219:7)</pre></div><div class="logging-report-actions"><button type="button" data-log-copy-report>Copy report</button><button type="button" data-log-save-report>Save report</button></div><p class="logging-viewer-message" data-logging-message role="status"></p></section>
           </div>
         </div>
 
@@ -221,7 +221,7 @@
           <div><dt>Status</dt><dd>Accepted</dd></div>
           <div><dt>Context</dt><dd>The application needs useful failure evidence without a server dependency or accidental collection of private Jump and chain content.</dd></div>
           <div><dt>Decision</dt><dd>Use a centralized structured logger and bounded in-memory session ring. Expose the full viewer under Settings → Developer → Logs. Include reviewed full application stacks and environment details in manual exports, but never persist or transmit logs automatically.</dd></div>
-          <div><dt>Consequences</dt><dd>Feature code uses registered event schemas; every launch starts with an empty log; recoverable crashes can produce useful GitHub reports, while hard termination cannot guarantee an in-app report.</dd></div>
+          <div><dt>Consequences</dt><dd>Feature code uses registered event schemas; every launch starts with an empty log; recoverable crashes can produce useful copyable or saveable reports, while hard termination cannot guarantee an in-app report.</dd></div>
         </dl>
 
         <h2>Settled Decisions</h2>
@@ -229,7 +229,7 @@
           <li>Every log class, including security and recovery, is session-only.</li>
           <li>The complete viewer is a Logs subtab of the Developer category in Settings.</li>
           <li>Reports contain full application stack traces and useful local environment/version information after privacy redaction.</li>
-          <li>Users copy, save, and post reports to the project&#39;s GitHub Issues page themselves.</li>
+          <li>Users can review, copy, and save diagnostic reports themselves.</li>
           <li>No remote crash collection or separately protected security retention is planned.</li>
           <li>Notification preferences change toast projection, not which events enter the session log.</li>
         </ul>

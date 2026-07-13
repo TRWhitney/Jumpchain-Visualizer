@@ -210,11 +210,12 @@
           <li>Clicking a slice or sidebar row pulls that slice outward. Double-clicking a slice with children opens its child breakdown.</li>
           <li>A visible Back button unwinds one level at a time, including an ellipsis remainder, until it returns to the radar. Breadcrumbs can jump directly to an earlier level.</li>
           <li>Aliases never become separate slices or add counts. The sidebar shows the first alias followed by <code>+N</code>; the complete alias list remains available as hover/focus text.</li>
+          <li>The live Settings preview is the canonical tag-badge renderer used by Inventory, record details, Forms, Companions, and every other application projection. Rainbow uses a fixed high-chroma color cycle so it remains perceptible even when the configured starting text color is white; Reduced Motion still renders the unanimated configured text color.</li>
           <li>For keyboard use, Enter selects a radar category and Enter again opens it. In pie mode, Enter pulls out a row and Enter again drills into it when children exist.</li>
         </ul>
 
         <h3>Tag Profile Editor Mock</h3>
-        <p>The profile editor is independent from the radar and edits the user’s reusable tag list. It always includes all built-in categories, automatically adds normalized tag strings found on acquired records, and accepts strings the user enters manually. It does not alter imported Jump documents. The Refresh action in this mock simulates the automatic synchronization that would occur when the chain changes.</p>
+        <p>The profile editor is independent from the radar and edits the user’s reusable tag list. It always includes the twelve Primary Tags and the application’s larger Built-In Tags catalog. The left pane presents Primary Tags, Built-In Tags, and Acquired Tags as independently collapsible sections; an active search temporarily reveals matching entries even when their section is collapsed. Refresh acquired tags explicitly scans tag strings declared by every installed Jump package, compares normalized strings against both canonical names and aliases, and adds only missing strings under Miscellaneous. It does not run automatically or alter installed Jump documents. Manually entered strings appear in Acquired Tags with the source label Custom, while detected strings use Installed jump.</p>
 
         <div class="tag-profile-editor" data-toc-ignore>
           <header class="tag-profile-toolbar">
@@ -248,10 +249,10 @@
               <section id="tag-acquired-picker" class="tag-add-panel" aria-labelledby="tag-acquired-heading" hidden>
                 <h5 id="tag-acquired-heading">Newly detected tags</h5>
                 <ul>
-                  <li data-acquired-tag="Flight">Flight <small>3 records</small></li>
-                  <li data-acquired-tag="Ice Control">Ice Control <small>2 records</small></li>
-                  <li data-acquired-tag="Cooking">Cooking <small>1 record</small></li>
-                  <li data-acquired-tag="Charisma">Charisma <small>4 records</small></li>
+                  <li data-acquired-tag="Highcourt Etiquette">Highcourt Etiquette <small>Arcane Realms</small></li>
+                  <li data-acquired-tag="Xeno Navigation">Xeno Navigation <small>Cosmic Odyssey</small></li>
+                  <li data-acquired-tag="Brass Seamanship">Brass Seamanship <small>Clockwork Sea</small></li>
+                  <li data-acquired-tag="Dream Indexing">Dream Indexing <small>The Dream Archive</small></li>
                 </ul>
                 <p>All detected strings are added. Existing normalized strings are not duplicated.</p>
                 <div><button id="tag-acquired-apply" type="button">Add all detected</button><button type="button" data-close-tag-add>Cancel</button></div>
@@ -265,12 +266,12 @@
             </aside>
 
             <section class="tag-profile-form-pane" aria-labelledby="tag-profile-form-heading">
-              <header><div><p id="tag-profile-source">Built-in category</p><h4 id="tag-profile-form-heading">Physical</h4></div><div class="tag-profile-form-actions"><button id="tag-profile-delete" type="button" hidden>Delete</button><button id="tag-profile-reset" type="button">Reset</button></div></header>
+              <header><div><p id="tag-profile-source">Built-in</p><h4 id="tag-profile-form-heading">Physical</h4></div><div class="tag-profile-form-actions"><button id="tag-profile-delete" type="button" hidden>Delete</button><button id="tag-profile-reset" type="button">Reset</button></div></header>
               <div class="tag-profile-form-scroll">
                 <fieldset>
                   <legend>Identity and category</legend>
                   <label class="field-wide"><span>Tag string</span><input id="tag-profile-name" type="text" readonly></label>
-                  <label id="tag-profile-parent-field" class="field-wide"><span>Parent</span><select id="tag-profile-parent"></select><small class="field-lock-reason">🔒 Built-in categories are always top level.</small></label>
+                  <label id="tag-profile-parent-field" class="field-wide"><span>Parent</span><select id="tag-profile-parent"></select><small class="field-lock-reason">🔒 Primary tags are always top level.</small></label>
                   <div class="tag-alias-editor field-wide">
                     <span>Aliases</span>
                     <div id="tag-profile-alias-list" class="tag-alias-list"></div>
@@ -339,7 +340,7 @@
                 <div><dt>Source</dt><dd id="tag-preview-source">Built-in</dd></div>
                 <div><dt>Parent</dt><dd id="tag-preview-parent">Top level</dd></div>
                 <div><dt>Aliases</dt><dd id="tag-preview-aliases">None</dd></div>
-                <div><dt>Appearance</dt><dd id="tag-preview-appearance">Built-in preset</dd></div>
+                <div><dt>Appearance</dt><dd id="tag-preview-appearance">Built-in</dd></div>
               </dl>
               <p>Changes affect this user profile only. The source Jump remains unchanged.</p>
             </aside>
@@ -390,7 +391,7 @@
           <li>Import validates the schema and shows conflicts before applying changes. Merge is the default; replacing manual/imported tags and current overrides requires an explicit choice. Built-ins and strings still present on acquired records cannot be removed by import.</li>
           <li>Built-ins match by their stable built-in name. Imported custom tags match by normalized string.</li>
           <li><code>source</code> records export provenance only. A newly shared tag is labeled Imported; a matching local tag retains its existing provenance.</li>
-          <li>Each reciprocal alias relationship is serialized once in <code>aliasLinks</code>. Direction and duplicated declarations are not part of the data model.</li>
+          <li>Literal search aliases such as Vehicle/Vehicles serialize with their canonical tag. Each reciprocal relationship between two canonical tags is serialized once in <code>aliasLinks</code>; direction and duplicated declarations are not part of that relationship model.</li>
           <li>Unknown fields do not execute or become CSS. Invalid colors, relationship cycles, duplicate normalized strings, and unsupported values are rejected with diagnostics.</li>
           <li>Text effects serialize as <code>none</code>, <code>outline</code>, <code>shadow</code>, or <code>glow</code>. Animation serializes as <code>none</code>, <code>rainbow</code>, <code>marquee</code>, <code>ghost</code>, or <code>bounce</code>.</li>
         </ul>
@@ -460,13 +461,14 @@
 
         <h3>Tag Profile Reset and Dependency Rules</h3>
         <ul>
-          <li>For a built-in tag, Reset discards its user presentation override and restores its application preset. It does not remove aliases.</li>
-          <li>For an acquired, manual, or imported tag, Reset discards its presentation override and derives its colors and other appearance fields from its current parent. Later parent appearance changes continue to flow into it until the user edits a presentation field again.</li>
+          <li>The twelve Primary Tags are fixed top-level radar axes. The expanded Built-In Tags catalog supplies more than 150 reusable descendants with stable IDs, meaningful parents, preset presentation, and search aliases such as Vehicle/Vehicles. Non-primary built-ins may be reparented and otherwise customized without changing their protected built-in identity.</li>
+          <li>For a built-in tag, Reset discards its user presentation override and restores its application preset. It does not remove aliases or the selected parent.</li>
+          <li>For an acquired, manual, or imported tag, Reset discards its presentation override and derives its colors and other appearance fields directly from its current parent. Newly refreshed and manually entered tags begin under Miscellaneous. Later parent appearance changes continue to flow into them until the user edits a presentation field again.</li>
           <li>Editing any presentation control changes the selected tag’s appearance source to Custom override. Relationship and alias edits do not.</li>
           <li>Controls unavailable because of another value show a lock treatment and the value that must change: gradient controls require Gradient, solid color requires Solid, and custom text color requires Custom text color mode.</li>
           <li>Gradient endpoints remain at 0% and 100%. Users can add, select, recolor, drag, reposition, or remove interior stops; a gradient contains two to six stops.</li>
           <li>Aliases are reciprocal links between two tags already in the profile. Adding or removing the link from either tag updates both views.</li>
-          <li>Delete is available only for manual or imported profile-only tags. Deleting one automatically unlinks its aliases and reparents its direct children to its former parent. Built-ins and tags still sourced from accrued records cannot be deleted.</li>
+          <li>Delete is available only for manual or imported profile-only tags. Deleting one automatically unlinks its aliases and reparents its direct children to its former parent. Built-ins and tags discovered from installed Jumps cannot be deleted.</li>
           <li>The animation control uses a select-style listbox because native option elements cannot reliably animate. Rainbow, Marquee, Ghost, and Bounce preview directly on their own option labels and on the selected-value label.</li>
         </ul>
 

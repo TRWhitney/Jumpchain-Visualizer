@@ -48,6 +48,11 @@
   font-size: 0.88rem;
 }
 
+:is(.category-radar, .tag-profile-editor, .tag-lab) {
+  --tag-ui-accent: var(--app-accent-focus, #d4af37);
+  --tag-ui-accent-text: var(--app-accent-text, #a98f36);
+}
+
 .category-radar {
   display: grid;
   grid-template-columns: minmax(24rem, 1.15fr) minmax(22rem, 0.85fr);
@@ -188,13 +193,13 @@
 
 .category-radar button:focus-visible,
 .category-radar [data-radar-key]:focus-visible {
-  outline: 2px solid #d4af37;
+  outline: 2px solid var(--tag-ui-accent);
   outline-offset: 2px;
 }
 
 .category-radar-figure header p,
 .category-radar-data header p {
-  color: #a98f36;
+  color: var(--tag-ui-accent-text);
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -235,8 +240,8 @@
 }
 
 .radar-area {
-  fill: rgb(212 175 55 / 18%);
-  stroke: #d4af37;
+  fill: color-mix(in srgb, var(--tag-ui-accent, #d4af37) 18%, transparent);
+  stroke: var(--tag-ui-accent, #d4af37);
   stroke-width: 2;
 }
 
@@ -416,7 +421,7 @@
 }
 
 .pie-drill-marker {
-  color: #d4af37;
+  color: var(--tag-ui-accent);
   font-size: 1rem;
 }
 
@@ -499,7 +504,7 @@
 .tag-profile-editor input:focus-visible,
 .tag-profile-editor select:focus-visible,
 .tag-profile-editor textarea:focus-visible {
-  outline: 2px solid #d4af37;
+  outline: 2px solid var(--tag-ui-accent);
   outline-offset: 2px;
 }
 
@@ -518,7 +523,7 @@
 .tag-profile-form-pane > header p,
 .tag-profile-preview-pane > header p,
 .tag-json-panel > div:first-child p {
-  color: #a98f36;
+  color: var(--tag-ui-accent-text);
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -628,11 +633,40 @@
 }
 
 .tag-profile-group > h5 {
-  padding: 0.35rem 0.4rem;
   color: #85857f;
   font-size: 0.62rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
+}
+
+.tag-profile-group > h5 > button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.35rem 0.4rem;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 0.2rem;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.tag-profile-group > h5 > button:hover,
+.tag-profile-group > h5 > button:focus-visible {
+  color: #d8d8d2;
+  background: #333330;
+}
+
+.tag-profile-group > h5 > button small {
+  color: #70706a;
+  font-size: 0.58rem;
+  font-weight: 700;
 }
 
 .tag-profile-item {
@@ -656,7 +690,7 @@
 .tag-profile-item[aria-selected="true"] {
   color: #fff;
   background: #3a3a36;
-  border-left-color: #d4af37;
+  border-left-color: var(--tag-ui-accent);
 }
 
 .tag-profile-item small {
@@ -789,7 +823,7 @@
 
 .tag-profile-form-pane legend {
   padding: 0 0.35rem;
-  color: #d4af37;
+  color: var(--tag-ui-accent);
   font-weight: 750;
 }
 
@@ -915,13 +949,36 @@
 .tag-animation-menu [role="option"]:focus-visible,
 .tag-animation-menu [role="option"][aria-selected="true"] {
   background: #333330;
-  border-left-color: #d4af37;
+  border-left-color: var(--tag-ui-accent);
 }
 
 .tag-animated-text {
   display: inline-flex;
   align-items: baseline;
   white-space: pre;
+}
+
+.tag-profile-badge {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.tag-profile-badge.effect-outline {
+  text-shadow:
+    -1px 0 #000,
+    0 1px #000,
+    1px 0 #000,
+    0 -1px #000;
+}
+
+.tag-profile-badge.effect-shadow {
+  text-shadow: 0 2px 2px rgb(0 0 0 / 65%);
+}
+
+.tag-profile-badge.effect-glow {
+  text-shadow: 0 0 5px currentColor;
 }
 
 .tag-animated-letter {
@@ -948,16 +1005,16 @@
 }
 
 @keyframes tag-rainbow {
-  0%, 100% { color: var(--rainbow-0); }
-  16.67% { color: var(--rainbow-1); }
-  33.33% { color: var(--rainbow-2); }
-  50% { color: var(--rainbow-3); }
-  66.67% { color: var(--rainbow-4); }
-  83.33% { color: var(--rainbow-5); }
+  0%, 100% { color: #ff5d73; }
+  16.67% { color: #ffb347; }
+  33.33% { color: #f5e663; }
+  50% { color: #63e6a3; }
+  66.67% { color: #66b7ff; }
+  83.33% { color: #c88cff; }
 }
 
 @keyframes tag-marquee {
-  0%, 6% { color: #d4af37; text-shadow: 0 0 0.3em rgb(212 175 55 / 65%); }
+  0%, 6% { color: var(--tag-ui-accent); text-shadow: 0 0 0.3em color-mix(in srgb, var(--tag-ui-accent) 65%, transparent); }
   6.01%, 100% { color: inherit; text-shadow: inherit; }
 }
 
@@ -1109,7 +1166,7 @@
 }
 
 .tag-gradient-node.is-selected {
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #d4af37;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--tag-ui-accent);
 }
 
 .tag-gradient-stop-controls {
@@ -1314,7 +1371,7 @@
 .tag-lab button:focus-visible,
 .tag-lab input:focus-visible,
 .tag-lab select:focus-visible {
-  outline: 2px solid #d4af37;
+  outline: 2px solid var(--tag-ui-accent);
   outline-offset: 2px;
 }
 
@@ -1343,7 +1400,7 @@
 
 .tag-tree-panel header p,
 .tag-results-panel header p {
-  color: #a98f36;
+  color: var(--tag-ui-accent-text);
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -1385,7 +1442,7 @@
 .tag-tree button[aria-selected="true"] {
   color: #fff;
   background: #3a3a36;
-  border-left-color: #d4af37;
+  border-left-color: var(--tag-ui-accent);
 }
 
 .tag-tree button > span:last-child {

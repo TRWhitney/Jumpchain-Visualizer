@@ -12,7 +12,7 @@ test("Home matches the shell proposal and exposes explicit workspace choices and
   await expect(
     shell.getByRole("button", { name: "Jumpchain Visualizer" }),
   ).toHaveAttribute("aria-pressed", "true");
-  await expect(shell.getByRole("button", { name: "Settings" })).toBeDisabled();
+  await expect(shell.getByRole("button", { name: "Settings" })).toBeEnabled();
   await expect(shell.locator(".app-entry-grid > article")).toHaveCount(2);
   await expect(
     shell.getByRole("heading", { name: "Start a Chain" }),
@@ -106,7 +106,7 @@ test("returning to the mounted chain restores its internal workspace state", asy
     .click();
   const tracker = page.getByLabel("Interactive Chain Tracker workspace");
   await tracker.getByRole("tab", { name: /^Inventory/ }).click();
-  await tracker.getByRole("button", { name: "Items" }).click();
+  await tracker.getByRole("button", { name: "Items", exact: true }).click();
 
   await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
   await page
@@ -117,10 +117,9 @@ test("returning to the mounted chain restores its internal workspace state", asy
   await expect(
     tracker.getByRole("tab", { name: /^Inventory/ }),
   ).toHaveAttribute("aria-selected", "true");
-  await expect(tracker.getByRole("button", { name: "Items" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(
+    tracker.getByRole("button", { name: "Items", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
 });
 
 test("the Chain Tracker hub lists all chains and supports create and rename flows", async ({
@@ -203,7 +202,7 @@ test("the Chain Tracker hub lists all chains and supports create and rename flow
 
 test("saved-chain search, inner scrolling, and radar summaries preserve the fixed hub", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.getByRole("button", { name: "Open Chain Tracker" }).click();
   const hubHeading = page.getByRole("heading", { name: "Your chains" });
   const createBlock = page.locator(".app-new-chain");
@@ -235,6 +234,43 @@ test("saved-chain search, inner scrolling, and radar summaries preserve the fixe
       .locator(".app-primary-views")
       .evaluate((element) => element.scrollTop),
   ).toBe(0);
+
+  const finalCard = page.locator(".app-chain-card").last();
+  const finalTrigger = finalCard.locator(".app-chain-card-mark");
+  const scrollBeforePreview = await list.evaluate((element) => ({
+    top: element.scrollTop,
+    height: element.scrollHeight,
+  }));
+  await finalTrigger.hover();
+  const finalSummary = finalCard.getByRole("tooltip");
+  await expect(finalSummary).toBeVisible();
+  const [scrollAfterPreview, summaryBox] = await Promise.all([
+    list.evaluate((element) => ({
+      top: element.scrollTop,
+      height: element.scrollHeight,
+    })),
+    finalSummary.boundingBox(),
+  ]);
+  expect(scrollAfterPreview).toEqual(scrollBeforePreview);
+  expect(summaryBox).not.toBeNull();
+  expect(summaryBox!.y).toBeGreaterThanOrEqual(0);
+  expect(summaryBox!.y + summaryBox!.height).toBeLessThanOrEqual(
+    page.viewportSize()!.height,
+  );
+  await page.mouse.move(
+    (await finalTrigger.boundingBox())!.x + 2,
+    (await finalTrigger.boundingBox())!.y + 2,
+  );
+  expect(await list.evaluate((element) => element.scrollHeight)).toBe(
+    scrollBeforePreview.height,
+  );
+  if (testInfo.project.name === "chromium")
+    await testInfo.attach("saved-chain-final-radar-preview", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+  await page.mouse.move(900, 300);
+  await expect(finalSummary).toBeHidden();
 
   const search = page.getByLabel("Search saved chains");
   await search.fill("found family");
@@ -306,8 +342,11 @@ test("unknown workspace IDs recover inside their owning hub and unknown routes d
 
   await page.goto("/settings");
   await expect(
-    page.getByRole("heading", { name: "Page not found" }),
+    page.getByRole("heading", { name: "Preferences" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("dialog", { name: "Application Settings" }),
+  ).toHaveCount(0);
   await expect(page).toHaveURL(/\/settings$/);
 });
 

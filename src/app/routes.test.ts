@@ -26,6 +26,13 @@ describe("application routes", () => {
       kind: "chain-workspace",
       chainId: exampleChainId,
     });
+    expect(routeFromPath("/settings")).toEqual({
+      kind: "settings",
+      path: "/settings",
+    });
+    expect(titleForRoute(routeFromPath("/settings"))).toBe(
+      "Settings · Jumpchain Visualizer",
+    );
   });
 
   it("keeps inaccessible workspace IDs inside their owning recovery area", () => {
@@ -45,11 +52,7 @@ describe("application routes", () => {
     );
   });
 
-  it("does not treat settings or unknown paths as implemented routes", () => {
-    expect(routeFromPath("/settings")).toEqual({
-      kind: "not-found",
-      path: "/settings",
-    });
+  it("rejects unknown and malformed paths", () => {
     expect(routeFromPath("/something-else").kind).toBe("not-found");
     expect(routeFromPath("/chain/%E0%A4%A").kind).toBe("not-found");
   });

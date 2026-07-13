@@ -198,7 +198,7 @@
               </tr>
               <tr>
                 <td><code>tags.profile</code></td>
-                <td>Built-in categories and badge presets; no user relationships or overrides</td>
+                <td>Primary and non-primary built-in tags with badge presets; no user relationships or overrides</td>
                 <td>Versioned tag entries, reciprocal alias links, one optional parent per tag, and bounded badge-presentation values</td>
                 <td>Application</td>
                 <td>Users can organize accrued free-text tags and customize their badge rendering without changing imported Jump documents.</td>
@@ -212,13 +212,13 @@
         <p>The user-owned tag profile is now confirmed and represented by the Tags page below. Its detailed relationship, chart, badge, and transfer rules remain in <a href="tags-design.html">Tag System Design</a>. Jump authors still provide only free-text tag strings.</p>
 
         <h3>Accent Color Safety</h3>
-        <p><code>appearance.accentColor</code> stores only a normalized six-digit sRGB hex value. The raw base color may be used for decorative swatches, but the application derives separate accessible tokens for text, focus indicators, borders, filled controls, and subtle surfaces in Light and Dark themes. Derived tokens must retain the selected hue as closely as possible while meeting the applicable contrast requirement. Raw setting text must never be interpolated directly into styles.</p>
+        <p><code>appearance.accentColor</code> stores only a normalized six-digit sRGB hex value. The raw base color may be used for decorative swatches, but the application derives separate accessible tokens for text, focus indicators, borders, filled controls, and subtle surfaces in Light and Dark themes. Those tokens apply across the application shell, saved-chain hub, Chain Tracker, radar interface, supplement frame, Settings, and tag-profile tools. Secondary action outlines, dashed discovery actions, interactive hover fills, selected-card borders, and the new-chain callout use the derived border and translucent-surface tokens; structural dividers and ordinary input boundaries remain neutral. Continuous color-picker input is visually published at a bounded interactive rate and durably coalesced after the interaction, preserving live feedback without an unbounded render or event stream. Derived tokens must retain the selected hue as closely as possible while meeting the applicable contrast requirement. Raw setting text must never be interpolated directly into styles.</p>
 
         <h3>Notification Projection</h3>
         <p>Toast preferences control the user-facing projection of registered events described in <a href="logging-design.html">Logging Design</a>. Disabling a toast class does not suppress its session log entry, diagnostic, state transition, or undo record. Input-driven candidates are debounced for 500 ms and repeated matching events update one toast rather than creating a stream of duplicates.</p>
 
         <h2>Interactive Settings Surface</h2>
-        <p>The category navigation, accent picker, search, notification preview, tag-profile editor, and Developer session-log viewer are interactive. Changing the accent updates this Settings preview while preserving the current gold as the Reset default. The Tags page uses the accepted editor from <a href="tags-design.html">Tag System Design</a>.</p>
+        <p>The category navigation, accent picker, search, notification preview, tag-profile editor, and Developer session-log viewer are interactive. Changing the accent updates the complete application while preserving the current gold as the Reset default. Confirmation-state labels are documentation metadata and do not appear as badges in the application. The Tags page uses the accepted editor from <a href="tags-design.html">Tag System Design</a>.</p>
 
         <div class="settings-mockup" data-toc-ignore aria-label="Interactive Settings surface concept">
           <aside aria-label="Settings categories">
@@ -258,7 +258,7 @@
                 <button type="button" data-settings-search-entry data-settings-search-text="tags tag profile category parent aliases relationships badges colors gradients presentation import export json acquired content" data-settings-category="tags" data-settings-focus="tag-profile-search"><span><strong>Tag profile</strong><small><code>tags.profile</code> · Tags</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="keyboard key bindings shortcuts quick add quick fix find overrides" data-settings-category="keys"><span><strong>Key bindings</strong><small><code>keybindings.overrides</code> · Key bindings</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="motion animation reduced full system accessibility" data-settings-category="accessibility" data-settings-focus="mock-motion"><span><strong>Motion</strong><small><code>accessibility.motion</code> · Accessibility</small></span><span aria-hidden="true">→</span></button>
-                <button type="button" data-settings-search-entry data-settings-search-text="developer logs logging viewer stack trace crash report github debug session export clear" data-settings-category="developer" data-settings-focus="developer-logs-tab"><span><strong>Session logs</strong><small>Developer → Logs</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="developer logs logging viewer stack trace crash report copy save debug session export clear" data-settings-category="developer" data-settings-focus="developer-logs-tab"><span><strong>Session logs</strong><small>Developer → Logs</small></span><span aria-hidden="true">→</span></button>
               </div>
               <p id="mock-settings-no-results" class="settings-search-empty" hidden>No settings match this search.</p>
             </section>
@@ -370,10 +370,10 @@
                     <section id="tag-acquired-picker" class="tag-add-panel" aria-labelledby="tag-acquired-heading" hidden>
                       <h5 id="tag-acquired-heading">Newly detected tags</h5>
                       <ul>
-                        <li data-acquired-tag="Flight">Flight <small>3 records</small></li>
-                        <li data-acquired-tag="Ice Control">Ice Control <small>2 records</small></li>
-                        <li data-acquired-tag="Cooking">Cooking <small>1 record</small></li>
-                        <li data-acquired-tag="Charisma">Charisma <small>4 records</small></li>
+                        <li data-acquired-tag="Highcourt Etiquette">Highcourt Etiquette <small>Arcane Realms</small></li>
+                        <li data-acquired-tag="Xeno Navigation">Xeno Navigation <small>Cosmic Odyssey</small></li>
+                        <li data-acquired-tag="Brass Seamanship">Brass Seamanship <small>Clockwork Sea</small></li>
+                        <li data-acquired-tag="Dream Indexing">Dream Indexing <small>The Dream Archive</small></li>
                       </ul>
                       <p>All detected strings are added. Existing normalized strings are not duplicated.</p>
                       <div><button id="tag-acquired-apply" type="button">Add all detected</button><button type="button" data-close-tag-add>Cancel</button></div>
@@ -387,12 +387,12 @@
                   </aside>
 
                   <section class="tag-profile-form-pane" aria-labelledby="tag-profile-form-heading">
-                    <header><div><p id="tag-profile-source">Built-in category</p><h4 id="tag-profile-form-heading">Physical</h4></div><div class="tag-profile-form-actions"><button id="tag-profile-delete" type="button" hidden>Delete</button><button id="tag-profile-reset" type="button">Reset</button></div></header>
+                    <header><div><p id="tag-profile-source">Built-in</p><h4 id="tag-profile-form-heading">Physical</h4></div><div class="tag-profile-form-actions"><button id="tag-profile-delete" type="button" hidden>Delete</button><button id="tag-profile-reset" type="button">Reset</button></div></header>
                     <div class="tag-profile-form-scroll">
                       <fieldset>
                         <legend>Identity and category</legend>
                         <label class="field-wide"><span>Tag string</span><input id="tag-profile-name" type="text" readonly></label>
-                        <label id="tag-profile-parent-field" class="field-wide"><span>Parent</span><select id="tag-profile-parent"></select><small class="field-lock-reason">🔒 Built-in categories are always top level.</small></label>
+                        <label id="tag-profile-parent-field" class="field-wide"><span>Parent</span><select id="tag-profile-parent"></select><small class="field-lock-reason">🔒 Primary tags are always top level.</small></label>
                         <div class="tag-alias-editor field-wide">
                           <span>Aliases</span>
                           <div id="tag-profile-alias-list" class="tag-alias-list"></div>
@@ -461,7 +461,7 @@
                       <div><dt>Source</dt><dd id="tag-preview-source">Built-in</dd></div>
                       <div><dt>Parent</dt><dd id="tag-preview-parent">Top level</dd></div>
                       <div><dt>Aliases</dt><dd id="tag-preview-aliases">None</dd></div>
-                      <div><dt>Appearance</dt><dd id="tag-preview-appearance">Built-in preset</dd></div>
+                      <div><dt>Appearance</dt><dd id="tag-preview-appearance">Built-in</dd></div>
                     </dl>
                     <p>Changes affect this user profile only. The source Jump remains unchanged.</p>
                   </aside>
@@ -497,7 +497,7 @@
                   <div class="logging-viewer-toolbar"><label><span class="sr-only">Search logged events</span><input type="search" data-logging-search placeholder="Find event or category"></label><div role="group" aria-label="Minimum severity"><button type="button" data-log-level="debug" aria-pressed="true">Debug+</button><button type="button" data-log-level="info" aria-pressed="false">Info+</button><button type="button" data-log-level="warn" aria-pressed="false">Warn+</button><button type="button" data-log-level="error" aria-pressed="false">Error+</button></div></div>
                   <div class="logging-event-layout"><div class="logging-event-list" aria-label="Filtered session diagnostic events"><button type="button" data-log-event data-severity="info" data-search="app lifecycle app.started startup"><span class="log-severity info">Info</span><code>app.started</code><time>18:42:02</time></button><button type="button" data-log-event data-severity="warn" data-search="logging buffer logging.buffer.near_limit session"><span class="log-severity warn">Warn</span><code>logging.buffer.near_limit</code><time>18:42:31</time></button><button type="button" data-log-event data-severity="error" data-search="package parser package.parse.failed imported"><span class="log-severity error">Error</span><code>package.parse.failed</code><time>18:43:10</time></button><button type="button" data-log-event data-severity="debug" data-search="renderer debug renderer.cache.reused"><span class="log-severity debug">Debug</span><code>renderer.cache.reused</code><time>18:43:12</time></button><p class="logging-empty" data-logging-empty hidden>No events match the current filters.</p></div><section class="logging-event-detail" aria-label="Selected log event details"><p>Selected event</p><h4 data-logging-detail-title>logging.buffer.near_limit</h4><dl><div><dt>Severity</dt><dd data-logging-detail-severity>Warn</dd></div><div><dt>Category</dt><dd data-logging-detail-category>logging</dd></div><div><dt>Correlation</dt><dd data-logging-detail-correlation>op-7f2c</dd></div><div><dt>Safe attributes</dt><dd data-logging-detail-attributes><code>usageBand=high</code><code>operation=session-log</code></dd></div></dl><div class="logging-stack"><strong>Stack trace</strong><pre data-logging-detail-stack>SessionBufferWarning: session log nearing its limit
   at SessionLog.append (logging/session-log.ts:84:11)
-  at EventPipeline.emit (logging/event-pipeline.ts:52:9)</pre></div><div class="logging-report-actions"><button type="button" data-log-copy-report>Copy report</button><button type="button" data-log-github>Open GitHub Issues…</button></div><p class="logging-viewer-message" data-logging-message role="status"></p></section></div>
+  at EventPipeline.emit (logging/event-pipeline.ts:52:9)</pre></div><div class="logging-report-actions"><button type="button" data-log-copy-report>Copy report</button><button type="button" data-log-save-report>Save report</button></div><p class="logging-viewer-message" data-logging-message role="status"></p></section></div>
                 </div>
               </section>
             </section>
@@ -507,11 +507,12 @@
         <h3>Tag Profile Scope and Transfer</h3>
         <ul>
           <li>The Tags page edits <code>tags.profile</code>; it does not add tag relationships or presentation fields to Jump markup.</li>
-          <li>Built-in categories are always present. Normalized strings found on accrued records are synchronized into the editor, and users may also enter strings manually.</li>
+          <li>The twelve Primary Tags and the expanded non-primary Built-In Tags catalog are always present in separate collapsible sections. Primary Tags remain fixed radar axes; non-primary built-ins retain protected identities while allowing parent, alias, and presentation changes.</li>
+          <li>Refresh acquired tags explicitly scans installed Jump package tag metadata and adds only normalized strings not already represented by a canonical name or alias. Detected entries appear under Acquired Tags as Installed jump; manually entered entries share that section as Custom.</li>
           <li>Parents, reciprocal alias links, and badge overrides are user-local. Changing them affects search expansion and rendering without rewriting imported content.</li>
           <li>The tag profile has dedicated versioned JSON import and export because it is intentionally shareable. Acquired records and Jump source are never included.</li>
-          <li>Per-tag Reset restores a built-in preset or returns a custom tag to parent-derived presentation, depending on the selected tag’s source.</li>
-          <li>Manual and imported profile-only tags may be deleted. Deletion automatically removes their alias links and reparents direct children; built-ins and tags sourced from accrued content remain protected.</li>
+          <li>Per-tag Reset restores built-in defaults or returns a custom tag to parent-derived presentation, depending on the selected tag’s source.</li>
+          <li>Manual and imported profile-only tags may be deleted. Deletion automatically removes their alias links and reparents direct children; built-ins and tags discovered from installed Jumps remain protected.</li>
         </ul>
 
         <h2>Persistence and Migration</h2>

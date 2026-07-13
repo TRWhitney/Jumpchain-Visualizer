@@ -96,8 +96,8 @@
   width: 1.8rem;
   height: 1.8rem;
   place-items: center;
-  color: #171717;
-  background: #d4af37;
+  color: var(--app-accent-fill-text, #171717);
+  background: var(--app-accent-fill, #d4af37);
   border-radius: 0.2rem;
   font-size: 0.68rem;
   font-weight: 850;
@@ -122,7 +122,7 @@
 .app-shell-mockup button:focus-visible,
 .app-shell-mockup a:focus-visible,
 .app-mock-views h3:focus-visible {
-  outline: 2px solid #d4af37;
+  outline: 2px solid var(--app-accent-focus, #d4af37);
   outline-offset: 2px;
 }
 
@@ -182,7 +182,7 @@
 
 .app-mock-kicker {
   margin: 0 0 0.25rem;
-  color: #c5a944;
+  color: var(--app-accent-text, #c5a944);
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -229,8 +229,8 @@
   width: 2.3rem;
   height: 2.3rem;
   place-items: center;
-  color: #171717;
-  background: #d4af37;
+  color: var(--app-accent-fill-text, #171717);
+  background: var(--app-accent-fill, #d4af37);
   border-radius: 50%;
   font-size: 1.2rem;
 }
@@ -245,9 +245,9 @@
   grid-column: 1 / -1;
   min-height: 2.2rem;
   padding: 0.4rem 0.7rem;
-  color: #171717;
-  background: #d4af37;
-  border: 1px solid #e0c25e;
+  color: var(--app-accent-fill-text, #171717);
+  background: var(--app-accent-fill, #d4af37);
+  border: 1px solid var(--app-accent-border, #e0c25e);
   border-radius: 0.2rem;
   font-weight: 750;
   cursor: pointer;
@@ -301,8 +301,19 @@
   grid-column: auto;
   flex: 0 0 auto;
   background: transparent;
-  color: #d4bd68;
-  border-color: #61582f;
+  color: var(--app-accent-text, #d4bd68);
+  border-color: var(--app-accent-border, #a98e36);
+}
+
+.app-recent-work button:hover,
+.app-recent-work button:focus-visible {
+  color: var(--app-accent-text, #d4bd68);
+  background: color-mix(
+    in srgb,
+    var(--app-accent-raw, #d4af37) 12%,
+    #252523
+  );
+  border-color: var(--app-accent-border, #a98e36);
 }
 
 .app-route-actions {
@@ -314,7 +325,7 @@
 
 .app-route-actions a,
 .app-mock-views > section > a {
-  color: #dcc665;
+  color: var(--app-accent-text, #d4bd68);
 }
 
 .app-deferred-label {

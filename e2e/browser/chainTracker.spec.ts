@@ -216,35 +216,40 @@ test("Inventory combines historical, kind, relationship, alias, text, empty, and
   await tracker.getByRole("tab", { name: /^Inventory/ }).click();
   await expect(tracker.locator(".chain-record-list > article")).toHaveCount(60);
   const badgeStyles = await tracker
-    .locator(".chain-record-list .category-list-badge")
+    .locator(".chain-record-list .tag-profile-badge")
     .evaluateAll((badges) =>
       badges.map((badge) => {
         const style = getComputedStyle(badge);
-        return `${badge.className}|${style.backgroundColor}|${style.backgroundImage}|${style.borderColor}`;
+        return {
+          backgroundColor: style.backgroundColor,
+          backgroundImage: style.backgroundImage,
+          borderColor: style.borderColor,
+        };
       }),
     );
   expect(
-    new Set(badgeStyles.filter((style) => style.includes("is-solid"))).size,
-  ).toBeGreaterThan(1);
+    new Set(
+      badgeStyles.map(
+        (style) => `${style.backgroundColor}|${style.backgroundImage}`,
+      ),
+    ).size,
+  ).toBeGreaterThan(6);
   expect(
-    badgeStyles.some(
-      (style) =>
-        style.includes("is-gradient") && style.includes("linear-gradient"),
+    badgeStyles.some((style) =>
+      style.backgroundImage.includes("linear-gradient"),
     ),
   ).toBe(true);
   expect(
     badgeStyles.some(
       (style) =>
-        style.includes("is-soft") && !style.includes("rgba(0, 0, 0, 0)"),
+        style.backgroundImage === "none" &&
+        style.backgroundColor !== "rgba(0, 0, 0, 0)",
     ),
   ).toBe(true);
   expect(
-    badgeStyles.some(
-      (style) =>
-        style.includes("is-outline") && style.includes("rgba(0, 0, 0, 0)"),
-    ),
+    badgeStyles.some((style) => style.backgroundColor === "rgba(0, 0, 0, 0)"),
   ).toBe(true);
-  await tracker.getByRole("button", { name: "Perks" }).click();
+  await tracker.getByRole("button", { name: "Perks", exact: true }).click();
   await expect(tracker.locator(".chain-record-list > article")).toHaveCount(40);
   await tracker.getByRole("button", { name: /◆ Magic/ }).click();
   const magicCount = await tracker
@@ -259,7 +264,7 @@ test("Inventory combines historical, kind, relationship, alias, text, empty, and
     name: /perk details: Warded Soul/i,
   });
   await expect(detail).toContainText("Acquired in Arcane Realms");
-  await expect(detail.locator(".category-list-badge")).toHaveCount(4);
+  await expect(detail.locator(".tag-profile-badge")).toHaveCount(4);
   await page.keyboard.press("Escape");
   await expect(detail).toHaveCount(0);
   await tracker

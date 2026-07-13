@@ -20,14 +20,18 @@ export function ReviewChainTracker() {
   const parameters = new URLSearchParams(window.location.search);
   const fixture = parameters.get("fixture");
   const warnUpstreamChanges = parameters.get("upstreamWarnings") === "on";
-  const [state, dispatch] = useReducer(trackerReducer, undefined, () =>
-    fixture === "reference"
-      ? {
-          ...createReferenceTrackerFixture(),
-          preferences: { warnUpstreamChanges },
-        }
-      : createDenseTrackerFixture({ warnUpstreamChanges }),
-  );
+  const [state, dispatch] = useReducer(trackerReducer, undefined, () => {
+    if (fixture !== "reference")
+      return createDenseTrackerFixture({
+        warnUpstreamChanges,
+        allowMultiplePackageVersions: true,
+      });
+    const initial = createReferenceTrackerFixture();
+    return {
+      ...initial,
+      preferences: { ...initial.preferences, warnUpstreamChanges },
+    };
+  });
   return (
     <SupplementProviders>
       <main className="tracker-review">

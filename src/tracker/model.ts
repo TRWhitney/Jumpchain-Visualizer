@@ -31,6 +31,23 @@ export type TagDefinition = {
   color: string;
   to: string;
   style: "solid" | "soft" | "outline" | "gradient";
+  presentation?: {
+    background: "solid" | "gradient" | "transparent";
+    colors: readonly string[];
+    positions: readonly number[];
+    angle: number;
+    borderColor: string;
+    borderWidth: "none" | "thin" | "medium";
+    corners: "pill" | "rounded" | "square";
+    padding: "compact" | "standard" | "roomy";
+    textMode: "auto" | "custom";
+    textColor: string;
+    weight: "normal" | "medium" | "bold";
+    fontStyle: "normal" | "italic";
+    decoration: "none" | "underline" | "strike";
+    textEffect: "none" | "outline" | "shadow" | "glow";
+    animation: "none" | "rainbow" | "marquee" | "ghost" | "bounce";
+  };
 };
 
 export type InstalledPackage = {
@@ -40,6 +57,7 @@ export type InstalledPackage = {
   version: string;
   source: "builtin" | "imported";
   description: string;
+  tags: readonly string[];
 };
 
 export type ChainEntry = {
@@ -94,6 +112,9 @@ export type CompanionRecord = {
 
 export type TrackerPreferences = {
   warnUpstreamChanges: boolean;
+  allowMultiplePackageVersions: boolean;
+  allowNegativePointBalances: boolean;
+  allowRerolls: boolean;
 };
 
 export type DependencyImpact = {
@@ -159,6 +180,11 @@ export type TrackerState = {
 };
 
 export type TrackerAction =
+  | {
+      type: "apply-application-settings";
+      preferences: TrackerPreferences;
+      tags: Record<string, TagDefinition>;
+    }
   | { type: "set-page"; page: TrackerPage }
   | { type: "set-rail-page"; page: "chain" | "library" }
   | { type: "select-entry"; entryId: string }
@@ -232,11 +258,27 @@ export function filteredInventory(state: TrackerState) {
     )
       return false;
     const entry = packageForEntry(state, record.sourceEntryId);
-    const aliases = record.tags.flatMap(
-      (tag) => state.tags[tag]?.aliases ?? [],
-    );
+    const relatedTags = record.tags.flatMap((tag) => {
+      const related: string[] = [];
+      let current: string | undefined = tag;
+      const visited = new Set<string>();
+      while (current && !visited.has(current)) {
+        visited.add(current);
+        const definition: TagDefinition | undefined = state.tags[current];
+        if (!definition) break;
+        related.push(definition.label, ...definition.aliases);
+        current = definition.parent;
+      }
+      return related;
+    });
     const haystack = normalize(
-      [record.name, entry?.name, ...record.tags, ...aliases].join(" "),
+      [
+        record.name,
+        record.description,
+        entry?.name,
+        ...record.tags,
+        ...relatedTags,
+      ].join(" "),
     );
     return terms.every((term) => haystack.includes(term));
   });
@@ -578,6 +620,12 @@ export function trackerReducer(
   action: TrackerAction,
 ): TrackerState {
   switch (action.type) {
+    case "apply-application-settings":
+      return {
+        ...state,
+        preferences: action.preferences,
+        tags: action.tags,
+      };
     case "set-page":
       return { ...state, page: action.page };
     case "set-rail-page":
@@ -660,6 +708,16 @@ export function trackerReducer(
         });
       const packageItem = state.packages[action.packageId];
       if (!packageItem) return state;
+      const parallel = state.order.find(
+        (id) =>
+          state.packages[state.entries[id].packageId]?.logicalId ===
+          packageItem.logicalId,
+      );
+      if (parallel && !state.preferences.allowMultiplePackageVersions)
+        return trackerReducer(state, {
+          type: "select-entry",
+          entryId: parallel,
+        });
       const id = `entry-${state.nextEntrySerial}`;
       return {
         ...state,

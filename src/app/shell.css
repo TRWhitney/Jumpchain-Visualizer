@@ -59,7 +59,7 @@ body:has(.app-primary-shell) #root {
 }
 
 .app-primary-views .app-route-heading:focus-visible {
-  outline: 2px solid #d4af37;
+  outline: 2px solid var(--app-accent-focus);
   outline-offset: 2px;
 }
 
@@ -83,9 +83,9 @@ body:has(.app-primary-shell) #root {
 .app-view-all {
   width: 100%;
   min-height: 2.65rem;
-  color: #d4bd68;
+  color: var(--app-accent-text);
   background: #1f1f1d;
-  border: 1px dashed #61582f;
+  border: 1px dashed color-mix(in srgb, var(--app-accent-border) 72%, #383834);
   border-radius: 0.25rem;
   font: inherit;
   font-size: 0.78rem;
@@ -95,8 +95,9 @@ body:has(.app-primary-shell) #root {
 
 .app-view-all:hover,
 .app-view-all:focus-visible {
-  color: #f0da79;
-  background: #292822;
+  color: var(--app-accent-text);
+  background: color-mix(in srgb, var(--app-accent-raw) 12%, #1f1f1d);
+  border-color: var(--app-accent-border);
   border-style: solid;
 }
 
@@ -126,9 +127,9 @@ body:has(.app-primary-shell) #root {
   flex: 0 0 auto;
   min-width: 7rem;
   padding: 0.75rem 1rem;
-  color: #d4af37;
-  background: #22221f;
-  border: 1px solid #444039;
+  color: var(--app-accent-text);
+  background: color-mix(in srgb, var(--app-accent-raw) 8%, #222220);
+  border: 1px solid color-mix(in srgb, var(--app-accent-border) 48%, #41413d);
   border-radius: 0.35rem;
   text-align: right;
 }
@@ -154,10 +155,14 @@ body:has(.app-primary-shell) #root {
   align-items: center;
   gap: 0.85rem;
   padding: 1rem;
-  background: linear-gradient(110deg, #292924, #242421);
-  border: 1px solid #585038;
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--app-accent-raw) 10%, #292927),
+    color-mix(in srgb, var(--app-accent-raw) 4%, #242422)
+  );
+  border: 1px solid color-mix(in srgb, var(--app-accent-border) 62%, #41413d);
   border-radius: 0.4rem;
-  box-shadow: inset 3px 0 #d4af37;
+  box-shadow: inset 3px 0 var(--app-accent-raw);
 }
 
 .app-new-chain label {
@@ -186,8 +191,8 @@ body:has(.app-primary-shell) #root {
 
 .app-new-chain input:focus,
 .app-edit-chain input:focus {
-  border-color: #d4af37;
-  outline: 2px solid rgb(212 175 55 / 22%);
+  border-color: var(--app-accent-focus);
+  outline: 2px solid color-mix(in srgb, var(--app-accent-raw) 22%, transparent);
   outline-offset: 1px;
 }
 
@@ -196,9 +201,9 @@ body:has(.app-primary-shell) #root {
 .app-chain-card-actions button {
   min-height: 2.45rem;
   padding: 0.45rem 0.8rem;
-  color: #171717;
-  background: #d4af37;
-  border: 1px solid #e0c25e;
+  color: var(--app-accent-fill-text);
+  background: var(--app-accent-fill);
+  border: 1px solid var(--app-accent-border);
   border-radius: 0.22rem;
   font: inherit;
   font-size: 0.78rem;
@@ -262,8 +267,8 @@ body:has(.app-primary-shell) #root {
 }
 
 .app-chain-search input:focus {
-  border-color: #d4af37;
-  outline: 2px solid rgb(212 175 55 / 22%);
+  border-color: var(--app-accent-focus);
+  outline: 2px solid color-mix(in srgb, var(--app-accent-raw) 22%, transparent);
   outline-offset: 1px;
 }
 
@@ -281,7 +286,7 @@ body:has(.app-primary-shell) #root {
 }
 
 .app-chain-card-list:focus-visible {
-  outline: 2px solid #d4af37;
+  outline: 2px solid var(--app-accent-focus);
   outline-offset: 2px;
 }
 
@@ -321,7 +326,7 @@ body:has(.app-primary-shell) #root {
 }
 
 .app-chain-card:hover {
-  border-color: #5b5749;
+  border-color: color-mix(in srgb, var(--app-accent-border) 62%, #41413d);
 }
 
 .app-chain-card.is-editing {
@@ -334,8 +339,8 @@ body:has(.app-primary-shell) #root {
   width: 2.6rem;
   height: 2.6rem;
   place-items: center;
-  color: #1a1915;
-  background: #c6aa43;
+  color: var(--app-accent-fill-text);
+  background: var(--app-accent-fill);
   border-radius: 0.25rem;
   font-family: Georgia, serif;
   font-size: 1.25rem;
@@ -355,23 +360,16 @@ body:has(.app-primary-shell) #root {
 
 .app-chain-tag-summary {
   display: none;
-  position: absolute;
+  position: fixed;
   z-index: 20;
-  top: -0.25rem;
-  left: 3.2rem;
   width: 18rem;
   padding: 0.75rem;
   pointer-events: none;
   color: #d5d5cf;
   background: #181816;
-  border: 1px solid #625a39;
+  border: 1px solid var(--app-accent-border);
   border-radius: 0.35rem;
   box-shadow: 0 0.85rem 2rem rgb(0 0 0 / 55%);
-}
-
-.app-chain-card:nth-child(even) .app-chain-tag-summary {
-  right: 3.2rem;
-  left: auto;
 }
 
 .app-chain-card-avatar:hover .app-chain-tag-summary,
@@ -391,7 +389,7 @@ body:has(.app-primary-shell) #root {
 }
 
 .app-chain-tag-summary header div span {
-  color: #c5a944;
+  color: var(--app-accent-text);
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -503,9 +501,18 @@ body:has(.app-primary-shell) #root {
 
 .app-chain-card-actions button:last-child,
 .app-edit-chain button:last-child {
-  color: #d4bd68;
+  color: var(--app-accent-text);
   background: transparent;
-  border-color: #61582f;
+  border-color: var(--app-accent-border);
+}
+
+.app-chain-card-actions button:last-child:hover,
+.app-chain-card-actions button:last-child:focus-visible,
+.app-edit-chain button:last-child:hover,
+.app-edit-chain button:last-child:focus-visible {
+  color: var(--app-accent-text);
+  background: color-mix(in srgb, var(--app-accent-raw) 12%, #262624);
+  border-color: var(--app-accent-border);
 }
 
 .app-edit-chain {
@@ -543,8 +550,8 @@ body:has(.app-primary-shell) #root {
 }
 
 .app-edit-chain textarea:focus {
-  border-color: #d4af37;
-  outline: 2px solid rgb(212 175 55 / 22%);
+  border-color: var(--app-accent-focus);
+  outline: 2px solid color-mix(in srgb, var(--app-accent-raw) 22%, transparent);
   outline-offset: 1px;
 }
 

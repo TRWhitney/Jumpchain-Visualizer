@@ -284,6 +284,22 @@ test("the settled radar and pie reproduce selection, correlation, popping, sorti
   await tracker.getByRole("tab", { name: "Stats" }).click();
   await expect(tracker.locator(".radar-axis")).toHaveCount(12);
   await expect(tracker.locator(".radar-point")).toHaveCount(12);
+  const radarLabels = tracker.locator("#category-radar-svg .radar-label");
+  await expect(radarLabels).toHaveCount(12);
+  expect(
+    await radarLabels
+      .first()
+      .evaluate((element) =>
+        Number.parseFloat(getComputedStyle(element).fontSize),
+      ),
+  ).toBeGreaterThanOrEqual(15);
+  expect(
+    new Set(
+      await radarLabels.evaluateAll((labels) =>
+        labels.map((label) => getComputedStyle(label).fill),
+      ),
+    ).size,
+  ).toBeGreaterThan(6);
   await expect(tracker.locator(".category-radar-data tbody tr")).toHaveCount(
     12,
   );

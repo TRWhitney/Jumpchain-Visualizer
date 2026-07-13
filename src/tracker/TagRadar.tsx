@@ -36,6 +36,94 @@ const pointAt = (index: number, distance: number) => {
   return [260 + Math.cos(angle) * distance, 260 + Math.sin(angle) * distance];
 };
 
+export function StaticTagRadar({
+  counts,
+  tags,
+  label,
+}: {
+  counts: Record<TagCategory, number>;
+  tags: Record<string, TagDefinition>;
+  label: string;
+}) {
+  const maximum = Math.max(1, ...Object.values(counts));
+  return (
+    <svg
+      className="static-tag-radar"
+      viewBox="0 0 520 520"
+      role="img"
+      aria-label={label}
+    >
+      {[1, 2, 3, 4].map((ring) => (
+        <polygon
+          key={ring}
+          className="radar-grid"
+          points={tagCategories
+            .map((_, index) => pointAt(index, 164 * (ring / 4)).join(","))
+            .join(" ")}
+        />
+      ))}
+      {tagCategories.map((category, index) => {
+        const [axisX, axisY] = pointAt(index, 164);
+        const [labelX, labelY] = pointAt(index, 203);
+        return (
+          <g key={category}>
+            <line
+              className="radar-axis"
+              x1="260"
+              y1="260"
+              x2={axisX}
+              y2={axisY}
+            />
+            <text
+              className="radar-label"
+              style={
+                {
+                  "--radar-label-color": tags[category].color,
+                } as CSSProperties
+              }
+              x={labelX}
+              y={labelY}
+              textAnchor={
+                Math.abs(labelX - 260) < 12
+                  ? "middle"
+                  : labelX < 260
+                    ? "end"
+                    : "start"
+              }
+              dominantBaseline="middle"
+            >
+              {tags[category].label}
+            </text>
+          </g>
+        );
+      })}
+      <polygon
+        className="radar-area"
+        points={tagCategories
+          .map((category, index) =>
+            pointAt(index, 164 * (counts[category] / maximum)).join(","),
+          )
+          .join(" ")}
+      />
+      {tagCategories.map((category, index) => {
+        const [cx, cy] = pointAt(index, 164 * (counts[category] / maximum));
+        return (
+          <circle
+            key={category}
+            className="radar-point"
+            cx={cx}
+            cy={cy}
+            r="5"
+            fill={tags[category].color}
+          >
+            <title>{`${tags[category].label}: ${counts[category]} perks`}</title>
+          </circle>
+        );
+      })}
+    </svg>
+  );
+}
+
 const describePieArc = (
   center: number,
   radius: number,
@@ -603,7 +691,9 @@ function RadarGraphic({
                 }
                 dominantBaseline="middle"
                 style={
-                  active ? { fill: state.tags[category].color } : undefined
+                  {
+                    "--radar-label-color": state.tags[category].color,
+                  } as CSSProperties
                 }
               >
                 {state.tags[category].label}

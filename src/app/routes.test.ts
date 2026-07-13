@@ -1,0 +1,56 @@
+import { describe, expect, it } from "vitest";
+import {
+  exampleChainId,
+  exampleWorkspaceId,
+  routeFromPath,
+  titleForRoute,
+  workspaceForRoute,
+} from "./routes";
+
+describe("application routes", () => {
+  it("recognizes every primary shell destination", () => {
+    expect(routeFromPath("/")).toEqual({ kind: "home", path: "/" });
+    expect(routeFromPath("/editor/")).toEqual({
+      kind: "editor-hub",
+      path: "/editor",
+    });
+    expect(routeFromPath(`/editor/${exampleWorkspaceId}`)).toMatchObject({
+      kind: "editor-workspace",
+      available: true,
+    });
+    expect(routeFromPath("/chain")).toEqual({
+      kind: "chain-hub",
+      path: "/chain",
+    });
+    expect(routeFromPath(`/chain/${exampleChainId}`)).toMatchObject({
+      kind: "chain-workspace",
+      chainId: exampleChainId,
+    });
+  });
+
+  it("keeps inaccessible workspace IDs inside their owning recovery area", () => {
+    const editor = routeFromPath("/editor/missing-local-workspace");
+    const chain = routeFromPath("/chain/missing-local-chain");
+    expect(editor).toMatchObject({
+      kind: "editor-workspace",
+      available: false,
+    });
+    expect(chain).toMatchObject({ kind: "chain-workspace" });
+    expect(workspaceForRoute(editor)).toBe("editor");
+    expect(workspaceForRoute(chain)).toBe("chain");
+    expect(titleForRoute(editor)).toContain("unavailable");
+    expect(titleForRoute(chain)).toContain("unavailable");
+    expect(titleForRoute(chain, "Saved name")).toBe(
+      "Saved name · Chain Tracker",
+    );
+  });
+
+  it("does not treat settings or unknown paths as implemented routes", () => {
+    expect(routeFromPath("/settings")).toEqual({
+      kind: "not-found",
+      path: "/settings",
+    });
+    expect(routeFromPath("/something-else").kind).toBe("not-found");
+    expect(routeFromPath("/chain/%E0%A4%A").kind).toBe("not-found");
+  });
+});

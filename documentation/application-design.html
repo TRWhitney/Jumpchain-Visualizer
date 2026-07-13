@@ -72,7 +72,7 @@
               <tr><td><code>/</code></td><td>Start screen and recent work</td><td>Never silently redirects; offers explicit Resume actions.</td></tr>
               <tr><td><code>/editor</code></td><td>Editor project hub</td><td>Lists recent packages and create/import actions.</td></tr>
               <tr><td><code>/editor/:workspaceId</code></td><td>Active editor workspace</td><td>Restores the logical project, then requests file permission again if required.</td></tr>
-              <tr><td><code>/chain</code></td><td>Chain Tracker hub</td><td>Lists recent chains and the eventual create/import actions.</td></tr>
+              <tr><td><code>/chain</code></td><td>Chain Tracker hub</td><td>Lists every saved chain and owns named-chain creation and renaming.</td></tr>
               <tr><td><code>/chain/:chainId</code></td><td>Active chain</td><td>Restores a chain record without putting chain data in the URL.</td></tr>
               <tr><td><code>/settings</code></td><td><a href="settings-design.html">Application-wide preferences</a></td><td>Overlays the prior route when opened contextually; renders as a full page when opened directly.</td></tr>
             </tbody>
@@ -87,7 +87,10 @@
         <p>Opening Settings from Home, Editor, or Chain Tracker pushes <code>/settings</code> while retaining the prior route as its background location. Settings appears as a modal layer, the underlying workspace remains mounted and inert, and Back or Close restores the prior route and focus. A refresh or direct visit to <code>/settings</code> has no background location, so the same Settings content renders as a normal full-page destination.</p>
 
         <h3>Home Organization</h3>
-        <p>Home presents recent Editor workspaces and Chains in separate sections so their origin and available actions remain obvious. Editor entries use the package/project name. Chain entries use the chain or profile name supplied by the user. Display names are labels rather than identifiers, so duplicate names remain valid and opaque route IDs distinguish their records.</p>
+        <p>Home presents recent Editor workspaces and Chains in separate sections so their origin and available actions remain obvious. Each section shows at most the five most recently opened records and links to its owning hub when more records exist. Editor entries use the package/project name. Chain entries use the chain or profile name supplied by the user. Display names are labels rather than identifiers, so duplicate names remain valid and opaque route IDs distinguish their records.</p>
+
+        <h3>Chain Tracker Hub</h3>
+        <p>The <code>/chain</code> hub is the complete saved-chain registry rather than another recent-work summary. It orders all chains by last-opened time, shows each chain’s name, Jump count, recency, and editable description, and provides explicit Open and Edit Details actions. Editing expands the selected card vertically while preserving its single-column width and neighboring card. The page heading, named-chain creation block, and saved-list heading and search remain fixed while the card list scrolls independently. Search matches both names and descriptions. Hovering or focusing a chain’s letter avatar reveals a smaller, non-interactive projection of its 12-axis perk-tag radar. A new chain requires a non-empty user-provided name, receives an opaque application ID, and opens immediately. Editing its name or description changes presentation data only; it never changes the route ID or chain contents. The default-off <code>chain.colorNamesByPrimaryTag</code> setting may color a saved chain’s name from the top-level tag category containing its greatest number of accrued perks.</p>
 
         <h2>Interactive Shell Proposal</h2>
         <p>This mockup demonstrates route ownership rather than either workspace’s full interface. Use the shell navigation, route cards, and Back/Forward controls to compare the three top-level destinations.</p>
@@ -119,7 +122,7 @@
                 </article>
                 <article>
                   <span class="app-entry-icon" aria-hidden="true">↝</span>
-                  <div><h4>Continue a Chain</h4><p>Track choices across imported jumps.</p></div>
+                  <div><h4>Start a Chain</h4><p>Track choices across imported jumps.</p></div>
                   <button type="button" data-app-route="chain">Open Chain Tracker</button>
                 </article>
               </div>
@@ -160,8 +163,12 @@
 
             <section data-app-panel="chain" aria-labelledby="app-chain-heading" hidden>
               <p class="app-mock-kicker">Chain Tracker hub</p>
-              <h3 id="app-chain-heading" tabindex="-1">Continue or begin a chain</h3>
-              <p>This hub lists recent chains and provides create and import actions before opening an addressable chain workspace.</p>
+              <h3 id="app-chain-heading" tabindex="-1">Your chains</h3>
+              <p>Resume a journey, update its details, or set out on something new. The complete list is ordered by when each chain was last opened.</p>
+              <div class="app-route-actions">
+                <button type="button">Start a named chain</button>
+                <button type="button" data-app-route="chain-workspace">Open Morgan</button>
+              </div>
               <a href="chain-tracker-design.html">View detailed Chain Tracker design</a>
             </section>
 
@@ -267,12 +274,13 @@
           <li><code>/</code> always shows Home and offers explicit Resume actions rather than silently redirecting.</li>
           <li>Declaration-level Editor URLs are postponed beyond v1.</li>
           <li>Settings is a route-backed overlay when opened from another route and a full page when opened directly.</li>
-          <li>Home separates recent Editor workspaces from Chains; chains are labeled by their user-provided profile or chain name.</li>
+          <li>Home separates recent Editor workspaces from Chains, limits each group to five most recently opened records, and links to the owning hub when more exist; chains are labeled by their user-provided profile or chain name.</li>
           <li>Switching workspaces through the persistent Editor/Chain Tracker controls opens the destination hub; it never chooses a recent project or chain automatically.</li>
           <li>No other action receives permanent shell space in v1. Create, import, export, search, documentation, and other contextual actions remain in their owning hub, workspace, or Settings page.</li>
         </ul>
 
         <h2>Application Shell Status</h2>
+        <p><strong>Implementation status:</strong> the primary shell, five-item Home recent lists, Editor hub and workspace boundary, complete searchable and independently scrolling Chain Tracker saved-chain hub, named-chain creation, editable chain names and descriptions, read-only radar summaries, active Chain Tracker composition, browser history, route titles, route focus, and workspace-specific recovery are implemented. Settings remains deliberately deferred; its persistent shell control is present but unavailable until the route-backed Settings feature is implemented. The default-off primary-tag name-color preference is documented and supported by the hub composition for future Settings wiring. The Editor will adopt the same five-item Home limit when its project hub is implemented. Review fixtures remain direct development routes and are not part of product navigation.</p>
         <p>No application-shell interaction questions remain open for v1. The local-runtime boundary is maintained separately in <a href="architecture.html">Application Architecture</a>.</p>
       </article>
       <a class="back-to-top" href="#content">Back to top</a>

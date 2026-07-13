@@ -251,9 +251,9 @@
 }
 
 .radar-label {
-  fill: #c9c9c3;
-  font-size: 12px;
-  font-weight: 700;
+  fill: color-mix(in srgb, var(--radar-label-color, #c9c9c3) 68%, white);
+  font-size: 15px;
+  font-weight: 750;
 }
 
 .radar-label[data-radar-key],
@@ -262,7 +262,7 @@
 }
 
 .radar-label.is-selected {
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 850;
 }
 

@@ -1,0 +1,669 @@
+:root {
+  color-scheme: dark;
+}
+
+body:has(.app-primary-shell) {
+  margin: 0;
+  overflow: hidden;
+  background: #171717;
+}
+
+body:has(.app-primary-shell) #root {
+  min-height: 100vh;
+}
+
+.app-primary-shell {
+  display: grid;
+  width: 100%;
+  height: 100vh;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.app-primary-shell .app-mock-header {
+  min-width: 0;
+}
+
+.app-primary-shell .app-mock-settings:disabled {
+  color: #777771;
+  cursor: default;
+  opacity: 1;
+}
+
+.app-primary-views {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.app-primary-views > section:not(.app-chain-workspace) {
+  width: min(78rem, 100%);
+  margin-inline: auto;
+}
+
+.app-primary-views > .app-chain-hub-route {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-primary-views .app-route-heading {
+  margin: 0 0 0.7rem;
+  color: #fff;
+  font-size: clamp(1.55rem, 4vw, 2.4rem);
+  line-height: 1.15;
+}
+
+.app-primary-views .app-route-heading:focus-visible {
+  outline: 2px solid #d4af37;
+  outline-offset: 2px;
+}
+
+.app-primary-views .app-chain-workspace {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.app-recent-list {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.app-recent-list .app-recent-work {
+  min-height: 3.55rem;
+}
+
+.app-view-all {
+  width: 100%;
+  min-height: 2.65rem;
+  color: #d4bd68;
+  background: #1f1f1d;
+  border: 1px dashed #61582f;
+  border-radius: 0.25rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.app-view-all:hover,
+.app-view-all:focus-visible {
+  color: #f0da79;
+  background: #292822;
+  border-style: solid;
+}
+
+.app-chain-hub-content {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 1.35rem;
+}
+
+.app-chain-hub-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid #3a3a36;
+}
+
+.app-chain-hub-heading p {
+  margin: 0.25rem 0 0;
+}
+
+.app-chain-hub-heading > span {
+  display: grid;
+  flex: 0 0 auto;
+  min-width: 7rem;
+  padding: 0.75rem 1rem;
+  color: #d4af37;
+  background: #22221f;
+  border: 1px solid #444039;
+  border-radius: 0.35rem;
+  text-align: right;
+}
+
+.app-chain-hub-heading > span strong {
+  color: #fff;
+  font-family: Georgia, serif;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.app-chain-hub-heading > span small {
+  margin-top: 0.2rem;
+  color: #999890;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.app-new-chain {
+  display: grid;
+  grid-template-columns: auto minmax(13rem, 1fr) minmax(12rem, 0.7fr) auto;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  background: linear-gradient(110deg, #292924, #242421);
+  border: 1px solid #585038;
+  border-radius: 0.4rem;
+  box-shadow: inset 3px 0 #d4af37;
+}
+
+.app-new-chain label {
+  display: block;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.app-new-chain p {
+  margin: 0.15rem 0 0;
+  font-size: 0.77rem;
+}
+
+.app-new-chain input,
+.app-edit-chain input {
+  min-width: 0;
+  min-height: 2.45rem;
+  padding: 0.45rem 0.65rem;
+  color: #f4f1e7;
+  background: #171715;
+  border: 1px solid #555149;
+  border-radius: 0.22rem;
+  font: inherit;
+}
+
+.app-new-chain input:focus,
+.app-edit-chain input:focus {
+  border-color: #d4af37;
+  outline: 2px solid rgb(212 175 55 / 22%);
+  outline-offset: 1px;
+}
+
+.app-new-chain > button,
+.app-edit-chain button,
+.app-chain-card-actions button {
+  min-height: 2.45rem;
+  padding: 0.45rem 0.8rem;
+  color: #171717;
+  background: #d4af37;
+  border: 1px solid #e0c25e;
+  border-radius: 0.22rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.app-saved-chains {
+  display: grid;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.7rem;
+}
+
+.app-saved-chains-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 24rem) auto;
+  align-items: end;
+  gap: 1rem;
+}
+
+.app-saved-chains-heading h2 {
+  margin: 0;
+  color: #fff;
+  font-family: Georgia, serif;
+  font-size: 1.25rem;
+}
+
+.app-saved-chains-heading p {
+  margin: 0.15rem 0 0;
+  font-size: 0.74rem;
+}
+
+.app-saved-chains-heading > span {
+  color: #85857f;
+  font-size: 0.72rem;
+}
+
+.app-chain-search {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.app-chain-search span {
+  color: #aaa9a3;
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-chain-search input {
+  min-width: 0;
+  min-height: 2.35rem;
+  padding: 0.4rem 0.65rem;
+  color: #f4f1e7;
+  background: #171715;
+  border: 1px solid #555149;
+  border-radius: 0.22rem;
+  font: inherit;
+}
+
+.app-chain-search input:focus {
+  border-color: #d4af37;
+  outline: 2px solid rgb(212 175 55 / 22%);
+  outline-offset: 1px;
+}
+
+.app-chain-card-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  align-items: start;
+  gap: 0.65rem;
+  min-height: 0;
+  padding: 0 0.45rem 1rem 0;
+  overflow-y: auto;
+  scrollbar-color: #77776f #1c1c1a;
+  scrollbar-width: thin;
+}
+
+.app-chain-card-list:focus-visible {
+  outline: 2px solid #d4af37;
+  outline-offset: 2px;
+}
+
+.app-chain-empty {
+  display: grid;
+  grid-column: 1 / -1;
+  min-height: 10rem;
+  padding: 2rem;
+  place-content: center;
+  color: #aaa9a3;
+  background: #222220;
+  border: 1px dashed #4a4a45;
+  border-radius: 0.35rem;
+  text-align: center;
+}
+
+.app-chain-empty strong {
+  color: #f0eee7;
+}
+
+.app-chain-empty span {
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+}
+
+.app-chain-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: 1fr auto;
+  gap: 0.7rem 0.8rem;
+  min-width: 0;
+  min-height: 10.2rem;
+  padding: 0.9rem;
+  background: #262624;
+  border: 1px solid #41413d;
+  border-radius: 0.35rem;
+}
+
+.app-chain-card:hover {
+  border-color: #5b5749;
+}
+
+.app-chain-card.is-editing {
+  min-height: 15.5rem;
+  grid-template-rows: auto auto;
+}
+
+.app-chain-card-mark {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  color: #1a1915;
+  background: #c6aa43;
+  border-radius: 0.25rem;
+  font-family: Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  border: 0;
+  cursor: help;
+}
+
+.app-chain-card-mark:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.app-chain-card-avatar {
+  position: relative;
+}
+
+.app-chain-tag-summary {
+  display: none;
+  position: absolute;
+  z-index: 20;
+  top: -0.25rem;
+  left: 3.2rem;
+  width: 18rem;
+  padding: 0.75rem;
+  pointer-events: none;
+  color: #d5d5cf;
+  background: #181816;
+  border: 1px solid #625a39;
+  border-radius: 0.35rem;
+  box-shadow: 0 0.85rem 2rem rgb(0 0 0 / 55%);
+}
+
+.app-chain-card:nth-child(even) .app-chain-tag-summary {
+  right: 3.2rem;
+  left: auto;
+}
+
+.app-chain-card-avatar:hover .app-chain-tag-summary,
+.app-chain-card-avatar:focus-within .app-chain-tag-summary {
+  display: block;
+}
+
+.app-chain-tag-summary header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.app-chain-tag-summary header div {
+  display: grid;
+}
+
+.app-chain-tag-summary header div span {
+  color: #c5a944;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-chain-tag-summary header strong {
+  color: #fff;
+  font-family: Georgia, serif;
+}
+
+.app-chain-tag-summary header > span {
+  color: #999890;
+  font-size: 0.64rem;
+  white-space: nowrap;
+}
+
+.app-chain-tag-summary .static-tag-radar {
+  display: block;
+  width: 100%;
+  height: 11rem;
+  margin-top: 0.25rem;
+  background: radial-gradient(circle at center, #292927 0, #20201e 68%);
+}
+
+.app-chain-tag-summary .radar-label {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.app-chain-tag-summary p {
+  margin: 0.35rem 0 0;
+  color: #aaa9a3;
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.app-chain-card-copy {
+  min-width: 0;
+}
+
+.app-chain-card-copy h3 {
+  margin: 0;
+  overflow: hidden;
+  color: #f7f4eb;
+  font-family: Georgia, serif;
+  font-size: 1.08rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-chain-card-copy h3.is-primary-tag-colored {
+  color: color-mix(in srgb, var(--chain-name-color) 68%, white);
+}
+
+.app-recent-work strong.is-primary-tag-colored {
+  color: color-mix(in srgb, var(--chain-name-color) 68%, white);
+}
+
+.app-chain-card-copy p {
+  display: -webkit-box;
+  margin: 0.25rem 0 0.55rem;
+  overflow: hidden;
+  font-size: 0.74rem;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.app-chain-card-copy > small {
+  color: #85857f;
+  font-size: 0.67rem;
+}
+
+.app-chain-card dl {
+  margin: 0;
+}
+
+.app-chain-card dl div {
+  display: grid;
+  min-width: 3.2rem;
+  padding: 0.4rem 0.55rem;
+  background: #1f1f1d;
+  border: 1px solid #393936;
+  border-radius: 0.25rem;
+  text-align: right;
+}
+
+.app-chain-card dt {
+  color: #85857f;
+  font-size: 0.58rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.app-chain-card dd {
+  margin: 0;
+  color: #fff;
+  font-family: Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.app-chain-card-actions {
+  display: flex;
+  grid-column: 2 / -1;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.app-chain-card-actions button:last-child,
+.app-edit-chain button:last-child {
+  color: #d4bd68;
+  background: transparent;
+  border-color: #61582f;
+}
+
+.app-edit-chain {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.35rem;
+}
+
+.app-edit-chain label {
+  grid-column: 1 / -1;
+  color: #aaa9a3;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-edit-chain input {
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+.app-edit-chain textarea {
+  width: 100%;
+  min-height: 3.8rem;
+  grid-column: 1 / -1;
+  padding: 0.45rem 0.65rem;
+  resize: vertical;
+  color: #f4f1e7;
+  background: #171715;
+  border: 1px solid #555149;
+  border-radius: 0.22rem;
+  font: inherit;
+  line-height: 1.35;
+}
+
+.app-edit-chain textarea:focus {
+  border-color: #d4af37;
+  outline: 2px solid rgb(212 175 55 / 22%);
+  outline-offset: 1px;
+}
+
+.app-edit-chain button[type="submit"] {
+  grid-column: 2;
+}
+
+.app-chain-workspace > .tracker-review-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.app-chain-workspace > .tracker-review-frame.is-shell-embedded {
+  grid-template-rows: 2.65rem minmax(0, 1fr);
+}
+
+@media (max-width: 48rem) {
+  .app-primary-shell {
+    overflow: hidden;
+  }
+
+  .app-primary-shell .app-mock-header nav {
+    order: 3;
+  }
+
+  .app-primary-views > section:not(.app-chain-workspace) {
+    min-height: 100%;
+    padding: 1.5rem 1rem 2rem;
+  }
+
+  .app-primary-views > .app-chain-hub-route {
+    min-height: 0;
+    padding: 1rem;
+  }
+
+  .app-chain-hub-content {
+    gap: 0.75rem;
+  }
+
+  .app-chain-hub-heading {
+    padding-bottom: 0.7rem;
+  }
+
+  .app-chain-hub-heading > span {
+    min-width: 5.8rem;
+    padding: 0.5rem 0.65rem;
+  }
+
+  .app-new-chain {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.65rem;
+    padding: 0.8rem;
+  }
+
+  .app-new-chain input {
+    grid-column: 1 / 3;
+  }
+
+  .app-new-chain > button {
+    grid-column: 3;
+  }
+
+  .app-chain-card-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-saved-chains-heading {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .app-chain-search {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .app-saved-chains-heading > span {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .app-chain-card:nth-child(even) .app-chain-tag-summary {
+    right: auto;
+    left: 3.2rem;
+  }
+}
+
+@media (max-width: 34rem) {
+  .app-chain-hub-heading {
+    align-items: start;
+  }
+
+  .app-chain-hub-heading > span {
+    min-width: 5.5rem;
+  }
+
+  .app-chain-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .app-chain-card dl {
+    display: none;
+  }
+
+  .app-chain-card-actions {
+    grid-column: 1 / -1;
+  }
+
+  .app-chain-tag-summary {
+    position: fixed;
+    z-index: 30;
+    top: 50%;
+    right: 1rem !important;
+    left: 1rem !important;
+    width: auto;
+    transform: translateY(-50%);
+  }
+}

@@ -1292,17 +1292,21 @@ export function ChainTracker({
   state,
   dispatch,
   jumpRenderer,
-}: TrackerProps & { jumpRenderer?: ReactNode }) {
+  showApplicationHeader = true,
+}: TrackerProps & {
+  jumpRenderer?: ReactNode;
+  showApplicationHeader?: boolean;
+}) {
   const [enabled, setEnabled] = useState<EnabledModules>(initialEnabled);
   const [supplementPage, setSupplementPage] =
     useState<SupplementPageId>("manage");
   const selectedRecord = state.selectedRecordId !== null;
   return (
     <div
-      className="chain-mockup tracker-review-frame"
+      className={`chain-mockup tracker-review-frame${showApplicationHeader ? "" : " is-shell-embedded"}`}
       aria-label="Interactive Chain Tracker workspace"
     >
-      <ChainHeader />
+      {showApplicationHeader && <ChainHeader />}
       <MainTabs state={state} dispatch={dispatch} />
       <div className="chain-page-stack">
         {state.page === "jump" && (

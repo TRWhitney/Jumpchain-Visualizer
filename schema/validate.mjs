@@ -24,6 +24,16 @@ for (const [name, declaration] of Object.entries(schema.declarations)) {
   if (declaration.root) requireReference(schema.roots, declaration.root, `declarations.${name}.root`);
 }
 
+const choice = schema.declarations.choice;
+if (!choice?.formsByContext?.["top-level"]?.fields?.continuity)
+  errors.push("format-1 choice must define top-level continuity");
+if (!choice?.formsByContext?.section?.fields?.target)
+  errors.push("format-1 choice must define its section association form");
+if (choice?.formsByContext?.["top-level"]?.fields?.species)
+  errors.push("format-1 choice.species must be replaced by property grants");
+if (!schema.layoutNodes.choice?.compactOnly)
+  errors.push("format-1 section choice layout leaf must be compact-only");
+
 for (const [name, node] of Object.entries(schema.layoutNodes)) {
   if (typeof node.fields === "string") requireReference(schema.fieldSets, node.fields, `layoutNodes.${name}.fields`);
   if (typeof node.blockFields === "string") requireReference(schema.fieldSets, node.blockFields, `layoutNodes.${name}.blockFields`);

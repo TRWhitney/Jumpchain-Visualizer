@@ -2470,6 +2470,7 @@
 }
 
 .story-writer {
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
@@ -2528,12 +2529,91 @@
 }
 
 .story-chapter-editor {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.7rem minmax(0, 1fr);
   overflow: hidden;
   background: #28242a;
   border: 1px solid #47404a;
   border-left: 3px solid #5c555f;
   border-radius: 0.25rem;
   transition: border-color 100ms ease, box-shadow 100ms ease, background 100ms ease;
+}
+
+.story-chapter-editor.is-dragging {
+  opacity: 0.45;
+}
+
+.story-chapter-editor.is-drop-before,
+.story-chapter-editor.is-drop-after {
+  overflow: visible;
+}
+
+.story-chapter-editor.is-drop-before::before,
+.story-chapter-editor.is-drop-after::after {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  left: 0;
+  height: 0.15rem;
+  background: var(--story-accent);
+  border-radius: 999px;
+  content: "";
+  pointer-events: none;
+}
+
+.story-chapter-editor.is-drop-before::before {
+  top: -0.27rem;
+}
+
+.story-chapter-editor.is-drop-after::after {
+  bottom: -0.27rem;
+}
+
+.story-chapter-edge {
+  display: grid;
+  grid-row: 1 / span 2;
+  grid-column: 1;
+  align-content: start;
+  gap: 0.2rem;
+  padding: 0.32rem 0.18rem;
+  background: #211e23;
+  border-right: 1px solid #443d47;
+}
+
+.story-chapter-edge button {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  padding: 0;
+  color: #aaa2ad;
+  background: #2b272e;
+  border: 1px solid #514a55;
+  border-radius: 0.18rem;
+  cursor: pointer;
+}
+
+.story-chapter-remove > span {
+  display: block;
+  line-height: 1;
+  transform: translateY(-0.04rem);
+}
+
+.story-chapter-edge .story-chapter-handle {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  color: #aaa2ad;
+  cursor: grab;
+}
+
+.story-chapter-edge .story-chapter-remove:hover,
+.story-chapter-edge .story-chapter-remove:focus-visible {
+  color: #fff;
+  background: #713b48;
+  border-color: #a45b6d;
 }
 
 .story-chapter-editor:focus-within {
@@ -2544,6 +2624,7 @@
 }
 
 .story-chapter-editor > header {
+  grid-column: 2;
   padding: 0.18rem 0.45rem;
   background: #242025;
   border-bottom: 1px solid #443d47;
@@ -2578,6 +2659,7 @@
 }
 
 .story-rich-editor {
+  grid-column: 2;
   width: 100%;
   min-height: 3.5rem;
   height: auto;
@@ -2588,6 +2670,52 @@
   overflow-wrap: break-word;
   white-space: pre-wrap;
   cursor: text;
+}
+
+.story-chapter-confirm-layer {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: grid;
+  padding: 1rem;
+  place-items: center;
+  background: rgb(12 10 13 / 76%);
+}
+
+.story-chapter-confirm-layer > section {
+  width: min(24rem, 100%);
+  padding: 1rem;
+  color: #e2dbe4;
+  background: #28242a;
+  border: 1px solid #76577f;
+  border-radius: 0.3rem;
+  box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 35%);
+}
+
+.story-chapter-confirm-layer h5 {
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.story-chapter-confirm-layer p {
+  margin: 0.5rem 0 0.8rem !important;
+  color: #c8c0cb !important;
+  font-size: 0.68rem !important;
+}
+
+.story-chapter-confirm-layer > section > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.story-chapter-confirm-layer button {
+  padding: 0.42rem 0.62rem;
+  color: #e8e1ea;
+  background: #2b272e;
+  border: 1px solid #514a55;
+  border-radius: 0.22rem;
+  cursor: pointer;
 }
 
 .story-rich-editor:empty::before {

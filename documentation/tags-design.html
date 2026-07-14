@@ -421,6 +421,8 @@
 
         <h3>Badge List Rendering</h3>
         <p>When a record has several tags, their badges render as one horizontal list beside one another with a small consistent gap. The list wraps onto another horizontal row only when the available width is exhausted; tags are not presented as a vertical field-per-line list.</p>
+        <p><strong>Canonical rendering invariant:</strong> every application consumer, including rendered Jumps, Inventory, record details, Forms, Companions, and Settings previews, renders the same canonical badge component and its complete computed presentation. Consumer CSS may lay out direct badge elements but must not recolor, pad, border, round, animate, or otherwise style a badge or any descendant inside it.</p>
+        <p><strong>Known integration failure to prevent:</strong> a broad consumer selector such as <code>.choice-tags span</code> also matches the canonical badge's internal animated-text span. That produces a false inner capsule even though the canonical component is present. Select only direct non-canonical fallback children, and visually compare each new consumer with an existing Inventory or Tag Manager badge. DOM names and component usage alone are not sufficient verification.</p>
 
         <h3>Presentation Precedence</h3>
         <ol>
@@ -436,11 +438,11 @@
         <p>Overrides change search expansion or rendering only. They never rewrite imported content. A rule that no longer matches any accrued content becomes orphaned and can be reassigned or deleted.</p>
 
         <h2>Relationship-Derived Colors</h2>
-        <p>Automatic color shifting should use perceptual color operations rather than rotating legacy RGB values:</p>
+        <p>Automatic color shifting keeps descendants inside a bounded family derived from their parent:</p>
         <ol>
           <li>A user-selected color is an anchor. Without one, a stable hash of the normalized string produces a deterministic built-in hue.</li>
-          <li>A string with a configured parent inherits that parent’s color family and receives a bounded OkLCh hue, chroma, and lightness shift.</li>
-          <li>The normalized child string chooses its position inside the family band. Adding or reordering other children does not recolor existing tags.</li>
+          <li>A string with a configured parent inherits that parent’s color family, then its badge background, gradient stops, and border receive a bounded hue, saturation, and lightness shift. This applies to shipped built-in children, refreshed acquired tags, and manually entered tags using derived appearance.</li>
+          <li>The normalized child tag name is only the stable seed for that color shift; it does not change the tag’s label, text, structure, or other presentation. Adding or reordering siblings does not recolor existing tags.</li>
           <li>User-configured aliases share a badge style unless one string has a more specific user override.</li>
           <li>A user color override on a child starts a new anchored sub-family for its descendants.</li>
           <li>Gradient stops shift together in the same perceptual space.</li>

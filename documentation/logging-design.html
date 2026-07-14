@@ -142,7 +142,7 @@
           <li>The maximum-visible setting limits simultaneous toasts; additional toasts queue by severity and event time.</li>
           <li>The duration setting applies after the latest coalesced update. Hover, keyboard focus, and pointer interaction pause dismissal.</li>
           <li>Errors use an assertive announcement; other classes use a polite live region.</li>
-          <li>Closing a toast never clears or acknowledges the underlying log entry or diagnostic.</li>
+          <li>Closing a toast never clears or acknowledges the underlying log entry or diagnostic. An application-owned transient action, such as Undo, expires with the toast.</li>
           <li>Disabling notifications immediately dismisses noninteractive toasts and stops new projections without disabling logging.</li>
         </ul>
 

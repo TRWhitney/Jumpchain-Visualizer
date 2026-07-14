@@ -90,7 +90,7 @@ test("recent work opens addressable Editor and real Chain Tracker workspaces", a
   const tracker = page.getByLabel("Interactive Chain Tracker workspace");
   await expect(tracker).toBeVisible();
   await expect(tracker.locator(".chain-mock-header")).toHaveCount(0);
-  await expect(tracker.locator(".chain-jump-entry")).toHaveCount(8);
+  await expect(tracker.locator(".chain-jump-entry")).toHaveCount(9);
   await expect(
     page.getByRole("button", { name: "Chain Tracker", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -307,7 +307,7 @@ test("saved-chain search, inner scrolling, and radar summaries preserve the fixe
     ).size,
   ).toBeGreaterThan(6);
   await expect(summary).toContainText(
-    "Strongest category: Magic with 24 perks",
+    "Strongest category: Crafting with 28 perks",
   );
   expect(
     await summary.evaluate(

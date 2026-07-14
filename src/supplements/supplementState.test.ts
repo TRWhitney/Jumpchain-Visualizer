@@ -68,7 +68,7 @@ describe("shared supplement review state", () => {
     expect(words("A **bold** and <u>underlined phrase</u>.")).toBe(5);
     expect(words("A ++clear++ {{#74d8a1|green phrase}}.")).toBe(4);
     expect(
-      storyWordCount(initialSupplementState.story, "arcane"),
+      storyWordCount(initialSupplementState.story, "entry-1"),
     ).toBeGreaterThan(30);
   });
 });

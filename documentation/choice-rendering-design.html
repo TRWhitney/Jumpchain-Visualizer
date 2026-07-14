@@ -36,11 +36,13 @@
         <p class="eyebrow">Shared renderer contract</p>
         <h1>Controls</h1>
         <p class="lede">One visual library for manual controls, ranked costs, mutually exclusive and independent selections, and random resolution across Editor preview and the Chain Tracker.</p>
-        <div class="choice-status" role="note"><strong>Status: agreed control catalogue.</strong> Markup owns the semantic fields. This page owns their neutral default rendering and behavior.</div>
+        <div class="choice-status" role="note"><strong>Status: implemented control catalogue and continuing visual authority.</strong> Markup owns the semantic fields. This page owns their neutral default rendering and behavior in both the Chain Tracker and the reusable Editor preview boundary.</div>
 
         <h2>Rendering Contract</h2>
         <ul>
           <li>Rendered Jump controls use neutral renderer defaults. Application accent colors never leak into selection state.</li>
+          <li>Control structure and geometry come from this catalogue, while an unstyled control inherits the owning Jump surface palette. A Jump may change that palette only through authored Format 1 presentation.</li>
+          <li>A <code>tags</code> slot renders the application's canonical tag-badge component. Choice-layout and container CSS may arrange badge children, but must never restyle the badge or any of its internal spans.</li>
           <li>Single select uses radio buttons so mutual exclusion is visible. Multi select uses checkboxes so independent selection is visible.</li>
           <li>Selection does not recolor or outline an entire choice. The native control, its label, and accessible state communicate selection.</li>
           <li>Normal costs show resolved amounts. Discounts strike the old cost beside the new cost in restrained green. Free costs read <strong>Free</strong> in the same green.</li>
@@ -122,10 +124,18 @@
 
         <p class="design-note"><strong>Nested inputs:</strong> text, integer, and select inputs reuse the same neutral fields above. Companion roster selection is a checkbox list of existing companions. Nested inputs require an authored layout leaf and therefore are not additional default-choice control modes.</p>
 
+        <h2>Gender Continuity</h2>
+        <p>A Gender select with <code>continuity: previous</code> or <code>continuity: original</code> uses the referenced value as a derived free default when that value exists in the dropdown. An explicit alternative uses the authored cost. If the reference is Unknown or absent from the option domain, the control begins Unknown and every available option is free.</p>
+        <div class="control-specimen" data-toc-ignore>
+          <header><span>Gender · previous value available</span><code>continuity: previous</code></header>
+          <div class="default-choice-card"><div class="default-choice-heading"><strong>Gender</strong><div class="cost-badge-row"><b class="cost-badge is-benefit">Previous is free</b></div></div><div class="default-choice-actions"><label><span class="sr-only">Continuing gender</span><select><option>Unknown</option><option selected>Male · Free</option><option>Female · 100 CP</option></select></label></div></div>
+        </div>
+        <p class="design-note"><strong>Missing option:</strong> if the previous value were Nonbinary in this two-option dropdown, Unknown would remain selected and both Male and Female would display as Free.</p>
+
         <h2>Persistence</h2>
         <ul>
           <li>Roll occurrence and result are stored separately from the current selection.</li>
-          <li>A random-only integer may be cleared back to unset without deleting its stored result. With rerolls disabled, Claim restores that result without rolling again.</li>
+          <li>A random-only integer may be cleared back to unset without deleting or hiding its stored result. With rerolls disabled, the visible result remains beside Claim, which restores that result without rolling again.</li>
           <li>Unselecting a rolled multi-select option removes the acquisition but retains its Free badge and roll provenance; checking it again reacquires it for Free.</li>
           <li>Rerolling replaces the recorded result and unselects the former result. Removing the chain entry deletes both selections and roll records.</li>
           <li>Editor preview uses the same interactions in nonpersistent sandbox state.</li>

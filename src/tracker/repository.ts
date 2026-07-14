@@ -1,0 +1,249 @@
+import { invoke } from "@tauri-apps/api/core";
+import type { BodyModState } from "../supplements/bodyMod";
+import type { EnabledModules, ModuleId } from "../supplements/model";
+import type { SupplementState } from "../supplements/supplementState";
+import {
+  EARTH_ENTRY_ID,
+  EARTH_ENTRY_STATUS,
+  type ChainEntry,
+  type TrackerState,
+} from "./model";
+import type { JumpRuntimeState } from "../domain";
+import type { ChainEvaluation } from "../domain";
+import { evaluateTracker } from "./evaluateTracker";
+import {
+  CHAINS_STORE_NAME,
+  openApplicationDatabase,
+} from "../platform/indexedDb";
+
+export const CHAIN_SCHEMA_VERSION = 1 as const;
+
+export type ChainAggregate = {
+  schemaVersion: typeof CHAIN_SCHEMA_VERSION;
+  id: string;
+  name: string;
+  description: string;
+  lastOpenedSequence: number;
+  lastOpenedLabel: string;
+  entries: Record<string, ChainEntry>;
+  order: string[];
+  jumpState: JumpRuntimeState;
+  enabledSupplements: EnabledModules;
+  supplementPage: "manage" | ModuleId;
+  bodyMod: BodyModState;
+  supplements: SupplementState;
+  entrySupplements: TrackerState["entrySupplements"];
+  lastValidatedEvaluation: ChainEvaluation;
+  selectedEntryId: string;
+  inspectionPointId: string;
+  nextEntrySerial: number;
+};
+
+export interface ChainRepository {
+  list(): Promise<readonly ChainAggregate[]>;
+  load(id: string): Promise<ChainAggregate | null>;
+  save(value: ChainAggregate): Promise<void>;
+}
+
+const normalizeSystemEntries = (
+  entries: Record<string, ChainEntry>,
+): Record<string, ChainEntry> => ({
+  ...entries,
+  [EARTH_ENTRY_ID]: {
+    ...entries[EARTH_ENTRY_ID],
+    status: EARTH_ENTRY_STATUS,
+  },
+});
+
+export function aggregateFromTracker(
+  id: string,
+  state: TrackerState,
+  metadata?: {
+    description: string;
+    lastOpenedSequence: number;
+    lastOpenedLabel: string;
+  },
+): ChainAggregate {
+  return {
+    schemaVersion: CHAIN_SCHEMA_VERSION,
+    id,
+    name: state.chainName,
+    description:
+      metadata?.description ?? "A chain saved by Jumpchain Visualizer.",
+    lastOpenedSequence: metadata?.lastOpenedSequence ?? 0,
+    lastOpenedLabel: metadata?.lastOpenedLabel ?? "Saved",
+    entries: normalizeSystemEntries(state.entries),
+    order: state.order,
+    jumpState: state.jumpState,
+    enabledSupplements: state.enabledSupplements,
+    supplementPage: state.supplementPage,
+    bodyMod: state.bodyMod,
+    supplements: state.supplements,
+    entrySupplements: state.entrySupplements,
+    lastValidatedEvaluation: evaluateTracker(
+      state,
+      state.enabledSupplements["body-mod"] ? state.bodyMod : null,
+    ),
+    selectedEntryId: state.selectedEntryId,
+    inspectionPointId: state.inspectionPointId,
+    nextEntrySerial: state.nextEntrySerial,
+  };
+}
+
+export function applyAggregate(
+  base: TrackerState,
+  aggregate: ChainAggregate,
+): TrackerState {
+  if (!isChainAggregate(aggregate))
+    throw new Error("Stored chain aggregate is invalid.");
+  return {
+    ...base,
+    chainName: aggregate.name,
+    entries: normalizeSystemEntries(aggregate.entries),
+    order: aggregate.order,
+    jumpState: aggregate.jumpState,
+    enabledSupplements: aggregate.enabledSupplements,
+    supplementPage: aggregate.supplementPage,
+    bodyMod: aggregate.bodyMod,
+    supplements: aggregate.supplements,
+    entrySupplements: aggregate.entrySupplements ?? {},
+    lastValidatedEvaluation: aggregate.lastValidatedEvaluation,
+    selectedEntryId: aggregate.selectedEntryId,
+    inspectionPointId: aggregate.inspectionPointId,
+    nextEntrySerial: aggregate.nextEntrySerial,
+  };
+}
+
+export function isChainAggregate(value: unknown): value is ChainAggregate {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<ChainAggregate>;
+  let encodedLength: number;
+  try {
+    encodedLength = JSON.stringify(value).length;
+  } catch {
+    return false;
+  }
+  const entries = item.entries ?? {};
+  const entryKeys = Object.keys(entries);
+  const order = item.order ?? [];
+  const validEntries = entryKeys.every((key) => {
+    const entry = entries[key];
+    return (
+      entry &&
+      entry.id === key &&
+      (entry.kind === "earth" || entry.kind === "jump") &&
+      typeof entry.packageId === "string" &&
+      typeof entry.packageExactHash === "string" &&
+      entry.packageExactHash.length > 0 &&
+      entry.packageExactHash.length <= 200 &&
+      typeof entry.status === "string"
+    );
+  });
+  return (
+    encodedLength <= 16 * 1024 * 1024 &&
+    item.schemaVersion === CHAIN_SCHEMA_VERSION &&
+    typeof item.id === "string" &&
+    item.id.length > 0 &&
+    item.id.length <= 200 &&
+    typeof item.name === "string" &&
+    item.name.length <= 500 &&
+    typeof item.description === "string" &&
+    item.description.length <= 10_000 &&
+    typeof item.lastOpenedSequence === "number" &&
+    Number.isSafeInteger(item.lastOpenedSequence) &&
+    typeof item.lastOpenedLabel === "string" &&
+    item.lastOpenedLabel.length <= 500 &&
+    Array.isArray(item.order) &&
+    order.length > 0 &&
+    order.length <= 1000 &&
+    order[0] === EARTH_ENTRY_ID &&
+    new Set(order).size === order.length &&
+    entryKeys.length === order.length &&
+    order.every((id) => typeof id === "string" && Boolean(entries[id])) &&
+    entries[EARTH_ENTRY_ID]?.kind === "earth" &&
+    validEntries &&
+    Boolean(item.jumpState && typeof item.jumpState === "object") &&
+    Boolean(
+      item.lastValidatedEvaluation &&
+      typeof item.lastValidatedEvaluation === "object",
+    ) &&
+    order.every((id) => Boolean(item.jumpState?.[id])) &&
+    typeof item.selectedEntryId === "string" &&
+    order.includes(item.selectedEntryId) &&
+    typeof item.inspectionPointId === "string" &&
+    order.includes(item.inspectionPointId) &&
+    typeof item.nextEntrySerial === "number"
+  );
+}
+
+export class MemoryChainRepository implements ChainRepository {
+  private readonly values = new Map<string, ChainAggregate>();
+  constructor(seed: readonly ChainAggregate[] = []) {
+    seed.forEach((item) => this.values.set(item.id, structuredClone(item)));
+  }
+  async list() {
+    return [...this.values.values()].map((item) => structuredClone(item));
+  }
+  async load(id: string) {
+    const item = this.values.get(id);
+    return item ? structuredClone(item) : null;
+  }
+  async save(value: ChainAggregate) {
+    if (!isChainAggregate(value)) throw new Error("Invalid chain aggregate.");
+    this.values.set(value.id, structuredClone(value));
+  }
+}
+
+export class IndexedDbChainRepository implements ChainRepository {
+  private async request<T>(
+    mode: IDBTransactionMode,
+    operation: (store: IDBObjectStore) => IDBRequest<T>,
+  ) {
+    const database = await openApplicationDatabase();
+    return new Promise<T>((resolve, reject) => {
+      const transaction = database.transaction(CHAINS_STORE_NAME, mode);
+      const request = operation(transaction.objectStore(CHAINS_STORE_NAME));
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () =>
+        reject(new Error("Chain storage operation failed."));
+      transaction.oncomplete = () => database.close();
+    });
+  }
+  async list() {
+    const values = await this.request<ChainAggregate[]>("readonly", (store) =>
+      store.getAll(),
+    );
+    return values.filter(isChainAggregate);
+  }
+  async load(id: string) {
+    const value = await this.request<ChainAggregate | undefined>(
+      "readonly",
+      (store) => store.get(id),
+    );
+    return isChainAggregate(value) ? value : null;
+  }
+  async save(value: ChainAggregate) {
+    if (!isChainAggregate(value)) throw new Error("Invalid chain aggregate.");
+    await this.request<IDBValidKey>("readwrite", (store) => store.put(value));
+  }
+}
+
+export class TauriChainRepository implements ChainRepository {
+  async list() {
+    const values = await invoke<unknown>("load_chains");
+    return Array.isArray(values) ? values.filter(isChainAggregate) : [];
+  }
+  async load(id: string) {
+    return (await this.list()).find((item) => item.id === id) ?? null;
+  }
+  async save(value: ChainAggregate) {
+    if (!isChainAggregate(value)) throw new Error("Invalid chain aggregate.");
+    await invoke("save_chain", { payload: JSON.stringify(value) });
+  }
+}
+
+export function createPlatformChainRepository(): ChainRepository {
+  return "__TAURI_INTERNALS__" in window
+    ? new TauriChainRepository()
+    : new IndexedDbChainRepository();
+}

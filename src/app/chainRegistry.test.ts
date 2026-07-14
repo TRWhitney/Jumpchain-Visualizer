@@ -18,6 +18,18 @@ describe("saved chain registry", () => {
     ).toEqual(["Morgan", "The Ashen Road"]);
   });
 
+  it("advances new-chain identity past hydrated durable chains", () => {
+    const hydrated = chainRegistryReducer(createChainRegistryFixture(), {
+      type: "hydrate",
+      id: "ch-new-7",
+      name: "Restored",
+      description: "Stored independently.",
+      lastOpenedSequence: 90,
+      lastOpenedLabel: "Opened earlier",
+    });
+    expect(hydrated.nextSerial).toBe(8);
+  });
+
   it("creates, opens, and renames chains while keeping opaque identity", () => {
     let state = createChainRegistryFixture();
     state = chainRegistryReducer(state, {

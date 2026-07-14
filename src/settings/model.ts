@@ -22,6 +22,7 @@ export type ApplicationSettings = {
     accentColor: string;
   };
   accessibility: { motion: MotionPreference };
+  developer: { showAdditionalJumpInformation: boolean };
   editor: {
     saveMode: "autosave" | "explicit";
     warnMissingImageAlt: boolean;
@@ -84,6 +85,7 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
     appearance: { theme: "system", accentColor: "#d4af37" },
     accessibility: { motion: "system" },
+    developer: { showAdditionalJumpInformation: false },
     editor: {
       saveMode: "autosave",
       warnMissingImageAlt: true,
@@ -130,6 +132,7 @@ export function hydrateSettings(
   const root = record(value);
   const appearance = record(root.appearance);
   const accessibility = record(root.accessibility);
+  const developer = record(root.developer);
   const editor = record(root.editor);
   const chain = record(root.chain);
   const notifications = record(root.notifications);
@@ -171,6 +174,12 @@ export function hydrateSettings(
         accessibility.motion,
         ["system", "reduced", "full"] as const,
         fallback.accessibility.motion,
+      ),
+    },
+    developer: {
+      showAdditionalJumpInformation: bool(
+        developer.showAdditionalJumpInformation,
+        fallback.developer.showAdditionalJumpInformation,
       ),
     },
     editor: {

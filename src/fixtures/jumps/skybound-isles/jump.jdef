@@ -1,0 +1,29 @@
+jump
+  format: 1
+  name: "Skybound Isles"
+  author: "Jumpchain Visualizer"
+  version: "1.0"
+
+section
+  handle: sky
+  name: "Open Sky"
+
+  choice-source
+    handle: main
+    group: sky
+
+choice
+  handle: windrider
+  name: "Windrider"
+  group: sky
+  tag: physical
+  cost: 200
+  grant: perk
+
+choice
+  handle: cloudship
+  name: "Cloudship"
+  group: sky
+  tag: vehicles
+  cost: 300
+  grant: item

@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+} from "react";
 import { BodyModProvider } from "./BodyModContext";
 import { SupplementDialog } from "./Dialogs";
 import { ModulePage } from "./ModulePages";
@@ -11,6 +17,8 @@ import {
   type ModuleId,
   type ToolId,
 } from "./model";
+import type { BodyModState } from "./bodyMod";
+import type { SupplementAction, SupplementState } from "./supplementState";
 
 export type SupplementPageId = "manage" | ModuleId;
 
@@ -71,10 +79,27 @@ const supplementTools: readonly {
   { id: "story", module: "story", name: "Story", job: "Write this Jump" },
 ];
 
-export function SupplementProviders({ children }: { children: ReactNode }) {
+export function SupplementProviders({
+  children,
+  bodyMod,
+  onBodyModChange,
+  supplementState,
+  supplementDispatch,
+}: {
+  children: ReactNode;
+  bodyMod?: BodyModState;
+  onBodyModChange?: (value: BodyModState) => void;
+  supplementState?: SupplementState;
+  supplementDispatch?: Dispatch<SupplementAction>;
+}) {
   return (
-    <BodyModProvider>
-      <SupplementStateProvider>{children}</SupplementStateProvider>
+    <BodyModProvider state={bodyMod} onChange={onBodyModChange}>
+      <SupplementStateProvider
+        state={supplementState}
+        dispatch={supplementDispatch}
+      >
+        {children}
+      </SupplementStateProvider>
     </BodyModProvider>
   );
 }
@@ -195,14 +220,20 @@ export function TrackerSupplementWorkspace({
 
 export function TrackerSupplementContext({
   jumpName,
+  jumpEntryId,
+  jumpNumber,
   enabled,
   onClose,
   onOpenPage,
+  gauntlet = false,
 }: {
   jumpName: string;
+  jumpEntryId: string;
+  jumpNumber: number;
   enabled: EnabledModules;
   onClose: () => void;
   onOpenPage: (id: ModuleId) => void;
+  gauntlet?: boolean;
 }) {
   const root = useRef<HTMLElement>(null);
   const available = supplementTools.filter((tool) => enabled[tool.module]);
@@ -221,12 +252,29 @@ export function TrackerSupplementContext({
       ref={root}
       className="chain-supp-context tracker-supp-context"
       role="dialog"
-      aria-modal="false"
+      aria-modal="true"
       aria-label={`${jumpName} current-Jump supplements`}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.preventDefault();
           onClose();
+          return;
+        }
+        if (event.key !== "Tab") return;
+        const focusable = [
+          ...(root.current?.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]',
+          ) ?? []),
+        ];
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
         }
       }}
     >
@@ -283,6 +331,9 @@ export function TrackerSupplementContext({
             close={onClose}
             embedded
             jumpName={jumpName}
+            jumpEntryId={jumpEntryId}
+            jumpNumber={jumpNumber}
+            gauntlet={gauntlet}
             openPage={(id) => {
               onClose();
               onOpenPage(id);

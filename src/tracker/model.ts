@@ -1,3 +1,5 @@
+import type { EvaluatedGrantMeasure } from "../domain";
+
 export const trackerPages = [
   "jump",
   "inventory",
@@ -58,27 +60,38 @@ export type InstalledPackage = {
   source: "builtin" | "imported";
   description: string;
   tags: readonly string[];
+  availability?: "library" | "foundation";
+  exactHash?: string;
+  authors?: readonly string[];
+  nativeGauntlet?: boolean;
+  document?: CanonicalJumpPackage;
 };
 
 export type ChainEntry = {
   id: string;
   packageId: string;
+  packageExactHash: string;
+  kind: "earth" | "jump";
   status: string;
-  actorBalances: Record<string, number>;
-  origin: string;
-  location?: string;
 };
 
 export type Actor = {
   id: string;
   name: string;
   role: "Jumper" | "Companion";
-  gender: string;
-  age: number;
+  acquisitionGender?: string;
+  acquisitionAge?: number;
   joinedEntryId?: string;
   initials: string;
   summary: string;
 };
+
+export const EARTH_ENTRY_ID = "entry-earth";
+export const EARTH_PACKAGE_ID = "system-earth";
+export const EARTH_ENTRY_STATUS = "The Beginning";
+
+export type IdentityProperty =
+  "origin" | "species" | "location" | "gender" | "age";
 
 export type InventoryRecord = {
   id: string;
@@ -88,6 +101,7 @@ export type InventoryRecord = {
   ownerActorId: string;
   tags: readonly string[];
   description: string;
+  measure?: EvaluatedGrantMeasure;
 };
 
 export type FormRecord = {
@@ -115,6 +129,7 @@ export type TrackerPreferences = {
   allowMultiplePackageVersions: boolean;
   allowNegativePointBalances: boolean;
   allowRerolls: boolean;
+  showAdditionalJumpInformation: boolean;
 };
 
 export type DependencyImpact = {
@@ -142,6 +157,8 @@ type UndoSnapshot = {
   order: string[];
   selectedEntryId: string;
   inspectionPointId: string;
+  jumpState: JumpRuntimeState;
+  entrySupplements: TrackerState["entrySupplements"];
   label: string;
 };
 
@@ -150,6 +167,20 @@ export type TrackerState = {
   packages: Record<string, InstalledPackage>;
   entries: Record<string, ChainEntry>;
   order: string[];
+  jumpState: JumpRuntimeState;
+  enabledSupplements: EnabledModules;
+  supplementPage: "manage" | ModuleId;
+  bodyMod: BodyModState;
+  supplements: SupplementState;
+  entrySupplements: Record<
+    string,
+    {
+      quest: QuestState;
+      uds: UdsState;
+      realityProgression?: RealityState["progression"];
+    }
+  >;
+  lastValidatedEvaluation?: ChainEvaluation;
   actors: Record<string, Actor>;
   records: readonly InventoryRecord[];
   forms: readonly FormRecord[];
@@ -194,6 +225,7 @@ export type TrackerAction =
   | { type: "cancel-mutation" }
   | { type: "commit-mutation" }
   | { type: "undo" }
+  | { type: "dismiss-undo" }
   | { type: "add-package"; packageId: string }
   | { type: "set-library-search"; value: string }
   | { type: "set-library-source"; value: TrackerState["librarySource"] }
@@ -211,16 +243,66 @@ export type TrackerAction =
   | { type: "select-form"; id: string | null }
   | { type: "select-companion"; id: string | null }
   | { type: "open-profile"; profile: TrackerState["activeProfile"] }
-  | { type: "resolve-deficit"; actorId: string };
+  | {
+      type: "set-choice";
+      entryId: string;
+      actorId: string;
+      choiceHandle: string;
+      value: boolean | string | number | null;
+    }
+  | {
+      type: "set-input";
+      entryId: string;
+      actorId: string;
+      choiceHandle: string;
+      inputHandle: string;
+      value: string | number | readonly string[] | null;
+    }
+  | { type: "set-enabled-supplements"; value: EnabledModules }
+  | { type: "set-supplement-page"; value: "manage" | ModuleId }
+  | { type: "set-body-mod"; value: BodyModState }
+  | { type: "supplement-action"; action: SupplementAction }
+  | {
+      type: "record-choice-roll";
+      entryId: string;
+      actorId: string;
+      choiceHandle: string;
+      result: string | number;
+    }
+  | {
+      type: "record-source-roll";
+      entryId: string;
+      actorId: string;
+      sourceKey: string;
+      result: string;
+    }
+  | { type: "toggle-applied-gauntlet"; entryId: string };
 
 const normalize = (value: string) => value.trim().toLocaleLowerCase();
 
 export function packageForEntry(state: TrackerState, entryId: string) {
-  return state.packages[state.entries[entryId]?.packageId];
+  const entry = state.entries[entryId];
+  const packageItem = state.packages[entry?.packageId];
+  if (!entry || !packageItem) return packageItem;
+  return entry.packageExactHash === packageItem.exactHash
+    ? packageItem
+    : { ...packageItem, document: undefined };
 }
 
 export function chronologyIndex(state: TrackerState, entryId: string) {
   return state.order.indexOf(entryId);
+}
+
+export function jumpEntryIds(state: Pick<TrackerState, "entries" | "order">) {
+  return state.order.filter((id) => state.entries[id]?.kind === "jump");
+}
+
+export function jumpNumber(
+  state: Pick<TrackerState, "entries" | "order">,
+  entryId: string,
+) {
+  const index = jumpEntryIds(state).indexOf(entryId);
+  return index < 0 ? null : index + 1;
 }
 
 export function visibleAtInspection(
@@ -249,6 +331,7 @@ export function tagIsWithin(
 export function filteredInventory(state: TrackerState) {
   const terms = normalize(state.inventorySearch).split(/\s+/).filter(Boolean);
   return state.records.filter((record) => {
+    if (record.ownerActorId !== "jumper") return false;
     if (!visibleAtInspection(state, record.sourceEntryId)) return false;
     if (state.inventoryKind !== "all" && record.kind !== state.inventoryKind)
       return false;
@@ -303,6 +386,7 @@ export function radarCounts(state: TrackerState) {
   for (const record of state.records) {
     if (
       record.kind !== "perk" ||
+      record.ownerActorId !== "jumper" ||
       !visibleAtInspection(state, record.sourceEntryId)
     )
       continue;
@@ -410,6 +494,7 @@ export function tagBreakdown(
     state.records.filter(
       (record) =>
         record.kind === "perk" &&
+        record.ownerActorId === "jumper" &&
         visibleAtInspection(state, record.sourceEntryId) &&
         record.tags.some((tag) => tagIsWithin(state, tag, nodeId)),
     ),
@@ -496,16 +581,63 @@ export function resolveTagBreakdownStack(
 }
 
 export function companionImportDependencies(state: TrackerState) {
-  return state.companions.flatMap((companion) =>
-    companion.importedEntryIds
-      .filter((consumerEntryId) => state.entries[consumerEntryId])
-      .map((consumerEntryId) => ({
-        kind: "companion-import" as const,
-        subjectId: companion.actorId,
-        providerEntryId: companion.sourceEntryId,
-        consumerEntryId,
-      })),
-  );
+  const providers = new Map<string, string>();
+  for (const entryId of state.order) {
+    const packageItem =
+      state.packages[state.entries[entryId]?.packageId]?.document;
+    const actor = state.jumpState[entryId]?.actors.jumper;
+    if (!packageItem || !actor) continue;
+    for (const choice of packageItem.choices) {
+      const value = actor.choices[choice.handle];
+      const active =
+        choice.selection === "toggle"
+          ? value === true
+          : value !== null && value !== undefined && value !== "";
+      if (!active) continue;
+      choice.grants.forEach((grant, grantIndex) => {
+        if (grant.kind === "companion")
+          providers.set(
+            `companion:${entryId}:jumper:${choice.handle}:${grantIndex}`,
+            entryId,
+          );
+      });
+    }
+  }
+  const dependencies: {
+    kind: "companion-import";
+    subjectId: string;
+    providerEntryId: string;
+    consumerEntryId: string;
+  }[] = [];
+  for (const consumerEntryId of state.order) {
+    const packageItem =
+      state.packages[state.entries[consumerEntryId]?.packageId]?.document;
+    const actor = state.jumpState[consumerEntryId]?.actors.jumper;
+    if (!packageItem || !actor) continue;
+    for (const choice of packageItem.choices) {
+      const hasImport = choice.inputs.some((input) =>
+        input.grants.some((grant) => grant.kind === "companion-import"),
+      );
+      if (!hasImport) continue;
+      for (const input of choice.inputs) {
+        if (!input.grants.some((grant) => grant.kind === "companion-import"))
+          continue;
+        const selected = actor.inputs[choice.handle]?.[input.handle];
+        if (!Array.isArray(selected)) continue;
+        for (const subjectId of selected) {
+          const providerEntryId = providers.get(subjectId);
+          if (providerEntryId)
+            dependencies.push({
+              kind: "companion-import",
+              subjectId,
+              providerEntryId,
+              consumerEntryId,
+            });
+        }
+      }
+    }
+  }
+  return dependencies;
 }
 
 function isDependencyValid(
@@ -583,31 +715,114 @@ function snapshot(state: TrackerState, label: string): UndoSnapshot {
     order: state.order,
     selectedEntryId: state.selectedEntryId,
     inspectionPointId: state.inspectionPointId,
+    jumpState: state.jumpState,
+    entrySupplements: state.entrySupplements,
     label,
   };
 }
 
+function evaluatedBalance(
+  state: TrackerState,
+  entryId: string,
+  actorId: string,
+) {
+  const order = state.order.filter((id) => state.entries[id]?.kind === "jump");
+  const supplementInputs = supplementEvaluationInputs(state, order);
+  const result = evaluateChain({
+    order,
+    packageIdByEntry: Object.fromEntries(
+      order.map((id) => [id, state.entries[id].packageId]),
+    ),
+    packages: Object.fromEntries(
+      Object.values(state.packages)
+        .filter((item) => item.document)
+        .map((item) => [item.id, item.document!]),
+    ),
+    jumpState: supplementInputs.jumpState,
+    jumperName: state.actors.jumper?.name ?? "Jumper",
+    supplementPointGrants: supplementInputs.supplementPointGrants,
+    startingPointOverrides: supplementInputs.startingPointOverrides,
+  });
+  return result.runtime[entryId]?.actors[actorId]?.balance ?? 0;
+}
+
+function enforceBalancePolicy(
+  state: TrackerState,
+  candidate: TrackerState,
+  entryId: string,
+  actorId: string,
+  activeChoiceSelection: boolean,
+) {
+  if (state.preferences.allowNegativePointBalances || !activeChoiceSelection)
+    return candidate;
+  const before = evaluatedBalance(state, entryId, actorId);
+  const after = evaluatedBalance(candidate, entryId, actorId);
+  return after < 0 && after < before ? state : candidate;
+}
+
+function actionActivatesChoice(
+  state: TrackerState,
+  entryId: string,
+  choiceHandle: string,
+  value: boolean | string | number | null,
+) {
+  const choice = packageForEntry(state, entryId)?.document?.choices.find(
+    (item) => item.handle === choiceHandle,
+  );
+  return choice ? choiceValueIsActive(choice, value) : false;
+}
+
+export function choiceMutationWasBlocked(
+  state: TrackerState,
+  nextState: TrackerState,
+  action: TrackerAction,
+) {
+  if (
+    state.preferences.allowNegativePointBalances ||
+    nextState !== state ||
+    !("entryId" in action) ||
+    !("actorId" in action)
+  )
+    return false;
+  const actor = state.jumpState[action.entryId]?.actors[action.actorId];
+  if (action.type === "set-choice")
+    return actor?.choices[action.choiceHandle] !== action.value;
+  if (action.type === "record-choice-roll")
+    return actor?.choiceRolls[action.choiceHandle]?.result !== action.result;
+  if (action.type === "record-source-roll")
+    return actor?.sourceRolls[action.sourceKey]?.result !== action.result;
+  return false;
+}
+
 function applyMove(state: TrackerState, entryId: string, toIndex: number) {
+  if (state.entries[entryId]?.kind === "earth") return state;
   const from = state.order.indexOf(entryId);
   if (from < 0) return state;
   const order = [...state.order];
   order.splice(from, 1);
-  order.splice(Math.max(0, Math.min(toIndex, order.length)), 0, entryId);
+  order.splice(Math.max(1, Math.min(toIndex, order.length)), 0, entryId);
   return { ...state, order };
 }
 
 function applyRemove(state: TrackerState, entryId: string) {
+  if (state.entries[entryId]?.kind === "earth") return state;
   if (state.order.length <= 1) return state;
   const removedIndex = state.order.indexOf(entryId);
   if (removedIndex < 0) return state;
   const order = state.order.filter((id) => id !== entryId);
   const entries = { ...state.entries };
   delete entries[entryId];
+  const jumpState = { ...state.jumpState };
+  delete jumpState[entryId];
+  const entrySupplements = { ...state.entrySupplements };
+  delete entrySupplements[entryId];
   const fallback = order[Math.min(removedIndex, order.length - 1)];
   return {
     ...state,
     entries,
     order,
+    jumpState,
+    entrySupplements,
     selectedEntryId:
       state.selectedEntryId === entryId ? fallback : state.selectedEntryId,
     inspectionPointId:
@@ -645,6 +860,7 @@ export function trackerReducer(
         ? { ...state, inspectionPointId: action.entryId }
         : state;
     case "request-move": {
+      if (state.entries[action.entryId]?.kind === "earth") return state;
       const impacts = moveDependencyImpacts(
         state,
         action.entryId,
@@ -658,6 +874,7 @@ export function trackerReducer(
       return { ...state, pending: { ...action, kind: "move", impacts } };
     }
     case "request-remove": {
+      if (state.entries[action.entryId]?.kind === "earth") return state;
       const impacts = removeDependencyImpacts(state, action.entryId);
       if (!state.preferences.warnUpstreamChanges || !impacts.length)
         return {
@@ -694,20 +911,24 @@ export function trackerReducer(
             order: state.undo.order,
             selectedEntryId: state.undo.selectedEntryId,
             inspectionPointId: state.undo.inspectionPointId,
+            jumpState: state.undo.jumpState,
+            entrySupplements: state.undo.entrySupplements,
             undo: null,
           }
         : state;
+    case "dismiss-undo":
+      return state.undo ? { ...state, undo: null } : state;
     case "add-package": {
+      const packageItem = state.packages[action.packageId];
+      if (!packageItem) return state;
       const existing = state.order.find(
-        (id) => state.entries[id].packageId === action.packageId,
+        (id) => state.entries[id].packageExactHash === packageItem.exactHash,
       );
       if (existing)
         return trackerReducer(state, {
           type: "select-entry",
           entryId: existing,
         });
-      const packageItem = state.packages[action.packageId];
-      if (!packageItem) return state;
       const parallel = state.order.find(
         (id) =>
           state.packages[state.entries[id].packageId]?.logicalId ===
@@ -726,9 +947,17 @@ export function trackerReducer(
           [id]: {
             id,
             packageId: action.packageId,
+            packageExactHash: packageItem.exactHash ?? "unresolved",
+            kind: "jump",
             status: "No choices",
-            actorBalances: { jumper: 1000 },
-            origin: "Not selected",
+          },
+        },
+        jumpState: { ...state.jumpState, [id]: emptyJumpEntryState() },
+        entrySupplements: {
+          ...state.entrySupplements,
+          [id]: {
+            quest: { ...state.supplements.quest, checked: [], switching: [] },
+            uds: { ...state.supplements.uds, jump: [], hiatus: [] },
           },
         },
         order: [...state.order, id],
@@ -794,20 +1023,280 @@ export function trackerReducer(
       return { ...state, selectedCompanionId: action.id };
     case "open-profile":
       return { ...state, activeProfile: action.profile };
-    case "resolve-deficit": {
-      const entry = state.entries[state.selectedEntryId];
-      if (!entry || (entry.actorBalances[action.actorId] ?? 0) >= 0)
-        return state;
+    case "set-choice": {
+      const entry = state.jumpState[action.entryId];
+      if (!entry) return state;
+      const actor = entry.actors[action.actorId] ?? emptyActorEntryState();
+      const candidate: TrackerState = {
+        ...state,
+        jumpState: {
+          ...state.jumpState,
+          [action.entryId]: {
+            ...entry,
+            actors: {
+              ...entry.actors,
+              [action.actorId]: {
+                ...actor,
+                choices: {
+                  ...actor.choices,
+                  [action.choiceHandle]: action.value,
+                },
+              },
+            },
+          },
+        },
+      };
+      return enforceBalancePolicy(
+        state,
+        candidate,
+        action.entryId,
+        action.actorId,
+        actionActivatesChoice(
+          state,
+          action.entryId,
+          action.choiceHandle,
+          action.value,
+        ),
+      );
+    }
+    case "set-input": {
+      const entry = state.jumpState[action.entryId];
+      if (!entry) return state;
+      const actor = entry.actors[action.actorId] ?? emptyActorEntryState();
       return {
         ...state,
-        entries: {
-          ...state.entries,
-          [entry.id]: {
+        jumpState: {
+          ...state.jumpState,
+          [action.entryId]: {
             ...entry,
-            actorBalances: { ...entry.actorBalances, [action.actorId]: 0 },
+            actors: {
+              ...entry.actors,
+              [action.actorId]: {
+                ...actor,
+                inputs: {
+                  ...actor.inputs,
+                  [action.choiceHandle]: {
+                    ...actor.inputs[action.choiceHandle],
+                    [action.inputHandle]: action.value,
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+    }
+    case "set-enabled-supplements":
+      return { ...state, enabledSupplements: action.value };
+    case "set-supplement-page":
+      return { ...state, supplementPage: action.value };
+    case "set-body-mod":
+      return { ...state, bodyMod: action.value };
+    case "supplement-action":
+      if (
+        action.action.type === "quest" ||
+        action.action.type === "uds" ||
+        action.action.type === "realityProgress"
+      ) {
+        const current = state.entrySupplements[state.selectedEntryId] ?? {
+          quest: state.supplements.quest,
+          uds: state.supplements.uds,
+        };
+        const next = supplementReducer(
+          {
+            ...state.supplements,
+            quest: current.quest,
+            uds: current.uds,
+            reality: {
+              ...state.supplements.reality,
+              progression:
+                current.realityProgression ??
+                state.supplements.reality.progression,
+            },
+          },
+          action.action,
+        );
+        return {
+          ...state,
+          entrySupplements: {
+            ...state.entrySupplements,
+            [state.selectedEntryId]: {
+              quest: next.quest,
+              uds: next.uds,
+              realityProgression: next.reality.progression,
+            },
+          },
+        };
+      }
+      return {
+        ...state,
+        supplements: supplementReducer(state.supplements, action.action),
+      };
+    case "record-choice-roll": {
+      const entry = state.jumpState[action.entryId];
+      if (!entry) return state;
+      const actor = entry.actors[action.actorId] ?? emptyActorEntryState();
+      const previousSequence =
+        actor.choiceRolls[action.choiceHandle]?.sequence ?? 0;
+      const candidate: TrackerState = {
+        ...state,
+        jumpState: {
+          ...state.jumpState,
+          [action.entryId]: {
+            ...entry,
+            actors: {
+              ...entry.actors,
+              [action.actorId]: {
+                ...actor,
+                choices: {
+                  ...actor.choices,
+                  [action.choiceHandle]: action.result,
+                },
+                choiceRolls: {
+                  ...actor.choiceRolls,
+                  [action.choiceHandle]: {
+                    result: action.result,
+                    sequence: previousSequence + 1,
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      return enforceBalancePolicy(
+        state,
+        candidate,
+        action.entryId,
+        action.actorId,
+        actionActivatesChoice(
+          state,
+          action.entryId,
+          action.choiceHandle,
+          action.result,
+        ),
+      );
+    }
+    case "record-source-roll": {
+      const entry = state.jumpState[action.entryId];
+      if (!entry) return state;
+      const actor = entry.actors[action.actorId] ?? emptyActorEntryState();
+      const previousSequence =
+        actor.sourceRolls[action.sourceKey]?.sequence ?? 0;
+      const previousResult = actor.sourceRolls[action.sourceKey]?.result;
+      const choices = { ...actor.choices };
+      if (typeof previousResult === "string") choices[previousResult] = false;
+      choices[action.result] = true;
+      const candidate: TrackerState = {
+        ...state,
+        jumpState: {
+          ...state.jumpState,
+          [action.entryId]: {
+            ...entry,
+            actors: {
+              ...entry.actors,
+              [action.actorId]: {
+                ...actor,
+                choices,
+                sourceRolls: {
+                  ...actor.sourceRolls,
+                  [action.sourceKey]: {
+                    result: action.result,
+                    sequence: previousSequence + 1,
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      return enforceBalancePolicy(
+        state,
+        candidate,
+        action.entryId,
+        action.actorId,
+        actionActivatesChoice(state, action.entryId, action.result, true),
+      );
+    }
+    case "toggle-applied-gauntlet": {
+      const entry = state.jumpState[action.entryId];
+      if (!entry) return state;
+      const active = entry.appliedGauntlet.some((item) => item.id === "manual");
+      return {
+        ...state,
+        jumpState: {
+          ...state.jumpState,
+          [action.entryId]: {
+            ...entry,
+            appliedGauntlet: active
+              ? entry.appliedGauntlet.filter((item) => item.id !== "manual")
+              : [
+                  ...entry.appliedGauntlet,
+                  { id: "manual", kind: "user", label: "Applied by user" },
+                ],
           },
         },
       };
     }
   }
+}
+import type {
+  ChainEvaluation,
+  EvaluatedActorJump,
+  EvaluatedJumpRuntime,
+  EvaluatedProperty,
+  JumpRuntimeState,
+} from "../domain";
+import {
+  choiceValueIsActive,
+  emptyActorEntryState,
+  emptyJumpEntryState,
+  evaluateChain,
+} from "../domain";
+import type { CanonicalJumpPackage } from "../markup";
+import type { BodyModState } from "../supplements/bodyMod";
+import type { EnabledModules, ModuleId } from "../supplements/model";
+import { supplementEvaluationInputs } from "./supplementEvaluation";
+import {
+  supplementReducer,
+  type QuestState,
+  type RealityState,
+  type SupplementAction,
+  type SupplementState,
+  type UdsState,
+} from "../supplements/supplementState";
+
+export type { EvaluatedActorJump, EvaluatedJumpRuntime, EvaluatedProperty };
+
+export function supplementStateForEntry(
+  state: TrackerState,
+  entryId = state.selectedEntryId,
+): SupplementState {
+  const entryState = state.entrySupplements[entryId];
+  const storyJumps = state.order.flatMap((id) => {
+    if (state.entries[id]?.kind !== "jump") return [];
+    const existing = state.supplements.story.jumps.find(
+      (jump) => jump.id === id,
+    );
+    return [
+      existing ?? {
+        id,
+        name:
+          state.packages[state.entries[id].packageId]?.name ??
+          "Unavailable Jump",
+        chapters: [],
+      },
+    ];
+  });
+  return {
+    ...state.supplements,
+    story: { ...state.supplements.story, jumps: storyJumps },
+    quest: entryState?.quest ?? state.supplements.quest,
+    uds: entryState?.uds ?? state.supplements.uds,
+    reality: {
+      ...state.supplements.reality,
+      progression:
+        entryState?.realityProgression ?? state.supplements.reality.progression,
+    },
+  };
 }

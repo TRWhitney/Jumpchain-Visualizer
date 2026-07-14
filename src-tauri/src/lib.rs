@@ -33,6 +33,72 @@ fn save_settings(payload: String, state: State<'_, PersistenceState>) -> Result<
         .map_err(|_| "settings write failed".to_owned())
 }
 
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn load_chains(state: State<'_, PersistenceState>) -> Result<Vec<serde_json::Value>, String> {
+    let store = state.0.lock().map_err(|_| "chain database lock failed")?;
+    let payload = store.load("chains").map_err(|_| "chain read failed")?;
+    payload
+        .map(|value| {
+            serde_json::from_str(&value).map_err(|_| "stored chains are invalid JSON".to_owned())
+        })
+        .transpose()
+        .map(Option::unwrap_or_default)
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn save_chain(payload: String, state: State<'_, PersistenceState>) -> Result<(), String> {
+    let value = validate_chain_payload(&payload)?;
+    let mut store = state.0.lock().map_err(|_| "chain database lock failed")?;
+    let existing = store.load("chains").map_err(|_| "chain read failed")?;
+    let mut chains: Vec<serde_json::Value> = existing
+        .map(|current| {
+            serde_json::from_str(&current).map_err(|_| "stored chains are invalid JSON".to_owned())
+        })
+        .transpose()?
+        .unwrap_or_default();
+    let id = value
+        .get("id")
+        .and_then(serde_json::Value::as_str)
+        .ok_or("chain id is missing")?;
+    if let Some(index) = chains
+        .iter()
+        .position(|item| item.get("id").and_then(serde_json::Value::as_str) == Some(id))
+    {
+        chains[index] = value;
+    } else {
+        chains.push(value);
+    }
+    let encoded = serde_json::to_string(&chains).map_err(|_| "chain serialization failed")?;
+    store
+        .save("chains", 1, &encoded)
+        .map_err(|_| "chain write failed".to_owned())
+}
+
+fn validate_chain_payload(payload: &str) -> Result<serde_json::Value, String> {
+    if payload.len() > 16 * 1024 * 1024 {
+        return Err("chain payload exceeds the application limit".to_owned());
+    }
+    let value: serde_json::Value =
+        serde_json::from_str(payload).map_err(|_| "chain payload is invalid JSON")?;
+    if value
+        .get("schemaVersion")
+        .and_then(serde_json::Value::as_u64)
+        != Some(1)
+    {
+        return Err("chain schema version is unsupported".to_owned());
+    }
+    let valid_id = value
+        .get("id")
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(|id| !id.is_empty() && id.len() <= 200);
+    if !valid_id {
+        return Err("chain id is invalid".to_owned());
+    }
+    Ok(value)
+}
+
 fn validate_settings_payload(payload: &str) -> Result<(), String> {
     if payload.len() > 2 * 1024 * 1024 {
         return Err("settings payload exceeds the application limit".to_owned());
@@ -111,6 +177,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             load_settings,
             save_settings,
+            load_chains,
+            save_chain,
             save_diagnostic_report
         ])
         .run(tauri::generate_context!())
@@ -119,7 +187,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{sanitize_suggested_name, validate_settings_payload};
+    use super::{sanitize_suggested_name, validate_chain_payload, validate_settings_payload};
 
     #[test]
     fn rejects_invalid_or_unsupported_settings_payloads() {
@@ -135,5 +203,12 @@ mod tests {
             "..privatereportname.txt"
         );
         assert_eq!(sanitize_suggested_name(&"a".repeat(120)).len(), 100);
+    }
+
+    #[test]
+    fn validates_versioned_chain_payloads() {
+        assert!(validate_chain_payload(r#"{"schemaVersion":1,"id":"chain-1"}"#).is_ok());
+        assert!(validate_chain_payload(r#"{"schemaVersion":2,"id":"chain-1"}"#).is_err());
+        assert!(validate_chain_payload(r#"{"schemaVersion":1,"id":""}"#).is_err());
     }
 }

@@ -10,16 +10,22 @@ import {
 } from "react";
 import { SettingsSurface } from "../settings/SettingsSurface";
 import { useOptionalSettings, useSettings } from "../settings/SettingsContext";
+import type { SettingsCategory } from "../settings/model";
 import { SettingsProvider } from "../settings/SettingsProvider";
 import { MemorySettingsRepository } from "../settings/repository";
 import { projectTagDefinitions } from "../settings/tagProfile";
 import { SupplementProviders } from "../supplements/TrackerSupplements";
 import { ChainTracker } from "../tracker/ChainTracker";
-import { createDenseTrackerFixture } from "../tracker/fixtures";
+import {
+  createBlankTrackerFixture,
+  createDenseTrackerFixture,
+  createSampleTrackerFixture,
+} from "../tracker/fixtures";
 import { StaticTagRadar } from "../tracker/TagRadar";
 import {
   tagCategories,
   trackerReducer,
+  choiceMutationWasBlocked,
   type TrackerAction,
   type TagDefinition,
 } from "../tracker/model";
@@ -38,9 +44,18 @@ import {
   primaryTagForChain,
   type SavedChain,
 } from "./chainRegistry";
+import {
+  aggregateFromTracker,
+  applyAggregate,
+  createPlatformChainRepository,
+} from "../tracker/repository";
+import type { TrackerState } from "../tracker/model";
+import { evaluateTracker } from "../tracker/evaluateTracker";
 import "../../documentation/styles.css";
 import "../../documentation/application-design.css";
 import "../../documentation/chain-tracker-design.css";
+import "../../documentation/choice-rendering-design.css";
+import "../tracker/jumpRenderer.css";
 import "../../documentation/settings-design.css";
 import "../../documentation/logging-design.css";
 import "../../documentation/tags-design.css";
@@ -51,7 +66,6 @@ import "../../documentation/supplements-universal-drawbacks.css";
 import "../supplements/review.css";
 import "../tracker/review.css";
 import "./shell.css";
-import "../settings/settings.css";
 
 type ShellHistoryState = {
   jvIndex?: number;
@@ -87,18 +101,35 @@ function AppShellContent() {
       ? state.settingsBackgroundPath
       : null;
   });
+  const [settingsCategory, setSettingsCategory] =
+    useState<SettingsCategory>("general");
   const [historyIndex, setHistoryIndex] = useState(currentHistoryIndex);
   const [historyMaximum, setHistoryMaximum] = useState(currentHistoryIndex);
-  const [trackerState, trackerDispatch] = useReducer(
-    trackerReducer,
-    undefined,
-    createDenseTrackerFixture,
-  );
   const [chainRegistry, chainRegistryDispatch] = useReducer(
     chainRegistryReducer,
     undefined,
     createChainRegistryFixture,
   );
+  const chainRepository = useMemo(() => createPlatformChainRepository(), []);
+  const [chainStates, setChainStates] = useState<Record<string, TrackerState>>(
+    () =>
+      Object.fromEntries(
+        Object.values(createChainRegistryFixture().chains).map(
+          (chain, index) => [
+            chain.id,
+            index === 0
+              ? { ...createDenseTrackerFixture(), chainName: chain.name }
+              : createSampleTrackerFixture(
+                  chain.name,
+                  chain.jumpCount,
+                  index * 2,
+                ),
+          ],
+        ),
+      ),
+  );
+  const chainStatesRef = useRef(chainStates);
+  const [chainSaveError, setChainSaveError] = useState<string | null>(null);
   const mainRef = useRef<HTMLElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const restoreSettingsFocus = useRef(false);
@@ -113,13 +144,46 @@ function AppShellContent() {
   );
   const workspace = workspaceForRoute(backgroundRoute);
   const savedChains = useMemo(
-    () => orderedChains(chainRegistry),
-    [chainRegistry],
+    () =>
+      orderedChains(chainRegistry).map((chain) => {
+        const value = chainStates[chain.id];
+        if (!value) return chain;
+        const evaluation = evaluateTracker(
+          value,
+          value.enabledSupplements["body-mod"] ? value.bodyMod : null,
+        );
+        const tagCounts = Object.fromEntries(
+          tagCategories.map((category) => [
+            category,
+            evaluation.records.filter((record) =>
+              record.tags.some((tag) => {
+                let current: string | undefined = tag;
+                while (current) {
+                  if (current === category) return true;
+                  current = value.tags[current]?.parent;
+                }
+                return false;
+              }),
+            ).length,
+          ]),
+        ) as SavedChain["tagCounts"];
+        return {
+          ...chain,
+          jumpCount: value.order.filter(
+            (entryId) => value.entries[entryId]?.kind === "jump",
+          ).length,
+          tagCounts,
+        };
+      }),
+    [chainRegistry, chainStates],
   );
   const activeChain =
     backgroundRoute.kind === "chain-workspace"
       ? chainRegistry.chains[backgroundRoute.chainId]
       : undefined;
+  const activeChainId = activeChain?.id ?? "ch-92b1";
+  const trackerState =
+    chainStates[activeChainId] ?? createBlankTrackerFixture(activeChain?.name);
   const projectedTags = useMemo(
     () => projectTagDefinitions(settings.tags.profile),
     [settings.tags.profile],
@@ -130,8 +194,10 @@ function AppShellContent() {
       allowMultiplePackageVersions: settings.chain.allowMultiplePackageVersions,
       allowNegativePointBalances: settings.chain.allowNegativePointBalances,
       allowRerolls: settings.chain.allowRerolls,
+      showAdditionalJumpInformation:
+        settings.developer.showAdditionalJumpInformation,
     }),
-    [settings.chain],
+    [settings.chain, settings.developer.showAdditionalJumpInformation],
   );
   const effectiveTrackerState = useMemo(
     () => ({
@@ -143,12 +209,72 @@ function AppShellContent() {
   );
 
   useEffect(() => {
-    trackerDispatch({
-      type: "apply-application-settings",
-      preferences: trackerPreferences,
-      tags: projectedTags,
-    });
-  }, [projectedTags, trackerPreferences]);
+    let live = true;
+    void chainRepository
+      .list()
+      .then(async (stored) => {
+        if (!live) return;
+        if (!stored.length) {
+          await Promise.all(
+            Object.entries(chainStates).map(([id, value]) =>
+              chainRepository.save(
+                aggregateFromTracker(id, value, chainRegistry.chains[id]),
+              ),
+            ),
+          );
+          return;
+        }
+        for (const aggregate of stored)
+          chainRegistryDispatch({
+            type: "hydrate",
+            id: aggregate.id,
+            name: aggregate.name,
+            description: aggregate.description,
+            lastOpenedSequence: aggregate.lastOpenedSequence,
+            lastOpenedLabel: aggregate.lastOpenedLabel,
+          });
+        setChainStates((current) => {
+          const next = { ...current };
+          for (const aggregate of stored) {
+            const base =
+              current[aggregate.id] ??
+              createBlankTrackerFixture(aggregate.name);
+            next[aggregate.id] = applyAggregate(base, aggregate);
+          }
+          return next;
+        });
+      })
+      .catch(() => setChainSaveError("Saved chains could not be loaded."));
+    return () => {
+      live = false;
+    };
+    // The initial seed is intentionally captured once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chainRepository]);
+
+  useEffect(() => {
+    if (!activeChain) return;
+    const timeout = window.setTimeout(() => {
+      void chainRepository
+        .save(
+          aggregateFromTracker(
+            activeChain.id,
+            {
+              ...trackerState,
+              chainName: activeChain.name,
+            },
+            activeChain,
+          ),
+        )
+        .then(() => setChainSaveError(null))
+        .catch(() =>
+          setChainSaveError(
+            "Autosave failed. Your in-memory changes are still available.",
+          ),
+        );
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [activeChain, chainRepository, trackerState]);
 
   useEffect(() => {
     const state = (window.history.state as ShellHistoryState | null) ?? {};
@@ -233,6 +359,10 @@ function AppShellContent() {
     if (settingsBackgroundPath && historyIndex > 0) window.history.back();
     else navigate("/");
   };
+  const toggleSettings = () => {
+    if (route.kind === "settings") closeSettings();
+    else openSettings();
+  };
 
   const openChain = useCallback(
     (chain: SavedChain) => {
@@ -248,6 +378,10 @@ function AppShellContent() {
       if (!normalized) return false;
       const id = `ch-new-${chainRegistry.nextSerial}`;
       chainRegistryDispatch({ type: "create", id, name: normalized });
+      setChainStates((current) => ({
+        ...current,
+        [id]: createBlankTrackerFixture(normalized),
+      }));
       logger.emit("chain.created", { attributes: { jumpCount: 0 } });
       navigate(`/chain/${id}`);
       return true;
@@ -255,35 +389,55 @@ function AppShellContent() {
     [chainRegistry.nextSerial, logger, navigate],
   );
 
+  const trackerDispatchRef = useRef<Dispatch<TrackerAction>>(() => undefined);
   const effectiveTrackerDispatch = useCallback<Dispatch<TrackerAction>>(
     (action) => {
-      const nextState = trackerReducer(effectiveTrackerState, action);
+      const currentState =
+        chainStatesRef.current[activeChainId] ?? trackerState;
+      const effectiveCurrentState = {
+        ...currentState,
+        tags: projectedTags,
+        preferences: trackerPreferences,
+      };
+      const nextState = trackerReducer(effectiveCurrentState, action);
+      if (
+        choiceMutationWasBlocked(effectiveCurrentState, nextState, action) &&
+        "entryId" in action &&
+        "actorId" in action
+      )
+        logger.emit("chain.choice.overspend_blocked", {
+          attributes: {
+            entryId: action.entryId,
+            actorId: action.actorId,
+          },
+        });
       if (action.type === "add-package") {
-        const packageItem = effectiveTrackerState.packages[action.packageId];
-        const exact = effectiveTrackerState.order.some(
+        const packageItem = effectiveCurrentState.packages[action.packageId];
+        const exact = effectiveCurrentState.order.some(
           (id) =>
-            effectiveTrackerState.entries[id].packageId === action.packageId,
+            effectiveCurrentState.entries[id].packageExactHash ===
+            packageItem?.exactHash,
         );
         const parallel =
           packageItem &&
-          effectiveTrackerState.order.some(
+          effectiveCurrentState.order.some(
             (id) =>
-              effectiveTrackerState.packages[
-                effectiveTrackerState.entries[id].packageId
+              effectiveCurrentState.packages[
+                effectiveCurrentState.entries[id].packageId
               ]?.logicalId === packageItem.logicalId,
           );
         if (exact) {
           // Opening an existing exact version is navigation, not a mutation.
         } else if (
           parallel &&
-          !effectiveTrackerState.preferences.allowMultiplePackageVersions
+          !effectiveCurrentState.preferences.allowMultiplePackageVersions
         ) {
           logger.emit("chain.package.blocked", {
             attributes: { reason: "parallel-version-disabled" },
           });
         } else if (
           packageItem &&
-          nextState.order.length > effectiveTrackerState.order.length
+          nextState.order.length > effectiveCurrentState.order.length
         ) {
           logger.emit("chain.package.added", {
             attributes: {
@@ -294,24 +448,58 @@ function AppShellContent() {
         }
       }
       if (
-        nextState.order !== effectiveTrackerState.order &&
-        nextState.order.join("\0") !== effectiveTrackerState.order.join("\0")
+        action.type !== "undo" &&
+        action.type !== "dismiss-undo" &&
+        nextState.order !== effectiveCurrentState.order &&
+        nextState.order.join("\0") !== effectiveCurrentState.order.join("\0")
       ) {
         const removed =
-          nextState.order.length < effectiveTrackerState.order.length;
+          nextState.order.length < effectiveCurrentState.order.length;
         logger.emit(removed ? "chain.removed" : "chain.reordered", {
           attributes: {
-            dependencyReview: Boolean(effectiveTrackerState.pending),
+            dependencyReview: Boolean(effectiveCurrentState.pending),
           },
+          toast: nextState.undo
+            ? {
+                action: {
+                  label: "Undo",
+                  invoke: () => trackerDispatchRef.current({ type: "undo" }),
+                },
+                onDismiss: () =>
+                  trackerDispatchRef.current({ type: "dismiss-undo" }),
+              }
+            : undefined,
         });
       }
-      trackerDispatch(action);
+      const nextStates = {
+        ...chainStatesRef.current,
+        [activeChainId]: nextState,
+      };
+      chainStatesRef.current = nextStates;
+      setChainStates(nextStates);
     },
-    [effectiveTrackerState, logger],
+    [activeChainId, logger, projectedTags, trackerPreferences, trackerState],
   );
 
+  useEffect(() => {
+    trackerDispatchRef.current = effectiveTrackerDispatch;
+  }, [effectiveTrackerDispatch]);
+
+  useEffect(() => {
+    chainStatesRef.current = chainStates;
+  }, [chainStates]);
+
   return (
-    <SupplementProviders>
+    <SupplementProviders
+      bodyMod={effectiveTrackerState.bodyMod}
+      onBodyModChange={(value) =>
+        effectiveTrackerDispatch({ type: "set-body-mod", value })
+      }
+      supplementState={effectiveTrackerState.supplements}
+      supplementDispatch={(action) =>
+        effectiveTrackerDispatch({ type: "supplement-action", action })
+      }
+    >
       <div
         className="app-shell-mockup app-primary-shell"
         aria-label="Jumpchain Visualizer application"
@@ -347,7 +535,7 @@ function AppShellContent() {
             className="app-mock-settings"
             type="button"
             aria-pressed={route.kind === "settings"}
-            onClick={openSettings}
+            onClick={toggleSettings}
           >
             Settings
           </button>
@@ -555,12 +743,41 @@ function AppShellContent() {
               onCreate={createChain}
               onOpen={openChain}
               onUpdateDetails={(id, name, description) => {
+                const normalizedName = normalizeChainName(name);
                 chainRegistryDispatch({
                   type: "update-details",
                   id,
-                  name,
+                  name: normalizedName,
                   description,
                 });
+                const current = chainStatesRef.current[id];
+                const metadata = chainRegistry.chains[id];
+                if (current && metadata) {
+                  const nextState = {
+                    ...current,
+                    chainName: normalizedName,
+                  };
+                  const nextStates = {
+                    ...chainStatesRef.current,
+                    [id]: nextState,
+                  };
+                  chainStatesRef.current = nextStates;
+                  setChainStates(nextStates);
+                  void chainRepository
+                    .save(
+                      aggregateFromTracker(id, nextState, {
+                        description: description.trim(),
+                        lastOpenedSequence: metadata.lastOpenedSequence,
+                        lastOpenedLabel: metadata.lastOpenedLabel,
+                      }),
+                    )
+                    .then(() => setChainSaveError(null))
+                    .catch(() =>
+                      setChainSaveError(
+                        "Autosave failed. Your in-memory changes are still available.",
+                      ),
+                    );
+                }
                 logger.emit("chain.details.updated");
               }}
             />
@@ -589,6 +806,28 @@ function AppShellContent() {
               dispatch={effectiveTrackerDispatch}
               showApplicationHeader={false}
             />
+            {chainSaveError && (
+              <div className="tracker-undo" role="alert">
+                <span>{chainSaveError}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!activeChain) return;
+                    void chainRepository
+                      .save(
+                        aggregateFromTracker(
+                          activeChain.id,
+                          effectiveTrackerState,
+                          activeChain,
+                        ),
+                      )
+                      .then(() => setChainSaveError(null));
+                  }}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
           </section>
 
           <RecoveryView
@@ -633,6 +872,8 @@ function AppShellContent() {
             <SettingsSurface
               onClose={closeSettings}
               direct={!settingsBackgroundPath}
+              category={settingsCategory}
+              onCategoryChange={setSettingsCategory}
             />
           </div>
         )}

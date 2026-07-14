@@ -25,7 +25,7 @@
         <p class="eyebrow">Portable chain contract</p>
         <h1>Chain export and import</h1>
         <p class="lede">A portable chain preserves the user’s chain state and separately owned supplement data while referring to installed Jump packages by exact content identity. It does not redistribute those packages.</p>
-        <div class="status-note" role="note"><strong>Status: agreed portability contract.</strong> Physical format, package references, missing-package behavior, supplement inclusion, forward compatibility, atomic validation, copy-based import, and export scope are settled.</div>
+        <div class="status-note" role="note"><strong>Status: agreed portability contract; local aggregate persistence implemented.</strong> Physical format, package references, missing-package behavior, supplement inclusion, forward compatibility, atomic validation, copy-based import, and export scope are settled. Saved chains already persist as independent versioned aggregates through IndexedDB or SQLite; the user-facing <code>.jchain</code> archive transfer remains a separate implementation increment.</div>
       </header>
 
       <h2><code>.jchain</code> Portable Container</h2>
@@ -42,13 +42,15 @@
       <h2>Export Boundary</h2>
       <p>A chain export contains the complete portable state needed to reconstruct the chain but does not embed any <code>.jmp</code> package or its assets. Exported state includes:</p>
       <ul>
-        <li>chain name/profile metadata and chronological chain-entry records</li>
-        <li>package references, selections, rolls, actor state, balances, accrued records, forms, companion participation, and provenance</li>
+        <li>chain name/profile metadata, the system-owned Earth identity entry, and chronological installed-Jump entry records; Earth’s user-facing status is always reconstructed as <strong>The Beginning</strong> rather than trusted from stored presentation data</li>
+        <li>package references, selections, rolls, actor state, balances, accrued records, forms, companion participation, entry-applied Gauntlet sources, and provenance</li>
         <li>all enabled and disabled supplement state, stored per module rather than folded into Jump data</li>
         <li>Story chapters and their editable source representation</li>
         <li>schema and module-state versions needed to validate or migrate the export</li>
       </ul>
       <p>Application settings, the user’s tag profile, session logs, filesystem paths, permission handles, and installed package bytes are not chain state and are not included.</p>
+      <p>Earth is serialized as a distinguished application-owned entry, never as an installed-package reference. Its selected Gender and Age values are portable actor state; Origin Human, Location Earth, 0 CP, immutability, and unnumbered chronology are system semantics reconstructed by the importing application. Unknown presentation text is not serialized.</p>
+      <p>Native Gauntlet status remains immutable package metadata recovered from the exact installed package reference. A manual <strong>Apply Gauntlet rules</strong> action is chain-entry state and exports with its stable source identity. Supplement-applied Gauntlet sources remain in their owning module documents. Import recomputes one effective status from those sources; it never serializes only the derived boolean or bakes a supplement effect into package metadata.</p>
 
       <h2>Exact Package References</h2>
       <p>Every chain entry references an installed Jump using both readable metadata and the cryptographic hash of the complete installed <code>.jmp</code> byte stream.</p>
@@ -65,6 +67,7 @@
       <ul>
         <li>The entry remains selectable in chronology and is visibly marked with a package error.</li>
         <li>Previously stored selections, rolls, accrued records, and actor state remain preserved and visible. They are not ignored or silently recalculated against another package.</li>
+        <li>The unresolved-entry snapshot preserves whether the missing exact package was natively a Gauntlet, so its last validated point and supplement projections remain explainable without allowing that snapshot to masquerade as a different installed package.</li>
         <li>The Jump pane cannot render substantive package content or accept package-defined choices while the exact package is unavailable.</li>
         <li>Chain-wide supplements remain usable for that entry. Story and other supplement state are independent of package readability.</li>
         <li>Installing a readable package with the exact hash resolves the reference and triggers deterministic revalidation.</li>

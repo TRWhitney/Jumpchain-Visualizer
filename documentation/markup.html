@@ -480,8 +480,8 @@ typed handled-content leaves, just as prose and visuals are handled in
 <h2>Layout Node Vocabulary</h2>
 <h3>Built-In Default Layouts</h3>
 <p>The renderer provides intentionally plain built-in section and choice layouts. Authors use them automatically when neither the declaration nor the Jump root selects an authored layout.</p>
-<p>Built-in layouts render only their supported built-in slots and, for sections, declared choice sources. They do not discover or automatically place arbitrary owned <code>text</code>, <code>image</code>, or <code>input</code> blocks. Those blocks render only when an authored layout references them explicitly, avoiding nonstandard discovery rules and unintentional hodgepodge presentation.</p>
-<p>The selected default section presentation is a vertical <code>stack</code> with standard spacing: the section <code>name</code> slot appears first, followed by every choice source in declaration order. Each source receives a compact source wrapper containing its contextual <code>roll</code> slot and one <code>expand</code>; an inapplicable roll slot collapses.</p>
+<p>Built-in layouts render only their supported built-in slots and, for sections, declared choice sources and direct choice associations. They do not discover or automatically place arbitrary owned <code>text</code>, <code>image</code>, or <code>input</code> blocks. Those blocks render only when an authored layout references them explicitly, avoiding nonstandard discovery rules and unintentional hodgepodge presentation.</p>
+<p>The selected default section presentation is a vertical <code>stack</code> with standard spacing: the section <code>name</code> slot appears first, followed by every choice source and direct choice association in declaration order. Each source receives a compact source wrapper containing its contextual <code>roll</code> slot and one <code>expand</code>; a direct choice renders once with its normal contextual/default choice layout.</p>
 <p>The selected default choice presentation is a compact vertical <code>stack</code>. An <code>inline</code> header places <code>name</code> and <code>cost</code> apart, followed by <code>tags</code>, then an <code>inline</code> action row containing <code>control</code> and choice-level <code>roll</code>. This includes every built-in choice slot without discovering arbitrary owned blocks.</p>
 <p>Built-in layout containers are implementation-owned and do not expose author-facing handles. Equivalent authored layouts use ordinary handled containers.</p>
 <p>At runtime, empty or inapplicable slots reserve no space. A container whose children all collapse for that reason also collapses. The structured layout editor still shows those nodes as authoring placeholders so their positions remain understandable.</p>
@@ -505,6 +505,7 @@ typed handled-content leaves, just as prose and visuals are handled in
 <li><code>input</code></li>
 <li><code>slot</code></li>
 <li><code>rule</code></li>
+<li><code>choice</code> inside a section layout</li>
 <li><code>expand</code></li>
 </ul>
 <p>A <code>grid</code> requires <code>columns</code> as an integer from 1 through 12. This is the authored maximum; responsive rendering may reduce the effective count for narrower space but never exceeds it.</p>
@@ -579,13 +580,42 @@ slot
 <li><code>expand</code> targets a named section-local choice source</li>
 <li><code>expand</code> may specify <code>using</code> for a <code>choice-layout</code> override</li>
 <li><code>expand</code> should not query descriptive tags or groups directly</li>
-<li>direct expansion of individually named choices can wait until there is a
-concrete need</li>
 <li>an <code>expand</code> naming a choice source absent from the rendered section produces an Editor warning and a distributable-package error; unlike optional typed content leaves, source expansion is structural and does not silently collapse in a valid package</li>
 <li>one section layout may expand a given choice-source target at most once; duplicate expansion is an error because it would render the same interactive controls repeatedly</li>
 <li>a section with no <code>choice-source</code> is a valid informational section and produces no source-related warning</li>
 <li>a declared choice source that currently matches no choices produces a warning</li>
 <li>when an explicit section layout omits a populated choice source, the source remains valid but produces an unreachable-source warning</li>
+</ul>
+<h3>Direct Choice Placement</h3>
+<p>A section may associate a named placement with one top-level choice when unrelated controls need to share a section without pretending to be a selectable group.</p>
+<pre><code class="language-text">section
+  handle: identity
+  name: "Identity"
+  layout: identity_section
+
+  choice
+    handle: gender_field
+    target: starting_gender
+
+  choice
+    handle: age_field
+    target: starting_age
+</code></pre>
+<p>The section block names both the owner-local placement and its top-level target. The layout places it through compact-only scalar leaves; this is not expansion and has no block form.</p>
+<pre><code class="language-text">section-layout
+  handle: identity_section
+
+  grid
+    handle: root
+    columns: 2
+    choice: gender_field
+    choice: age_field
+</code></pre>
+<ul>
+<li>forward references to top-level choices are allowed</li>
+<li>one section may associate a target once, and one layout may place each association once</li>
+<li>unresolved targets or placements are distributable-package errors</li>
+<li>an associated choice omitted from an explicit layout produces an unreachable-choice warning</li>
 </ul>
 <h3>Choice Sources</h3>
 <p>Sections need a semantic way to associate choices with themselves without
@@ -651,7 +681,7 @@ matching typed layout leaves.</p>
 <h2>Jump Direction</h2>
 <p>The top-level <code>jump</code> declaration is the place for root jump metadata and
 jump-wide defaults.</p>
-<p>Every Jump has an implicit engine-owned primary resource with the stable handle <code>jump_points</code>. It defaults to the display name <q>Choice Points</q>, abbreviation <q>CP</q>, and starting balance 1000. Authors never need to declare this resource, and supplements may rely on it existing.</p>
+<p>Every Jump has an implicit engine-owned primary resource with the stable handle <code>jump_points</code>. It defaults to the display name <q>Choice Points</q> and abbreviation <q>CP</q>. An ordinary Jump defaults to a starting balance of 1000, while a native Gauntlet defaults to 0. Authors never need to declare this resource, and supplements may rely on it existing.</p>
 <p>Every secondary resource referenced by costs or grants requires an authored <code>resource</code> declaration. Its <code>initial</code> field is optional and defaults to zero. Undeclared secondary-resource references are distributable-package errors, while the Editor retains them as WIP diagnostics.</p>
 <p>Secondary resources are top-level declarations in <code>jump.jdef</code>, alongside <code>jump</code> and <code>section</code>; they are not nested inside the root Jump declaration.</p>
 <p>Current direction:</p>
@@ -661,6 +691,7 @@ jump-wide defaults.</p>
 <li><code>name</code></li>
 <li>one or more repeated <code>author</code> fields</li>
 <li>required <code>version</code></li>
+<li>optional boolean <code>gauntlet</code></li>
 <li>optional <code>starting-points</code></li>
 <li>optional <code>points-name</code></li>
 <li>optional <code>points-abbreviation</code></li>
@@ -686,8 +717,13 @@ jump-wide defaults.</p>
 <li><code>version</code> is required user-facing metadata so installed releases can be distinguished in the library and chain</li>
 <li><code>version</code> is user-facing metadata, not the system&#39;s authoritative internal
 compatibility key</li>
-<li><code>starting-points</code> defaults to <code>1000</code>, <code>points-name</code> defaults to <code>&quot;Choice Points&quot;</code>, and <code>points-abbreviation</code> defaults to <code>&quot;CP&quot;</code></li>
+<li><code>gauntlet</code> defaults to <code>false</code>; <code>gauntlet: true</code> declares that the installed package is intrinsically a Gauntlet</li>
+<li>omitted <code>starting-points</code> defaults to <code>1000</code> for an ordinary Jump and <code>0</code> for a native Gauntlet; an explicit authored value overrides either default</li>
+<li><code>points-name</code> defaults to <code>&quot;Choice Points&quot;</code>, and <code>points-abbreviation</code> defaults to <code>&quot;CP&quot;</code></li>
 <li><code>starting-points</code> accepts any literal integer, including an authored negative starting balance, and does not accept symbolic cost tokens</li>
+<li>the package declaration is immutable chain truth: a native Gauntlet cannot be converted into an ordinary Jump by chain state</li>
+<li>an ordinary installed Jump may receive entry-scoped Gauntlet rules from an explicit user action or supplement; that applied status belongs to the chain entry rather than package markup and reduces the ordinary starting-point contribution to 0</li>
+<li>native and applied Gauntlet sources are idempotent rather than cumulative; explicit drawback, quest, supplement, and other resource grants continue to add to the resulting balance</li>
 <li>these fields change presentation or initial balance without changing the engine-owned <code>jump_points</code> handle</li>
 <li>internal compatibility/version tracking should continue to rely on stronger
 internal mechanisms such as hashing rather than trusting authored <code>version</code>
@@ -700,6 +736,7 @@ strings as machine truth</li>
   author: &quot;Author One&quot;
   author: &quot;Author Two&quot;
   version: &quot;1.0&quot;
+  gauntlet: false
   starting-points: 1000
   points-name: &quot;Choice Points&quot;
   points-abbreviation: &quot;CP&quot;
@@ -707,6 +744,15 @@ strings as machine truth</li>
   choice-layout: default_choice
   trait-layout: default_trait
 </code></pre>
+<p>A native Gauntlet uses the same Format 1 root declaration:</p>
+<pre><code class="language-text">jump
+  format: 1
+  name: &quot;The Arena&quot;
+  author: &quot;Example Author&quot;
+  version: &quot;1.0&quot;
+  gauntlet: true
+</code></pre>
+<p>Because <code>starting-points</code> is omitted, this package contributes 0 <code>jump_points</code> before explicit grants. This is distinct from an ordinary Jump that a user or supplement treats as a Gauntlet for one chain entry; applied status is never written back into package source.</p>
 <h2>Resource Direction</h2>
 <p>Secondary currencies are top-level package-wide declarations in <code>jump.jdef</code>. Their current field direction is:</p>
 <ul>
@@ -733,6 +779,7 @@ strings as machine truth</li>
 <li>required <code>name</code></li>
 <li><code>layout?</code></li>
 <li>repeated nested <code>choice-source</code></li>
+<li>repeated nested direct <code>choice</code> associations</li>
 <li>nested <code>text</code></li>
 <li>nested <code>image</code></li>
 </ul>
@@ -744,7 +791,7 @@ strings as machine truth</li>
 <li>a valid distributable package contains at least one top-level <code>section</code></li>
 <li>zero choices are valid, allowing an informational package, but a zero-section project remains an incomplete Editor draft and cannot be exported as a valid package</li>
 <li>sections do not inline layout trees</li>
-<li>sections do not own nested <code>choice</code> declarations</li>
+<li>a nested section <code>choice</code> block associates a placement with a top-level choice; it does not redeclare or inline that choice</li>
 <li>source order defines section order in v1</li>
 <li>section prose should be expressed through nested <code>text</code> blocks rather than
 special prose fields</li>
@@ -924,13 +971,13 @@ inputs</li>
 <li>required <code>handle</code></li>
 <li><code>name</code></li>
 <li><code>layout?</code></li>
-<li><code>species?</code> for Origin choices</li>
 <li>repeated <code>tag</code></li>
 <li>zero or more repeated <code>group</code> fields</li>
 <li>nested <code>text</code></li>
 <li>nested <code>image</code></li>
 <li>nested <code>input</code></li>
 <li>optional <code>selection</code></li>
+<li>optional <code>continuity</code> for a standardized Gender select</li>
 <li>repeated nested mechanics declarations such as <code>cost</code> and <code>grant</code></li>
 </ul>
 <p>Current rules:</p>
@@ -943,8 +990,6 @@ inputs</li>
 <li>a choice may belong to multiple distinct groups, but repeating the same canonical group on one choice is an error because membership is set-like</li>
 <li><code>layout</code> remains optional because section expansion usually supplies layout
 context</li>
-<li><code>species</code> is optional and valid only on a choice that belongs to the conventional
-<code>origins</code> group</li>
 <li><code>selection</code> should default to <code>toggle</code> when omitted</li>
 <li>current preferred <code>selection</code> values are:<ul>
 <li><code>toggle</code></li>
@@ -1013,38 +1058,33 @@ conventional handles such as <code>visual</code></li>
 
   grant: perk
 </code></pre>
-<h3>Optional Origin Species</h3>
-<p>An Origin may identify the species it gives the selected actor so the Chain Tracker
-can label the current Jump without inferring species from names, prose, tags, or images.</p>
-<p>Current direction:</p>
-<ul>
-<li><code>species</code> is an optional user-facing quoted string on a choice in
-<code>group: origins</code></li>
-<li>when that Origin is selected, its value becomes the actor&#39;s displayed Jump species</li>
-<li>when omitted, the Chain Tracker uses an active Bestial Body Mod presentation such as
-<q>Wolf Demi-Human</q>, or defaults to <q>Human</q> when no such presentation applies</li>
-<li><code>species</code> is descriptive metadata, not a tag, prerequisite, power category,
-or durable identity key</li>
-<li>an explicitly authored Origin species takes precedence over the fallback but does not
-rewrite Body Mod presentation; for example, Jump species may be <q>Elf</q> while a Bestial
-Body Mod is summarized separately as <q>Wolf Demi-Human</q></li>
-<li>if evaluation somehow produces multiple active Origin species values for one actor,
-the result is ambiguous and receives a diagnostic rather than silently choosing one</li>
-</ul>
-<p>Example direction:</p>
+<h3>Identity Properties</h3>
+<p>Origin, Species, Location, Gender, and Age communicate with the Chain Tracker through ordinary property grants. One Origin may write both background and species without coupling Location to either value.</p>
 <pre><code class="language-text">choice
   handle: moon_elf
   name: &quot;Moon Elf&quot;
   group: origins
-  species: &quot;Elf&quot;
 
-  text
-    handle: description
-    content:
-      &quot;&quot;&quot;
-      You were raised among the moonlit courts.
-      &quot;&quot;&quot;
+  grant
+    kind: property
+    handle: origin
+    value: &quot;Moon Elf&quot;
+
+  grant
+    kind: property
+    handle: species
+    value: &quot;Elf&quot;
 </code></pre>
+<p><code>origin</code>, <code>species</code>, <code>location</code>, and <code>gender</code> are strings; <code>age</code> is an integer. Origin, Species, and Location accept quoted literals or compatible string controls. Copied Gender requires <code>selection: select</code>, while copied Age requires <code>selection: integer</code>. Origin and Location never inherit. Age begins with the actor’s previous effective Age until an authored integer choice overrides it; clearing that control restores the derived value. Species resolves from an explicit current-entry property, then an enabled Classic Body Mod Bestial value such as <q>Wolf Demi-Human</q>, then <q>Human</q>.</p>
+<h3>Gender Continuity</h3>
+<p><code>continuity</code> is valid only on a select choice that directly copies its control into exactly one <code>gender</code> property grant.</p>
+<ul>
+<li><code>continuity: previous</code> references the actor's preceding effective gender</li>
+<li><code>continuity: original</code> references Earth for the Jumper or acquisition identity for a companion</li>
+<li>a referenced option present in the dropdown is the derived free default; other options retain authored costs</li>
+<li>when the referenced value is unset or absent, the control begins unset and every option is free</li>
+<li>explicit selections remain stable after upstream changes; clearing restores derived behavior</li>
+</ul>
 <h3>Choice Defaults and Inheritance</h3>
 <p>The current agreed defaults are:</p>
 <ul>
@@ -1073,7 +1113,7 @@ resolved.</p>
 choose and incur normal cost rules</li>
 <li>for flat-cost integer and select choices, the exact recorded rolled value is free; another current value uses normal cost, and returning to the recorded value restores free resolution</li>
 <li>for an integer choice with <code>cost mode: each</code>, the rolled integer is a free-rank allowance: selecting that many or fewer ranks is free, while selecting more charges only for ranks above the allowance</li>
-<li>a random-only integer may be cleared to its normal unset state without erasing the stored roll; when rerolls are disabled, Claim restores that stored result without generating another roll</li>
+<li>a random-only integer may be cleared to its normal unset state without erasing or hiding the stored roll; when rerolls are disabled, the visible result remains beside Claim, which restores that stored result without generating another roll</li>
 <li>if a choice supports rolling, <code>slot: roll</code> should be available to position
 the roll control separately from the normal control</li>
 </ul>
@@ -1299,7 +1339,7 @@ or a built-in trait layout if one exists</li>
 can control how traits are displayed distinctly from standard perks/items</li>
 </ul>
 <h3>Property Direction</h3>
-<p>Properties are persistent engine values granted by authored content.</p>
+<p>Properties are engine values granted by authored content for the current chain entry.</p>
 <p>Current direction:</p>
 <ul>
 <li>every <code>kind: property</code> grant requires a canonical <code>handle</code> naming the destination property</li>
@@ -1313,12 +1353,12 @@ can control how traits are displayed distinctly from standard perks/items</li>
 <li>when <code>value</code> is omitted, the property grant copies its owning control value</li>
 <li>literal <code>value</code> supports quoted strings, integers, and the bare booleans <code>true</code> and <code>false</code></li>
 <li>there is no literal null value; when the owning choice becomes inactive, its property grant is removed and the property may return to unset</li>
+<li>property grants do not carry into later chain entries; the engine separately seeds Gender and Age identity continuity</li>
 <li>properties are readable in <code>when</code> conditions and placeholders</li>
 <li>multiple active grants may write one property only when they resolve to the same typed value; this produces an informational diagnostic</li>
 <li>differing active values for one property are an ambiguity error; property evaluation never uses source order or last-write-wins behavior</li>
 <li>properties do not use the shorthand inheritance model meant for perks/items</li>
-<li>reserved engine-critical properties such as <code>gender</code> should use documented
-standardized values</li>
+<li>reserved engine-critical properties use documented standardized types and control requirements</li>
 </ul>
 <p>Ordinary authored properties do not require separate top-level declarations in
 markup. They come into existence through the grants that write them.</p>
@@ -1344,7 +1384,11 @@ erasing the selection</li>
 </ul>
 <p>Current reserved engine property set:</p>
 <ul>
+<li><code>origin</code></li>
+<li><code>species</code></li>
+<li><code>location</code></li>
 <li><code>gender</code></li>
+<li><code>age</code></li>
 </ul>
 <h3>Grant Override Semantics</h3>
 <p>When block-form grants override only part of the inherited common case, the
@@ -1631,7 +1675,7 @@ intentionally narrow and readable in v1.</p>
 <li><code>count = 3</code></li>
 <li><code>count &gt;= 4</code></li>
 <li><code>gender = &quot;female&quot;</code></li>
-<li><code>supplement_mode = &quot;gauntlet&quot;</code></li>
+<li><code>gauntlet</code></li>
 <li><code>companion_name</code></li>
 <li><code>!companion_name</code></li>
 </ul>
@@ -1640,8 +1684,9 @@ intentionally narrow and readable in v1.</p>
 <p>Precedence is parentheses, then <code>!</code>, then comparisons, then <code>and</code>, then <code>or</code>. Negation may apply to a property or a parenthesized expression.</p>
 <p>Bare-property truthiness treats unset as false, uses a boolean’s value, treats integer zero as false and other integers as true, and treats empty strings as false and nonempty strings as true.</p>
 <p>Comparisons do not coerce types. Strings compare with quoted strings, integers with integers, and booleans with bare <code>true</code> or <code>false</code>. Ordering operators accept integers only. A statically provable type mismatch is an authoring error.</p>
-<p>At runtime, conditions and placeholders read the currently viewed actor’s property state as of the selected chain entry. This includes retained properties from earlier entries and effects from the selected entry’s current choices, but never properties acquired later in the chain. Companion view evaluates against that companion rather than silently reading the Jumper’s state.</p>
-<p>A condition referencing a property that no package grant defines produces a WIP warning in the Editor and is an error when exporting or importing a distributable package.</p>
+<p>At runtime, conditions and placeholders read the currently viewed actor’s property state in the selected chain entry. Ordinary earlier properties are not retained. Engine-provided Gender and Age identity seeds and effects from the current entry’s choices are available, but properties acquired later never are. Companion view evaluates against that companion rather than silently reading the Jumper’s state.</p>
+<p><code>gauntlet</code> is a reserved read-only engine boolean, not an authored property destination. Editor preview derives it from the package’s native declaration; Chain Tracker evaluation also includes active entry-scoped user and supplement sources. This lets authored presentation react consistently without exposing a grant that could counterfeit package or chain status.</p>
+<p>A condition referencing a property that no package grant defines produces a WIP warning in the Editor and is an error when exporting or importing a distributable package. Reserved engine values such as <code>gauntlet</code> are exempt because their types and provenance are defined by the format contract.</p>
 <h3>Variant Matching Order</h3>
 <p><code>when</code> variants are evaluated from top to bottom. The first matching variant
 wins, and evaluation stops. Base renderable text is used only when no variant
@@ -1709,12 +1754,155 @@ change without breaking the import reference.</p>
 <p>Editor-specific workflow, diagnostics, migrations, and tooling concerns should
 be tracked in a separate editor design document rather than expanded further in
 this markup document.</p>
-<h2>Frozen Format 1 Schema</h2>
+<h2>Planned Format 1 Amendments</h2>
+<p>This section records additions that still need to be incorporated into Format 1.
+They amend Format 1 in place; they are not a Format 2 proposal. An item listed here
+is a design requirement rather than accepted source syntax until the Format 1
+schema, parser, formatter, validator, conformance fixtures, runtime model, and
+documentation all implement it together.</p>
+<h3>Explicit Quantity Semantics</h3>
+<p>Format 1 needs explicit quantity metadata for durable visible grants. Quantity
+and rank are different measures and must not be inferred from one another:</p>
+<table>
+<thead><tr><th>Measure</th><th>Meaning</th><th>Example</th><th>Presentation</th></tr></thead>
+<tbody>
+<tr><td>Rank</td><td>The acquired progression level, tier, or strength of one perk, item, or trait.</td><td>Random Training acquired at rank 3.</td><td><q>3 ranks</q> on a summary and <q>Ranks: 3</q> in details.</td></tr>
+<tr><td>Quantity</td><td>The number of interchangeable copies or units acquired; it does not imply that any copy is stronger.</td><td>Three identical healing potions.</td><td><q>x3</q> on a summary and <q>Quantity: 3</q> in details.</td></tr>
+</tbody>
+</table>
+<p>The proposed discriminator is an optional <code>measure: rank</code> or
+<code>measure: quantity</code> field. A visible grant driven by an integer choice or
+input defaults to <code>rank</code> when the field is omitted. Authors write
+<code>measure: quantity</code> only when that integer represents interchangeable
+copies rather than progression. A non-integer choice produces an ordinary single
+acquisition and does not gain a rank badge merely because rank is the numeric
+default.</p>
+<p>Default-rank shorthand example:</p>
+<pre><code class="language-text">choice
+  handle: random_training
+  name: &quot;Random Training&quot;
+  selection: integer
+  min: 0
+  max: 3
+
+  cost
+    amount: 100
+    mode: each
+
+  grant: perk
+</code></pre>
+<p>Block-form quantity example:</p>
+<pre><code class="language-text">choice
+  handle: healing_potions
+  name: &quot;Healing Potions&quot;
+  selection: integer
+  min: 0
+  max: 10
+
+  grant
+    kind: item
+    measure: quantity
+</code></pre>
+<p>The amendment must preserve these semantics:</p>
+<ul>
+<li><code>measure</code> accepts exactly <code>rank</code> or <code>quantity</code>; omission means <code>rank</code> only when the grant copies an owning integer choice or input</li>
+<li>on a block-form perk, item, or trait grant, <code>measure</code> applies to that grant</li>
+<li>directly on a choice, the field applies to that choice’s single shorthand visible grant; it is invalid without exactly one <code>grant: perk</code> or <code>grant: item</code> shorthand</li>
+<li><code>measure</code> is valid only when the owning choice or input has an integer control; fixed literal quantities are outside this amendment</li>
+<li><code>cost mode: each</code> continues to describe cost multiplication and does not, by itself, declare quantity semantics</li>
+<li>a resolved value of zero creates no acquired record for either measure; negative and non-integer measure values are invalid</li>
+<li>authored <code>measure</code> is singular, so one acquisition cannot declare itself as both ranked and quantified</li>
+<li>conditional descriptions and placeholders continue to read the authored choice/property context; adding quantity metadata must not replace or rename those values implicitly</li>
+<li>the selected measure and value must persist with provenance and appear consistently in Inventory, companion profiles, Forms, and every shared perk/item/trait detail surface</li>
+</ul>
+<h4>Duplicate Acquisition Aggregation</h4>
+<p>Quantity also represents repeated acquisition of an otherwise identical record,
+including acquisitions produced by adding the same exact Jump package to one chain
+more than once. Aggregation is a Chain Tracker projection and does not erase the
+individual provenance-bearing grant records.</p>
+<ul>
+<li>each unquantified or ranked acquisition contributes one copy; an authored <code>measure: quantity</code> acquisition contributes its resolved quantity</li>
+<li>records aggregate only when they have the same owner, grant kind, effective grant handle, exact installed-package source, resolved name, and rank; unranked records match only other unranked records</li>
+<li>for aggregation, shorthand uses its owning choice handle as the effective grant handle; a block grant uses its owning choice or input handle plus immutable grant position, matching the existing Format 1 provenance rule</li>
+<li>the exact package source is the installed package identity and hash rather than the chain-entry ID, allowing acquisitions from repeated instances of that exact package to aggregate</li>
+<li>different ranks remain separate entries; two rank-3 acquisitions aggregate together, but rank 2 and rank 3 never do</li>
+<li>an aggregate quantity greater than one displays an <code>xN</code> badge; quantity one remains visually implicit</li>
+<li>a ranked aggregate may therefore show both its ordinary rank badge and an <code>xN</code> badge, but only when multiple copies with that same rank aggregate</li>
+<li>an authored quantity record displays only <code>xN</code>, not a rank badge</li>
+<li>aggregate details retain every contributing chain-entry provenance; if conditional evaluation produced different descriptions, the detail surface preserves each distinct resolved description and its contributing copy count rather than discarding one</li>
+<li>removing or changing one contributing acquisition recomputes the aggregate and decreases, splits, or removes its quantity without mutating the remaining records</li>
+</ul>
+<h3>Form Grants and Form-Owned Perks</h3>
+<p>Format 1 also needs a durable form grant. A form is an accrued alternate body
+with its own profile and stable runtime identity. It is not an item, a temporary
+property value, or a mutually exclusive active state.</p>
+<p>A form grant does not contain or automatically grant its perks. Any perk grant
+in the package may instead name the form that owns it, regardless of which section
+or choice contains either grant. The author selects that ownership relationship;
+the user does not select a recipient form.</p>
+<p>Proposed form grant:</p>
+<pre><code class="language-text">choice
+  handle: dragon_form
+  name: &quot;Dragon Form&quot;
+  cost: 400
+
+  grant
+    kind: form
+    handle: dragon_form
+    tag: transformation
+
+    text
+      handle: description
+      content: &quot;A scaled alternate body with wings and elemental resilience.&quot;
+</code></pre>
+<p>A perk in another section or choice may target that form with a single
+<code>form</code> field:</p>
+<pre><code class="language-text">choice
+  handle: reinforced_hide
+  name: &quot;Reinforced Hide&quot;
+  cost: 100
+
+  grant
+    kind: perk
+    form: dragon_form
+
+    text
+      handle: description
+      content: &quot;Dragon Form gains armor without changing your other bodies.&quot;
+</code></pre>
+<p>When the choice uses ordinary perk shorthand, the form target is also
+available without expanding the grant into a block:</p>
+<pre><code class="language-text">choice
+  handle: draconic_resilience
+  name: &quot;Draconic Resilience&quot;
+  cost: 200
+  grant: perk
+  form: dragon_form
+</code></pre>
+<p>The exact syntax remains proposed rather than valid Format 1 source. The
+amendment should preserve these semantics:</p>
+<ul>
+<li><code>kind: form</code> is block-only and requires a package-local stable <code>handle</code>; it inherits the owning choice’s visible name, conventional description and visual content, and tags unless overridden</li>
+<li>the initial amendment creates Jumper forms only; companion forms require a separate design rather than silently treating the companion as a form or routing the form’s perks into that companion’s profile</li>
+<li>a form is a distinct record owner; a form-owned perk stores the target form’s stable runtime ID instead of an actor ID</li>
+<li>form-owned perks appear only on the target form’s profile and form detail surfaces; they do not appear in the Jumper’s Inventory, Inventory Stats, or any companion profile</li>
+<li><code>form: &lt;handle&gt;</code> on a block-form perk grant resolves in the package-wide form-handle namespace; references may cross sections and files and may be forward references</li>
+<li><code>form: &lt;handle&gt;</code> directly on a choice targets that choice’s single <code>grant: perk</code> shorthand; it is invalid without exactly one shorthand perk grant, and choices with multiple or customized grants use block form to keep ownership unambiguous</li>
+<li>the form reference is authored and fixed; it does not present a form selector to the user and does not permit runtime retargeting</li>
+<li>a targeted perk depends on its referenced form grant being active; the application disables or rejects acquiring the perk without that form, and removing the form requires impact review for active dependent perk choices</li>
+<li>renaming a form does not retarget or detach its perks because references use the authored form handle and persisted records use the form’s stable runtime ID</li>
+<li>the purchasing actor pays the choice cost once under ordinary cost rules; assigning the perk to a form does not transfer the cost or resource balance to that form</li>
+<li>rank and quantity metadata belong to each resulting form-owned perk record under the same explicit, separate semantics as actor-owned records</li>
+<li>conditional text and placeholders initially evaluate against the purchasing Jumper’s current Jump choice/property context; exposing form-specific properties to expressions would be a separate amendment</li>
+<li>the evaluator must reject or disable form grants and form-targeted perk grants while rendering a companion actor, rather than accidentally creating or modifying Jumper forms from companion purchases</li>
+<li>the schema amendment must add positive and negative conformance fixtures for form identity, cross-section and forward references, block and shorthand ownership, absent or ambiguous shorthand grants, missing and duplicate handles, inactive dependencies, companion evaluation, removal, and historical projection</li>
+</ul>
+<h2>Amended Pre-Release Format 1 Schema</h2>
 <p>The format 1 field cardinalities, layout grammar, contextual constraints, and
-initial conformance cases are frozen in the machine-readable
+initial conformance cases are recorded in the machine-readable
 <a href="../schema/format-1.json"><code>schema/format-1.json</code></a> contract and
 <a href="../schema/conformance.json"><code>schema/conformance.json</code></a> manifest.
-The HTML specification remains the normative explanation; the machine contract is
+The contract was amended before the application's first release to add direct choice placement, entry-scoped identity properties, Gender continuity, and native Gauntlet declaration. No released-package migration is required. The machine contract, its conformance fixtures, the Lezer-backed source pipeline, and the canonical package validator now implement that amendment directly. The machine contract remains
 the parser, validator, language-service, and fixture source of truth. A change that
 accepts or rejects different source is a format change and must not be smuggled in as
 an implementation detail.</p>
@@ -1722,11 +1910,11 @@ an implementation detail.</p>
 <table>
 <thead><tr><th>Declaration</th><th>Required fields</th><th>Repeatable fields or children</th><th>Optional/defaulted fields</th></tr></thead>
 <tbody>
-<tr><td><code>jump</code></td><td><code>format</code>, <code>name</code>, one or more <code>author</code>, <code>version</code></td><td><code>author</code></td><td>point presentation and three default layout references</td></tr>
+<tr><td><code>jump</code></td><td><code>format</code>, <code>name</code>, one or more <code>author</code>, <code>version</code></td><td><code>author</code></td><td><code>gauntlet</code> defaults false; point presentation and three default layout references</td></tr>
 <tr><td><code>resource</code></td><td><code>handle</code>, <code>name</code></td><td>none</td><td><code>abbreviation</code>; <code>initial</code> defaults to 0</td></tr>
-<tr><td><code>section</code></td><td><code>handle</code>, <code>name</code></td><td><code>choice-source</code>, <code>text</code>, <code>image</code></td><td><code>layout</code></td></tr>
+<tr><td><code>section</code></td><td><code>handle</code>, <code>name</code></td><td><code>choice-source</code>, direct <code>choice</code> associations, <code>text</code>, <code>image</code></td><td><code>layout</code></td></tr>
 <tr><td><code>choice-source</code></td><td><code>handle</code></td><td>none</td><td><code>group</code>; <code>mode</code> defaults to multi; omitted resolution is manual</td></tr>
-<tr><td><code>choice</code></td><td><code>handle</code>, <code>name</code></td><td><code>tag</code>, <code>group</code>, <code>option</code>, owned blocks, costs, grants</td><td>layout/species/control fields; selection defaults to toggle</td></tr>
+<tr><td><code>choice</code></td><td><code>handle</code>, <code>name</code></td><td><code>tag</code>, <code>group</code>, <code>option</code>, owned blocks, costs, grants</td><td>layout/control/continuity fields; selection defaults to toggle</td></tr>
 <tr><td><code>text</code></td><td><code>handle</code></td><td>conditional <code>content</code> variants</td><td>base <code>content</code></td></tr>
 <tr><td><code>image</code></td><td><code>handle</code>; <code>src</code> for export</td><td>conditional <code>alt</code> variants</td><td><code>src</code> during WIP and <code>alt</code> with diagnostics</td></tr>
 <tr><td><code>input</code></td><td><code>handle</code>, <code>selection</code></td><td><code>option</code>, <code>grant</code></td><td>selection-dependent <code>min</code>/<code>max</code></td></tr>
@@ -1739,15 +1927,15 @@ an implementation detail.</p>
 <li><code>choice.name</code> is required; the earlier shorthand list that displayed it without a required marker does not make nameless choices valid.</li>
 <li>Block-form visible grants support <code>perk</code>, <code>item</code>, <code>companion</code>, and <code>trait</code>. This makes the already-agreed partial inheritance and grant-specific tags expressible without introducing another declaration shape.</li>
 <li>Conditional variants of singular fields belong to that field on the current owner. Because <code>option</code> is repeatable, an <code>option when ...</code> variant belongs to the immediately preceding base <code>option</code> at the same indentation. A new base option starts a new variant group. This preserves scalar options and avoids option blocks.</li>
-<li><code>section</code> owns text, images, and choice sources. Interactive <code>input</code> blocks remain choice-owned because their values activate choice mechanics and grants.</li>
+<li><code>section</code> owns text, images, choice sources, and handled associations to top-level choices. Interactive <code>input</code> blocks remain choice-owned because their values activate choice mechanics and grants.</li>
 <li>Grant fields are kind-checked. Resource and property mechanics cannot accidentally accept visible-content fields, and companion imports remain valid only directly under a companion-selection input.</li>
-<li>Every authored layout has exactly one handled container root. Grid requires <code>columns</code> from 1 through 12; typed leaves use their matching owner-local namespace; <code>expand</code> remains section-layout-only.</li>
+<li>Every authored layout has exactly one handled container root. Grid requires <code>columns</code> from 1 through 12; typed leaves use their matching owner-local namespace; <code>expand</code> and compact direct <code>choice</code> placement remain section-layout-only.</li>
 </ul>
 <h3>Schema Change Policy</h3>
 <p>Corrections that only improve diagnostics, recovery, documentation, or editor
 assistance may retain format 1 when they do not change the valid source language.
-Any new declaration, field, scalar form, node kind, or contextual placement that
-changes validity requires an explicit schema revision and migration review. The
+After the first release, any new declaration, field, scalar form, node kind, or contextual placement that
+changes validity requires an explicit schema revision and migration review. Before that release, the agreed identity amendment is incorporated directly. The
 initial fixtures deliberately cover a minimal informational Jump, a representative
 layout-and-choice package, a valid warning-bearing WIP case, and a duplicate-resource
 cost error; implementation expands this corpus whenever a parser or validator defect

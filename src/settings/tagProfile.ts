@@ -4,6 +4,7 @@ import {
   builtinTagPresets,
   primaryTagIds,
 } from "./builtinTags";
+import { shiftInheritedTagColor } from "./tagColor";
 
 export type TagSource = "builtin" | "acquired" | "manual" | "imported";
 export type AppearanceSource = "builtin" | "derived" | "custom";
@@ -185,12 +186,21 @@ export function createDefaultTagProfile(): TagProfile {
 
 function derivedPresentation(
   profile: TagProfile,
-  _name: string,
+  name: string,
   parentId: string | null,
 ) {
   const parent =
     profile.tags[parentId ?? "miscellaneous"] ?? profile.tags.miscellaneous;
-  return clone(parent.presentation);
+  const presentation = clone(parent.presentation);
+  presentation.colors = presentation.colors.map((color, index) =>
+    shiftInheritedTagColor(color, name, index),
+  );
+  presentation.borderColor = shiftInheritedTagColor(
+    presentation.borderColor,
+    name,
+    31,
+  );
+  return presentation;
 }
 
 export type InstalledTagCandidate = {
@@ -409,7 +419,10 @@ export function hydrateTagProfile(
           : ["derived", "custom"].includes(String(input.appearanceSource))
             ? (input.appearanceSource as AppearanceSource)
             : "derived",
-      presentation: validPresentation(input.presentation, base),
+      presentation:
+        source === "builtin" && input.appearanceSource !== "custom"
+          ? base
+          : validPresentation(input.presentation, base),
     };
   }
   for (const tag of Object.values(profile.tags)) {

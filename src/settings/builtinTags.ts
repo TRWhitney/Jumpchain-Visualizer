@@ -3,6 +3,7 @@ import {
   type TagCategory,
   type TagDefinition,
 } from "../tracker/model";
+import { shiftInheritedTagColor } from "./tagColor";
 
 export type BuiltinTagPreset = {
   id: string;
@@ -303,22 +304,6 @@ const children: readonly ChildPreset[] = [
   ["perk", "Perk", "miscellaneous", ["Perks"]],
 ];
 
-const rgb = (value: string) =>
-  [1, 3, 5].map((index) => Number.parseInt(value.slice(index, index + 2), 16));
-const mix = (first: string, second: string, weight: number) =>
-  `#${rgb(first)
-    .map((channel, index) =>
-      Math.round(channel + (rgb(second)[index] - channel) * weight)
-        .toString(16)
-        .padStart(2, "0"),
-    )
-    .join("")}`;
-const hash = (value: string) =>
-  [...value].reduce(
-    (total, character) => (total * 31 + (character.codePointAt(0) ?? 0)) >>> 0,
-    0,
-  );
-
 const roots = tagCategories.reduce(
   (entries, id) => {
     entries[id] = {
@@ -338,15 +323,13 @@ const presets = new Map<string, BuiltinTagPreset>(
 for (const [id, label, parentId, aliases = []] of children) {
   const parent = presets.get(parentId);
   if (!parent) throw new Error(`Unknown built-in tag parent: ${parentId}`);
-  const amount = 0.05 + (hash(id) % 4) * 0.035;
-  const target = hash(`${id}:direction`) % 2 ? "#ffffff" : "#000000";
   presets.set(id, {
     id,
     label,
     parent: parentId,
     aliases,
-    color: mix(parent.color, target, amount),
-    to: mix(parent.to, target, amount * 0.8),
+    color: shiftInheritedTagColor(parent.color, label, 0),
+    to: shiftInheritedTagColor(parent.to, label, 1),
     style: parent.style,
   });
 }

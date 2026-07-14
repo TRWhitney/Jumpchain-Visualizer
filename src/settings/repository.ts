@@ -1,5 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { ApplicationSettings } from "./model";
+import {
+  openApplicationDatabase,
+  SETTINGS_STORE_NAME,
+} from "../platform/indexedDb";
 
 export interface SettingsRepository {
   load(): Promise<unknown | null>;
@@ -16,27 +20,14 @@ export class MemorySettingsRepository implements SettingsRepository {
   }
 }
 
-const databaseName = "jumpchain-visualizer";
-const storeName = "aggregates";
-
-const openDatabase = () =>
-  new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(databaseName, 1);
-    request.onerror = () =>
-      reject(request.error ?? new Error("IndexedDB could not be opened."));
-    request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(storeName))
-        request.result.createObjectStore(storeName);
-    };
-    request.onsuccess = () => resolve(request.result);
-  });
-
 export class IndexedDbSettingsRepository implements SettingsRepository {
   async load() {
-    const database = await openDatabase();
+    const database = await openApplicationDatabase();
     return new Promise<unknown | null>((resolve, reject) => {
-      const transaction = database.transaction(storeName, "readonly");
-      const request = transaction.objectStore(storeName).get("settings");
+      const transaction = database.transaction(SETTINGS_STORE_NAME, "readonly");
+      const request = transaction
+        .objectStore(SETTINGS_STORE_NAME)
+        .get("settings");
       request.onerror = () =>
         reject(request.error ?? new Error("Settings could not be read."));
       request.onsuccess = () => resolve(request.result ?? null);
@@ -44,10 +35,13 @@ export class IndexedDbSettingsRepository implements SettingsRepository {
     });
   }
   async save(settings: ApplicationSettings) {
-    const database = await openDatabase();
+    const database = await openApplicationDatabase();
     return new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(storeName, "readwrite");
-      transaction.objectStore(storeName).put(settings, "settings");
+      const transaction = database.transaction(
+        SETTINGS_STORE_NAME,
+        "readwrite",
+      );
+      transaction.objectStore(SETTINGS_STORE_NAME).put(settings, "settings");
       transaction.onerror = () =>
         reject(transaction.error ?? new Error("Settings could not be saved."));
       transaction.oncomplete = () => {

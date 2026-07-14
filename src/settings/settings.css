@@ -313,7 +313,8 @@
   pointer-events: auto;
 }
 .app-toast.is-error,
-.app-toast.is-fatal {
+.app-toast.is-fatal,
+.app-toast.is-danger {
   border-left-color: #d85656;
 }
 .app-toast p,
@@ -329,6 +330,21 @@
   background: transparent;
   border: 0;
   cursor: pointer;
+}
+.app-toast-actions {
+  display: flex;
+  align-items: start;
+  gap: 0.35rem;
+}
+.app-toast .app-toast-action {
+  padding: 0.3rem 0.55rem;
+  color: #eee;
+  background: #292927;
+  border: 1px solid #52524c;
+  border-radius: 0.2rem;
+}
+.app-toast .app-toast-dismiss {
+  padding: 0.15rem;
 }
 
 .app-crash-surface {

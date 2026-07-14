@@ -7,8 +7,26 @@ import {
 } from "./bodyMod";
 import { BodyModContext } from "./bodyModContextDefinition";
 
-export function BodyModProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState(initialBodyModState);
+export function BodyModProvider({
+  children,
+  state: controlledState,
+  onChange,
+}: {
+  children: ReactNode;
+  state?: import("./bodyMod").BodyModState;
+  onChange?: (value: import("./bodyMod").BodyModState) => void;
+}) {
+  const [localState, setLocalState] = useState(initialBodyModState);
+  const state = controlledState ?? localState;
+  const setState = (
+    update: (
+      current: import("./bodyMod").BodyModState,
+    ) => import("./bodyMod").BodyModState,
+  ) => {
+    const next = update(state);
+    if (onChange) onChange(next);
+    else setLocalState(next);
+  };
   return (
     <BodyModContext.Provider
       value={{

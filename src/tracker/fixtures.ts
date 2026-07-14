@@ -1,4 +1,7 @@
 import {
+  EARTH_ENTRY_ID,
+  EARTH_ENTRY_STATUS,
+  EARTH_PACKAGE_ID,
   tagCategories,
   type Actor,
   type ChainEntry,
@@ -12,6 +15,11 @@ import {
   type TrackerState,
 } from "./model";
 import { builtinTagDefinitions } from "../settings/builtinTags";
+import { emptyActorEntryState, emptyJumpEntryState } from "../domain";
+import { validGeneratedJumpPackages } from "../fixtures/generatedPackages";
+import { initialEnabled } from "../supplements/model";
+import { initialBodyModState } from "../supplements/bodyMod";
+import { initialSupplementState } from "../supplements/supplementState";
 
 const categoryDetails: Record<
   TagCategory,
@@ -145,7 +153,7 @@ const installedTagStrings: Record<string, readonly string[]> = {
   "mythic-kitchen": ["Cooking", "Legendary Ingredient", "Divine Hospitality"],
 };
 
-const packageList: InstalledPackage[] = [
+const legacyPackageList: InstalledPackage[] = [
   [
     "first-step",
     "first-step",
@@ -268,7 +276,70 @@ const packageList: InstalledPackage[] = [
   tags: installedTagStrings[id] ?? [],
 }));
 
+const legacyById = new Map(legacyPackageList.map((item) => [item.id, item]));
+const corePackageOrder = [
+  "first-step",
+  "arcane-realms",
+  "cosmic-odyssey",
+  "shadow-court",
+  "spirit-road",
+  "clockwork-sea",
+  "war-of-crowns",
+  "last-horizon",
+] as const;
+const packageList: InstalledPackage[] = validGeneratedJumpPackages
+  .map((document) => {
+    const legacy = legacyById.get(document.id);
+    return {
+      id: document.id,
+      logicalId: document.logicalId,
+      name: document.name.base ?? document.id,
+      version: document.version,
+      source: document.source,
+      description: legacy?.description ?? document.description,
+      tags: [
+        ...new Set([
+          ...(legacy?.tags ?? []),
+          ...document.tags,
+          ...document.choices.flatMap((choice) => [
+            ...choice.tags,
+            ...choice.grants.flatMap((grant) => grant.tags),
+          ]),
+        ]),
+      ],
+      exactHash: document.exactHash,
+      authors: document.authors,
+      nativeGauntlet: document.nativeGauntlet,
+      document,
+    };
+  })
+  .sort((left, right) => {
+    const leftIndex = corePackageOrder.indexOf(
+      left.id as (typeof corePackageOrder)[number],
+    );
+    const rightIndex = corePackageOrder.indexOf(
+      right.id as (typeof corePackageOrder)[number],
+    );
+    if (leftIndex >= 0 || rightIndex >= 0)
+      return (
+        (leftIndex < 0 ? 999 : leftIndex) - (rightIndex < 0 ? 999 : rightIndex)
+      );
+    return left.name.localeCompare(right.name);
+  });
+
 export const installedPackages = packageList;
+
+const earthPackage: InstalledPackage = {
+  id: EARTH_PACKAGE_ID,
+  logicalId: EARTH_PACKAGE_ID,
+  name: "Earth",
+  version: "1.0",
+  source: "builtin",
+  description: "The application-owned identity setup before Jump 1.",
+  tags: [],
+  availability: "foundation",
+  exactHash: "earth-system-format-1",
+};
 
 const chainPackageIds = packageList.slice(0, 8).map((item) => item.id);
 
@@ -278,8 +349,8 @@ const actors: Record<string, Actor> = Object.fromEntries(
       "jumper",
       "Morgan",
       "Jumper",
-      "Female",
-      24,
+      undefined,
+      undefined,
       undefined,
       "MO",
       "A versatile traveler building a long and complicated chain.",
@@ -354,10 +425,30 @@ const actors: Record<string, Actor> = Object.fromEntries(
       "RE",
       "Tactician and veteran of the War of Seven Crowns.",
     ],
-  ].map(([id, name, role, gender, age, joinedEntryId, initials, summary]) => [
-    id,
-    { id, name, role, gender, age, joinedEntryId, initials, summary } as Actor,
-  ]),
+  ].map(
+    ([
+      id,
+      name,
+      role,
+      acquisitionGender,
+      acquisitionAge,
+      joinedEntryId,
+      initials,
+      summary,
+    ]) => [
+      id,
+      {
+        id,
+        name,
+        role,
+        acquisitionGender,
+        acquisitionAge,
+        joinedEntryId,
+        initials,
+        summary,
+      } as Actor,
+    ],
+  ),
 );
 
 const seedRecords: InventoryRecord[] = [
@@ -516,41 +607,44 @@ const records = [...seedRecords, ...generatedRecords].map((record) => {
     : record;
 });
 
-const forms: FormRecord[] = chainPackageIds.map((_, index) => ({
-  id: `form-${index}`,
-  name: [
-    "Jumper",
-    "Dragon Form",
-    "Digital Avatar",
-    "Moonlit Courtier",
-    "Pilgrim Spirit",
-    "Brass Leviathan",
-    "Crowned General",
-    "Horizon Walker",
-  ][index],
-  sourceEntryId: `entry-${index}`,
-  subtitle: [
-    "Human baseline",
-    "Scaled magical body",
-    "Network-native body",
-    "Immortal shadow form",
-    "Incarnate traveling soul",
-    "Ocean-going machine body",
-    "Battlefield sovereign",
-    "Boundary-crossing form",
-  ][index],
-  description: `A persistent alternate body acquired during ${packageList[index].name}, with a complete profile and inspectable form perks.`,
-  initials: ["JU", "DR", "DA", "MC", "PS", "BL", "CG", "HW"][index],
-  details: [
-    `Body type · ${["Human", "Dragon", "Digital", "Fae", "Spirit", "Machine", "Human", "Abstract"][index]}`,
-    `Source · ${packageList[index].name}`,
-    `Acquired at Jump ${index + 1}`,
-  ],
-  perkRecordIds: [
-    `record-${(index * 7) % 60}`,
-    `record-${(index * 7 + 2) % 60}`,
-  ],
-}));
+/** REPLACEMENT BOUNDARY: Forms remain fixture-backed until Format 1 form grants exist. */
+export const TEMPORARY_FORM_FIXTURE: FormRecord[] = chainPackageIds.map(
+  (_, index) => ({
+    id: `form-${index}`,
+    name: [
+      "Jumper",
+      "Dragon Form",
+      "Digital Avatar",
+      "Moonlit Courtier",
+      "Pilgrim Spirit",
+      "Brass Leviathan",
+      "Crowned General",
+      "Horizon Walker",
+    ][index],
+    sourceEntryId: `entry-${index}`,
+    subtitle: [
+      "Human baseline",
+      "Scaled magical body",
+      "Network-native body",
+      "Immortal shadow form",
+      "Incarnate traveling soul",
+      "Ocean-going machine body",
+      "Battlefield sovereign",
+      "Boundary-crossing form",
+    ][index],
+    description: `A persistent alternate body acquired during ${packageList[index].name}, with a complete profile and inspectable form perks.`,
+    initials: ["JU", "DR", "DA", "MC", "PS", "BL", "CG", "HW"][index],
+    details: [
+      `Body type · ${["Human", "Dragon", "Digital", "Fae", "Spirit", "Machine", "Human", "Abstract"][index]}`,
+      `Source · ${packageList[index].name}`,
+      `Acquired at Jump ${index + 1}`,
+    ],
+    perkRecordIds: [
+      `record-${(index * 7) % 60}`,
+      `record-${(index * 7 + 2) % 60}`,
+    ],
+  }),
+);
 
 const companionActorIds = Object.keys(actors).filter((id) => id !== "jumper");
 const companions: CompanionRecord[] = companionActorIds.map(
@@ -577,24 +671,127 @@ function makeEntries(packageIds: readonly string[]) {
       {
         id: `entry-${index}`,
         packageId,
+        packageExactHash:
+          packageList.find((item) => item.id === packageId)?.exactHash ??
+          "unresolved",
+        kind: "jump",
         status: index === 7 ? "Negative balance" : `${index + 1} selections`,
-        actorBalances:
-          index === 7
-            ? { jumper: 250, ren: -150 }
-            : {
-                jumper: 1000 - index * 75,
-                ...(index > 1 ? { ash: 600 - index * 40 } : {}),
-              },
-        origin: ["Wanderer", "Scholar", "Explorer", "Courtier"][index % 4],
-        location: [
-          "Crossroads",
-          "Highcourt",
-          "Orbital Survey",
-          "Moonlit Palace",
-        ][index % 4],
       },
     ]),
   );
+}
+
+const activeActor = (
+  choices: Record<string, boolean | string | number | null>,
+  inputs: ReturnType<typeof emptyActorEntryState>["inputs"] = {},
+) => ({ ...emptyActorEntryState(), choices, inputs });
+
+function createGeneratedJumpState(order: readonly string[]) {
+  const result = Object.fromEntries(
+    order.map((entryId) => [entryId, emptyJumpEntryState()]),
+  );
+  if (result[EARTH_ENTRY_ID])
+    result[EARTH_ENTRY_ID] = {
+      ...emptyJumpEntryState(),
+      actors: {
+        jumper: activeActor({ earth_gender: null, earth_age: null }),
+      },
+    };
+  if (result["entry-0"])
+    result["entry-0"].actors.jumper = activeActor({
+      starting_gender: "Female",
+      starting_age: 24,
+      wanderer: true,
+      adaptable_baseline: true,
+      travelers_pack: true,
+      ash_companion: true,
+    });
+  if (result["entry-1"])
+    result["entry-1"].actors.jumper = activeActor(
+      {
+        scholar: true,
+        spellcraft_foundations: true,
+        living_grimoire: true,
+        technique_ranks: 2,
+        elemental_attunement: "Fire",
+      },
+      {},
+    );
+  if (result["entry-2"])
+    result["entry-2"].actors.jumper = {
+      ...activeActor({
+        explorer: true,
+        stellar_intuition: true,
+        survey_skiff: true,
+        starting_age: 27,
+        random_training: 3,
+      }),
+      choiceRolls: {
+        starting_age: { result: 27, sequence: 1 },
+        random_training: { result: 3, sequence: 1 },
+      },
+      sourceRolls: {
+        "expedition:assignment": { result: "explorer", sequence: 1 },
+        "systems:systems": { result: "stellar_intuition", sequence: 1 },
+      },
+    };
+  if (result["entry-3"])
+    result["entry-3"].actors.jumper = activeActor({
+      court_gender: "Female",
+      moonlit_oath: true,
+      shadow_estate: true,
+      binding_oath: true,
+    });
+  if (result["entry-4"])
+    result["entry-4"].actors.jumper = activeActor({
+      shrine_keeper: true,
+      memory_lantern: true,
+      older_pilgrim: 30,
+    });
+  if (result["entry-5"]) {
+    const ash = "companion:entry-0:jumper:ash_companion:0";
+    const mira = "companion:entry-1:jumper:spellcraft_foundations:4";
+    result["entry-5"].actors.jumper = activeActor(
+      {
+        brass_seamanship: true,
+        impossible_vessel: true,
+        import_companions: true,
+      },
+      {
+        brass_seamanship: { vessel_name: "Resolute" },
+        impossible_vessel: { vessel_class: "Leviathan" },
+        import_companions: { crew: [ash, mira] },
+      },
+    );
+    result["entry-5"].actors[ash] = activeActor({ impossible_vessel: true });
+    result["entry-5"].actors[mira] = activeActor({ impossible_vessel: true });
+  }
+  if (result["entry-6"]) {
+    result["entry-6"].actors.jumper = activeActor({
+      banner_command: true,
+      royal_armory: true,
+      war_debt: true,
+    });
+    result["entry-6"].appliedGauntlet = [
+      { id: "manual", kind: "user", label: "Applied by user" },
+    ];
+  }
+  if (result["entry-7"]) {
+    const ren = "companion:entry-6:jumper:banner_command:4";
+    result["entry-7"].actors.jumper = activeActor(
+      {
+        boundary_walking: true,
+        reality_rewrite: true,
+        horizon_company: true,
+      },
+      { horizon_company: { travelers: [ren] } },
+    );
+    result["entry-7"].actors[ren] = activeActor({
+      boundary_walking: true,
+      reality_rewrite: true,
+    });
+  }
+  return result;
 }
 
 export function createDenseTrackerFixture(
@@ -602,12 +799,55 @@ export function createDenseTrackerFixture(
 ): TrackerState {
   return {
     chainName: "Morgan’s Chain",
-    packages: Object.fromEntries(packageList.map((item) => [item.id, item])),
-    entries: makeEntries(chainPackageIds),
-    order: chainPackageIds.map((_, index) => `entry-${index}`),
+    packages: Object.fromEntries(
+      [earthPackage, ...packageList].map((item) => [item.id, item]),
+    ),
+    entries: {
+      [EARTH_ENTRY_ID]: {
+        id: EARTH_ENTRY_ID,
+        packageId: EARTH_PACKAGE_ID,
+        packageExactHash: earthPackage.exactHash!,
+        kind: "earth",
+        status: EARTH_ENTRY_STATUS,
+      },
+      ...makeEntries(chainPackageIds),
+    },
+    order: [
+      EARTH_ENTRY_ID,
+      ...chainPackageIds.map((_, index) => `entry-${index}`),
+    ],
+    jumpState: createGeneratedJumpState([
+      EARTH_ENTRY_ID,
+      ...chainPackageIds.map((_, index) => `entry-${index}`),
+    ]),
+    enabledSupplements: initialEnabled,
+    supplementPage: "manage",
+    bodyMod: initialBodyModState,
+    supplements: initialSupplementState,
+    entrySupplements: Object.fromEntries(
+      [
+        EARTH_ENTRY_ID,
+        ...chainPackageIds.map((_, index) => `entry-${index}`),
+      ].map((entryId) => [
+        entryId,
+        {
+          quest: {
+            ...initialSupplementState.quest,
+            checked:
+              entryId === "entry-7" ? initialSupplementState.quest.checked : [],
+          },
+          uds: {
+            ...initialSupplementState.uds,
+            chain:
+              entryId === "entry-7" ? initialSupplementState.uds.chain : [],
+            jump: entryId === "entry-7" ? initialSupplementState.uds.jump : [],
+          },
+        },
+      ]),
+    ),
     actors,
     records,
-    forms,
+    forms: TEMPORARY_FORM_FIXTURE,
     companions,
     tags: trackerTags,
     preferences: {
@@ -615,6 +855,7 @@ export function createDenseTrackerFixture(
       allowMultiplePackageVersions: false,
       allowNegativePointBalances: false,
       allowRerolls: false,
+      showAdditionalJumpInformation: false,
       ...preferences,
     },
     selectedEntryId: "entry-7",
@@ -643,23 +884,92 @@ export function createDenseTrackerFixture(
 
 export function createReferenceTrackerFixture(): TrackerState {
   const dense = createDenseTrackerFixture();
-  const order = ["entry-0", "entry-1", "entry-2"];
-  const entries = makeEntries(chainPackageIds.slice(0, 3));
-  entries["entry-1"] = {
-    ...entries["entry-1"],
-    actorBalances: { jumper: 1000, ash: 600 },
-    origin: "Not selected",
-    location: undefined,
+  const order = [EARTH_ENTRY_ID, "entry-0", "entry-1", "entry-2"];
+  const entries = {
+    [EARTH_ENTRY_ID]: dense.entries[EARTH_ENTRY_ID],
+    ...makeEntries(chainPackageIds.slice(0, 3)),
   };
+  const jumpState = createGeneratedJumpState(order);
   return {
     ...dense,
     entries,
     order,
+    jumpState,
+    entrySupplements: Object.fromEntries(
+      order.map((id) => [id, dense.entrySupplements[id]]),
+    ),
     records: seedRecords,
-    forms: forms.slice(0, 3),
+    forms: TEMPORARY_FORM_FIXTURE.slice(0, 3),
     companions: companions.slice(0, 3),
     selectedEntryId: "entry-1",
     inspectionPointId: "entry-1",
     nextEntrySerial: 3,
+  };
+}
+
+export function createSampleTrackerFixture(
+  name: string,
+  jumpCount: number,
+  offset = 0,
+): TrackerState {
+  const base = createBlankTrackerFixture(name);
+  const count = Math.min(Math.max(0, jumpCount), packageList.length);
+  const core = chainPackageIds.slice(
+    0,
+    Math.min(count, chainPackageIds.length),
+  );
+  const additional = packageList.filter(
+    (item) => !chainPackageIds.includes(item.id),
+  );
+  const selectedPackages = [
+    ...core,
+    ...Array.from(
+      { length: count - core.length },
+      (_, index) => additional[(index + offset) % additional.length].id,
+    ),
+  ];
+  const entryIds = selectedPackages.map((_, index) => `entry-${index}`);
+  const order = [EARTH_ENTRY_ID, ...entryIds];
+  return {
+    ...base,
+    entries: {
+      [EARTH_ENTRY_ID]: base.entries[EARTH_ENTRY_ID],
+      ...makeEntries(selectedPackages),
+    },
+    order,
+    jumpState: createGeneratedJumpState(order),
+    entrySupplements: Object.fromEntries(
+      order.map((id) => [
+        id,
+        {
+          quest: { ...initialSupplementState.quest, checked: [] },
+          uds: { ...initialSupplementState.uds, jump: [] },
+        },
+      ]),
+    ),
+    selectedEntryId: entryIds.at(-1) ?? EARTH_ENTRY_ID,
+    inspectionPointId: entryIds.at(-1) ?? EARTH_ENTRY_ID,
+    nextEntrySerial: entryIds.length,
+  };
+}
+
+export function createBlankTrackerFixture(name = "New Chain"): TrackerState {
+  const base = createDenseTrackerFixture();
+  return {
+    ...base,
+    chainName: name,
+    entries: { [EARTH_ENTRY_ID]: base.entries[EARTH_ENTRY_ID] },
+    order: [EARTH_ENTRY_ID],
+    jumpState: createGeneratedJumpState([EARTH_ENTRY_ID]),
+    entrySupplements: {
+      [EARTH_ENTRY_ID]: base.entrySupplements[EARTH_ENTRY_ID],
+    },
+    actors: { jumper: base.actors.jumper },
+    records: [],
+    forms: [],
+    companions: [],
+    selectedEntryId: EARTH_ENTRY_ID,
+    inspectionPointId: EARTH_ENTRY_ID,
+    nextEntrySerial: 0,
   };
 }

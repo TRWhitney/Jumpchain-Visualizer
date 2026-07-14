@@ -5,7 +5,11 @@ import {
 } from "./fixtures";
 import {
   filteredInventory,
+  EARTH_ENTRY_ID,
+  jumpEntryIds,
+  jumpNumber,
   moveDependencyImpacts,
+  packageForEntry,
   radarCounts,
   removeDependencyImpacts,
   tagCategories,
@@ -16,17 +20,72 @@ import {
   visibleCompanions,
   visibleForms,
 } from "./model";
+import { evaluateTracker, projectEvaluation } from "./evaluateTracker";
+
+function heroAcademyState(
+  choices: Record<string, boolean | string | number | null>,
+  allowNegativePointBalances = false,
+) {
+  const added = trackerReducer(
+    createDenseTrackerFixture({ allowNegativePointBalances }),
+    { type: "add-package", packageId: "hero-academy" },
+  );
+  const entryId = added.selectedEntryId;
+  const entry = added.jumpState[entryId];
+  const actor = entry.actors.jumper;
+  return {
+    entryId,
+    state: {
+      ...added,
+      jumpState: {
+        ...added.jumpState,
+        [entryId]: {
+          ...entry,
+          actors: {
+            ...entry.actors,
+            jumper: { ...actor, choices },
+          },
+        },
+      },
+    },
+  };
+}
+
+function firstStepWithoutSupplementPoints() {
+  const fixture = createDenseTrackerFixture({
+    allowNegativePointBalances: true,
+  });
+  const entryId = "entry-0";
+  const current = fixture.entrySupplements[entryId];
+  return {
+    ...fixture,
+    selectedEntryId: entryId,
+    enabledSupplements: {
+      ...fixture.enabledSupplements,
+      "quest-mode": false,
+    },
+    entrySupplements: {
+      ...fixture.entrySupplements,
+      [entryId]: {
+        ...current,
+        uds: { ...current.uds, chain: [], jump: [] },
+      },
+    },
+  };
+}
 
 describe("Chain Tracker aggregate", () => {
   it("ships complete deterministic dense and reference fixtures", () => {
     const dense = createDenseTrackerFixture();
     const reference = createReferenceTrackerFixture();
-    expect(dense.order).toHaveLength(8);
+    expect(dense.order).toHaveLength(9);
+    expect(dense.order[0]).toBe(EARTH_ENTRY_ID);
+    expect(jumpEntryIds(dense)).toHaveLength(8);
     expect(Object.keys(dense.packages).length).toBeGreaterThanOrEqual(12);
     expect(
-      Object.values(dense.packages).every(
-        (packageItem) => packageItem.tags.length,
-      ),
+      Object.values(dense.packages)
+        .filter((packageItem) => packageItem.availability !== "foundation")
+        .every((packageItem) => packageItem.tags.length),
     ).toBe(true);
     expect(dense.records).toHaveLength(60);
     expect(
@@ -40,7 +99,65 @@ describe("Chain Tracker aggregate", () => {
     expect(
       Object.values(dense.tags).filter((tag) => tag.parent).length,
     ).toBeGreaterThanOrEqual(37);
-    expect(reference.order).toHaveLength(3);
+    expect(reference.order).toHaveLength(4);
+    expect(jumpEntryIds(reference)).toHaveLength(3);
+  });
+
+  it("projects substantive inventory, companions, and radar data from evaluated choices", () => {
+    const fixture = createDenseTrackerFixture();
+    const evaluation = evaluateTracker(fixture, fixture.bodyMod);
+    const projected = projectEvaluation(fixture, evaluation);
+    expect(projected.records.length).toBeGreaterThanOrEqual(60);
+    expect(
+      Object.values(projected.actors).filter(
+        (actor) => actor.role === "Companion",
+      ).length,
+    ).toBeGreaterThanOrEqual(7);
+    expect(projected.companions.length).toBeGreaterThanOrEqual(7);
+    expect(
+      projected.records.filter((record) => record.name === "Impossible Vessel"),
+    ).toHaveLength(3);
+    expect(
+      filteredInventory(projected).filter(
+        (record) => record.name === "Impossible Vessel",
+      ),
+    ).toMatchObject([{ ownerActorId: "jumper" }]);
+    expect(
+      projected.records.find((record) => record.name === "Random Training")
+        ?.measure,
+    ).toEqual({ kind: "rank", value: 3 });
+    expect(
+      Object.values(radarCounts(projected)).every((count) => count > 0),
+    ).toBe(true);
+    const magic = tagBreakdown(projected, "magic");
+    expect(magic?.children.length).toBeGreaterThan(9);
+  });
+
+  it("preserves stored selections while disabling an unavailable exact package", () => {
+    const fixture = createDenseTrackerFixture();
+    const lastValidatedEvaluation = evaluateTracker(fixture, fixture.bodyMod);
+    const unavailable = {
+      ...fixture,
+      lastValidatedEvaluation,
+      entries: {
+        ...fixture.entries,
+        "entry-2": {
+          ...fixture.entries["entry-2"],
+          packageExactHash: "sha256:package-version-not-installed",
+        },
+      },
+    };
+    const storedChoices = unavailable.jumpState["entry-2"].actors.jumper;
+
+    expect(packageForEntry(unavailable, "entry-2").document).toBeUndefined();
+    const recovered = evaluateTracker(unavailable, unavailable.bodyMod);
+    expect(recovered.runtime["entry-2"]).toEqual(
+      lastValidatedEvaluation.runtime["entry-2"],
+    );
+    expect(
+      recovered.records.some((record) => record.sourceEntryId === "entry-2"),
+    ).toBe(true);
+    expect(unavailable.jumpState["entry-2"].actors.jumper).toBe(storedChoices);
   });
 
   it("keeps stable entry identity through reviewed reorder and undo", () => {
@@ -48,11 +165,11 @@ describe("Chain Tracker aggregate", () => {
     const requested = trackerReducer(initial, {
       type: "request-move",
       entryId: "entry-1",
-      toIndex: 6,
+      toIndex: 7,
     });
     expect(requested.pending?.kind).toBe("move");
     const moved = trackerReducer(requested, { type: "commit-mutation" });
-    expect(moved.order[6]).toBe("entry-1");
+    expect(moved.order[7]).toBe("entry-1");
     expect(moved.entries["entry-1"].packageId).toBe("arcane-realms");
     expect(trackerReducer(moved, { type: "undo" }).order).toEqual(
       initial.order,
@@ -72,6 +189,9 @@ describe("Chain Tracker aggregate", () => {
     expect(moved.pending).toBeNull();
     expect(moved.order[2]).toBe("entry-8");
     expect(moved.undo?.label).toBe("Reorder");
+    const dismissed = trackerReducer(moved, { type: "dismiss-undo" });
+    expect(dismissed.order).toEqual(moved.order);
+    expect(dismissed.undo).toBeNull();
   });
 
   it("commits material changes immediately when upstream warnings are disabled", () => {
@@ -79,28 +199,22 @@ describe("Chain Tracker aggregate", () => {
     const moved = trackerReducer(initial, {
       type: "request-move",
       entryId: "entry-1",
-      toIndex: 6,
+      toIndex: 7,
     });
     expect(moved.pending).toBeNull();
-    expect(moved.order[6]).toBe("entry-1");
+    expect(moved.order[7]).toBe("entry-1");
     expect(moved.undo?.label).toBe("Reorder");
   });
 
   it("warns only when reorder invalidates a valid companion import", () => {
     const state = createDenseTrackerFixture({ warnUpstreamChanges: true });
-    const impacts = moveDependencyImpacts(state, "entry-1", 6);
+    const impacts = moveDependencyImpacts(state, "entry-1", 7);
     expect(impacts).toEqual([
       expect.objectContaining({
         kind: "companion-import",
-        subjectId: "mira",
+        subjectId: "companion:entry-1:jumper:spellcraft_foundations:4",
         providerEntryId: "entry-1",
-        consumerEntryIds: [
-          "entry-2",
-          "entry-3",
-          "entry-4",
-          "entry-5",
-          "entry-6",
-        ],
+        consumerEntryIds: ["entry-5"],
       }),
     ]);
     const withUnrelatedEntry = trackerReducer(state, {
@@ -119,25 +233,30 @@ describe("Chain Tracker aggregate", () => {
     const initial = createDenseTrackerFixture({ warnUpstreamChanges: true });
     const requested = trackerReducer(initial, {
       type: "request-remove",
-      entryId: "entry-2",
+      entryId: "entry-6",
     });
     expect(requested.pending?.impacts).toEqual([
-      expect.objectContaining({ subjectId: "io", providerEntryId: "entry-2" }),
+      expect.objectContaining({
+        subjectId: "companion:entry-6:jumper:banner_command:4",
+        providerEntryId: "entry-6",
+      }),
     ]);
     const removed = trackerReducer(requested, { type: "commit-mutation" });
-    expect(removed.entries["entry-2"]).toBeUndefined();
+    expect(removed.entries["entry-6"]).toBeUndefined();
+    expect(removed.jumpState["entry-6"]).toBeUndefined();
     const restored = trackerReducer(removed, { type: "undo" });
-    expect(restored.entries["entry-2"].packageId).toBe("cosmic-odyssey");
+    expect(restored.entries["entry-6"].packageId).toBe("war-of-crowns");
+    expect(restored.jumpState["entry-6"]).toBeDefined();
     const removedAgain = trackerReducer(
       trackerReducer(restored, {
         type: "request-remove",
-        entryId: "entry-2",
+        entryId: "entry-6",
       }),
       { type: "commit-mutation" },
     );
     const added = trackerReducer(removedAgain, {
       type: "add-package",
-      packageId: "cosmic-odyssey",
+      packageId: "war-of-crowns",
     });
     expect(added.selectedEntryId).toBe("entry-8");
   });
@@ -192,9 +311,46 @@ describe("Chain Tracker aggregate", () => {
     expect(
       filteredInventory(state).every((record) => {
         const position = state.order.indexOf(record.sourceEntryId);
-        return position >= 0 && position <= 2;
+        return position >= 1 && position <= 3;
       }),
     ).toBe(true);
+  });
+
+  it("keeps Earth unnumbered and rejects every mutation path", () => {
+    const initial = createDenseTrackerFixture();
+    expect(jumpNumber(initial, EARTH_ENTRY_ID)).toBeNull();
+    expect(jumpNumber(initial, "entry-0")).toBe(1);
+    expect(
+      trackerReducer(initial, {
+        type: "request-move",
+        entryId: EARTH_ENTRY_ID,
+        toIndex: 4,
+      }),
+    ).toBe(initial);
+    expect(
+      trackerReducer(initial, {
+        type: "request-remove",
+        entryId: EARTH_ENTRY_ID,
+      }),
+    ).toBe(initial);
+    const moved = trackerReducer(initial, {
+      type: "request-move",
+      entryId: "entry-0",
+      toIndex: 0,
+    });
+    expect(moved.order[0]).toBe(EARTH_ENTRY_ID);
+    expect(moved.order[1]).toBe("entry-0");
+  });
+
+  it("uses Earth as an empty, unnumbered historical cutoff", () => {
+    const state = trackerReducer(createDenseTrackerFixture(), {
+      type: "set-inspection",
+      entryId: EARTH_ENTRY_ID,
+    });
+    expect(filteredInventory(state)).toEqual([]);
+    expect(visibleForms(state)).toEqual([]);
+    expect(visibleCompanions(state)).toEqual([]);
+    expect(state.selectedEntryId).toBe("entry-7");
   });
 
   it("filters by descendant tags and aliases", () => {
@@ -220,15 +376,59 @@ describe("Chain Tracker aggregate", () => {
     ).toBe(true);
   });
 
+  it("scopes Inventory search and Stats to Jumper-owned records", () => {
+    const fixture = createDenseTrackerFixture();
+    const template = fixture.records[0];
+    const state = {
+      ...fixture,
+      records: [
+        {
+          ...template,
+          id: "jumper-perk",
+          kind: "perk" as const,
+          ownerActorId: "jumper",
+          tags: ["magic"],
+        },
+        {
+          ...template,
+          id: "companion-perk",
+          kind: "perk" as const,
+          ownerActorId: "ash",
+          tags: ["magic"],
+        },
+      ],
+    };
+
+    expect(filteredInventory(state).map((record) => record.id)).toEqual([
+      "jumper-perk",
+    ]);
+    expect(radarCounts(state).magic).toBe(1);
+    expect(tagBreakdown(state, "magic")?.count).toBe(1);
+  });
+
   it("populates every fixed radar axis with uneven perk counts", () => {
-    const counts = radarCounts(createDenseTrackerFixture());
+    const fixture = createDenseTrackerFixture();
+    const counts = radarCounts({
+      ...fixture,
+      records: fixture.records.map((record) => ({
+        ...record,
+        ownerActorId: "jumper",
+      })),
+    });
     expect(Object.keys(counts)).toEqual(tagCategories);
     expect(Object.values(counts).every((count) => count > 0)).toBe(true);
     expect(new Set(Object.values(counts)).size).toBeGreaterThan(2);
   });
 
   it("partitions hierarchical tag counts and aggregates excess slices", () => {
-    const state = createDenseTrackerFixture();
+    const fixture = createDenseTrackerFixture();
+    const state = {
+      ...fixture,
+      records: fixture.records.map((record) => ({
+        ...record,
+        ownerActorId: "jumper",
+      })),
+    };
     const magic = tagBreakdown(state, "magic");
     expect(magic).not.toBeNull();
     expect(
@@ -246,13 +446,191 @@ describe("Chain Tracker aggregate", () => {
     expect(pyrokinesis?.children.length).toBeGreaterThan(1);
   });
 
-  it("resolves an existing actor deficit without changing other balances", () => {
+  it("stores independent actor choice state", () => {
     const initial = createDenseTrackerFixture();
     const next = trackerReducer(initial, {
-      type: "resolve-deficit",
-      actorId: "ren",
+      type: "set-choice",
+      entryId: "entry-0",
+      actorId: "jumper",
+      choiceHandle: "wanderer",
+      value: false,
     });
-    expect(next.entries["entry-7"].actorBalances.ren).toBe(0);
-    expect(next.entries["entry-7"].actorBalances.jumper).toBe(250);
+    expect(next.jumpState["entry-0"].actors.jumper.choices.wanderer).toBe(
+      false,
+    );
+    expect(initial.jumpState["entry-0"].actors.jumper.choices.wanderer).toBe(
+      true,
+    );
+  });
+
+  it("blocks only active choice selections that would create a negative primary balance", () => {
+    const { state, entryId } = heroAcademyState({
+      power_rank: 1,
+      extra_lives: 1,
+      element: "Fire",
+      manual_arcane: true,
+      night_vision: true,
+    });
+
+    const blocked = trackerReducer(state, {
+      type: "set-choice",
+      entryId,
+      actorId: "jumper",
+      choiceHandle: "manual_flight",
+      value: true,
+    });
+    expect(
+      blocked.jumpState[entryId].actors.jumper.choices.manual_flight,
+    ).toBeUndefined();
+
+    const permitted = trackerReducer(
+      {
+        ...state,
+        preferences: {
+          ...state.preferences,
+          allowNegativePointBalances: true,
+        },
+      },
+      {
+        type: "set-choice",
+        entryId,
+        actorId: "jumper",
+        choiceHandle: "manual_flight",
+        value: true,
+      },
+    );
+    expect(
+      permitted.jumpState[entryId].actors.jumper.choices.manual_flight,
+    ).toBe(true);
+  });
+
+  it("allows an inactive choice change even when recalculation creates a deficit", () => {
+    const { state, entryId } = heroAcademyState({
+      power_rank: 1,
+      extra_lives: 1,
+      element: "Fire",
+      manual_arcane: true,
+      manual_wanderer: true,
+      danger_stipend: "Accept",
+    });
+
+    const clearedAward = trackerReducer(state, {
+      type: "set-choice",
+      entryId,
+      actorId: "jumper",
+      choiceHandle: "danger_stipend",
+      value: null,
+    });
+    expect(
+      clearedAward.jumpState[entryId].actors.jumper.choices.danger_stipend,
+    ).toBeNull();
+
+    const appliedGauntlet = trackerReducer(state, {
+      type: "toggle-applied-gauntlet",
+      entryId,
+    });
+    expect(appliedGauntlet.jumpState[entryId].appliedGauntlet).toHaveLength(1);
+
+    const ranked = heroAcademyState({
+      power_rank: 1,
+      combat_training: 5,
+    });
+    const reducedRank = trackerReducer(ranked.state, {
+      type: "set-choice",
+      entryId: ranked.entryId,
+      actorId: "jumper",
+      choiceHandle: "combat_training",
+      value: 4,
+    });
+    expect(
+      reducedRank.jumpState[ranked.entryId].actors.jumper.choices
+        .combat_training,
+    ).toBe(4);
+  });
+
+  it("allows free rolled selections because they do not create a negative balance", () => {
+    const { state, entryId } = heroAcademyState({
+      power_rank: 1,
+      extra_lives: 1,
+      element: "Fire",
+      manual_arcane: true,
+    });
+
+    const freeChoiceRoll = trackerReducer(state, {
+      type: "record-choice-roll",
+      entryId,
+      actorId: "jumper",
+      choiceHandle: "random_age",
+      result: 24,
+    });
+    expect(
+      freeChoiceRoll.jumpState[entryId].actors.jumper.choiceRolls.random_age,
+    ).toEqual({ result: 24, sequence: 1 });
+
+    const freeSourceRoll = trackerReducer(state, {
+      type: "record-source-roll",
+      entryId,
+      actorId: "jumper",
+      sourceKey: "multi_random:electives",
+      result: "random_arcane",
+    });
+    expect(
+      freeSourceRoll.jumpState[entryId].actors.jumper.sourceRolls[
+        "multi_random:electives"
+      ],
+    ).toEqual({ result: "random_arcane", sequence: 1 });
+  });
+
+  it("recalculates First Step when Gauntlet or Quest Mode removes starting points", () => {
+    const ordinary = firstStepWithoutSupplementPoints();
+    expect(
+      evaluateTracker(ordinary, ordinary.bodyMod).runtime["entry-0"].actors
+        .jumper.balance,
+    ).toBe(600);
+
+    const gauntlet = trackerReducer(ordinary, {
+      type: "toggle-applied-gauntlet",
+      entryId: "entry-0",
+    });
+    expect(
+      evaluateTracker(gauntlet, gauntlet.bodyMod).runtime["entry-0"].actors
+        .jumper.balance,
+    ).toBe(-400);
+
+    const questMode = trackerReducer(ordinary, {
+      type: "set-enabled-supplements",
+      value: { ...ordinary.enabledSupplements, "quest-mode": true },
+    });
+    expect(
+      evaluateTracker(questMode, questMode.bodyMod).runtime["entry-0"].actors
+        .jumper.balance,
+    ).toBe(-400);
+  });
+
+  it("attributes Personal Reality CP conversion to one Jump and refunds it when disabled", () => {
+    const ordinary = firstStepWithoutSupplementPoints();
+    const converted = trackerReducer(ordinary, {
+      type: "supplement-action",
+      action: { type: "realityProgress", update: { conversionCP: 100 } },
+    });
+    expect(
+      evaluateTracker(converted, converted.bodyMod).runtime["entry-0"].actors
+        .jumper.balance,
+    ).toBe(500);
+    expect(
+      converted.entrySupplements["entry-0"].realityProgression?.conversionCP,
+    ).toBe(100);
+    expect(
+      converted.entrySupplements["entry-1"].realityProgression,
+    ).toBeUndefined();
+
+    const disabled = trackerReducer(converted, {
+      type: "set-enabled-supplements",
+      value: { ...converted.enabledSupplements, "personal-reality": false },
+    });
+    expect(
+      evaluateTracker(disabled, disabled.bodyMod).runtime["entry-0"].actors
+        .jumper.balance,
+    ).toBe(600);
   });
 });

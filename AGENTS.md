@@ -18,11 +18,11 @@
 - You must verify linters are all run and are clean.
 - You must verify via playwright, see below for more details.
 - You must verify that formatters are all run (if applicable).
-- Commit changes, if the sandbox refuses, elevant to developer.
+- Commit as it makes sense, if the sandbox refuses, elevate to developer.
 - If the issue is rework, then squash commits as necessary.
 
 # Playwright
-- Use Playwright to verify issues before and after changes, use question tool or prompt the developer for more information if you cannot verify an issue.
+- Use Playwright to verify issues and features before and after changes, use question tool or prompt the developer for more information if you cannot verify an issue.
 - When fixing a GUI visual issue, compare the fresh Playwright screenshot directly against the developer-reported problem before declaring success. If the screenshot still shows the complained-about issue, the task is not done.
 - For any bug fix, define the acceptance criterion in terms of the developer-observable symptom before making changes.
 - Do not treat implementation proxies such as code shape, DOM structure, intended layout, internal state, or partial improvement as proof that a bug is fixed; verify the exact reported symptom directly.
@@ -38,11 +38,12 @@
 - Do not mark a GUI bug fixed if the verified Playwright flow did not include the exact triggering action, the exact target element, and the exact post-action state described by the developer.
 
 # Testing
-- All changes, aside from changes which only include removing features, require tests whether they be E2E, Gerhkin Style, or Unit Tests.
+- All changes and features, aside from changes which only include removing features or documentation only changes, require tests whether they be E2E, Gerhkin Style, or Unit Tests.
 - If a Gerhkin or E2E test is included, likely a unit test is needed too.
 - Dependency injection is highly encouraged to facilitate.
 - Backend code should be separate from GUI representation to the fullest extent possible.
 - Fuzzing and mutation testing (killing mutants) is encouraged.
+- No vendor specific CI/CD infra, do not add a .github or any similar
 
 # Documentation
 - AGENTS.md and README.md should all be markdown at the top level of the repo.

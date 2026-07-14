@@ -296,7 +296,7 @@ test("Classic Body Mod replaces old body-type grants instead of stacking them", 
 
 test("Story editor applies formatting and reports a focus-out save", async ({
   page,
-}) => {
+}, testInfo) => {
   const scenario = page.getByLabel(
     "Chain and Jump contextual supplement scenario",
   );
@@ -306,6 +306,14 @@ test("Story editor applies formatting and reports a focus-out save", async ({
     .getByRole("button", { name: /Story/ })
     .click();
   const dialog = scenario.getByRole("dialog");
+  const outerScroller = dialog.locator(".chain-supp-context-content");
+  await expect
+    .poll(() =>
+      outerScroller.evaluate(
+        (node) => node.scrollHeight <= node.clientHeight + 1,
+      ),
+    )
+    .toBe(true);
   await expect(page.getByRole("dialog")).toHaveCount(1);
   await expect(
     dialog.getByRole("heading", { name: "Story · Arcane Realms" }),
@@ -324,8 +332,74 @@ test("Story editor applies formatting and reports a focus-out save", async ({
   await expect(source.locator(".story-rich-token")).toHaveText("A new chapter");
   await expect(source.locator(".story-rich-token")).toHaveClass(/is-source/);
   await source.focus();
+  const initialChapterCount = await dialog
+    .locator(".story-chapter-editor")
+    .count();
   await dialog.getByRole("button", { name: "+ Add chapter" }).click();
   await expect(dialog.getByRole("status")).toHaveText("Saved");
+  await expect(dialog.locator(".story-chapter-editor")).toHaveCount(
+    initialChapterCount + 1,
+  );
+
+  const titles = dialog.locator(".story-chapter-editor > header input");
+  const secondTitle = await titles.nth(1).inputValue();
+  const firstChapter = dialog.locator(".story-chapter-editor").first();
+  const secondChapter = dialog.locator(".story-chapter-editor").nth(1);
+  const firstChapterHandle = firstChapter.locator(".story-chapter-handle");
+  const previewTransfer = await page.evaluateHandle(() => new DataTransfer());
+  await firstChapterHandle.dispatchEvent("dragstart", {
+    dataTransfer: previewTransfer,
+  });
+  await expect(firstChapter).toHaveClass(/is-dragging/);
+  const secondChapterBox = await secondChapter.boundingBox();
+  expect(secondChapterBox).not.toBeNull();
+  await secondChapter.dispatchEvent("dragover", {
+    dataTransfer: previewTransfer,
+    clientX: secondChapterBox!.x + secondChapterBox!.width / 2,
+    clientY: secondChapterBox!.y + secondChapterBox!.height - 2,
+  });
+  await expect(secondChapter).toHaveClass(/is-drop-after/);
+  await testInfo.attach("story-chapter-accent-insertion-line-and-delete-x", {
+    body: await dialog.screenshot(),
+    contentType: "image/png",
+  });
+  await firstChapterHandle.dispatchEvent("dragend", {
+    dataTransfer: previewTransfer,
+  });
+  await expect(secondChapter).not.toHaveClass(/is-drop-/);
+  await firstChapterHandle.dragTo(secondChapter, {
+    targetPosition: {
+      x: 10,
+      y: Math.max(1, secondChapterBox!.height - 2),
+    },
+  });
+  await expect(titles.first()).toHaveValue(secondTitle);
+  await testInfo.attach("story-chapter-reordered-after-indicated-drop", {
+    body: await dialog.screenshot(),
+    contentType: "image/png",
+  });
+
+  await dialog.getByRole("button", { name: "Remove chapter 1" }).click();
+  const confirmation = dialog.getByRole("alertdialog", {
+    name: "Remove chapter?",
+  });
+  await expect(confirmation).toContainText("Are you sure");
+  await testInfo.attach("story-chapter-reorder-and-remove-confirmation", {
+    body: await dialog.screenshot(),
+    contentType: "image/png",
+  });
+  await confirmation.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog.locator(".story-chapter-editor")).toHaveCount(
+    initialChapterCount + 1,
+  );
+  await dialog.getByRole("button", { name: "Remove chapter 1" }).click();
+  await dialog
+    .getByRole("alertdialog", { name: "Remove chapter?" })
+    .getByRole("button", { name: "Remove chapter" })
+    .click();
+  await expect(dialog.locator(".story-chapter-editor")).toHaveCount(
+    initialChapterCount,
+  );
 });
 
 test("Story Live Preview reveals markers only for the cursor-local token and keeps its footer visible", async ({

@@ -65,6 +65,76 @@ describe("session event pipeline", () => {
     pipeline.emit("settings.notification.previewed");
     vi.advanceTimersByTime(500);
     expect(pipeline.toastSnapshot()[0].occurrences).toBe(2);
+    pipeline.emit("chain.choice.overspend_blocked", {
+      attributes: { entryId: "entry-1", actorId: "jumper" },
+    });
+    vi.advanceTimersByTime(500);
+    expect(
+      pipeline
+        .toastSnapshot()
+        .some(
+          (toast) =>
+            toast.message === "Choice rejected, negative balance" &&
+            toast.appearance === "danger",
+        ),
+    ).toBe(true);
+  });
+
+  it("carries actions through the shared toast lifecycle", () => {
+    vi.useFakeTimers();
+    const { pipeline } = createPipeline();
+    const invoke = vi.fn();
+    const onDismiss = vi.fn();
+    pipeline.emit("chain.reordered", {
+      attributes: { dependencyReview: false },
+      toast: { action: { label: "Undo", invoke }, onDismiss },
+    });
+
+    vi.advanceTimersByTime(500);
+    const toast = pipeline.toastSnapshot()[0];
+    expect(toast.message).toBe("Reorder complete.");
+    expect(toast.action?.label).toBe("Undo");
+    toast.action?.invoke();
+    expect(invoke).toHaveBeenCalledOnce();
+    pipeline.dismissToast(toast.id);
+    expect(onDismiss).toHaveBeenCalledOnce();
+  });
+
+  it("suppresses actionable toasts with their notification class", () => {
+    vi.useFakeTimers();
+    const { pipeline, settings } = createPipeline();
+    settings.notifications.classes.chain = false;
+    const onDismiss = vi.fn();
+    pipeline.emit("chain.reordered", {
+      attributes: { dependencyReview: false },
+      toast: {
+        action: { label: "Undo", invoke: vi.fn() },
+        onDismiss,
+      },
+    });
+
+    vi.runAllTimers();
+    expect(pipeline.toastSnapshot()).toHaveLength(0);
+    expect(onDismiss).toHaveBeenCalledOnce();
+  });
+
+  it("dismisses visible actionable toasts when preferences hide them", () => {
+    vi.useFakeTimers();
+    const { pipeline, settings } = createPipeline();
+    const onDismiss = vi.fn();
+    pipeline.emit("chain.reordered", {
+      attributes: { dependencyReview: false },
+      toast: {
+        action: { label: "Undo", invoke: vi.fn() },
+        onDismiss,
+      },
+    });
+    vi.advanceTimersByTime(500);
+
+    settings.notifications.classes.chain = false;
+    pipeline.syncNotificationPreferences();
+    expect(pipeline.toastSnapshot()).toHaveLength(0);
+    expect(onDismiss).toHaveBeenCalledOnce();
   });
 
   it("retains high-severity events while evicting the oldest low-severity records", () => {

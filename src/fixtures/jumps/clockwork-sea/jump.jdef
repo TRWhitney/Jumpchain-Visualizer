@@ -1,0 +1,139 @@
+jump
+  format: 1
+  name: "Clockwork Sea"
+  author: "Jumpchain Visualizer"
+  version: "1.8"
+  choice-layout: voyage_card
+
+resource
+  handle: brass
+  name: "Brass Marks"
+  abbreviation: "BM"
+  initial: 5
+
+section
+  handle: voyage
+  name: "Voyage"
+
+  choice-source
+    handle: main
+    group: voyage
+    mode: multi
+
+choice
+  handle: brass_seamanship
+  name: "Brass Seamanship"
+  group: voyage
+  tag: technology
+  tag: vehicles
+  cost: 200
+
+  input
+    handle: vessel_name
+    selection: text
+
+    grant
+      kind: property
+      handle: vessel_name
+
+  grant: perk
+
+  grant
+    kind: perk
+    name: "Tidal Machinery"
+    tag: technology
+
+  grant
+    kind: perk
+    name: "Storm Balance"
+    tag: physical
+
+  grant
+    kind: perk
+    name: "Mechanical Intuition"
+    tag: mental
+
+  grant
+    kind: companion
+    name: "Cala"
+    tag: crafting
+    tag: technology
+
+choice
+  handle: impossible_vessel
+  name: "Impossible Vessel"
+  group: voyage
+  tag: crafting
+  cost: 100
+
+  cost
+    resource: brass
+    amount: 3
+
+  input
+    handle: vessel_class
+    selection: select
+    option: "Cutter"
+    option: "Leviathan"
+    option: "Submersible"
+
+    grant
+      kind: property
+      handle: vessel_class
+
+  grant: item
+
+  grant
+    kind: item
+    name: "Tide Engine"
+    tag: technology
+
+  grant
+    kind: perk
+    name: "Emergency Repairs"
+    tag: crafting
+
+  grant
+    kind: perk
+    name: "Broadside Command"
+    tag: combat
+
+choice
+  handle: import_companions
+  name: "Companion Crew"
+  group: voyage
+  tag: social
+  cost: 200
+
+  input
+    handle: crew
+    selection: companions
+    min: 1
+    max: 2
+
+    grant
+      kind: companion-import
+      resource: jump_points
+      amount: 600
+
+  grant: perk
+
+choice-layout
+  handle: voyage_card
+
+  stack
+    handle: root
+    gap: sm
+
+    inline
+      handle: heading
+      justify: between
+      slot: name
+      slot: cost
+
+    slot: tags
+    slot: control
+    slot: roll
+    input: vessel_name
+    input: vessel_class
+    input: crew

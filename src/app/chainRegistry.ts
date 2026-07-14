@@ -19,6 +19,14 @@ export type ChainRegistryState = {
 export type ChainRegistryAction =
   | { type: "open"; id: string }
   | { type: "create"; id: string; name: string }
+  | {
+      type: "hydrate";
+      id: string;
+      name: string;
+      description: string;
+      lastOpenedSequence: number;
+      lastOpenedLabel: string;
+    }
   | { type: "update-details"; id: string; name: string; description: string };
 
 const tagCounts = (values: readonly number[]): Record<TagCategory, number> =>
@@ -147,6 +155,30 @@ export function chainRegistryReducer(
   state: ChainRegistryState,
   action: ChainRegistryAction,
 ): ChainRegistryState {
+  if (action.type === "hydrate") {
+    const existing = state.chains[action.id];
+    const sequence = Math.max(0, Math.trunc(action.lastOpenedSequence));
+    const localSerial = action.id.match(/^ch-new-(\d+)$/)?.[1];
+    return {
+      ...state,
+      chains: {
+        ...state.chains,
+        [action.id]: {
+          id: action.id,
+          name: normalizeChainName(action.name) || "Untitled Chain",
+          description: action.description.trim(),
+          lastOpenedSequence: sequence,
+          lastOpenedLabel: action.lastOpenedLabel,
+          jumpCount: existing?.jumpCount ?? 0,
+          tagCounts: existing?.tagCounts ?? tagCounts([]),
+        },
+      },
+      nextSequence: Math.max(state.nextSequence, sequence + 1),
+      nextSerial: localSerial
+        ? Math.max(state.nextSerial, Number(localSerial) + 1)
+        : state.nextSerial,
+    };
+  }
   if (action.type === "open") {
     const chain = state.chains[action.id];
     if (!chain) return state;

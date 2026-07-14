@@ -3,6 +3,15 @@
   if (!mockup) return;
 
   const jumpCatalog = {
+    earth: {
+      name: "Earth",
+      logicalId: "system-earth",
+      version: "Application",
+      source: "system",
+      description: "The chain's system-owned starting identity entry.",
+      status: "The Beginning",
+      foundation: true,
+    },
     "first-step": {
       name: "First Step",
       logicalId: "first-step",
@@ -64,7 +73,7 @@
     },
   };
 
-  let chainOrder = ["first-step", "arcane-realms", "cosmic-odyssey"];
+  let chainOrder = ["earth", "first-step", "arcane-realms", "cosmic-odyssey"];
   let selectedJump = "arcane-realms";
   let inspectionPoint = selectedJump;
   let librarySource = "all";
@@ -75,6 +84,15 @@
   const allowMultiplePackageVersions = true;
   const allowNegativePointBalances = mockup.dataset.allowNegativeBalances === "true";
   const choiceState = new Map();
+  const identityState = new Map([
+    ["earth:jumper", { gender: "", age: null }],
+  ]);
+  const identityFixture = {
+    earth: { origin: "Human", location: "Earth" },
+    "first-step": { origin: "Wanderer", location: "Crossroads", continuity: "previous", genders: ["Male", "Female"] },
+    "arcane-realms": { species: "Elf", continuity: "original", genders: ["Male", "Female"] },
+    "cosmic-odyssey": { origin: "Spacer", location: "Starlight Anchorage", continuity: "previous", genders: ["Andorian", "Nonbinary"] },
+  };
   const questState = new Map();
   const storyState = new Map([
     ["first-step", { title: "A Door Opens", blocks: ["Morgan stepped beyond the familiar world with one pack and no promise of a return.", ""] }],
@@ -110,6 +128,13 @@
   const renderKicker = mockup.querySelector("#tracker-render-kicker");
   const renderTitle = mockup.querySelector("#tracker-render-title");
   const renderDescription = mockup.querySelector("#tracker-render-description");
+  const earthRenderer = mockup.querySelector("#tracker-earth-renderer");
+  const jumpRenderer = mockup.querySelector("#tracker-jump-renderer");
+  const earthGender = mockup.querySelector("#tracker-earth-gender");
+  const earthAge = mockup.querySelector("#tracker-earth-age");
+  const genderChoice = mockup.querySelector("#tracker-gender-choice");
+  const ageChoice = mockup.querySelector("#tracker-age-choice");
+  const continuityNote = mockup.querySelector("#tracker-continuity-note");
   const budgetOutput = mockup.querySelector("#tracker-budget-output");
   const actorSelect = mockup.querySelector("#chain-actor-select");
   const summaryCurrency = mockup.querySelector("#chain-summary-currency");
@@ -137,7 +162,9 @@
     io: ["6 System Tokens"],
   };
 
-  const sourceLabel = (source) => source === "builtin" ? "Built-in" : "Imported";
+  const sourceLabel = (source) => source === "builtin" ? "Built-in" : source === "system" ? "Application" : "Imported";
+  const jumpIds = () => chainOrder.filter((id) => id !== "earth");
+  const jumpNumber = (id) => jumpIds().indexOf(id) + 1;
   const replaceTooltipContent = (tooltip, headingText, lines) => {
     const heading = document.createElement("strong");
     heading.textContent = headingText;
@@ -176,15 +203,51 @@
   wireTabs(railTabs);
   wireTabs(mainTabs);
 
+  const identityKey = (jumpId, actorId = currentActor) => `${jumpId}:${actorId}`;
+  const identityFor = (jumpId, actorId = currentActor) => {
+    const key = identityKey(jumpId, actorId);
+    if (!identityState.has(key)) identityState.set(key, { gender: "", age: null });
+    return identityState.get(key);
+  };
+  const originalIdentity = (actorId) => actorId === "jumper"
+    ? identityFor("earth", actorId)
+    : { gender: actorCatalog[actorId]?.gender ?? "", age: Number(actorCatalog[actorId]?.age) || null };
+  const effectiveIdentity = (jumpId, actorId = currentActor) => {
+    const index = chainOrder.indexOf(jumpId);
+    const explicit = identityFor(jumpId, actorId);
+    if (jumpId === "earth") return actorId === "jumper" ? explicit : originalIdentity(actorId);
+    const previousId = chainOrder[index - 1];
+    const previous = previousId ? effectiveIdentity(previousId, actorId) : originalIdentity(actorId);
+    const fixture = identityFixture[jumpId] ?? {};
+    const baseline = fixture.continuity === "original" ? originalIdentity(actorId) : previous;
+    const referencedGender = baseline.gender || "";
+    const genderAvailable = fixture.genders?.includes(referencedGender);
+    return {
+      gender: explicit.gender || (genderAvailable ? referencedGender : ""),
+      age: explicit.age ?? previous.age ?? null,
+    };
+  };
+  const identityChoiceCost = (jumpId, actorId = currentActor) => {
+    const explicit = identityFor(jumpId, actorId).gender;
+    if (!explicit || jumpId === "earth") return 0;
+    const fixture = identityFixture[jumpId] ?? {};
+    const previousId = chainOrder[chainOrder.indexOf(jumpId) - 1];
+    const baseline = fixture.continuity === "original"
+      ? originalIdentity(actorId)
+      : (previousId ? effectiveIdentity(previousId, actorId) : originalIdentity(actorId));
+    if (!baseline.gender || !fixture.genders?.includes(baseline.gender)) return 0;
+    return explicit === baseline.gender ? 0 : 100;
+  };
+
   const renderPointSelect = () => {
     if (!chainOrder.includes(inspectionPoint)) inspectionPoint = selectedJump;
     pointSelects.forEach((select) => {
       select.replaceChildren();
       [...chainOrder].reverse().forEach((id) => {
-        const chronologicalPosition = chainOrder.indexOf(id) + 1;
         const jump = jumpCatalog[id];
-        const version = allowMultiplePackageVersions ? ` · v${jump.version}` : "";
-        select.add(new Option(`${chronologicalPosition}. ${jump.name}${version}`, id));
+        const version = id !== "earth" && allowMultiplePackageVersions ? ` · v${jump.version}` : "";
+        const label = id === "earth" ? "Earth · Chain beginning" : `${jumpNumber(id)}. ${jump.name}${version}`;
+        select.add(new Option(label, id));
       });
       select.value = inspectionPoint;
     });
@@ -197,14 +260,14 @@
   };
 
   const choicesFor = (jumpId, actorId) => choiceState.get(`${jumpId}:${actorId}`) ?? new Set();
-  const startingBudgetFor = (jumpId, actorId) => actorId === "jumper"
+  const startingBudgetFor = (jumpId, actorId) => jumpId === "earth" ? 0 : actorId === "jumper"
     ? 1000
     : (jumpCatalog[jumpId]?.companionImports?.[actorId]?.amount ?? 0);
   const spentFor = (selected) => trackerChoices.reduce((total, choice) => (
     total + (selected.has(choice.dataset.choiceKey) ? Number(choice.dataset.choiceCost || 0) : 0)
   ), 0);
   const remainingFor = (jumpId, actorId, selected = choicesFor(jumpId, actorId)) => (
-    startingBudgetFor(jumpId, actorId) - spentFor(selected)
+    startingBudgetFor(jumpId, actorId) - spentFor(selected) - identityChoiceCost(jumpId, actorId)
   );
   const mayUseNegativeBalance = (jumpId, actorId) => actorId === "jumper"
     || startingBudgetFor(jumpId, actorId) > 0;
@@ -262,6 +325,37 @@
     actorSelect.value = currentActor;
   };
 
+  const syncIdentityControls = () => {
+    const isEarth = selectedJump === "earth";
+    earthRenderer.hidden = !isEarth;
+    jumpRenderer.hidden = isEarth;
+    if (isEarth) {
+      const identity = identityFor("earth");
+      earthGender.value = identity.gender;
+      earthAge.value = identity.age ?? "";
+      return;
+    }
+    const fixture = identityFixture[selectedJump] ?? {};
+    const explicit = identityFor(selectedJump);
+    const previousId = chainOrder[chainOrder.indexOf(selectedJump) - 1];
+    const baseline = fixture.continuity === "original"
+      ? originalIdentity(currentActor)
+      : (previousId ? effectiveIdentity(previousId) : originalIdentity(currentActor));
+    const referencedGender = baseline.gender || "";
+    const optionExists = Boolean(referencedGender && fixture.genders?.includes(referencedGender));
+    const everyOptionFree = !referencedGender || !optionExists;
+    genderChoice.replaceChildren(new Option("Not set", ""), ...(fixture.genders ?? []).map((gender) => {
+      const cost = everyOptionFree || gender === referencedGender ? "Free" : "100 CP";
+      return new Option(`${gender} · ${cost}`, gender);
+    }));
+    genderChoice.value = explicit.gender || (optionExists ? referencedGender : "");
+    ageChoice.value = explicit.age ?? effectiveIdentity(selectedJump).age ?? "";
+    const continuityLabel = fixture.continuity === "original" ? "original Earth identity" : "previous effective identity";
+    continuityNote.textContent = everyOptionFree
+      ? `The ${continuityLabel} is unset or absent from this dropdown, so the control remains unset and every authored option is free.`
+      : `${referencedGender} matches the ${continuityLabel} and is free. Other authored options retain their 100 CP cost.`;
+  };
+
   const syncChoices = () => {
     const selected = selectedChoices();
     trackerChoices.forEach((choice) => {
@@ -274,18 +368,41 @@
     summaryCurrency.textContent = `${remaining} CP`;
     const origin = ["wanderer", "noble", "scholar"].find((key) => selected.has(key));
     const location = ["highcourt", "collegium"].find((key) => selected.has(key));
-    summaryOrigin.textContent = origin ? origin[0].toLocaleUpperCase() + origin.slice(1) : "Not selected";
+    const fixture = identityFixture[selectedJump] ?? {};
+    const resolvedOrigin = origin ? origin[0].toLocaleUpperCase() + origin.slice(1) : fixture.origin;
+    const resolvedLocation = location ? locationDetails[location] : fixture.location;
+    const resolvedSpecies = fixture.species ?? "Human";
+    const effective = effectiveIdentity(selectedJump);
+    summaryOrigin.textContent = resolvedOrigin || "Unknown";
     replaceTooltipContent(currencyTooltip, "Alternative currencies remaining", alternativeCurrencies[currentActor] ?? ["No alternative currencies remain."]);
     if (origin) {
       const detail = originDetails[origin];
-      replaceTooltipContent(originTooltip, summaryOrigin.textContent, [detail.description, `Location: ${location ? locationDetails[location] : "None selected"}`]);
+      replaceTooltipContent(originTooltip, summaryOrigin.textContent, [detail.description, `Species: ${resolvedSpecies}`, `Location: ${resolvedLocation || "Unknown"}`]);
     } else {
-      replaceTooltipContent(originTooltip, "No origin selected", [`Location: ${location ? locationDetails[location] : "None selected"}`]);
+      replaceTooltipContent(originTooltip, resolvedOrigin ? `${resolvedOrigin} · evaluated property` : "Origin is not set in this Jump.", [`Species: ${resolvedSpecies}`, `Location: ${resolvedLocation || "Unknown"}`]);
     }
-    summaryGender.textContent = actorCatalog[currentActor].gender;
-    summaryAge.textContent = actorCatalog[currentActor].age;
+    summaryGender.textContent = effective.gender || "Unknown";
+    summaryAge.textContent = effective.age ?? "Unknown";
+    syncIdentityControls();
     syncBalanceIndicators();
   };
+
+  earthGender.addEventListener("change", () => {
+    identityFor("earth").gender = earthGender.value;
+    syncChoices();
+  });
+  earthAge.addEventListener("input", () => {
+    identityFor("earth").age = earthAge.value === "" ? null : Math.max(1, Number(earthAge.value));
+    syncChoices();
+  });
+  genderChoice.addEventListener("change", () => {
+    identityFor(selectedJump).gender = genderChoice.value;
+    syncChoices();
+  });
+  ageChoice.addEventListener("input", () => {
+    identityFor(selectedJump).age = ageChoice.value === "" ? null : Math.max(1, Number(ageChoice.value));
+    syncChoices();
+  });
 
   const activateJumpView = () => {
     const jumpTab = mainTabs.find((tab) => tab.id === "chain-view-jump-tab");
@@ -296,9 +413,11 @@
     const jump = jumpCatalog[selectedJump];
     const position = chainOrder.indexOf(selectedJump);
     if (!jump || position < 0) return;
-    currentPosition.textContent = `Jump ${position + 1} of ${chainOrder.length}`;
+    currentPosition.textContent = selectedJump === "earth" ? "Before Jump 1" : `Jump ${jumpNumber(selectedJump)} of ${jumpIds().length}`;
     currentTitle.textContent = jump.name;
-    currentSource.textContent = `Version ${jump.version} · ${sourceLabel(jump.source)} package · ${jump.status}`;
+    currentSource.textContent = selectedJump === "earth"
+      ? "The Beginning"
+      : `Version ${jump.version} · ${sourceLabel(jump.source)} package · ${jump.status}`;
     mockup.querySelector("#chain-supp-context-title").textContent = jump.name;
     mockup.querySelector("#supp-quest-context-kicker").textContent = `Quest Mode · ${jump.name}`;
     mockup.querySelector("#supp-story-context-kicker").textContent = `Story · ${jump.name}`;
@@ -334,8 +453,8 @@
 
   const moveJump = (id, nextIndex) => {
     const currentIndex = chainOrder.indexOf(id);
-    if (currentIndex < 0) return;
-    const bounded = Math.max(0, Math.min(chainOrder.length - 1, nextIndex));
+    if (currentIndex < 1 || id === "earth") return;
+    const bounded = Math.max(1, Math.min(chainOrder.length - 1, nextIndex));
     if (bounded === currentIndex) return;
     chainOrder.splice(currentIndex, 1);
     chainOrder.splice(bounded, 0, id);
@@ -346,7 +465,7 @@
   };
 
   const removeJump = (id) => {
-    if (chainOrder.length <= 1) return;
+    if (id === "earth" || chainOrder.length <= 2) return;
     const removedIndex = chainOrder.indexOf(id);
     if (removedIndex < 0) return;
     chainOrder.splice(removedIndex, 1);
@@ -363,10 +482,12 @@
     [...chainOrder].reverse().forEach((id) => {
       const index = chainOrder.indexOf(id);
       const jump = jumpCatalog[id];
+      const isEarth = id === "earth";
       const entry = document.createElement("article");
       entry.className = "chain-jump-entry";
+      entry.classList.toggle("is-earth", isEarth);
       entry.classList.toggle("is-selected", id === selectedJump);
-      entry.draggable = true;
+      entry.draggable = !isEarth;
       entry.dataset.chainJump = id;
 
       const handle = document.createElement("span");
@@ -380,7 +501,7 @@
       select.className = "chain-jump-select";
       select.setAttribute("aria-pressed", String(id === selectedJump));
       const name = document.createElement("span");
-      name.textContent = `${index + 1}. ${jump.name}${allowMultiplePackageVersions ? ` · v${jump.version}` : ""}`;
+      name.textContent = isEarth ? "Earth" : `${jumpNumber(id)}. ${jump.name}${allowMultiplePackageVersions ? ` · v${jump.version}` : ""}`;
       const status = document.createElement("small");
       status.textContent = `${sourceLabel(jump.source)} · ${jump.status}`;
       select.append(name, status);
@@ -410,6 +531,7 @@
       actions.append(up, down, remove);
 
       entry.addEventListener("dragstart", (event) => {
+        if (isEarth) return;
         draggedJump = id;
         entry.classList.add("is-dragging");
         event.dataTransfer.effectAllowed = "move";
@@ -430,10 +552,11 @@
         entry.classList.remove("is-dragging");
       });
 
-      entry.append(handle, select, actions);
+      if (isEarth) entry.append(select);
+      else entry.append(handle, select, actions);
       jumpList.append(entry);
     });
-    jumpCount.textContent = `${chainOrder.length} ${chainOrder.length === 1 ? "Jump" : "Jumps"}`;
+    jumpCount.textContent = `${jumpIds().length} ${jumpIds().length === 1 ? "Jump" : "Jumps"}`;
   }
 
   const addJump = (id) => {
@@ -463,6 +586,7 @@
     const query = librarySearch.value.trim().toLocaleLowerCase();
     libraryList.replaceChildren();
     const visible = Object.entries(jumpCatalog).filter(([, jump]) => {
+      if (jump.foundation) return false;
       const sourceMatches = librarySource === "all" || jump.source === librarySource;
       const queryMatches = !query || `${jump.name} ${jump.version} ${jump.description}`.toLocaleLowerCase().includes(query);
       return sourceMatches && queryMatches;

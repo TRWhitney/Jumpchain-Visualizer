@@ -1,0 +1,196 @@
+jump
+  format: 1
+  name: "Arcane Realms"
+  author: "Jumpchain Visualizer"
+  version: "1.0"
+
+resource
+  handle: gems
+  name: "Arcane Gems"
+  abbreviation: "Gems"
+  initial: 4
+
+section
+  handle: identity
+  name: "Identity"
+
+  choice-source
+    handle: origins
+    group: origins
+    mode: single
+    resolution: either
+
+  choice
+    handle: gender_field
+    target: current_gender
+
+section
+  handle: magic
+  name: "Arcane Studies"
+
+  choice-source
+    handle: perks
+    group: magic_perks
+    mode: multi
+
+choice
+  handle: current_gender
+  name: "Gender"
+  selection: select
+  continuity: previous
+  option: "Male"
+  option: "Female"
+  cost: 100
+
+  grant
+    kind: property
+    handle: gender
+
+section
+  handle: training
+  name: "Training and Attunement"
+
+  choice
+    handle: ranks
+    target: technique_ranks
+
+  choice
+    handle: element
+    target: elemental_attunement
+
+choice
+  handle: scholar
+  name: "Scholar"
+  group: origins
+  tag: mental
+  tag: magic
+  cost: 100
+
+  text
+    handle: description
+    content: "You trained among Highcourt's learned institutions."
+
+  grant
+    kind: property
+    handle: origin
+    value: "Scholar"
+
+  grant
+    kind: property
+    handle: species
+    value: "Elf"
+
+  grant
+    kind: property
+    handle: location
+    value: "Highcourt"
+
+choice
+  handle: hedge_mage
+  name: "Hedge Mage"
+  group: origins
+  tag: magic
+  cost: 0
+
+  grant
+    kind: property
+    handle: origin
+    value: "Hedge Mage"
+
+  grant
+    kind: property
+    handle: location
+    value: "Border Villages"
+
+choice
+  handle: spellcraft_foundations
+  name: "Spellcraft Foundations"
+  group: magic_perks
+  tag: magic
+  tag: learning
+  cost: 200
+  grant: perk
+
+  grant
+    kind: perk
+    name: "Warded Soul"
+    tag: defense
+    tag: spiritual
+    tag: pyrokinesis
+
+  grant
+    kind: perk
+    name: "Ley Line Attunement"
+    tag: magic
+    tag: cryokinesis
+
+  grant
+    kind: perk
+    name: "Highcourt Etiquette"
+    tag: social
+    tag: telekinesis
+
+  grant
+    kind: companion
+    name: "Mira"
+    tag: magic
+    tag: scholar
+
+choice
+  handle: living_grimoire
+  name: "Living Grimoire"
+  group: magic_perks
+  tag: crafting
+  tag: enchanting
+  cost: 100
+
+  cost
+    resource: gems
+    amount: 2
+
+  grant: item
+
+  grant
+    kind: perk
+    name: "Runic Memory"
+    tag: mental
+    tag: healing-magic
+
+  grant
+    kind: perk
+    name: "Arcane Shielding"
+    tag: defense
+    tag: enchantment
+
+  grant
+    kind: item
+    name: "Apprentice Focus"
+    tag: magic
+    tag: divination
+
+choice
+  handle: technique_ranks
+  name: "Technique Ranks"
+  selection: integer
+  min: 0
+  max: 5
+  resolution: either
+
+  cost
+    resource: jump_points
+    amount: 50
+    mode: each
+
+  grant: perk
+
+choice
+  handle: elemental_attunement
+  name: "Element"
+  selection: select
+  resolution: either
+  option: "Fire"
+  option: "Water"
+  option: "Wind"
+  cost: 200
+  tag: magic
+  grant: perk

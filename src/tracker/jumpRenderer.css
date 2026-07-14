@@ -1,0 +1,296 @@
+.format-one-jump-renderer {
+  min-height: 100%;
+  color-scheme: light;
+}
+.format-one-jump-renderer > header {
+  background: #f5f1e6;
+}
+.rendered-jump-section {
+  padding: 1rem;
+  border-top: 1px solid #45443f;
+}
+.rendered-jump-section > header {
+  margin-bottom: 0.8rem;
+}
+.rendered-jump-section > header p {
+  margin: 0 0 0.2rem;
+  color: #6d6759;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.rendered-jump-section > header h5 {
+  margin: 0;
+  color: #26231f;
+  font-size: 1rem;
+}
+.jump-default-section,
+.jump-layout-stack {
+  display: grid;
+  gap: 0.75rem;
+}
+.jump-layout-inline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.jump-layout-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.jump-layout-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+.default-choice-card {
+  color: #26231f;
+  background: transparent;
+  border: 1px solid #d8cfb6;
+  border-radius: 0.36rem;
+}
+.authored-choice-layout,
+.selection-specimen.has-authored-choice-layout,
+.selection-specimen.has-authored-choice-layout .group-options > article,
+.selection-specimen.has-authored-choice-layout > footer {
+  color: #26231f;
+  background: transparent;
+  border-color: #d8cfb6;
+}
+.authored-choice-layout .jump-layout-text,
+.selection-specimen.has-authored-choice-layout .jump-layout-text {
+  color: #5f5a4d;
+}
+.authored-choice-layout .default-choice-heading > strong,
+.selection-specimen.has-authored-choice-layout
+  .default-choice-heading
+  > strong {
+  color: #26231f;
+}
+.jump-choice-description,
+.jump-layout-text,
+.earth-explanation {
+  color: #5f5a4d;
+  font-size: 0.7rem;
+  line-height: 1.55;
+}
+.format-one-jump-renderer .jump-layout-text {
+  color: #5f5a4d;
+}
+.selection-specimen {
+  overflow: hidden;
+  color: #26231f;
+  background: transparent;
+  border: 1px solid #d8cfb6;
+  border-radius: 0.36rem;
+}
+.authored-choice-layout .default-choice-actions + .default-choice-actions {
+  display: none;
+}
+.jump-nested-inputs {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.65rem 0 0;
+  border-top: 1px solid #d8cfb6;
+}
+.jump-nested-inputs > label {
+  display: grid;
+  gap: 0.35rem;
+  color: #4f4a40;
+  font-size: 0.62rem;
+  text-transform: capitalize;
+}
+.jump-nested-inputs input,
+.jump-nested-inputs select {
+  min-height: 2.2rem;
+  padding: 0.45rem 0.6rem;
+  color: #26231f;
+  background: #fffdf7;
+  border: 1px solid #b9af96;
+  border-radius: 0.23rem;
+}
+.companion-roster {
+  display: grid;
+  gap: 0.25rem;
+}
+.companion-roster .check-control > span {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+}
+.choice-provenance {
+  color: #6d6759;
+  font-size: 0.58rem;
+}
+.jump-trait-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+.jump-trait-list article {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.7rem;
+  color: #26231f;
+  background: #fffdf7;
+  border: 1px solid #d8cfb6;
+}
+.jump-trait-list span {
+  color: #5f5a4d;
+  font-size: 0.65rem;
+}
+.number-stepper {
+  display: inline-grid;
+  width: 5.9rem;
+  min-height: 2.2rem;
+  grid-template-columns: minmax(0, 1fr) 1.45rem;
+  overflow: hidden;
+  background: #fffdf7;
+  border: 1px solid #b9af96;
+  border-radius: 0.23rem;
+}
+.number-stepper.is-fluid {
+  width: 100%;
+}
+.number-stepper > label,
+.number-stepper input {
+  width: 100% !important;
+  min-width: 0;
+  min-height: 100% !important;
+}
+.number-stepper input {
+  padding: 0.52rem 0.68rem !important;
+  color: #26231f;
+  appearance: textfield;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline-offset: -2px;
+}
+.number-stepper input::-webkit-inner-spin-button,
+.number-stepper input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+.number-stepper-buttons {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  border-left: 1px solid #b9af96;
+}
+.number-stepper-buttons button {
+  min-width: 0;
+  min-height: 0 !important;
+  padding: 0 !important;
+  display: grid;
+  place-items: center;
+  color: #625d52;
+  background: #eee9dc;
+  border: 0 !important;
+  border-radius: 0 !important;
+  line-height: 1;
+}
+.number-stepper-buttons button::before {
+  width: 0;
+  height: 0;
+  content: "";
+  border-right: 0.26rem solid transparent;
+  border-left: 0.26rem solid transparent;
+}
+.number-stepper-buttons button:first-child::before {
+  border-bottom: 0.34rem solid currentcolor;
+}
+.number-stepper-buttons button:last-child::before {
+  border-top: 0.34rem solid currentcolor;
+}
+.number-stepper-buttons button + button {
+  border-top: 1px solid #b9af96 !important;
+}
+.number-stepper-buttons button:disabled {
+  color: #aaa396;
+}
+.earth-identity-controls {
+  margin: 0 0 1rem;
+}
+.chain-gauntlet-action {
+  align-self: center;
+  padding: 0.5rem 0.7rem;
+  color: #e8e5dc;
+  background: #2b2b29;
+  border: 1px solid #59574f;
+  border-radius: 0.25rem;
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 750;
+}
+.chain-gauntlet-action:disabled {
+  color: #b6b1a5;
+  border-style: dashed;
+}
+.jump-section-layout-name {
+  margin: 0;
+  color: #26231f;
+  font-size: 0.86rem;
+}
+
+/*
+ * The control catalogue owns control structure and geometry. A rendered Jump
+ * owns the surface it places those controls on. Unstyled Format 1 content
+ * inherits this pale, high-contrast surface; authored inline presentation
+ * continues to take precedence.
+ */
+.format-one-jump-renderer .default-choice-heading > strong {
+  color: #26231f;
+}
+.format-one-jump-renderer .default-choice-actions,
+.format-one-jump-renderer .jump-nested-inputs {
+  border-color: #d8cfb6;
+}
+.format-one-jump-renderer .default-choice-actions :is(button, input, select),
+.format-one-jump-renderer .selection-specimen > footer button,
+.format-one-jump-renderer .source-roll-controls button {
+  color: #26231f;
+  background: #fffdf7;
+  border-color: #b9af96;
+}
+.format-one-jump-renderer
+  .default-choice-actions
+  :is(button, input, select):disabled,
+.format-one-jump-renderer .selection-specimen > footer button:disabled,
+.format-one-jump-renderer .source-roll-controls button:disabled {
+  color: #827c70;
+  background: #e8e2d5;
+  border-color: #c9bea5;
+}
+.format-one-jump-renderer .secondary-control {
+  color: #4f4a40 !important;
+}
+.format-one-jump-renderer .check-control {
+  color: #26231f;
+}
+.format-one-jump-renderer
+  :is(.control-range, [data-roll-output], [data-group-status]) {
+  color: #6d6759;
+}
+.format-one-jump-renderer .group-options > article,
+.format-one-jump-renderer .selection-specimen > footer {
+  color: #26231f;
+  background: #fffdf7;
+  border-color: #d8cfb6;
+}
+.format-one-jump-renderer .spent-total {
+  color: #6d6759;
+}
+.format-one-jump-renderer .spent-total output {
+  color: #26231f;
+}
+@media (max-width: 48rem) {
+  .jump-layout-grid,
+  .jump-trait-list {
+    grid-template-columns: 1fr !important;
+  }
+}

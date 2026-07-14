@@ -4,6 +4,7 @@ import {
   createDefaultTagProfile,
   deleteTag,
   exportTagProfile,
+  hydrateTagProfile,
   importTagProfile,
   installedTagCandidates,
   normalizeTag,
@@ -108,12 +109,61 @@ describe("tag profiles", () => {
     const acquired = refreshed.profile.tags["highcourt-etiquette"];
     expect(acquired.source).toBe("acquired");
     expect(acquired.parent).toBe("miscellaneous");
-    expect(acquired.presentation.colors).toEqual(
+    expect(acquired.presentation.colors).not.toEqual(
       profile.tags.miscellaneous.presentation.colors,
     );
+    const sibling = addTag(
+      refreshed.profile,
+      "Another installed tag",
+      "manual",
+    );
+    expect(
+      sibling.profile.tags[sibling.selectedId!].presentation.colors,
+    ).not.toEqual(acquired.presentation.colors);
     expect(
       refreshInstalledTags(refreshed.profile, installedPackages).added,
     ).toHaveLength(0);
+  });
+
+  it("uses the child name only as a stable seed for inherited badge colors", () => {
+    let profile = createDefaultTagProfile();
+    const first = addTag(profile, "Solar Weaving", "manual");
+    profile = setTagParent(first.profile, first.selectedId!, "magic").profile;
+    const second = addTag(profile, "Lunar Weaving", "manual");
+    profile = setTagParent(second.profile, second.selectedId!, "magic").profile;
+    expect(profile.tags[first.selectedId!].name).toBe("Solar Weaving");
+    expect(profile.tags[first.selectedId!].presentation.colors).not.toEqual(
+      profile.tags.magic.presentation.colors,
+    );
+    expect(profile.tags[first.selectedId!].presentation.colors).not.toEqual(
+      profile.tags[second.selectedId!].presentation.colors,
+    );
+    const repeated = setTagParent(
+      addTag(createDefaultTagProfile(), "Solar Weaving", "manual").profile,
+      first.selectedId!,
+      "magic",
+    ).profile;
+    expect(repeated.tags[first.selectedId!].presentation.colors).toEqual(
+      profile.tags[first.selectedId!].presentation.colors,
+    );
+  });
+
+  it("ships visibly shifted built-in child colors and refreshes uncustomized persisted presets", () => {
+    const profile = createDefaultTagProfile();
+    expect(profile.tags.adaptation.presentation.colors).not.toEqual(
+      profile.tags.physical.presentation.colors,
+    );
+    expect(profile.tags.adaptation.presentation.colors).not.toEqual(
+      profile.tags.strength.presentation.colors,
+    );
+    const stale = structuredClone(profile);
+    stale.tags.adaptation.presentation = structuredClone(
+      stale.tags.physical.presentation,
+    );
+    const hydrated = hydrateTagProfile(stale, profile);
+    expect(hydrated.tags.adaptation.presentation.colors).toEqual(
+      profile.tags.adaptation.presentation.colors,
+    );
   });
 
   it("protects acquired tags and reparents children when deleting profile-only tags", () => {

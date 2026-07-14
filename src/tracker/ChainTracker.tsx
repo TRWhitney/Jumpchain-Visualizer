@@ -1,24 +1,38 @@
 import {
   useEffect,
+  useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type Dispatch,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
+import {
+  dropEdgeAtPointer,
+  dropIndexForTarget,
+  type DropEdge,
+} from "../ui/dragReorder";
 import {
   TrackerSupplementContext,
+  SupplementProviders,
   TrackerSupplementWorkspace,
-  type SupplementPageId,
 } from "../supplements/TrackerSupplements";
 import {
   hasEnabledSupplements,
-  initialEnabled,
   type EnabledModules,
   type ModuleId,
 } from "../supplements/model";
 import { TagBadge, TagRadar } from "./TagRadar";
+import { JumpRenderer } from "./JumpRenderer";
+import type { RandomIndexSource } from "../domain";
+import { EarthJumpRenderer } from "./EarthJumpRenderer";
+import { evaluateTracker, projectEvaluation } from "./evaluateTracker";
 import {
   filteredInventory,
+  EARTH_ENTRY_STATUS,
+  jumpEntryIds,
+  jumpNumber,
   packageForEntry,
   tagCategories,
   trackerPages,
@@ -29,6 +43,8 @@ import {
   type TrackerAction,
   type TrackerPage,
   type TrackerState,
+  type EvaluatedJumpRuntime,
+  supplementStateForEntry,
 } from "./model";
 
 const pageLabels: Record<TrackerPage, string> = {
@@ -38,6 +54,26 @@ const pageLabels: Record<TrackerPage, string> = {
   companions: "Companions",
   supplements: "Supplements",
 };
+
+function TruncatedText({ children }: { children: string }) {
+  const ref = useRef<HTMLElement>(null);
+  const [truncated, setTruncated] = useState(false);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const measure = () =>
+      setTruncated(element.scrollWidth > element.clientWidth + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [children]);
+  return (
+    <small ref={ref} title={truncated ? children : undefined}>
+      {children}
+    </small>
+  );
+}
 
 function ChainHeader() {
   return (
@@ -131,9 +167,11 @@ function HistoricalSelect({
       >
         {[...state.order].reverse().map((id) => {
           const item = packageForEntry(state, id);
+          const number = jumpNumber(state, id);
           return (
             <option key={id} value={id}>
-              {state.order.indexOf(id) + 1}. {item.name} · v{item.version}
+              {number ? `${number}. ` : ""}
+              {item.name} · {number ? `v${item.version}` : "Chain beginning"}
             </option>
           );
         })}
@@ -227,17 +265,27 @@ function ChainRail({
   openSupp,
   actorId,
   setActorId,
+  runtime,
 }: TrackerProps & {
   enabled: EnabledModules;
   openSupp: () => void;
   actorId: string;
   setActorId: (id: string) => void;
+  runtime: EvaluatedJumpRuntime;
 }) {
   const [dragged, setDragged] = useState<string | null>(null);
-  const selected = state.entries[state.selectedEntryId];
+  const [dropIndicator, setDropIndicator] = useState<{
+    entryId: string;
+    edge: DropEdge;
+  } | null>(null);
   const actor = state.actors[actorId] ?? state.actors.jumper;
-  const balance = selected.actorBalances[actor.id] ?? 0;
+  const evaluation = runtime[state.selectedEntryId]?.actors[actor.id];
+  const balance = evaluation?.balance ?? 0;
+  const alternativeResources = Object.values(
+    evaluation?.resources ?? {},
+  ).filter((resource) => resource.handle !== "jump_points");
   const filteredPackages = Object.values(state.packages).filter((item) => {
+    if (item.availability === "foundation") return false;
     const source =
       state.librarySource === "all" || item.source === state.librarySource;
     const query = `${item.name} ${item.version} ${item.description}`
@@ -270,7 +318,7 @@ function ChainRail({
           <header>
             <div>
               <p>{state.chainName}</p>
-              <strong>{state.order.length} Jumps</strong>
+              <strong>{jumpEntryIds(state).length} Jumps</strong>
             </div>
             <div className="chain-rail-header-actions">
               {hasEnabledSupplements(enabled) && (
@@ -302,136 +350,202 @@ function ChainRail({
                 </span>
                 <span className="chain-summary-tooltip" role="tooltip">
                   <strong>Alternative currencies remaining</strong>
-                  <span>
-                    {actorId === "jumper" ? "50 MP · Mana" : "4 Research Marks"}
-                  </span>
-                  <span>3 Renown</span>
-                  <span>2 Destiny Tokens</span>
+                  {alternativeResources.length ? (
+                    alternativeResources.map((resource) => (
+                      <span key={resource.handle}>
+                        {resource.balance} {resource.abbreviation} ·{" "}
+                        {resource.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span>No alternative currencies in this Jump.</span>
+                  )}
                 </span>
               </dd>
             </div>
             <div className="chain-summary-hover chain-summary-origin">
               <dt>Origin</dt>
               <dd tabIndex={0}>
-                <span>{selected.origin}</span>
+                <span>{evaluation?.properties.origin?.value ?? "Unknown"}</span>
                 <span className="chain-summary-tooltip" role="tooltip">
-                  <strong>{selected.origin}</strong>
+                  <strong>
+                    {evaluation?.properties.origin?.value ?? "Unknown"}
+                  </strong>
                   <span>
-                    A selected background with fixture-specific history.
+                    {evaluation?.properties.origin?.description ??
+                      "No Origin has been selected for this Jump."}
                   </span>
-                  <span>Location: {selected.location ?? "None selected"}</span>
+                  <span>
+                    Species: {evaluation?.properties.species?.value ?? "Human"}
+                  </span>
+                  <span>
+                    Location:{" "}
+                    {evaluation?.properties.location?.value ?? "Unknown"}
+                  </span>
                 </span>
               </dd>
             </div>
             <div>
               <dt>Gender</dt>
-              <dd>{actor.gender}</dd>
+              <dd>{evaluation?.properties.gender?.value ?? "Unknown"}</dd>
             </div>
             <div>
               <dt>Age</dt>
-              <dd>{actor.age}</dd>
+              <dd>{evaluation?.properties.age?.value ?? "Unknown"}</dd>
             </div>
           </dl>
           <div
             className="chain-jump-list"
             aria-label="Ordered chain jumps, newest first"
+            onDragLeave={(event) => {
+              const bounds = event.currentTarget.getBoundingClientRect();
+              if (
+                event.clientX < bounds.left ||
+                event.clientX > bounds.right ||
+                event.clientY < bounds.top ||
+                event.clientY > bounds.bottom
+              )
+                setDropIndicator(null);
+            }}
           >
             {[...state.order].reverse().map((id) => {
               const entry = state.entries[id];
               const item = packageForEntry(state, id);
               const index = state.order.indexOf(id);
-              const negative = Object.values(entry.actorBalances).some(
-                (value) => value < 0,
+              const earth = entry.kind === "earth";
+              const number = jumpNumber(state, id);
+              const negative = Object.values(runtime[id]?.actors ?? {}).some(
+                (value) => value.balance < 0,
               );
+              const metadata = earth
+                ? EARTH_ENTRY_STATUS
+                : `${item.source === "builtin" ? "Built-in" : "Imported"} · ${entry.status}${runtime[id]?.gauntlet.active ? " · Gauntlet" : ""}`;
               return (
                 <article
                   key={id}
-                  className={`chain-jump-entry${state.selectedEntryId === id ? " is-selected" : ""}${negative ? " has-negative-balance" : ""}`}
-                  draggable
+                  className={`chain-jump-entry${earth ? " is-earth" : ""}${state.selectedEntryId === id ? " is-selected" : ""}${negative ? " has-negative-balance" : ""}${dragged === id ? " is-dragging" : ""}${dropIndicator?.entryId === id ? ` is-drop-${dropIndicator.edge}` : ""}`}
+                  draggable={!earth}
                   onDragStart={(event) => {
+                    if (earth) return;
                     setDragged(id);
+                    setDropIndicator(null);
+                    event.dataTransfer.effectAllowed = "move";
                     event.dataTransfer.setData("text/plain", id);
                   }}
                   onDragOver={(event) => {
-                    if (dragged && dragged !== id) event.preventDefault();
+                    if (earth || !dragged || dragged === id) {
+                      if (dragged) setDropIndicator(null);
+                      return;
+                    }
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                    const edge = dropEdgeAtPointer(
+                      event.clientY,
+                      event.currentTarget.getBoundingClientRect(),
+                    );
+                    setDropIndicator((current) =>
+                      current?.entryId === id && current.edge === edge
+                        ? current
+                        : { entryId: id, edge },
+                    );
                   }}
                   onDrop={(event) => {
                     event.preventDefault();
-                    if (dragged && dragged !== id)
-                      dispatch({
-                        type: "request-move",
-                        entryId: dragged,
-                        toIndex: index,
-                      });
+                    if (!earth && dragged && dragged !== id) {
+                      const fromIndex = state.order.indexOf(dragged);
+                      const edge = dropEdgeAtPointer(
+                        event.clientY,
+                        event.currentTarget.getBoundingClientRect(),
+                      );
+                      const toIndex = dropIndexForTarget(
+                        fromIndex,
+                        index,
+                        edge,
+                        "reverse",
+                      );
+                      if (fromIndex !== toIndex)
+                        dispatch({
+                          type: "request-move",
+                          entryId: dragged,
+                          toIndex,
+                        });
+                    }
                     setDragged(null);
+                    setDropIndicator(null);
                   }}
-                  onDragEnd={() => setDragged(null)}
+                  onDragEnd={() => {
+                    setDragged(null);
+                    setDropIndicator(null);
+                  }}
                 >
-                  <span
-                    className="chain-jump-handle"
-                    title="Drag to reorder"
-                    aria-hidden="true"
-                  >
-                    ⠿
-                  </span>
+                  {!earth && (
+                    <span
+                      className="chain-jump-handle"
+                      title="Drag to reorder"
+                      aria-hidden="true"
+                    >
+                      ⠿
+                    </span>
+                  )}
                   <button
                     type="button"
                     className="chain-jump-select"
                     aria-pressed={state.selectedEntryId === id}
                     onClick={() => {
                       dispatch({ type: "select-entry", entryId: id });
-                      const ids = Object.keys(entry.actorBalances);
+                      const ids = Object.keys(runtime[id]?.actors ?? {});
                       if (!ids.includes(actorId)) setActorId("jumper");
                     }}
                   >
                     <span>
-                      {index + 1}. {item.name} · v{item.version}
+                      {number ? `${number}. ` : ""}
+                      {item.name}
+                      {!earth && ` · v${item.version}`}
                     </span>
-                    <small>
-                      {item.source === "builtin" ? "Built-in" : "Imported"} ·{" "}
-                      {entry.status}
-                    </small>
+                    <TruncatedText>{metadata}</TruncatedText>
                   </button>
-                  <div className="chain-jump-actions">
-                    <button
-                      type="button"
-                      disabled={index === state.order.length - 1}
-                      aria-label={`Move ${item.name} later in the chain`}
-                      onClick={() =>
-                        dispatch({
-                          type: "request-move",
-                          entryId: id,
-                          toIndex: index + 1,
-                        })
-                      }
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      disabled={index === 0}
-                      aria-label={`Move ${item.name} earlier in the chain`}
-                      onClick={() =>
-                        dispatch({
-                          type: "request-move",
-                          entryId: id,
-                          toIndex: index - 1,
-                        })
-                      }
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      disabled={state.order.length <= 1}
-                      aria-label={`Remove ${item.name} from the chain`}
-                      onClick={() =>
-                        dispatch({ type: "request-remove", entryId: id })
-                      }
-                    >
-                      ×
-                    </button>
-                  </div>
+                  {!earth && (
+                    <div className="chain-jump-actions">
+                      <button
+                        type="button"
+                        disabled={index === state.order.length - 1}
+                        aria-label={`Move ${item.name} later in the chain`}
+                        onClick={() =>
+                          dispatch({
+                            type: "request-move",
+                            entryId: id,
+                            toIndex: index + 1,
+                          })
+                        }
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        disabled={index <= 1}
+                        aria-label={`Move ${item.name} earlier in the chain`}
+                        onClick={() =>
+                          dispatch({
+                            type: "request-move",
+                            entryId: id,
+                            toIndex: index - 1,
+                          })
+                        }
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        disabled={false}
+                        aria-label={`Remove ${item.name} from the chain`}
+                        onClick={() =>
+                          dispatch({ type: "request-remove", entryId: id })
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
                 </article>
               );
             })}
@@ -491,6 +605,7 @@ function ChainRail({
                     <small>
                       {item.source === "builtin" ? "Built-in" : "Imported"} ·{" "}
                       {item.description}
+                      {item.nativeGauntlet && " · Native Gauntlet"}
                     </small>
                   </div>
                   <button
@@ -518,45 +633,53 @@ function JumpPage({
   state,
   dispatch,
   enabled,
-  setSupplementPage,
+  openSupp,
   jumpRenderer,
+  runtime,
+  randomIndex,
 }: TrackerProps & {
   enabled: EnabledModules;
-  setSupplementPage: (page: SupplementPageId) => void;
+  openSupp: () => void;
   jumpRenderer?: ReactNode;
+  runtime: EvaluatedJumpRuntime;
+  randomIndex?: RandomIndexSource;
 }) {
-  const [suppOpen, setSuppOpen] = useState(false);
   const [actorId, setActorId] = useState("jumper");
   const selected = state.entries[state.selectedEntryId];
   const item = packageForEntry(state, state.selectedEntryId);
-  const actorIds = Object.keys(selected.actorBalances);
+  const actorIds = Object.keys(runtime[state.selectedEntryId]?.actors ?? {});
   const activeActorId = actorIds.includes(actorId) ? actorId : "jumper";
-  const balance = selected.actorBalances[activeActorId] ?? 0;
+  const evaluation = runtime[state.selectedEntryId]?.actors[activeActorId];
+  const balance = evaluation?.balance ?? 0;
   const negativeActors = actorIds.filter(
-    (id) => (selected.actorBalances[id] ?? 0) < 0,
+    (id) => (runtime[state.selectedEntryId]?.actors[id]?.balance ?? 0) < 0,
   );
+  const number = jumpNumber(state, state.selectedEntryId);
+  const gauntlet = runtime[state.selectedEntryId]?.gauntlet;
   return (
     <section className="chain-workspace-page chain-jump-page" role="tabpanel">
       <ChainRail
         state={state}
         dispatch={dispatch}
         enabled={enabled}
-        openSupp={() => setSuppOpen(true)}
+        openSupp={openSupp}
         actorId={actorId}
         setActorId={setActorId}
+        runtime={runtime}
       />
       <div className="chain-jump-workspace">
         <header className="chain-context-header">
           <div>
             <p>
-              Jump {state.order.indexOf(state.selectedEntryId) + 1} of{" "}
-              {state.order.length}
+              {number
+                ? `${gauntlet?.active ? "Gauntlet · " : ""}Jump ${number} of ${jumpEntryIds(state).length}`
+                : "Before Jump 1"}
             </p>
             <h3>{item.name}</h3>
             <span>
-              Version {item.version} ·{" "}
-              {item.source === "builtin" ? "Built-in" : "Imported"} package ·{" "}
-              {selected.status}
+              {number
+                ? `Version ${item.version} · ${item.source === "builtin" ? "Built-in" : "Imported"} package${selected.status === "Negative balance" ? "" : ` · ${selected.status}`}`
+                : EARTH_ENTRY_STATUS}
             </span>
             {negativeActors.length > 0 && (
               <strong className="chain-negative-status" role="status">
@@ -569,93 +692,102 @@ function JumpPage({
               </strong>
             )}
           </div>
-          <label className="chain-actor-control">
-            <span>Make choices as</span>
-            <select
-              value={activeActorId}
-              className={balance < 0 ? "has-negative-actor" : undefined}
-              onChange={(event) => setActorId(event.target.value)}
-            >
-              {actorIds.map((id) => (
-                <option key={id} value={id}>
-                  {selected.actorBalances[id] < 0 ? "⚠ " : ""}
-                  {state.actors[id]?.name ?? id} ·{" "}
-                  {state.actors[id]?.role ?? "Companion"}
-                  {selected.actorBalances[id] < 0
-                    ? ` · ${selected.actorBalances[id]} CP`
-                    : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-        </header>
-        {jumpRenderer ?? (
-          <div className="chain-view-panel tracker-renderer-placeholder">
-            <div className="shared-renderer-label">
-              <span>Shared Jump renderer</span>
-              <small>Deferred in this implementation pass</small>
-            </div>
-            <article className="shared-jump-renderer">
-              <header>
-                <div>
-                  <p>
-                    Current Jump ·{" "}
-                    {item.source === "builtin" ? "Built-in" : "Imported"}
-                  </p>
-                  <h4>{item.name}</h4>
-                  <span>{item.description}</span>
-                </div>
-                <div className="tracker-budget">
-                  <span>Available</span>
-                  <output className={balance < 0 ? "is-negative" : undefined}>
-                    {balance} CP
-                  </output>
-                </div>
-              </header>
-              <section className="tracker-placeholder-panel">
-                <p>Renderer boundary</p>
-                <h5>Jump rendering is not connected yet</h5>
-                <span>
-                  The tracker already preserves selected-entry identity, actor
-                  context, balances, chronology, history, and supplement
-                  projections. The shared package renderer will occupy this
-                  frame in its own feature pass.
-                </span>
-                {balance < 0 && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      dispatch({
-                        type: "resolve-deficit",
-                        actorId: activeActorId,
-                      })
-                    }
-                  >
-                    Clear fixture deficit
-                  </button>
-                )}
-              </section>
-            </article>
+          <div className="chain-context-actions">
+            <label className="chain-actor-control">
+              <span>Make choices as</span>
+              <select
+                value={activeActorId}
+                className={balance < 0 ? "has-negative-actor" : undefined}
+                onChange={(event) => setActorId(event.target.value)}
+              >
+                {actorIds.map((id) => (
+                  <option key={id} value={id}>
+                    {(runtime[state.selectedEntryId]?.actors[id]?.balance ??
+                      0) < 0
+                      ? "⚠ "
+                      : ""}
+                    {state.actors[id]?.name ?? id} ·{" "}
+                    {state.actors[id]?.role ?? "Companion"}
+                    {(runtime[state.selectedEntryId]?.actors[id]?.balance ??
+                      0) < 0
+                      ? ` · ${runtime[state.selectedEntryId]?.actors[id]?.balance} CP`
+                      : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {selected.kind === "jump" && (
+              <button
+                type="button"
+                className="chain-gauntlet-action"
+                disabled={Boolean(gauntlet?.native)}
+                title={gauntlet?.sources
+                  .map((source) => source.label)
+                  .join(", ")}
+                onClick={() =>
+                  dispatch({
+                    type: "toggle-applied-gauntlet",
+                    entryId: state.selectedEntryId,
+                  })
+                }
+              >
+                {gauntlet?.native
+                  ? "Native Gauntlet"
+                  : gauntlet?.active
+                    ? "Remove Gauntlet rules"
+                    : "Apply Gauntlet rules"}
+              </button>
+            )}
           </div>
-        )}
+        </header>
+        {jumpRenderer ??
+          (evaluation &&
+            (selected.kind === "earth" ? (
+              <EarthJumpRenderer
+                state={state}
+                dispatch={dispatch}
+                evaluation={evaluation}
+              />
+            ) : item.document ? (
+              <JumpRenderer
+                packageItem={item.document}
+                entryId={state.selectedEntryId}
+                actorId={activeActorId}
+                state={
+                  state.jumpState[state.selectedEntryId]?.actors[
+                    activeActorId
+                  ] ?? {
+                    choices: {},
+                    inputs: {},
+                    choiceRolls: {},
+                    sourceRolls: {},
+                  }
+                }
+                evaluation={evaluation}
+                preferences={state.preferences}
+                tags={state.tags}
+                companions={Object.values(state.actors)
+                  .filter(
+                    (actor) =>
+                      actor.role === "Companion" &&
+                      Boolean(actor.joinedEntryId) &&
+                      state.order.indexOf(actor.joinedEntryId!) <
+                        state.order.indexOf(state.selectedEntryId),
+                  )
+                  .map((actor) => ({ id: actor.id, name: actor.name }))}
+                gauntletActive={Boolean(gauntlet?.active)}
+                randomIndex={randomIndex}
+                dispatch={dispatch}
+              />
+            ) : (
+              <div className="chain-view-panel tracker-renderer-placeholder">
+                <p>
+                  This exact package is unavailable. Stored selections are
+                  preserved until it is restored.
+                </p>
+              </div>
+            )))}
       </div>
-      {suppOpen && (
-        <TrackerSupplementContext
-          jumpName={item.name}
-          enabled={enabled}
-          onClose={() => {
-            setSuppOpen(false);
-            window.setTimeout(
-              () => document.getElementById("tracker-open-supp")?.focus(),
-              20,
-            );
-          }}
-          onOpenPage={(id: ModuleId) => {
-            setSupplementPage(id);
-            dispatch({ type: "set-page", page: "supplements" });
-          }}
-        />
-      )}
     </section>
   );
 }
@@ -855,6 +987,13 @@ function RecordCard({
         <h5>{record.name}</h5>
       </div>
       <div>
+        {record.measure && (
+          <span className="record-measure">
+            {record.measure.kind === "rank"
+              ? `${record.measure.value} ${record.measure.value === 1 ? "rank" : "ranks"}`
+              : `Quantity ${record.measure.value}`}
+          </span>
+        )}
         {record.tags
           .slice(0, 3)
           .map(
@@ -1086,6 +1225,20 @@ function RecordModal({ state, dispatch }: TrackerProps) {
               state.tags[id] && <TagBadge key={id} tag={state.tags[id]} />,
           )}
         </div>
+        {record.measure && (
+          <dl className="record-detail-measure">
+            <div>
+              <dt>
+                {record.measure.kind === "rank" && record.measure.value !== 1
+                  ? "Ranks"
+                  : record.measure.kind === "rank"
+                    ? "Rank"
+                    : "Quantity"}
+              </dt>
+              <dd>{record.measure.value}</dd>
+            </div>
+          </dl>
+        )}
         <h5>Description</h5>
         <p>{record.description}</p>
       </div>
@@ -1292,66 +1445,146 @@ export function ChainTracker({
   state,
   dispatch,
   jumpRenderer,
+  randomIndex,
   showApplicationHeader = true,
 }: TrackerProps & {
   jumpRenderer?: ReactNode;
   showApplicationHeader?: boolean;
+  randomIndex?: RandomIndexSource;
 }) {
-  const [enabled, setEnabled] = useState<EnabledModules>(initialEnabled);
-  const [supplementPage, setSupplementPage] =
-    useState<SupplementPageId>("manage");
-  const selectedRecord = state.selectedRecordId !== null;
-  return (
+  const [suppOpen, setSuppOpen] = useState(false);
+  const enabled = state.enabledSupplements;
+  const supplementPage = state.supplementPage;
+  const bodyMod = state.bodyMod;
+  const evaluation = useMemo(
+    () => evaluateTracker(state, enabled["body-mod"] ? bodyMod : null),
+    [bodyMod, enabled, state],
+  );
+  const projectedState = useMemo(
+    () => projectEvaluation(state, evaluation),
+    [evaluation, state],
+  );
+  const runtime = evaluation.runtime;
+  const activeSupplementState = supplementStateForEntry(projectedState);
+  const selectedRecord = projectedState.selectedRecordId !== null;
+  const selectedItem = packageForEntry(
+    projectedState,
+    projectedState.selectedEntryId,
+  );
+  const selectedNumber = jumpNumber(
+    projectedState,
+    projectedState.selectedEntryId,
+  );
+  const selectedGauntlet = runtime[projectedState.selectedEntryId]?.gauntlet;
+  const applicationShell =
+    typeof document === "undefined"
+      ? null
+      : document.querySelector<HTMLElement>(".app-primary-shell");
+  const closeSupplement = () => {
+    setSuppOpen(false);
+    window.setTimeout(
+      () => document.getElementById("tracker-open-supp")?.focus(),
+      20,
+    );
+  };
+  const supplementDialog =
+    suppOpen && projectedState.page === "jump" ? (
+      <TrackerSupplementContext
+        jumpName={selectedItem.name}
+        jumpEntryId={projectedState.selectedEntryId}
+        jumpNumber={selectedNumber ?? 0}
+        gauntlet={Boolean(selectedGauntlet?.active)}
+        enabled={enabled}
+        onClose={closeSupplement}
+        onOpenPage={(id: ModuleId) => {
+          setSuppOpen(false);
+          dispatch({ type: "set-supplement-page", value: id });
+          dispatch({ type: "set-page", page: "supplements" });
+        }}
+      />
+    ) : null;
+  const supplementLayer = supplementDialog ? (
     <div
-      className={`chain-mockup tracker-review-frame${showApplicationHeader ? "" : " is-shell-embedded"}`}
-      aria-label="Interactive Chain Tracker workspace"
+      className={
+        applicationShell
+          ? "app-settings-layer is-overlay tracker-supp-application-layer"
+          : "tracker-supp-layer"
+      }
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) closeSupplement();
+      }}
     >
-      {showApplicationHeader && <ChainHeader />}
-      <MainTabs state={state} dispatch={dispatch} />
-      <div className="chain-page-stack">
-        {state.page === "jump" && (
-          <JumpPage
-            state={state}
-            dispatch={dispatch}
-            enabled={enabled}
-            setSupplementPage={setSupplementPage}
-            jumpRenderer={jumpRenderer}
-          />
-        )}
-        {state.page === "inventory" && (
-          <InventoryPage state={state} dispatch={dispatch} />
-        )}
-        {state.page === "forms" && (
-          <FormsPage state={state} dispatch={dispatch} />
-        )}
-        {state.page === "companions" && (
-          <CompanionsPage state={state} dispatch={dispatch} />
-        )}
-        {state.page === "supplements" && (
-          <TrackerSupplementWorkspace
-            enabled={enabled}
-            onEnabledChange={setEnabled}
-            page={supplementPage}
-            onPageChange={setSupplementPage}
-          />
-        )}
-      </div>
-      {state.undo && (
-        <div className="tracker-undo" role="status">
-          <span>{state.undo.label} complete.</span>
-          <button type="button" onClick={() => dispatch({ type: "undo" })}>
-            Undo
-          </button>
-        </div>
-      )}
-      <MutationModal state={state} dispatch={dispatch} />
-      <div
-        aria-hidden={selectedRecord && state.activeProfile ? "true" : undefined}
-        inert={selectedRecord && state.activeProfile ? true : undefined}
-      >
-        <ProfileModal state={state} dispatch={dispatch} />
-      </div>
-      <RecordModal state={state} dispatch={dispatch} />
+      {supplementDialog}
     </div>
+  ) : null;
+  return (
+    <SupplementProviders
+      bodyMod={projectedState.bodyMod}
+      onBodyModChange={(value) => dispatch({ type: "set-body-mod", value })}
+      supplementState={activeSupplementState}
+      supplementDispatch={(action) =>
+        dispatch({ type: "supplement-action", action })
+      }
+    >
+      <div
+        className={`chain-mockup tracker-review-frame${showApplicationHeader ? "" : " is-shell-embedded"}`}
+        aria-label="Interactive Chain Tracker workspace"
+      >
+        {showApplicationHeader && <ChainHeader />}
+        <MainTabs state={projectedState} dispatch={dispatch} />
+        <div
+          className="chain-page-stack"
+          inert={suppOpen || undefined}
+          aria-hidden={suppOpen || undefined}
+        >
+          {projectedState.page === "jump" && (
+            <JumpPage
+              state={projectedState}
+              dispatch={dispatch}
+              enabled={enabled}
+              openSupp={() => setSuppOpen(true)}
+              jumpRenderer={jumpRenderer}
+              runtime={runtime}
+              randomIndex={randomIndex}
+            />
+          )}
+          {projectedState.page === "inventory" && (
+            <InventoryPage state={projectedState} dispatch={dispatch} />
+          )}
+          {projectedState.page === "forms" && (
+            <FormsPage state={projectedState} dispatch={dispatch} />
+          )}
+          {projectedState.page === "companions" && (
+            <CompanionsPage state={projectedState} dispatch={dispatch} />
+          )}
+          {projectedState.page === "supplements" && (
+            <TrackerSupplementWorkspace
+              enabled={enabled}
+              onEnabledChange={(value) =>
+                dispatch({ type: "set-enabled-supplements", value })
+              }
+              page={supplementPage}
+              onPageChange={(value) =>
+                dispatch({ type: "set-supplement-page", value })
+              }
+            />
+          )}
+        </div>
+        {!applicationShell && supplementLayer}
+        <MutationModal state={projectedState} dispatch={dispatch} />
+        <div
+          aria-hidden={
+            selectedRecord && state.activeProfile ? "true" : undefined
+          }
+          inert={selectedRecord && state.activeProfile ? true : undefined}
+        >
+          <ProfileModal state={projectedState} dispatch={dispatch} />
+        </div>
+        <RecordModal state={projectedState} dispatch={dispatch} />
+      </div>
+      {applicationShell && supplementLayer
+        ? createPortal(supplementLayer, applicationShell)
+        : null}
+    </SupplementProviders>
   );
 }

@@ -1,0 +1,126 @@
+jump
+  format: 1
+  name: "Beyond the Last Horizon"
+  author: "Jumpchain Visualizer"
+  version: "1.0"
+  choice-layout: horizon_card
+
+section
+  handle: boundary
+  name: "Beyond the Boundary"
+
+  choice-source
+    handle: main
+    group: boundary
+    mode: multi
+
+  choice
+    handle: horizon_gender_field
+    target: horizon_gender
+
+choice
+  handle: horizon_gender
+  name: "Horizon Identity"
+  selection: select
+  continuity: previous
+  option: "Nonbinary"
+  option: "Agender"
+  cost: 100
+
+  grant
+    kind: property
+    handle: gender
+
+choice
+  handle: boundary_walking
+  name: "Boundary Walking"
+  group: boundary
+  tag: meta
+  tag: stealth
+  cost: 500
+  grant: perk
+
+  grant
+    kind: perk
+    name: "Unmapped Reality"
+    tag: meta
+
+  grant
+    kind: perk
+    name: "Impossible Direction"
+    tag: mental
+
+  grant
+    kind: perk
+    name: "Horizon Step"
+    tag: physical
+
+choice
+  handle: reality_rewrite
+  name: "Reality Rewrite"
+  group: boundary
+  tag: magic
+  tag: meta
+  cost: 900
+  grant: perk
+
+  grant
+    kind: perk
+    name: "Conceptual Aegis"
+    tag: defense
+
+  grant
+    kind: perk
+    name: "Worldsmith"
+    tag: crafting
+
+  grant
+    kind: item
+    name: "Map of No Place"
+    tag: miscellaneous
+
+choice
+  handle: final_companion
+  name: "Aster"
+  group: boundary
+  tag: combat
+  cost: 200
+  grant: companion
+
+choice
+  handle: horizon_company
+  name: "Horizon Company"
+  group: boundary
+  tag: social
+  cost: 100
+
+  input
+    handle: travelers
+    selection: companions
+    min: 1
+    max: 3
+
+    grant
+      kind: companion-import
+      resource: jump_points
+      amount: 500
+
+  grant: perk
+
+choice-layout
+  handle: horizon_card
+
+  stack
+    handle: root
+    gap: sm
+
+    inline
+      handle: heading
+      justify: between
+      slot: name
+      slot: cost
+
+    slot: tags
+    slot: control
+    slot: roll
+    input: travelers

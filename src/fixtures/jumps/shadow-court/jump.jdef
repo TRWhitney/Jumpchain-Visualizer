@@ -1,0 +1,100 @@
+jump
+  format: 1
+  name: "The Long Shadow Court"
+  author: "Jumpchain Visualizer"
+  version: "1.2"
+  starting-points: 800
+
+section
+  handle: court
+  name: "The Court"
+
+  choice-source
+    handle: main
+    group: court
+    mode: multi
+
+section
+  handle: identity
+  name: "Identity"
+
+  choice
+    handle: gender
+    target: court_gender
+
+choice
+  handle: court_gender
+  name: "Gender"
+  selection: select
+  continuity: original
+  option: "Male"
+  option: "Female"
+  cost: 100
+
+  grant
+    kind: property
+    handle: gender
+
+choice
+  handle: moonlit_oath
+  name: "Moonlit Oath"
+  group: court
+  tag: spiritual
+  tag: social
+  cost: 200
+  grant: perk
+
+  grant
+    kind: perk
+    name: "Immortal Politics"
+    tag: social
+    tag: runes
+
+  grant
+    kind: perk
+    name: "Hidden Motives"
+    tag: stealth
+    tag: alchemy
+
+  grant
+    kind: perk
+    name: "Night's Protection"
+    tag: defense
+    tag: pyrokinesis
+
+  grant
+    kind: companion
+    name: "Vesper"
+    tag: social
+    tag: stealth
+
+choice
+  handle: shadow_estate
+  name: "Shadow Estate"
+  group: court
+  tag: miscellaneous
+  cost: 200
+  grant: item
+
+  grant
+    kind: perk
+    name: "Courtly Memory"
+    tag: mental
+
+  grant
+    kind: item
+    name: "Moonless Carriage"
+    tag: technology
+
+  grant
+    kind: perk
+    name: "Bloodless Duel"
+    tag: combat
+
+choice
+  handle: binding_oath
+  name: "Binding Oath"
+  group: court
+  tag: meta
+  cost: -200
+  grant: trait

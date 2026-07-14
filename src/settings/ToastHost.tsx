@@ -46,6 +46,13 @@ function Toast({
     () => logger.dismissToast(toast.id),
     [logger, toast.id],
   );
+  const invokeAction = useCallback(() => {
+    try {
+      toast.action?.invoke();
+    } finally {
+      dismiss();
+    }
+  }, [dismiss, toast.action]);
   useEffect(() => {
     if (paused) return;
     if (occurrence.current !== toast.occurrences) {
@@ -64,7 +71,7 @@ function Toast({
   }, [dismiss, paused, toast.durationMs, toast.occurrences]);
   return (
     <article
-      className={`app-toast is-${toast.severity}`}
+      className={`app-toast is-${toast.severity}${toast.appearance ? ` is-${toast.appearance}` : ""}`}
       tabIndex={0}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -72,7 +79,11 @@ function Toast({
       onBlur={() => setPaused(false)}
     >
       <span aria-hidden="true">
-        {toast.severity === "error" || toast.severity === "fatal" ? "!" : "✓"}
+        {toast.appearance === "danger"
+          ? "×"
+          : toast.severity === "error" || toast.severity === "fatal"
+            ? "!"
+            : "✓"}
       </span>
       <div>
         <p>{toast.message}</p>
@@ -81,9 +92,25 @@ function Toast({
           {toast.occurrences > 1 ? ` · ${toast.occurrences} occurrences` : ""}
         </small>
       </div>
-      <button type="button" aria-label="Dismiss notification" onClick={dismiss}>
-        ×
-      </button>
+      <div className="app-toast-actions">
+        {toast.action && (
+          <button
+            type="button"
+            className="app-toast-action"
+            onClick={invokeAction}
+          >
+            {toast.action.label}
+          </button>
+        )}
+        <button
+          type="button"
+          className="app-toast-dismiss"
+          aria-label="Dismiss notification"
+          onClick={dismiss}
+        >
+          ×
+        </button>
+      </div>
     </article>
   );
 }

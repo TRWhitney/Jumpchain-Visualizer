@@ -1,0 +1,86 @@
+jump
+  format: 1
+  name: "Pilgrims of the Spirit Road"
+  author: "Jumpchain Visualizer"
+  version: "3.0"
+
+section
+  handle: pilgrimage
+  name: "Pilgrimage"
+
+  choice-source
+    handle: main
+    group: pilgrimage
+    mode: multi
+
+choice
+  handle: shrine_keeper
+  name: "Shrine Keeper"
+  group: pilgrimage
+  tag: spiritual
+  tag: crafting
+  cost: 200
+
+  text
+    handle: description
+    content: "You tend the places where memory and spirit meet."
+    content when gauntlet: "Even without supernatural power, your discipline preserves sacred ground."
+
+  grant: perk
+
+  grant
+    kind: perk
+    name: "Ancestor Dialogue"
+    tag: spiritual
+
+  grant
+    kind: perk
+    name: "Wayside Medicine"
+    tag: physical
+
+  grant
+    kind: perk
+    name: "Patient Listener"
+    tag: social
+
+  grant
+    kind: companion
+    name: "Orin"
+    tag: spiritual
+    tag: healing
+
+choice
+  handle: memory_lantern
+  name: "Memory Lantern"
+  group: pilgrimage
+  tag: magic
+  cost: 150
+  grant: item
+
+  grant
+    kind: perk
+    name: "Mnemonic Flame"
+    tag: mental
+
+  grant
+    kind: perk
+    name: "Roadward"
+    tag: defense
+
+  grant
+    kind: item
+    name: "Pilgrim's Map"
+    tag: miscellaneous
+
+choice
+  handle: older_pilgrim
+  name: "Pilgrim Age"
+  group: pilgrimage
+  selection: integer
+  min: 1
+  max: 120
+  cost: 0
+
+  grant
+    kind: property
+    handle: age

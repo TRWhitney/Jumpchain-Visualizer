@@ -2,8 +2,17 @@ import { beforeEach, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { AppShell } from "./AppShell";
+import { IndexedDbChainRepository } from "../tracker/repository";
+import { APPLICATION_DATABASE_NAME } from "../platform/indexedDb";
 
-beforeEach(() => {
+beforeEach(async () => {
+  await new Promise<void>((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(APPLICATION_DATABASE_NAME);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+    request.onblocked = () =>
+      reject(new Error("Test database deletion blocked."));
+  });
   window.history.replaceState({}, "", "/");
   document.title = "Jumpchain Visualizer";
 });
@@ -50,7 +59,7 @@ test("the real Chain Tracker mounts without duplicate application chrome and ret
   ).toBeNull();
   expect(
     document.querySelectorAll(".app-chain-workspace .chain-jump-entry"),
-  ).toHaveLength(8);
+  ).toHaveLength(9);
   await page.getByRole("tab", { name: /^Inventory/ }).click();
 
   await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
@@ -97,6 +106,13 @@ test("the chain hub creates and renames records and Home limits recents", async 
   await expect
     .element(page.getByText("A chain across bright waters."))
     .toBeVisible();
+  const repository = new IndexedDbChainRepository();
+  await expect
+    .poll(async () => (await repository.load("ch-new-1"))?.name)
+    .toBe("Lantern Sea");
+  expect((await repository.load("ch-new-1"))?.description).toBe(
+    "A chain across bright waters.",
+  );
 });
 
 test("primary-tag name colors are opt-in while summaries remain available", async () => {
@@ -120,7 +136,7 @@ test("primary-tag name colors are opt-in while summaries remain available", asyn
     ".app-chain-card-copy h3.is-primary-tag-colored",
   );
   expect(coloredNames).toHaveLength(8);
-  expect(coloredNames[0].getAttribute("data-primary-tag")).toBe("magic");
+  expect(coloredNames[0].getAttribute("data-primary-tag")).toBe("crafting");
 });
 
 test("tag presentation changes project into canonical Inventory badges", async () => {

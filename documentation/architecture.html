@@ -163,6 +163,23 @@ src-tauri/
         <li>The same renderer executes in Editor preview and Chain Tracker; preview swaps persistent state for a disposable sandbox.</li>
         <li>Renderable text is tokenized into an allowlisted model. Imported text never reaches <code>dangerouslySetInnerHTML</code>, raw CSS, or executable browser content.</li>
       </ul>
+      <p><strong>Current implementation:</strong> generated first-run <code>.jdef</code> sources pass through this complete boundary into immutable exact-hash package models. The Chain Tracker uses the same layout and control renderer contract intended for the Editor; the Editor supplies disposable preview state when its UI is implemented.</p>
+
+      <h3>Evaluated Gauntlet Boundary</h3>
+      <p>Gauntlet behavior is a derived entry condition shared by the renderer, resource ledger, Chain Tracker, and supplements. Consumers never infer it from a package name, tag, displayed balance, or the presence of a particular drawback.</p>
+      <pre><code class="language-text">EvaluatedGauntletStatus
+  active: boolean
+  native: boolean
+  sources: (package | user | supplement)[]
+  startingPointContribution: integer
+</code></pre>
+      <ul>
+        <li><code>native</code> comes only from the immutable installed package’s Format 1 <code>gauntlet: true</code> declaration.</li>
+        <li><code>active</code> is true when the package is native or any active entry-scoped source applies Gauntlet rules.</li>
+        <li>Sources retain stable provenance and labels so the UI can explain whether the package, a user action, or a supplement caused the result.</li>
+        <li>Multiple sources do not stack the base-point reduction. Explicit resource grants remain independent ledger transactions with their own provenance.</li>
+        <li>Foundation supplements receive this evaluated status through an explicit adapter; they do not read package markup or unrelated supplement state directly.</li>
+      </ul>
 
       <h2>Persistence Model</h2>
       <p>Desktop storage uses a hybrid SQLite and content-addressed-filesystem model:</p>
@@ -175,6 +192,7 @@ src-tauri/
         <li>Every persisted schema has ordered, deterministic migrations and recovery tests.</li>
       </ul>
       <p>Browser IndexedDB uses the same aggregate and index split. Repository contracts define behavior, not SQLite-specific queries.</p>
+      <p>The current chain aggregate persists exact package references, actor selections, nested inputs, roll provenance, entry-scoped Gauntlet sources, enabled-module state, and supplement state through IndexedDB or the SQLite-backed Tauri aggregate store. Derived balances, properties, records, Companions, tags, and summaries are recomputed on load rather than persisted as UI-shaped truth.</p>
 
       <h2>Trusted Native Boundary</h2>
       <ul>

@@ -163,13 +163,13 @@ export const initialSupplementState: SupplementState = {
     switching: [],
   },
   story: {
-    selectedJump: "arcane",
+    selectedJump: "entry-1",
     selectedChapter: null,
-    editingChapter: "arcane:0",
+    editingChapter: "entry-1:0",
     saved: "",
     jumps: [
       {
-        id: "first",
+        id: "entry-0",
         name: "First Step",
         chapters: [
           {
@@ -187,7 +187,7 @@ export const initialSupplementState: SupplementState = {
         ],
       },
       {
-        id: "arcane",
+        id: "entry-1",
         name: "Arcane Realms",
         chapters: [
           {
@@ -210,7 +210,7 @@ export const initialSupplementState: SupplementState = {
         ],
       },
       {
-        id: "cosmic",
+        id: "entry-2",
         name: "Cosmic Odyssey",
         chapters: [],
       },

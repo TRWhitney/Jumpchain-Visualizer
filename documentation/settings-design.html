@@ -138,7 +138,7 @@
                 <td><code>false</code></td>
                 <td><code>true</code>, <code>false</code></td>
                 <td>Chain Tracker</td>
-                <td>Users may permit the Jumper, or a companion granted a positive point budget for the current run, to select choices beyond their remaining primary Jump points.</td>
+                <td>When disabled, a user action is rejected only when it activates a choice, increases a selected rank, or selects a rolled result and that active selection would create or worsen a negative primary Jump-point balance. A Validation toast explains the rejection. Clearing or deselecting choices, lowering ranks, authored deficits, supplement changes, and other recalculation are never blocked by this setting. Enabling it permits those otherwise-blocked active selections.</td>
               </tr>
               <tr>
                 <td><code>chain.allowRerolls</code></td>
@@ -203,19 +203,35 @@
                 <td>Application</td>
                 <td>Users can organize accrued free-text tags and customize their badge rendering without changing imported Jump documents.</td>
               </tr>
+              <tr>
+                <td><code>developer.showAdditionalJumpInformation</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Developer</td>
+                <td>Shows the evaluated package format above ordinary Jumps. It does not add renderer, system-entry, or other implementation labels.</td>
+              </tr>
             </tbody>
           </table>
         </div>
 
         <h2>Candidate Settings</h2>
-        <p>No unresolved candidate settings are currently registered. New candidates should remain in this section until their user need, default, allowed values, and scope are accepted.</p>
+        <p>Candidate settings remain in this section until their user need, default, allowed values, and scope are accepted.</p>
+        <h3>Allow Duplicate Jumps in a Chain</h3>
+        <div class="settings-table-wrap">
+          <table class="settings-registry">
+            <thead><tr><th>Proposed key</th><th>Default</th><th>Allowed values</th><th>Scope</th><th>Reason</th></tr></thead>
+            <tbody><tr><td><code>chain.allowDuplicateJumps</code></td><td><code>false</code></td><td><code>true</code>, <code>false</code></td><td>Chain Tracker</td><td>Allows the Chain Tracker’s Add action to create another entry from the same exact installed Jump package while preserving independent choices, rolls, and chronology for every entry.</td></tr></tbody>
+          </table>
+        </div>
+        <p>This candidate is separate from <code>chain.allowMultiplePackageVersions</code>, which permits a different installed version of the same logical package but still does not duplicate an exact version. With duplicate Jumps disabled, a library package already represented by that exact version uses <strong>Open chain entity</strong>. With the candidate enabled, its add action reads <strong>Add to chain again (xN)</strong>, where <var>N</var> is the number of exact-package entries that will exist after the action. Adding the first instance continues to read <strong>Add to chain</strong>.</p>
+        <p>The setting gates only a deliberate interactive Add action. Turning it off never removes, merges, invalidates, or warns about duplicate entries already present, and chain import preserves duplicates without consulting the setting.</p>
         <p>The user-owned tag profile is now confirmed and represented by the Tags page below. Its detailed relationship, chart, badge, and transfer rules remain in <a href="tags-design.html">Tag System Design</a>. Jump authors still provide only free-text tag strings.</p>
 
         <h3>Accent Color Safety</h3>
         <p><code>appearance.accentColor</code> stores only a normalized six-digit sRGB hex value. The raw base color may be used for decorative swatches, but the application derives separate accessible tokens for text, focus indicators, borders, filled controls, and subtle surfaces in Light and Dark themes. Those tokens apply across the application shell, saved-chain hub, Chain Tracker, radar interface, supplement frame, Settings, and tag-profile tools. Secondary action outlines, dashed discovery actions, interactive hover fills, selected-card borders, and the new-chain callout use the derived border and translucent-surface tokens; structural dividers and ordinary input boundaries remain neutral. Continuous color-picker input is visually published at a bounded interactive rate and durably coalesced after the interaction, preserving live feedback without an unbounded render or event stream. Derived tokens must retain the selected hue as closely as possible while meeting the applicable contrast requirement. Raw setting text must never be interpolated directly into styles.</p>
 
         <h3>Notification Projection</h3>
-        <p>Toast preferences control the user-facing projection of registered events described in <a href="logging-design.html">Logging Design</a>. Disabling a toast class does not suppress its session log entry, diagnostic, state transition, or undo record. Input-driven candidates are debounced for 500 ms and repeated matching events update one toast rather than creating a stream of duplicates.</p>
+        <p>The Settings modal remembers its last-open category for the current application session. Toast preferences control the user-facing projection of registered events described in <a href="logging-design.html">Logging Design</a>. Disabling a toast class does not suppress its session log entry, diagnostic, or completed state transition. Transient actions, including Undo for a chain reorder or removal, render in that same notification stack and expire or are discarded with their notification. Input-driven candidates are debounced for 500 ms and repeated matching events update one toast rather than creating a stream of duplicates. A choice rejected for causing a negative balance uses the danger treatment: a red edge, X icon, and the message “Choice rejected, negative balance”.</p>
 
         <h2>Interactive Settings Surface</h2>
         <p>The category navigation, accent picker, search, notification preview, tag-profile editor, and Developer session-log viewer are interactive. Changing the accent updates the complete application while preserving the current gold as the Reset default. Confirmation-state labels are documentation metadata and do not appear as badges in the application. The Tags page uses the accepted editor from <a href="tags-design.html">Tag System Design</a>.</p>
@@ -259,6 +275,7 @@
                 <button type="button" data-settings-search-entry data-settings-search-text="keyboard key bindings shortcuts quick add quick fix find overrides" data-settings-category="keys"><span><strong>Key bindings</strong><small><code>keybindings.overrides</code> · Key bindings</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="motion animation reduced full system accessibility" data-settings-category="accessibility" data-settings-focus="mock-motion"><span><strong>Motion</strong><small><code>accessibility.motion</code> · Accessibility</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="developer logs logging viewer stack trace crash report copy save debug session export clear" data-settings-category="developer" data-settings-focus="developer-logs-tab"><span><strong>Session logs</strong><small>Developer → Logs</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="developer jump package format additional information" data-settings-category="developer" data-settings-focus="mock-additional-jump-information"><span><strong>Show additional Jump information</strong><small><code>developer.showAdditionalJumpInformation</code> · Developer</small></span><span aria-hidden="true">→</span></button>
               </div>
               <p id="mock-settings-no-results" class="settings-search-empty" hidden>No settings match this search.</p>
             </section>
@@ -300,7 +317,7 @@
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-multiple-package-versions"><input id="mock-multiple-package-versions" type="checkbox"><span>Allow second version</span></label></div>
               </div>
               <div class="setting-row">
-                <div><label for="mock-negative-point-balances">Negative point balances</label><p>Permit eligible actors to overspend their primary Jump points.</p></div>
+                <div><label for="mock-negative-point-balances">Negative point balances</label><p>Permit active choice selections that would make primary Jump points negative. Clearing choices and recalculation are never blocked.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-negative-point-balances"><input id="mock-negative-point-balances" type="checkbox"><span>Allow negative balances</span></label></div>
               </div>
               <div class="setting-row">
@@ -490,7 +507,7 @@
 
             <section id="settings-developer-panel" class="settings-developer-panel" role="tabpanel" aria-labelledby="settings-developer-tab" hidden>
               <div class="settings-subtabs" role="tablist" aria-label="Developer settings pages"><button id="developer-overview-tab" type="button" role="tab" aria-selected="true" aria-controls="developer-overview-panel">Overview</button><button id="developer-logs-tab" type="button" role="tab" aria-selected="false" aria-controls="developer-logs-panel" tabindex="-1">Logs</button></div>
-              <section id="developer-overview-panel" class="developer-subpanel" role="tabpanel" aria-labelledby="developer-overview-tab"><h4>Developer</h4><div class="setting-row"><div><label for="mock-debug-session">Debug events</label><p>Include detailed debug events until the application exits.</p></div><div><span class="setting-state agreed">Session only</span><label class="setting-check" for="mock-debug-session"><input id="mock-debug-session" type="checkbox"><span>Capture debug events</span></label></div></div><div class="setting-explanation">Logs are never persisted between launches. This session control is not stored as a preference.</div></section>
+              <section id="developer-overview-panel" class="developer-subpanel" role="tabpanel" aria-labelledby="developer-overview-tab"><h4>Developer</h4><div class="setting-row"><div><label for="mock-additional-jump-information">Show additional Jump information</label><p>Show the evaluated package format above ordinary rendered Jumps.</p></div><div><label class="setting-check" for="mock-additional-jump-information"><input id="mock-additional-jump-information" type="checkbox"><span>Enable extra information</span></label></div></div><div class="setting-row"><div><label for="mock-debug-session">Debug events</label><p>Include detailed debug events until the application exits.</p></div><div><span class="setting-state agreed">Session only</span><label class="setting-check" for="mock-debug-session"><input id="mock-debug-session" type="checkbox"><span>Capture debug events</span></label></div></div><div class="setting-explanation">Logs are never persisted between launches. This session control is not stored as a preference.</div></section>
               <section id="developer-logs-panel" class="developer-subpanel developer-logs-panel" role="tabpanel" aria-labelledby="developer-logs-tab" hidden>
                 <div class="logging-viewer" data-toc-ignore>
                   <header><div><p>Session diagnostics</p><h3>Recent events</h3></div><div><button type="button" data-log-export>Export…</button><button type="button" data-log-clear>Clear session</button></div></header>
@@ -539,7 +556,7 @@
         </dl>
 
         <h2>Open Settings Decisions</h2>
-        <p>No Settings-surface decisions are currently open. New candidates will be added here as application, Editor, and Chain Tracker design introduces genuine user preferences.</p>
+        <p><code>chain.allowDuplicateJumps</code> is the only unresolved candidate setting. It remains outside the confirmed Settings surface until its duplicate-entry and aggregate-record behavior is accepted.</p>
       </article>
       <a class="back-to-top" href="#content">Back to top</a>
     </main>

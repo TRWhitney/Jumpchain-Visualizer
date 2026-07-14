@@ -137,6 +137,13 @@ const searchEntries = [
     "developer-logs-tab",
     "developer logs logging viewer stack trace crash report debug session export clear",
   ],
+  [
+    "Show additional Jump information",
+    "developer.showAdditionalJumpInformation",
+    "developer",
+    "additional-jump-information",
+    "developer jump format additional information diagnostics format 1",
+  ],
 ] as const;
 
 const searchValue = (
@@ -176,18 +183,23 @@ const searchValue = (
       return settings.accessibility.motion;
     case "Developer → Logs":
       return "session only";
+    case "developer.showAdditionalJumpInformation":
+      return String(settings.developer.showAdditionalJumpInformation);
   }
 };
 
 export function SettingsSurface({
   onClose,
   direct = false,
+  category,
+  onCategoryChange,
 }: {
   onClose: () => void;
   direct?: boolean;
+  category: SettingsCategory;
+  onCategoryChange: (category: SettingsCategory) => void;
 }) {
   const { settings, replace } = useSettings();
-  const [category, setCategory] = useState<SettingsCategory>("general");
   const [query, setQuery] = useState("");
   const [resetConfirm, setResetConfirm] = useState<"all" | "tags" | null>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -269,7 +281,7 @@ export function SettingsSurface({
   }, [direct, onClose, resetConfirm]);
 
   const activate = (next: SettingsCategory, focus = false) => {
-    setCategory(next);
+    onCategoryChange(next);
     setQuery("");
     if (focus)
       requestAnimationFrame(() =>
@@ -722,7 +734,7 @@ function CategoryPanel({
         <CheckRow
           id="negative-balances"
           label="Negative point balances"
-          description="Permit eligible actors to overspend their primary Jump points."
+          description="Permit active choice selections that would make primary Jump points negative. Clearing choices and recalculation are never blocked."
           checked={settings.chain.allowNegativePointBalances}
           text="Allow negative balances"
           onChange={(value) =>
@@ -928,6 +940,38 @@ function CategoryPanel({
       {developerPage === "overview" ? (
         <section className="developer-subpanel">
           <h4>Developer</h4>
+          <CheckRow
+            id="additional-jump-information"
+            label="Show additional Jump information"
+            description="Show the evaluated package format above ordinary rendered Jumps."
+            checked={settings.developer.showAdditionalJumpInformation}
+            text="Enable extra information"
+            onChange={(value) =>
+              patch(
+                {
+                  ...settings,
+                  developer: {
+                    ...settings.developer,
+                    showAdditionalJumpInformation: value,
+                  },
+                },
+                "developer.showAdditionalJumpInformation",
+              )
+            }
+            reset={() =>
+              patch(
+                {
+                  ...settings,
+                  developer: {
+                    ...settings.developer,
+                    showAdditionalJumpInformation:
+                      defaults.developer.showAdditionalJumpInformation,
+                  },
+                },
+                "developer.showAdditionalJumpInformation",
+              )
+            }
+          />
           <div className="setting-row">
             <div>
               <label htmlFor="debug-events">Debug events</label>

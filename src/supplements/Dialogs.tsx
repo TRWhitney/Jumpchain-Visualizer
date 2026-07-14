@@ -21,12 +21,18 @@ export function SupplementDialog({
   openPage,
   embedded = false,
   jumpName = "Arcane Realms",
+  jumpEntryId = "entry-1",
+  jumpNumber = 2,
+  gauntlet = false,
 }: {
   tool: ToolId;
   close: () => void;
   openPage: (id: ModuleId) => void;
   embedded?: boolean;
   jumpName?: string;
+  jumpEntryId?: string;
+  jumpNumber?: number;
+  gauntlet?: boolean;
 }) {
   const { state } = useBodyMod();
   const [bodyDetail, setBodyDetail] = useState<string | null>(null);
@@ -180,6 +186,9 @@ export function SupplementDialog({
       openPage={openPage}
       embedded={embedded}
       jumpName={jumpName}
+      jumpEntryId={jumpEntryId}
+      jumpNumber={jumpNumber}
+      gauntlet={gauntlet}
     />
   );
 }

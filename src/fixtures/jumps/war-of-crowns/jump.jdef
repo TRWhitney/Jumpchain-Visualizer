@@ -1,0 +1,75 @@
+jump
+  format: 1
+  name: "War of Seven Crowns"
+  author: "Jumpchain Visualizer"
+  version: "4.1"
+
+section
+  handle: campaign
+  name: "Campaign"
+
+  choice-source
+    handle: main
+    group: campaign
+    mode: multi
+
+choice
+  handle: banner_command
+  name: "Banner Command"
+  group: campaign
+  tag: combat
+  tag: leadership
+  cost: 300
+  grant: perk
+
+  grant
+    kind: perk
+    name: "Dynastic Claim"
+    tag: social
+
+  grant
+    kind: perk
+    name: "Battlefield Sovereign"
+    tag: combat
+
+  grant
+    kind: perk
+    name: "Fortified Position"
+    tag: defense
+
+  grant
+    kind: companion
+    name: "Ren"
+    tag: combat
+    tag: leadership
+
+choice
+  handle: royal_armory
+  name: "Royal Armory"
+  group: campaign
+  tag: crafting
+  cost: 250
+  grant: item
+
+  grant
+    kind: item
+    name: "Crownsteel Blade"
+    tag: combat
+
+  grant
+    kind: perk
+    name: "Siege Engineering"
+    tag: technology
+
+  grant
+    kind: perk
+    name: "Supply Discipline"
+    tag: mental
+
+choice
+  handle: war_debt
+  name: "War Debt"
+  group: campaign
+  tag: meta
+  cost: -300
+  grant: trait

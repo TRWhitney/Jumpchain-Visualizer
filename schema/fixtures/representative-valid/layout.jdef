@@ -6,6 +6,8 @@ section-layout
     gap: md
     slot: name
     text: description
+    choice: gender_field
+    choice: age_field
 
     expand
       source: main

@@ -10,6 +10,11 @@ import {
 } from "react";
 import { Modal } from "../ui/SupplementWidgets";
 import {
+  dropEdgeAtPointer,
+  dropIndexForTarget,
+  type DropEdge,
+} from "../ui/dragReorder";
+import {
   essentialPageCategories as essentialCategories,
   essentialEssences,
   personalRealityPageCategories as personalRealityCategories,
@@ -37,8 +42,13 @@ type Props = {
   openPage: (id: ModuleId) => void;
   embedded: boolean;
   jumpName?: string;
+  jumpEntryId?: string;
+  jumpNumber?: number;
+  gauntlet?: boolean;
 };
 const CurrentJumpNameContext = createContext("Arcane Realms");
+const CurrentJumpEntryContext = createContext({ id: "entry-1", number: 2 });
+const CurrentGauntletContext = createContext(false);
 function CurrentJumpName() {
   return useContext(CurrentJumpNameContext);
 }
@@ -94,6 +104,10 @@ function EssentialSummary({ openPage }: Pick<Props, "openPage">) {
     dispatch,
   } = useSupplementState();
   const [detail, setDetail] = useState<string | null>(null);
+  const gauntlet = useContext(CurrentGauntletContext);
+  const jumpName = CurrentJumpName();
+  const currentJump = useContext(CurrentJumpEntryContext);
+  const jumpAttribution = `${jumpName} · Jump ${currentJump.number}`;
   const hasWarlord = state.essences.includes("Warlord");
   type Ability = [string, string, string?];
   const selectedEssence = state.essences[0];
@@ -234,7 +248,7 @@ function EssentialSummary({ openPage }: Pick<Props, "openPage">) {
       ([id, tier]) => [id, tier, "Initial build"] as const,
     ),
     ...Object.entries(state.progression.purchases).map(
-      ([id, tier]) => [id, tier, "Arcane Realms · Jump 2"] as const,
+      ([id, tier]) => [id, tier, jumpAttribution] as const,
     ),
   ];
   for (const [id, tier, provenance] of owned) {
@@ -256,7 +270,10 @@ function EssentialSummary({ openPage }: Pick<Props, "openPage">) {
       provenance,
     ]);
   }
-  const abilities = groups[state.dialogFilter];
+  const abilities =
+    gauntlet && state.dialogFilter === "supernatural"
+      ? []
+      : groups[state.dialogFilter];
   const essenceDescription = essentialEssences.find(
     ([name]) => name === state.essences[0],
   )?.[1];
@@ -383,6 +400,9 @@ function EssentialProgress({ openPage }: Pick<Props, "openPage">) {
     state: { essential: state },
     dispatch,
   } = useSupplementState();
+  const jumpName = CurrentJumpName();
+  const currentJump = useContext(CurrentJumpEntryContext);
+  const jumpAttribution = `${jumpName} · Jump ${currentJump.number}`;
   const p = state.progression;
   const allEntries = Object.values(essentialCategories).flat();
   const grants = new Set([
@@ -685,7 +705,7 @@ function EssentialProgress({ openPage }: Pick<Props, "openPage">) {
                       <span>{entry.summary}</span>
                       <em>
                         {acquiredTier
-                          ? "Acquired in Arcane Realms · Jump 2"
+                          ? `Acquired in ${jumpAttribution}`
                           : atMaximum
                             ? "Maximum tier owned · starting build"
                             : `${cost} EP · next tier`}
@@ -862,6 +882,9 @@ function RealitySummary({ openPage }: Pick<Props, "openPage">) {
     state: { reality: state },
     dispatch,
   } = useSupplementState();
+  const jumpName = CurrentJumpName();
+  const currentJump = useContext(CurrentJumpEntryContext);
+  const jumpAttribution = `${jumpName} · Jump ${currentJump.number}`;
   const [detail, setDetail] = useState<string | null>(null);
   const all = Object.values(personalRealityCategories).flat();
   const initial = {
@@ -906,9 +929,7 @@ function RealitySummary({ openPage }: Pick<Props, "openPage">) {
     capabilities[group].push([
       entry?.name ?? fallbackName ?? id,
       entry?.summary ?? fallbackCopy ?? "Included with every Personal Reality.",
-      state.progression.purchases[id]
-        ? "Arcane Realms · Jump 2"
-        : "Starting Reality",
+      state.progression.purchases[id] ? jumpAttribution : "Starting Reality",
     ]);
   };
   addCapability(
@@ -1073,6 +1094,9 @@ function RealityProgress({ openPage }: Pick<Props, "openPage">) {
     state: { reality: state },
     dispatch,
   } = useSupplementState();
+  const jumpName = CurrentJumpName();
+  const currentJump = useContext(CurrentJumpEntryContext);
+  const jumpAttribution = `${jumpName} · Jump ${currentJump.number}`;
   const p = state.progression;
   const entries = personalRealityCategories[p.category] ?? [];
   const all = Object.values(personalRealityCategories).flat();
@@ -1277,7 +1301,7 @@ function RealityProgress({ openPage }: Pick<Props, "openPage">) {
                       <span>{entry.summary}</span>
                       <em>
                         {acquiredTier
-                          ? "Acquired in Arcane Realms · Jump 2"
+                          ? `Acquired in ${jumpAttribution}`
                           : maximum
                             ? "Maximum purchase reached"
                             : capped
@@ -1345,6 +1369,10 @@ function UdsSummary({ openPage }: Pick<Props, "openPage">) {
     state: { uds: state },
     dispatch,
   } = useSupplementState();
+  const jumpName = CurrentJumpName();
+  const currentJump = useContext(CurrentJumpEntryContext);
+  const gauntlet = useContext(CurrentGauntletContext);
+  const base = gauntlet ? 0 : 1000;
   const value = (id: string) =>
     universalDrawbacks.find((entry) => entry.id === id)?.costs[0] ?? 0;
   const chain = state.chain.reduce(
@@ -1421,14 +1449,14 @@ function UdsSummary({ openPage }: Pick<Props, "openPage">) {
       <section>
         <div className="uds-dialog-heading">
           <div>
-            <p>Calculated for Jump 2</p>
+            <p>Calculated for Jump {currentJump.number}</p>
             <h5>Active rules and budget</h5>
           </div>
           <span>No conflicts</span>
         </div>
         <div className="uds-budget-equation">
-          Base <strong>1000</strong> + Chain <strong>{chain}</strong> + Single{" "}
-          <strong>{jump}</strong> = <b>{1000 + chain + jump} CP</b>
+          Base <strong>{base}</strong> + Chain <strong>{chain}</strong> + Single{" "}
+          <strong>{jump}</strong> = <b>{base + chain + jump} CP</b>
         </div>
         <div className="uds-dialog-filters">
           {[
@@ -1529,7 +1557,7 @@ function UdsSummary({ openPage }: Pick<Props, "openPage">) {
                       <strong>{entry.name}</strong>
                       <small>
                         {hiatus
-                          ? "On hiatus for Arcane Realms; effect resumes next Jump."
+                          ? `On hiatus for ${jumpName}; effect resumes next Jump.`
                           : entry.summary}
                       </small>
                     </span>
@@ -1549,7 +1577,7 @@ function UdsSummary({ openPage }: Pick<Props, "openPage">) {
                     <div className="uds-hiatus">
                       <span>
                         {hiatus
-                          ? "Hiatus recorded for Arcane Realms only."
+                          ? `Hiatus recorded for ${jumpName} only.`
                           : `Hiatus changes this Jump’s balance by -${entry.costs[0] * 3} CP.`}
                       </span>
                       <button
@@ -2011,11 +2039,22 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
     state: { story: state },
     dispatch,
   } = useSupplementState();
-  const jump = state.jumps.find((item) => item.id === "arcane")!;
+  const currentJump = useContext(CurrentJumpEntryContext);
+  const jump = state.jumps.find((item) => item.id === currentJump.id) ?? {
+    id: currentJump.id,
+    name: "Current Jump",
+    chapters: [],
+  };
   const writerRef = useRef<HTMLElement>(null);
   const activeEditor = useRef<HTMLElement | null>(null);
   const savedRange = useRef<Range | null>(null);
   const pendingSaveChapter = useRef<number | null>(null);
+  const [draggedChapter, setDraggedChapter] = useState<string | null>(null);
+  const [dropIndicator, setDropIndicator] = useState<{
+    chapterId: string;
+    edge: DropEdge;
+  } | null>(null);
+  const [deleteChapter, setDeleteChapter] = useState<StoryChapter | null>(null);
 
   const update = (index: number, patch: Partial<StoryChapter>) =>
     dispatch({
@@ -2106,6 +2145,13 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
 
   const add = () => {
     const index = jump.chapters.length;
+    let serial = 1;
+    while (
+      jump.chapters.some(
+        (chapter) => chapter.id === `${jump.id}:chapter-${serial}`,
+      )
+    )
+      serial += 1;
     dispatch({
       type: "story",
       update: {
@@ -2116,11 +2162,15 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
                 ...item,
                 chapters: [
                   ...item.chapters,
-                  { id: `chapter-${Date.now()}`, title: "", source: "" },
+                  {
+                    id: `${jump.id}:chapter-${serial}`,
+                    title: "",
+                    source: "",
+                  },
                 ],
               },
         ),
-        editingChapter: `arcane:${index}`,
+        editingChapter: `${jump.id}:${index}`,
         saved: "Saved",
       },
     });
@@ -2133,18 +2183,62 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
     );
   };
 
+  const reorder = (chapterId: string, targetIndex: number) => {
+    const from = jump.chapters.findIndex((chapter) => chapter.id === chapterId);
+    if (from < 0 || from === targetIndex) return;
+    const chapters = [...jump.chapters];
+    const [chapter] = chapters.splice(from, 1);
+    chapters.splice(
+      Math.max(0, Math.min(targetIndex, chapters.length)),
+      0,
+      chapter,
+    );
+    dispatch({
+      type: "story",
+      update: {
+        jumps: state.jumps.map((item) =>
+          item.id === jump.id ? { ...item, chapters } : item,
+        ),
+        editingChapter: null,
+        saved: "Saved",
+      },
+    });
+  };
+
+  const removeConfirmedChapter = () => {
+    if (!deleteChapter) return;
+    dispatch({
+      type: "story",
+      update: {
+        jumps: state.jumps.map((item) =>
+          item.id === jump.id
+            ? {
+                ...item,
+                chapters: item.chapters.filter(
+                  (chapter) => chapter.id !== deleteChapter.id,
+                ),
+              }
+            : item,
+        ),
+        editingChapter: null,
+        saved: "Saved",
+      },
+    });
+    setDeleteChapter(null);
+  };
+
   return (
     <div className="story-dialog-body">
       <aside>
         <p>Current story</p>
-        <strong>Jump 2</strong>
+        <strong>Jump {currentJump.number}</strong>
         <span>
           <CurrentJumpName />
         </span>
         <dl>
           <div>
             <dt>Words</dt>
-            <dd>{storyWordCount(state, "arcane")}</dd>
+            <dd>{storyWordCount(state, jump.id)}</dd>
           </div>
           <div>
             <dt>Chapters</dt>
@@ -2208,11 +2302,70 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
             />
           </label>
         </div>
-        <div className="story-editor-chapters" aria-label="Jump story chapters">
+        <div
+          className="story-editor-chapters"
+          aria-label="Jump story chapters"
+          onDragLeave={(event) => {
+            const bounds = event.currentTarget.getBoundingClientRect();
+            if (
+              event.clientX < bounds.left ||
+              event.clientX > bounds.right ||
+              event.clientY < bounds.top ||
+              event.clientY > bounds.bottom
+            )
+              setDropIndicator(null);
+          }}
+        >
           {jump.chapters.map((chapter, index) => (
             <article
-              className="story-chapter-editor"
+              className={`story-chapter-editor${draggedChapter === chapter.id ? " is-dragging" : ""}${dropIndicator?.chapterId === chapter.id ? ` is-drop-${dropIndicator.edge}` : ""}`}
               key={chapter.id}
+              draggable
+              onDragStart={(event) => {
+                setDraggedChapter(chapter.id);
+                setDropIndicator(null);
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", chapter.id);
+              }}
+              onDragOver={(event) => {
+                if (!draggedChapter || draggedChapter === chapter.id) {
+                  if (draggedChapter) setDropIndicator(null);
+                  return;
+                }
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+                const edge = dropEdgeAtPointer(
+                  event.clientY,
+                  event.currentTarget.getBoundingClientRect(),
+                );
+                setDropIndicator((current) =>
+                  current?.chapterId === chapter.id && current.edge === edge
+                    ? current
+                    : { chapterId: chapter.id, edge },
+                );
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                if (draggedChapter && draggedChapter !== chapter.id) {
+                  const fromIndex = jump.chapters.findIndex(
+                    (item) => item.id === draggedChapter,
+                  );
+                  const edge = dropEdgeAtPointer(
+                    event.clientY,
+                    event.currentTarget.getBoundingClientRect(),
+                  );
+                  reorder(
+                    draggedChapter,
+                    dropIndexForTarget(fromIndex, index, edge, "forward"),
+                  );
+                }
+                setDraggedChapter(null);
+                setDropIndicator(null);
+              }}
+              onDragEnd={() => {
+                setDraggedChapter(null);
+                setDropIndicator(null);
+              }}
               onBlur={(event) => {
                 const card = event.currentTarget;
                 window.setTimeout(() => {
@@ -2239,6 +2392,23 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
                 }, 0);
               }}
             >
+              <div className="story-chapter-edge">
+                <span
+                  className="story-chapter-handle"
+                  title="Drag to reorder"
+                  aria-hidden="true"
+                >
+                  ⠿
+                </span>
+                <button
+                  type="button"
+                  className="story-chapter-remove"
+                  aria-label={`Remove chapter ${index + 1}`}
+                  onClick={() => setDeleteChapter(chapter)}
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
               <header>
                 <input
                   aria-label={`Chapter ${index + 1} title`}
@@ -2274,6 +2444,29 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
             + Add chapter
           </button>
         </footer>
+        {deleteChapter && (
+          <div className="story-chapter-confirm-layer">
+            <section
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="story-delete-chapter-heading"
+            >
+              <h5 id="story-delete-chapter-heading">Remove chapter?</h5>
+              <p>
+                Are you sure you want to remove “
+                {deleteChapter.title || "Untitled chapter"}”?
+              </p>
+              <div>
+                <button type="button" onClick={() => setDeleteChapter(null)}>
+                  Cancel
+                </button>
+                <button type="button" onClick={removeConfirmedChapter}>
+                  Remove chapter
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
       </section>
     </div>
   );
@@ -2381,7 +2574,16 @@ function ParityDialogContent({ tool, close, openPage, embedded }: Props) {
 export function ParityDialog(props: Props) {
   return (
     <CurrentJumpNameContext.Provider value={props.jumpName ?? "Arcane Realms"}>
-      <ParityDialogContent {...props} />
+      <CurrentJumpEntryContext.Provider
+        value={{
+          id: props.jumpEntryId ?? "entry-1",
+          number: props.jumpNumber ?? 2,
+        }}
+      >
+        <CurrentGauntletContext.Provider value={Boolean(props.gauntlet)}>
+          <ParityDialogContent {...props} />
+        </CurrentGauntletContext.Provider>
+      </CurrentJumpEntryContext.Provider>
     </CurrentJumpNameContext.Provider>
   );
 }

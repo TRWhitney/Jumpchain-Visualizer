@@ -1,0 +1,9 @@
+@top Document { Line* LastLine? }
+
+Line { LineContent? newline }
+LastLine { LineContent }
+
+@tokens {
+  LineContent { ![\n\r]+ }
+  newline { "\r\n" | "\n" }
+}

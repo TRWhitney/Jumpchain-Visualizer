@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("contextual Settings preserves its inert workspace, history, and focus", async ({
+test("contextual Settings preserves its inert workspace, history, focus, and category", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto("/");
   const opener = page.getByRole("button", { name: "Settings" });
   await opener.click();
@@ -17,6 +17,24 @@ test("contextual Settings preserves its inert workspace, history, and focus", as
   await expect(
     page.getByRole("heading", { name: "Preferences" }),
   ).toBeFocused();
+
+  await page.getByRole("tab", { name: "Tags" }).click();
+
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(opener).toBeFocused();
+  await opener.click();
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page.getByRole("tab", { name: "Tags" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await testInfo.attach("settings-reopens-last-category", {
+    body: await page
+      .getByLabel("Application Settings", { exact: true })
+      .screenshot(),
+    contentType: "image/png",
+  });
 
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/$/);
@@ -38,7 +56,7 @@ for (const location of ["/chain", "/chain/ch-92b1"]) {
     await expect(
       page.getByRole("dialog", { name: "Application Settings" }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Close Settings" }).click();
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
     await expect(page).toHaveURL(
       new RegExp(`${location.replaceAll("/", "\\/")}$`),
     );
@@ -63,7 +81,7 @@ test("direct Settings is a full destination and preferences persist through Inde
   await expect(warning).not.toBeChecked();
   await warning.check();
   await page.waitForFunction(async () => {
-    const request = indexedDB.open("jumpchain-visualizer", 1);
+    const request = indexedDB.open("jumpchain-visualizer");
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -97,6 +115,26 @@ test("direct Settings is a full destination and preferences persist through Inde
 
   await page.getByRole("button", { name: "Close Settings" }).click();
   await expect(page).toHaveURL(/\/$/);
+});
+
+test("additional Jump information exposes only the package format", async ({
+  page,
+}) => {
+  await page.goto("/chain/ch-92b1");
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Developer" }).click();
+  const control = page.getByLabel("Enable extra information");
+  await expect(control).not.toBeChecked();
+  await control.check();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  const tracker = page.getByLabel("Interactive Chain Tracker workspace");
+  await expect(tracker.locator(".shared-renderer-label")).toHaveText(
+    "Format 1 evaluated package",
+  );
+  await expect(tracker).not.toContainText("Shared Jump renderer");
+  await tracker.getByRole("button", { name: /^Earth/ }).click();
+  await expect(tracker.locator(".shared-renderer-label")).toHaveCount(0);
+  await expect(tracker).not.toContainText("System-owned chain beginning");
 });
 
 test("every Settings category preserves the fixed frame and has a fresh visual audit", async ({
@@ -405,6 +443,52 @@ test("the Settings preview and tracker use one canonical badge renderer with vis
     });
 });
 
+test("default child badges visibly shift from their parent and siblings in Inventory", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/chain/ch-92b1");
+  await page.getByRole("tab", { name: /^Inventory/ }).click();
+  const list = page.locator(".chain-record-list");
+  // Kept in the attachment metadata during failures to show the actual fixture labels.
+  const renderedLabels = [
+    ...new Set(await list.locator(".tag-profile-badge").allTextContents()),
+  ];
+  const badge = (name: string) =>
+    list
+      .locator(".tag-profile-badge")
+      .filter({ hasText: new RegExp(`^${name}$`) })
+      .first();
+  const parent = badge("Magic");
+  const firstChild = badge("Cryokinesis");
+  const secondChild = badge("Enchanting");
+  await expect(parent).toBeVisible();
+  await expect(
+    firstChild,
+    `Rendered tags: ${renderedLabels.join(", ")}`,
+  ).toBeVisible();
+  await expect(
+    secondChild,
+    `Rendered tags: ${renderedLabels.join(", ")}`,
+  ).toBeVisible();
+  const renderedBackground = (locator: typeof parent) =>
+    locator.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return `${style.backgroundColor}|${style.backgroundImage}|${style.borderColor}`;
+    });
+  const [parentColor, firstChildColor, secondChildColor] = await Promise.all([
+    renderedBackground(parent),
+    renderedBackground(firstChild),
+    renderedBackground(secondChild),
+  ]);
+  expect(firstChildColor).not.toBe(parentColor);
+  expect(secondChildColor).not.toBe(parentColor);
+  expect(firstChildColor).not.toBe(secondChildColor);
+  await testInfo.attach("shifted-parent-and-child-tag-badges", {
+    body: await page.screenshot(),
+    contentType: "image/png",
+  });
+});
+
 test("global search opens nested Logs and session controls use real events", async ({
   page,
 }) => {
@@ -489,7 +573,7 @@ test("Chain Tracker policies apply immediately without deferred renderer control
   await tracker.getByRole("tab", { name: "Library" }).click();
   await tracker.getByPlaceholder("Find a jump").fill("revision");
   await tracker.getByRole("button", { name: "Add to chain" }).click();
-  await expect(tracker.locator(".chain-jump-entry")).toHaveCount(8);
+  await expect(tracker.locator(".chain-jump-entry")).toHaveCount(9);
 
   await page.getByRole("button", { name: "Settings" }).click();
   await page.getByRole("tab", { name: "Chain Tracker" }).click();
@@ -500,7 +584,7 @@ test("Chain Tracker policies apply immediately without deferred renderer control
   await tracker.getByRole("tab", { name: "Library" }).click();
   await tracker.getByPlaceholder("Find a jump").fill("revision");
   await tracker.getByRole("button", { name: "Add to chain" }).click();
-  await expect(tracker.locator(".chain-jump-entry")).toHaveCount(9);
+  await expect(tracker.locator(".chain-jump-entry")).toHaveCount(10);
   await tracker.getByRole("tab", { name: /^Chain & Jump/ }).click();
   await tracker
     .getByRole("button", {

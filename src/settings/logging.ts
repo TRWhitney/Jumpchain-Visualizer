@@ -8,6 +8,13 @@ export type LogError = {
   stack: string;
   causes: readonly string[];
 };
+type NotificationAppearance = "danger";
+type EventNotification = {
+  class: NotificationClass;
+  message: string;
+  dedupeKey: string;
+  appearance?: NotificationAppearance;
+};
 export type LogEvent = {
   id: string;
   timestamp: string;
@@ -19,11 +26,7 @@ export type LogEvent = {
   appVersion: string;
   routeKind: string;
   attributes: Readonly<Record<string, SafeAttribute>>;
-  notification?: {
-    class: NotificationClass;
-    message: string;
-    dedupeKey: string;
-  };
+  notification?: EventNotification;
   error: LogError | null;
   occurrences: number;
 };
@@ -32,11 +35,7 @@ export type EventDefinition = {
   severity: LogSeverity;
   category: string;
   attributes: readonly string[];
-  notification?: {
-    class: NotificationClass;
-    message: string;
-    dedupeKey: string;
-  };
+  notification?: EventNotification;
 };
 
 export const eventCatalog: Record<string, EventDefinition> = {
@@ -166,13 +165,24 @@ export const eventCatalog: Record<string, EventDefinition> = {
       dedupeKey: "chain-package-blocked",
     },
   },
+  "chain.choice.overspend_blocked": {
+    severity: "warn",
+    category: "chain",
+    attributes: ["entryId", "actorId"],
+    notification: {
+      class: "validation",
+      message: "Choice rejected, negative balance",
+      dedupeKey: "chain-choice-overspend",
+      appearance: "danger",
+    },
+  },
   "chain.reordered": {
     severity: "info",
     category: "chain",
     attributes: ["dependencyReview"],
     notification: {
       class: "chain",
-      message: "Chain order updated.",
+      message: "Reorder complete.",
       dedupeKey: "chain-reorder",
     },
   },
@@ -182,7 +192,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["dependencyReview"],
     notification: {
       class: "chain",
-      message: "Jump removed from the chain.",
+      message: "Remove Jump complete.",
       dedupeKey: "chain-remove",
     },
   },
@@ -214,6 +224,15 @@ export type EventInput = {
   correlationId?: string;
   routeKind?: string;
   error?: unknown;
+  toast?: ToastInteraction;
+};
+
+export type ToastInteraction = {
+  action?: {
+    label: string;
+    invoke: () => void;
+  };
+  onDismiss?: () => void;
 };
 
 export type ToastRecord = {
@@ -225,6 +244,9 @@ export type ToastRecord = {
   dedupeKey: string;
   occurrences: number;
   durationMs: number;
+  appearance?: NotificationAppearance;
+  action?: ToastInteraction["action"];
+  onDismiss?: ToastInteraction["onDismiss"];
 };
 
 const severityRank: Record<LogSeverity, number> = {
@@ -347,13 +369,13 @@ export class EventPipeline {
       duplicate.occurrences += 1;
       duplicate.timestamp = event.timestamp;
       this.notify();
-      this.scheduleToast(duplicate);
+      this.scheduleToast(duplicate, input.toast);
       return duplicate;
     }
     this.events = [...this.events, event];
     this.enforceBounds();
     this.notify();
-    this.scheduleToast(event);
+    this.scheduleToast(event, input.toast);
     return event;
   }
 
@@ -368,22 +390,36 @@ export class EventPipeline {
     }
   }
 
-  private scheduleToast(event: LogEvent) {
+  private scheduleToast(event: LogEvent, interaction?: ToastInteraction) {
     const notification = event.notification;
     if (!notification) return;
     const preferences = this.settings().notifications;
-    if (!preferences.enabled || !preferences.classes[notification.class])
+    if (!preferences.enabled || !preferences.classes[notification.class]) {
+      globalThis.setTimeout(() => interaction?.onDismiss?.(), 0);
       return;
+    }
     const key = `${notification.class}:${notification.dedupeKey}`;
     const currentTimer = this.toastTimers.get(key);
     if (currentTimer) globalThis.clearTimeout(currentTimer);
     const timer = globalThis.setTimeout(() => {
       this.toastTimers.delete(key);
+      const latestPreferences = this.settings().notifications;
+      if (
+        !latestPreferences.enabled ||
+        !latestPreferences.classes[notification.class]
+      ) {
+        interaction?.onDismiss?.();
+        return;
+      }
       const existing = this.toasts.find((toast) => toast.dedupeKey === key);
       if (existing) {
         existing.occurrences += 1;
         existing.eventId = event.id;
         existing.severity = event.severity;
+        existing.appearance = notification.appearance;
+        existing.durationMs = latestPreferences.durationMs;
+        existing.action = interaction?.action;
+        existing.onDismiss = interaction?.onDismiss;
         this.toasts = [...this.toasts];
       } else {
         this.toasts = [
@@ -396,7 +432,10 @@ export class EventPipeline {
             message: notification.message,
             dedupeKey: key,
             occurrences: 1,
-            durationMs: preferences.durationMs,
+            durationMs: latestPreferences.durationMs,
+            appearance: notification.appearance,
+            action: interaction?.action,
+            onDismiss: interaction?.onDismiss,
           },
         ].sort((a, b) => severityRank[b.severity] - severityRank[a.severity]);
       }
@@ -406,17 +445,20 @@ export class EventPipeline {
   }
 
   dismissToast(id: string) {
+    const dismissed = this.toasts.find((toast) => toast.id === id);
     this.toasts = this.toasts.filter((toast) => toast.id !== id);
     this.notifyToasts();
+    dismissed?.onDismiss?.();
   }
   syncNotificationPreferences() {
     const preferences = this.settings().notifications;
-    if (!preferences.enabled) this.toasts = [];
-    else
-      this.toasts = this.toasts.filter(
-        (toast) => preferences.classes[toast.class],
-      );
+    const retained = preferences.enabled
+      ? this.toasts.filter((toast) => preferences.classes[toast.class])
+      : [];
+    const dismissed = this.toasts.filter((toast) => !retained.includes(toast));
+    this.toasts = retained;
     this.notifyToasts();
+    for (const toast of dismissed) toast.onDismiss?.();
   }
   clear() {
     this.events = [];

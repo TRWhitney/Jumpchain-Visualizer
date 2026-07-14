@@ -87,6 +87,7 @@
         "name": { "type": "renderableScalar", "min": 1, "max": 1, "required": true },
         "author": { "type": "quotedString", "min": 1, "repeatable": true, "setLike": true },
         "version": { "type": "quotedString", "min": 1, "max": 1, "required": true },
+        "gauntlet": { "type": "boolean", "min": 0, "max": 1, "default": false },
         "starting-points": { "type": "integer", "min": 0, "max": 1, "default": 1000 },
         "points-name": { "type": "renderableScalar", "min": 0, "max": 1, "default": "Choice Points" },
         "points-abbreviation": { "type": "renderableScalar", "min": 0, "max": 1, "default": "CP" },
@@ -115,6 +116,7 @@
       },
       "children": {
         "choice-source": { "min": 0, "repeatable": true, "ordered": true },
+        "choice": { "min": 0, "repeatable": true, "ordered": true, "ownerLocalHandleNamespace": "choice-placement" },
         "text": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "text" },
         "image": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "image" }
       }
@@ -130,26 +132,37 @@
       "children": {}
     },
     "choice": {
-      "contexts": ["top-level"],
-      "fields": {
-        "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
-        "name": { "type": "renderableScalar", "min": 1, "max": 1, "required": true },
-        "layout": { "type": "handleReference:choice-layout", "min": 0, "max": 1 },
-        "species": { "type": "renderableScalar", "min": 0, "max": 1 },
-        "tag": { "type": "tag", "min": 0, "repeatable": true, "setLike": true },
-        "group": { "type": "tag", "min": 0, "repeatable": true, "setLike": true },
-        "selection": { "type": "enum", "values": ["toggle", "text", "integer", "select"], "min": 0, "max": 1, "default": "toggle" },
-        "min": { "type": "integer", "min": 0, "max": 1 },
-        "max": { "type": "integer", "min": 0, "max": 1 },
-        "resolution": { "type": "enum", "values": ["random", "either"], "min": 0, "max": 1, "default": "manual" },
-        "option": { "type": "renderableScalar", "min": 0, "repeatable": true, "ordered": true, "exactDuplicate": "error" }
-      },
-      "children": {
-        "text": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "text" },
-        "image": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "image" },
-        "input": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "input" },
-        "cost": { "min": 0, "repeatable": true, "uniqueBy": "resolved resource" },
-        "grant": { "min": 0, "repeatable": true, "ordered": true }
+      "contexts": ["top-level", "section"],
+      "formsByContext": {
+        "top-level": {
+          "fields": {
+            "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
+            "name": { "type": "renderableScalar", "min": 1, "max": 1, "required": true },
+            "layout": { "type": "handleReference:choice-layout", "min": 0, "max": 1 },
+            "tag": { "type": "tag", "min": 0, "repeatable": true, "setLike": true },
+            "group": { "type": "tag", "min": 0, "repeatable": true, "setLike": true },
+            "selection": { "type": "enum", "values": ["toggle", "text", "integer", "select"], "min": 0, "max": 1, "default": "toggle" },
+            "continuity": { "type": "enum", "values": ["previous", "original"], "min": 0, "max": 1 },
+            "min": { "type": "integer", "min": 0, "max": 1 },
+            "max": { "type": "integer", "min": 0, "max": 1 },
+            "resolution": { "type": "enum", "values": ["random", "either"], "min": 0, "max": 1, "default": "manual" },
+            "option": { "type": "renderableScalar", "min": 0, "repeatable": true, "ordered": true, "exactDuplicate": "error" }
+          },
+          "children": {
+            "text": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "text" },
+            "image": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "image" },
+            "input": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "input" },
+            "cost": { "min": 0, "repeatable": true, "uniqueBy": "resolved resource" },
+            "grant": { "min": 0, "repeatable": true, "ordered": true }
+          }
+        },
+        "section": {
+          "fields": {
+            "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
+            "target": { "type": "handleReference:choice", "min": 1, "max": 1, "required": true }
+          },
+          "children": {}
+        }
       }
     },
     "text": {
@@ -283,6 +296,13 @@
       }
     },
     "rule": { "kind": "leaf", "fields": {}, "children": false },
+    "choice": {
+      "kind": "leaf",
+      "compact": "choice: <target>",
+      "compactOnly": true,
+      "allowedLayouts": ["section-layout"],
+      "targetNamespace": "choice-placement"
+    },
     "expand": {
       "kind": "special",
       "allowedLayouts": ["section-layout"],
@@ -295,12 +315,14 @@
     }
   },
   "roots": {
-    "sectionLayoutRoot": { "exactlyOne": true, "allowed": ["stack", "inline", "wrap", "grid"], "descendants": ["stack", "inline", "wrap", "grid", "slot", "text", "image", "rule", "expand"] },
+    "sectionLayoutRoot": { "exactlyOne": true, "allowed": ["stack", "inline", "wrap", "grid"], "descendants": ["stack", "inline", "wrap", "grid", "slot", "text", "image", "rule", "choice", "expand"] },
     "choiceLayoutRoot": { "exactlyOne": true, "allowed": ["stack", "inline", "wrap", "grid"], "descendants": ["stack", "inline", "wrap", "grid", "slot", "text", "image", "input", "rule"] },
     "traitLayoutRoot": { "exactlyOne": true, "allowed": ["stack", "inline", "wrap", "grid"], "descendants": ["stack", "inline", "wrap", "grid", "slot", "text", "image", "rule"] }
   },
   "semanticConstraints": [
-    { "code": "choice.species.requires_origins_group", "rule": "species is valid only when the choice has canonical group origins" },
+    { "code": "section.choice.target", "rule": "a section-owned choice association requires a unique owner-local handle and a target resolving to one top-level choice" },
+    { "code": "section.choice.unique_target", "rule": "one section may associate a top-level choice at most once" },
+    { "code": "choice.continuity.domain", "rule": "continuity is valid only on selection select with exactly one direct property grant to gender whose value is omitted" },
     { "code": "choice.integer.bounds", "rule": "integer min must not exceed max; random/either requires both finite bounds" },
     { "code": "choice.select.options", "rule": "option is valid only for selection select; zero options is a warning" },
     { "code": "choice.resolution.domain", "rule": "choice resolution is valid only for integer or select" },
@@ -310,11 +332,14 @@
     { "code": "input.options", "rule": "option is valid only for selection select" },
     { "code": "grant.resource.fields", "rule": "kind resource requires resource and amount and permits neither to be omitted" },
     { "code": "grant.property.fields", "rule": "kind property requires handle; omitted value copies the owning control" },
+    { "code": "grant.property.reserved_types", "rule": "origin, species, location, and gender resolve to strings; age resolves to an integer; copied origin, species, and location require compatible string controls; copied gender requires a select choice and copied age requires an integer choice" },
+    { "code": "grant.property.entry_scope", "rule": "property grants apply only in their owning chain entry; only engine identity continuity may seed gender and age from earlier entries" },
     { "code": "grant.companion_import.context", "rule": "kind companion-import is valid only directly under input selection companions" },
     { "code": "grant.companion_import.budget_pair", "rule": "resource and amount must be both present or both absent" },
     { "code": "grant.visible.fields", "rule": "name, layout, tag, text, and image are valid only for perk, item, companion, and trait; layout is trait-layout and valid only for trait" },
     { "code": "layout.container_handles", "rule": "container handles are unique within one layout" },
     { "code": "layout.typed_target", "rule": "typed leaves resolve only in the matching owner-local namespace; absent targets warn and collapse" },
+    { "code": "layout.choice.target", "rule": "a compact choice leaf resolves one choice-placement owned by the rendered section and each placement may appear at most once" },
     { "code": "layout.expand.source", "rule": "expand source resolves in the rendered section and each source may be expanded at most once" },
     { "code": "package.asset_path", "rule": "asset paths are relative, remain within assets, and resolve to supported graphical files" }
   ]

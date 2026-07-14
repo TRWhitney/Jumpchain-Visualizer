@@ -94,7 +94,7 @@
 .default-choice-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; min-height: 1.8rem; }
 .default-choice-heading > strong { color: #fff; font-size: 0.82rem; }
 .default-choice-tags { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0.35rem 0 0.65rem; }
-.default-choice-tags span { padding: 0.14rem 0.32rem; color: #bab6ad; background: #2b2b29; border: 1px solid #474640; border-radius: 999px; font-size: 0.53rem; }
+.default-choice-tags > span:not(.tag-profile-badge) { padding: 0.14rem 0.32rem; color: #bab6ad; background: #2b2b29; border: 1px solid #474640; border-radius: 999px; font-size: 0.53rem; }
 .default-choice-actions {
   display: flex;
   align-items: center;

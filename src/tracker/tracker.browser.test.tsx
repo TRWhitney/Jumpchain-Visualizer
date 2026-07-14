@@ -9,15 +9,22 @@ import { TagRadar } from "./TagRadar";
 import { trackerReducer } from "./model";
 import "../../documentation/styles.css";
 import "../../documentation/chain-tracker-design.css";
+import "../../documentation/choice-rendering-design.css";
+import "./jumpRenderer.css";
 import "../../documentation/tags-design.css";
 import "./review.css";
 
 function RadarHarness() {
-  const [state, dispatch] = useReducer(
-    trackerReducer,
-    undefined,
-    createDenseTrackerFixture,
-  );
+  const [state, dispatch] = useReducer(trackerReducer, undefined, () => {
+    const fixture = createDenseTrackerFixture();
+    return {
+      ...fixture,
+      records: fixture.records.map((record) => ({
+        ...record,
+        ownerActorId: "jumper",
+      })),
+    };
+  });
   return <TagRadar state={state} dispatch={dispatch} />;
 }
 
@@ -28,7 +35,14 @@ function TrackerHarness() {
     createDenseTrackerFixture,
   );
   return (
-    <SupplementProviders>
+    <SupplementProviders
+      bodyMod={state.bodyMod}
+      onBodyModChange={(value) => dispatch({ type: "set-body-mod", value })}
+      supplementState={state.supplements}
+      supplementDispatch={(action) =>
+        dispatch({ type: "supplement-action", action })
+      }
+    >
       <ChainTracker state={state} dispatch={dispatch} />
     </SupplementProviders>
   );
@@ -94,4 +108,34 @@ test("workspace tabs select pages and preserve the bounded frame", async () => {
   const frame = document.querySelector<HTMLElement>(".tracker-review-frame");
   expect(frame).not.toBeNull();
   expect(frame?.clientHeight).toBeGreaterThan(0);
+});
+
+test("Earth is unnumbered, immutable, and establishes identity continuity", async () => {
+  render(<TrackerHarness />);
+  await expect
+    .element(page.getByRole("button", { name: /^Earth/ }))
+    .toBeVisible();
+  const earthEntry = document.querySelector<HTMLElement>(
+    ".chain-jump-entry.is-earth",
+  );
+  expect(earthEntry).not.toBeNull();
+  expect(earthEntry?.querySelector(".chain-jump-handle")).toBeNull();
+  expect(earthEntry?.querySelector(".chain-jump-actions")).toBeNull();
+  await page.getByRole("button", { name: /^Earth/ }).click();
+  await expect
+    .element(page.getByText("Before Jump 1", { exact: true }))
+    .toBeVisible();
+  expect(
+    [...document.querySelectorAll(".chain-jump-summary dd")].map(
+      (element) => element.firstChild?.textContent,
+    ),
+  ).toEqual(["0 CP", "Human", "Unknown", "Unknown"]);
+
+  await page.getByLabelText("Earth gender").selectOptions("Female");
+  await page.getByLabelText("Earth age").fill("24");
+  await page.getByRole("button", { name: /1\. First Step/ }).click();
+  await expect.element(page.getByLabelText("Gender")).toHaveValue("Female");
+  await expect
+    .element(page.getByRole("spinbutton", { name: "Age" }))
+    .toHaveValue(24);
 });

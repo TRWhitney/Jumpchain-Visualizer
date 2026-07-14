@@ -16,9 +16,39 @@ section
     group: perks
     mode: multi
 
+  choice
+    handle: gender_field
+    target: starting_gender
+
+  choice
+    handle: age_field
+    target: starting_age
+
   text
     handle: description
     content:
       """
       Choose useful abilities.
       """
+
+choice
+  handle: starting_gender
+  name: "Starting gender"
+  selection: select
+  continuity: previous
+  option: "Male"
+  option: "Female"
+
+  grant
+    kind: property
+    handle: gender
+
+choice
+  handle: starting_age
+  name: "Starting age"
+  selection: integer
+  min: 1
+
+  grant
+    kind: property
+    handle: age

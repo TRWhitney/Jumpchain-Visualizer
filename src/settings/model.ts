@@ -30,6 +30,7 @@ export type ApplicationSettings = {
   };
   chain: {
     allowMultiplePackageVersions: boolean;
+    allowDuplicateJumps: boolean;
     allowNegativePointBalances: boolean;
     allowRerolls: boolean;
     warnUpstreamChanges: boolean;
@@ -93,6 +94,7 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
     },
     chain: {
       allowMultiplePackageVersions: false,
+      allowDuplicateJumps: false,
       allowNegativePointBalances: false,
       allowRerolls: false,
       warnUpstreamChanges: false,
@@ -201,6 +203,10 @@ export function hydrateSettings(
       allowMultiplePackageVersions: bool(
         chain.allowMultiplePackageVersions,
         fallback.chain.allowMultiplePackageVersions,
+      ),
+      allowDuplicateJumps: bool(
+        chain.allowDuplicateJumps,
+        fallback.chain.allowDuplicateJumps,
       ),
       allowNegativePointBalances: bool(
         chain.allowNegativePointBalances,

@@ -192,6 +192,7 @@ function AppShellContent() {
     () => ({
       warnUpstreamChanges: settings.chain.warnUpstreamChanges,
       allowMultiplePackageVersions: settings.chain.allowMultiplePackageVersions,
+      allowDuplicateJumps: settings.chain.allowDuplicateJumps,
       allowNegativePointBalances: settings.chain.allowNegativePointBalances,
       allowRerolls: settings.chain.allowRerolls,
       showAdditionalJumpInformation:
@@ -426,10 +427,11 @@ function AppShellContent() {
                 effectiveCurrentState.entries[id].packageId
               ]?.logicalId === packageItem.logicalId,
           );
-        if (exact) {
+        if (exact && !effectiveCurrentState.preferences.allowDuplicateJumps) {
           // Opening an existing exact version is navigation, not a mutation.
         } else if (
           parallel &&
+          !exact &&
           !effectiveCurrentState.preferences.allowMultiplePackageVersions
         ) {
           logger.emit("chain.package.blocked", {

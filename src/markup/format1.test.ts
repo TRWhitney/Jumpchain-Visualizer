@@ -47,6 +47,27 @@ describe("Format 1 source pipeline", () => {
     });
   });
 
+  it("canonicalizes form ownership and explicit quantity measures", () => {
+    const arcane = generatedJumpPackages.find(
+      (item) => item.id === "arcane-realms",
+    );
+    const cosmic = generatedJumpPackages.find(
+      (item) => item.id === "cosmic-odyssey",
+    );
+    expect(
+      arcane?.choices.find((choice) => choice.handle === "dragon_form")
+        ?.grants[0],
+    ).toMatchObject({ kind: "form", handle: "dragon_form" });
+    expect(
+      arcane?.choices.find((choice) => choice.handle === "draconic_resilience")
+        ?.grants[0],
+    ).toMatchObject({ kind: "perk", form: "dragon_form", shorthand: true });
+    expect(
+      cosmic?.choices.find((choice) => choice.handle === "training_manuals")
+        ?.grants[0],
+    ).toMatchObject({ kind: "item", measure: "quantity", shorthand: true });
+  });
+
   it("matches every machine-readable conformance fixture", () => {
     for (const fixture of conformance.cases) {
       const directory = `/schema/${fixture.directory}/`;

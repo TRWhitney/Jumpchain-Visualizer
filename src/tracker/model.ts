@@ -98,14 +98,25 @@ export type InventoryRecord = {
   kind: "perk" | "item";
   name: string;
   sourceEntryId: string;
-  ownerActorId: string;
+  ownerActorId?: string;
+  ownerFormId?: string;
+  grantHandle?: string;
+  sourcePackageId?: string;
+  sourcePackageExactHash?: string;
   tags: readonly string[];
   description: string;
   measure?: EvaluatedGrantMeasure;
+  aggregateQuantity?: number;
+  acquisitions?: readonly {
+    sourceEntryId: string;
+    description: string;
+    quantity: number;
+  }[];
 };
 
 export type FormRecord = {
   id: string;
+  handle?: string;
   name: string;
   sourceEntryId: string;
   subtitle: string;
@@ -127,6 +138,7 @@ export type CompanionRecord = {
 export type TrackerPreferences = {
   warnUpstreamChanges: boolean;
   allowMultiplePackageVersions: boolean;
+  allowDuplicateJumps: boolean;
   allowNegativePointBalances: boolean;
   allowRerolls: boolean;
   showAdditionalJumpInformation: boolean;
@@ -137,6 +149,12 @@ export type DependencyImpact = {
   subjectId: string;
   providerEntryId: string;
   consumerEntryIds: readonly string[];
+};
+
+export type FormDependencyImpact = {
+  kind: "form-perk";
+  formHandle: string;
+  dependentChoiceHandles: readonly string[];
 };
 
 export type PendingMutation =
@@ -150,6 +168,14 @@ export type PendingMutation =
       kind: "remove";
       entryId: string;
       impacts: readonly DependencyImpact[];
+    }
+  | {
+      kind: "clear-form";
+      entryId: string;
+      actorId: string;
+      choiceHandle: string;
+      value: boolean | string | number | null;
+      impacts: readonly FormDependencyImpact[];
     };
 
 type UndoSnapshot = {
@@ -330,17 +356,22 @@ export function tagIsWithin(
 
 export function filteredInventory(state: TrackerState) {
   const terms = normalize(state.inventorySearch).split(/\s+/).filter(Boolean);
-  return state.records.filter((record) => {
-    if (record.ownerActorId !== "jumper") return false;
-    if (!visibleAtInspection(state, record.sourceEntryId)) return false;
-    if (state.inventoryKind !== "all" && record.kind !== state.inventoryKind)
-      return false;
-    if (
-      state.inventoryTag !== "all" &&
-      !record.tags.some((tag) => tagIsWithin(state, tag, state.inventoryTag))
-    )
-      return false;
-    const entry = packageForEntry(state, record.sourceEntryId);
+  const records = aggregateInventoryRecords(
+    state.records.filter((record) => {
+      if (record.ownerActorId !== "jumper") return false;
+      if (record.ownerFormId) return false;
+      if (!visibleAtInspection(state, record.sourceEntryId)) return false;
+      if (state.inventoryKind !== "all" && record.kind !== state.inventoryKind)
+        return false;
+      if (
+        state.inventoryTag !== "all" &&
+        !record.tags.some((tag) => tagIsWithin(state, tag, state.inventoryTag))
+      )
+        return false;
+      return true;
+    }),
+  );
+  return records.filter((record) => {
     const relatedTags = record.tags.flatMap((tag) => {
       const related: string[] = [];
       let current: string | undefined = tag;
@@ -354,16 +385,69 @@ export function filteredInventory(state: TrackerState) {
       }
       return related;
     });
+    const acquisitions = record.acquisitions ?? [record];
     const haystack = normalize(
       [
         record.name,
-        record.description,
-        entry?.name,
+        ...acquisitions.flatMap((acquisition) => [
+          acquisition.description,
+          packageForEntry(state, acquisition.sourceEntryId)?.name,
+        ]),
         ...record.tags,
         ...relatedTags,
       ].join(" "),
     );
     return terms.every((term) => haystack.includes(term));
+  });
+}
+
+export function aggregateInventoryRecords(
+  records: readonly InventoryRecord[],
+): InventoryRecord[] {
+  const grouped = new Map<string, InventoryRecord[]>();
+  for (const record of records) {
+    const rank = record.measure?.kind === "rank" ? record.measure.value : "";
+    const key =
+      record.grantHandle && record.sourcePackageExactHash
+        ? [
+            record.ownerActorId ?? "",
+            record.ownerFormId ?? "",
+            record.kind,
+            record.grantHandle,
+            record.sourcePackageId ?? "",
+            record.sourcePackageExactHash,
+            record.name,
+            rank,
+          ].join("\u0000")
+        : record.id;
+    grouped.set(key, [...(grouped.get(key) ?? []), record]);
+  }
+  return [...grouped.values()].map((group) => {
+    const first = group[0];
+    const acquisitions = group.map((record) => ({
+      sourceEntryId: record.sourceEntryId,
+      description: record.description,
+      quantity: record.measure?.kind === "quantity" ? record.measure.value : 1,
+    }));
+    if (first.measure?.kind === "quantity")
+      return {
+        ...first,
+        measure: {
+          kind: "quantity",
+          value: group.reduce(
+            (total, record) =>
+              total +
+              (record.measure?.kind === "quantity" ? record.measure.value : 1),
+            0,
+          ),
+        },
+        acquisitions,
+      };
+    return {
+      ...first,
+      aggregateQuantity: group.length > 1 ? group.length : undefined,
+      acquisitions,
+    };
   });
 }
 
@@ -772,6 +856,96 @@ function actionActivatesChoice(
   return choice ? choiceValueIsActive(choice, value) : false;
 }
 
+function activeFormHandles(
+  state: TrackerState,
+  entryId: string,
+  actorId: string,
+) {
+  if (actorId !== "jumper") return new Set<string>();
+  const packageItem = packageForEntry(state, entryId)?.document;
+  const actor = state.jumpState[entryId]?.actors[actorId];
+  if (!packageItem || !actor) return new Set<string>();
+  const handles = new Set<string>();
+  for (const choice of packageItem.choices) {
+    if (!choiceValueIsActive(choice, actor.choices[choice.handle] ?? null))
+      continue;
+    for (const grant of choice.grants)
+      if (grant.kind === "form" && grant.handle) handles.add(grant.handle);
+  }
+  return handles;
+}
+
+function cascadeRemovedFormDependencies(
+  state: TrackerState,
+  candidate: TrackerState,
+  entryId: string,
+  actorId: string,
+) {
+  const removed = [...activeFormHandles(state, entryId, actorId)].filter(
+    (handle) => !activeFormHandles(candidate, entryId, actorId).has(handle),
+  );
+  if (!removed.length) return candidate;
+  const packageItem = packageForEntry(candidate, entryId)?.document;
+  const entry = candidate.jumpState[entryId];
+  const actor = entry?.actors[actorId];
+  if (!packageItem || !entry || !actor) return candidate;
+  const choices = { ...actor.choices };
+  const inputs = { ...actor.inputs };
+  for (const choice of packageItem.choices) {
+    if (
+      choice.grants.some((grant) => grant.form && removed.includes(grant.form))
+    )
+      choices[choice.handle] = null;
+    for (const input of choice.inputs)
+      if (
+        input.grants.some((grant) => grant.form && removed.includes(grant.form))
+      )
+        inputs[choice.handle] = {
+          ...inputs[choice.handle],
+          [input.handle]: null,
+        };
+  }
+  return {
+    ...candidate,
+    jumpState: {
+      ...candidate.jumpState,
+      [entryId]: {
+        ...entry,
+        actors: {
+          ...entry.actors,
+          [actorId]: { ...actor, choices, inputs },
+        },
+      },
+    },
+  };
+}
+
+function removedFormDependencyImpacts(
+  state: TrackerState,
+  candidate: TrackerState,
+  entryId: string,
+  actorId: string,
+): FormDependencyImpact[] {
+  const removed = [...activeFormHandles(state, entryId, actorId)].filter(
+    (handle) => !activeFormHandles(candidate, entryId, actorId).has(handle),
+  );
+  const packageItem = packageForEntry(state, entryId)?.document;
+  const actor = state.jumpState[entryId]?.actors[actorId];
+  if (!removed.length || !packageItem || !actor) return [];
+  return removed.flatMap((formHandle) => {
+    const dependentChoiceHandles = packageItem.choices
+      .filter(
+        (choice) =>
+          choiceValueIsActive(choice, actor.choices[choice.handle] ?? null) &&
+          choice.grants.some((grant) => grant.form === formHandle),
+      )
+      .map((choice) => choice.handle);
+    return dependentChoiceHandles.length
+      ? [{ kind: "form-perk" as const, formHandle, dependentChoiceHandles }]
+      : [];
+  });
+}
+
 export function choiceMutationWasBlocked(
   state: TrackerState,
   nextState: TrackerState,
@@ -890,6 +1064,38 @@ export function trackerReducer(
       return { ...state, pending: null };
     case "commit-mutation": {
       if (!state.pending) return state;
+      if (state.pending.kind === "clear-form") {
+        const pending = state.pending;
+        const entry = state.jumpState[pending.entryId];
+        if (!entry) return { ...state, pending: null };
+        const actor = entry.actors[pending.actorId] ?? emptyActorEntryState();
+        const candidate: TrackerState = {
+          ...state,
+          pending: null,
+          jumpState: {
+            ...state.jumpState,
+            [pending.entryId]: {
+              ...entry,
+              actors: {
+                ...entry.actors,
+                [pending.actorId]: {
+                  ...actor,
+                  choices: {
+                    ...actor.choices,
+                    [pending.choiceHandle]: pending.value,
+                  },
+                },
+              },
+            },
+          },
+        };
+        return cascadeRemovedFormDependencies(
+          state,
+          candidate,
+          pending.entryId,
+          pending.actorId,
+        );
+      }
       const next =
         state.pending.kind === "move"
           ? applyMove(state, state.pending.entryId, state.pending.toIndex)
@@ -924,7 +1130,7 @@ export function trackerReducer(
       const existing = state.order.find(
         (id) => state.entries[id].packageExactHash === packageItem.exactHash,
       );
-      if (existing)
+      if (existing && !state.preferences.allowDuplicateJumps)
         return trackerReducer(state, {
           type: "select-entry",
           entryId: existing,
@@ -934,7 +1140,11 @@ export function trackerReducer(
           state.packages[state.entries[id].packageId]?.logicalId ===
           packageItem.logicalId,
       );
-      if (parallel && !state.preferences.allowMultiplePackageVersions)
+      if (
+        parallel &&
+        !existing &&
+        !state.preferences.allowMultiplePackageVersions
+      )
         return trackerReducer(state, {
           type: "select-entry",
           entryId: parallel,
@@ -1027,7 +1237,7 @@ export function trackerReducer(
       const entry = state.jumpState[action.entryId];
       if (!entry) return state;
       const actor = entry.actors[action.actorId] ?? emptyActorEntryState();
-      const candidate: TrackerState = {
+      let candidate: TrackerState = {
         ...state,
         jumpState: {
           ...state.jumpState,
@@ -1046,6 +1256,52 @@ export function trackerReducer(
           },
         },
       };
+      const formImpacts = removedFormDependencyImpacts(
+        state,
+        candidate,
+        action.entryId,
+        action.actorId,
+      );
+      if (formImpacts.length)
+        return {
+          ...state,
+          pending: {
+            kind: "clear-form",
+            entryId: action.entryId,
+            actorId: action.actorId,
+            choiceHandle: action.choiceHandle,
+            value: action.value,
+            impacts: formImpacts,
+          },
+        };
+      candidate = cascadeRemovedFormDependencies(
+        state,
+        candidate,
+        action.entryId,
+        action.actorId,
+      );
+      const choice = packageForEntry(
+        candidate,
+        action.entryId,
+      )?.document?.choices.find((item) => item.handle === action.choiceHandle);
+      const targets =
+        choice?.grants.flatMap((grant) => (grant.form ? [grant.form] : [])) ??
+        [];
+      if (
+        actionActivatesChoice(
+          state,
+          action.entryId,
+          action.choiceHandle,
+          action.value,
+        ) &&
+        targets.some(
+          (target) =>
+            !activeFormHandles(candidate, action.entryId, action.actorId).has(
+              target,
+            ),
+        )
+      )
+        return state;
       return enforceBalancePolicy(
         state,
         candidate,
@@ -1063,7 +1319,7 @@ export function trackerReducer(
       const entry = state.jumpState[action.entryId];
       if (!entry) return state;
       const actor = entry.actors[action.actorId] ?? emptyActorEntryState();
-      return {
+      const candidate: TrackerState = {
         ...state,
         jumpState: {
           ...state.jumpState,
@@ -1085,6 +1341,26 @@ export function trackerReducer(
           },
         },
       };
+      const input = packageForEntry(candidate, action.entryId)
+        ?.document?.choices.find(
+          (choice) => choice.handle === action.choiceHandle,
+        )
+        ?.inputs.find((item) => item.handle === action.inputHandle);
+      const activeValue = Array.isArray(action.value)
+        ? action.value.length > 0
+        : action.value !== null && action.value !== "";
+      if (
+        activeValue &&
+        input?.grants.some(
+          (grant) =>
+            grant.form &&
+            !activeFormHandles(candidate, action.entryId, action.actorId).has(
+              grant.form,
+            ),
+        )
+      )
+        return state;
+      return candidate;
     }
     case "set-enabled-supplements":
       return { ...state, enabledSupplements: action.value };

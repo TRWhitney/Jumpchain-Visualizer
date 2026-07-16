@@ -70,4 +70,31 @@ describe("unreleased Format 1 identity amendment", () => {
       "only engine identity continuity",
     );
   });
+
+  it("amends Format 1 with form targeting and rank-or-quantity measures", () => {
+    const fields = schemaJson.declarations.grant.forms.block.fields;
+    expect(fields.kind).toMatchObject({
+      values: expect.arrayContaining(["perk", "item", "form"]),
+    });
+    expect(fields).toMatchObject({
+      form: { type: "handleReference:form", min: 0, max: 1 },
+      measure: { type: "enum", values: ["rank", "quantity"], min: 0, max: 1 },
+    });
+    expect(schema.declarations.choice.formsByContext?.["top-level"].fields)
+      .toMatchObject({
+        form: { type: "handleReference:form", min: 0, max: 1 },
+        measure: { type: "enum", values: ["rank", "quantity"], min: 0, max: 1 },
+      });
+    const codes = schema.semanticConstraints.map(({ code }) => code);
+    expect(codes).toEqual(
+      expect.arrayContaining([
+        "grant.form.handle",
+        "grant.form.reference",
+        "grant.form.target_kind",
+        "grant.form.shorthand",
+        "grant.measure.integer_only",
+        "grant.measure.shorthand",
+      ]),
+    );
+  });
 });

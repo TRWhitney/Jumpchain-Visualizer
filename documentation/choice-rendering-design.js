@@ -2,6 +2,36 @@
   const rerolls = document.querySelector("#choice-demo-rerolls");
   if (!rerolls) return;
 
+  document
+    .querySelectorAll('.default-choice-actions input[type="number"]')
+    .forEach((input) => {
+      const label = input.closest("label");
+      if (!label) return;
+      const stepper = document.createElement("span");
+      stepper.className = "number-stepper";
+      label.before(stepper);
+      stepper.append(label);
+      stepper.insertAdjacentHTML(
+        "beforeend",
+        `<span class="number-stepper-buttons">
+          <button type="button" aria-label="Increase"><svg aria-hidden="true" viewBox="0 0 12 8"><path d="M2 6 6 2l4 4"></path></svg></button>
+          <button type="button" aria-label="Decrease"><svg aria-hidden="true" viewBox="0 0 12 8"><path d="m2 2 4 4 4-4"></path></svg></button>
+        </span>`,
+      );
+      stepper
+        .querySelector('[aria-label="Increase"]')
+        .addEventListener("click", () => {
+          input.stepUp();
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      stepper
+        .querySelector('[aria-label="Decrease"]')
+        .addEventListener("click", () => {
+          input.stepDown();
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+    });
+
   const rankLabel = (count) => `${count} ${count === 1 ? "rank" : "ranks"}`;
   const currentValue = (card) => {
     const control = card.querySelector("[data-current-value]");

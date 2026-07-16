@@ -1244,7 +1244,7 @@ choice.</p>
 <p>Block-form grants are required for kinds that are not naturally represented by
 the choice&#39;s own visible identity.</p>
 <p>Every block-form grant requires an explicit <code>kind</code>. A block without one is an error rather than useful WIP structure.</p>
-<p>Grant declarations do not have author-facing handles in v1 because no markup construct references a grant. The application tracks provenance through the exact installed-package hash, owning choice or input handle, immutable grant position, and any runtime record ID created after acquisition.</p>
+<p>Visible grant declarations do not have author-facing handles. Form grants are the exception: <code>kind: form</code> requires a stable package-local <code>handle</code> because arbitrary perk grants may reference that form. The application tracks visible-grant provenance through the exact installed-package hash, owning choice or input handle, immutable grant position, and any runtime record ID created after acquisition.</p>
 <p>A <code>kind: resource</code> grant requires both a canonical <code>resource</code> reference and an <code>amount</code>. Omitting either is an error.</p>
 <p>Resource-grant <code>amount</code> accepts any literal integer, including zero and negative values, or one of the base symbolic magnitudes <code>trivial</code>, <code>small</code>, <code>medium</code>, <code>large</code>, <code>major</code>, and <code>extreme</code>. Positive and symbolic values add to the resource; negative integers remove from it. The <code>add_*</code> token family is not valid here because the grant context already communicates addition.</p>
 <p>Current required block-form kinds:</p>
@@ -1254,6 +1254,7 @@ the choice&#39;s own visible identity.</p>
 <li><code>property</code></li>
 <li><code>companion</code></li>
 <li><code>companion-import</code></li>
+<li><code>form</code></li>
 </ul>
 <p>Example directions:</p>
 <pre><code class="language-text">grant
@@ -1754,23 +1755,22 @@ change without breaking the import reference.</p>
 <p>Editor-specific workflow, diagnostics, migrations, and tooling concerns should
 be tracked in a separate editor design document rather than expanded further in
 this markup document.</p>
-<h2>Planned Format 1 Amendments</h2>
-<p>This section records additions that still need to be incorporated into Format 1.
-They amend Format 1 in place; they are not a Format 2 proposal. An item listed here
-is a design requirement rather than accepted source syntax until the Format 1
-schema, parser, formatter, validator, conformance fixtures, runtime model, and
-documentation all implement it together.</p>
+<h2>Amended Format 1 Grants</h2>
+<p>This section records the quantity, rank, and form additions incorporated into
+Format 1 before release. They amend Format 1 in place and are not a Format 2
+proposal. The schema, parser, validator, conformance fixtures, runtime model, and
+documentation implement them together.</p>
 <h3>Explicit Quantity Semantics</h3>
-<p>Format 1 needs explicit quantity metadata for durable visible grants. Quantity
+<p>Format 1 provides explicit quantity metadata for durable visible grants. Quantity
 and rank are different measures and must not be inferred from one another:</p>
 <table>
 <thead><tr><th>Measure</th><th>Meaning</th><th>Example</th><th>Presentation</th></tr></thead>
 <tbody>
-<tr><td>Rank</td><td>The acquired progression level, tier, or strength of one perk, item, or trait.</td><td>Random Training acquired at rank 3.</td><td><q>3 ranks</q> on a summary and <q>Ranks: 3</q> in details.</td></tr>
+<tr><td>Rank</td><td>The acquired progression level, tier, or strength of one perk, item, or trait.</td><td>Random Training acquired at rank 3.</td><td><q>Rank 3</q> on a summary and <q>Rank: 3</q> in details.</td></tr>
 <tr><td>Quantity</td><td>The number of interchangeable copies or units acquired; it does not imply that any copy is stronger.</td><td>Three identical healing potions.</td><td><q>x3</q> on a summary and <q>Quantity: 3</q> in details.</td></tr>
 </tbody>
 </table>
-<p>The proposed discriminator is an optional <code>measure: rank</code> or
+<p>The discriminator is an optional <code>measure: rank</code> or
 <code>measure: quantity</code> field. A visible grant driven by an integer choice or
 input defaults to <code>rank</code> when the field is omitted. Authors write
 <code>measure: quantity</code> only when that integer represents interchangeable
@@ -1833,14 +1833,14 @@ individual provenance-bearing grant records.</p>
 <li>removing or changing one contributing acquisition recomputes the aggregate and decreases, splits, or removes its quantity without mutating the remaining records</li>
 </ul>
 <h3>Form Grants and Form-Owned Perks</h3>
-<p>Format 1 also needs a durable form grant. A form is an accrued alternate body
+<p>Format 1 also provides a durable form grant. A form is an accrued alternate body
 with its own profile and stable runtime identity. It is not an item, a temporary
 property value, or a mutually exclusive active state.</p>
 <p>A form grant does not contain or automatically grant its perks. Any perk grant
 in the package may instead name the form that owns it, regardless of which section
 or choice contains either grant. The author selects that ownership relationship;
 the user does not select a recipient form.</p>
-<p>Proposed form grant:</p>
+<p>Form grant:</p>
 <pre><code class="language-text">choice
   handle: dragon_form
   name: &quot;Dragon Form&quot;
@@ -1879,8 +1879,7 @@ available without expanding the grant into a block:</p>
   grant: perk
   form: dragon_form
 </code></pre>
-<p>The exact syntax remains proposed rather than valid Format 1 source. The
-amendment should preserve these semantics:</p>
+<p>This syntax is valid Format 1 source and preserves these semantics:</p>
 <ul>
 <li><code>kind: form</code> is block-only and requires a package-local stable <code>handle</code>; it inherits the owning choice’s visible name, conventional description and visual content, and tags unless overridden</li>
 <li>the initial amendment creates Jumper forms only; companion forms require a separate design rather than silently treating the companion as a form or routing the form’s perks into that companion’s profile</li>

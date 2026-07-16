@@ -605,7 +605,7 @@
       const alreadyAdded = chainOrder.includes(id);
       const samePackageEntry = chainOrder.find((entryId) => jumpCatalog[entryId].logicalId === jump.logicalId);
       const parallelVersionBlocked = !alreadyAdded && samePackageEntry && !allowMultiplePackageVersions;
-      add.textContent = alreadyAdded ? "Open chain entry" : parallelVersionBlocked ? "Another version is in chain" : "Add to chain";
+      add.textContent = alreadyAdded ? "Open chain entity" : parallelVersionBlocked ? "Another version is in chain" : "Add to chain";
       add.disabled = Boolean(parallelVersionBlocked);
       add.addEventListener("click", () => addJump(id));
       card.append(description, add);

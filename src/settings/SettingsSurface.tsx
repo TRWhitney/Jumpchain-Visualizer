@@ -75,6 +75,13 @@ const searchEntries = [
     "chain add second package version multiple parallel",
   ],
   [
+    "Allow duplicate jumps",
+    "chain.allowDuplicateJumps",
+    "chain",
+    "duplicate-jumps",
+    "chain add same exact jump package duplicate repeat again",
+  ],
+  [
     "Negative point balances",
     "chain.allowNegativePointBalances",
     "chain",
@@ -163,6 +170,8 @@ const searchValue = (
       return String(settings.editor.warnMissingLayoutTargets);
     case "chain.allowMultiplePackageVersions":
       return String(settings.chain.allowMultiplePackageVersions);
+    case "chain.allowDuplicateJumps":
+      return String(settings.chain.allowDuplicateJumps);
     case "chain.allowNegativePointBalances":
       return String(settings.chain.allowNegativePointBalances);
     case "chain.allowRerolls":
@@ -728,6 +737,37 @@ function CategoryPanel({
                 },
               },
               "chain.allowMultiplePackageVersions",
+            )
+          }
+        />
+        <CheckRow
+          id="duplicate-jumps"
+          label="Allow duplicate jumps"
+          description="Allow the same exact Jump package to be added to this chain more than once as independent entries."
+          checked={settings.chain.allowDuplicateJumps}
+          text="Allow duplicate jumps"
+          onChange={(value) =>
+            patch(
+              {
+                ...settings,
+                chain: {
+                  ...settings.chain,
+                  allowDuplicateJumps: value,
+                },
+              },
+              "chain.allowDuplicateJumps",
+            )
+          }
+          reset={() =>
+            patch(
+              {
+                ...settings,
+                chain: {
+                  ...settings.chain,
+                  allowDuplicateJumps: false,
+                },
+              },
+              "chain.allowDuplicateJumps",
             )
           }
         />

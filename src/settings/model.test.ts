@@ -9,7 +9,11 @@ describe("application settings", () => {
       {
         schemaVersion: 0,
         appearance: { theme: "dark", accentColor: "javascript:bad" },
-        chain: { warnUpstreamChanges: true, allowRerolls: "yes" },
+        chain: {
+          warnUpstreamChanges: true,
+          allowRerolls: "yes",
+          allowDuplicateJumps: true,
+        },
         developer: { showAdditionalJumpInformation: true },
         notifications: { maxVisible: 5, durationMs: 1234 },
       },
@@ -20,6 +24,7 @@ describe("application settings", () => {
     expect(result.appearance.accentColor).toBe("#d4af37");
     expect(result.chain.warnUpstreamChanges).toBe(true);
     expect(result.chain.allowRerolls).toBe(false);
+    expect(result.chain.allowDuplicateJumps).toBe(true);
     expect(result.developer.showAdditionalJumpInformation).toBe(true);
     expect(result.notifications.maxVisible).toBe(5);
     expect(result.notifications.durationMs).toBe(5000);

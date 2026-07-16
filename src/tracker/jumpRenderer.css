@@ -145,14 +145,10 @@
   font-size: 0.65rem;
 }
 .number-stepper {
-  display: inline-grid;
+  position: relative;
+  display: inline-block;
   width: 5.9rem;
   min-height: 2.2rem;
-  grid-template-columns: minmax(0, 1fr) 1.45rem;
-  overflow: hidden;
-  background: #fffdf7;
-  border: 1px solid #b9af96;
-  border-radius: 0.23rem;
 }
 .number-stepper.is-fluid {
   width: 100%;
@@ -161,15 +157,15 @@
 .number-stepper input {
   width: 100% !important;
   min-width: 0;
-  min-height: 100% !important;
 }
 .number-stepper input {
-  padding: 0.52rem 0.68rem !important;
+  min-height: 2.2rem !important;
+  padding: 0.52rem 0.45rem 0.52rem 0.72rem !important;
   color: #26231f;
   appearance: textfield;
-  background: transparent !important;
-  border: 0 !important;
-  border-radius: 0 !important;
+  background: #fffdf7;
+  border: 1px solid #b9af96;
+  border-radius: 0.23rem;
   outline-offset: -2px;
 }
 .number-stepper input::-webkit-inner-spin-button,
@@ -178,40 +174,40 @@
   appearance: none;
 }
 .number-stepper-buttons {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
   display: grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  overflow: hidden;
   grid-template-rows: 1fr 1fr;
-  border-left: 1px solid #b9af96;
+  background: #fffdf7;
+  border-radius: 0.08rem;
+  transform: translateY(-50%);
 }
 .number-stepper-buttons button {
+  display: grid;
   min-width: 0;
   min-height: 0 !important;
   padding: 0 !important;
-  display: grid;
   place-items: center;
-  color: #625d52;
-  background: #eee9dc;
+  color: #7c7c87;
+  background: transparent !important;
   border: 0 !important;
   border-radius: 0 !important;
-  line-height: 1;
 }
-.number-stepper-buttons button::before {
-  width: 0;
-  height: 0;
-  content: "";
-  border-right: 0.26rem solid transparent;
-  border-left: 0.26rem solid transparent;
-}
-.number-stepper-buttons button:first-child::before {
-  border-bottom: 0.34rem solid currentcolor;
-}
-.number-stepper-buttons button:last-child::before {
-  border-top: 0.34rem solid currentcolor;
-}
-.number-stepper-buttons button + button {
-  border-top: 1px solid #b9af96 !important;
+.number-stepper-buttons svg {
+  width: 0.62rem;
+  height: 0.42rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  stroke-width: 2;
 }
 .number-stepper-buttons button:disabled {
-  color: #aaa396;
+  opacity: 0.5;
 }
 .earth-identity-controls {
   margin: 0 0 1rem;

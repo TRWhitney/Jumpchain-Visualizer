@@ -42,6 +42,10 @@ section
     handle: training_roll
     target: random_training
 
+  choice
+    handle: manuals
+    target: training_manuals
+
 choice
   handle: explorer
   name: "Explorer"
@@ -160,3 +164,17 @@ choice
     mode: each
 
   grant: perk
+
+choice
+  handle: training_manuals
+  name: "Training Manuals"
+  selection: integer
+  min: 0
+  max: 5
+  resolution: manual
+  grant: item
+  measure: quantity
+
+  text
+    handle: description
+    content: "A set of practical manuals tailored to the expedition's current training needs."

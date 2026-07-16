@@ -4,6 +4,8 @@
   "cases": [
     { "name": "minimal-valid", "directory": "fixtures/minimal-valid", "exportValid": true, "diagnostics": [] },
     { "name": "representative-valid", "directory": "fixtures/representative-valid", "exportValid": true, "diagnostics": [] },
+    { "name": "form-measure-valid", "directory": "fixtures/form-measure-valid", "exportValid": true, "diagnostics": [] },
+    { "name": "form-measure-invalid", "directory": "fixtures/form-measure-invalid", "exportValid": false, "diagnostics": ["error:grant.form.handle", "error:grant.form.reference", "error:grant.form.target_kind", "error:grant.measure.integer_only"] },
     { "name": "ungrouped-wip", "directory": "fixtures/ungrouped-wip", "exportValid": true, "diagnostics": ["warning:choice.unreachable"] },
     { "name": "duplicate-primary-cost", "directory": "fixtures/duplicate-primary-cost", "exportValid": false, "diagnostics": ["error:cost.unique_resource"] }
   ]

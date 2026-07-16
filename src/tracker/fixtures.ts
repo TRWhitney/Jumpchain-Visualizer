@@ -6,7 +6,6 @@ import {
   type Actor,
   type ChainEntry,
   type CompanionRecord,
-  type FormRecord,
   type InstalledPackage,
   type InventoryRecord,
   type TagCategory,
@@ -607,45 +606,6 @@ const records = [...seedRecords, ...generatedRecords].map((record) => {
     : record;
 });
 
-/** REPLACEMENT BOUNDARY: Forms remain fixture-backed until Format 1 form grants exist. */
-export const TEMPORARY_FORM_FIXTURE: FormRecord[] = chainPackageIds.map(
-  (_, index) => ({
-    id: `form-${index}`,
-    name: [
-      "Jumper",
-      "Dragon Form",
-      "Digital Avatar",
-      "Moonlit Courtier",
-      "Pilgrim Spirit",
-      "Brass Leviathan",
-      "Crowned General",
-      "Horizon Walker",
-    ][index],
-    sourceEntryId: `entry-${index}`,
-    subtitle: [
-      "Human baseline",
-      "Scaled magical body",
-      "Network-native body",
-      "Immortal shadow form",
-      "Incarnate traveling soul",
-      "Ocean-going machine body",
-      "Battlefield sovereign",
-      "Boundary-crossing form",
-    ][index],
-    description: `A persistent alternate body acquired during ${packageList[index].name}, with a complete profile and inspectable form perks.`,
-    initials: ["JU", "DR", "DA", "MC", "PS", "BL", "CG", "HW"][index],
-    details: [
-      `Body type · ${["Human", "Dragon", "Digital", "Fae", "Spirit", "Machine", "Human", "Abstract"][index]}`,
-      `Source · ${packageList[index].name}`,
-      `Acquired at Jump ${index + 1}`,
-    ],
-    perkRecordIds: [
-      `record-${(index * 7) % 60}`,
-      `record-${(index * 7 + 2) % 60}`,
-    ],
-  }),
-);
-
 const companionActorIds = Object.keys(actors).filter((id) => id !== "jumper");
 const companions: CompanionRecord[] = companionActorIds.map(
   (actorId, index) => ({
@@ -714,6 +674,8 @@ function createGeneratedJumpState(order: readonly string[]) {
         living_grimoire: true,
         technique_ranks: 2,
         elemental_attunement: "Fire",
+        dragon_form: true,
+        draconic_resilience: true,
       },
       {},
     );
@@ -725,6 +687,7 @@ function createGeneratedJumpState(order: readonly string[]) {
         survey_skiff: true,
         starting_age: 27,
         random_training: 3,
+        training_manuals: 3,
       }),
       choiceRolls: {
         starting_age: { result: 27, sequence: 1 },
@@ -847,12 +810,13 @@ export function createDenseTrackerFixture(
     ),
     actors,
     records,
-    forms: TEMPORARY_FORM_FIXTURE,
+    forms: [],
     companions,
     tags: trackerTags,
     preferences: {
       warnUpstreamChanges: false,
       allowMultiplePackageVersions: false,
+      allowDuplicateJumps: false,
       allowNegativePointBalances: false,
       allowRerolls: false,
       showAdditionalJumpInformation: false,
@@ -899,7 +863,7 @@ export function createReferenceTrackerFixture(): TrackerState {
       order.map((id) => [id, dense.entrySupplements[id]]),
     ),
     records: seedRecords,
-    forms: TEMPORARY_FORM_FIXTURE.slice(0, 3),
+    forms: [],
     companions: companions.slice(0, 3),
     selectedEntryId: "entry-1",
     inspectionPointId: "entry-1",

@@ -214,16 +214,16 @@
           </table>
         </div>
 
-        <h2>Candidate Settings</h2>
-        <p>Candidate settings remain in this section until their user need, default, allowed values, and scope are accepted.</p>
+        <h2>Confirmed Setting Amendments</h2>
+        <p>These settings were accepted after the initial registry and are implemented in the same persisted Settings model.</p>
         <h3>Allow Duplicate Jumps in a Chain</h3>
         <div class="settings-table-wrap">
           <table class="settings-registry">
-            <thead><tr><th>Proposed key</th><th>Default</th><th>Allowed values</th><th>Scope</th><th>Reason</th></tr></thead>
+            <thead><tr><th>Key</th><th>Default</th><th>Allowed values</th><th>Scope</th><th>Reason</th></tr></thead>
             <tbody><tr><td><code>chain.allowDuplicateJumps</code></td><td><code>false</code></td><td><code>true</code>, <code>false</code></td><td>Chain Tracker</td><td>Allows the Chain Tracker’s Add action to create another entry from the same exact installed Jump package while preserving independent choices, rolls, and chronology for every entry.</td></tr></tbody>
           </table>
         </div>
-        <p>This candidate is separate from <code>chain.allowMultiplePackageVersions</code>, which permits a different installed version of the same logical package but still does not duplicate an exact version. With duplicate Jumps disabled, a library package already represented by that exact version uses <strong>Open chain entity</strong>. With the candidate enabled, its add action reads <strong>Add to chain again (xN)</strong>, where <var>N</var> is the number of exact-package entries that will exist after the action. Adding the first instance continues to read <strong>Add to chain</strong>.</p>
+        <p>This setting is separate from <code>chain.allowMultiplePackageVersions</code>, which permits a different installed version of the same logical package but still does not duplicate an exact version. With duplicate Jumps disabled, a library package already represented by that exact version uses <strong>Open chain entity</strong>. With the setting enabled, its add action reads <strong>Add to chain again (xN)</strong>, where <var>N</var> is the number of exact-package entries that will exist after the action. Adding the first instance continues to read <strong>Add to chain</strong>.</p>
         <p>The setting gates only a deliberate interactive Add action. Turning it off never removes, merges, invalidates, or warns about duplicate entries already present, and chain import preserves duplicates without consulting the setting.</p>
         <p>The user-owned tag profile is now confirmed and represented by the Tags page below. Its detailed relationship, chart, badge, and transfer rules remain in <a href="tags-design.html">Tag System Design</a>. Jump authors still provide only free-text tag strings.</p>
 
@@ -266,6 +266,7 @@
                 <button type="button" data-settings-search-entry data-settings-search-text="editor image alt alternative text accessibility warning missing suppress" data-settings-category="editor" data-settings-focus="mock-warn-missing-alt"><span><strong>Missing image alt warning</strong><small><code>editor.warnMissingImageAlt</code> · Editor</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="editor layout missing absent target reusable warning suppress text image input" data-settings-category="editor" data-settings-focus="mock-warn-missing-layout-targets"><span><strong>Missing layout target warning</strong><small><code>editor.warnMissingLayoutTargets</code> · Editor</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="chain add second package version multiple parallel installed jumps" data-settings-category="chain" data-settings-focus="mock-multiple-package-versions"><span><strong>Add another package version</strong><small><code>chain.allowMultiplePackageVersions</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="chain add same exact jump package duplicate repeat again" data-settings-category="chain" data-settings-focus="mock-duplicate-jumps"><span><strong>Allow duplicate jumps</strong><small><code>chain.allowDuplicateJumps</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="chain negative point balance overspend over budget currency companion jumper choices" data-settings-category="chain" data-settings-focus="mock-negative-point-balances"><span><strong>Negative point balances</strong><small><code>chain.allowNegativePointBalances</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="chain reroll rerolls roll random replace result choices" data-settings-category="chain" data-settings-focus="mock-allow-rerolls"><span><strong>Allow rerolls</strong><small><code>chain.allowRerolls</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="chain upstream change warning reorder remove delete dependency companion import provider chronology review" data-settings-category="chain" data-settings-focus="mock-warn-upstream-changes"><span><strong>Upstream change warnings</strong><small><code>chain.warnUpstreamChanges</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
@@ -317,6 +318,10 @@
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-multiple-package-versions"><input id="mock-multiple-package-versions" type="checkbox"><span>Allow second version</span></label></div>
               </div>
               <div class="setting-row">
+                <div><label for="mock-duplicate-jumps">Allow duplicate jumps</label><p>Allow Add to create another independent chain entry from the same exact installed Jump package.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-duplicate-jumps"><input id="mock-duplicate-jumps" type="checkbox"><span>Allow duplicate jumps</span></label></div>
+              </div>
+              <div class="setting-row">
                 <div><label for="mock-negative-point-balances">Negative point balances</label><p>Permit active choice selections that would make primary Jump points negative. Clearing choices and recalculation are never blocked.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-negative-point-balances"><input id="mock-negative-point-balances" type="checkbox"><span>Allow negative balances</span></label></div>
               </div>
@@ -332,7 +337,7 @@
                 <div><label for="mock-color-chain-names">Color chain names by primary tag</label><p>Color saved-chain names using the top-level tag category containing the most accrued perks.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-color-chain-names"><input id="mock-color-chain-names" type="checkbox"><span>Color chain names</span></label></div>
               </div>
-              <div class="setting-explanation">All five settings are off by default. Parallel versions never duplicate an exact version or update existing entries. Negative balances apply to the Jumper and to companions granted a positive point budget in that run. Without rerolls, a source-level roll is locked after its first stored result; removing the chain entry deletes that roll record along with the entry. Upstream warnings appear only when an explicit active dependency would become invalid—for example, when a companion provider would no longer precede a Jump that imports that companion. Changes to ordinary historical records do not warn, and every committed reorder or deletion remains undoable. Primary-tag coloring uses accrued perk counts only, resolves equal counts by the stable built-in category order, and leaves chains without tagged perks in the ordinary text color. It changes the saved-list presentation but not tag badges, radar data, or chain content.</div>
+              <div class="setting-explanation">All six settings are off by default. Parallel versions never duplicate an exact version or update existing entries; duplicate Jumps create independent exact-package entries and remain intact if the setting is later disabled. Negative balances apply to the Jumper and to companions granted a positive point budget in that run. Without rerolls, a source-level roll is locked after its first stored result; removing the chain entry deletes that roll record along with the entry. Upstream warnings appear only when an explicit active dependency would become invalid—for example, when a companion provider would no longer precede a Jump that imports that companion. Changes to ordinary historical records do not warn, and every committed reorder or deletion remains undoable. Primary-tag coloring uses accrued perk counts only, resolves equal counts by the stable built-in category order, and leaves chains without tagged perks in the ordinary text color. It changes the saved-list presentation but not tag badges, radar data, or chain content.</div>
             </section>
 
             <section id="settings-notifications-panel" class="settings-notifications-panel" role="tabpanel" aria-labelledby="settings-notifications-tab" hidden>
@@ -556,7 +561,7 @@
         </dl>
 
         <h2>Open Settings Decisions</h2>
-        <p><code>chain.allowDuplicateJumps</code> is the only unresolved candidate setting. It remains outside the confirmed Settings surface until its duplicate-entry and aggregate-record behavior is accepted.</p>
+        <p>No settings decisions remain open for the current implemented surface.</p>
       </article>
       <a class="back-to-top" href="#content">Back to top</a>
     </main>

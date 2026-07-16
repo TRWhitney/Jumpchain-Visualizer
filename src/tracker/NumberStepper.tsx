@@ -5,6 +5,7 @@ type Props = {
   max?: number;
   placeholder?: string;
   fluid?: boolean;
+  disabled?: boolean;
   onChange: (value: number | null) => void;
 };
 
@@ -15,6 +16,7 @@ export function NumberStepper({
   max,
   placeholder = "Unset",
   fluid = false,
+  disabled = false,
   onChange,
 }: Props) {
   const step = (amount: -1 | 1) => {
@@ -36,6 +38,7 @@ export function NumberStepper({
           max={max}
           placeholder={placeholder}
           value={value ?? ""}
+          disabled={disabled}
           onChange={(event) =>
             onChange(
               event.target.value === "" ? null : event.target.valueAsNumber,
@@ -48,16 +51,28 @@ export function NumberStepper({
           type="button"
           aria-label="Increase"
           title={`Increase ${label}`}
-          disabled={max !== undefined && value !== null && value >= max}
+          disabled={
+            disabled || (max !== undefined && value !== null && value >= max)
+          }
           onClick={() => step(1)}
-        />
+        >
+          <svg aria-hidden="true" viewBox="0 0 12 8">
+            <path d="M2 6 6 2l4 4" />
+          </svg>
+        </button>
         <button
           type="button"
           aria-label="Decrease"
           title={`Decrease ${label}`}
-          disabled={min !== undefined && value !== null && value <= min}
+          disabled={
+            disabled || (min !== undefined && value !== null && value <= min)
+          }
           onClick={() => step(-1)}
-        />
+        >
+          <svg aria-hidden="true" viewBox="0 0 12 8">
+            <path d="m2 2 4 4 4-4" />
+          </svg>
+        </button>
       </span>
     </span>
   );

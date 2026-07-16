@@ -391,6 +391,25 @@ function ChoiceControl({
   const canRoll = choice.resolution !== "manual";
   const showControl = part !== "roll";
   const showRoll = part !== "control";
+  const formTargets = choice.grants.flatMap((grant) =>
+    grant.form ? [grant.form] : [],
+  );
+  const activeForms = new Set(
+    props.packageItem.choices.flatMap((candidate) =>
+      props.evaluation.choices[candidate.handle]?.active
+        ? candidate.grants.flatMap((grant) =>
+            grant.kind === "form" && grant.handle ? [grant.handle] : [],
+          )
+        : [],
+    ),
+  );
+  const missingForm = formTargets.find((target) => !activeForms.has(target));
+  const missingFormName = props.packageItem.choices.find((candidate) =>
+    candidate.grants.some(
+      (grant) => grant.kind === "form" && grant.handle === missingForm,
+    ),
+  )?.name;
+  const formDependencyUnavailable = Boolean(missingForm);
   if (part === "roll" && !canRoll) return null;
   return (
     <div className="default-choice-actions">
@@ -399,6 +418,7 @@ function ChoiceControl({
           <input
             type="checkbox"
             checked={value === true}
+            disabled={formDependencyUnavailable}
             onChange={(event) => set(event.target.checked)}
           />
           <span>Take {label(choice.name, choice.handle)}</span>
@@ -410,6 +430,7 @@ function ChoiceControl({
           <input
             type="text"
             placeholder="Unset"
+            disabled={formDependencyUnavailable}
             value={typeof value === "string" ? value : ""}
             onChange={(event) => set(event.target.value || null)}
           />
@@ -422,6 +443,7 @@ function ChoiceControl({
             min={choice.min}
             max={choice.max}
             value={typeof value === "number" ? value : null}
+            disabled={formDependencyUnavailable}
             onChange={set}
           />
           <span className="control-range">
@@ -435,6 +457,7 @@ function ChoiceControl({
           <span className="sr-only">{label(choice.name)}</span>
           <select
             value={typeof value === "string" ? value : ""}
+            disabled={formDependencyUnavailable}
             onChange={(event) => set(event.target.value || null)}
           >
             <option value="">Unset</option>
@@ -465,9 +488,10 @@ function ChoiceControl({
           type="button"
           className="roll-control"
           disabled={
-            Boolean(rolled) &&
-            !props.preferences.allowRerolls &&
-            (!randomOnly || value === rolled?.result)
+            formDependencyUnavailable ||
+            (Boolean(rolled) &&
+              !props.preferences.allowRerolls &&
+              (!randomOnly || value === rolled?.result))
           }
           onClick={
             rolled &&
@@ -496,6 +520,11 @@ function ChoiceControl({
           Clear
         </button>
       )}
+      {showControl && missingForm && (
+        <em className="choice-provenance">
+          Requires {label(missingFormName, missingForm)}
+        </em>
+      )}
       {showRoll && rolled && choice.resolution === "either" && (
         <em className="choice-provenance">Rolled {rolled.result}</em>
       )}
@@ -522,6 +551,19 @@ function InputControls({
     <div className="jump-nested-inputs">
       {inputs.map((input) => {
         const value = props.state.inputs[choice.handle]?.[input.handle] ?? null;
+        const formTargets = input.grants.flatMap((grant) =>
+          grant.form ? [grant.form] : [],
+        );
+        const activeForms = new Set(
+          props.packageItem.choices.flatMap((candidate) =>
+            props.evaluation.choices[candidate.handle]?.active
+              ? candidate.grants.flatMap((grant) =>
+                  grant.kind === "form" && grant.handle ? [grant.handle] : [],
+                )
+              : [],
+          ),
+        );
+        const missingForm = formTargets.find((form) => !activeForms.has(form));
         const update = (next: string | number | readonly string[] | null) =>
           props.dispatch({
             type: "set-input",
@@ -537,6 +579,7 @@ function InputControls({
             {input.selection === "text" && (
               <input
                 type="text"
+                disabled={Boolean(missingForm)}
                 value={typeof value === "string" ? value : ""}
                 onChange={(event) => update(event.target.value || null)}
               />
@@ -547,12 +590,14 @@ function InputControls({
                 min={input.min}
                 max={input.max}
                 fluid
+                disabled={Boolean(missingForm)}
                 value={typeof value === "number" ? value : null}
                 onChange={update}
               />
             )}
             {input.selection === "select" && (
               <select
+                disabled={Boolean(missingForm)}
                 value={typeof value === "string" ? value : ""}
                 onChange={(event) => update(event.target.value || null)}
               >
@@ -573,6 +618,7 @@ function InputControls({
                     <label className="check-control" key={companion.id}>
                       <input
                         type="checkbox"
+                        disabled={Boolean(missingForm)}
                         checked={selected}
                         onChange={() =>
                           update(
@@ -592,6 +638,9 @@ function InputControls({
                   );
                 })}
               </span>
+            )}
+            {missingForm && (
+              <em className="choice-provenance">Requires form {missingForm}</em>
             )}
           </label>
         );

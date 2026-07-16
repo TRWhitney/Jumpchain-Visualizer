@@ -1,0 +1,60 @@
+jump
+  format: 1
+  name: "Form and Measure"
+  author: "Jumpchain Visualizer"
+  version: "1"
+
+section
+  handle: bodies
+  name: "Bodies"
+
+  choice
+    handle: form
+    target: dragon_form
+
+section
+  handle: perks
+  name: "Perks"
+
+  choice
+    handle: resilience
+    target: draconic_resilience
+
+  choice
+    handle: training
+    target: random_training
+
+  choice
+    handle: supplies
+    target: healing_potions
+
+choice
+  handle: dragon_form
+  name: "Dragon Form"
+
+  grant
+    kind: form
+    handle: dragon_form
+
+choice
+  handle: draconic_resilience
+  name: "Draconic Resilience"
+  grant: perk
+  form: dragon_form
+
+choice
+  handle: random_training
+  name: "Random Training"
+  selection: integer
+  min: 0
+  max: 3
+  grant: perk
+
+choice
+  handle: healing_potions
+  name: "Healing Potions"
+  selection: integer
+  min: 0
+  max: 10
+  grant: item
+  measure: quantity

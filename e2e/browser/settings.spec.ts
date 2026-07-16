@@ -66,7 +66,7 @@ for (const location of ["/chain", "/chain/ch-92b1"]) {
 
 test("direct Settings is a full destination and preferences persist through IndexedDB", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto("/settings");
   await expect(
     page.getByLabel("Application Settings", { exact: true }),
@@ -78,8 +78,17 @@ test("direct Settings is a full destination and preferences persist through Inde
 
   await page.getByRole("tab", { name: "Chain Tracker" }).click();
   const warning = page.getByLabel("Warn about upstream changes");
+  const duplicates = page.getByLabel("Allow duplicate jumps");
   await expect(warning).not.toBeChecked();
+  await expect(duplicates).not.toBeChecked();
   await warning.check();
+  await duplicates.check();
+  await testInfo.attach("duplicate-jump-setting", {
+    body: await page
+      .getByLabel("Application Settings", { exact: true })
+      .screenshot(),
+    contentType: "image/png",
+  });
   await page.waitForFunction(async () => {
     const request = indexedDB.open("jumpchain-visualizer");
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -94,13 +103,22 @@ test("direct Settings is a full destination and preferences persist through Inde
     });
     database.close();
     return Boolean(
-      (stored as { chain?: { warnUpstreamChanges?: boolean } } | null)?.chain
-        ?.warnUpstreamChanges,
+      (
+        stored as {
+          chain?: {
+            warnUpstreamChanges?: boolean;
+            allowDuplicateJumps?: boolean;
+          };
+        } | null
+      )?.chain?.warnUpstreamChanges &&
+      (stored as { chain?: { allowDuplicateJumps?: boolean } } | null)?.chain
+        ?.allowDuplicateJumps,
     );
   });
   await page.reload();
   await page.getByRole("tab", { name: "Chain Tracker" }).click();
   await expect(page.getByLabel("Warn about upstream changes")).toBeChecked();
+  await expect(page.getByLabel("Allow duplicate jumps")).toBeChecked();
   await page.getByRole("button", { name: "Reset category" }).click();
   await expect(
     page.getByLabel("Warn about upstream changes"),

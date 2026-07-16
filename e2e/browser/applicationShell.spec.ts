@@ -307,7 +307,7 @@ test("saved-chain search, inner scrolling, and radar summaries preserve the fixe
     ).size,
   ).toBeGreaterThan(6);
   await expect(summary).toContainText(
-    "Strongest category: Crafting with 28 perks",
+    "Strongest category: Magic with 28 perks",
   );
   expect(
     await summary.evaluate(

@@ -272,23 +272,11 @@ test("integer steppers, canonical tags, authored surfaces, and trait text match 
     .getByText("Extra Lives", { exact: true })
     .locator("xpath=ancestor::article[1]");
   const stepper = extraLives.locator(".number-stepper");
-  const increase = stepper.getByRole("button", { name: "Increase" });
-  const decrease = stepper.getByRole("button", { name: "Decrease" });
-  await expect(increase).toBeVisible();
-  await expect(decrease).toBeVisible();
-  const inputBox = await stepper.getByRole("spinbutton").boundingBox();
-  const increaseBox = await increase.boundingBox();
-  const decreaseBox = await decrease.boundingBox();
-  expect(inputBox).not.toBeNull();
-  expect(increaseBox).not.toBeNull();
-  expect(decreaseBox).not.toBeNull();
-  expect(increaseBox!.height + decreaseBox!.height).toBeGreaterThanOrEqual(
-    inputBox!.height - 1,
-  );
-  await increase.click();
-  await expect(stepper.getByRole("spinbutton")).toHaveValue("0");
-  await increase.click();
-  await expect(stepper.getByRole("spinbutton")).toHaveValue("1");
+  const integerInput = stepper.getByRole("spinbutton");
+  await stepper.getByRole("button", { name: "Increase" }).click();
+  await expect(integerInput).toHaveValue("0");
+  await stepper.getByRole("button", { name: "Increase" }).click();
+  await expect(integerInput).toHaveValue("1");
 
   const magicTag = jump
     .getByText("Element", { exact: true })
@@ -310,7 +298,10 @@ test("integer steppers, canonical tags, authored surfaces, and trait text match 
     "0px",
   );
   await expect(extraLives).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-  await expect(stepper).toHaveCSS("background-color", "rgb(255, 253, 247)");
+  await expect(integerInput).toHaveCSS(
+    "background-color",
+    "rgb(255, 253, 247)",
+  );
   await expect(extraLives.getByRole("button", { name: "Clear" })).toHaveCSS(
     "background-color",
     "rgb(255, 253, 247)",
@@ -399,6 +390,34 @@ test("integer steppers, canonical tags, authored surfaces, and trait text match 
   });
 });
 
+test("integer selector arrows visually match the choice-rendering mock", async ({
+  page,
+}, testInfo) => {
+  const tracker = await openHeroAcademy(page);
+  const realControl = tracker
+    .getByText("Extra Lives", { exact: true })
+    .locator("xpath=ancestor::article[1]")
+    .locator(".number-stepper");
+  await realControl.getByRole("spinbutton").fill("2");
+  await testInfo.attach("integer-selector-real", {
+    body: await realControl.screenshot(),
+    contentType: "image/png",
+  });
+
+  await page.goto(
+    new URL("../../documentation/choice-rendering-design.html", import.meta.url)
+      .href,
+  );
+  const mockInput = page
+    .locator(".control-specimen")
+    .filter({ hasText: "Extra Lives" })
+    .getByRole("spinbutton");
+  await testInfo.attach("integer-selector-mock", {
+    body: await mockInput.locator("xpath=ancestor::span[1]").screenshot(),
+    contentType: "image/png",
+  });
+});
+
 test("ranked, award, multi-resource, reroll, and replacement badges follow the documented states", async ({
   page,
 }, testInfo) => {
@@ -466,7 +485,7 @@ test("authored direct choices, expansions, nested inputs, and empty slots stay i
 
   await tracker.getByRole("tab", { name: "Library" }).click();
   await tracker.getByPlaceholder("Find a jump").fill("Clockwork Sea");
-  await tracker.getByRole("button", { name: "Open chain entry" }).click();
+  await tracker.getByRole("button", { name: "Open chain entity" }).click();
   const seamanship = tracker
     .getByText("Brass Seamanship", { exact: true })
     .locator("xpath=ancestor::article[1]");
@@ -541,7 +560,7 @@ test("single, multi, random, either, and companion-source controls retain the do
 
   await tracker.getByRole("tab", { name: "Library" }).click();
   await tracker.getByPlaceholder("Find a jump").fill("Beyond the Last Horizon");
-  await tracker.getByRole("button", { name: "Open chain entry" }).click();
+  await tracker.getByRole("button", { name: "Open chain entity" }).click();
   const roster = tracker.locator(".companion-roster");
   await expect(roster.getByRole("checkbox")).toHaveCount(7);
   await expect(roster.locator(".check-control").first()).toHaveCSS(

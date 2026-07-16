@@ -115,6 +115,58 @@
 }
 .default-choice-actions input:is([type="text"], [type="number"]) { width: 8.7rem; padding: 0.52rem 0.68rem; }
 .default-choice-actions input[type="number"] { width: 5.9rem; padding-inline: 0.72rem 0.45rem; }
+.number-stepper {
+  position: relative;
+  display: inline-block;
+  width: 5.9rem;
+  min-height: 2.2rem;
+}
+.number-stepper > label,
+.number-stepper input {
+  width: 100% !important;
+  min-width: 0;
+}
+.number-stepper input {
+  appearance: textfield;
+}
+.number-stepper input::-webkit-inner-spin-button,
+.number-stepper input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+.number-stepper-buttons {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
+  display: grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  overflow: hidden;
+  grid-template-rows: 1fr 1fr;
+  background: #30302e;
+  border-radius: 0.08rem;
+  transform: translateY(-50%);
+}
+.default-choice-actions .number-stepper-buttons button {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  place-items: center;
+  color: #aaa69d;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.number-stepper-buttons svg {
+  width: 0.62rem;
+  height: 0.42rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  stroke-width: 2;
+}
 .default-choice-actions select { min-width: 8.4rem; padding: 0.52rem 2.1rem 0.52rem 0.68rem; }
 .default-choice-actions button, .selection-specimen > footer button { padding: 0.5rem 0.72rem; cursor: pointer; }
 .default-choice-actions button:disabled, .selection-specimen > footer button:disabled { color: #8f8c85; background: #2c2c2a; border-color: #494842; cursor: not-allowed; }

@@ -4,6 +4,7 @@ import {
   createReferenceTrackerFixture,
 } from "./fixtures";
 import {
+  aggregateInventoryRecords,
   filteredInventory,
   EARTH_ENTRY_ID,
   jumpEntryIds,
@@ -94,7 +95,7 @@ describe("Chain Tracker aggregate", () => {
     expect(
       dense.records.filter((record) => record.kind === "item"),
     ).toHaveLength(20);
-    expect(dense.forms).toHaveLength(8);
+    expect(dense.forms).toHaveLength(0);
     expect(dense.companions).toHaveLength(7);
     expect(
       Object.values(dense.tags).filter((tag) => tag.parent).length,
@@ -114,6 +115,9 @@ describe("Chain Tracker aggregate", () => {
       ).length,
     ).toBeGreaterThanOrEqual(7);
     expect(projected.companions.length).toBeGreaterThanOrEqual(7);
+    expect(projected.forms).toMatchObject([
+      { handle: "dragon_form", name: "Dragon Form" },
+    ]);
     expect(
       projected.records.filter((record) => record.name === "Impossible Vessel"),
     ).toHaveLength(3);
@@ -122,6 +126,11 @@ describe("Chain Tracker aggregate", () => {
         (record) => record.name === "Impossible Vessel",
       ),
     ).toMatchObject([{ ownerActorId: "jumper" }]);
+    expect(
+      filteredInventory(projected).some(
+        (record) => record.name === "Draconic Resilience",
+      ),
+    ).toBe(false);
     expect(
       projected.records.find((record) => record.name === "Random Training")
         ?.measure,
@@ -297,16 +306,95 @@ describe("Chain Tracker aggregate", () => {
       packageId: "arcane-realms-v1-1",
     });
     expect(duplicate.order).toHaveLength(added.order.length);
+
+    const duplicateEnabled = trackerReducer(added, {
+      type: "apply-application-settings",
+      preferences: { ...added.preferences, allowDuplicateJumps: true },
+      tags: added.tags,
+    });
+    const duplicated = trackerReducer(duplicateEnabled, {
+      type: "add-package",
+      packageId: "arcane-realms-v1-1",
+    });
+    expect(duplicated.order).toHaveLength(added.order.length + 1);
+    expect(
+      duplicated.jumpState[duplicated.selectedEntryId].actors.jumper.choices,
+    ).toEqual({});
+  });
+
+  it("aggregates identical ranks as copies while keeping different ranks separate", () => {
+    const common = {
+      kind: "perk" as const,
+      name: "Random Training",
+      ownerActorId: "jumper",
+      tags: [],
+      description: "Training resolved for this Jump.",
+      grantHandle: "random_training:0",
+      sourcePackageId: "cosmic-odyssey",
+      sourcePackageExactHash: "same-hash",
+    };
+    const records = aggregateInventoryRecords([
+      {
+        ...common,
+        id: "one",
+        sourceEntryId: "entry-2",
+        measure: { kind: "rank", value: 3 },
+      },
+      {
+        ...common,
+        id: "two",
+        sourceEntryId: "entry-9",
+        measure: { kind: "rank", value: 3 },
+      },
+      {
+        ...common,
+        id: "three",
+        sourceEntryId: "entry-10",
+        measure: { kind: "rank", value: 2 },
+      },
+    ]);
+    expect(records).toMatchObject([
+      { measure: { kind: "rank", value: 3 }, aggregateQuantity: 2 },
+      { measure: { kind: "rank", value: 2 }, aggregateQuantity: undefined },
+    ]);
+  });
+
+  it("rejects form-targeted perks without their form and clears dependents with it", () => {
+    const initial = createDenseTrackerFixture();
+    const reviewed = trackerReducer(initial, {
+      type: "set-choice",
+      entryId: "entry-1",
+      actorId: "jumper",
+      choiceHandle: "dragon_form",
+      value: false,
+    });
+    expect(reviewed.pending).toMatchObject({ kind: "clear-form" });
+    const cleared = trackerReducer(reviewed, { type: "commit-mutation" });
+    expect(
+      cleared.jumpState["entry-1"].actors.jumper.choices.draconic_resilience,
+    ).toBeNull();
+    const rejected = trackerReducer(cleared, {
+      type: "set-choice",
+      entryId: "entry-1",
+      actorId: "jumper",
+      choiceHandle: "draconic_resilience",
+      value: true,
+    });
+    expect(rejected).toBe(cleared);
   });
 
   it("derives historical rosters without changing the selected Jump", () => {
-    let state = createDenseTrackerFixture();
+    const fixture = createDenseTrackerFixture();
+    let state = projectEvaluation(
+      fixture,
+      evaluateTracker(fixture, fixture.bodyMod),
+    );
     state = trackerReducer(state, {
       type: "set-inspection",
       entryId: "entry-2",
     });
     expect(state.selectedEntryId).toBe("entry-7");
-    expect(visibleForms(state)).toHaveLength(3);
+    expect(visibleForms(state)).toHaveLength(1);
     expect(visibleCompanions(state)).toHaveLength(3);
     expect(
       filteredInventory(state).every((record) => {

@@ -67,6 +67,7 @@ export type JumpCost = {
 export type GrantKind =
   | "perk"
   | "item"
+  | "form"
   | "companion"
   | "resource"
   | "trait"
@@ -75,12 +76,15 @@ export type GrantKind =
 
 export type JumpGrant = {
   kind: GrantKind;
+  shorthand?: boolean;
   name?: Renderable;
   layout?: string;
   tags: readonly string[];
   resource?: string;
   amount?: CostAmount;
   handle?: string;
+  form?: string;
+  measure?: "rank" | "quantity";
   value?: string | number | boolean;
   text: readonly TextBlock[];
   images: readonly ImageBlock[];

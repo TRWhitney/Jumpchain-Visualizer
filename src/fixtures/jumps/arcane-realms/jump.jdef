@@ -58,6 +58,14 @@ section
     handle: element
     target: elemental_attunement
 
+  choice
+    handle: form
+    target: dragon_form
+
+  choice
+    handle: form_perk
+    target: draconic_resilience
+
 choice
   handle: scholar
   name: "Scholar"
@@ -194,3 +202,29 @@ choice
   cost: 200
   tag: magic
   grant: perk
+
+choice
+  handle: dragon_form
+  name: "Dragon Form"
+  cost: 0
+
+  text
+    handle: description
+    content: "A persistent scaled magical body shaped by Arcane Realm spellcraft."
+
+  grant
+    kind: form
+    handle: dragon_form
+
+choice
+  handle: draconic_resilience
+  name: "Draconic Resilience"
+  tag: magic
+  tag: defense
+  cost: 0
+  grant: perk
+  form: dragon_form
+
+  text
+    handle: description
+    content: "Your Dragon Form resists hostile magic and punishing physical force."

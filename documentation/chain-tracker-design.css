@@ -2261,6 +2261,31 @@
   line-height: 1.65;
 }
 
+.record-detail-acquisitions {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.record-detail-acquisitions li {
+  padding-left: 0.7rem;
+  border-left: 2px solid var(--chain-accent);
+}
+
+.record-detail-acquisitions strong {
+  color: #aaa9a3;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+}
+
+.record-detail-acquisitions p {
+  margin: 0.2rem 0 0;
+  color: #c6c6bf;
+  line-height: 1.65;
+}
+
 .chain-mockup :is(
   .chain-mock-mark,
   .chain-library-source button[aria-pressed="true"],

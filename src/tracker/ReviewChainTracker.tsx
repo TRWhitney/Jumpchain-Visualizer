@@ -28,11 +28,13 @@ export function ReviewChainTracker() {
   const allowRerolls = parameters.get("rerolls") === "on";
   const allowNegativePointBalances =
     parameters.get("negativeBalances") === "on";
+  const allowDuplicateJumps = parameters.get("duplicateJumps") === "on";
   const [state, rawDispatch] = useReducer(trackerReducer, undefined, () => {
     if (fixture !== "reference")
       return createDenseTrackerFixture({
         warnUpstreamChanges,
         allowMultiplePackageVersions: true,
+        allowDuplicateJumps,
         allowNegativePointBalances,
         allowRerolls,
       });

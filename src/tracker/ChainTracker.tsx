@@ -29,6 +29,7 @@ import type { RandomIndexSource } from "../domain";
 import { EarthJumpRenderer } from "./EarthJumpRenderer";
 import { evaluateTracker, projectEvaluation } from "./evaluateTracker";
 import {
+  aggregateInventoryRecords,
   filteredInventory,
   EARTH_ENTRY_STATUS,
   jumpEntryIds,
@@ -38,6 +39,7 @@ import {
   trackerPages,
   visibleCompanions,
   visibleForms,
+  visibleAtInspection,
   type FormRecord,
   type InventoryRecord,
   type TrackerAction,
@@ -593,9 +595,15 @@ function ChainRail({
           </div>
           <div className="chain-library-list">
             {filteredPackages.map((item) => {
-              const existing = state.order.find(
-                (id) => state.entries[id].packageId === item.id,
-              );
+              const existingCount = state.order.filter(
+                (id) => state.entries[id].packageExactHash === item.exactHash,
+              ).length;
+              const existing = existingCount > 0;
+              const actionLabel = !existing
+                ? "Add to chain"
+                : state.preferences.allowDuplicateJumps
+                  ? `Add to chain again (x${existingCount + 1})`
+                  : "Open chain entity";
               return (
                 <article key={item.id} className="chain-library-card">
                   <div>
@@ -614,7 +622,7 @@ function ChainRail({
                       dispatch({ type: "add-package", packageId: item.id })
                     }
                   >
-                    {existing ? "Open chain entry" : "Add to chain"}
+                    {actionLabel}
                   </button>
                 </article>
               );
@@ -990,9 +998,12 @@ function RecordCard({
         {record.measure && (
           <span className="record-measure">
             {record.measure.kind === "rank"
-              ? `${record.measure.value} ${record.measure.value === 1 ? "rank" : "ranks"}`
-              : `Quantity ${record.measure.value}`}
+              ? `Rank ${record.measure.value}`
+              : `x${record.measure.value}`}
           </span>
+        )}
+        {record.aggregateQuantity && (
+          <span className="record-measure">x{record.aggregateQuantity}</span>
         )}
         {record.tags
           .slice(0, 3)
@@ -1189,9 +1200,11 @@ function CompanionsPage({ state, dispatch }: TrackerProps) {
 }
 
 function RecordModal({ state, dispatch }: TrackerProps) {
-  const record = state.records.find(
-    (item) => item.id === state.selectedRecordId,
-  );
+  const record = aggregateInventoryRecords(
+    state.records.filter((item) =>
+      visibleAtInspection(state, item.sourceEntryId),
+    ),
+  ).find((item) => item.id === state.selectedRecordId);
   if (!record) return null;
   return (
     <FocusModal
@@ -1215,9 +1228,11 @@ function RecordModal({ state, dispatch }: TrackerProps) {
       <div className="record-detail-body">
         <p className="record-detail-source">
           Acquired in {packageForEntry(state, record.sourceEntryId).name}
-          {record.ownerActorId !== "jumper"
-            ? ` · ${state.actors[record.ownerActorId].name} record`
-            : ""}
+          {record.ownerFormId
+            ? ` · ${state.forms.find((form) => form.id === record.ownerFormId)?.name ?? "Form"} record`
+            : record.ownerActorId && record.ownerActorId !== "jumper"
+              ? ` · ${state.actors[record.ownerActorId].name} record`
+              : ""}
         </p>
         <div className="record-detail-tags" aria-label="Tags">
           {record.tags.map(
@@ -1228,19 +1243,35 @@ function RecordModal({ state, dispatch }: TrackerProps) {
         {record.measure && (
           <dl className="record-detail-measure">
             <div>
-              <dt>
-                {record.measure.kind === "rank" && record.measure.value !== 1
-                  ? "Ranks"
-                  : record.measure.kind === "rank"
-                    ? "Rank"
-                    : "Quantity"}
-              </dt>
+              <dt>{record.measure.kind === "rank" ? "Rank" : "Quantity"}</dt>
               <dd>{record.measure.value}</dd>
             </div>
           </dl>
         )}
+        {record.aggregateQuantity && (
+          <dl className="record-detail-measure">
+            <div>
+              <dt>Quantity</dt>
+              <dd>{record.aggregateQuantity}</dd>
+            </div>
+          </dl>
+        )}
         <h5>Description</h5>
-        <p>{record.description}</p>
+        {(record.acquisitions?.length ?? 0) > 1 ? (
+          <ul className="record-detail-acquisitions">
+            {record.acquisitions?.map((acquisition) => (
+              <li key={acquisition.sourceEntryId}>
+                <strong>
+                  Jump {jumpNumber(state, acquisition.sourceEntryId)}
+                  {acquisition.quantity > 1 && ` · x${acquisition.quantity}`}
+                </strong>
+                <p>{acquisition.description}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>{record.acquisitions?.[0]?.description ?? record.description}</p>
+        )}
       </div>
     </FocusModal>
   );
@@ -1347,22 +1378,33 @@ function ProfileRecords({
   dispatch: Dispatch<TrackerAction>;
   title: string;
 }) {
+  const records = aggregateInventoryRecords(
+    state.records.filter(
+      (record) =>
+        ids.includes(record.id) &&
+        visibleAtInspection(state, record.sourceEntryId),
+    ),
+  );
   return (
     <section>
       <h5>{title}</h5>
       <ul>
-        {ids.map((id) => {
-          const record = state.records.find((item) => item.id === id);
-          return record ? (
-            <li key={id}>
+        {records.map((record) => {
+          return (
+            <li key={record.id}>
               <button
                 type="button"
-                onClick={() => dispatch({ type: "open-record", id })}
+                onClick={() => dispatch({ type: "open-record", id: record.id })}
               >
                 {record.name}
+                {record.measure?.kind === "rank" &&
+                  ` · Rank ${record.measure.value}`}
+                {record.measure?.kind === "quantity" &&
+                  ` · x${record.measure.value}`}
+                {record.aggregateQuantity && ` · x${record.aggregateQuantity}`}
               </button>
             </li>
-          ) : null;
+          );
         })}
       </ul>
     </section>
@@ -1372,6 +1414,15 @@ function ProfileRecords({
 function MutationModal({ state, dispatch }: TrackerProps) {
   if (!state.pending) return null;
   const item = packageForEntry(state, state.pending.entryId);
+  const choiceName = (handle: string) =>
+    item.document?.choices.find((choice) => choice.handle === handle)?.name
+      .base ?? handle;
+  const formName = (handle: string) =>
+    item.document?.choices.find((choice) =>
+      choice.grants.some(
+        (grant) => grant.kind === "form" && grant.handle === handle,
+      ),
+    )?.name.base ?? handle;
   return (
     <FocusModal
       label={`Review ${state.pending.kind}`}
@@ -1384,7 +1435,9 @@ function MutationModal({ state, dispatch }: TrackerProps) {
           <h4>
             {state.pending.kind === "move"
               ? `Reorder ${item.name}`
-              : `Remove ${item.name}`}
+              : state.pending.kind === "remove"
+                ? `Remove ${item.name}`
+                : `Remove ${formName(state.pending.impacts[0]?.formHandle ?? "form")}`}
           </h4>
         </div>
         <button
@@ -1399,23 +1452,36 @@ function MutationModal({ state, dispatch }: TrackerProps) {
         <p>
           {state.pending.kind === "move"
             ? "This reorder would place an active dependency before the Jump that provides it."
-            : "This deletion would remove a provider that a later Jump still imports. The installed package remains in the library."}
+            : state.pending.kind === "remove"
+              ? "This deletion would remove a provider that a later Jump still imports. The installed package remains in the library."
+              : "Removing this form also clears active perks assigned to it."}
         </p>
         <h5>Affected dependencies</h5>
         <ul>
-          {state.pending.impacts.map((impact) => (
-            <li
-              key={`${impact.kind}:${impact.subjectId}:${impact.providerEntryId}`}
-            >
-              <strong>{state.actors[impact.subjectId]?.name}</strong> is
-              provided by {packageForEntry(state, impact.providerEntryId)?.name}{" "}
-              and imported by{" "}
-              {impact.consumerEntryIds
-                .map((entryId) => packageForEntry(state, entryId)?.name)
-                .join(", ")}
-              .
-            </li>
-          ))}
+          {state.pending.impacts.map((impact) =>
+            impact.kind === "form-perk" ? (
+              <li key={`${impact.kind}:${impact.formHandle}`}>
+                <strong>{formName(impact.formHandle)}</strong> owns active{" "}
+                {impact.dependentChoiceHandles
+                  .map((handle) => choiceName(handle))
+                  .join(", ")}
+                .
+              </li>
+            ) : (
+              <li
+                key={`${impact.kind}:${impact.subjectId}:${impact.providerEntryId}`}
+              >
+                <strong>{state.actors[impact.subjectId]?.name}</strong> is
+                provided by{" "}
+                {packageForEntry(state, impact.providerEntryId)?.name} and
+                imported by{" "}
+                {impact.consumerEntryIds
+                  .map((entryId) => packageForEntry(state, entryId)?.name)
+                  .join(", ")}
+                .
+              </li>
+            ),
+          )}
         </ul>
         <div>
           <button
@@ -1428,7 +1494,11 @@ function MutationModal({ state, dispatch }: TrackerProps) {
             type="button"
             onClick={() => dispatch({ type: "commit-mutation" })}
           >
-            {state.pending.kind === "move" ? "Commit reorder" : "Remove Jump"}
+            {state.pending.kind === "move"
+              ? "Commit reorder"
+              : state.pending.kind === "remove"
+                ? "Remove Jump"
+                : "Remove form and perks"}
           </button>
         </div>
       </div>

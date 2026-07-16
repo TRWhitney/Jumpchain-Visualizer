@@ -24,9 +24,9 @@ test("renders the complete dense Chain Tracker frame and fixed workspace tabs", 
     "8 Jumps",
   );
   await expect(tracker.getByRole("tab", { name: /^Inventory/ })).toContainText(
-    "69",
+    "70",
   );
-  await expect(tracker.getByRole("tab", { name: /^Forms/ })).toContainText("8");
+  await expect(tracker.getByRole("tab", { name: /^Forms/ })).toContainText("1");
   await expect(tracker.getByRole("tab", { name: /^Companions/ })).toContainText(
     "7",
   );
@@ -329,7 +329,7 @@ test("summary tooltips, actor deficit, Jump selection, and inspection point stay
   await expect(
     tracker.getByLabel("Forms through historical cutoff"),
   ).toHaveValue("entry-1");
-  await expect(tracker.locator(".chain-form-grid > article")).toHaveCount(2);
+  await expect(tracker.locator(".chain-form-grid > article")).toHaveCount(1);
 });
 
 test("Earth is unnumbered, immutable, and drives identity continuity", async ({
@@ -672,7 +672,7 @@ test("library filters provenance, handles empty results, opens exact versions, a
   await tracker
     .locator(".chain-library-card")
     .filter({ hasText: "v1.0" })
-    .getByRole("button", { name: "Open chain entry" })
+    .getByRole("button", { name: "Open chain entity" })
     .click();
   await expect(
     tracker.getByRole("heading", { name: "Arcane Realms" }).first(),
@@ -688,6 +688,90 @@ test("library filters provenance, handles empty results, opens exact versions, a
   await tracker.getByPlaceholder("Find a jump").fill("does not exist");
   await expect(
     tracker.getByText("No available jumps match this filter."),
+  ).toBeVisible();
+});
+
+test("duplicate Jump setting adds independent exact entries and aggregates matching ranks", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/chain/ch-92b1");
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Chain Tracker" }).click();
+  await page.getByLabel("Allow duplicate jumps").check();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+
+  const tracker = trackerFor(page);
+  await tracker.getByRole("tab", { name: "Library" }).click();
+  await tracker.getByPlaceholder("Find a jump").fill("Arcane Realms");
+  const exact = tracker
+    .locator(".chain-library-card")
+    .filter({ hasText: "v1.0" });
+  await expect(
+    exact.getByRole("button", { name: "Add to chain again (x2)" }),
+  ).toBeVisible();
+  await testInfo.attach("duplicate-jump-library-action", {
+    body: await page.screenshot(),
+    contentType: "image/png",
+  });
+  await exact.getByRole("button", { name: "Add to chain again (x2)" }).click();
+  await expect(tracker.locator(".chain-jump-entry")).toHaveCount(10);
+  await expect(
+    tracker.getByRole("checkbox", { name: "Take Dragon Form" }),
+  ).not.toBeChecked();
+  await expect(
+    tracker.getByRole("checkbox", { name: "Take Draconic Resilience" }),
+  ).toBeDisabled();
+  await tracker.getByLabel("Technique Ranks").fill("2");
+
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await tracker.getByLabel("Search inventory").fill("Technique Ranks");
+  const aggregate = tracker
+    .locator(".chain-record-list > article")
+    .filter({ hasText: "Technique Ranks" });
+  await expect(aggregate).toHaveCount(1);
+  await expect(aggregate.locator(".record-measure")).toHaveText([
+    "Rank 2",
+    "x2",
+  ]);
+  await aggregate.click();
+  const aggregateDetail = tracker.getByRole("dialog", {
+    name: /perk details: Technique Ranks/i,
+  });
+  await expect(aggregateDetail.locator(".record-detail-measure")).toHaveText([
+    "Rank2",
+    "Quantity2",
+  ]);
+  await expect(
+    aggregateDetail.locator(".record-detail-acquisitions li"),
+  ).toHaveCount(2);
+  await testInfo.attach("duplicate-ranked-grant-aggregation", {
+    body: await page.screenshot(),
+    contentType: "image/png",
+  });
+  await page.keyboard.press("Escape");
+
+  await tracker.getByRole("tab", { name: /^Chain & Jump/ }).click();
+  await tracker.getByRole("tab", { name: "Library" }).click();
+  await tracker.getByPlaceholder("Find a jump").fill("Arcane Realms");
+  await expect(
+    tracker
+      .locator(".chain-library-card")
+      .filter({ hasText: "v1.0" })
+      .getByRole("button", { name: "Add to chain again (x3)" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Chain Tracker" }).click();
+  await page.getByLabel("Allow duplicate jumps").uncheck();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await tracker.getByRole("tab", { name: "Chain", exact: true }).click();
+  await expect(tracker.locator(".chain-jump-entry")).toHaveCount(10);
+  await tracker.getByRole("tab", { name: "Library" }).click();
+  await expect(
+    tracker
+      .locator(".chain-library-card")
+      .filter({ hasText: "v1.0" })
+      .getByRole("button", { name: "Open chain entity" }),
   ).toBeVisible();
 });
 
@@ -789,19 +873,37 @@ test("Inventory scopes companion purchases and projects ranked, conditional perk
   const training = tracker
     .locator(".chain-record-list > article")
     .filter({ hasText: "Random Training" });
-  await expect(training).toContainText("3 ranks");
+  await expect(training).toContainText("Rank 3");
   await training.click();
   const trainingDetail = tracker.getByRole("dialog", {
     name: /perk details: Random Training/i,
   });
   await expect(trainingDetail.locator(".record-detail-measure")).toContainText(
-    "Ranks3",
+    "Rank3",
   );
   await testInfo.attach("ranked-perk-inventory-and-detail", {
     body: await page.screenshot(),
     contentType: "image/png",
   });
   await page.keyboard.press("Escape");
+
+  await search.fill("Training Manuals");
+  const manuals = tracker
+    .locator(".chain-record-list > article")
+    .filter({ hasText: "Training Manuals" });
+  await expect(manuals.locator(".record-measure")).toHaveText("x3");
+  await manuals.click();
+  await expect(
+    tracker.getByRole("dialog", { name: /item details: Training Manuals/i }),
+  ).toContainText("Quantity3");
+  await testInfo.attach("quantity-item-inventory-and-detail", {
+    body: await page.screenshot(),
+    contentType: "image/png",
+  });
+  await page.keyboard.press("Escape");
+
+  await search.fill("Draconic Resilience");
+  await expect(tracker.locator(".chain-record-list > article")).toHaveCount(0);
 
   await tracker.getByRole("tab", { name: /^Chain & Jump/ }).click();
   await tracker
@@ -923,13 +1025,13 @@ test("the settled radar and pie reproduce selection, correlation, popping, sorti
 
 test("Forms use historical roster, detail, profile, nested perk details, and ordered focus restoration", async ({
   page,
-}) => {
+}, testInfo) => {
   const tracker = trackerFor(page);
   await tracker.getByRole("tab", { name: /^Forms/ }).click();
   await tracker
     .getByLabel("Forms through historical cutoff")
     .selectOption("entry-2");
-  await expect(tracker.locator(".chain-form-grid > article")).toHaveCount(3);
+  await expect(tracker.locator(".chain-form-grid > article")).toHaveCount(1);
   await tracker
     .locator(".chain-form-grid > article")
     .filter({ hasText: "Dragon Form" })
@@ -943,6 +1045,11 @@ test("Forms use historical roster, detail, profile, nested perk details, and ord
     name: /Form details: Dragon Form/,
   });
   await expect(profile).toContainText("Form perks");
+  await expect(profile).toContainText("Draconic Resilience");
+  await testInfo.attach("granted-form-profile", {
+    body: await page.screenshot(),
+    contentType: "image/png",
+  });
   const perk = profile.locator(".companion-profile-columns button").first();
   await perk.click();
   const record = tracker.getByRole("dialog", { name: /details:/ });
@@ -955,6 +1062,29 @@ test("Forms use historical roster, detail, profile, nested perk details, and ord
   await expect(profile).toHaveCount(0);
 });
 
+test("removing a granted form reviews and clears its assigned perks", async ({
+  page,
+}, testInfo) => {
+  const tracker = trackerFor(page);
+  await tracker.getByRole("button", { name: /2\. Arcane Realms/ }).click();
+  await tracker.getByRole("checkbox", { name: "Take Dragon Form" }).click();
+  const review = tracker.getByRole("dialog", { name: "Review clear-form" });
+  await expect(review).toContainText("Draconic Resilience");
+  await testInfo.attach("form-removal-dependency-review", {
+    body: await page.screenshot(),
+    contentType: "image/png",
+  });
+  await review.getByRole("button", { name: "Remove form and perks" }).click();
+  await expect(
+    tracker.getByRole("checkbox", { name: "Take Dragon Form" }),
+  ).not.toBeChecked();
+  await expect(
+    tracker.getByRole("checkbox", { name: "Take Draconic Resilience" }),
+  ).toBeDisabled();
+  await tracker.getByRole("tab", { name: /^Forms/ }).click();
+  await expect(tracker.locator(".chain-form-grid > article")).toHaveCount(0);
+});
+
 test("Companions use historical roster, profile imports, and stacked perk/item details", async ({
   page,
 }) => {
@@ -962,9 +1092,9 @@ test("Companions use historical roster, profile imports, and stacked perk/item d
   await tracker.getByRole("tab", { name: /^Companions/ }).click();
   await tracker
     .getByLabel("Roster through historical cutoff")
-    .selectOption("entry-3");
+    .selectOption("entry-5");
   await expect(tracker.locator(".chain-companion-grid > article")).toHaveCount(
-    4,
+    6,
   );
   await tracker
     .locator(".chain-companion-grid > article")
@@ -1070,5 +1200,5 @@ test("reference fixture retains the documented three-Jump composition", async ({
   await tracker.getByRole("tab", { name: /^Inventory/ }).click();
   await expect(tracker.locator(".chain-record-list > article")).toHaveCount(18);
   await tracker.getByRole("tab", { name: /^Forms/ }).click();
-  await expect(tracker.locator(".chain-form-grid > article")).toHaveCount(2);
+  await expect(tracker.locator(".chain-form-grid > article")).toHaveCount(1);
 });

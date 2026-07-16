@@ -99,6 +99,41 @@ describe("Format 1 chain evaluation", () => {
     );
   });
 
+  it("defaults numeric grants to rank and supports explicit quantity measures", () => {
+    const evaluation = one(
+      "cosmic-odyssey",
+      actor({ random_training: 3, training_manuals: 3 }),
+    );
+    expect(
+      evaluation.records.find((record) => record.name === "Random Training")
+        ?.measure,
+    ).toEqual({ kind: "rank", value: 3 });
+    expect(
+      evaluation.records.find((record) => record.name === "Training Manuals")
+        ?.measure,
+    ).toEqual({ kind: "quantity", value: 3 });
+    expect(
+      one("cosmic-odyssey", actor({ training_manuals: 0 })).records.some(
+        (record) => record.name === "Training Manuals",
+      ),
+    ).toBe(false);
+  });
+
+  it("grants forms to the Jumper and keeps targeted perks on the form", () => {
+    const evaluation = one(
+      "arcane-realms",
+      actor({ dragon_form: true, draconic_resilience: true }),
+    );
+    expect(evaluation.forms).toMatchObject([
+      { handle: "dragon_form", name: "Dragon Form", ownerActorId: "jumper" },
+    ]);
+    const perk = evaluation.records.find(
+      (record) => record.name === "Draconic Resilience",
+    );
+    expect(perk?.ownerFormId).toBe(evaluation.forms[0].id);
+    expect(evaluation.forms[0].perkRecordIds).toEqual([perk?.id]);
+  });
+
   it("makes recorded choice and source results free without erasing provenance", () => {
     const choice = one(
       "hero-academy",

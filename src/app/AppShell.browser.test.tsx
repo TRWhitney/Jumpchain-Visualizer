@@ -136,7 +136,7 @@ test("primary-tag name colors are opt-in while summaries remain available", asyn
     ".app-chain-card-copy h3.is-primary-tag-colored",
   );
   expect(coloredNames).toHaveLength(8);
-  expect(coloredNames[0].getAttribute("data-primary-tag")).toBe("crafting");
+  expect(coloredNames[0].getAttribute("data-primary-tag")).toBe("magic");
 });
 
 test("tag presentation changes project into canonical Inventory badges", async () => {

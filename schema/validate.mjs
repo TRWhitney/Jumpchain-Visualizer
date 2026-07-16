@@ -33,6 +33,29 @@ if (choice?.formsByContext?.["top-level"]?.fields?.species)
   errors.push("format-1 choice.species must be replaced by property grants");
 if (!schema.layoutNodes.choice?.compactOnly)
   errors.push("format-1 section choice layout leaf must be compact-only");
+if (!choice?.formsByContext?.["top-level"]?.fields?.form)
+  errors.push("format-1 choice shorthand must define form targeting");
+if (!choice?.formsByContext?.["top-level"]?.fields?.measure)
+  errors.push("format-1 choice shorthand must define grant measure semantics");
+const grantFields = schema.declarations?.grant?.forms?.block?.fields;
+const grantKinds = grantFields?.kind?.values ?? [];
+if (!grantKinds.includes("form"))
+  errors.push("format-1 grant kinds must include form");
+if (!grantFields?.form || !grantFields?.measure)
+  errors.push("format-1 grants must define form and measure fields");
+const constraintCodes = new Set(
+  schema.semanticConstraints.map((constraint) => constraint.code),
+);
+for (const code of [
+  "grant.form.handle",
+  "grant.form.reference",
+  "grant.form.target_kind",
+  "grant.form.shorthand",
+  "grant.measure.integer_only",
+  "grant.measure.shorthand",
+])
+  if (!constraintCodes.has(code))
+    errors.push(`format-1 semantic constraints must include ${code}`);
 
 for (const [name, node] of Object.entries(schema.layoutNodes)) {
   if (typeof node.fields === "string") requireReference(schema.fieldSets, node.fields, `layoutNodes.${name}.fields`);

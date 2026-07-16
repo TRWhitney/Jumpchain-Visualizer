@@ -131,10 +131,14 @@ export function evaluateTracker(
     for (const record of cached.records)
       if (
         unavailableEntries.has(record.sourceEntryId) ||
-        cachedActors.has(record.ownerActorId)
+        (record.ownerActorId && cachedActors.has(record.ownerActorId))
       )
         records.set(record.id, record);
     result.records = [...records.values()];
+    const forms = new Map(result.forms.map((form) => [form.id, form]));
+    for (const form of cached.forms)
+      if (unavailableEntries.has(form.sourceEntryId)) forms.set(form.id, form);
+    result.forms = [...forms.values()];
     const companions = new Map(
       result.companions.map((companion) => [companion.actorId, companion]),
     );
@@ -186,16 +190,13 @@ export function projectEvaluation(
     entries,
     actors: evaluation.actors,
     records,
-    forms: state.forms.map((form) => ({
+    forms: evaluation.forms.map((form) => ({
       ...form,
-      perkRecordIds: records
-        .filter(
-          (record) =>
-            record.sourceEntryId === form.sourceEntryId &&
-            record.kind === "perk",
-        )
-        .slice(0, 2)
-        .map((record) => record.id),
+      subtitle: "Granted form",
+      details: [
+        `Handle · ${form.handle}`,
+        `Source · ${state.packages[state.entries[form.sourceEntryId].packageId]?.name ?? "Unavailable package"}`,
+      ],
     })),
     companions: evaluation.companions,
   };

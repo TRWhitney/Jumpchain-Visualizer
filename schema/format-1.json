@@ -146,7 +146,9 @@
             "min": { "type": "integer", "min": 0, "max": 1 },
             "max": { "type": "integer", "min": 0, "max": 1 },
             "resolution": { "type": "enum", "values": ["random", "either"], "min": 0, "max": 1, "default": "manual" },
-            "option": { "type": "renderableScalar", "min": 0, "repeatable": true, "ordered": true, "exactDuplicate": "error" }
+            "option": { "type": "renderableScalar", "min": 0, "repeatable": true, "ordered": true, "exactDuplicate": "error" },
+            "form": { "type": "handleReference:form", "min": 0, "max": 1, "shorthandTarget": "single scalar perk grant" },
+            "measure": { "type": "enum", "values": ["rank", "quantity"], "min": 0, "max": 1, "defaultForIntegerVisibleGrant": "rank", "shorthandTarget": "single scalar perk or item grant" }
           },
           "children": {
             "text": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "text" },
@@ -166,7 +168,7 @@
       }
     },
     "text": {
-      "contexts": ["section", "choice", "grant:perk", "grant:item", "grant:companion", "grant:trait"],
+      "contexts": ["section", "choice", "grant:perk", "grant:item", "grant:form", "grant:companion", "grant:trait"],
       "fields": {
         "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
         "content": { "type": "richText", "min": 0, "max": 1, "conditionalVariants": true }
@@ -175,7 +177,7 @@
       "empty": "warning"
     },
     "image": {
-      "contexts": ["section", "choice", "grant:perk", "grant:item", "grant:companion", "grant:trait"],
+      "contexts": ["section", "choice", "grant:perk", "grant:item", "grant:form", "grant:companion", "grant:trait"],
       "fields": {
         "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
         "src": { "type": "quotedString:packageRelativeAssetPath", "min": 0, "max": 1, "exportRequired": true },
@@ -215,13 +217,15 @@
         "scalar": { "type": "enum", "values": ["perk", "item", "companion"] },
         "block": {
           "fields": {
-            "kind": { "type": "enum", "values": ["perk", "item", "companion", "resource", "trait", "property", "companion-import"], "min": 1, "max": 1, "required": true },
+            "kind": { "type": "enum", "values": ["perk", "item", "form", "companion", "resource", "trait", "property", "companion-import"], "min": 1, "max": 1, "required": true },
             "name": { "type": "renderableScalar", "min": 0, "max": 1 },
             "layout": { "type": "handleReference:trait-layout", "min": 0, "max": 1 },
             "tag": { "type": "tag", "min": 0, "repeatable": true, "setLike": true },
             "resource": { "type": "handleReference:resource", "min": 0, "max": 1 },
             "amount": { "type": "grantAmount", "min": 0, "max": 1 },
             "handle": { "type": "handle", "min": 0, "max": 1 },
+            "form": { "type": "handleReference:form", "min": 0, "max": 1 },
+            "measure": { "type": "enum", "values": ["rank", "quantity"], "min": 0, "max": 1, "defaultForIntegerVisibleGrant": "rank" },
             "value": { "type": "propertyValue", "min": 0, "max": 1 }
           },
           "children": {
@@ -334,9 +338,15 @@
     { "code": "grant.property.fields", "rule": "kind property requires handle; omitted value copies the owning control" },
     { "code": "grant.property.reserved_types", "rule": "origin, species, location, and gender resolve to strings; age resolves to an integer; copied origin, species, and location require compatible string controls; copied gender requires a select choice and copied age requires an integer choice" },
     { "code": "grant.property.entry_scope", "rule": "property grants apply only in their owning chain entry; only engine identity continuity may seed gender and age from earlier entries" },
+    { "code": "grant.form.handle", "rule": "kind form is valid only directly under a choice and requires a unique package-wide stable handle" },
+    { "code": "grant.form.reference", "rule": "form on a perk grant resolves a package-wide form handle across sections, files, and forward references" },
+    { "code": "grant.form.target_kind", "rule": "form ownership is valid only on perk grants; other grant kinds cannot target a form" },
+    { "code": "grant.form.shorthand", "rule": "choice-level form requires exactly one scalar perk grant and targets only that grant" },
+    { "code": "grant.measure.integer_only", "rule": "measure is valid only for a visible grant owned by an integer choice or input; omission defaults such grants to rank" },
+    { "code": "grant.measure.shorthand", "rule": "choice-level measure requires exactly one scalar perk or item grant and targets only that grant" },
     { "code": "grant.companion_import.context", "rule": "kind companion-import is valid only directly under input selection companions" },
     { "code": "grant.companion_import.budget_pair", "rule": "resource and amount must be both present or both absent" },
-    { "code": "grant.visible.fields", "rule": "name, layout, tag, text, and image are valid only for perk, item, companion, and trait; layout is trait-layout and valid only for trait" },
+    { "code": "grant.visible.fields", "rule": "name, tag, text, and image are valid only for perk, item, form, companion, and trait; layout is trait-layout and valid only for trait; form is valid only on perk; measure is valid only on perk, item, and trait" },
     { "code": "layout.container_handles", "rule": "container handles are unique within one layout" },
     { "code": "layout.typed_target", "rule": "typed leaves resolve only in the matching owner-local namespace; absent targets warn and collapse" },
     { "code": "layout.choice.target", "rule": "a compact choice leaf resolves one choice-placement owned by the rendered section and each placement may appear at most once" },

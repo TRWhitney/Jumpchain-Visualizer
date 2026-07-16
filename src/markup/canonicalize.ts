@@ -177,6 +177,7 @@ function grant(
   const permitted = new Set([
     "perk",
     "item",
+    "form",
     "companion",
     "resource",
     "trait",
@@ -192,6 +193,7 @@ function grant(
     );
   const result: JumpGrant = {
     kind: (permitted.has(kind) ? kind : "trait") as JumpGrant["kind"],
+    shorthand: !("fields" in node),
     name:
       "fields" in node && fields(node, "name").length
         ? renderable(node, "name")
@@ -204,6 +206,12 @@ function grant(
     resource: "fields" in node ? value(node, "resource") : undefined,
     amount: "fields" in node ? amount(field(node, "amount")?.value) : undefined,
     handle: "fields" in node ? value(node, "handle") : undefined,
+    form: "fields" in node ? value(node, "form") : undefined,
+    measure:
+      "fields" in node &&
+      ["rank", "quantity"].includes(value(node, "measure") ?? "")
+        ? (value(node, "measure") as JumpGrant["measure"])
+        : undefined,
     value:
       "fields" in node
         ? parsePropertyValue(field(node, "value")?.value)
@@ -236,6 +244,40 @@ function grant(
       diagnostics,
       "grant.property.fields",
       "Property grants require a handle.",
+      node,
+    );
+  if (result.kind === "form" && !result.handle)
+    diagnostic(
+      diagnostics,
+      "grant.form.handle",
+      "Form grants require a stable handle.",
+      node,
+    );
+  if (result.kind === "form" && result.handle && "fields" in node)
+    result.handle = validateHandle(result.handle, node, diagnostics);
+  if (result.form && result.kind !== "perk")
+    diagnostic(
+      diagnostics,
+      "grant.form.target_kind",
+      "Only perk grants may target a form.",
+      node,
+    );
+  if (
+    "fields" in node &&
+    field(node, "measure") &&
+    !["rank", "quantity"].includes(value(node, "measure") ?? "")
+  )
+    diagnostic(
+      diagnostics,
+      "grant.measure.value",
+      "Measure must be rank or quantity.",
+      field(node, "measure"),
+    );
+  if (result.measure && !["perk", "item", "trait"].includes(result.kind))
+    diagnostic(
+      diagnostics,
+      "grant.measure.kind",
+      "Measure is valid only on perk, item, and trait grants.",
       node,
     );
   if (
@@ -291,6 +333,24 @@ function validatePropertyGrants(
   }
 }
 
+function validateMeasureGrants(
+  selection: string,
+  grants: readonly JumpGrant[],
+  node: SourceNode,
+  diagnostics: PackageDiagnostic[],
+) {
+  if (
+    selection !== "integer" &&
+    grants.some((item) => item.measure !== undefined)
+  )
+    diagnostic(
+      diagnostics,
+      "grant.measure.integer_only",
+      "Measure requires an owning integer choice or input.",
+      node,
+    );
+}
+
 function input(node: SourceNode, diagnostics: PackageDiagnostic[]): JumpInput {
   const selection = requireValue(node, "selection", diagnostics);
   const permitted = new Set(["text", "integer", "select", "companions"]);
@@ -317,7 +377,15 @@ function input(node: SourceNode, diagnostics: PackageDiagnostic[]): JumpInput {
       "Companion imports are valid only on companion inputs.",
       node,
     );
+  if (grants.some((item) => item.kind === "form"))
+    diagnostic(
+      diagnostics,
+      "grant.form.context",
+      "Form grants are valid only directly on choices.",
+      node,
+    );
   validatePropertyGrants(selection, grants, node, diagnostics);
+  validateMeasureGrants(selection, grants, node, diagnostics);
   return {
     handle: validateHandle(
       requireValue(node, "handle", diagnostics),
@@ -383,6 +451,48 @@ function choice(
       "A choice may declare at most one cost per resource.",
       node,
     );
+  const choiceGrants = [
+    ...fields(node, "grant").map((item) => grant(item, diagnostics)),
+    ...node.children
+      .filter((child) => child.kind === "grant")
+      .map((child) => grant(child, diagnostics)),
+  ];
+  const shorthandForm = value(node, "form");
+  const shorthandMeasure = value(node, "measure");
+  const shorthandTarget = choiceGrants.length === 1 ? choiceGrants[0] : null;
+  if (shorthandForm) {
+    if (shorthandTarget?.kind === "perk" && fields(node, "grant").length === 1)
+      shorthandTarget.form = shorthandForm;
+    else
+      diagnostic(
+        diagnostics,
+        "grant.form.shorthand",
+        "Choice form requires exactly one shorthand perk grant.",
+        field(node, "form"),
+      );
+  }
+  if (shorthandMeasure) {
+    if (!["rank", "quantity"].includes(shorthandMeasure))
+      diagnostic(
+        diagnostics,
+        "grant.measure.value",
+        "Measure must be rank or quantity.",
+        field(node, "measure"),
+      );
+    else if (
+      shorthandTarget &&
+      ["perk", "item"].includes(shorthandTarget.kind) &&
+      fields(node, "grant").length === 1
+    )
+      shorthandTarget.measure = shorthandMeasure as JumpGrant["measure"];
+    else
+      diagnostic(
+        diagnostics,
+        "grant.measure.shorthand",
+        "Choice measure requires exactly one shorthand perk or item grant.",
+        field(node, "measure"),
+      );
+  }
   const result: JumpChoice = {
     handle: validateHandle(
       requireValue(node, "handle", diagnostics),
@@ -417,12 +527,7 @@ function choice(
       .filter((child) => child.kind === "input")
       .map((child) => input(child, diagnostics)),
     costs,
-    grants: [
-      ...fields(node, "grant").map((item) => grant(item, diagnostics)),
-      ...node.children
-        .filter((child) => child.kind === "grant")
-        .map((child) => grant(child, diagnostics)),
-    ],
+    grants: choiceGrants,
   };
   if (!result.name.base && !result.name.variants.length)
     diagnostic(
@@ -498,6 +603,7 @@ function choice(
       node,
     );
   validatePropertyGrants(result.selection, result.grants, node, diagnostics);
+  validateMeasureGrants(result.selection, result.grants, node, diagnostics);
   return result;
 }
 
@@ -673,6 +779,16 @@ function validateRelations(
     ["resource", result.resources.map((item) => item.handle)],
     ["section", result.sections.map((item) => item.handle)],
     ["choice", result.choices.map((item) => item.handle)],
+    [
+      "form",
+      result.choices.flatMap((item) =>
+        item.grants.flatMap((grantItem) =>
+          grantItem.kind === "form" && grantItem.handle
+            ? [grantItem.handle]
+            : [],
+        ),
+      ),
+    ],
     ["layout", result.layouts.map((item) => item.handle)],
   ] as const)
     for (const duplicate of duplicates(values))
@@ -688,6 +804,18 @@ function validateRelations(
     "jump_points",
     ...result.resources.map((item) => item.handle),
   ]);
+  const formHandles = result.choices.flatMap((item) =>
+    item.grants.flatMap((grantItem) =>
+      grantItem.kind === "form" && grantItem.handle ? [grantItem.handle] : [],
+    ),
+  );
+  const forms = new Set(formHandles);
+  for (const duplicate of duplicates(formHandles))
+    diagnostic(
+      diagnostics,
+      "grant.form.handle",
+      `Form handle “${duplicate}” must be unique within the package.`,
+    );
   for (const sectionItem of result.sections) {
     const directHandles = sectionItem.directChoices.map((item) => item.handle);
     const directTargets = sectionItem.directChoices.map((item) => item.target);
@@ -754,13 +882,20 @@ function validateRelations(
     for (const item of [
       ...choiceItem.grants,
       ...choiceItem.inputs.flatMap((inputItem) => inputItem.grants),
-    ])
+    ]) {
       if (item.resource && !resources.has(item.resource))
         diagnostic(
           diagnostics,
           "resource.reference",
           `Grant resource “${item.resource}” is not declared.`,
         );
+      if (item.form && !forms.has(item.form))
+        diagnostic(
+          diagnostics,
+          "grant.form.reference",
+          `Form target “${item.form}” does not exist.`,
+        );
+    }
   }
 
   const reachableChoices = new Set(

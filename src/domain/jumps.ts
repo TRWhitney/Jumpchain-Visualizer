@@ -127,13 +127,29 @@ export type EvaluatedGrantRecord = {
   kind: "perk" | "item" | "trait";
   name: string;
   sourceEntryId: string;
-  ownerActorId: string;
+  ownerActorId?: string;
+  ownerFormId?: string;
+  grantHandle: string;
+  sourcePackageId: string;
+  sourcePackageExactHash: string;
   tags: readonly string[];
   description: string;
   measure?: EvaluatedGrantMeasure;
   layout?: string;
   text?: readonly TextBlock[];
   images?: readonly ImageBlock[];
+};
+
+export type EvaluatedForm = {
+  id: string;
+  handle: string;
+  name: string;
+  sourceEntryId: string;
+  ownerActorId: "jumper";
+  description: string;
+  initials: string;
+  tags: readonly string[];
+  perkRecordIds: readonly string[];
 };
 
 export type EvaluatedCompanion = {
@@ -149,6 +165,7 @@ export type ChainEvaluation = {
   runtime: EvaluatedJumpRuntime;
   actors: Record<string, EvaluatedActor>;
   records: readonly EvaluatedGrantRecord[];
+  forms: readonly EvaluatedForm[];
   companions: readonly EvaluatedCompanion[];
 };
 
@@ -324,13 +341,33 @@ function actorRenderContext(
   };
 }
 
-function grantMeasure(choice: JumpChoice, evaluation: EvaluatedChoice) {
-  if (
-    typeof evaluation.value !== "number" ||
-    !choice.costs.some((cost) => cost.mode === "each")
-  )
-    return undefined;
-  return { kind: "rank" as const, value: evaluation.value };
+function grantMeasure(
+  grant: JumpGrant,
+  value: string | number | boolean | readonly string[] | null | undefined,
+) {
+  if (typeof value !== "number") return undefined;
+  return {
+    kind: grant.measure ?? ("rank" as const),
+    value,
+  } satisfies EvaluatedGrantMeasure;
+}
+
+function visibleGrantIsAcquired(
+  value: string | number | boolean | readonly string[] | null | undefined,
+) {
+  return typeof value !== "number" || value > 0;
+}
+
+function effectiveGrantHandle(
+  choice: JumpChoice,
+  grant: JumpGrant,
+  grantIndex: number,
+  inputHandle?: string,
+) {
+  if (grant.shorthand) return choice.handle;
+  return inputHandle
+    ? `${choice.handle}:${inputHandle}:${grantIndex}`
+    : `${choice.handle}:${grantIndex}`;
 }
 
 function initials(name: string) {
@@ -583,7 +620,8 @@ function evaluateActor(
   const traits = packageItem.choices.flatMap((choice) => {
     if (!choiceViews[choice.handle]?.active) return [];
     return choice.grants.flatMap((item, grantIndex): EvaluatedGrantRecord[] =>
-      item.kind === "trait"
+      item.kind === "trait" &&
+      visibleGrantIsAcquired(choiceViews[choice.handle]?.value)
         ? [
             {
               id: `grant:${entryId}:${actorId}:${choice.handle}:${grantIndex}`,
@@ -591,11 +629,14 @@ function evaluateActor(
               name: inheritedGrantName(choice, item, context),
               sourceEntryId: entryId,
               ownerActorId: actorId,
+              grantHandle: effectiveGrantHandle(choice, item, grantIndex),
+              sourcePackageId: packageItem.logicalId,
+              sourcePackageExactHash: packageItem.exactHash,
               tags: [
                 ...new Set([...choice.tags, ...item.tags].map(normalizeTag)),
               ],
               description: inheritedDescription(choice, item, context),
-              measure: grantMeasure(choice, choiceViews[choice.handle]),
+              measure: grantMeasure(item, choiceViews[choice.handle]?.value),
               layout: item.layout,
               text: item.text,
               images: item.images,
@@ -626,6 +667,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
     },
   };
   const records: EvaluatedGrantRecord[] = [];
+  const forms: EvaluatedForm[] = [];
   const companions = new Map<string, EvaluatedCompanion>();
   const previous: Record<string, Partial<Record<string, EvaluatedProperty>>> = {
     jumper: input.initialIdentity ?? {},
@@ -690,6 +732,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
       }
     }
     const participating = ["jumper", ...imported];
+    const entryForms = new Map<string, EvaluatedForm>();
     for (const actorId of participating) {
       const state = entryState.actors[actorId] ?? emptyActorEntryState();
       const evaluation = evaluateActor(
@@ -713,24 +756,68 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
       if (!original[actorId]) original[actorId] = evaluation.properties;
 
       const context = actorRenderContext(evaluation, gauntlet.active);
+      if (actorId === "jumper") {
+        for (const choice of packageItem.choices) {
+          const evaluatedChoice = evaluation.choices[choice.handle];
+          if (!evaluatedChoice?.active) continue;
+          const activeGrants: JumpGrant[] = [...choice.grants];
+          for (const inputItem of choice.inputs) {
+            const value = state.inputs[choice.handle]?.[inputItem.handle];
+            const activeInput = Array.isArray(value)
+              ? value.length > 0
+              : value !== null && value !== undefined && value !== "";
+            if (!activeInput) continue;
+            activeGrants.push(...inputItem.grants);
+          }
+          for (const grant of activeGrants) {
+            if (grant.kind !== "form" || !grant.handle) continue;
+            const form: EvaluatedForm = {
+              id: `form:${entryId}:${grant.handle}`,
+              handle: grant.handle,
+              name: inheritedGrantName(choice, grant, context),
+              sourceEntryId: entryId,
+              ownerActorId: "jumper",
+              description: inheritedDescription(choice, grant, context),
+              initials: initials(inheritedGrantName(choice, grant, context)),
+              tags: [
+                ...new Set([...choice.tags, ...grant.tags].map(normalizeTag)),
+              ],
+              perkRecordIds: [],
+            };
+            entryForms.set(grant.handle, form);
+            forms.push(form);
+          }
+        }
+      }
       for (const choice of packageItem.choices) {
         const evaluatedChoice = evaluation.choices[choice.handle];
         if (!evaluatedChoice?.active) continue;
         for (const [grantIndex, item] of choice.grants.entries()) {
           const id = `grant:${entryId}:${actorId}:${choice.handle}:${grantIndex}`;
-          if (item.kind === "perk" || item.kind === "item")
+          if (
+            (item.kind === "perk" || item.kind === "item") &&
+            visibleGrantIsAcquired(evaluatedChoice.value)
+          ) {
+            if (item.form && actorId !== "jumper") continue;
+            const ownerForm = item.form ? entryForms.get(item.form) : undefined;
+            if (item.form && !ownerForm) continue;
             records.push({
               id,
               kind: item.kind,
               name: inheritedGrantName(choice, item, context),
               sourceEntryId: entryId,
-              ownerActorId: actorId,
+              ownerActorId: ownerForm ? undefined : actorId,
+              ownerFormId: ownerForm?.id,
+              grantHandle: effectiveGrantHandle(choice, item, grantIndex),
+              sourcePackageId: packageItem.logicalId,
+              sourcePackageExactHash: packageItem.exactHash,
               tags: [
                 ...new Set([...choice.tags, ...item.tags].map(normalizeTag)),
               ],
               description: inheritedDescription(choice, item, context),
-              measure: grantMeasure(choice, evaluatedChoice),
+              measure: grantMeasure(item, evaluatedChoice.value),
             });
+          }
           if (item.kind === "companion") {
             const name = inheritedGrantName(choice, item, context);
             const companionId = `companion:${entryId}:${actorId}:${choice.handle}:${grantIndex}`;
@@ -762,19 +849,37 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
           if (!activeInput) continue;
           for (const [grantIndex, item] of inputItem.grants.entries()) {
             const id = `grant:${entryId}:${actorId}:${choice.handle}:input:${inputItem.handle}:${grantIndex}`;
-            if (item.kind === "perk" || item.kind === "item")
+            if (
+              (item.kind === "perk" || item.kind === "item") &&
+              visibleGrantIsAcquired(value)
+            ) {
+              if (item.form && actorId !== "jumper") continue;
+              const ownerForm = item.form
+                ? entryForms.get(item.form)
+                : undefined;
+              if (item.form && !ownerForm) continue;
               records.push({
                 id,
                 kind: item.kind,
                 name: inheritedGrantName(choice, item, context),
                 sourceEntryId: entryId,
-                ownerActorId: actorId,
+                ownerActorId: ownerForm ? undefined : actorId,
+                ownerFormId: ownerForm?.id,
+                grantHandle: effectiveGrantHandle(
+                  choice,
+                  item,
+                  grantIndex,
+                  inputItem.handle,
+                ),
+                sourcePackageId: packageItem.logicalId,
+                sourcePackageExactHash: packageItem.exactHash,
                 tags: [
                   ...new Set([...choice.tags, ...item.tags].map(normalizeTag)),
                 ],
                 description: inheritedDescription(choice, item, context),
-                measure: grantMeasure(choice, evaluatedChoice),
+                measure: grantMeasure(item, value),
               });
+            }
           }
         }
       }
@@ -803,7 +908,20 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
         .map((record) => record.id),
     });
   }
-  return { runtime, actors, records, companions: [...companions.values()] };
+  for (const form of forms) {
+    form.perkRecordIds = records
+      .filter(
+        (record) => record.ownerFormId === form.id && record.kind === "perk",
+      )
+      .map((record) => record.id);
+  }
+  return {
+    runtime,
+    actors,
+    records,
+    forms,
+    companions: [...companions.values()],
+  };
 }
 
 export function renderRenderable(

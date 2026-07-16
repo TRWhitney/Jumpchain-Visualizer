@@ -1,0 +1,64 @@
+jump
+  format: 1
+  name: "Invalid Form and Measure"
+  author: "Jumpchain Visualizer"
+  version: "1"
+
+section
+  handle: choices
+  name: "Choices"
+
+  choice
+    handle: form
+    target: broken_form
+
+  choice
+    handle: perk
+    target: broken_perk
+
+  choice
+    handle: quantity
+    target: broken_quantity
+
+choice
+  handle: broken_form
+  name: "Broken Form"
+
+  grant
+    kind: form
+
+choice
+  handle: broken_perk
+  name: "Broken Perk"
+  grant: perk
+  form: missing_form
+
+choice
+  handle: broken_quantity
+  name: "Broken Quantity"
+  grant: item
+  measure: quantity
+
+choice
+  handle: first_duplicate_form
+  name: "First Duplicate Form"
+
+  grant
+    kind: form
+    handle: duplicate_form
+
+choice
+  handle: second_duplicate_form
+  name: "Second Duplicate Form"
+
+  grant
+    kind: form
+    handle: duplicate_form
+
+choice
+  handle: item_targeting_form
+  name: "Item Targeting Form"
+
+  grant
+    kind: item
+    form: duplicate_form

@@ -10,12 +10,8 @@ import {
 describe("saved chain registry", () => {
   it("orders every fixture by most recently opened", () => {
     const state = createChainRegistryFixture();
-    expect(orderedChains(state)).toHaveLength(8);
-    expect(
-      orderedChains(state)
-        .slice(0, 2)
-        .map((chain) => chain.name),
-    ).toEqual(["Morgan", "The Ashen Road"]);
+    expect(orderedChains(state)).toHaveLength(1);
+    expect(orderedChains(state).map((chain) => chain.name)).toEqual(["Morgan"]);
   });
 
   it("advances new-chain identity past hydrated durable chains", () => {
@@ -54,8 +50,8 @@ describe("saved chain registry", () => {
       description: "A deliberately edited description.",
     });
 
-    state = chainRegistryReducer(state, { type: "open", id: "ch-c208" });
-    expect(orderedChains(state)[0].id).toBe("ch-c208");
+    state = chainRegistryReducer(state, { type: "open", id: "ch-92b1" });
+    expect(orderedChains(state)[0].id).toBe("ch-92b1");
   });
 
   it("rejects blank names and actions for unknown records", () => {
@@ -80,9 +76,9 @@ describe("saved chain registry", () => {
   it("searches names and descriptions and derives the strongest perk category", () => {
     const chains = orderedChains(createChainRegistryFixture());
     expect(
-      filterSavedChains(chains, "quiet crew").map((chain) => chain.name),
-    ).toEqual(["Quiet Stars"]);
+      filterSavedChains(chains, "three format").map((chain) => chain.name),
+    ).toEqual(["Morgan"]);
     expect(filterSavedChains(chains, "impossible words")).toHaveLength(0);
-    expect(primaryTagForChain(chains[0])).toBe("magic");
+    expect(primaryTagForChain(chains[0])).toBe("combat");
   });
 });

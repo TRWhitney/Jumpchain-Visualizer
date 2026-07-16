@@ -737,6 +737,14 @@ function SourceOptionControl({
   );
 }
 
+function sourceUsesChoiceControl(choice: JumpChoice, source: ChoiceSource) {
+  return (
+    source.mode === "multi" &&
+    source.resolution === "manual" &&
+    choice.selection !== "toggle"
+  );
+}
+
 function DefaultChoice({
   choice,
   props,
@@ -759,7 +767,7 @@ function DefaultChoice({
         />
       </div>
       <ChoiceTags choice={choice} props={props} />
-      {source ? (
+      {source && !sourceUsesChoiceControl(choice, source) ? (
         <SourceOptionControl
           choice={choice}
           source={source}
@@ -1024,7 +1032,7 @@ function Layout({
     if (node.target === "tags")
       return <ChoiceTags choice={choice} props={props} />;
     if (node.target === "control")
-      return source ? (
+      return source && !sourceUsesChoiceControl(choice, source) ? (
         <SourceOptionControl
           choice={choice}
           source={source}
@@ -1036,7 +1044,9 @@ function Layout({
       );
     if (node.target === "roll")
       return source ? null : (
-        <ChoiceControl choice={choice} props={props} part="roll" />
+        <div className="authored-choice-roll-slot">
+          <ChoiceControl choice={choice} props={props} part="roll" />
+        </div>
       );
   }
   if (node.kind === "slot" && node.target === "name") {

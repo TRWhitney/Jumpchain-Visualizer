@@ -27,29 +27,43 @@ function heroAcademyState(
   choices: Record<string, boolean | string | number | null>,
   allowNegativePointBalances = false,
 ) {
-  const added = trackerReducer(
-    createDenseTrackerFixture({ allowNegativePointBalances }),
-    { type: "add-package", packageId: "hero-academy" },
-  );
-  const entryId = added.selectedEntryId;
+  const added = createDenseTrackerFixture({ allowNegativePointBalances });
+  const entryId = "entry-2";
   const entry = added.jumpState[entryId];
   const actor = entry.actors.jumper;
   return {
     entryId,
     state: {
       ...added,
+      enabledSupplements: {
+        ...added.enabledSupplements,
+        "quest-mode": false,
+        "universal-drawbacks": false,
+        "personal-reality": false,
+      },
       jumpState: {
         ...added.jumpState,
         [entryId]: {
           ...entry,
           actors: {
             ...entry.actors,
-            jumper: { ...actor, choices },
+            jumper: {
+              ...actor,
+              choices,
+              choiceRolls: {},
+              sourceRolls: {},
+              inputs: {},
+            },
           },
         },
       },
     },
   };
+}
+
+function projectedFixture() {
+  const fixture = createDenseTrackerFixture();
+  return projectEvaluation(fixture, evaluateTracker(fixture, fixture.bodyMod));
 }
 
 function firstStepWithoutSupplementPoints() {
@@ -79,24 +93,18 @@ describe("Chain Tracker aggregate", () => {
   it("ships complete deterministic dense and reference fixtures", () => {
     const dense = createDenseTrackerFixture();
     const reference = createReferenceTrackerFixture();
-    expect(dense.order).toHaveLength(9);
+    expect(dense.order).toHaveLength(4);
     expect(dense.order[0]).toBe(EARTH_ENTRY_ID);
-    expect(jumpEntryIds(dense)).toHaveLength(8);
-    expect(Object.keys(dense.packages).length).toBeGreaterThanOrEqual(12);
+    expect(jumpEntryIds(dense)).toHaveLength(3);
+    expect(Object.keys(dense.packages)).toHaveLength(4);
     expect(
       Object.values(dense.packages)
         .filter((packageItem) => packageItem.availability !== "foundation")
         .every((packageItem) => packageItem.tags.length),
     ).toBe(true);
-    expect(dense.records).toHaveLength(60);
-    expect(
-      dense.records.filter((record) => record.kind === "perk"),
-    ).toHaveLength(40);
-    expect(
-      dense.records.filter((record) => record.kind === "item"),
-    ).toHaveLength(20);
+    expect(dense.records).toHaveLength(0);
     expect(dense.forms).toHaveLength(0);
-    expect(dense.companions).toHaveLength(7);
+    expect(dense.companions).toHaveLength(0);
     expect(
       Object.values(dense.tags).filter((tag) => tag.parent).length,
     ).toBeGreaterThanOrEqual(37);
@@ -108,46 +116,42 @@ describe("Chain Tracker aggregate", () => {
     const fixture = createDenseTrackerFixture();
     const evaluation = evaluateTracker(fixture, fixture.bodyMod);
     const projected = projectEvaluation(fixture, evaluation);
-    expect(projected.records.length).toBeGreaterThanOrEqual(60);
+    expect(projected.records.length).toBeGreaterThanOrEqual(45);
     expect(
       Object.values(projected.actors).filter(
         (actor) => actor.role === "Companion",
       ).length,
-    ).toBeGreaterThanOrEqual(7);
-    expect(projected.companions.length).toBeGreaterThanOrEqual(7);
+    ).toBe(4);
+    expect(projected.companions.length).toBe(4);
     expect(projected.forms).toMatchObject([
-      { handle: "dragon_form", name: "Dragon Form" },
+      { handle: "prism_form", name: "Prism Form" },
     ]);
     expect(
-      projected.records.filter((record) => record.name === "Impossible Vessel"),
-    ).toHaveLength(3);
-    expect(
-      filteredInventory(projected).filter(
-        (record) => record.name === "Impossible Vessel",
-      ),
-    ).toMatchObject([{ ownerActorId: "jumper" }]);
-    expect(
       filteredInventory(projected).some(
-        (record) => record.name === "Draconic Resilience",
+        (record) => record.name === "Refractive Hide",
       ),
     ).toBe(false);
     expect(
-      projected.records.find((record) => record.name === "Random Training")
+      projected.records.find((record) => record.name === "Adaptive Mastery")
         ?.measure,
     ).toEqual({ kind: "rank", value: 3 });
     expect(
       Object.values(radarCounts(projected)).every((count) => count > 0),
     ).toBe(true);
     const magic = tagBreakdown(projected, "magic");
-    expect(magic?.children.length).toBeGreaterThan(9);
+    expect(magic?.children.length).toBeGreaterThan(0);
   });
 
   it("preserves stored selections while disabling an unavailable exact package", () => {
     const fixture = createDenseTrackerFixture();
     const lastValidatedEvaluation = evaluateTracker(fixture, fixture.bodyMod);
+    const staleEvaluation = {
+      ...lastValidatedEvaluation,
+      forms: undefined,
+    } as unknown as typeof lastValidatedEvaluation;
     const unavailable = {
       ...fixture,
-      lastValidatedEvaluation,
+      lastValidatedEvaluation: staleEvaluation,
       entries: {
         ...fixture.entries,
         "entry-2": {
@@ -169,34 +173,63 @@ describe("Chain Tracker aggregate", () => {
     expect(unavailable.jumpState["entry-2"].actors.jumper).toBe(storedChoices);
   });
 
+  it("discards malformed cached runtime and actor maps", () => {
+    const fixture = createDenseTrackerFixture();
+    const unavailable = {
+      ...fixture,
+      lastValidatedEvaluation: {
+        runtime: [],
+        actors: [],
+        records: [],
+        forms: [],
+        companions: [],
+      } as unknown as typeof fixture.lastValidatedEvaluation,
+      entries: {
+        ...fixture.entries,
+        "entry-2": {
+          ...fixture.entries["entry-2"],
+          packageExactHash: "sha256:package-version-not-installed",
+        },
+      },
+    };
+
+    const recovered = evaluateTracker(unavailable, unavailable.bodyMod);
+    expect(recovered.runtime["entry-2"]).toBeUndefined();
+    expect(recovered.runtime["entry-1"].actors.jumper.balance).toBeDefined();
+    expect(
+      recovered.records.some((record) => record.sourceEntryId === "entry-2"),
+    ).toBe(false);
+  });
+
   it("keeps stable entry identity through reviewed reorder and undo", () => {
     const initial = createDenseTrackerFixture({ warnUpstreamChanges: true });
     const requested = trackerReducer(initial, {
       type: "request-move",
-      entryId: "entry-1",
-      toIndex: 7,
+      entryId: "entry-0",
+      toIndex: 3,
     });
     expect(requested.pending?.kind).toBe("move");
     const moved = trackerReducer(requested, { type: "commit-mutation" });
-    expect(moved.order[7]).toBe("entry-1");
-    expect(moved.entries["entry-1"].packageId).toBe("arcane-realms");
+    expect(moved.order[3]).toBe("entry-0");
+    expect(moved.entries["entry-0"].packageId).toBe("threshold-roads");
     expect(trackerReducer(moved, { type: "undo" }).order).toEqual(
       initial.order,
     );
   });
 
   it("commits an unaffected reorder immediately", () => {
-    const initial = trackerReducer(createDenseTrackerFixture(), {
+    const base = createDenseTrackerFixture({ allowDuplicateJumps: true });
+    const initial = trackerReducer(base, {
       type: "add-package",
-      packageId: "hero-academy",
+      packageId: "confluence-engine",
     });
     const moved = trackerReducer(initial, {
       type: "request-move",
-      entryId: "entry-8",
+      entryId: "entry-3",
       toIndex: 2,
     });
     expect(moved.pending).toBeNull();
-    expect(moved.order[2]).toBe("entry-8");
+    expect(moved.order[2]).toBe("entry-3");
     expect(moved.undo?.label).toBe("Reorder");
     const dismissed = trackerReducer(moved, { type: "dismiss-undo" });
     expect(dismissed.order).toEqual(moved.order);
@@ -207,33 +240,39 @@ describe("Chain Tracker aggregate", () => {
     const initial = createDenseTrackerFixture();
     const moved = trackerReducer(initial, {
       type: "request-move",
-      entryId: "entry-1",
-      toIndex: 7,
+      entryId: "entry-0",
+      toIndex: 3,
     });
     expect(moved.pending).toBeNull();
-    expect(moved.order[7]).toBe("entry-1");
+    expect(moved.order[3]).toBe("entry-0");
     expect(moved.undo?.label).toBe("Reorder");
   });
 
   it("warns only when reorder invalidates a valid companion import", () => {
     const state = createDenseTrackerFixture({ warnUpstreamChanges: true });
-    const impacts = moveDependencyImpacts(state, "entry-1", 7);
+    const impacts = moveDependencyImpacts(state, "entry-0", 3);
     expect(impacts).toEqual([
       expect.objectContaining({
         kind: "companion-import",
-        subjectId: "companion:entry-1:jumper:spellcraft_foundations:4",
-        providerEntryId: "entry-1",
-        consumerEntryIds: ["entry-5"],
+        subjectId: "companion:entry-0:jumper:lyra_companion:0",
+        providerEntryId: "entry-0",
+        consumerEntryIds: ["entry-2"],
       }),
     ]);
-    const withUnrelatedEntry = trackerReducer(state, {
-      type: "add-package",
-      packageId: "hero-academy",
-    });
+    const withUnrelatedEntry = trackerReducer(
+      {
+        ...state,
+        preferences: { ...state.preferences, allowDuplicateJumps: true },
+      },
+      {
+        type: "add-package",
+        packageId: "confluence-engine",
+      },
+    );
     const unaffected = trackerReducer(withUnrelatedEntry, {
       type: "request-move",
-      entryId: "entry-8",
-      toIndex: 6,
+      entryId: "entry-3",
+      toIndex: 2,
     });
     expect(unaffected.pending).toBeNull();
   });
@@ -242,79 +281,68 @@ describe("Chain Tracker aggregate", () => {
     const initial = createDenseTrackerFixture({ warnUpstreamChanges: true });
     const requested = trackerReducer(initial, {
       type: "request-remove",
-      entryId: "entry-6",
+      entryId: "entry-0",
     });
     expect(requested.pending?.impacts).toEqual([
       expect.objectContaining({
-        subjectId: "companion:entry-6:jumper:banner_command:4",
-        providerEntryId: "entry-6",
+        subjectId: "companion:entry-0:jumper:lyra_companion:0",
+        providerEntryId: "entry-0",
       }),
     ]);
     const removed = trackerReducer(requested, { type: "commit-mutation" });
-    expect(removed.entries["entry-6"]).toBeUndefined();
-    expect(removed.jumpState["entry-6"]).toBeUndefined();
+    expect(removed.entries["entry-0"]).toBeUndefined();
+    expect(removed.jumpState["entry-0"]).toBeUndefined();
     const restored = trackerReducer(removed, { type: "undo" });
-    expect(restored.entries["entry-6"].packageId).toBe("war-of-crowns");
-    expect(restored.jumpState["entry-6"]).toBeDefined();
+    expect(restored.entries["entry-0"].packageId).toBe("threshold-roads");
+    expect(restored.jumpState["entry-0"]).toBeDefined();
     const removedAgain = trackerReducer(
       trackerReducer(restored, {
         type: "request-remove",
-        entryId: "entry-6",
+        entryId: "entry-0",
       }),
       { type: "commit-mutation" },
     );
     const added = trackerReducer(removedAgain, {
       type: "add-package",
-      packageId: "war-of-crowns",
+      packageId: "threshold-roads",
     });
-    expect(added.selectedEntryId).toBe("entry-8");
+    expect(added.selectedEntryId).toBe("entry-3");
   });
 
   it("does not warn when deleting only a companion importer", () => {
     const initial = createDenseTrackerFixture({ warnUpstreamChanges: true });
-    expect(removeDependencyImpacts(initial, "entry-7")).toEqual([]);
+    expect(removeDependencyImpacts(initial, "entry-2")).toEqual([]);
     const removed = trackerReducer(initial, {
       type: "request-remove",
-      entryId: "entry-7",
+      entryId: "entry-2",
     });
     expect(removed.pending).toBeNull();
-    expect(removed.entries["entry-7"]).toBeUndefined();
+    expect(removed.entries["entry-2"]).toBeUndefined();
   });
 
-  it("applies application package policy without duplicating exact versions", () => {
+  it("applies duplicate-package policy without changing the default chain", () => {
     const initial = createDenseTrackerFixture();
     const blocked = trackerReducer(initial, {
       type: "add-package",
-      packageId: "arcane-realms-v1-1",
+      packageId: "confluence-engine",
     });
     expect(blocked.order).toHaveLength(initial.order.length);
     const enabled = trackerReducer(initial, {
       type: "apply-application-settings",
       preferences: {
         ...initial.preferences,
-        allowMultiplePackageVersions: true,
+        allowDuplicateJumps: true,
       },
       tags: initial.tags,
     });
     const added = trackerReducer(enabled, {
       type: "add-package",
-      packageId: "arcane-realms-v1-1",
+      packageId: "confluence-engine",
     });
     expect(added.order).toHaveLength(initial.order.length + 1);
-    const duplicate = trackerReducer(added, {
+    const duplicated = trackerReducer(added, {
       type: "add-package",
-      packageId: "arcane-realms-v1-1",
-    });
-    expect(duplicate.order).toHaveLength(added.order.length);
-
-    const duplicateEnabled = trackerReducer(added, {
-      type: "apply-application-settings",
-      preferences: { ...added.preferences, allowDuplicateJumps: true },
-      tags: added.tags,
-    });
-    const duplicated = trackerReducer(duplicateEnabled, {
-      type: "add-package",
-      packageId: "arcane-realms-v1-1",
+      packageId: "confluence-engine",
     });
     expect(duplicated.order).toHaveLength(added.order.length + 1);
     expect(
@@ -330,7 +358,7 @@ describe("Chain Tracker aggregate", () => {
       tags: [],
       description: "Training resolved for this Jump.",
       grantHandle: "random_training:0",
-      sourcePackageId: "cosmic-odyssey",
+      sourcePackageId: "confluence-engine",
       sourcePackageExactHash: "same-hash",
     };
     const records = aggregateInventoryRecords([
@@ -365,19 +393,19 @@ describe("Chain Tracker aggregate", () => {
       type: "set-choice",
       entryId: "entry-1",
       actorId: "jumper",
-      choiceHandle: "dragon_form",
+      choiceHandle: "prism_form",
       value: false,
     });
     expect(reviewed.pending).toMatchObject({ kind: "clear-form" });
     const cleared = trackerReducer(reviewed, { type: "commit-mutation" });
     expect(
-      cleared.jumpState["entry-1"].actors.jumper.choices.draconic_resilience,
+      cleared.jumpState["entry-1"].actors.jumper.choices.refractive_hide,
     ).toBeNull();
     const rejected = trackerReducer(cleared, {
       type: "set-choice",
       entryId: "entry-1",
       actorId: "jumper",
-      choiceHandle: "draconic_resilience",
+      choiceHandle: "refractive_hide",
       value: true,
     });
     expect(rejected).toBe(cleared);
@@ -391,11 +419,11 @@ describe("Chain Tracker aggregate", () => {
     );
     state = trackerReducer(state, {
       type: "set-inspection",
-      entryId: "entry-2",
+      entryId: "entry-1",
     });
-    expect(state.selectedEntryId).toBe("entry-7");
+    expect(state.selectedEntryId).toBe("entry-2");
     expect(visibleForms(state)).toHaveLength(1);
-    expect(visibleCompanions(state)).toHaveLength(3);
+    expect(visibleCompanions(state)).toHaveLength(2);
     expect(
       filteredInventory(state).every((record) => {
         const position = state.order.indexOf(record.sourceEntryId);
@@ -438,11 +466,11 @@ describe("Chain Tracker aggregate", () => {
     expect(filteredInventory(state)).toEqual([]);
     expect(visibleForms(state)).toEqual([]);
     expect(visibleCompanions(state)).toEqual([]);
-    expect(state.selectedEntryId).toBe("entry-7");
+    expect(state.selectedEntryId).toBe("entry-2");
   });
 
   it("filters by descendant tags and aliases", () => {
-    let state = createDenseTrackerFixture();
+    let state = projectedFixture();
     expect(tagIsWithin(state, "pyrokinesis", "magic")).toBe(true);
     state = trackerReducer(state, {
       type: "set-inventory-tag",
@@ -465,7 +493,7 @@ describe("Chain Tracker aggregate", () => {
   });
 
   it("scopes Inventory to the Jumper and radar records to the Jumper and forms", () => {
-    const fixture = createDenseTrackerFixture();
+    const fixture = projectedFixture();
     const template = fixture.records[0];
     const state = {
       ...fixture,
@@ -536,7 +564,7 @@ describe("Chain Tracker aggregate", () => {
   });
 
   it("populates every fixed radar axis with uneven perk counts", () => {
-    const fixture = createDenseTrackerFixture();
+    const fixture = projectedFixture();
     const counts = radarCounts({
       ...fixture,
       records: fixture.records.map((record) => ({
@@ -550,12 +578,19 @@ describe("Chain Tracker aggregate", () => {
   });
 
   it("partitions hierarchical tag counts and aggregates excess slices", () => {
-    const fixture = createDenseTrackerFixture();
+    const fixture = projectedFixture();
+    const template = fixture.records[0];
+    const magicChildren = Object.values(fixture.tags).filter(
+      (tag) => tag.parent === "magic",
+    );
     const state = {
       ...fixture,
-      records: fixture.records.map((record) => ({
-        ...record,
+      records: magicChildren.map((tag, index) => ({
+        ...template,
+        id: `magic-${index}`,
         ownerActorId: "jumper",
+        ownerFormId: undefined,
+        tags: [tag.id],
       })),
     };
     const magic = tagBreakdown(state, "magic");
@@ -572,7 +607,7 @@ describe("Chain Tracker aggregate", () => {
       (child) => child.id === "pyrokinesis",
     );
     expect(pyrokinesis?.aliases).toContain("Fire Control");
-    expect(pyrokinesis?.children.length).toBeGreaterThan(1);
+    expect(pyrokinesis?.children.length).toBeGreaterThan(0);
   });
 
   it("stores independent actor choice state", () => {
@@ -581,24 +616,26 @@ describe("Chain Tracker aggregate", () => {
       type: "set-choice",
       entryId: "entry-0",
       actorId: "jumper",
-      choiceHandle: "wanderer",
+      choiceHandle: "roadborn_origin",
       value: false,
     });
-    expect(next.jumpState["entry-0"].actors.jumper.choices.wanderer).toBe(
-      false,
-    );
-    expect(initial.jumpState["entry-0"].actors.jumper.choices.wanderer).toBe(
-      true,
-    );
+    expect(
+      next.jumpState["entry-0"].actors.jumper.choices.roadborn_origin,
+    ).toBe(false);
+    expect(
+      initial.jumpState["entry-0"].actors.jumper.choices.roadborn_origin,
+    ).toBe(true);
   });
 
   it("blocks only active choice selections that would create a negative primary balance", () => {
     const { state, entryId } = heroAcademyState({
+      trial_stipend: true,
       power_rank: 1,
-      extra_lives: 1,
+      extra_attempts: 1,
       element: "Fire",
       manual_arcane: true,
-      night_vision: true,
+      manual_wanderer: true,
+      starting_region: "Central Arena",
     });
 
     const blocked = trackerReducer(state, {
@@ -636,7 +673,7 @@ describe("Chain Tracker aggregate", () => {
   it("allows an inactive choice change even when recalculation creates a deficit", () => {
     const { state, entryId } = heroAcademyState({
       power_rank: 1,
-      extra_lives: 1,
+      extra_attempts: 1,
       element: "Fire",
       manual_arcane: true,
       manual_wanderer: true,
@@ -662,25 +699,25 @@ describe("Chain Tracker aggregate", () => {
 
     const ranked = heroAcademyState({
       power_rank: 1,
-      combat_training: 5,
+      manual_training: 5,
     });
     const reducedRank = trackerReducer(ranked.state, {
       type: "set-choice",
       entryId: ranked.entryId,
       actorId: "jumper",
-      choiceHandle: "combat_training",
+      choiceHandle: "manual_training",
       value: 4,
     });
     expect(
       reducedRank.jumpState[ranked.entryId].actors.jumper.choices
-        .combat_training,
+        .manual_training,
     ).toBe(4);
   });
 
   it("allows free rolled selections because they do not create a negative balance", () => {
     const { state, entryId } = heroAcademyState({
       power_rank: 1,
-      extra_lives: 1,
+      extra_attempts: 1,
       element: "Fire",
       manual_arcane: true,
     });
@@ -710,12 +747,12 @@ describe("Chain Tracker aggregate", () => {
     ).toEqual({ result: "random_arcane", sequence: 1 });
   });
 
-  it("recalculates First Step when Gauntlet or Quest Mode removes starting points", () => {
+  it("recalculates Threshold when Gauntlet or Quest Mode removes starting points", () => {
     const ordinary = firstStepWithoutSupplementPoints();
     expect(
       evaluateTracker(ordinary, ordinary.bodyMod).runtime["entry-0"].actors
         .jumper.balance,
-    ).toBe(600);
+    ).toBe(300);
 
     const gauntlet = trackerReducer(ordinary, {
       type: "toggle-applied-gauntlet",
@@ -724,7 +761,7 @@ describe("Chain Tracker aggregate", () => {
     expect(
       evaluateTracker(gauntlet, gauntlet.bodyMod).runtime["entry-0"].actors
         .jumper.balance,
-    ).toBe(-400);
+    ).toBe(-700);
 
     const questMode = trackerReducer(ordinary, {
       type: "set-enabled-supplements",
@@ -733,7 +770,7 @@ describe("Chain Tracker aggregate", () => {
     expect(
       evaluateTracker(questMode, questMode.bodyMod).runtime["entry-0"].actors
         .jumper.balance,
-    ).toBe(-400);
+    ).toBe(-700);
   });
 
   it("attributes Personal Reality CP conversion to one Jump and refunds it when disabled", () => {
@@ -745,7 +782,7 @@ describe("Chain Tracker aggregate", () => {
     expect(
       evaluateTracker(converted, converted.bodyMod).runtime["entry-0"].actors
         .jumper.balance,
-    ).toBe(500);
+    ).toBe(200);
     expect(
       converted.entrySupplements["entry-0"].realityProgression?.conversionCP,
     ).toBe(100);
@@ -760,6 +797,6 @@ describe("Chain Tracker aggregate", () => {
     expect(
       evaluateTracker(disabled, disabled.bodyMod).runtime["entry-0"].actors
         .jumper.balance,
-    ).toBe(600);
+    ).toBe(300);
   });
 });

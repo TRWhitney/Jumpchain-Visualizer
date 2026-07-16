@@ -1,0 +1,445 @@
+# The first demonstration package intentionally uses one source file.
+jump
+  format: 1
+  name: "Threshold of a Thousand Roads"
+  author: "Jumpchain Visualizer"
+  version: "1.0"
+
+resource
+  handle: keys
+  name: "Threshold Keys"
+  abbreviation: "Keys"
+  initial: 4
+
+section
+  handle: introduction
+  name: "The City of Doors"
+  layout: introduction_layout
+
+  text
+    handle: introduction
+    content:
+      """
+      Beyond the first door waits a city built around **choice**, *uncertainty*, ++promises++, and ~~closed roads~~.
+
+      - Choose an identity.
+      - Gather what you need.
+      - Decide who crosses beside you.
+
+      | Sign | Meaning |
+      | --- | --- |
+      | Gold | A road home |
+      | Blue | A road onward |
+      """
+
+  image
+    handle: threshold_mark
+    src: "assets/threshold-mark.svg"
+    alt: "A bright doorway at the center of the Threshold"
+
+section
+  handle: identity
+  name: "Identity at the Threshold"
+  layout: identity_layout
+
+  choice
+    handle: origin_field
+    target: roadborn_origin
+
+  choice
+    handle: gender_field
+    target: threshold_gender
+
+  choice
+    handle: age_field
+    target: threshold_age
+
+  choice
+    handle: alias_field
+    target: threshold_alias
+
+  choice
+    handle: unbounded_field
+    target: remembered_years
+
+section
+  handle: arrivals
+  name: "Choose One Arrival"
+
+  choice-source
+    handle: arrivals
+    group: arrivals
+    mode: single
+
+section
+  handle: provisions
+  name: "Provisions and Company"
+
+  choice-source
+    handle: provisions
+    group: provisions
+    mode: multi
+
+section
+  handle: customization
+  name: "A Door of Your Own"
+  layout: customization_layout
+
+  choice
+    handle: custom_door_field
+    target: custom_door
+
+choice
+  handle: roadborn_origin
+  name: "Roadborn"
+  group: identity_controls
+  tag: identity
+
+  text
+    handle: description
+    content: "You arrive without local ties or obligations."
+
+  grant
+    kind: property
+    handle: origin
+    value: "Roadborn"
+
+  grant
+    kind: property
+    handle: species
+    value: "Human"
+
+  grant
+    kind: property
+    handle: location
+    value: "The Threshold"
+
+  grant
+    kind: property
+    handle: carries_map
+    value: true
+
+choice
+  handle: threshold_gender
+  name: "Gender"
+  group: identity_controls
+  selection: select
+  continuity: previous
+  option: "Female"
+  option: "Male"
+  option: "Nonbinary"
+  cost: 100
+
+  grant
+    kind: property
+    handle: gender
+
+choice
+  handle: threshold_age
+  name: "Age"
+  group: identity_controls
+  selection: integer
+  min: 18
+  max: 80
+  cost: 0
+
+  grant
+    kind: property
+    handle: age
+
+choice
+  handle: threshold_alias
+  name: "Road Name"
+  group: identity_controls
+  selection: text
+  cost: 0
+
+  grant
+    kind: property
+    handle: road_name
+
+choice
+  handle: remembered_years
+  name: "Remembered Years"
+  group: identity_controls
+  selection: integer
+  cost: 0
+
+  grant
+    kind: property
+    handle: remembered_years
+
+choice
+  handle: gate_scholar
+  name: "Gate Scholar"
+  group: arrivals
+  group: learned
+  tag: mental
+  tag: learning
+  tag: physical
+  tag: stealth
+  tag: social
+  cost: 100
+
+  text
+    handle: description
+    content: "You studied the language of doors before crossing one."
+
+  grant: perk
+
+choice
+  handle: lantern_wanderer
+  name: "Lantern Wanderer"
+  group: arrivals
+  group: travelers
+  tag: physical
+  tag: adaptation
+  tag: stealth
+  cost: -100
+
+  grant
+    kind: perk
+    name: "Wanderer's Instinct"
+    tag: survival
+
+    text
+      handle: description
+      content: "A practiced instinct keeps you moving when maps fail."
+
+choice
+  handle: threshold_training
+  name: "Threshold Training"
+  group: provisions
+  selection: integer
+  min: 0
+  max: 5
+  tag: combat
+
+  cost
+    resource: jump_points
+    amount: 50
+    mode: each
+
+  grant: perk
+
+choice
+  handle: spare_keys
+  name: "Spare Keys"
+  group: provisions
+  selection: integer
+  min: 0
+  max: 4
+  tag: miscellaneous
+  tag: convenience
+
+  cost
+    resource: keys
+    amount: 1
+    mode: each
+
+  grant: item
+  measure: quantity
+
+choice
+  handle: travelers_pack
+  name: "Traveler's Pack"
+  group: provisions
+  tag: miscellaneous
+  tag: convenience
+  cost: 100
+  grant: item
+
+  text
+    handle: description
+    content: "A dependable pack that keeps ordinary supplies ready."
+
+  image
+    handle: visual
+    src: "assets/threshold-mark.svg"
+    alt: "A travel pack marked with the Threshold sigil"
+
+choice
+  handle: many_pockets
+  name: "Many Pockets"
+  group: provisions
+  tag: crafting
+  cost: 100
+
+  cost
+    resource: keys
+    amount: 2
+
+  grant
+    kind: item
+    name: "Coat of Many Pockets"
+    tag: utility
+
+    text
+      handle: description
+      content: "Each pocket opens exactly where a stored tool was left."
+
+  grant
+    kind: resource
+    resource: keys
+    amount: 1
+
+choice
+  handle: threshold_blessing
+  name: "Threshold Blessing"
+  group: provisions
+  tag: spiritual
+  cost: 0
+
+  grant
+    kind: trait
+
+    text
+      handle: description
+      content: "Doors recognize you as a welcome traveler."
+
+  grant
+    kind: resource
+    resource: keys
+    amount: 0
+
+  grant
+    kind: resource
+    resource: keys
+    amount: -1
+
+choice
+  handle: lyra_companion
+  name: "Lyra"
+  group: provisions
+  tag: social
+  tag: leadership
+  cost: 200
+  grant: companion
+
+  text
+    handle: description
+    content: "Lyra is a route-reader who knows which doors should remain closed."
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 500
+    companion: lyra_companion
+
+  grant
+    kind: perk
+    name: "Route Reader"
+    companion: lyra_companion
+
+choice
+  handle: quiet_witness
+  name: "The Quiet Witness"
+  group: provisions
+  tag: social
+  cost: 0
+
+  grant
+    kind: companion
+    handle: quiet_witness
+
+    text
+      handle: description
+      content: "A silent traveler joins the chain without gifts or obligations."
+
+choice
+  handle: custom_door
+  name: "Custom Door"
+  layout: custom_door_layout
+  group: customization_controls
+  selection: toggle
+  tag: crafting
+  cost: 100
+
+  text
+    handle: description
+    content: "Name and configure the first private door in your chain."
+
+  input
+    handle: door_name
+    selection: text
+
+    grant
+      kind: property
+      handle: door_name
+
+  input
+    handle: door_count
+    selection: integer
+    min: 0
+    max: 6
+
+    grant
+      kind: property
+      handle: door_count
+
+  input
+    handle: door_material
+    selection: select
+    option: "Oak"
+    option: "Brass"
+    option: "Starlight"
+
+    grant
+      kind: property
+      handle: door_material
+
+  grant
+    kind: perk
+    name: "Keeper of {{door_name}}"
+    tag: "door craft"
+
+    text
+      handle: description
+      content: "Your {{door_material}} door answers to the name {{door_name}}."
+
+section-layout
+  handle: introduction_layout
+
+  stack
+    handle: root
+    gap: md
+    slot: name
+    image: threshold_mark
+    text: introduction
+
+section-layout
+  handle: identity_layout
+
+  grid
+    handle: root
+    columns: 2
+    gap: md
+    choice: origin_field
+    choice: gender_field
+    choice: age_field
+    choice: alias_field
+    choice: unbounded_field
+
+section-layout
+  handle: customization_layout
+
+  stack
+    handle: root
+    gap: md
+    slot: name
+    choice: custom_door_field
+
+choice-layout
+  handle: custom_door_layout
+
+  stack
+    handle: root
+    gap: sm
+    slot: name
+    slot: cost
+    text: description
+    slot: tags
+    slot: control
+    input: door_name
+    input: door_count
+    input: door_material

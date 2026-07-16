@@ -1,0 +1,297 @@
+section-layout
+  handle: engine_section
+  name: "Engine Default Section"
+
+  stack
+    handle: root
+    gap: md
+    slot: name
+    expand
+
+choice-layout
+  handle: engine_card
+  name: "Engine Card"
+
+  stack
+    handle: root
+    gap: sm
+
+    inline
+      handle: heading
+      justify: between
+      slot: name
+      slot: cost
+
+    slot: tags
+    text: description
+    image: visual
+    slot: control
+    slot: roll
+
+trait-layout
+  handle: engine_trait
+
+  inline
+    handle: root
+    gap: sm
+    slot: name
+    text: description
+
+trait-layout
+  handle: signal_trait
+
+  stack
+    handle: root
+    gap: xs
+    padding: sm
+    background: engine_ink
+    text-color: white
+    slot: name
+    text: description
+
+section-layout
+  handle: token_gallery
+
+  stack
+    handle: root
+    gap: none
+    padding: xs
+    background: engine_ink
+    align: start
+    justify: start
+    text-align: start
+    text-size: xs
+    text-color: white
+    slot: name
+
+    wrap
+      handle: colors
+      gap: sm
+      padding: md
+      align: center
+      justify: center
+      text-align: center
+      text-size: sm
+      background: gray
+      text-color: white
+
+      stack
+        handle: black_swatch
+        gap: xs
+        padding: sm
+        background: black
+        text: overview
+
+      stack
+        handle: white_swatch
+        gap: xs
+        padding: sm
+        background: white
+        text-color: black
+        text: overview
+
+      stack
+        handle: red_swatch
+        gap: xs
+        padding: sm
+        background: red
+        text: overview
+
+      stack
+        handle: orange_swatch
+        gap: xs
+        padding: sm
+        background: orange
+        text-color: black
+        text: overview
+
+      stack
+        handle: yellow_swatch
+        gap: xs
+        padding: sm
+        background: yellow
+        text-color: black
+        text: overview
+
+      stack
+        handle: green_swatch
+        gap: xs
+        padding: sm
+        background: green
+        text: overview
+
+      stack
+        handle: blue_swatch
+        gap: xs
+        padding: sm
+        background: blue
+        text: overview
+
+      stack
+        handle: purple_swatch
+        gap: xs
+        padding: sm
+        background: purple
+        text: overview
+
+      stack
+        handle: brown_swatch
+        gap: xs
+        padding: sm
+        background: brown
+        text: overview
+
+      stack
+        handle: pink_swatch
+        gap: xs
+        padding: sm
+        background: pink
+        text-color: black
+        text: overview
+
+      stack
+        handle: themed_swatch
+        gap: xs
+        padding: sm
+        background: engine_gold
+        text: overview
+
+      stack
+        handle: hex_swatch
+        gap: xs
+        padding: sm
+        background: "#315B66"
+        text: overview
+
+    inline
+      handle: alignments
+      gap: lg
+      padding: xl
+      align: end
+      justify: end
+      text-align: end
+      text-size: lg
+      text: overview
+
+    grid
+      handle: sizes
+      columns: 3
+      gap: 2xl
+      padding: 2xl
+      align: stretch
+      justify: between
+      text-align: justify
+      text-size: xl
+
+      text
+        target: overview
+        text-size: md
+
+      text
+        target: overview
+        text-size: 2xl
+
+      image
+        target: engine_mark
+        size: xs
+        fit: contain
+
+      image
+        target: engine_mark
+        size: sm
+        fit: cover
+
+      image
+        target: engine_mark
+        size: md
+
+      image
+        target: engine_mark
+        size: lg
+
+      image
+        target: engine_mark
+        size: xl
+
+      image
+        target: engine_mark
+        size: 2xl
+
+      image
+        target: engine_mark
+        width: 2xl
+        height: sm
+        fit: contain
+
+    rule
+    text: overview
+
+section-layout
+  handle: calibration_layout
+
+  stack
+    handle: root
+    gap: md
+    slot: name
+    text: calibration_note
+
+    grid
+      handle: controls
+      columns: 2
+      gap: md
+      choice: tier_field
+      choice: path_field
+      choice: enabled_field
+      choice: gender_field
+
+section-layout
+  handle: measures_layout
+
+  stack
+    handle: root
+    gap: md
+    slot: name
+
+    expand
+      source: measures
+      using: engine_card
+
+section-layout
+  handle: mixed_sources_layout
+
+  stack
+    handle: root
+    gap: md
+    slot: name
+
+    expand
+      source: first_path
+      using: engine_card
+
+    rule
+
+    expand
+      source: second_path
+
+section-layout
+  handle: single_source_layout
+
+  stack
+    handle: root
+    gap: md
+    slot: name
+    expand
+
+choice-layout
+  handle: input_measure_card
+
+  stack
+    handle: root
+    gap: sm
+    slot: name
+    slot: cost
+    text: description
+    slot: control
+
+    input
+      target: cache_quantity

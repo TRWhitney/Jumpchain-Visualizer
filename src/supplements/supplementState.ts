@@ -170,17 +170,17 @@ export const initialSupplementState: SupplementState = {
     jumps: [
       {
         id: "entry-0",
-        name: "First Step",
+        name: "Threshold of a Thousand Roads",
         chapters: [
           {
             id: "door",
-            title: "A Door Opens",
+            title: "The First Door",
             source:
-              "Morgan stepped beyond the familiar world with one pack and no promise of a return.",
+              "Morgan stepped through the first bright doorway and entered the city of a thousand roads.",
           },
           {
             id: "choice",
-            title: "The First Choice",
+            title: "A Name for the Road",
             source:
               "The road ahead was frightening, but it was finally **theirs to choose**.",
           },
@@ -188,30 +188,31 @@ export const initialSupplementState: SupplementState = {
       },
       {
         id: "entry-1",
-        name: "Arcane Realms",
+        name: "The Confluence Engine",
         chapters: [
           {
             id: "gates",
-            title: "The Violet Gates",
-            source: "**The gates of Highcourt** opened beneath a violet sky.",
+            title: "The Engine Wakes",
+            source:
+              "**The Confluence Engine** woke beneath a many-colored sky.",
           },
           {
             id: "market",
-            title: "A Market of Promises",
+            title: "Prism Alignment",
             source:
-              "I followed **Mira** through the market, where *every promise* seemed to carry a price.",
+              "I followed **Lyra** through the gallery, where *every rule* seemed to carry a price.",
           },
           {
             id: "oath",
             title: "",
             source:
-              "By dusk, the old bargain was ~~broken~~ ++rewritten++ in {{#74d8a1|green fire}}.",
+              "By dusk, the old alignment was ~~broken~~ ++rewritten++ in {{#74d8a1|engine light}}.",
           },
         ],
       },
       {
         id: "entry-2",
-        name: "Cosmic Odyssey",
+        name: "The Last Trial",
         chapters: [],
       },
     ],

@@ -1,0 +1,398 @@
+choice
+  handle: engine_tier
+  name: "Engine Tier"
+  name when tier >= 4: "Engine Tier · Transcendent"
+  group: calibration_controls
+  selection: integer
+  min: 0
+  max: 5
+  cost: 0
+
+  grant
+    kind: property
+    handle: tier
+
+choice
+  handle: engine_path
+  name: "Engine Path"
+  group: calibration_controls
+  selection: select
+  option: "Foundation"
+  option when tier >= 3: "Foundation Prime"
+  option: "Synthesis"
+  option when engine_enabled and tier > 0: "Living Synthesis"
+  option: "Horizon"
+  cost: 0
+
+  grant
+    kind: property
+    handle: engine_path
+
+choice
+  handle: engine_enabled
+  name: "Activate the Engine"
+  group: calibration_controls
+  selection: toggle
+  cost: 0
+
+  grant
+    kind: property
+    handle: engine_enabled
+    value: true
+
+choice
+  handle: confluence_gender
+  name: "Confluence Gender"
+  group: calibration_controls
+  selection: select
+  continuity: original
+  option: "Female"
+  option: "Male"
+  option: "Nonbinary"
+  cost: 100
+
+  grant
+    kind: property
+    handle: gender
+
+choice
+  handle: debt_offset
+  name: "Paradox Ground"
+  group: scales
+  tag: meta
+  tag: crafting
+  cost: 0
+
+  grant
+    kind: resource
+    resource: paradox
+    amount: 2
+
+  grant: perk
+
+choice
+  handle: scale_trivial
+  name: "Trivial Calibration"
+  group: scales
+  cost: trivial
+  grant: perk
+
+choice
+  handle: scale_small
+  name: "Small Calibration"
+  group: scales
+  cost: small
+  grant: perk
+
+choice
+  handle: scale_medium
+  name: "Medium Calibration"
+  group: scales
+  cost: medium
+  grant: perk
+
+choice
+  handle: scale_large
+  name: "Large Calibration"
+  group: scales
+  cost: large
+  grant: perk
+
+choice
+  handle: scale_major
+  name: "Major Calibration"
+  group: scales
+  cost: major
+  grant: perk
+
+choice
+  handle: scale_extreme
+  name: "Extreme Calibration"
+  group: scales
+  cost: extreme
+  grant: perk
+
+choice
+  handle: award_trivial
+  name: "Trivial Service"
+  group: scales
+  cost: add_trivial
+  grant: perk
+
+choice
+  handle: award_small
+  name: "Small Service"
+  group: scales
+  cost: add_small
+  grant: perk
+
+choice
+  handle: award_medium
+  name: "Medium Service"
+  group: scales
+  cost: add_medium
+  grant: perk
+
+choice
+  handle: award_large
+  name: "Large Service"
+  group: scales
+  cost: add_large
+  grant: perk
+
+choice
+  handle: award_major
+  name: "Major Service"
+  group: scales
+  cost: add_major
+  grant: perk
+
+choice
+  handle: award_extreme
+  name: "Extreme Service"
+  group: scales
+  cost: add_extreme
+  grant: perk
+
+choice
+  handle: multi_resource_lens
+  name: "Multi-Resource Lens"
+  group: scales
+  tag: technology
+  tag: magic
+  cost: 100
+
+  cost
+    resource: resonance
+    amount: 2
+
+  cost
+    resource: facets
+    amount: 0
+
+  grant: item
+
+choice
+  handle: resource_spectrum
+  name: "Resource Spectrum"
+  group: scales
+  cost: 0
+
+  grant
+    kind: resource
+    resource: resonance
+    amount: trivial
+
+  grant
+    kind: resource
+    resource: facets
+    amount: small
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: medium
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: large
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: major
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: extreme
+
+  grant
+    kind: resource
+    resource: facets
+    amount: 0
+
+  grant
+    kind: resource
+    resource: paradox
+    amount: -1
+
+choice
+  handle: adaptive_mastery
+  name: "Adaptive Mastery"
+  group: measures
+  selection: integer
+  min: 0
+  max: 5
+  tag: mental
+
+  cost
+    resource: jump_points
+    amount: 50
+    mode: each
+
+  grant: perk
+
+  text
+    handle: description
+    content: "A dormant discipline."
+    content when rank >= 4: "A transcendent discipline at rank {{rank}}."
+    content when rank >= 2: "A practiced discipline at rank {{rank}}."
+
+choice
+  handle: explicit_resonance_rank
+  name: "Resonance Rank"
+  group: measures
+  selection: integer
+  min: 0
+  max: 5
+  cost: 0
+  grant: perk
+  measure: rank
+
+choice
+  handle: facet_crates
+  name: "Facet Crates"
+  group: measures
+  selection: integer
+  min: 0
+  max: 8
+  tag: crafting
+  cost: 0
+  grant: item
+  measure: quantity
+
+  text
+    handle: description
+    content: "No crates are currently aligned."
+    content when count >= 4: "A warehouse lot of {{count}} aligned facet crates."
+    content when count >= 2: "A useful stack of {{count}} aligned facet crates."
+
+choice
+  handle: layered_trait
+  name: "Layered Existence"
+  group: measures
+  selection: integer
+  min: 0
+  max: 4
+  cost: 0
+
+  grant
+    kind: trait
+    measure: quantity
+    layout: signal_trait
+    tag: meta
+
+choice
+  handle: calibrated_cache
+  name: "Calibrated Cache"
+  layout: input_measure_card
+  group: measures
+  cost: 0
+
+  text
+    handle: description
+    content: "Set the cache quantity with a nested integer input."
+
+  input
+    handle: cache_quantity
+    selection: integer
+    min: 0
+    max: 6
+
+    grant
+      kind: item
+      name: "Calibrated Cache Unit"
+      measure: quantity
+
+choice
+  handle: prism_form
+  name: "Prism Form"
+  group: forms
+  tag: magic
+  tag: transformation
+  cost: 300
+
+  text
+    handle: description
+    content: "An alternate body assembled from the Engine's aligned facets."
+
+  grant
+    kind: form
+    handle: prism_form
+
+choice
+  handle: refractive_hide
+  name: "Refractive Hide"
+  group: forms
+  tag: defense
+  cost: 100
+  grant: perk
+  form: prism_form
+
+choice
+  handle: spectrum_mind
+  name: "Spectrum Mind"
+  group: forms
+  tag: mental
+  cost: 100
+
+  grant
+    kind: perk
+    form: prism_form
+    tag: magic
+
+    text
+      handle: description
+      content: "Prism Form perceives several compatible realities at once."
+
+choice
+  handle: conditional_signal
+  name: "Conditional Signal"
+  name when engine_enabled and (tier >= 3 or engine_path = "Horizon"): "Conditional Signal · Stable"
+  group: first_path
+  tag: technology
+  tag: pyrokinesis
+  tag: cryokinesis
+  cost: 0
+  grant: perk
+
+  text
+    handle: description
+    content: "The Engine is quiet."
+    content when tier < 0: "A negative tier is a deliberately unreachable condition fixture."
+    content when engine_enabled = false: "The Engine is explicitly disabled."
+    content when !engine_enabled: "The Engine remains deliberately inactive."
+    content when tier != 0 and tier <= 2: "The Engine is active at an early tier."
+    content when tier > 2 and engine_path = "Synthesis": "The Engine sings in synthesis."
+
+  image
+    handle: visual
+    src: "assets/confluence-engine.svg"
+    alt: "An inactive Engine signal"
+    alt when engine_enabled: "An active Engine signal at tier {{tier}}"
+
+choice
+  handle: second_path_anchor
+  name: "Second Path Anchor"
+  group: second_path
+  tag: spiritual
+  cost: 0
+  grant: perk
+
+choice
+  handle: second_path_compass
+  name: "Second Path Compass"
+  group: second_path
+  tag: technology
+  cost: 0
+  grant: item
+
+choice
+  handle: implicit_expansion
+  name: "Implicit Expansion"
+  group: only_path
+  tag: miscellaneous
+  cost: 0
+  grant: perk

@@ -8,6 +8,23 @@ import { bestialPresentation } from "../supplements/bodyMod";
 import { EARTH_ENTRY_ID, type TrackerState } from "./model";
 import { supplementEvaluationInputs } from "./supplementEvaluation";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizedCachedEvaluation(value: unknown): ChainEvaluation | null {
+  if (!isRecord(value)) return null;
+  const cached = value as Partial<ChainEvaluation>;
+  if (!isRecord(cached.runtime) || !isRecord(cached.actors)) return null;
+  return {
+    runtime: cached.runtime,
+    actors: cached.actors,
+    records: Array.isArray(cached.records) ? cached.records : [],
+    forms: Array.isArray(cached.forms) ? cached.forms : [],
+    companions: Array.isArray(cached.companions) ? cached.companions : [],
+  };
+}
+
 const earthActor = (
   state: TrackerState,
   bodyMod: BodyModState | null,
@@ -97,7 +114,7 @@ export function evaluateTracker(
       );
     }),
   );
-  const cached = state.lastValidatedEvaluation;
+  const cached = normalizedCachedEvaluation(state.lastValidatedEvaluation);
   if (cached && unavailableEntries.size) {
     const cachedActors = new Set(
       Object.values(cached.actors)

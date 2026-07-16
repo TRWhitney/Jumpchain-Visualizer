@@ -1283,10 +1283,14 @@ function RecordModal({ state, dispatch }: TrackerProps) {
 function ProfileModal({ state, dispatch }: TrackerProps) {
   if (!state.activeProfile) return null;
   const isForm = state.activeProfile === "form";
-  const form = state.forms.find((item) => item.id === state.selectedFormId);
-  const companion = state.companions.find(
-    (item) => item.actorId === state.selectedCompanionId,
-  );
+  const form = isForm
+    ? state.forms.find((item) => item.id === state.selectedFormId)
+    : undefined;
+  const companion = isForm
+    ? undefined
+    : state.companions.find(
+        (item) => item.actorId === state.selectedCompanionId,
+      );
   if ((isForm && !form) || (!isForm && !companion)) return null;
   const actor = companion ? state.actors[companion.actorId] : null;
   const name = form?.name ?? actor?.name ?? "Profile";

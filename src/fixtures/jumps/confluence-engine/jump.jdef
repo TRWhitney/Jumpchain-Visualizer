@@ -1,0 +1,134 @@
+jump
+  format: 1
+  name: "The Confluence Engine"
+  author: "Jumpchain Visualizer"
+  author: "The Cartographers of Threshold"
+  version: "1.0"
+  starting-points: 1600
+  points-name: "Confluence Charge"
+  points-abbreviation: "CC"
+  section-layout: engine_section
+  choice-layout: engine_card
+  trait-layout: engine_trait
+
+resource
+  handle: resonance
+  name: "Resonance"
+  abbreviation: "RS"
+  initial: 6
+
+resource
+  handle: facets
+  name: "Engine Facets"
+  initial: 0
+
+resource
+  handle: paradox
+  name: "Paradox Debt"
+  initial: -2
+
+theme
+  handle: engine_gold
+  name: "Engine Gold"
+  color: "#8A6418"
+
+theme
+  handle: engine_ink
+  color: "#202633"
+
+section
+  handle: gallery
+  name: "The Engine Gallery"
+  layout: token_gallery
+
+  text
+    handle: overview
+    content:
+      """
+      The Engine brings **different rules** into one readable system.
+
+      Its galleries demonstrate authored spacing, alignment, color, imagery, and repeated content placement.
+      """
+
+  image
+    handle: engine_mark
+    src: "assets/confluence-engine.svg"
+    alt: "The Confluence Engine aligned to {{engine_path}}"
+
+section
+  handle: calibration
+  name: "Calibrate the Engine"
+  layout: calibration_layout
+
+  choice
+    handle: tier_field
+    target: engine_tier
+
+  choice
+    handle: path_field
+    target: engine_path
+
+  choice
+    handle: enabled_field
+    target: engine_enabled
+
+  choice
+    handle: gender_field
+    target: confluence_gender
+
+  text
+    handle: calibration_note
+    content: "Set a path, tier, and activation state. Conditional content responds immediately."
+
+section
+  handle: scales
+  name: "Cost and Grant Scales"
+
+  choice-source
+    handle: scales
+    group: scales
+    mode: multi
+
+section
+  handle: measures
+  name: "Ranks, Quantities, and Traits"
+  layout: measures_layout
+
+  choice-source
+    handle: measures
+    group: measures
+    mode: multi
+
+section
+  handle: forms
+  name: "Engine Forms"
+
+  choice-source
+    handle: forms
+    group: forms
+    mode: multi
+
+section
+  handle: mixed_sources
+  name: "Two Expansion Paths"
+  layout: mixed_sources_layout
+
+  choice-source
+    handle: first_path
+    group: first_path
+    mode: single
+
+  choice-source
+    handle: second_path
+    group: second_path
+    mode: multi
+
+section
+  handle: single_source
+  name: "Implicit Expansion Source"
+  layout: single_source_layout
+
+  choice-source
+    handle: only_path
+    group: only_path
+    mode: multi

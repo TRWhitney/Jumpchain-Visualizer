@@ -101,12 +101,12 @@ describe("tag profiles", () => {
       false,
     );
     expect(
-      candidates.find((candidate) => candidate.name === "Highcourt Etiquette")
+      candidates.find((candidate) => candidate.name === "Door Craft")
         ?.packageNames,
-    ).toEqual(["Arcane Realms"]);
+    ).toEqual(["Threshold of a Thousand Roads"]);
 
     const refreshed = refreshInstalledTags(profile, installedPackages);
-    const acquired = refreshed.profile.tags["highcourt-etiquette"];
+    const acquired = refreshed.profile.tags["door-craft"];
     expect(acquired.source).toBe("acquired");
     expect(acquired.parent).toBe("miscellaneous");
     expect(acquired.presentation.colors).not.toEqual(

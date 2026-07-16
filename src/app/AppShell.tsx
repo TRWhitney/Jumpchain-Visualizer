@@ -19,7 +19,8 @@ import { ChainTracker } from "../tracker/ChainTracker";
 import {
   createBlankTrackerFixture,
   createDenseTrackerFixture,
-  createSampleTrackerFixture,
+  DEMONSTRATION_CHAIN_ID,
+  reconcileDemonstrationPackageBindings,
 } from "../tracker/fixtures";
 import { StaticTagRadar } from "../tracker/TagRadar";
 import {
@@ -115,18 +116,10 @@ function AppShellContent() {
   const [chainStates, setChainStates] = useState<Record<string, TrackerState>>(
     () =>
       Object.fromEntries(
-        Object.values(createChainRegistryFixture().chains).map(
-          (chain, index) => [
-            chain.id,
-            index === 0
-              ? { ...createDenseTrackerFixture(), chainName: chain.name }
-              : createSampleTrackerFixture(
-                  chain.name,
-                  chain.jumpCount,
-                  index * 2,
-                ),
-          ],
-        ),
+        Object.values(createChainRegistryFixture().chains).map((chain) => [
+          chain.id,
+          { ...createDenseTrackerFixture(), chainName: chain.name },
+        ]),
       ),
   );
   const chainStatesRef = useRef(chainStates);
@@ -178,9 +171,11 @@ function AppShellContent() {
     backgroundRoute.kind === "chain-workspace"
       ? chainRegistry.chains[backgroundRoute.chainId]
       : undefined;
-  const activeChainId = activeChain?.id ?? "ch-92b1";
-  const trackerState =
-    chainStates[activeChainId] ?? createBlankTrackerFixture(activeChain?.name);
+  const activeChainId = activeChain?.id ?? DEMONSTRATION_CHAIN_ID;
+  const trackerState = reconcileDemonstrationPackageBindings(
+    chainStates[activeChainId] ?? createBlankTrackerFixture(activeChain?.name),
+    activeChainId,
+  );
   const projectedTags = useMemo(
     () => projectTagDefinitions(settings.tags.profile),
     [settings.tags.profile],
@@ -238,7 +233,10 @@ function AppShellContent() {
             const base =
               current[aggregate.id] ??
               createBlankTrackerFixture(aggregate.name);
-            next[aggregate.id] = applyAggregate(base, aggregate);
+            next[aggregate.id] = reconcileDemonstrationPackageBindings(
+              applyAggregate(base, aggregate),
+              aggregate.id,
+            );
           }
           return next;
         });
@@ -394,7 +392,7 @@ function AppShellContent() {
       const currentState =
         chainStatesRef.current[activeChainId] ?? trackerState;
       const effectiveCurrentState = {
-        ...currentState,
+        ...reconcileDemonstrationPackageBindings(currentState, activeChainId),
         tags: projectedTags,
         preferences: trackerPreferences,
       };

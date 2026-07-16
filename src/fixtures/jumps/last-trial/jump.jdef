@@ -1,0 +1,688 @@
+jump
+  format: 1
+  name: "The Last Trial"
+  author: "Jumpchain Visualizer"
+  version: "1.0"
+  gauntlet: true
+  choice-layout: trial_card
+
+resource
+  handle: trial_marks
+  name: "Trial Marks"
+  abbreviation: "TM"
+  initial: 3
+
+section
+  handle: introduction
+  name: "The Last Trial"
+  layout: trial_introduction
+
+  text
+    handle: introduction
+    content: "The final gate measures what you choose when every advantage is stripped away."
+    content when gauntlet: "The final gate is sealed as a Gauntlet. Earn your resources inside the Trial."
+
+  image
+    handle: trial_mark
+    src: "assets/last-trial.svg"
+    alt: "An open final gate"
+    alt when gauntlet: "A sealed final gate marked as a Gauntlet"
+
+section
+  handle: controls
+  name: "Complete Control Matrix"
+  layout: control_grid
+
+  choice
+    handle: oath_field
+    target: trial_oath
+
+  choice
+    handle: name_field
+    target: trial_name
+
+  choice
+    handle: attempts_field
+    target: extra_attempts
+
+  choice
+    handle: manual_training_field
+    target: manual_training
+
+  choice
+    handle: age_field
+    target: random_age
+
+  choice
+    handle: random_training_field
+    target: random_training
+
+  choice
+    handle: power_field
+    target: power_rank
+
+  choice
+    handle: techniques_field
+    target: technique_ranks
+
+  choice
+    handle: region_field
+    target: starting_region
+
+  choice
+    handle: destiny_field
+    target: destiny
+
+  choice
+    handle: element_field
+    target: element
+
+  choice
+    handle: stipend_field
+    target: danger_stipend
+
+  choice
+    handle: requisition_field
+    target: trial_requisition
+
+  choice
+    handle: gender_field
+    target: trial_gender
+
+section
+  handle: single_manual
+  name: "Manual Assignment"
+
+  choice-source
+    handle: assignment
+    group: single_manual
+    mode: single
+
+section
+  handle: single_random
+  name: "Random Assignment"
+
+  choice-source
+    handle: assignment
+    group: single_random
+    mode: single
+    resolution: random
+
+section
+  handle: single_either
+  name: "Chosen or Random Assignment"
+
+  choice-source
+    handle: assignment
+    group: single_either
+    mode: single
+    resolution: either
+
+section
+  handle: multi_manual
+  name: "Manual Electives"
+
+  choice-source
+    handle: electives
+    group: multi_manual
+    mode: multi
+
+section
+  handle: multi_random
+  name: "Random Electives"
+
+  choice-source
+    handle: electives
+    group: multi_random
+    mode: multi
+    resolution: random
+
+section
+  handle: multi_either
+  name: "Chosen or Random Electives"
+
+  choice-source
+    handle: electives
+    group: multi_either
+    mode: multi
+    resolution: either
+
+section
+  handle: companions
+  name: "Company in the Trial"
+
+  choice-source
+    handle: companions
+    group: companions
+    mode: multi
+
+section
+  handle: participant_choices
+  name: "Participant Choices"
+
+  choice-source
+    handle: participant_choices
+    group: participant_choices
+    mode: multi
+
+choice
+  handle: trial_stipend
+  name: "The Trial's Allowance"
+  group: participant_choices
+  tag: meta
+  cost: add_extreme
+
+  grant
+    kind: resource
+    resource: trial_marks
+    amount: 3
+
+choice
+  handle: trial_oath
+  name: "Trial Oath"
+  group: control_matrix
+  tag: spiritual
+  cost: 0
+  grant: perk
+
+choice
+  handle: trial_name
+  name: "Trial Name"
+  group: control_matrix
+  selection: text
+  tag: identity
+  cost: 0
+
+  grant
+    kind: property
+    handle: trial_name
+
+choice
+  handle: extra_attempts
+  name: "Extra Attempts"
+  group: control_matrix
+  selection: integer
+  min: 0
+  max: 5
+  tag: meta
+  cost: 200
+  grant: perk
+
+choice
+  handle: manual_training
+  name: "Manual Training"
+  group: control_matrix
+  selection: integer
+  min: 0
+  max: 5
+  tag: combat
+
+  cost
+    resource: jump_points
+    amount: 50
+    mode: each
+
+  grant: perk
+
+choice
+  handle: random_age
+  name: "Random Age"
+  group: control_matrix
+  selection: integer
+  min: 18
+  max: 42
+  resolution: random
+  tag: identity
+  cost: 200
+
+  grant
+    kind: property
+    handle: age
+
+choice
+  handle: random_training
+  name: "Random Training"
+  group: control_matrix
+  selection: integer
+  min: 1
+  max: 5
+  resolution: random
+  tag: training
+
+  cost
+    resource: jump_points
+    amount: 50
+    mode: each
+
+  grant: perk
+
+choice
+  handle: power_rank
+  name: "Power Rank"
+  group: control_matrix
+  selection: integer
+  min: 1
+  max: 5
+  resolution: either
+  tag: magic
+  cost: 300
+  grant: perk
+
+choice
+  handle: technique_ranks
+  name: "Technique Ranks"
+  group: control_matrix
+  selection: integer
+  min: 0
+  max: 5
+  resolution: either
+  tag: combat
+
+  cost
+    resource: jump_points
+    amount: 50
+    mode: each
+
+  grant: perk
+
+choice
+  handle: starting_region
+  name: "Starting Region"
+  group: control_matrix
+  selection: select
+  option: "North Gate"
+  option: "Central Arena"
+  option: "Silent Coast"
+  tag: location
+  cost: 100
+
+  grant
+    kind: property
+    handle: location
+
+choice
+  handle: destiny
+  name: "Destiny"
+  group: control_matrix
+  selection: select
+  resolution: random
+  option: "Guide"
+  option: "Champion"
+  option: "Witness"
+  tag: spiritual
+  cost: 100
+  grant: perk
+
+choice
+  handle: element
+  name: "Element"
+  group: control_matrix
+  selection: select
+  resolution: either
+  option: "Fire"
+  option: "Water"
+  option: "Wind"
+  tag: magic
+  cost: 200
+  grant: perk
+
+choice
+  handle: danger_stipend
+  name: "Danger Stipend"
+  group: control_matrix
+  selection: select
+  resolution: either
+  option: "Accept"
+  option: "Decline"
+  tag: challenge
+  cost: -100
+
+choice
+  handle: trial_requisition
+  name: "Trial Requisition"
+  group: control_matrix
+  selection: select
+  resolution: either
+  option: "Field Kit"
+  option: "Archive Kit"
+  tag: equipment
+
+  cost
+    resource: jump_points
+    amount: 100
+
+  cost
+    resource: trial_marks
+    amount: 2
+
+  grant: item
+
+choice
+  handle: trial_gender
+  name: "Trial Gender"
+  group: control_matrix
+  selection: select
+  continuity: original
+  option: "Female"
+  option: "Male"
+  option: "Nonbinary"
+  cost: 100
+
+  grant
+    kind: property
+    handle: gender
+
+choice
+  handle: manual_scholar
+  name: "Scholar"
+  group: single_manual
+  cost: 100
+  grant: perk
+
+choice
+  handle: manual_wanderer
+  name: "Wanderer"
+  group: single_manual
+  cost: 200
+  grant: perk
+
+choice
+  handle: random_scholar
+  name: "Scholar"
+  group: single_random
+  cost: 100
+  grant: perk
+
+choice
+  handle: random_wanderer
+  name: "Wanderer"
+  group: single_random
+  cost: 200
+  grant: perk
+
+choice
+  handle: either_scholar
+  name: "Scholar"
+  group: single_either
+  cost: 100
+  grant: perk
+
+choice
+  handle: either_wanderer
+  name: "Wanderer"
+  group: single_either
+  cost: 200
+  grant: perk
+
+choice
+  handle: manual_flight
+  name: "Flight"
+  group: multi_manual
+  cost: 100
+  grant: perk
+
+choice
+  handle: manual_arcane
+  name: "Arcane Study"
+  group: multi_manual
+  cost: 200
+  grant: perk
+
+choice
+  handle: random_flight
+  name: "Flight"
+  group: multi_random
+  cost: 100
+  grant: perk
+
+choice
+  handle: random_arcane
+  name: "Arcane Study"
+  group: multi_random
+  cost: 200
+  grant: perk
+
+choice
+  handle: either_flight
+  name: "Flight"
+  group: multi_either
+  cost: 100
+  grant: perk
+
+choice
+  handle: either_arcane
+  name: "Arcane Study"
+  group: multi_either
+  cost: 200
+  grant: perk
+
+choice
+  handle: aster_companion
+  name: "Aster"
+  group: companions
+  tag: combat
+  cost: 200
+  grant: companion
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 500
+    companion: aster_companion
+
+  grant
+    kind: resource
+    resource: trial_marks
+    amount: 2
+    companion: aster_companion
+
+  grant
+    kind: perk
+    name: "Trial Instinct"
+    companion: aster_companion
+
+choice
+  handle: sentinel_companion
+  name: "The Brass Sentinel"
+  group: companions
+  tag: technology
+  cost: 100
+
+  grant
+    kind: companion
+    handle: brass_sentinel
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 400
+    companion: brass_sentinel
+
+  grant
+    kind: perk
+    name: "Sentinel Protocol"
+    companion: brass_sentinel
+
+choice
+  handle: trial_company
+  name: "Trial Company"
+  layout: company_card
+  group: companions
+  tag: social
+  cost: 100
+
+  text
+    handle: description
+    content: "Import up to two existing companions. Each receives 500 CP and 3 Trial Marks."
+
+  input
+    handle: travelers
+    selection: companions
+    min: 1
+    max: 2
+
+    grant
+      kind: companion-import
+      handle: trial_company
+
+    grant
+      kind: resource
+      resource: jump_points
+      amount: 500
+      companion: trial_company
+
+    grant
+      kind: resource
+      resource: trial_marks
+      amount: 3
+      companion: trial_company
+
+    grant
+      kind: perk
+      name: "Company Pathfinder"
+      companion: trial_company
+
+  grant: perk
+
+choice
+  handle: company_training
+  name: "Company Training"
+  group: companions
+  tag: combat
+  cost: 0
+  grant: perk
+  companion: trial_company
+
+choice
+  handle: participant_resilience
+  name: "Participant Resilience"
+  group: participant_choices
+  tag: defense
+  cost: 100
+  grant: perk
+
+choice
+  handle: participant_kit
+  name: "Participant Kit"
+  group: participant_choices
+  tag: miscellaneous
+  cost: 100
+  grant: item
+
+  grant
+    kind: item
+    name: "Trial Compass"
+
+  grant
+    kind: item
+    name: "Sealed Canteen"
+
+  grant
+    kind: item
+    name: "Arena Cloak"
+
+  grant
+    kind: item
+    name: "Signal Flare"
+
+  grant
+    kind: item
+    name: "Gate Chalk"
+
+choice
+  handle: participant_identity
+  name: "Participant Identity"
+  group: participant_choices
+  selection: select
+  continuity: previous
+  option: "Female"
+  option: "Male"
+  option: "Nonbinary"
+  cost: 0
+
+  grant
+    kind: property
+    handle: gender
+
+choice
+  handle: trial_form
+  name: "Trial Form"
+  group: participant_choices
+  cost: 0
+
+  grant
+    kind: form
+    handle: trial_form
+
+choice
+  handle: trial_form_focus
+  name: "Trial Form Focus"
+  group: participant_choices
+  cost: 0
+  grant: perk
+  form: trial_form
+
+section-layout
+  handle: trial_introduction
+
+  stack
+    handle: root
+    gap: md
+    slot: name
+    image: trial_mark
+    text: introduction
+
+section-layout
+  handle: control_grid
+
+  grid
+    handle: root
+    columns: 2
+    gap: md
+    choice: oath_field
+    choice: name_field
+    choice: attempts_field
+    choice: manual_training_field
+    choice: age_field
+    choice: random_training_field
+    choice: power_field
+    choice: techniques_field
+    choice: region_field
+    choice: destiny_field
+    choice: element_field
+    choice: stipend_field
+    choice: requisition_field
+    choice: gender_field
+
+choice-layout
+  handle: trial_card
+
+  stack
+    handle: root
+    gap: sm
+
+    inline
+      handle: heading
+      justify: between
+      slot: name
+      slot: cost
+
+    slot: tags
+    text: description
+    slot: control
+
+    slot
+      target: roll
+
+choice-layout
+  handle: company_card
+
+  stack
+    handle: root
+    gap: sm
+    slot: name
+    slot: cost
+    text: description
+    slot: tags
+    slot: control
+    input: travelers

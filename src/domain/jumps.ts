@@ -352,6 +352,19 @@ function grantMeasure(
   } satisfies EvaluatedGrantMeasure;
 }
 
+function grantRenderContext(
+  context: RenderContext,
+  grant: JumpGrant,
+  value: string | number | boolean | readonly string[] | null | undefined,
+) {
+  const measure = grantMeasure(grant, value);
+  if (!measure) return context;
+  return {
+    ...context,
+    [measure.kind === "rank" ? "rank" : "count"]: measure.value,
+  };
+}
+
 function visibleGrantIsAcquired(
   value: string | number | boolean | readonly string[] | null | undefined,
 ) {
@@ -627,14 +640,15 @@ function evaluateActor(
   );
   const traits = packageItem.choices.flatMap((choice) => {
     if (!choiceViews[choice.handle]?.active) return [];
-    return choice.grants.flatMap((item, grantIndex): EvaluatedGrantRecord[] =>
-      item.kind === "trait" &&
-      visibleGrantIsAcquired(choiceViews[choice.handle]?.value)
+    const value = choiceViews[choice.handle]?.value;
+    return choice.grants.flatMap((item, grantIndex): EvaluatedGrantRecord[] => {
+      const grantContext = grantRenderContext(context, item, value);
+      return item.kind === "trait" && visibleGrantIsAcquired(value)
         ? [
             {
               id: `grant:${entryId}:${actorId}:${choice.handle}:${grantIndex}`,
               kind: "trait",
-              name: inheritedGrantName(choice, item, context),
+              name: inheritedGrantName(choice, item, grantContext),
               sourceEntryId: entryId,
               ownerActorId: actorId,
               grantHandle: effectiveGrantHandle(choice, item, grantIndex),
@@ -643,15 +657,15 @@ function evaluateActor(
               tags: [
                 ...new Set([...choice.tags, ...item.tags].map(normalizeTag)),
               ],
-              description: inheritedDescription(choice, item, context),
-              measure: grantMeasure(item, choiceViews[choice.handle]?.value),
+              description: inheritedDescription(choice, item, grantContext),
+              measure: grantMeasure(item, value),
               layout: item.layout,
               text: item.text,
               images: item.images,
             },
           ]
-        : [],
-    );
+        : [];
+    });
   });
   return {
     balance: resources.jump_points.balance,
@@ -882,12 +896,17 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
             visibleGrantIsAcquired(evaluatedChoice.value)
           )
             for (const owner of ownersForGrant(item, actorId)) {
+              const grantContext = grantRenderContext(
+                context,
+                item,
+                evaluatedChoice.value,
+              );
               const ownerKey = owner.ownerActorId ?? actorId;
               const id = `grant:${entryId}:${ownerKey}:${choice.handle}:${grantIndex}`;
               records.push({
                 id,
                 kind: item.kind,
-                name: inheritedGrantName(choice, item, context),
+                name: inheritedGrantName(choice, item, grantContext),
                 sourceEntryId: entryId,
                 ownerActorId: owner.ownerActorId,
                 ownerFormId: owner.ownerFormId,
@@ -897,7 +916,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
                 tags: [
                   ...new Set([...choice.tags, ...item.tags].map(normalizeTag)),
                 ],
-                description: inheritedDescription(choice, item, context),
+                description: inheritedDescription(choice, item, grantContext),
                 measure: grantMeasure(item, evaluatedChoice.value),
               });
             }
@@ -914,12 +933,13 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
               visibleGrantIsAcquired(value)
             )
               for (const owner of ownersForGrant(item, actorId)) {
+                const grantContext = grantRenderContext(context, item, value);
                 const ownerKey = owner.ownerActorId ?? actorId;
                 const id = `grant:${entryId}:${ownerKey}:${choice.handle}:input:${inputItem.handle}:${grantIndex}`;
                 records.push({
                   id,
                   kind: item.kind,
-                  name: inheritedGrantName(choice, item, context),
+                  name: inheritedGrantName(choice, item, grantContext),
                   sourceEntryId: entryId,
                   ownerActorId: owner.ownerActorId,
                   ownerFormId: owner.ownerFormId,
@@ -936,7 +956,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
                       [...choice.tags, ...item.tags].map(normalizeTag),
                     ),
                   ],
-                  description: inheritedDescription(choice, item, context),
+                  description: inheritedDescription(choice, item, grantContext),
                   measure: grantMeasure(item, value),
                 });
               }

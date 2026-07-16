@@ -14,42 +14,19 @@ const metadata: Readonly<
     { description: string; source: "builtin" | "imported"; logicalId?: string }
   >
 > = {
-  "first-step": {
-    description: "Begin a chain with dependable foundations.",
+  "threshold-roads": {
+    description:
+      "Enter a city of doors and establish the chain's first identity.",
     source: "builtin",
   },
-  "arcane-realms": {
-    description: "Build a life amid spellcraft and ancient kingdoms.",
+  "confluence-engine": {
+    description:
+      "Align realities through an engine built from compatible rules.",
     source: "imported",
   },
-  "cosmic-odyssey": {
-    description: "Explore distant systems and stellar mysteries.",
-    source: "imported",
-  },
-  "shadow-court": {
-    description: "Navigate immortal intrigue beneath a moonless sky.",
-    source: "imported",
-  },
-  "spirit-road": {
-    description: "Walk between shrines, memories, and restless worlds.",
+  "last-trial": {
+    description: "Complete a native Gauntlet at the final sealed gate.",
     source: "builtin",
-  },
-  "clockwork-sea": {
-    description: "Sail mechanical oceans aboard an impossible vessel.",
-    source: "imported",
-  },
-  "war-of-crowns": {
-    description: "Shape a continent-wide struggle for succession.",
-    source: "imported",
-  },
-  "last-horizon": {
-    description: "Cross the boundary at the end of mapped reality.",
-    source: "builtin",
-  },
-  "arcane-realms-v1-1": {
-    logicalId: "arcane-realms",
-    description: "A separately installed revision of Arcane Realms.",
-    source: "imported",
   },
 };
 

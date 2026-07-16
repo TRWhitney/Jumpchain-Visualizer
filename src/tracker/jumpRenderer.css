@@ -1,5 +1,6 @@
 .format-one-jump-renderer {
   min-height: 100%;
+  color: #5f5a4d;
   color-scheme: light;
 }
 .format-one-jump-renderer > header {
@@ -77,7 +78,7 @@
   line-height: 1.55;
 }
 .format-one-jump-renderer .jump-layout-text {
-  color: #5f5a4d;
+  color: inherit;
 }
 .selection-specimen {
   overflow: hidden;
@@ -228,6 +229,30 @@
 }
 .earth-identity-controls {
   margin: 0 0 1rem;
+}
+.format-one-jump-renderer .earth-identity-controls .control-specimen {
+  color: #26231f;
+  background: #fffdf7;
+  border-color: #d8cfb6;
+}
+.format-one-jump-renderer .earth-identity-controls .control-specimen > header {
+  background: #f5f1e6;
+  border-color: #d8cfb6;
+}
+.format-one-jump-renderer
+  .earth-identity-controls
+  .control-specimen
+  > header
+  > span {
+  color: #5f5a4d;
+}
+.format-one-jump-renderer
+  .earth-identity-controls
+  .control-specimen
+  > header
+  code {
+  color: #5f5a4d;
+  background: #e8e2d5;
 }
 .chain-gauntlet-action {
   align-self: center;

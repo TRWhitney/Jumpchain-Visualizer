@@ -16,7 +16,7 @@ import {
   openApplicationDatabase,
 } from "../platform/indexedDb";
 
-export const CHAIN_SCHEMA_VERSION = 1 as const;
+export const CHAIN_SCHEMA_VERSION = 2 as const;
 
 export type ChainAggregate = {
   schemaVersion: typeof CHAIN_SCHEMA_VERSION;

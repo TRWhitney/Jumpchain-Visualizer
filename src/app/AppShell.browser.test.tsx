@@ -59,7 +59,7 @@ test("the real Chain Tracker mounts without duplicate application chrome and ret
   ).toBeNull();
   expect(
     document.querySelectorAll(".app-chain-workspace .chain-jump-entry"),
-  ).toHaveLength(9);
+  ).toHaveLength(4);
   await page.getByRole("tab", { name: /^Inventory/ }).click();
 
   await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
@@ -72,15 +72,15 @@ test("the real Chain Tracker mounts without duplicate application chrome and ret
     .toBeEnabled();
 });
 
-test("the chain hub creates and renames records and Home limits recents", async () => {
+test("the chain hub creates and renames records from the single demo chain", async () => {
   render(<AppShell />);
   const homeChains = page.getByRole("region", { name: "Chains" });
   await expect.element(homeChains).toBeVisible();
   expect(
     homeChains.element().querySelectorAll(".app-recent-work"),
-  ).toHaveLength(5);
-  await homeChains.getByRole("button", { name: "View all 8 chains" }).click();
-  expect(document.querySelectorAll(".app-chain-card")).toHaveLength(8);
+  ).toHaveLength(1);
+  await page.getByRole("button", { name: "Open Chain Tracker" }).click();
+  expect(document.querySelectorAll(".app-chain-card")).toHaveLength(1);
 
   await page.getByLabelText("Start a new chain").fill("Lantern Road");
   await page.getByRole("button", { name: "Start Chain" }).click();
@@ -127,7 +127,7 @@ test("primary-tag name colors are opt-in while summaries remain available", asyn
     .toBeVisible();
   expect(
     document.querySelectorAll(".app-recent-work strong.is-primary-tag-colored"),
-  ).toHaveLength(5);
+  ).toHaveLength(1);
   await page.getByRole("button", { name: "Open Chain Tracker" }).click();
   await expect
     .element(page.getByRole("button", { name: "Show Morgan tag summary" }))
@@ -135,7 +135,7 @@ test("primary-tag name colors are opt-in while summaries remain available", asyn
   const coloredNames = document.querySelectorAll(
     ".app-chain-card-copy h3.is-primary-tag-colored",
   );
-  expect(coloredNames).toHaveLength(8);
+  expect(coloredNames).toHaveLength(1);
   expect(coloredNames[0].getAttribute("data-primary-tag")).toBe("magic");
 });
 

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createDenseTrackerFixture } from "./fixtures";
+import {
+  createDenseTrackerFixture,
+  DEMONSTRATION_CHAIN_ID,
+  reconcileDemonstrationPackageBindings,
+} from "./fixtures";
 import { EARTH_ENTRY_ID, EARTH_ENTRY_STATUS } from "./model";
 import {
   aggregateFromTracker,
@@ -47,5 +51,36 @@ describe("chain repository", () => {
       aggregateFromTracker("normalized", hydrated).entries[EARTH_ENTRY_ID]
         .status,
     ).toBe(EARTH_ENTRY_STATUS);
+  });
+
+  it("rebinds only the canonical demonstration packages while preserving state", () => {
+    const base = createDenseTrackerFixture();
+    const stale = aggregateFromTracker(DEMONSTRATION_CHAIN_ID, base);
+    stale.entries["entry-2"] = {
+      ...stale.entries["entry-2"],
+      packageExactHash: "sha256:older-canonical-demo-package",
+    };
+    stale.jumpState["entry-2"].actors.jumper.choices.trial_name =
+      "Persistence Marker";
+
+    const hydrated = reconcileDemonstrationPackageBindings(
+      applyAggregate(base, stale),
+      stale.id,
+    );
+
+    expect(hydrated.entries["entry-2"].packageExactHash).toBe(
+      base.entries["entry-2"].packageExactHash,
+    );
+    expect(hydrated.jumpState["entry-2"].actors.jumper.choices.trial_name).toBe(
+      "Persistence Marker",
+    );
+
+    const ordinary = { ...stale, id: "user-chain" };
+    expect(
+      reconcileDemonstrationPackageBindings(
+        applyAggregate(base, ordinary),
+        ordinary.id,
+      ).entries["entry-2"].packageExactHash,
+    ).toBe("sha256:older-canonical-demo-package");
   });
 });

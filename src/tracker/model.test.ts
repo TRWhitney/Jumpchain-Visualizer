@@ -464,7 +464,7 @@ describe("Chain Tracker aggregate", () => {
     ).toBe(true);
   });
 
-  it("scopes Inventory search and Stats to Jumper-owned records", () => {
+  it("scopes Inventory to the Jumper and radar records to the Jumper and forms", () => {
     const fixture = createDenseTrackerFixture();
     const template = fixture.records[0];
     const state = {
@@ -475,6 +475,15 @@ describe("Chain Tracker aggregate", () => {
           id: "jumper-perk",
           kind: "perk" as const,
           ownerActorId: "jumper",
+          ownerFormId: undefined,
+          tags: ["magic"],
+        },
+        {
+          ...template,
+          id: "form-perk",
+          kind: "perk" as const,
+          ownerActorId: undefined,
+          ownerFormId: "form:magic",
           tags: ["magic"],
         },
         {
@@ -482,6 +491,31 @@ describe("Chain Tracker aggregate", () => {
           id: "companion-perk",
           kind: "perk" as const,
           ownerActorId: "ash",
+          ownerFormId: undefined,
+          tags: ["magic"],
+        },
+        {
+          ...template,
+          id: "jumper-item",
+          kind: "item" as const,
+          ownerActorId: "jumper",
+          ownerFormId: undefined,
+          tags: ["magic"],
+        },
+        {
+          ...template,
+          id: "form-item",
+          kind: "item" as const,
+          ownerActorId: undefined,
+          ownerFormId: "form:magic",
+          tags: ["magic"],
+        },
+        {
+          ...template,
+          id: "companion-item",
+          kind: "item" as const,
+          ownerActorId: "ash",
+          ownerFormId: undefined,
           tags: ["magic"],
         },
       ],
@@ -489,9 +523,16 @@ describe("Chain Tracker aggregate", () => {
 
     expect(filteredInventory(state).map((record) => record.id)).toEqual([
       "jumper-perk",
+      "jumper-item",
     ]);
-    expect(radarCounts(state).magic).toBe(1);
-    expect(tagBreakdown(state, "magic")?.count).toBe(1);
+    expect(radarCounts(state).magic).toBe(2);
+    expect(tagBreakdown(state, "magic")?.count).toBe(2);
+    const withItems = {
+      ...state,
+      preferences: { ...state.preferences, includeItemTagsInRadar: true },
+    };
+    expect(radarCounts(withItems).magic).toBe(4);
+    expect(tagBreakdown(withItems, "magic")?.count).toBe(4);
   });
 
   it("populates every fixed radar axis with uneven perk counts", () => {

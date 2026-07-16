@@ -134,6 +134,102 @@ describe("Format 1 chain evaluation", () => {
     expect(evaluation.forms[0].perkRecordIds).toEqual([perk?.id]);
   });
 
+  it("funds imported companions and assigns targeted perks to their profiles", () => {
+    const ren = "companion:war:jumper:banner_command:4";
+    const horizon = actor({ horizon_company: true });
+    horizon.inputs = { horizon_company: { travelers: [ren] } };
+    const renState = actor({ boundary_walking: true });
+    const evaluation = evaluateChain({
+      order: ["war", "horizon"],
+      packageIdByEntry: {
+        war: "war-of-crowns",
+        horizon: "last-horizon",
+      },
+      packages,
+      jumpState: {
+        war: {
+          actors: { jumper: actor({ banner_command: true }) },
+          appliedGauntlet: [],
+        },
+        horizon: {
+          actors: { jumper: horizon, [ren]: renState },
+          appliedGauntlet: [],
+        },
+      },
+      jumperName: "Morgan",
+    });
+
+    expect(
+      evaluation.runtime.horizon.actors[ren].resources.jump_points,
+    ).toEqual(
+      expect.objectContaining({ starting: 0, granted: 500, balance: 0 }),
+    );
+    expect(
+      evaluation.companions.find((companion) => companion.actorId === ren)
+        ?.importedEntryIds,
+    ).toEqual(["horizon"]);
+    expect(
+      evaluation.records.find((record) => record.name === "Company Pathfinder")
+        ?.ownerActorId,
+    ).toBe(ren);
+  });
+
+  it("does not expose an imported companion when targeted perks have no currency", () => {
+    const ren = "companion:war:jumper:banner_command:4";
+    const horizon = actor({ horizon_company: true });
+    horizon.inputs = { horizon_company: { travelers: [ren] } };
+    const source = packages["last-horizon"];
+    const unfunded = {
+      ...source,
+      choices: source.choices.map((choice) => ({
+        ...choice,
+        inputs: choice.inputs.map((input) => ({
+          ...input,
+          grants: input.grants.filter(
+            (grant) =>
+              grant.kind !== "resource" ||
+              grant.companion !== "horizon_company",
+          ),
+        })),
+      })),
+    };
+    const evaluation = evaluateChain({
+      order: ["war", "horizon"],
+      packageIdByEntry: { war: "war-of-crowns", horizon: "unfunded" },
+      packages: { ...packages, unfunded },
+      jumpState: {
+        war: {
+          actors: { jumper: actor({ banner_command: true }) },
+          appliedGauntlet: [],
+        },
+        horizon: { actors: { jumper: horizon }, appliedGauntlet: [] },
+      },
+      jumperName: "Morgan",
+    });
+
+    expect(evaluation.runtime.horizon.actors[ren]).toBeUndefined();
+    expect(
+      evaluation.companions.find((companion) => companion.actorId === ren)
+        ?.importedEntryIds,
+    ).toEqual([]);
+    expect(
+      evaluation.records.find((record) => record.name === "Company Pathfinder")
+        ?.ownerActorId,
+    ).toBe(ren);
+  });
+
+  it("funds a newly purchased companion and grants its targeted perk", () => {
+    const evaluation = one("last-horizon", actor({ final_companion: true }));
+    const aster = "companion:entry:jumper:final_companion:0";
+
+    expect(evaluation.runtime.entry.actors[aster].balance).toBe(500);
+    expect(evaluation.actors[aster].name).toBe("Aster");
+    expect(
+      evaluation.records.find((record) => record.name === "Boundary Instinct")
+        ?.ownerActorId,
+    ).toBe(aster);
+  });
+
   it("makes recorded choice and source results free without erasing provenance", () => {
     const choice = one(
       "hero-academy",

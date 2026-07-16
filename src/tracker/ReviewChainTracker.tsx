@@ -2,6 +2,7 @@ import { useCallback, useReducer } from "react";
 import { SupplementProviders } from "../supplements/TrackerSupplements";
 import { ChainTracker } from "./ChainTracker";
 import {
+  createCompanionProfileTrackerFixture,
   createDenseTrackerFixture,
   createReferenceTrackerFixture,
 } from "./fixtures";
@@ -30,14 +31,17 @@ export function ReviewChainTracker() {
     parameters.get("negativeBalances") === "on";
   const allowDuplicateJumps = parameters.get("duplicateJumps") === "on";
   const [state, rawDispatch] = useReducer(trackerReducer, undefined, () => {
-    if (fixture !== "reference")
-      return createDenseTrackerFixture({
-        warnUpstreamChanges,
-        allowMultiplePackageVersions: true,
-        allowDuplicateJumps,
-        allowNegativePointBalances,
-        allowRerolls,
-      });
+    const preferences = {
+      warnUpstreamChanges,
+      allowMultiplePackageVersions: true,
+      allowDuplicateJumps,
+      allowNegativePointBalances,
+      allowRerolls,
+      includeItemTagsInRadar: false,
+    };
+    if (fixture === "companion-profiles")
+      return createCompanionProfileTrackerFixture(preferences);
+    if (fixture !== "reference") return createDenseTrackerFixture(preferences);
     const initial = createReferenceTrackerFixture();
     return {
       ...initial,

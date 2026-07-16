@@ -79,10 +79,13 @@ test("direct Settings is a full destination and preferences persist through Inde
   await page.getByRole("tab", { name: "Chain Tracker" }).click();
   const warning = page.getByLabel("Warn about upstream changes");
   const duplicates = page.getByLabel("Allow duplicate jumps");
+  const itemTags = page.getByLabel("Count item tags");
   await expect(warning).not.toBeChecked();
   await expect(duplicates).not.toBeChecked();
+  await expect(itemTags).not.toBeChecked();
   await warning.check();
   await duplicates.check();
+  await itemTags.check();
   await testInfo.attach("duplicate-jump-setting", {
     body: await page
       .getByLabel("Application Settings", { exact: true })
@@ -108,21 +111,26 @@ test("direct Settings is a full destination and preferences persist through Inde
           chain?: {
             warnUpstreamChanges?: boolean;
             allowDuplicateJumps?: boolean;
+            includeItemTagsInRadar?: boolean;
           };
         } | null
       )?.chain?.warnUpstreamChanges &&
       (stored as { chain?: { allowDuplicateJumps?: boolean } } | null)?.chain
-        ?.allowDuplicateJumps,
+        ?.allowDuplicateJumps &&
+      (stored as { chain?: { includeItemTagsInRadar?: boolean } } | null)?.chain
+        ?.includeItemTagsInRadar,
     );
   });
   await page.reload();
   await page.getByRole("tab", { name: "Chain Tracker" }).click();
   await expect(page.getByLabel("Warn about upstream changes")).toBeChecked();
   await expect(page.getByLabel("Allow duplicate jumps")).toBeChecked();
+  await expect(page.getByLabel("Count item tags")).toBeChecked();
   await page.getByRole("button", { name: "Reset category" }).click();
   await expect(
     page.getByLabel("Warn about upstream changes"),
   ).not.toBeChecked();
+  await expect(page.getByLabel("Count item tags")).not.toBeChecked();
   await page.getByRole("button", { name: "Reset all settings" }).click();
   const reset = page.getByRole("alertdialog", {
     name: "Reset every application setting?",
@@ -612,6 +620,51 @@ test("Chain Tracker policies apply immediately without deferred renderer control
   await expect(
     tracker.getByRole("dialog", { name: "Review move" }),
   ).toContainText("Affected dependencies");
+});
+
+test("item tag radar setting updates eligible counts without changing ownership scope", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/chain/ch-92b1");
+  const tracker = page.getByLabel("Interactive Chain Tracker workspace");
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await tracker.getByRole("tab", { name: "Stats" }).click();
+  const values = tracker.locator(".category-radar-data tbody td");
+  const total = async () =>
+    (await values.allTextContents()).reduce(
+      (sum, value) => sum + Number(value),
+      0,
+    );
+  const before = await total();
+  const magicCount = tracker
+    .getByRole("row", { name: /Magic/ })
+    .getByRole("cell")
+    .last();
+  await expect(magicCount).toHaveText("20");
+  await expect(
+    tracker.getByRole("heading", { name: "Accrued perks by tag category" }),
+  ).toBeVisible();
+  await testInfo.attach("perk-only-radar", {
+    body: await tracker.locator(".tracker-radar-page").screenshot(),
+    contentType: "image/png",
+  });
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Chain Tracker" }).click();
+  await page.getByLabel("Count item tags").check();
+  await page.getByRole("button", { name: "Close Settings" }).click();
+
+  await expect(
+    tracker.getByRole("heading", {
+      name: "Accrued perks and items by tag category",
+    }),
+  ).toBeVisible();
+  await expect.poll(total).toBeGreaterThan(before);
+  await expect(magicCount).toHaveText("24");
+  await testInfo.attach("perk-and-item-radar", {
+    body: await tracker.locator(".tracker-radar-page").screenshot(),
+    contentType: "image/png",
+  });
 });
 
 test("tag profile supports keyboard creation, relationships, presentation, and reviewed import", async ({

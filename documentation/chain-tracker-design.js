@@ -897,19 +897,35 @@
 
   const companionProfiles = {
     Ash: { avatar: "AS", description: "Reliable traveler and support specialist.", perks: ["Trailwise", "Steady Nerves"], items: ["Traveler’s Kit"], imports: ["Arcane Realms"] },
-    Mira: { avatar: "MI", description: "Scholar of magic and cross-world researcher.", perks: ["Formal Spellcraft", "Perfect Recall"], items: ["Annotated Grimoire"], imports: ["Cosmic Odyssey", "Hero Academy"] },
-    Io: { avatar: "IO", description: "Pilot and unfamiliar-systems specialist.", perks: ["Stellar Navigation", "Machine Empathy"], items: ["Survey Rig", "Pilot Suit"], imports: ["Builder World"] },
+    Mira: { avatar: "MI", description: "Scholar of magic and cross-world researcher.", perks: ["Formal Spellcraft", "Perfect Recall", "Emergency Repairs", "Broadside Command", "Tidal Machinery", "Storm Balance"], items: ["Annotated Grimoire", "Impossible Vessel", "Tide Engine", "Survey Skiff", "Moonless Carriage", "Memory Lantern"], imports: ["Cosmic Odyssey", "Hero Academy", "Clockwork Sea", "War of Seven Crowns", "Beyond the Last Horizon", "Builder World", "Dream Archive", "Ocean Depths", "Skybound Isles"] },
+    Io: { avatar: "IO", description: "Pilot and unfamiliar-systems specialist.", perks: [], items: [], imports: [] },
   };
   const profileLayer = mockup.querySelector("#companion-profile-layer");
-  const populateTextList = (id, values) => {
+  const setProfileListState = (list, emptyMessage, scrollAfter) => {
+    list.classList.add("companion-profile-list");
+    list.classList.toggle("is-scrollable", list.children.length > scrollAfter);
+    const section = list.closest("section");
+    section.querySelector(".companion-profile-empty")?.remove();
+    const heading = section.querySelector("h5");
+    heading.hidden = Boolean(emptyMessage);
+    list.hidden = Boolean(emptyMessage);
+    if (!emptyMessage) return;
+    const empty = document.createElement("p");
+    empty.className = "companion-profile-empty";
+    empty.textContent = emptyMessage;
+    section.append(empty);
+  };
+  const populateTextList = (id, values, emptyMessage = "", scrollAfter = 9) => {
     const list = mockup.querySelector(id);
+    list.classList.add("is-imports");
     list.replaceChildren(...values.map((value) => {
       const item = document.createElement("li");
       item.textContent = value;
       return item;
     }));
+    setProfileListState(list, values.length ? "" : emptyMessage, scrollAfter);
   };
-  const populateRecordList = (id, values, kind) => {
+  const populateRecordList = (id, values, kind, emptyMessage = "") => {
     const list = mockup.querySelector(id);
     list.replaceChildren(...values.map((value) => {
       const item = document.createElement("li");
@@ -921,6 +937,7 @@
       item.append(button);
       return item;
     }));
+    setProfileListState(list, values.length ? "" : emptyMessage, 5);
   };
 
   const formProfiles = {
@@ -954,9 +971,9 @@
     mockup.querySelector("#companion-profile-name").textContent = selectedCompanionName;
     mockup.querySelector("#companion-profile-avatar").textContent = profile.avatar;
     mockup.querySelector("#companion-profile-description").textContent = profile.description;
-    populateRecordList("#companion-profile-perks", profile.perks, "Perk");
-    populateRecordList("#companion-profile-items", profile.items, "Item");
-    populateTextList("#companion-profile-imports", profile.imports);
+    populateRecordList("#companion-profile-perks", profile.perks, "Perk", "Companion has no perks");
+    populateRecordList("#companion-profile-items", profile.items, "Item", "Companion has no items");
+    populateTextList("#companion-profile-imports", profile.imports, "Companion has not been imported into any jumps");
     profileLayer.hidden = false;
     mockup.querySelector("#companion-profile-title").focus();
   });

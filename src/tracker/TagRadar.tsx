@@ -26,10 +26,12 @@ export function StaticTagRadar({
   counts,
   tags,
   label,
+  unitLabel = "perks",
 }: {
   counts: Record<TagCategory, number>;
   tags: Record<string, TagDefinition>;
   label: string;
+  unitLabel?: string;
 }) {
   const maximum = Math.max(1, ...Object.values(counts));
   return (
@@ -102,7 +104,7 @@ export function StaticTagRadar({
             r="5"
             fill={tags[category].color}
           >
-            <title>{`${tags[category].label}: ${counts[category]} perks`}</title>
+            <title>{`${tags[category].label}: ${counts[category]} ${unitLabel}`}</title>
           </circle>
         );
       })}
@@ -368,6 +370,8 @@ export function TagRadar({
 }) {
   const [hovered, setHovered] = useState<string | null>(null);
   const counts = radarCounts(state);
+  const includesItems = state.preferences.includeItemTagsInRadar;
+  const countLabel = includesItems ? "records" : "perks";
   const maximum = Math.max(
     5,
     Math.ceil(Math.max(...Object.values(counts)) / 5) * 5,
@@ -432,7 +436,9 @@ export function TagRadar({
             <h4 id="category-radar-title">
               {isPie && current
                 ? current.node.label
-                : "Accrued perks by tag category"}
+                : includesItems
+                  ? "Accrued perks and items by tag category"
+                  : "Accrued perks by tag category"}
             </h4>
             {isPie && selected && (
               <nav
@@ -539,7 +545,7 @@ export function TagRadar({
             <div>
               <p>
                 {selected
-                  ? `Selected · ${counts[selected]} perks`
+                  ? `Selected · ${counts[selected]} ${countLabel}`
                   : "Exact values"}
               </p>
               <h4 id="tracker-category-counts">
@@ -550,12 +556,13 @@ export function TagRadar({
           </header>
           <table>
             <caption className="sr-only">
-              Accrued perk count for each built-in tag category
+              Accrued {includesItems ? "perk and item" : "perk"} count for each
+              built-in tag category
             </caption>
             <thead>
               <tr>
                 <th>Category</th>
-                <th>Perks</th>
+                <th>{includesItems ? "Records" : "Perks"}</th>
               </tr>
             </thead>
             <tbody>
@@ -608,12 +615,14 @@ function RadarGraphic({
   selected: TagCategory | null;
   dispatch: Dispatch<TrackerAction>;
 }) {
+  const includesItems = state.preferences.includeItemTagsInRadar;
+  const countLabel = includesItems ? "records" : "perks";
   return (
     <>
       <svg
         id="category-radar-svg"
         viewBox="0 0 520 520"
-        aria-label="Perk tag category statistics chart"
+        aria-label={`${includesItems ? "Perk and item" : "Perk"} tag category statistics chart`}
       >
         {[1, 2, 3, 4, 5].map((ring) => (
           <g key={ring}>
@@ -711,7 +720,7 @@ function RadarGraphic({
                 dispatch({ type: "select-radar-category", value: category })
               }
             >
-              <title>{`${state.tags[category].label}: ${counts[category]} perks`}</title>
+              <title>{`${state.tags[category].label}: ${counts[category]} ${countLabel}`}</title>
             </circle>
           );
         })}

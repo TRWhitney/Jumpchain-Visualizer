@@ -819,6 +819,7 @@ export function createDenseTrackerFixture(
       allowDuplicateJumps: false,
       allowNegativePointBalances: false,
       allowRerolls: false,
+      includeItemTagsInRadar: false,
       showAdditionalJumpInformation: false,
       ...preferences,
     },
@@ -843,6 +844,66 @@ export function createDenseTrackerFixture(
     pending: null,
     undo: null,
     nextEntrySerial: 8,
+  };
+}
+
+export function createCompanionProfileTrackerFixture(
+  preferences: Partial<TrackerPreferences> = {},
+): TrackerState {
+  const state = createDenseTrackerFixture(preferences);
+  const entryId = "entry-7";
+  const entryState = state.jumpState[entryId];
+  const ren = "companion:entry-6:jumper:banner_command:4";
+  const mira = "companion:entry-1:jumper:spellcraft_foundations:4";
+  const packageId = state.entries["entry-5"].packageId;
+  const packageItem = state.packages[packageId];
+  const document = packageItem.document!;
+  const extraItemGrants = Object.values(state.packages)
+    .flatMap((item) => item.document?.choices ?? [])
+    .flatMap((choice) => choice.grants)
+    .filter((grant) => grant.kind === "item" && grant.name)
+    .slice(0, 3);
+  return {
+    ...state,
+    packages: {
+      ...state.packages,
+      [packageId]: {
+        ...packageItem,
+        document: {
+          ...document,
+          choices: document.choices.map((choice) =>
+            choice.handle === "impossible_vessel"
+              ? { ...choice, grants: [...choice.grants, ...extraItemGrants] }
+              : choice,
+          ),
+        },
+      },
+    },
+    jumpState: {
+      ...state.jumpState,
+      [entryId]: {
+        ...entryState,
+        actors: {
+          ...entryState.actors,
+          jumper: activeActor(
+            {
+              boundary_walking: true,
+              reality_rewrite: true,
+              horizon_company: true,
+            },
+            { horizon_company: { travelers: [ren, mira] } },
+          ),
+          [ren]: activeActor({
+            boundary_walking: true,
+            reality_rewrite: true,
+          }),
+          [mira]: activeActor({
+            boundary_walking: true,
+            reality_rewrite: true,
+          }),
+        },
+      },
+    },
   };
 }
 

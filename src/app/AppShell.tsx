@@ -24,6 +24,7 @@ import {
 import { StaticTagRadar } from "../tracker/TagRadar";
 import {
   tagCategories,
+  radarCounts,
   trackerReducer,
   choiceMutationWasBlocked,
   type TrackerAction,
@@ -50,7 +51,7 @@ import {
   createPlatformChainRepository,
 } from "../tracker/repository";
 import type { TrackerState } from "../tracker/model";
-import { evaluateTracker } from "../tracker/evaluateTracker";
+import { evaluateTracker, projectEvaluation } from "../tracker/evaluateTracker";
 import "../../documentation/styles.css";
 import "../../documentation/application-design.css";
 import "../../documentation/chain-tracker-design.css";
@@ -152,21 +153,17 @@ function AppShellContent() {
           value,
           value.enabledSupplements["body-mod"] ? value.bodyMod : null,
         );
-        const tagCounts = Object.fromEntries(
-          tagCategories.map((category) => [
-            category,
-            evaluation.records.filter((record) =>
-              record.tags.some((tag) => {
-                let current: string | undefined = tag;
-                while (current) {
-                  if (current === category) return true;
-                  current = value.tags[current]?.parent;
-                }
-                return false;
-              }),
-            ).length,
-          ]),
-        ) as SavedChain["tagCounts"];
+        const projected = projectEvaluation(
+          {
+            ...value,
+            preferences: {
+              ...value.preferences,
+              includeItemTagsInRadar: settings.chain.includeItemTagsInRadar,
+            },
+          },
+          evaluation,
+        );
+        const tagCounts = radarCounts(projected);
         return {
           ...chain,
           jumpCount: value.order.filter(
@@ -175,7 +172,7 @@ function AppShellContent() {
           tagCounts,
         };
       }),
-    [chainRegistry, chainStates],
+    [chainRegistry, chainStates, settings.chain.includeItemTagsInRadar],
   );
   const activeChain =
     backgroundRoute.kind === "chain-workspace"
@@ -195,6 +192,7 @@ function AppShellContent() {
       allowDuplicateJumps: settings.chain.allowDuplicateJumps,
       allowNegativePointBalances: settings.chain.allowNegativePointBalances,
       allowRerolls: settings.chain.allowRerolls,
+      includeItemTagsInRadar: settings.chain.includeItemTagsInRadar,
       showAdditionalJumpInformation:
         settings.developer.showAdditionalJumpInformation,
     }),
@@ -742,6 +740,7 @@ function AppShellContent() {
               chains={savedChains}
               tags={effectiveTrackerState.tags}
               colorNamesByPrimaryTag={settings.chain.colorNamesByPrimaryTag}
+              includeItemTags={settings.chain.includeItemTagsInRadar}
               onCreate={createChain}
               onOpen={openChain}
               onUpdateDetails={(id, name, description) => {
@@ -932,6 +931,7 @@ function ChainHub({
   chains,
   tags,
   colorNamesByPrimaryTag,
+  includeItemTags,
   onCreate,
   onOpen,
   onUpdateDetails,
@@ -939,6 +939,7 @@ function ChainHub({
   chains: readonly SavedChain[];
   tags: Record<string, TagDefinition>;
   colorNamesByPrimaryTag: boolean;
+  includeItemTags: boolean;
   onCreate: (name: string) => boolean;
   onOpen: (chain: SavedChain) => void;
   onUpdateDetails: (id: string, name: string, description: string) => void;
@@ -1028,6 +1029,7 @@ function ChainHub({
               chain={chain}
               tags={tags}
               colorNameByPrimaryTag={colorNamesByPrimaryTag}
+              includeItemTags={includeItemTags}
               onOpen={() => onOpen(chain)}
               onUpdateDetails={(name, description) =>
                 onUpdateDetails(chain.id, name, description)
@@ -1050,12 +1052,14 @@ function ChainCard({
   chain,
   tags,
   colorNameByPrimaryTag,
+  includeItemTags,
   onOpen,
   onUpdateDetails,
 }: {
   chain: SavedChain;
   tags: Record<string, TagDefinition>;
   colorNameByPrimaryTag: boolean;
+  includeItemTags: boolean;
   onOpen: () => void;
   onUpdateDetails: (name: string, description: string) => void;
 }) {
@@ -1069,7 +1073,7 @@ function ChainCard({
   );
   const primaryTag = primaryTagForChain(chain);
   const primaryTagDefinition = primaryTag ? tags[primaryTag] : null;
-  const totalPerks = tagCategories.reduce(
+  const totalTagged = tagCategories.reduce(
     (sum, category) => sum + chain.tagCounts[category],
     0,
   );
@@ -1126,20 +1130,25 @@ function ChainCard({
         >
           <header>
             <div>
-              <span>Perk profile</span>
+              <span>
+                {includeItemTags ? "Perk and item profile" : "Perk profile"}
+              </span>
               <strong>{chain.name}</strong>
             </div>
-            <span>{totalPerks} tagged perks</span>
+            <span>
+              {totalTagged} tagged {includeItemTags ? "records" : "perks"}
+            </span>
           </header>
           <StaticTagRadar
             counts={chain.tagCounts}
             tags={tags}
-            label={`${chain.name} perk category radar`}
+            label={`${chain.name} ${includeItemTags ? "perk and item" : "perk"} category radar`}
+            unitLabel={includeItemTags ? "records" : "perks"}
           />
           <p>
             {primaryTagDefinition
-              ? `Strongest category: ${primaryTagDefinition.label} with ${chain.tagCounts[primaryTag!]} perks.`
-              : "No tagged perks yet."}
+              ? `Strongest category: ${primaryTagDefinition.label} with ${chain.tagCounts[primaryTag!]} ${includeItemTags ? "records" : "perks"}.`
+              : `No tagged ${includeItemTags ? "records" : "perks"} yet.`}
           </p>
         </div>
       </div>

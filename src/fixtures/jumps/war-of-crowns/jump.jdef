@@ -39,6 +39,7 @@ choice
 
   grant
     kind: companion
+    handle: ren
     name: "Ren"
     tag: combat
     tag: leadership

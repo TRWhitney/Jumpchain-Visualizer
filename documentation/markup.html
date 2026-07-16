@@ -1244,7 +1244,7 @@ choice.</p>
 <p>Block-form grants are required for kinds that are not naturally represented by
 the choice&#39;s own visible identity.</p>
 <p>Every block-form grant requires an explicit <code>kind</code>. A block without one is an error rather than useful WIP structure.</p>
-<p>Visible grant declarations do not have author-facing handles. Form grants are the exception: <code>kind: form</code> requires a stable package-local <code>handle</code> because arbitrary perk grants may reference that form. The application tracks visible-grant provenance through the exact installed-package hash, owning choice or input handle, immutable grant position, and any runtime record ID created after acquisition.</p>
+<p>Most visible grant declarations do not have author-facing handles. Forms and companions are the exceptions because arbitrary grants may reference their ownership targets. <code>kind: form</code>, block-form <code>kind: companion</code>, and <code>kind: companion-import</code> require stable package-local handles. Scalar <code>grant: companion</code> uses its owning choice handle. The application tracks visible-grant provenance through the exact installed-package hash, owning choice or input handle, immutable grant position, and any runtime record ID created after acquisition.</p>
 <p>A <code>kind: resource</code> grant requires both a canonical <code>resource</code> reference and an <code>amount</code>. Omitting either is an error.</p>
 <p>Resource-grant <code>amount</code> accepts any literal integer, including zero and negative values, or one of the base symbolic magnitudes <code>trivial</code>, <code>small</code>, <code>medium</code>, <code>large</code>, <code>major</code>, and <code>extreme</code>. Positive and symbolic values add to the resource; negative integers remove from it. The <code>add_*</code> token family is not valid here because the grant context already communicates addition.</p>
 <p>Current required block-form kinds:</p>
@@ -1274,6 +1274,7 @@ the choice&#39;s own visible identity.</p>
 </code></pre>
 <pre><code class="language-text">grant
   kind: companion
+  handle: ember_fox
   name: &quot;Ember Fox&quot;
 </code></pre>
 <pre><code class="language-text">input
@@ -1283,23 +1284,32 @@ the choice&#39;s own visible identity.</p>
 
   grant
     kind: companion-import
+    handle: imported_companions
+
+  grant
+    kind: resource
     resource: jump_points
     amount: 600
+    companion: imported_companions
 </code></pre>
 <h3>Companion Grant Direction</h3>
 <p><code>grant: companion</code> is the common shorthand for a choice visibly about
 acquiring one companion. It inherits the choice name, conventional description and
 visual content, and tags in the same manner as perk and item shorthand grants.</p>
 <p>The block form <code>kind: companion</code> creates the same durable companion record
-while allowing inherited fields to be overridden. The engine assigns the record a
-stable identity; the authored name is display content and is never used as an
-identity key. Removing or deactivating the originating grant produces dependency
-review for later imports and owned records rather than silently retargeting them.</p>
+while allowing inherited fields to be overridden. It requires a package-local
+<code>handle</code>; scalar companion shorthand uses the owning choice handle. The engine
+assigns the record a stable runtime identity, while the authored handle provides the
+package-wide target for companion-owned perks and currency. The authored name is
+display content and is never used as an identity key. Removing or deactivating the
+originating grant produces dependency review for later imports and owned records
+rather than silently retargeting them.</p>
 <h3>Companion Import Direction</h3>
 <p><code>kind: companion-import</code> is valid only as a grant nested directly in an
-<code>input</code> whose selection is <code>companions</code>. For every selected stable
-companion identity, it creates participation state scoped to the current chain
-entry.</p>
+<code>input</code> whose selection is <code>companions</code>. Its required handle represents
+the selected runtime companions as one author-facing grant target. A positive
+resource grant must target that handle before any selected companion receives
+participation state for the current chain entry.</p>
 <p>Current rules:</p>
 <ul>
 <li>importing does not create a new chain companion; it records that an existing
@@ -1308,17 +1318,13 @@ companion participates in this Jump run</li>
 import history</li>
 <li>the import is active only while both the owning choice/input and selected
 companion identity remain active</li>
-<li>an active import makes that companion available in the Chain Tracker actor
-selector for this entry</li>
-<li><code>resource</code> and <code>amount</code> are optional as a pair; omitting both grants
-participation without an initial resource budget</li>
-<li>when present, every selected companion receives the full authored
-<code>amount</code> in a separate actor-owned balance for the named
-<code>resource</code>; the amount is not divided among them</li>
+<li>the import alone does not make a companion available in the Chain Tracker actor selector; at least one positive <code>kind: resource</code> grant must target the import handle</li>
+<li>every selected companion receives the full authored amount of each targeted resource grant in a separate actor-owned balance; the amount is not divided among them</li>
 <li>while rendering as an imported companion, ordinary costs, rolls, properties,
 perks, items, and other grants belong to that companion&#39;s state for this entry</li>
 <li>the same companion may have only one active <code>companion-import</code> grant in a
 chain entry; a duplicate import is an error rather than a second allowance</li>
+<li><code>companion: &lt;handle&gt;</code> on a perk grant assigns that perk to every runtime companion represented by the purchase or import handle without itself authorizing choices</li>
 <li>removing a selected companion after they have made choices requires impact
 review and removes that companion&#39;s entry-scoped selections and grants if
 confirmed</li>
@@ -1715,9 +1721,8 @@ shadowing and should identify the earlier variant responsible.</p>
 record in the chain</li>
 <li><code>selection: companions</code> selects existing companion records by stable runtime
 identity</li>
-<li>a nested <code>kind: companion-import</code> grant authorizes those selected companions
-for the current chain entry and may initialize a separate resource balance for
-each</li>
+<li>a nested <code>kind: companion-import</code> grant identifies those selected companions under a stable package handle</li>
+<li>a positive resource grant targeting that handle authorizes the selected companions for the current chain entry and initializes a separate resource balance for each</li>
 </ul>
 <p>Complete example:</p>
 <pre><code class="language-text">choice
@@ -1741,13 +1746,18 @@ each</li>
 
     grant
       kind: companion-import
+      handle: imported_companions
+
+    grant
+      kind: resource
       resource: jump_points
       amount: 600
+      companion: imported_companions
 </code></pre>
-<p>A <code>kind: companion-import</code> grant may omit both <code>resource</code> and <code>amount</code> to authorize participation without granting a spendable balance. If either field is present, both are required and initialize that selected companion’s entry-scoped resource balance. Its amount uses the resource-grant amount rules.</p>
+<p>A <code>kind: companion-import</code> grant does not carry <code>resource</code> or <code>amount</code>. Currency uses the ordinary resource-grant fields plus <code>companion: &lt;import-handle&gt;</code>, so imported and purchased companions share one targeting mechanism. At least one such grant must resolve to a positive amount for the import to authorize participation.</p>
 <p><code>kind: companion-import</code> is valid only as a nested grant of an <code>input</code> with <code>selection: companions</code>. Other placements are errors because they provide no selected roster to target.</p>
 <p>The Chain Tracker evaluates this in order: the Jumper buys the choice, the input
-offers eligible stable companion records, and each selected identity receives an
+offers eligible stable companion records, and the targeted resource grant gives each selected identity an
 entry-scoped actor state with 600 <code>jump_points</code>. Only then does that companion
 appear in the current Jump&#39;s actor selector. Names remain presentation and may
 change without breaking the import reference.</p>
@@ -1895,6 +1905,63 @@ available without expanding the grant into a block:</p>
 <li>conditional text and placeholders initially evaluate against the purchasing Jumper’s current Jump choice/property context; exposing form-specific properties to expressions would be a separate amendment</li>
 <li>the evaluator must reject or disable form grants and form-targeted perk grants while rendering a companion actor, rather than accidentally creating or modifying Jumper forms from companion purchases</li>
 <li>the schema amendment must add positive and negative conformance fixtures for form identity, cross-section and forward references, block and shorthand ownership, absent or ambiguous shorthand grants, missing and duplicate handles, inactive dependencies, companion evaluation, removal, and historical projection</li>
+</ul>
+<h3>Companion-Owned Perks and Currency</h3>
+<p>Format 1 uses one <code>companion: &lt;handle&gt;</code> field to route grants to either a newly purchased companion or a group of runtime companions selected by an import. This is authored ownership, not a recipient picker shown to the user.</p>
+<p>A purchased companion uses the companion grant handle. Scalar companion shorthand uses its owning choice handle:</p>
+<pre><code class="language-text">choice
+  handle: aster
+  name: &quot;Aster&quot;
+  grant: companion
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 500
+    companion: aster
+
+  grant
+    kind: perk
+    name: &quot;Boundary Instinct&quot;
+    companion: aster
+</code></pre>
+<p>An import declares its own target handle because the selected companions have runtime identities unknown to the author:</p>
+<pre><code class="language-text">input
+  handle: travelers
+  selection: companions
+
+  grant
+    kind: companion-import
+    handle: horizon_company
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 500
+    companion: horizon_company
+
+  grant
+    kind: perk
+    name: &quot;Company Pathfinder&quot;
+    companion: horizon_company
+</code></pre>
+<p>Ordinary perk shorthand can target the same handle without a block:</p>
+<pre><code class="language-text">choice
+  handle: field_training
+  name: &quot;Field Training&quot;
+  grant: perk
+  companion: horizon_company
+</code></pre>
+<ul>
+<li>block-form companion and companion-import grants require unique package-wide handles; scalar <code>grant: companion</code> uses its owning choice handle</li>
+<li><code>companion: &lt;handle&gt;</code> is valid only on perk and resource grants; items, traits, properties, forms, and companion grants cannot target companions</li>
+<li>a perk target may resolve to one purchased companion or every selected companion represented by an import handle</li>
+<li>a positive targeted resource grant is what makes a purchased or imported companion participate in the current Jump and appear in <strong>Make choices as</strong>; a targeted perk alone only accrues to the companion profile</li>
+<li>companions start with zero of the Jump’s resources and receive only explicit targeted currency plus ordinary resource grants from choices they subsequently make</li>
+<li>resource and perk targets use the same package-wide companion namespace, may cross sections and files, and may be forward references</li>
+<li>the choice-level <code>companion</code> shorthand target requires exactly one scalar perk grant; multiple or customized grants use block form</li>
+<li>a grant cannot specify both <code>form</code> and <code>companion</code>; forms remain valid targets only for perks and cannot receive currency, items, or other grant kinds</li>
+<li>companion-targeted grants evaluate from the Jumper’s active choice/input context and are not recursively applied while rendering a companion actor</li>
 </ul>
 <h2>Amended Pre-Release Format 1 Schema</h2>
 <p>The format 1 field cardinalities, layout grammar, contextual constraints, and

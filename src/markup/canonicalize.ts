@@ -207,6 +207,7 @@ function grant(
     amount: "fields" in node ? amount(field(node, "amount")?.value) : undefined,
     handle: "fields" in node ? value(node, "handle") : undefined,
     form: "fields" in node ? value(node, "form") : undefined,
+    companion: "fields" in node ? value(node, "companion") : undefined,
     measure:
       "fields" in node &&
       ["rank", "quantity"].includes(value(node, "measure") ?? "")
@@ -253,13 +254,42 @@ function grant(
       "Form grants require a stable handle.",
       node,
     );
-  if (result.kind === "form" && result.handle && "fields" in node)
+  if (
+    (result.kind === "companion" || result.kind === "companion-import") &&
+    !result.handle &&
+    "fields" in node
+  )
+    diagnostic(
+      diagnostics,
+      `grant.${result.kind.replace("-", "_")}.handle`,
+      `${result.kind === "companion-import" ? "Companion import" : "Companion"} grants require a stable handle.`,
+      node,
+    );
+  if (
+    ["form", "companion", "companion-import"].includes(result.kind) &&
+    result.handle &&
+    "fields" in node
+  )
     result.handle = validateHandle(result.handle, node, diagnostics);
   if (result.form && result.kind !== "perk")
     diagnostic(
       diagnostics,
       "grant.form.target_kind",
       "Only perk grants may target a form.",
+      node,
+    );
+  if (result.companion && result.kind !== "perk" && result.kind !== "resource")
+    diagnostic(
+      diagnostics,
+      "grant.companion.target_kind",
+      "Only perk and resource grants may target a companion.",
+      node,
+    );
+  if (result.form && result.companion)
+    diagnostic(
+      diagnostics,
+      "grant.owner.conflict",
+      "A grant cannot target both a form and a companion.",
       node,
     );
   if (
@@ -282,12 +312,12 @@ function grant(
     );
   if (
     result.kind === "companion-import" &&
-    Boolean(result.resource) !== Boolean(result.amount !== undefined)
+    (result.resource !== undefined || result.amount !== undefined)
   )
     diagnostic(
       diagnostics,
-      "grant.companion_import.budget_pair",
-      "Companion import resource and amount must appear together.",
+      "grant.companion_import.inline_budget",
+      "Companion import currency uses a resource grant targeting the import handle.",
       node,
     );
   return result;
@@ -423,6 +453,11 @@ function choice(
   node: SourceNode,
   diagnostics: PackageDiagnostic[],
 ): JumpChoice {
+  const choiceHandle = validateHandle(
+    requireValue(node, "handle", diagnostics),
+    node,
+    diagnostics,
+  );
   const selection = value(node, "selection") ?? "toggle";
   const resolution = value(node, "resolution") ?? "manual";
   const permittedSelection = new Set(["toggle", "text", "integer", "select"]);
@@ -457,7 +492,11 @@ function choice(
       .filter((child) => child.kind === "grant")
       .map((child) => grant(child, diagnostics)),
   ];
+  for (const choiceGrant of choiceGrants)
+    if (choiceGrant.kind === "companion" && choiceGrant.shorthand)
+      choiceGrant.handle = choiceHandle;
   const shorthandForm = value(node, "form");
+  const shorthandCompanion = value(node, "companion");
   const shorthandMeasure = value(node, "measure");
   const shorthandTarget = choiceGrants.length === 1 ? choiceGrants[0] : null;
   if (shorthandForm) {
@@ -471,6 +510,24 @@ function choice(
         field(node, "form"),
       );
   }
+  if (shorthandCompanion) {
+    if (shorthandTarget?.kind === "perk" && fields(node, "grant").length === 1)
+      shorthandTarget.companion = shorthandCompanion;
+    else
+      diagnostic(
+        diagnostics,
+        "grant.companion.shorthand",
+        "Choice companion requires exactly one shorthand perk grant.",
+        field(node, "companion"),
+      );
+  }
+  if (shorthandForm && shorthandCompanion)
+    diagnostic(
+      diagnostics,
+      "grant.owner.conflict",
+      "A shorthand perk cannot target both a form and a companion.",
+      node,
+    );
   if (shorthandMeasure) {
     if (!["rank", "quantity"].includes(shorthandMeasure))
       diagnostic(
@@ -494,11 +551,7 @@ function choice(
       );
   }
   const result: JumpChoice = {
-    handle: validateHandle(
-      requireValue(node, "handle", diagnostics),
-      node,
-      diagnostics,
-    ),
+    handle: choiceHandle,
     name: renderable(node, "name"),
     layout: value(node, "layout"),
     tags: fields(node, "tag").map((item) => unquote(item.value)),
@@ -789,6 +842,23 @@ function validateRelations(
         ),
       ),
     ],
+    [
+      "companion",
+      result.choices.flatMap((item) => [
+        ...item.grants.flatMap((grantItem) =>
+          grantItem.kind === "companion" && grantItem.handle
+            ? [grantItem.handle]
+            : [],
+        ),
+        ...item.inputs.flatMap((inputItem) =>
+          inputItem.grants.flatMap((grantItem) =>
+            grantItem.kind === "companion-import" && grantItem.handle
+              ? [grantItem.handle]
+              : [],
+          ),
+        ),
+      ]),
+    ],
     ["layout", result.layouts.map((item) => item.handle)],
   ] as const)
     for (const duplicate of duplicates(values))
@@ -810,12 +880,56 @@ function validateRelations(
     ),
   );
   const forms = new Set(formHandles);
+  const companionHandles = result.choices.flatMap((item) => [
+    ...item.grants.flatMap((grantItem) =>
+      grantItem.kind === "companion" && grantItem.handle
+        ? [grantItem.handle]
+        : [],
+    ),
+    ...item.inputs.flatMap((inputItem) =>
+      inputItem.grants.flatMap((grantItem) =>
+        grantItem.kind === "companion-import" && grantItem.handle
+          ? [grantItem.handle]
+          : [],
+      ),
+    ),
+  ]);
+  const companions = new Set(companionHandles);
+  const allGrants = result.choices.flatMap((choiceItem) => [
+    ...choiceItem.grants,
+    ...choiceItem.inputs.flatMap((inputItem) => inputItem.grants),
+  ]);
   for (const duplicate of duplicates(formHandles))
     diagnostic(
       diagnostics,
       "grant.form.handle",
       `Form handle “${duplicate}” must be unique within the package.`,
     );
+  for (const duplicate of duplicates(companionHandles))
+    diagnostic(
+      diagnostics,
+      "grant.companion.handle",
+      `Companion target handle “${duplicate}” must be unique within the package.`,
+    );
+  for (const importHandle of allGrants.flatMap((grantItem) =>
+    grantItem.kind === "companion-import" && grantItem.handle
+      ? [grantItem.handle]
+      : [],
+  ))
+    if (
+      !allGrants.some(
+        (grantItem) =>
+          grantItem.kind === "resource" &&
+          grantItem.companion === importHandle &&
+          grantItem.amount !== undefined &&
+          resolveCostAmount(grantItem.amount) > 0,
+      )
+    )
+      diagnostic(
+        diagnostics,
+        "grant.companion_import.funding",
+        `Companion import “${importHandle}” requires a positive targeted resource grant.`,
+      );
   for (const sectionItem of result.sections) {
     const directHandles = sectionItem.directChoices.map((item) => item.handle);
     const directTargets = sectionItem.directChoices.map((item) => item.target);
@@ -894,6 +1008,12 @@ function validateRelations(
           diagnostics,
           "grant.form.reference",
           `Form target “${item.form}” does not exist.`,
+        );
+      if (item.companion && !companions.has(item.companion))
+        diagnostic(
+          diagnostics,
+          "grant.companion.reference",
+          `Companion target “${item.companion}” does not exist.`,
         );
     }
   }

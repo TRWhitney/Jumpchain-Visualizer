@@ -68,6 +68,45 @@ describe("Format 1 source pipeline", () => {
     ).toMatchObject({ kind: "item", measure: "quantity", shorthand: true });
   });
 
+  it("canonicalizes companion targets for purchases and imports", () => {
+    const horizon = generatedJumpPackages.find(
+      (item) => item.id === "last-horizon",
+    );
+    const purchased = horizon?.choices.find(
+      (choice) => choice.handle === "final_companion",
+    );
+    expect(purchased?.grants[0]).toMatchObject({
+      kind: "companion",
+      handle: "final_companion",
+      shorthand: true,
+    });
+    expect(purchased?.grants).toContainEqual(
+      expect.objectContaining({
+        kind: "perk",
+        companion: "final_companion",
+      }),
+    );
+    const importChoice = horizon?.choices.find(
+      (choice) => choice.handle === "horizon_company",
+    );
+    expect(importChoice?.inputs[0].grants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "companion-import",
+          handle: "horizon_company",
+        }),
+        expect.objectContaining({
+          kind: "resource",
+          companion: "horizon_company",
+        }),
+        expect.objectContaining({
+          kind: "perk",
+          companion: "horizon_company",
+        }),
+      ]),
+    );
+  });
+
   it("matches every machine-readable conformance fixture", () => {
     for (const fixture of conformance.cases) {
       const directory = `/schema/${fixture.directory}/`;

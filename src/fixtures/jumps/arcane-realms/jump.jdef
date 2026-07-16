@@ -140,6 +140,7 @@ choice
 
   grant
     kind: companion
+    handle: mira
     name: "Mira"
     tag: magic
     tag: scholar

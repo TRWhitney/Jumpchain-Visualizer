@@ -1,0 +1,57 @@
+jump
+  format: 1
+  name: "Companion Targets"
+  author: "Jumpchain Visualizer"
+  version: "1"
+
+section
+  handle: companions
+  name: "Companions"
+
+  choice
+    handle: purchase
+    target: purchased_companion
+
+  choice
+    handle: import
+    target: import_companions
+
+choice
+  handle: purchased_companion
+  name: "Purchased Companion"
+  grant: companion
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 500
+    companion: purchased_companion
+
+choice
+  handle: purchased_training
+  name: "Purchased Training"
+  grant: perk
+  companion: purchased_companion
+
+choice
+  handle: import_companions
+  name: "Import Companions"
+
+  input
+    handle: roster
+    selection: companions
+
+    grant
+      kind: companion-import
+      handle: imported_roster
+
+    grant
+      kind: resource
+      resource: jump_points
+      amount: 600
+      companion: imported_roster
+
+    grant
+      kind: perk
+      name: "Imported Training"
+      companion: imported_roster

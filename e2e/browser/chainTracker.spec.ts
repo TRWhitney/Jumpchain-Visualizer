@@ -332,6 +332,95 @@ test("summary tooltips, actor deficit, Jump selection, and inspection point stay
   await expect(tracker.locator(".chain-form-grid > article")).toHaveCount(1);
 });
 
+test("companion imports and purchases require targeted currency before exposing actor choices", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.goto("/review/chain-tracker?negativeBalances=on");
+  const tracker = trackerFor(page);
+  const actor = tracker.getByLabel("Make choices as");
+  const horizon = tracker
+    .locator(".default-choice-card")
+    .filter({ hasText: "Horizon Company" });
+  await horizon.scrollIntoViewIfNeeded();
+  await expect(
+    horizon.getByText("Import companions", { exact: true }),
+  ).toBeVisible();
+  await expect(horizon).toContainText(
+    "Each selected companion receives 500 CP.",
+  );
+  const renImport = horizon.getByRole("checkbox", { name: "Ren" });
+  await expect(renImport).toBeChecked();
+  await expect(actor.locator("option").filter({ hasText: "Ren" })).toHaveCount(
+    1,
+  );
+  await renImport.scrollIntoViewIfNeeded();
+  await testInfo.attach("active-companion-import", {
+    body: await horizon.locator(".companion-selection-input").screenshot(),
+    contentType: "image/png",
+  });
+
+  await renImport.uncheck();
+  await expect(actor.locator("option").filter({ hasText: "Ren" })).toHaveCount(
+    0,
+  );
+  await tracker.getByRole("tab", { name: /^Companions/ }).click();
+  await tracker
+    .locator(".chain-companion-grid > article")
+    .filter({ hasText: "Ren" })
+    .getByRole("button", { name: "View" })
+    .click();
+  await tracker.getByRole("button", { name: "Full profile" }).click();
+  const renProfile = tracker.getByRole("dialog", {
+    name: /Companion profile: Ren/,
+  });
+  await expect(
+    renProfile.getByText("Companion has not been imported into any jumps", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await testInfo.attach("cleared-companion-import", {
+    body: await renProfile.screenshot(),
+    contentType: "image/png",
+  });
+  await renProfile
+    .getByRole("button", { name: "Close companion profile" })
+    .click();
+
+  await tracker.getByRole("tab", { name: /^Chain & Jump/ }).click();
+  await horizon.scrollIntoViewIfNeeded();
+  await renImport.check();
+  await expect(actor.locator("option").filter({ hasText: "Ren" })).toHaveCount(
+    1,
+  );
+
+  await tracker.getByRole("checkbox", { name: "Take Aster" }).check();
+  const asterOption = actor.locator("option").filter({ hasText: "Aster" });
+  await expect(asterOption).toHaveCount(1);
+  await actor.selectOption((await asterOption.getAttribute("value"))!);
+  await expect(tracker.locator(".tracker-budget output")).toHaveText("500 CP");
+  await testInfo.attach("funded-purchased-companion", {
+    body: await page.screenshot(),
+    contentType: "image/png",
+  });
+
+  await tracker.getByRole("tab", { name: /^Companions/ }).click();
+  await tracker
+    .locator(".chain-companion-grid > article")
+    .filter({ hasText: "Aster" })
+    .getByRole("button", { name: "View" })
+    .click();
+  await tracker.getByRole("button", { name: "Full profile" }).click();
+  const asterProfile = tracker.getByRole("dialog", {
+    name: /Companion profile: Aster/,
+  });
+  await expect(asterProfile).toContainText("Boundary Instinct");
+  await testInfo.attach("purchased-companion-targeted-perk", {
+    body: await asterProfile.screenshot(),
+    contentType: "image/png",
+  });
+});
+
 test("Earth is unnumbered, immutable, and drives identity continuity", async ({
   page,
 }, testInfo) => {
@@ -927,7 +1016,7 @@ test("Inventory scopes companion purchases and projects ranked, conditional perk
 
 test("the settled radar and pie reproduce selection, correlation, popping, sorting, drilling, ellipsis, and navigation", async ({
   page,
-}) => {
+}, testInfo) => {
   const tracker = trackerFor(page);
   await tracker.getByRole("tab", { name: /^Inventory/ }).click();
   await tracker.getByRole("tab", { name: "Stats" }).click();
@@ -952,6 +1041,10 @@ test("the settled radar and pie reproduce selection, correlation, popping, sorti
   await expect(tracker.locator(".category-radar-data tbody tr")).toHaveCount(
     12,
   );
+  await testInfo.attach("radar-default-record-scope", {
+    body: await tracker.locator(".tracker-radar-page").screenshot(),
+    contentType: "image/png",
+  });
   expect(
     (
       await tracker.locator(".category-radar-data tbody td").allTextContents()
@@ -1087,14 +1180,15 @@ test("removing a granted form reviews and clears its assigned perks", async ({
 
 test("Companions use historical roster, profile imports, and stacked perk/item details", async ({
   page,
-}) => {
+}, testInfo) => {
+  await page.goto("/review/chain-tracker?fixture=companion-profiles");
   const tracker = trackerFor(page);
   await tracker.getByRole("tab", { name: /^Companions/ }).click();
   await tracker
     .getByLabel("Roster through historical cutoff")
-    .selectOption("entry-5");
+    .selectOption("entry-7");
   await expect(tracker.locator(".chain-companion-grid > article")).toHaveCount(
-    6,
+    7,
   );
   await tracker
     .locator(".chain-companion-grid > article")
@@ -1104,6 +1198,45 @@ test("Companions use historical roster, profile imports, and stacked perk/item d
   await tracker.getByRole("button", { name: "Full profile" }).click();
   const profile = tracker.getByRole("dialog", {
     name: /Companion profile: Mira/,
+  });
+  const profileWidth = (await profile.boundingBox())!.width;
+  const profileSections = profile.locator(".companion-profile-columns section");
+  const perks = profileSections.nth(0).locator(".companion-profile-list");
+  const items = profileSections.nth(1).locator(".companion-profile-list");
+  const imports = profileSections.nth(2).locator(".companion-profile-list");
+  await expect(perks.locator("li")).toHaveCount(10);
+  await expect(perks).toHaveClass(/is-scrollable/);
+  await expect(items.locator("li")).toHaveCount(6);
+  await expect(items).toHaveClass(/is-scrollable/);
+  await expect(imports).not.toHaveClass(/is-scrollable/);
+  await expect
+    .poll(() => perks.evaluate((list) => list.scrollHeight > list.clientHeight))
+    .toBe(true);
+  await expect
+    .poll(() => items.evaluate((list) => list.scrollHeight > list.clientHeight))
+    .toBe(true);
+  await expect
+    .poll(() =>
+      imports.evaluate((list) => list.scrollHeight <= list.clientHeight),
+    )
+    .toBe(true);
+  await testInfo.attach("companion-full-profile", {
+    body: await profile.screenshot(),
+    contentType: "image/png",
+  });
+  await perks.hover();
+  await page.mouse.wheel(0, 400);
+  await expect
+    .poll(() => perks.evaluate((list) => list.scrollTop))
+    .toBeGreaterThan(0);
+  await items.hover();
+  await page.mouse.wheel(0, 400);
+  await expect
+    .poll(() => items.evaluate((list) => list.scrollTop))
+    .toBeGreaterThan(0);
+  await testInfo.attach("companion-full-profile-scrolled", {
+    body: await profile.screenshot(),
+    contentType: "image/png",
   });
   await expect(profile).toContainText("Imported into");
   await expect(profile).toContainText("Impossible Vessel");
@@ -1118,6 +1251,44 @@ test("Companions use historical roster, profile imports, and stacked perk/item d
   ).toHaveAttribute("aria-hidden", "true");
   await page.keyboard.press("Escape");
   await expect(profile).toBeVisible();
+  await profile
+    .getByRole("button", { name: "Close companion profile" })
+    .click();
+
+  await tracker
+    .locator(".chain-companion-grid > article")
+    .filter({ hasText: "Cala" })
+    .getByRole("button", { name: "View" })
+    .click();
+  await tracker.getByRole("button", { name: "Full profile" }).click();
+  const emptyProfile = tracker.getByRole("dialog", {
+    name: /Companion profile: Cala/,
+  });
+  await expect(
+    emptyProfile.getByText("Companion has no perks", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    emptyProfile.getByText("Companion has no items", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    emptyProfile.getByText("Companion has not been imported into any jumps", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    emptyProfile.getByRole("heading", { name: "Perks" }),
+  ).toHaveCount(0);
+  await expect(
+    emptyProfile.getByRole("heading", { name: "Items" }),
+  ).toHaveCount(0);
+  await expect(
+    emptyProfile.getByRole("heading", { name: "Imported into" }),
+  ).toHaveCount(0);
+  expect((await emptyProfile.boundingBox())!.width).toBe(profileWidth);
+  await testInfo.attach("empty-companion-full-profile", {
+    body: await emptyProfile.screenshot(),
+    contentType: "image/png",
+  });
 });
 
 test("embedded supplements preserve module behavior and Supp disappears when all modules are disabled", async ({

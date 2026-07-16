@@ -35,6 +35,7 @@ export type ApplicationSettings = {
     allowRerolls: boolean;
     warnUpstreamChanges: boolean;
     colorNamesByPrimaryTag: boolean;
+    includeItemTagsInRadar: boolean;
   };
   notifications: {
     enabled: boolean;
@@ -99,6 +100,7 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
       allowRerolls: false,
       warnUpstreamChanges: false,
       colorNamesByPrimaryTag: false,
+      includeItemTagsInRadar: false,
     },
     notifications: {
       enabled: true,
@@ -220,6 +222,10 @@ export function hydrateSettings(
       colorNamesByPrimaryTag: bool(
         chain.colorNamesByPrimaryTag,
         fallback.chain.colorNamesByPrimaryTag,
+      ),
+      includeItemTagsInRadar: bool(
+        chain.includeItemTagsInRadar,
+        fallback.chain.includeItemTagsInRadar,
       ),
     },
     notifications: {

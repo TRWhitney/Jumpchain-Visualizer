@@ -87,6 +87,17 @@ choice
   cost: 200
   grant: companion
 
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 500
+    companion: final_companion
+
+  grant
+    kind: perk
+    name: "Boundary Instinct"
+    companion: final_companion
+
 choice
   handle: horizon_company
   name: "Horizon Company"
@@ -102,8 +113,18 @@ choice
 
     grant
       kind: companion-import
+      handle: horizon_company
+
+    grant
+      kind: resource
       resource: jump_points
       amount: 500
+      companion: horizon_company
+
+    grant
+      kind: perk
+      name: "Company Pathfinder"
+      companion: horizon_company
 
   grant: perk
 

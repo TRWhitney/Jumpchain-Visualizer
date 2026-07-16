@@ -55,6 +55,7 @@ choice
 
   grant
     kind: companion
+    handle: cala
     name: "Cala"
     tag: crafting
     tag: technology
@@ -113,8 +114,13 @@ choice
 
     grant
       kind: companion-import
+      handle: clockwork_crew
+
+    grant
+      kind: resource
       resource: jump_points
       amount: 600
+      companion: clockwork_crew
 
   grant: perk
 

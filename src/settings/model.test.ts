@@ -13,6 +13,7 @@ describe("application settings", () => {
           warnUpstreamChanges: true,
           allowRerolls: "yes",
           allowDuplicateJumps: true,
+          includeItemTagsInRadar: true,
         },
         developer: { showAdditionalJumpInformation: true },
         notifications: { maxVisible: 5, durationMs: 1234 },
@@ -25,6 +26,7 @@ describe("application settings", () => {
     expect(result.chain.warnUpstreamChanges).toBe(true);
     expect(result.chain.allowRerolls).toBe(false);
     expect(result.chain.allowDuplicateJumps).toBe(true);
+    expect(result.chain.includeItemTagsInRadar).toBe(true);
     expect(result.developer.showAdditionalJumpInformation).toBe(true);
     expect(result.notifications.maxVisible).toBe(5);
     expect(result.notifications.durationMs).toBe(5000);

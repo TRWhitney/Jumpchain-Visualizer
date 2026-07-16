@@ -45,6 +45,7 @@ choice
 
   grant
     kind: companion
+    handle: orin
     name: "Orin"
     tag: spiritual
     tag: healing

@@ -64,6 +64,7 @@ choice
 
   grant
     kind: companion
+    handle: vesper
     name: "Vesper"
     tag: social
     tag: stealth

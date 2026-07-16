@@ -567,13 +567,15 @@ test("single, multi, random, either, and companion-source controls retain the do
     "color",
     "rgb(38, 35, 31)",
   );
-  await expect(
-    roster.locator("xpath=parent::label").locator(":scope > strong"),
-  ).toHaveCSS("color", "rgb(79, 74, 64)");
+  const companionInput = roster.locator("xpath=parent::fieldset");
+  await expect(companionInput.locator("legend")).toHaveCSS(
+    "color",
+    "rgb(79, 74, 64)",
+  );
   await roster.getByRole("checkbox").first().check();
   await expect(roster.getByRole("checkbox").first()).toBeChecked();
   await testInfo.attach("readable-companion-roster", {
-    body: await roster.locator("xpath=parent::label").screenshot(),
+    body: await companionInput.screenshot(),
     contentType: "image/png",
   });
 });

@@ -96,6 +96,13 @@ const searchEntries = [
     "chain reroll random replace result",
   ],
   [
+    "Include item tags in radar",
+    "chain.includeItemTagsInRadar",
+    "chain",
+    "item-tags-radar",
+    "chain radar stats count item tags jumper forms inventory",
+  ],
+  [
     "Upstream change warnings",
     "chain.warnUpstreamChanges",
     "chain",
@@ -176,6 +183,8 @@ const searchValue = (
       return String(settings.chain.allowNegativePointBalances);
     case "chain.allowRerolls":
       return String(settings.chain.allowRerolls);
+    case "chain.includeItemTagsInRadar":
+      return String(settings.chain.includeItemTagsInRadar);
     case "chain.warnUpstreamChanges":
       return String(settings.chain.warnUpstreamChanges);
     case "chain.colorNamesByPrimaryTag":
@@ -822,6 +831,31 @@ function CategoryPanel({
           }
         />
         <CheckRow
+          id="item-tags-radar"
+          label="Include item tags in radar"
+          description="Count tags from Jumper and form items in radar statistics. Companion perks and items never contribute."
+          checked={settings.chain.includeItemTagsInRadar}
+          text="Count item tags"
+          onChange={(value) =>
+            patch(
+              {
+                ...settings,
+                chain: { ...settings.chain, includeItemTagsInRadar: value },
+              },
+              "chain.includeItemTagsInRadar",
+            )
+          }
+          reset={() =>
+            patch(
+              {
+                ...settings,
+                chain: { ...settings.chain, includeItemTagsInRadar: false },
+              },
+              "chain.includeItemTagsInRadar",
+            )
+          }
+        />
+        <CheckRow
           id="upstream"
           label="Upstream change warnings"
           description="Review reorder or deletion only when an explicit active downstream dependency would become invalid."
@@ -849,7 +883,7 @@ function CategoryPanel({
         <CheckRow
           id="color-chain"
           label="Color chain names by primary tag"
-          description="Color saved-chain names from the category with the greatest number of accrued perks."
+          description="Color saved-chain names from the category with the greatest eligible radar count."
           checked={settings.chain.colorNamesByPrimaryTag}
           text="Color chain names"
           onChange={(value) =>
@@ -872,7 +906,7 @@ function CategoryPanel({
           }
         />
         <div className="setting-explanation">
-          All five settings are off by default. Exact versions never duplicate,
+          All seven settings are off by default. Exact versions never duplicate,
           and upstream review remains material-only and undoable.
         </div>
       </section>

@@ -2106,6 +2106,7 @@
 }
 
 .companion-profile-columns section {
+  min-width: 0;
   padding: 0.6rem;
   background: #292927;
   border: 1px solid #41413d;
@@ -2121,6 +2122,24 @@
   padding: 0;
   color: #aaa9a3;
   list-style: none;
+}
+
+.companion-profile-list.is-scrollable {
+  max-height: 10.75rem;
+  padding-right: 0.2rem !important;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.companion-profile-list.is-imports.is-scrollable {
+  max-height: 13.75rem;
+}
+
+.companion-profile-empty {
+  max-width: 100%;
+  margin: 0;
+  color: #aaa9a3;
+  overflow-wrap: anywhere;
 }
 
 .companion-profile-columns li + li {

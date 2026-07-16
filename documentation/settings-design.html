@@ -159,7 +159,14 @@
                 <td><code>false</code></td>
                 <td><code>true</code>, <code>false</code></td>
                 <td>Chain Tracker</td>
-                <td>Users may add a visual discriminator to saved-chain lists by coloring each chain name from the built-in top-level tag category with the greatest number of accrued perks. The ordinary text color remains the default.</td>
+                <td>Users may add a visual discriminator to saved-chain lists by coloring each chain name from the built-in top-level tag category with the greatest eligible radar count. This uses Jumper and form perks by default and also uses their items when <code>chain.includeItemTagsInRadar</code> is enabled; companion-owned records remain excluded. The ordinary text color remains the default.</td>
+              </tr>
+              <tr>
+                <td><code>chain.includeItemTagsInRadar</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Chain Tracker</td>
+                <td>Radar statistics normally count Jumper and form perks only. Enabling this setting also counts Jumper and form items; companion-owned perks and items remain excluded.</td>
               </tr>
               <tr>
                 <td><code>notifications.enabled</code></td>
@@ -269,6 +276,7 @@
                 <button type="button" data-settings-search-entry data-settings-search-text="chain add same exact jump package duplicate repeat again" data-settings-category="chain" data-settings-focus="mock-duplicate-jumps"><span><strong>Allow duplicate jumps</strong><small><code>chain.allowDuplicateJumps</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="chain negative point balance overspend over budget currency companion jumper choices" data-settings-category="chain" data-settings-focus="mock-negative-point-balances"><span><strong>Negative point balances</strong><small><code>chain.allowNegativePointBalances</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="chain reroll rerolls roll random replace result choices" data-settings-category="chain" data-settings-focus="mock-allow-rerolls"><span><strong>Allow rerolls</strong><small><code>chain.allowRerolls</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="chain radar stats count item tags jumper forms inventory" data-settings-category="chain" data-settings-focus="mock-item-tags-radar"><span><strong>Include item tags in radar</strong><small><code>chain.includeItemTagsInRadar</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="chain upstream change warning reorder remove delete dependency companion import provider chronology review" data-settings-category="chain" data-settings-focus="mock-warn-upstream-changes"><span><strong>Upstream change warnings</strong><small><code>chain.warnUpstreamChanges</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="chain color colour names primary strongest highest perk tag category saved list visual discriminator" data-settings-category="chain" data-settings-focus="mock-color-chain-names"><span><strong>Color chain names by primary tag</strong><small><code>chain.colorNamesByPrimaryTag</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="notifications toast popups enabled disabled maximum duration length confirmations editor chain validation errors recovery debounce" data-settings-category="notifications" data-settings-focus="mock-notifications-enabled"><span><strong>Toast notifications</strong><small><code>notifications.*</code> · Notifications</small></span><span aria-hidden="true">→</span></button>
@@ -330,6 +338,10 @@
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-allow-rerolls"><input id="mock-allow-rerolls" type="checkbox"><span>Allow rerolls</span></label></div>
               </div>
               <div class="setting-row">
+                <div><label for="mock-item-tags-radar">Include item tags in radar</label><p>Count tags from Jumper and form items. Companion perks and items never contribute.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-item-tags-radar"><input id="mock-item-tags-radar" type="checkbox"><span>Count item tags</span></label></div>
+              </div>
+              <div class="setting-row">
                 <div><label for="mock-warn-upstream-changes">Upstream change warnings</label><p>Review a reorder or deletion before it invalidates an explicit active downstream reference.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-warn-upstream-changes"><input id="mock-warn-upstream-changes" type="checkbox"><span>Warn about upstream changes</span></label></div>
               </div>
@@ -337,7 +349,7 @@
                 <div><label for="mock-color-chain-names">Color chain names by primary tag</label><p>Color saved-chain names using the top-level tag category containing the most accrued perks.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-color-chain-names"><input id="mock-color-chain-names" type="checkbox"><span>Color chain names</span></label></div>
               </div>
-              <div class="setting-explanation">All six settings are off by default. Parallel versions never duplicate an exact version or update existing entries; duplicate Jumps create independent exact-package entries and remain intact if the setting is later disabled. Negative balances apply to the Jumper and to companions granted a positive point budget in that run. Without rerolls, a source-level roll is locked after its first stored result; removing the chain entry deletes that roll record along with the entry. Upstream warnings appear only when an explicit active dependency would become invalid—for example, when a companion provider would no longer precede a Jump that imports that companion. Changes to ordinary historical records do not warn, and every committed reorder or deletion remains undoable. Primary-tag coloring uses accrued perk counts only, resolves equal counts by the stable built-in category order, and leaves chains without tagged perks in the ordinary text color. It changes the saved-list presentation but not tag badges, radar data, or chain content.</div>
+              <div class="setting-explanation">All seven settings are off by default. Parallel versions never duplicate an exact version or update existing entries; duplicate Jumps create independent exact-package entries and remain intact if the setting is later disabled. Negative balances apply to the Jumper and to companions granted a positive point budget in that run. Without rerolls, a source-level roll is locked after its first stored result; removing the chain entry deletes that roll record along with the entry. Radar statistics count Jumper and form perks by default; item tags are opt-in and companion records never count. Upstream warnings appear only when an explicit active dependency would become invalid—for example, when a companion provider would no longer precede a Jump that imports that companion. Changes to ordinary historical records do not warn, and every committed reorder or deletion remains undoable. Primary-tag coloring uses the same eligible radar records, resolves equal counts by the stable built-in category order, and leaves chains without tagged records in the ordinary text color. It changes the saved-list presentation but not tag badges or chain content.</div>
             </section>
 
             <section id="settings-notifications-panel" class="settings-notifications-panel" role="tabpanel" aria-labelledby="settings-notifications-tab" hidden>

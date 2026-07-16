@@ -84,6 +84,7 @@ export type JumpGrant = {
   amount?: CostAmount;
   handle?: string;
   form?: string;
+  companion?: string;
   measure?: "rank" | "quantity";
   value?: string | number | boolean;
   text: readonly TextBlock[];

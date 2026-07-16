@@ -104,6 +104,7 @@ choice
 
   grant
     kind: companion
+    handle: io
     name: "Io"
     tag: technology
     tag: pilot

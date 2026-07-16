@@ -49,6 +49,9 @@ import {
   supplementStateForEntry,
 } from "./model";
 
+const PROFILE_RECORDS_BEFORE_SCROLL = 5;
+const PROFILE_IMPORTS_BEFORE_SCROLL = 9;
+
 const pageLabels: Record<TrackerPage, string> = {
   jump: "Chain & Jump",
   inventory: "Inventory",
@@ -1333,6 +1336,7 @@ function ProfileModal({ state, dispatch }: TrackerProps) {
               ids={recordIds}
               dispatch={dispatch}
               title="Form perks"
+              emptyMessage="Form has no perks"
             />
           </>
         ) : companion ? (
@@ -1342,24 +1346,16 @@ function ProfileModal({ state, dispatch }: TrackerProps) {
               ids={companion.perkRecordIds}
               dispatch={dispatch}
               title="Perks"
+              emptyMessage="Companion has no perks"
             />
             <ProfileRecords
               state={state}
               ids={companion.itemRecordIds}
               dispatch={dispatch}
               title="Items"
+              emptyMessage="Companion has no items"
             />
-            <section>
-              <h5>Imported into</h5>
-              <ul>
-                {companion.importedEntryIds.map(
-                  (id) =>
-                    state.entries[id] && (
-                      <li key={id}>{packageForEntry(state, id).name}</li>
-                    ),
-                )}
-              </ul>
-            </section>
+            <ProfileImports state={state} ids={companion.importedEntryIds} />
           </>
         ) : null}
       </div>
@@ -1372,11 +1368,13 @@ function ProfileRecords({
   ids,
   dispatch,
   title,
+  emptyMessage,
 }: {
   state: TrackerState;
   ids: readonly string[];
   dispatch: Dispatch<TrackerAction>;
   title: string;
+  emptyMessage: string;
 }) {
   const records = aggregateInventoryRecords(
     state.records.filter(
@@ -1387,26 +1385,69 @@ function ProfileRecords({
   );
   return (
     <section>
-      <h5>{title}</h5>
-      <ul>
-        {records.map((record) => {
-          return (
-            <li key={record.id}>
-              <button
-                type="button"
-                onClick={() => dispatch({ type: "open-record", id: record.id })}
-              >
-                {record.name}
-                {record.measure?.kind === "rank" &&
-                  ` · Rank ${record.measure.value}`}
-                {record.measure?.kind === "quantity" &&
-                  ` · x${record.measure.value}`}
-                {record.aggregateQuantity && ` · x${record.aggregateQuantity}`}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      {records.length ? (
+        <>
+          <h5>{title}</h5>
+          <ul
+            className={`companion-profile-list${records.length > PROFILE_RECORDS_BEFORE_SCROLL ? " is-scrollable" : ""}`}
+          >
+            {records.map((record) => {
+              return (
+                <li key={record.id}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      dispatch({ type: "open-record", id: record.id })
+                    }
+                  >
+                    {record.name}
+                    {record.measure?.kind === "rank" &&
+                      ` · Rank ${record.measure.value}`}
+                    {record.measure?.kind === "quantity" &&
+                      ` · x${record.measure.value}`}
+                    {record.aggregateQuantity &&
+                      ` · x${record.aggregateQuantity}`}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      ) : (
+        <p className="companion-profile-empty">{emptyMessage}</p>
+      )}
+    </section>
+  );
+}
+
+function ProfileImports({
+  state,
+  ids,
+}: {
+  state: TrackerState;
+  ids: readonly string[];
+}) {
+  const entries = ids.flatMap((id) =>
+    state.entries[id] ? [{ id, name: packageForEntry(state, id).name }] : [],
+  );
+  return (
+    <section>
+      {entries.length ? (
+        <>
+          <h5>Imported into</h5>
+          <ul
+            className={`companion-profile-list is-imports${entries.length > PROFILE_IMPORTS_BEFORE_SCROLL ? " is-scrollable" : ""}`}
+          >
+            {entries.map((entry) => (
+              <li key={entry.id}>{entry.name}</li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="companion-profile-empty">
+          Companion has not been imported into any jumps
+        </p>
+      )}
     </section>
   );
 }

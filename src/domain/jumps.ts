@@ -436,6 +436,7 @@ function evaluateActor(
   bodyModSpecies: string | undefined,
   supplementGrant: number,
   startingPointContribution: number,
+  targetedResourceGrants: Readonly<Record<string, number>>,
   gauntletActive: boolean,
 ) {
   const choiceViews: Record<string, EvaluatedChoice> = {};
@@ -523,8 +524,11 @@ function evaluateActor(
       abbreviation: display(packageItem.pointsAbbreviation, "CP"),
       starting: startingPointContribution,
       spent: 0,
-      granted: supplementGrant,
-      balance: startingPointContribution + supplementGrant,
+      granted: supplementGrant + (targetedResourceGrants.jump_points ?? 0),
+      balance:
+        startingPointContribution +
+        supplementGrant +
+        (targetedResourceGrants.jump_points ?? 0),
     },
   };
   for (const resource of packageItem.resources)
@@ -535,10 +539,12 @@ function evaluateActor(
         resource.abbreviation,
         display(resource.name, resource.handle),
       ),
-      starting: resource.initial,
+      starting: actorId === "jumper" ? resource.initial : 0,
       spent: 0,
-      granted: 0,
-      balance: resource.initial,
+      granted: targetedResourceGrants[resource.handle] ?? 0,
+      balance:
+        (actorId === "jumper" ? resource.initial : 0) +
+        (targetedResourceGrants[resource.handle] ?? 0),
     };
   for (const choice of packageItem.choices) {
     const evaluated = choiceViews[choice.handle];
@@ -553,6 +559,7 @@ function evaluateActor(
     for (const item of choice.grants) {
       if (
         item.kind !== "resource" ||
+        item.companion ||
         !item.resource ||
         item.amount === undefined
       )
@@ -572,6 +579,7 @@ function evaluateActor(
       for (const item of inputItem.grants) {
         if (
           item.kind !== "resource" ||
+          item.companion ||
           !item.resource ||
           item.amount === undefined
         )
@@ -704,142 +712,195 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
     runtime[entryId] = { gauntlet, actors: {} };
 
     const jumperState = entryState.actors.jumper ?? emptyActorEntryState();
+    const jumperEvaluation = evaluateActor(
+      entryId,
+      packageItem,
+      "jumper",
+      jumperState,
+      previous.jumper ?? {},
+      original.jumper ?? {},
+      input.bodyModSpecies,
+      input.supplementPointGrants?.[entryId] ?? 0,
+      gauntlet.startingPointContribution,
+      {},
+      gauntlet.active,
+    );
+    const jumperContext = actorRenderContext(jumperEvaluation, gauntlet.active);
     const imported = new Set<string>();
-    const importedBudgets = new Map<string, number>();
+    const companionTargets = new Map<string, readonly string[]>();
+    const entryForms = new Map<string, EvaluatedForm>();
+
     for (const choice of packageItem.choices) {
-      if (
-        !choiceValueIsActive(choice, jumperState.choices[choice.handle] ?? null)
-      )
-        continue;
+      if (!jumperEvaluation.choices[choice.handle]?.active) continue;
+      for (const [grantIndex, grant] of choice.grants.entries()) {
+        if (grant.kind === "form" && grant.handle) {
+          const form: EvaluatedForm = {
+            id: `form:${entryId}:${grant.handle}`,
+            handle: grant.handle,
+            name: inheritedGrantName(choice, grant, jumperContext),
+            sourceEntryId: entryId,
+            ownerActorId: "jumper",
+            description: inheritedDescription(choice, grant, jumperContext),
+            initials: initials(
+              inheritedGrantName(choice, grant, jumperContext),
+            ),
+            tags: [
+              ...new Set([...choice.tags, ...grant.tags].map(normalizeTag)),
+            ],
+            perkRecordIds: [],
+          };
+          entryForms.set(grant.handle, form);
+          forms.push(form);
+        }
+        if (grant.kind === "companion" && grant.handle) {
+          const name = inheritedGrantName(choice, grant, jumperContext);
+          const companionId = `companion:${entryId}:jumper:${choice.handle}:${grantIndex}`;
+          actors[companionId] = {
+            id: companionId,
+            name,
+            role: "Companion",
+            joinedEntryId: entryId,
+            initials: initials(name),
+            summary: inheritedDescription(choice, grant, jumperContext),
+          };
+          companions.set(companionId, {
+            actorId: companionId,
+            sourceEntryId: entryId,
+            tags: [
+              ...new Set([...choice.tags, ...grant.tags].map(normalizeTag)),
+            ],
+            perkRecordIds: [],
+            itemRecordIds: [],
+            importedEntryIds: [],
+          });
+          companionTargets.set(grant.handle, [companionId]);
+        }
+      }
       for (const inputItem of choice.inputs) {
         const selected = jumperState.inputs[choice.handle]?.[inputItem.handle];
         if (!Array.isArray(selected)) continue;
-        const importGrant = inputItem.grants.find(
-          (item) => item.kind === "companion-import",
+        const selectedActors = selected.filter(
+          (actorId) => actors[actorId]?.role === "Companion",
         );
-        if (importGrant)
-          selected.forEach((actorId) => {
-            if (actors[actorId]) {
-              imported.add(actorId);
-              importedBudgets.set(
-                actorId,
-                importGrant.amount === undefined
-                  ? 0
-                  : resolveCostAmount(importGrant.amount),
-              );
-            }
-          });
+        for (const importGrant of inputItem.grants)
+          if (importGrant.kind === "companion-import" && importGrant.handle) {
+            companionTargets.set(importGrant.handle, selectedActors);
+            selectedActors.forEach((actorId) => imported.add(actorId));
+          }
       }
     }
-    const participating = ["jumper", ...imported];
-    const entryForms = new Map<string, EvaluatedForm>();
+
+    const targetedResources = new Map<string, Map<string, number>>();
+    const applyTargetedResource = (grant: JumpGrant) => {
+      if (
+        grant.kind !== "resource" ||
+        !grant.companion ||
+        !grant.resource ||
+        grant.amount === undefined
+      )
+        return;
+      if (
+        grant.resource !== "jump_points" &&
+        !packageItem.resources.some(
+          (resource) => resource.handle === grant.resource,
+        )
+      )
+        return;
+      for (const actorId of companionTargets.get(grant.companion) ?? []) {
+        const grants = targetedResources.get(actorId) ?? new Map();
+        grants.set(
+          grant.resource,
+          (grants.get(grant.resource) ?? 0) + resolveCostAmount(grant.amount),
+        );
+        targetedResources.set(actorId, grants);
+      }
+    };
+    for (const choice of packageItem.choices) {
+      if (!jumperEvaluation.choices[choice.handle]?.active) continue;
+      choice.grants.forEach(applyTargetedResource);
+      for (const inputItem of choice.inputs) {
+        const value = jumperState.inputs[choice.handle]?.[inputItem.handle];
+        const activeInput = Array.isArray(value)
+          ? value.length > 0
+          : value !== null && value !== undefined && value !== "";
+        if (activeInput) inputItem.grants.forEach(applyTargetedResource);
+      }
+    }
+    const fundedCompanions = new Set(
+      [...targetedResources].flatMap(([actorId, grants]) =>
+        [...grants.values()].some((amount) => amount > 0) ? [actorId] : [],
+      ),
+    );
+    const participating = ["jumper", ...fundedCompanions];
+    const ownersForGrant = (
+      grant: JumpGrant,
+      actorId: string,
+    ): { ownerActorId?: string; ownerFormId?: string }[] => {
+      if (grant.form) {
+        if (actorId !== "jumper") return [];
+        const form = entryForms.get(grant.form);
+        return form ? [{ ownerFormId: form.id }] : [];
+      }
+      if (grant.companion) {
+        if (actorId !== "jumper") return [];
+        return (companionTargets.get(grant.companion) ?? []).map(
+          (ownerActorId) => ({ ownerActorId }),
+        );
+      }
+      return [{ ownerActorId: actorId }];
+    };
+
     for (const actorId of participating) {
       const state = entryState.actors[actorId] ?? emptyActorEntryState();
-      const evaluation = evaluateActor(
-        entryId,
-        packageItem,
-        actorId,
-        state,
-        previous[actorId] ?? {},
-        original[actorId] ?? {},
-        input.bodyModSpecies,
+      const evaluation =
         actorId === "jumper"
-          ? (input.supplementPointGrants?.[entryId] ?? 0)
-          : 0,
-        actorId === "jumper"
-          ? gauntlet.startingPointContribution
-          : (importedBudgets.get(actorId) ?? 0),
-        gauntlet.active,
-      );
+          ? jumperEvaluation
+          : evaluateActor(
+              entryId,
+              packageItem,
+              actorId,
+              state,
+              previous[actorId] ?? {},
+              original[actorId] ?? {},
+              input.bodyModSpecies,
+              0,
+              0,
+              Object.fromEntries(targetedResources.get(actorId) ?? []),
+              gauntlet.active,
+            );
       runtime[entryId].actors[actorId] = evaluation;
       previous[actorId] = evaluation.properties;
       if (!original[actorId]) original[actorId] = evaluation.properties;
 
       const context = actorRenderContext(evaluation, gauntlet.active);
-      if (actorId === "jumper") {
-        for (const choice of packageItem.choices) {
-          const evaluatedChoice = evaluation.choices[choice.handle];
-          if (!evaluatedChoice?.active) continue;
-          const activeGrants: JumpGrant[] = [...choice.grants];
-          for (const inputItem of choice.inputs) {
-            const value = state.inputs[choice.handle]?.[inputItem.handle];
-            const activeInput = Array.isArray(value)
-              ? value.length > 0
-              : value !== null && value !== undefined && value !== "";
-            if (!activeInput) continue;
-            activeGrants.push(...inputItem.grants);
-          }
-          for (const grant of activeGrants) {
-            if (grant.kind !== "form" || !grant.handle) continue;
-            const form: EvaluatedForm = {
-              id: `form:${entryId}:${grant.handle}`,
-              handle: grant.handle,
-              name: inheritedGrantName(choice, grant, context),
-              sourceEntryId: entryId,
-              ownerActorId: "jumper",
-              description: inheritedDescription(choice, grant, context),
-              initials: initials(inheritedGrantName(choice, grant, context)),
-              tags: [
-                ...new Set([...choice.tags, ...grant.tags].map(normalizeTag)),
-              ],
-              perkRecordIds: [],
-            };
-            entryForms.set(grant.handle, form);
-            forms.push(form);
-          }
-        }
-      }
       for (const choice of packageItem.choices) {
         const evaluatedChoice = evaluation.choices[choice.handle];
         if (!evaluatedChoice?.active) continue;
         for (const [grantIndex, item] of choice.grants.entries()) {
-          const id = `grant:${entryId}:${actorId}:${choice.handle}:${grantIndex}`;
           if (
             (item.kind === "perk" || item.kind === "item") &&
             visibleGrantIsAcquired(evaluatedChoice.value)
-          ) {
-            if (item.form && actorId !== "jumper") continue;
-            const ownerForm = item.form ? entryForms.get(item.form) : undefined;
-            if (item.form && !ownerForm) continue;
-            records.push({
-              id,
-              kind: item.kind,
-              name: inheritedGrantName(choice, item, context),
-              sourceEntryId: entryId,
-              ownerActorId: ownerForm ? undefined : actorId,
-              ownerFormId: ownerForm?.id,
-              grantHandle: effectiveGrantHandle(choice, item, grantIndex),
-              sourcePackageId: packageItem.logicalId,
-              sourcePackageExactHash: packageItem.exactHash,
-              tags: [
-                ...new Set([...choice.tags, ...item.tags].map(normalizeTag)),
-              ],
-              description: inheritedDescription(choice, item, context),
-              measure: grantMeasure(item, evaluatedChoice.value),
-            });
-          }
-          if (item.kind === "companion") {
-            const name = inheritedGrantName(choice, item, context);
-            const companionId = `companion:${entryId}:${actorId}:${choice.handle}:${grantIndex}`;
-            actors[companionId] = {
-              id: companionId,
-              name,
-              role: "Companion",
-              joinedEntryId: entryId,
-              initials: initials(name),
-              summary: inheritedDescription(choice, item, context),
-            };
-            companions.set(companionId, {
-              actorId: companionId,
-              sourceEntryId: entryId,
-              tags: [
-                ...new Set([...choice.tags, ...item.tags].map(normalizeTag)),
-              ],
-              perkRecordIds: [],
-              itemRecordIds: [],
-              importedEntryIds: [],
-            });
-          }
+          )
+            for (const owner of ownersForGrant(item, actorId)) {
+              const ownerKey = owner.ownerActorId ?? actorId;
+              const id = `grant:${entryId}:${ownerKey}:${choice.handle}:${grantIndex}`;
+              records.push({
+                id,
+                kind: item.kind,
+                name: inheritedGrantName(choice, item, context),
+                sourceEntryId: entryId,
+                ownerActorId: owner.ownerActorId,
+                ownerFormId: owner.ownerFormId,
+                grantHandle: effectiveGrantHandle(choice, item, grantIndex),
+                sourcePackageId: packageItem.logicalId,
+                sourcePackageExactHash: packageItem.exactHash,
+                tags: [
+                  ...new Set([...choice.tags, ...item.tags].map(normalizeTag)),
+                ],
+                description: inheritedDescription(choice, item, context),
+                measure: grantMeasure(item, evaluatedChoice.value),
+              });
+            }
         }
         for (const inputItem of choice.inputs) {
           const value = state.inputs[choice.handle]?.[inputItem.handle];
@@ -848,43 +909,43 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
             : value !== null && value !== undefined && value !== "";
           if (!activeInput) continue;
           for (const [grantIndex, item] of inputItem.grants.entries()) {
-            const id = `grant:${entryId}:${actorId}:${choice.handle}:input:${inputItem.handle}:${grantIndex}`;
             if (
               (item.kind === "perk" || item.kind === "item") &&
               visibleGrantIsAcquired(value)
-            ) {
-              if (item.form && actorId !== "jumper") continue;
-              const ownerForm = item.form
-                ? entryForms.get(item.form)
-                : undefined;
-              if (item.form && !ownerForm) continue;
-              records.push({
-                id,
-                kind: item.kind,
-                name: inheritedGrantName(choice, item, context),
-                sourceEntryId: entryId,
-                ownerActorId: ownerForm ? undefined : actorId,
-                ownerFormId: ownerForm?.id,
-                grantHandle: effectiveGrantHandle(
-                  choice,
-                  item,
-                  grantIndex,
-                  inputItem.handle,
-                ),
-                sourcePackageId: packageItem.logicalId,
-                sourcePackageExactHash: packageItem.exactHash,
-                tags: [
-                  ...new Set([...choice.tags, ...item.tags].map(normalizeTag)),
-                ],
-                description: inheritedDescription(choice, item, context),
-                measure: grantMeasure(item, value),
-              });
-            }
+            )
+              for (const owner of ownersForGrant(item, actorId)) {
+                const ownerKey = owner.ownerActorId ?? actorId;
+                const id = `grant:${entryId}:${ownerKey}:${choice.handle}:input:${inputItem.handle}:${grantIndex}`;
+                records.push({
+                  id,
+                  kind: item.kind,
+                  name: inheritedGrantName(choice, item, context),
+                  sourceEntryId: entryId,
+                  ownerActorId: owner.ownerActorId,
+                  ownerFormId: owner.ownerFormId,
+                  grantHandle: effectiveGrantHandle(
+                    choice,
+                    item,
+                    grantIndex,
+                    inputItem.handle,
+                  ),
+                  sourcePackageId: packageItem.logicalId,
+                  sourcePackageExactHash: packageItem.exactHash,
+                  tags: [
+                    ...new Set(
+                      [...choice.tags, ...item.tags].map(normalizeTag),
+                    ),
+                  ],
+                  description: inheritedDescription(choice, item, context),
+                  measure: grantMeasure(item, value),
+                });
+              }
           }
         }
       }
     }
     for (const actorId of imported) {
+      if (!fundedCompanions.has(actorId)) continue;
       const companion = companions.get(actorId);
       if (companion)
         companions.set(actorId, {

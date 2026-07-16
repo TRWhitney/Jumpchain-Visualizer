@@ -551,6 +551,21 @@ function InputControls({
     <div className="jump-nested-inputs">
       {inputs.map((input) => {
         const value = props.state.inputs[choice.handle]?.[input.handle] ?? null;
+        const importGrant = input.grants.find(
+          (grant) => grant.kind === "companion-import" && grant.handle,
+        );
+        const importFunding = importGrant
+          ? input.grants.filter(
+              (grant) =>
+                grant.kind === "resource" &&
+                grant.companion === importGrant.handle &&
+                grant.resource &&
+                grant.amount !== undefined,
+            )
+          : [];
+        const inputLabel = importGrant
+          ? "Import companions"
+          : input.handle.replaceAll("_", " ");
         const formTargets = input.grants.flatMap((grant) =>
           grant.form ? [grant.form] : [],
         );
@@ -573,43 +588,22 @@ function InputControls({
             inputHandle: input.handle,
             value: next,
           });
-        return (
-          <label key={input.handle}>
-            <strong>{input.handle.replaceAll("_", " ")}</strong>
-            {input.selection === "text" && (
-              <input
-                type="text"
-                disabled={Boolean(missingForm)}
-                value={typeof value === "string" ? value : ""}
-                onChange={(event) => update(event.target.value || null)}
-              />
-            )}
-            {input.selection === "integer" && (
-              <NumberStepper
-                label={input.handle.replaceAll("_", " ")}
-                min={input.min}
-                max={input.max}
-                fluid
-                disabled={Boolean(missingForm)}
-                value={typeof value === "number" ? value : null}
-                onChange={update}
-              />
-            )}
-            {input.selection === "select" && (
-              <select
-                disabled={Boolean(missingForm)}
-                value={typeof value === "string" ? value : ""}
-                onChange={(event) => update(event.target.value || null)}
-              >
-                <option value="">Unset</option>
-                {input.options.map((option) => (
-                  <option key={resolved(option, props)}>
-                    {resolved(option, props)}
-                  </option>
-                ))}
-              </select>
-            )}
-            {input.selection === "companions" && (
+        if (input.selection === "companions")
+          return (
+            <fieldset className="companion-selection-input" key={input.handle}>
+              <legend>{inputLabel}</legend>
+              {importFunding.length > 0 && (
+                <em className="choice-provenance companion-import-funding">
+                  Each selected companion receives{" "}
+                  {importFunding
+                    .map(
+                      (grant) =>
+                        `${resolveCostAmount(grant.amount!)} ${props.evaluation.resources[grant.resource!]?.abbreviation ?? grant.resource}`,
+                    )
+                    .join(" and ")}
+                  .
+                </em>
+              )}
               <span className="companion-roster">
                 {props.companions.map((companion) => {
                   const selected =
@@ -638,6 +632,43 @@ function InputControls({
                   );
                 })}
               </span>
+            </fieldset>
+          );
+        return (
+          <label key={input.handle}>
+            <strong>{inputLabel}</strong>
+            {input.selection === "text" && (
+              <input
+                type="text"
+                disabled={Boolean(missingForm)}
+                value={typeof value === "string" ? value : ""}
+                onChange={(event) => update(event.target.value || null)}
+              />
+            )}
+            {input.selection === "integer" && (
+              <NumberStepper
+                label={inputLabel}
+                min={input.min}
+                max={input.max}
+                fluid
+                disabled={Boolean(missingForm)}
+                value={typeof value === "number" ? value : null}
+                onChange={update}
+              />
+            )}
+            {input.selection === "select" && (
+              <select
+                disabled={Boolean(missingForm)}
+                value={typeof value === "string" ? value : ""}
+                onChange={(event) => update(event.target.value || null)}
+              >
+                <option value="">Unset</option>
+                {input.options.map((option) => (
+                  <option key={resolved(option, props)}>
+                    {resolved(option, props)}
+                  </option>
+                ))}
+              </select>
             )}
             {missingForm && (
               <em className="choice-provenance">Requires form {missingForm}</em>

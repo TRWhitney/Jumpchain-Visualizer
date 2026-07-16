@@ -141,6 +141,7 @@ export type TrackerPreferences = {
   allowDuplicateJumps: boolean;
   allowNegativePointBalances: boolean;
   allowRerolls: boolean;
+  includeItemTagsInRadar: boolean;
   showAdditionalJumpInformation: boolean;
 };
 
@@ -468,17 +469,28 @@ export function radarCounts(state: TrackerState) {
     tagCategories.map((category) => [category, 0]),
   ) as Record<TagCategory, number>;
   for (const record of state.records) {
-    if (
-      record.kind !== "perk" ||
-      record.ownerActorId !== "jumper" ||
-      !visibleAtInspection(state, record.sourceEntryId)
-    )
-      continue;
+    if (!recordContributesToRadar(state, record)) continue;
     for (const category of tagCategories)
       if (record.tags.some((tag) => tagIsWithin(state, tag, category)))
         result[category] += 1;
   }
   return result;
+}
+
+export function recordContributesToRadar(
+  state: TrackerState,
+  record: InventoryRecord,
+) {
+  const eligibleOwner =
+    record.ownerActorId === "jumper" || Boolean(record.ownerFormId);
+  const eligibleKind =
+    record.kind === "perk" ||
+    (record.kind === "item" && state.preferences.includeItemTagsInRadar);
+  return (
+    eligibleOwner &&
+    eligibleKind &&
+    visibleAtInspection(state, record.sourceEntryId)
+  );
 }
 
 export type TagBreakdownNode = {
@@ -577,9 +589,7 @@ export function tagBreakdown(
     nodeId,
     state.records.filter(
       (record) =>
-        record.kind === "perk" &&
-        record.ownerActorId === "jumper" &&
-        visibleAtInspection(state, record.sourceEntryId) &&
+        recordContributesToRadar(state, record) &&
         record.tags.some((tag) => tagIsWithin(state, tag, nodeId)),
     ),
   );
@@ -698,13 +708,44 @@ export function companionImportDependencies(state: TrackerState) {
       state.packages[state.entries[consumerEntryId]?.packageId]?.document;
     const actor = state.jumpState[consumerEntryId]?.actors.jumper;
     if (!packageItem || !actor) continue;
+    const choiceIsActive = (choice: (typeof packageItem.choices)[number]) => {
+      const value = actor.choices[choice.handle];
+      return choice.selection === "toggle"
+        ? value === true
+        : value !== null && value !== undefined && value !== "";
+    };
+    const fundedTargets = new Set(
+      packageItem.choices.flatMap((choice) => {
+        if (!choiceIsActive(choice)) return [];
+        const grants = [...choice.grants];
+        for (const input of choice.inputs) {
+          const value = actor.inputs[choice.handle]?.[input.handle];
+          const activeInput = Array.isArray(value)
+            ? value.length > 0
+            : value !== null && value !== undefined && value !== "";
+          if (activeInput) grants.push(...input.grants);
+        }
+        return grants.flatMap((grant) =>
+          grant.kind === "resource" &&
+          grant.companion &&
+          grant.amount !== undefined &&
+          (typeof grant.amount === "number" ? grant.amount > 0 : true)
+            ? [grant.companion]
+            : [],
+        );
+      }),
+    );
     for (const choice of packageItem.choices) {
+      if (!choiceIsActive(choice)) continue;
       const hasImport = choice.inputs.some((input) =>
         input.grants.some((grant) => grant.kind === "companion-import"),
       );
       if (!hasImport) continue;
       for (const input of choice.inputs) {
-        if (!input.grants.some((grant) => grant.kind === "companion-import"))
+        const importGrant = input.grants.find(
+          (grant) => grant.kind === "companion-import" && grant.handle,
+        );
+        if (!importGrant?.handle || !fundedTargets.has(importGrant.handle))
           continue;
         const selected = actor.inputs[choice.handle]?.[input.handle];
         if (!Array.isArray(selected)) continue;

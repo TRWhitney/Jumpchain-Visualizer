@@ -1,0 +1,50 @@
+jump
+  format: 1
+  name: "Invalid Companion Targets"
+  author: "Jumpchain Visualizer"
+  version: "1"
+
+section
+  handle: choices
+  name: "Choices"
+
+  choice
+    handle: broken
+    target: broken_companion
+
+choice
+  handle: broken_companion
+  name: "Broken Companion"
+
+  grant
+    kind: companion
+
+  grant
+    kind: item
+    companion: missing_companion
+
+  grant
+    kind: form
+    handle: broken_form
+
+  grant
+    kind: perk
+    form: broken_form
+    companion: missing_companion
+
+choice
+  handle: broken_import
+  name: "Broken Import"
+
+  input
+    handle: roster
+    selection: companions
+
+    grant
+      kind: companion-import
+      resource: jump_points
+      amount: 500
+
+    grant
+      kind: companion-import
+      handle: unfunded_import

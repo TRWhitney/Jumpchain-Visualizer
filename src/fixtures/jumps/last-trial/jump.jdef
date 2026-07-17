@@ -418,7 +418,14 @@ choice
   handle: manual_flight
   name: "Flight"
   group: multi_manual
+  tag: physical
+  tag: flight
   cost: 100
+
+  text
+    handle: description
+    content: "Chosen training lets you fly under your own power."
+
   grant: perk
 
 choice
@@ -432,7 +439,14 @@ choice
   handle: random_flight
   name: "Flight"
   group: multi_random
+  tag: magic
+  tag: aerokinesis
   cost: 100
+
+  text
+    handle: description
+    content: "The random trial result grants mystical flight."
+
   grant: perk
 
 choice
@@ -446,7 +460,14 @@ choice
   handle: either_flight
   name: "Flight"
   group: multi_either
+  tag: spiritual
+  tag: survival
   cost: 100
+
+  text
+    handle: description
+    content: "The claimed trial result lifts your spirit into flight."
+
   grant: perk
 
 choice

@@ -108,6 +108,7 @@ export type InventoryRecord = {
   measure?: EvaluatedGrantMeasure;
   aggregateQuantity?: number;
   acquisitions?: readonly {
+    recordId: string;
     sourceEntryId: string;
     description: string;
     quantity: number;
@@ -142,6 +143,7 @@ export type TrackerPreferences = {
   allowNegativePointBalances: boolean;
   allowRerolls: boolean;
   includeItemTagsInRadar: boolean;
+  aggregateSimilarInventory: boolean;
   showAdditionalJumpInformation: boolean;
 };
 
@@ -365,6 +367,7 @@ function inventoryRecordPool(state: TrackerState) {
         return false;
       return true;
     }),
+    state.preferences.aggregateSimilarInventory,
   );
 }
 
@@ -374,19 +377,9 @@ function inventoryRecordMatchesSearch(
   terms: readonly string[],
 ) {
   if (!terms.length) return true;
-  const relatedTags = record.tags.flatMap((tag) => {
-    const related: string[] = [];
-    let current: string | undefined = tag;
-    const visited = new Set<string>();
-    while (current && !visited.has(current)) {
-      visited.add(current);
-      const definition: TagDefinition | undefined = state.tags[current];
-      if (!definition) break;
-      related.push(definition.label, ...definition.aliases);
-      current = definition.parent;
-    }
-    return related;
-  });
+  const relatedTags = record.tags.flatMap((tag) =>
+    inventoryTagSearchValues(state, tag),
+  );
   const acquisitions = record.acquisitions ?? [record];
   const haystack = normalize(
     [
@@ -395,11 +388,64 @@ function inventoryRecordMatchesSearch(
         acquisition.description,
         packageForEntry(state, acquisition.sourceEntryId)?.name,
       ]),
-      ...record.tags,
       ...relatedTags,
     ].join(" "),
   );
   return terms.every((term) => haystack.includes(term));
+}
+
+function inventoryTagSearchValues(
+  state: Pick<TrackerState, "tags">,
+  tagId: string,
+) {
+  const related = [tagId];
+  let current: string | undefined = tagId;
+  const visited = new Set<string>();
+  while (current && !visited.has(current)) {
+    visited.add(current);
+    const definition: TagDefinition | undefined = state.tags[current];
+    if (!definition) break;
+    related.push(definition.label, ...definition.aliases);
+    current = definition.parent;
+  }
+  return related;
+}
+
+export function inventoryRecordTagProjection(
+  state: Pick<TrackerState, "inventorySearch" | "inventoryTag" | "tags">,
+  record: InventoryRecord,
+  limit = 5,
+) {
+  const allIds = [...new Set(record.tags)].filter((id) => state.tags[id]);
+  const boundedLimit = Math.max(0, Math.trunc(limit));
+  if (allIds.length <= boundedLimit)
+    return { allIds, visibleIds: allIds, hiddenCount: 0 };
+
+  const searchTerms = normalize(state.inventorySearch)
+    .split(/\s+/)
+    .filter(Boolean);
+  const shouldPrioritize = (id: string) => {
+    const searchText = normalize(inventoryTagSearchValues(state, id).join(" "));
+    return (
+      searchTerms.some((term) => searchText.includes(term)) ||
+      (state.inventoryTag !== "all" &&
+        tagIsWithin(state, id, state.inventoryTag))
+    );
+  };
+  const priorityIds = allIds.filter(shouldPrioritize);
+  const prioritySet = new Set(priorityIds);
+  const selected = new Set(
+    [...priorityIds, ...allIds.filter((id) => !prioritySet.has(id))].slice(
+      0,
+      boundedLimit,
+    ),
+  );
+  const visibleIds = allIds.filter((id) => selected.has(id));
+  return {
+    allIds,
+    visibleIds,
+    hiddenCount: allIds.length - visibleIds.length,
+  };
 }
 
 function inventoryRecordsBeforeTagFilter(state: TrackerState) {
@@ -470,21 +516,26 @@ export function inventoryTagTree(state: TrackerState): InventoryTagNode[] {
 
 export function aggregateInventoryRecords(
   records: readonly InventoryRecord[],
+  aggregateSimilar = true,
 ): InventoryRecord[] {
   const grouped = new Map<string, InventoryRecord[]>();
   for (const record of records) {
     const rank = record.measure?.kind === "rank" ? record.measure.value : "";
-    const key =
-      record.grantHandle && record.sourcePackageExactHash
+    const ownerAndPresentation = [
+      record.ownerActorId ?? "",
+      record.ownerFormId ?? "",
+      record.kind,
+      record.name,
+      rank,
+    ];
+    const key = aggregateSimilar
+      ? ownerAndPresentation.join("\u0000")
+      : record.grantHandle && record.sourcePackageExactHash
         ? [
-            record.ownerActorId ?? "",
-            record.ownerFormId ?? "",
-            record.kind,
+            ...ownerAndPresentation,
             record.grantHandle,
             record.sourcePackageId ?? "",
             record.sourcePackageExactHash,
-            record.name,
-            rank,
           ].join("\u0000")
         : record.id;
     grouped.set(key, [...(grouped.get(key) ?? []), record]);
@@ -492,13 +543,16 @@ export function aggregateInventoryRecords(
   return [...grouped.values()].map((group) => {
     const first = group[0];
     const acquisitions = group.map((record) => ({
+      recordId: record.id,
       sourceEntryId: record.sourceEntryId,
       description: record.description,
       quantity: record.measure?.kind === "quantity" ? record.measure.value : 1,
     }));
-    if (first.measure?.kind === "quantity")
+    const tags = [...new Set(group.flatMap((record) => record.tags))];
+    if (group.some((record) => record.measure?.kind === "quantity"))
       return {
         ...first,
+        tags,
         measure: {
           kind: "quantity",
           value: group.reduce(
@@ -512,6 +566,7 @@ export function aggregateInventoryRecords(
       };
     return {
       ...first,
+      tags,
       aggregateQuantity: group.length > 1 ? group.length : undefined,
       acquisitions,
     };

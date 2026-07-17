@@ -36,6 +36,7 @@ export type ApplicationSettings = {
     warnUpstreamChanges: boolean;
     colorNamesByPrimaryTag: boolean;
     includeItemTagsInRadar: boolean;
+    aggregateSimilarInventory: boolean;
   };
   notifications: {
     enabled: boolean;
@@ -101,6 +102,7 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
       warnUpstreamChanges: false,
       colorNamesByPrimaryTag: false,
       includeItemTagsInRadar: false,
+      aggregateSimilarInventory: true,
     },
     notifications: {
       enabled: true,
@@ -226,6 +228,10 @@ export function hydrateSettings(
       includeItemTagsInRadar: bool(
         chain.includeItemTagsInRadar,
         fallback.chain.includeItemTagsInRadar,
+      ),
+      aggregateSimilarInventory: bool(
+        chain.aggregateSimilarInventory,
+        fallback.chain.aggregateSimilarInventory,
       ),
     },
     notifications: {

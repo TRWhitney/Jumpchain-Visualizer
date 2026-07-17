@@ -79,7 +79,7 @@ test("renders one three-Jump Morgan chain and its evaluator-derived totals", asy
   const inventoryText = await tracker
     .getByRole("tab", { name: /^Inventory/ })
     .textContent();
-  expect(Number(inventoryText?.match(/\d+/)?.[0])).toBeGreaterThanOrEqual(30);
+  expect(Number(inventoryText?.match(/\d+/)?.[0])).toBe(27);
   await attachScreenshot(testInfo, "morgan-three-jump-chain", tracker);
 });
 
@@ -445,6 +445,164 @@ test("inventory shows rank, quantity, and conditional detail projections", async
     "inventory-rank-and-quantity-detail",
     page.locator("body"),
   );
+});
+
+test("similar acquisitions aggregate with per-copy details and a bounded list", async ({
+  page,
+}, testInfo) => {
+  await page.goto(
+    "/review/chain-tracker?duplicateJumps=on&negativeBalances=on",
+  );
+  const tracker = trackerFor(page);
+  const selectManualFlight = async () => {
+    const manualElectives = tracker
+      .getByRole("heading", { name: "Manual Electives" })
+      .locator("xpath=ancestor::section[1]");
+    await manualElectives.getByRole("checkbox", { name: /Flight/ }).check();
+  };
+
+  await tracker.getByRole("button", { name: /3\. The Last Trial/ }).click();
+  await selectManualFlight();
+  await tracker.getByRole("tab", { name: "Library" }).click();
+  await tracker.getByPlaceholder("Find a jump").fill("The Last Trial");
+  await tracker
+    .getByRole("button", { name: "Add to chain again (x2)" })
+    .click();
+  await selectManualFlight();
+
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await tracker.getByLabel("Search inventory").fill("Flight");
+  const aggregate = tracker.locator(".chain-record-list > article");
+  await expect(aggregate).toHaveCount(1);
+  await expect(aggregate).toContainText("4 acquisitions");
+  await expect(aggregate.locator(".record-measure")).toHaveText("x4");
+  await expect(
+    aggregate.locator(".inventory-record-tags > .tag-profile-badge"),
+  ).toHaveText(["Physical", "Flight", "Magic", "Aerokinesis", "Spiritual"]);
+  await expect(
+    aggregate.locator(".inventory-tag-overflow-list > .tag-profile-badge"),
+  ).toHaveCount(6);
+  await aggregate.click();
+
+  const dialog = page.getByRole("dialog", { name: /perk details: Flight/i });
+  const acquisitions = dialog.getByLabel("Acquisition details");
+  await expect(acquisitions.locator(":scope > li")).toHaveCount(4);
+  await expect(acquisitions).toHaveClass(/is-scrollable/);
+  await expect(acquisitions).toHaveCSS("overflow-y", "auto");
+  expect(
+    await acquisitions.evaluate(
+      (element) => element.scrollHeight > element.clientHeight,
+    ),
+  ).toBe(true);
+  await expect(acquisitions).toContainText(
+    "Acquired in The Last Trial · Jump 3",
+  );
+  await expect(acquisitions).toContainText(
+    "Acquired in The Last Trial · Jump 4",
+  );
+  await expect(acquisitions).toContainText(
+    "Chosen training lets you fly under your own power.",
+  );
+  await expect(acquisitions).toContainText(
+    "The random trial result grants mystical flight.",
+  );
+  await expect(acquisitions).toContainText(
+    "The claimed trial result lifts your spirit into flight.",
+  );
+  await acquisitions.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect(acquisitions.locator(":scope > li").last()).toBeInViewport();
+  await attachScreenshot(
+    testInfo,
+    "similar-inventory-four-acquisition-scrolled-detail",
+    page.locator("body"),
+  );
+});
+
+test("disabling similar aggregation restores distinct Flight records", async ({
+  page,
+}) => {
+  await page.goto(
+    "/review/chain-tracker?aggregateSimilar=off&negativeBalances=on",
+  );
+  const tracker = trackerFor(page);
+  await tracker.getByRole("button", { name: /3\. The Last Trial/ }).click();
+  const manualElectives = tracker
+    .getByRole("heading", { name: "Manual Electives" })
+    .locator("xpath=ancestor::section[1]");
+  await manualElectives.getByRole("checkbox", { name: /Flight/ }).check();
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await tracker.getByLabel("Search inventory").fill("Flight");
+  await expect(tracker.locator(".chain-record-list > article")).toHaveCount(3);
+});
+
+test("inventory cards disclose the complete tag projection", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/review/chain-tracker?negativeBalances=on");
+  const tracker = trackerFor(page);
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await tracker.getByLabel("Search inventory").fill("Gate Scholar");
+  const record = tracker.locator(".chain-record-list > article");
+  await expect(record).toHaveCount(1);
+  await expect(record.locator(".tag-profile-badge")).toHaveCount(5);
+  await attachScreenshot(
+    testInfo,
+    "gate-scholar-complete-inventory-tags",
+    tracker.locator(".inventory-results-pane"),
+  );
+
+  await record.click();
+  const details = page.getByRole("dialog", {
+    name: "perk details: Gate Scholar",
+  });
+  await expect(
+    details.locator(".record-detail-tags .tag-profile-badge"),
+  ).toHaveCount(5);
+  await attachScreenshot(testInfo, "gate-scholar-detail-tags", details);
+
+  await details
+    .getByRole("button", { name: "Close perk or item details" })
+    .click();
+  await tracker.getByRole("tab", { name: /^Chain & Jump/ }).click();
+  const manualElectives = tracker
+    .getByRole("heading", { name: "Manual Electives" })
+    .locator("xpath=ancestor::section[1]");
+  await manualElectives.getByRole("checkbox", { name: /Flight/ }).check();
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await tracker.getByLabel("Search inventory").fill("Flight Survival");
+  const overflowRecord = tracker.locator(".chain-record-list > article");
+  await expect(overflowRecord).toHaveCount(1);
+  await expect(
+    overflowRecord.locator(".inventory-record-tags > .tag-profile-badge"),
+  ).toHaveCount(5);
+  await expect(
+    overflowRecord
+      .locator(".inventory-record-tags > .tag-profile-badge")
+      .filter({ hasText: "Survival" }),
+  ).toHaveCount(1);
+  const overflow = overflowRecord.locator(".inventory-tag-overflow");
+  const tooltip = overflow.getByRole("tooltip");
+  await expect(overflow).toBeVisible();
+  await expect(tooltip).toBeHidden();
+  const restingBackground = await overflowRecord.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  );
+  await overflow.hover();
+  await expect(tooltip).toBeVisible();
+  await expect(overflowRecord).toHaveCSS("background-color", restingBackground);
+  await expect(
+    tooltip.locator(".inventory-tag-overflow-list > .tag-profile-badge"),
+  ).toHaveCount(6);
+  await attachScreenshot(
+    testInfo,
+    "inventory-tag-overflow-tooltip",
+    tracker.locator(".inventory-results-pane"),
+  );
+  await page.mouse.move(0, 0);
+  await overflow.focus();
+  await expect(tooltip).toBeVisible();
 });
 
 test("inventory record highlight follows the active application accent", async ({

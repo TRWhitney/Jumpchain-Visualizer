@@ -530,6 +530,7 @@ test("Essential and Personal Reality projections share build and progression sta
     jump.getByRole("dialog").locator(".essential-dialog-detail"),
   ).toBeVisible();
   await page.keyboard.press("Escape");
+  await expect(jump.getByRole("dialog")).toHaveCount(0);
 
   await enable("Personal Reality");
   await workspace.getByRole("button", { name: /Unlimited Core Mode/ }).click();

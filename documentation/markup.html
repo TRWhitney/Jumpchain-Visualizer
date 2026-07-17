@@ -1827,20 +1827,21 @@ default.</p>
 <li>the selected measure and value must persist with provenance and appear consistently in Inventory, companion profiles, Forms, and every shared perk/item/trait detail surface</li>
 </ul>
 <h4>Duplicate Acquisition Aggregation</h4>
-<p>Quantity also represents repeated acquisition of an otherwise identical record,
-including acquisitions produced by adding the same exact Jump package to one chain
-more than once. Aggregation is a Chain Tracker projection and does not erase the
-individual provenance-bearing grant records.</p>
+<p>Quantity also represents repeated acquisition of a similar record, including
+acquisitions produced by different choices, different Jump packages, or repeated
+instances of one exact package. Aggregation is a Chain Tracker projection and does
+not erase the individual provenance-bearing grant records.</p>
 <ul>
 <li>each unquantified or ranked acquisition contributes one copy; an authored <code>measure: quantity</code> acquisition contributes its resolved quantity</li>
-<li>records aggregate only when they have the same owner, grant kind, effective grant handle, exact installed-package source, resolved name, and rank; unranked records match only other unranked records</li>
-<li>for aggregation, shorthand uses its owning choice handle as the effective grant handle; a block grant uses its owning choice or input handle plus immutable grant position, matching the existing Format 1 provenance rule</li>
-<li>the exact package source is the installed package identity and hash rather than the chain-entry ID, allowing acquisitions from repeated instances of that exact package to aggregate</li>
+<li>the default-on <code>chain.aggregateSimilarInventory</code> projection aggregates records only when they have the same owner, perk/item kind, resolved name, and rank; unranked records match only other unranked records</li>
+<li>perks never aggregate with items, different owners or forms remain isolated, and package identity, source Jump, and effective grant handle do not restrict similarity</li>
+<li>the aggregate tag set is the stable union of every constituent record's tags</li>
+<li>when similar aggregation is disabled, strict aggregation requires the same owner, kind, effective grant handle, exact installed-package source, resolved name, and rank; shorthand and block grants retain their existing effective-handle provenance</li>
 <li>different ranks remain separate entries; two rank-3 acquisitions aggregate together, but rank 2 and rank 3 never do</li>
 <li>an aggregate quantity greater than one displays an <code>xN</code> badge; quantity one remains visually implicit</li>
 <li>a ranked aggregate may therefore show both its ordinary rank badge and an <code>xN</code> badge, but only when multiple copies with that same rank aggregate</li>
 <li>an authored quantity record displays only <code>xN</code>, not a rank badge</li>
-<li>aggregate details retain every contributing chain-entry provenance; if conditional evaluation produced different descriptions, the detail surface preserves each distinct resolved description and its contributing copy count rather than discarding one</li>
+<li>aggregate details retain every contributing source and resolved description rather than discarding or deduplicating them; four or more rows use a bounded scroll region</li>
 <li>removing or changing one contributing acquisition recomputes the aggregate and decreases, splits, or removes its quantity without mutating the remaining records</li>
 </ul>
 <h3>Form Grants and Form-Owned Perks</h3>

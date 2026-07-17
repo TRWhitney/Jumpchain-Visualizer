@@ -188,6 +188,7 @@ function AppShellContent() {
       allowNegativePointBalances: settings.chain.allowNegativePointBalances,
       allowRerolls: settings.chain.allowRerolls,
       includeItemTagsInRadar: settings.chain.includeItemTagsInRadar,
+      aggregateSimilarInventory: settings.chain.aggregateSimilarInventory,
       showAdditionalJumpInformation:
         settings.developer.showAdditionalJumpInformation,
     }),

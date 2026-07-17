@@ -6,6 +6,7 @@ import {
 import {
   aggregateInventoryRecords,
   filteredInventory,
+  inventoryRecordTagProjection,
   inventoryTagTree,
   EARTH_ENTRY_ID,
   jumpEntryIds,
@@ -389,6 +390,120 @@ describe("Chain Tracker aggregate", () => {
     ]);
   });
 
+  it("aggregates similar records by owner, kind, resolved name, and rank", () => {
+    const records = aggregateInventoryRecords([
+      {
+        id: "first",
+        kind: "perk",
+        name: "Flight",
+        ownerActorId: "jumper",
+        sourceEntryId: "entry-1",
+        grantHandle: "winged-flight",
+        sourcePackageId: "first-package",
+        sourcePackageExactHash: "first-hash",
+        tags: ["mobility"],
+        description: "Grow a pair of wings.",
+        measure: { kind: "rank", value: 2 },
+      },
+      {
+        id: "second",
+        kind: "perk",
+        name: "Flight",
+        ownerActorId: "jumper",
+        sourceEntryId: "entry-2",
+        grantHandle: "gravity-flight",
+        sourcePackageId: "second-package",
+        sourcePackageExactHash: "second-hash",
+        tags: ["cosmic", "mobility"],
+        description: "Ignore gravity at will.",
+        measure: { kind: "rank", value: 2 },
+      },
+      {
+        id: "different-kind",
+        kind: "item",
+        name: "Flight",
+        ownerActorId: "jumper",
+        sourceEntryId: "entry-2",
+        tags: ["technology"],
+        description: "A ticket named Flight.",
+        measure: { kind: "rank", value: 2 },
+      },
+      {
+        id: "different-owner",
+        kind: "perk",
+        name: "Flight",
+        ownerActorId: "companion",
+        sourceEntryId: "entry-2",
+        tags: ["mobility"],
+        description: "A companion can fly.",
+        measure: { kind: "rank", value: 2 },
+      },
+      {
+        id: "different-rank",
+        kind: "perk",
+        name: "Flight",
+        ownerActorId: "jumper",
+        sourceEntryId: "entry-2",
+        tags: ["mobility"],
+        description: "Faster flight.",
+        measure: { kind: "rank", value: 3 },
+      },
+    ]);
+
+    expect(records).toHaveLength(4);
+    expect(records[0]).toMatchObject({
+      kind: "perk",
+      name: "Flight",
+      tags: ["mobility", "cosmic"],
+      measure: { kind: "rank", value: 2 },
+      aggregateQuantity: 2,
+      acquisitions: [
+        {
+          recordId: "first",
+          sourceEntryId: "entry-1",
+          description: "Grow a pair of wings.",
+        },
+        {
+          recordId: "second",
+          sourceEntryId: "entry-2",
+          description: "Ignore gravity at will.",
+        },
+      ],
+    });
+  });
+
+  it("keeps different grant and package identities separate when similar aggregation is off", () => {
+    const common = {
+      kind: "perk" as const,
+      name: "Flight",
+      ownerActorId: "jumper",
+      tags: ["mobility"],
+      description: "Flight description.",
+      measure: { kind: "rank" as const, value: 2 },
+    };
+    const records = aggregateInventoryRecords(
+      [
+        {
+          ...common,
+          id: "first",
+          sourceEntryId: "entry-1",
+          grantHandle: "winged-flight",
+          sourcePackageExactHash: "first-hash",
+        },
+        {
+          ...common,
+          id: "second",
+          sourceEntryId: "entry-2",
+          grantHandle: "gravity-flight",
+          sourcePackageExactHash: "second-hash",
+        },
+      ],
+      false,
+    );
+    expect(records).toHaveLength(2);
+    expect(records.every((record) => !record.aggregateQuantity)).toBe(true);
+  });
+
   it("rejects form-targeted perks without their form and clears dependents with it", () => {
     const initial = createDenseTrackerFixture();
     const reviewed = trackerReducer(initial, {
@@ -492,6 +607,43 @@ describe("Chain Tracker aggregate", () => {
         record.tags.includes("pyrokinesis"),
       ),
     ).toBe(true);
+  });
+
+  it("shows five inventory tags while reserving space for search and filter matches", () => {
+    const state = projectedFixture();
+    const gateScholar = filteredInventory({
+      ...state,
+      inventorySearch: "Gate Scholar",
+    }).find((record) => record.name === "Gate Scholar");
+    expect(gateScholar).toBeDefined();
+    expect(inventoryRecordTagProjection(state, gateScholar!)).toEqual({
+      allIds: ["mental", "learning", "physical", "stealth", "social"],
+      visibleIds: ["mental", "learning", "physical", "stealth", "social"],
+      hiddenCount: 0,
+    });
+
+    const overflowRecord = {
+      ...gateScholar!,
+      tags: [...gateScholar!.tags, "magic"],
+    };
+    const searchProjection = inventoryRecordTagProjection(
+      { ...state, inventorySearch: "Magic" },
+      overflowRecord,
+    );
+    expect(searchProjection.visibleIds).toHaveLength(5);
+    expect(searchProjection.visibleIds).toContain("magic");
+    expect(searchProjection.hiddenCount).toBe(1);
+
+    const filterProjection = inventoryRecordTagProjection(
+      { ...state, inventoryTag: "social" },
+      {
+        ...overflowRecord,
+        tags: ["mental", "learning", "physical", "stealth", "magic", "social"],
+      },
+    );
+    expect(filterProjection.visibleIds).toHaveLength(5);
+    expect(filterProjection.visibleIds).toContain("social");
+    expect(filterProjection.hiddenCount).toBe(1);
   });
 
   it("projects only inventory tag branches used by the active kind and search", () => {

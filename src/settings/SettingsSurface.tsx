@@ -103,6 +103,13 @@ const searchEntries = [
     "chain radar stats count item tags jumper forms inventory",
   ],
   [
+    "Aggregate similar perks and items",
+    "chain.aggregateSimilarInventory",
+    "chain",
+    "aggregate-similar-inventory",
+    "chain inventory aggregate similar same name rank perk item copies sources descriptions",
+  ],
+  [
     "Upstream change warnings",
     "chain.warnUpstreamChanges",
     "chain",
@@ -185,6 +192,8 @@ const searchValue = (
       return String(settings.chain.allowRerolls);
     case "chain.includeItemTagsInRadar":
       return String(settings.chain.includeItemTagsInRadar);
+    case "chain.aggregateSimilarInventory":
+      return String(settings.chain.aggregateSimilarInventory);
     case "chain.warnUpstreamChanges":
       return String(settings.chain.warnUpstreamChanges);
     case "chain.colorNamesByPrimaryTag":
@@ -831,6 +840,37 @@ function CategoryPanel({
           }
         />
         <CheckRow
+          id="aggregate-similar-inventory"
+          label="Aggregate similar perks and items"
+          description="Combine records with the same owner, kind, resolved name, and rank while retaining every source, description, and tag."
+          checked={settings.chain.aggregateSimilarInventory}
+          text="Aggregate similar records"
+          onChange={(value) =>
+            patch(
+              {
+                ...settings,
+                chain: {
+                  ...settings.chain,
+                  aggregateSimilarInventory: value,
+                },
+              },
+              "chain.aggregateSimilarInventory",
+            )
+          }
+          reset={() =>
+            patch(
+              {
+                ...settings,
+                chain: {
+                  ...settings.chain,
+                  aggregateSimilarInventory: true,
+                },
+              },
+              "chain.aggregateSimilarInventory",
+            )
+          }
+        />
+        <CheckRow
           id="item-tags-radar"
           label="Include item tags in radar"
           description="Count tags from Jumper and form items in radar statistics. Companion perks and items never contribute."
@@ -906,8 +946,9 @@ function CategoryPanel({
           }
         />
         <div className="setting-explanation">
-          All seven settings are off by default. Exact versions never duplicate,
-          and upstream review remains material-only and undoable.
+          Similar inventory aggregation is on by default; the other seven
+          settings are off. Exact versions never duplicate, and upstream review
+          remains material-only and undoable.
         </div>
       </section>
     );

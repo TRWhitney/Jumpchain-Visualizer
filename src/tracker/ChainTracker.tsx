@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -38,6 +39,7 @@ import {
 import {
   aggregateInventoryRecords,
   filteredInventory,
+  inventoryRecordTagProjection,
   inventoryTagTree,
   EARTH_ENTRY_STATUS,
   jumpEntryIds,
@@ -59,6 +61,7 @@ import {
 
 const PROFILE_RECORDS_BEFORE_SCROLL = 5;
 const PROFILE_IMPORTS_BEFORE_SCROLL = 9;
+const RECORD_ACQUISITIONS_BEFORE_SCROLL = 3;
 
 const pageLabels: Record<TrackerPage, string> = {
   jump: "Chain & Jump",
@@ -1163,6 +1166,9 @@ function RecordCard({
   open: () => void;
 }) {
   const item = packageForEntry(state, record.sourceEntryId);
+  const acquisitionCount = record.acquisitions?.length ?? 1;
+  const tagTooltipId = useId();
+  const tagProjection = inventoryRecordTagProjection(state, record);
   return (
     <article
       role="button"
@@ -1178,7 +1184,10 @@ function RecordCard({
     >
       <div>
         <p>
-          {record.kind === "perk" ? "Perk" : "Item"} · {item.name}
+          {record.kind === "perk" ? "Perk" : "Item"} ·{" "}
+          {acquisitionCount > 1
+            ? `${acquisitionCount} acquisitions`
+            : item.name}
         </p>
         <div className="inventory-record-title">
           <h5>{record.name}</h5>
@@ -1198,13 +1207,36 @@ function RecordCard({
           </div>
         </div>
       </div>
-      <div>
-        {record.tags
-          .slice(0, 3)
-          .map(
-            (id) =>
-              state.tags[id] && <TagBadge key={id} tag={state.tags[id]} />,
-          )}
+      <div className="inventory-record-tags">
+        {tagProjection.visibleIds.map((id) => (
+          <TagBadge key={id} tag={state.tags[id]} />
+        ))}
+        {tagProjection.hiddenCount > 0 && (
+          <span
+            className="inventory-tag-overflow"
+            tabIndex={0}
+            aria-describedby={tagTooltipId}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <span aria-hidden="true">…</span>
+            <span className="sr-only">
+              {tagProjection.hiddenCount} more tags. Hover or focus to show all
+              tags.
+            </span>
+            <span
+              id={tagTooltipId}
+              className="inventory-tag-overflow-tooltip"
+              role="tooltip"
+            >
+              <strong>All tags</strong>
+              <span className="inventory-tag-overflow-list">
+                {tagProjection.allIds.map((id) => (
+                  <TagBadge key={id} tag={state.tags[id]} />
+                ))}
+              </span>
+            </span>
+          </span>
+        )}
       </div>
     </article>
   );
@@ -1398,6 +1430,7 @@ function RecordModal({ state, dispatch }: TrackerProps) {
     state.records.filter((item) =>
       visibleAtInspection(state, item.sourceEntryId),
     ),
+    state.preferences.aggregateSimilarInventory,
   ).find((item) => item.id === state.selectedRecordId);
   if (!record) return null;
   return (
@@ -1421,7 +1454,9 @@ function RecordModal({ state, dispatch }: TrackerProps) {
       </header>
       <div className="record-detail-body">
         <p className="record-detail-source">
-          Acquired in {packageForEntry(state, record.sourceEntryId).name}
+          {(record.acquisitions?.length ?? 1) > 1
+            ? `${record.acquisitions?.length} acquisitions`
+            : `Acquired in ${packageForEntry(state, record.sourceEntryId).name}`}
           {record.ownerFormId
             ? ` · ${state.forms.find((form) => form.id === record.ownerFormId)?.name ?? "Form"} record`
             : record.ownerActorId && record.ownerActorId !== "jumper"
@@ -1450,13 +1485,28 @@ function RecordModal({ state, dispatch }: TrackerProps) {
             </div>
           </dl>
         )}
-        <h5>Description</h5>
+        <h5>
+          {(record.acquisitions?.length ?? 0) > 1
+            ? "Acquisitions and descriptions"
+            : "Description"}
+        </h5>
         {(record.acquisitions?.length ?? 0) > 1 ? (
-          <ul className="record-detail-acquisitions">
+          <ul
+            className={`record-detail-acquisitions${(record.acquisitions?.length ?? 0) > RECORD_ACQUISITIONS_BEFORE_SCROLL ? " is-scrollable" : ""}`}
+            aria-label="Acquisition details"
+            tabIndex={
+              (record.acquisitions?.length ?? 0) >
+              RECORD_ACQUISITIONS_BEFORE_SCROLL
+                ? 0
+                : undefined
+            }
+          >
             {record.acquisitions?.map((acquisition) => (
-              <li key={acquisition.sourceEntryId}>
+              <li key={acquisition.recordId}>
                 <strong>
-                  Jump {jumpNumber(state, acquisition.sourceEntryId)}
+                  Acquired in{" "}
+                  {packageForEntry(state, acquisition.sourceEntryId).name}
+                  {" · "}Jump {jumpNumber(state, acquisition.sourceEntryId)}
                   {acquisition.quantity > 1 && ` · x${acquisition.quantity}`}
                 </strong>
                 <p>{acquisition.description}</p>
@@ -1577,6 +1627,7 @@ function ProfileRecords({
         ids.includes(record.id) &&
         visibleAtInspection(state, record.sourceEntryId),
     ),
+    state.preferences.aggregateSimilarInventory,
   );
   return (
     <section>

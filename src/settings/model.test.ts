@@ -14,6 +14,7 @@ describe("application settings", () => {
           allowRerolls: "yes",
           allowDuplicateJumps: true,
           includeItemTagsInRadar: true,
+          aggregateSimilarInventory: false,
         },
         developer: { showAdditionalJumpInformation: true },
         notifications: { maxVisible: 5, durationMs: 1234 },
@@ -27,9 +28,16 @@ describe("application settings", () => {
     expect(result.chain.allowRerolls).toBe(false);
     expect(result.chain.allowDuplicateJumps).toBe(true);
     expect(result.chain.includeItemTagsInRadar).toBe(true);
+    expect(result.chain.aggregateSimilarInventory).toBe(false);
     expect(result.developer.showAdditionalJumpInformation).toBe(true);
     expect(result.notifications.maxVisible).toBe(5);
     expect(result.notifications.durationMs).toBe(5000);
+  });
+
+  it("defaults similar inventory aggregation on when the stored field is absent", () => {
+    const profile = createDefaultTagProfile();
+    const result = hydrateSettings({}, profile, hydrateTagProfile);
+    expect(result.chain.aggregateSimilarInventory).toBe(true);
   });
 
   it("rejects duplicate, unmodified, and platform-reserved bindings", () => {

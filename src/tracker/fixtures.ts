@@ -263,6 +263,7 @@ const defaultPreferences: TrackerPreferences = {
   allowNegativePointBalances: false,
   allowRerolls: false,
   includeItemTagsInRadar: false,
+  aggregateSimilarInventory: true,
   showAdditionalJumpInformation: false,
 };
 

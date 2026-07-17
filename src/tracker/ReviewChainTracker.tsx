@@ -30,6 +30,8 @@ export function ReviewChainTracker() {
   const allowNegativePointBalances =
     parameters.get("negativeBalances") === "on";
   const allowDuplicateJumps = parameters.get("duplicateJumps") === "on";
+  const aggregateSimilarInventory =
+    parameters.get("aggregateSimilar") !== "off";
   const initialEntryId = parameters.get("initialEntry");
   const [state, rawDispatch] = useReducer(trackerReducer, undefined, () => {
     const preferences = {
@@ -39,6 +41,7 @@ export function ReviewChainTracker() {
       allowNegativePointBalances,
       allowRerolls,
       includeItemTagsInRadar: false,
+      aggregateSimilarInventory,
     };
     if (fixture === "companion-profiles")
       return createCompanionProfileTrackerFixture(preferences);
@@ -60,6 +63,7 @@ export function ReviewChainTracker() {
         warnUpstreamChanges,
         allowNegativePointBalances,
         allowRerolls,
+        aggregateSimilarInventory,
       },
     };
   });

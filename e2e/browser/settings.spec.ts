@@ -80,12 +80,15 @@ test("direct Settings is a full destination and preferences persist through Inde
   const warning = page.getByLabel("Warn about upstream changes");
   const duplicates = page.getByLabel("Allow duplicate jumps");
   const itemTags = page.getByLabel("Count item tags");
+  const aggregateSimilar = page.getByLabel("Aggregate similar records");
   await expect(warning).not.toBeChecked();
   await expect(duplicates).not.toBeChecked();
   await expect(itemTags).not.toBeChecked();
+  await expect(aggregateSimilar).toBeChecked();
   await warning.check();
   await duplicates.check();
   await itemTags.check();
+  await aggregateSimilar.uncheck();
   await testInfo.attach("duplicate-jump-setting", {
     body: await page
       .getByLabel("Application Settings", { exact: true })
@@ -112,13 +115,16 @@ test("direct Settings is a full destination and preferences persist through Inde
             warnUpstreamChanges?: boolean;
             allowDuplicateJumps?: boolean;
             includeItemTagsInRadar?: boolean;
+            aggregateSimilarInventory?: boolean;
           };
         } | null
       )?.chain?.warnUpstreamChanges &&
       (stored as { chain?: { allowDuplicateJumps?: boolean } } | null)?.chain
         ?.allowDuplicateJumps &&
       (stored as { chain?: { includeItemTagsInRadar?: boolean } } | null)?.chain
-        ?.includeItemTagsInRadar,
+        ?.includeItemTagsInRadar &&
+      (stored as { chain?: { aggregateSimilarInventory?: boolean } } | null)
+        ?.chain?.aggregateSimilarInventory === false,
     );
   });
   await page.reload();
@@ -126,11 +132,13 @@ test("direct Settings is a full destination and preferences persist through Inde
   await expect(page.getByLabel("Warn about upstream changes")).toBeChecked();
   await expect(page.getByLabel("Allow duplicate jumps")).toBeChecked();
   await expect(page.getByLabel("Count item tags")).toBeChecked();
+  await expect(page.getByLabel("Aggregate similar records")).not.toBeChecked();
   await page.getByRole("button", { name: "Reset category" }).click();
   await expect(
     page.getByLabel("Warn about upstream changes"),
   ).not.toBeChecked();
   await expect(page.getByLabel("Count item tags")).not.toBeChecked();
+  await expect(page.getByLabel("Aggregate similar records")).toBeChecked();
   await page.getByRole("button", { name: "Reset all settings" }).click();
   const reset = page.getByRole("alertdialog", {
     name: "Reset every application setting?",
@@ -141,6 +149,38 @@ test("direct Settings is a full destination and preferences persist through Inde
 
   await page.getByRole("button", { name: "Close Settings" }).click();
   await expect(page).toHaveURL(/\/$/);
+});
+
+test("similar inventory aggregation updates the open chain immediately", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/chain/ch-92b1");
+  const tracker = page.getByLabel("Interactive Chain Tracker workspace");
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await tracker.getByLabel("Search inventory").fill("Flight");
+  const records = tracker.locator(".chain-record-list > article");
+  await expect(records).toHaveCount(1);
+  await expect(records.locator(".record-measure")).toHaveText("x2");
+
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Chain Tracker" }).click();
+  const aggregateSimilar = page.getByLabel("Aggregate similar records");
+  await expect(aggregateSimilar).toBeChecked();
+  await testInfo.attach("aggregate-similar-setting-on", {
+    body: await page
+      .getByLabel("Application Settings", { exact: true })
+      .screenshot(),
+    contentType: "image/png",
+  });
+  await aggregateSimilar.uncheck();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+
+  await expect(records).toHaveCount(2);
+  await expect(records.locator(".record-measure")).toHaveCount(0);
+  await testInfo.attach("similar-inventory-setting-off", {
+    body: await tracker.locator(".chain-inventory-panel").screenshot(),
+    contentType: "image/png",
+  });
 });
 
 test("additional Jump information exposes only the package format", async ({
@@ -609,7 +649,7 @@ test("item tag radar setting updates eligible counts without changing ownership 
     .getByRole("row", { name: /Magic/ })
     .getByRole("cell")
     .last();
-  await expect(magicCount).toHaveText("4");
+  await expect(magicCount).toHaveText("5");
   await expect(
     tracker.getByRole("heading", { name: "Accrued perks by tag category" }),
   ).toBeVisible();
@@ -631,7 +671,7 @@ test("item tag radar setting updates eligible counts without changing ownership 
   await expect.poll(total).toBeGreaterThan(before);
   await expect
     .poll(async () => Number(await magicCount.textContent()))
-    .toBeGreaterThan(4);
+    .toBeGreaterThan(5);
   await testInfo.attach("perk-and-item-radar", {
     body: await tracker.locator(".tracker-radar-page").screenshot(),
     contentType: "image/png",

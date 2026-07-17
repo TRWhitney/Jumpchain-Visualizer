@@ -87,6 +87,7 @@
         <h3>Native and Applied Gauntlets</h3>
         <p>A native Gauntlet is declared by its immutable installed package. An ordinary Jump may instead receive entry-scoped Gauntlet rules through a deliberate user action or an active supplement such as an applicable Universal Drawbacks rule. The tracker stores every active source with provenance and evaluates one idempotent Gauntlet condition; it never changes installed markup, permits a native Gauntlet to be turned off, or stacks the starting-point reduction.</p>
         <p>Gauntlets remain ordinary chronological entries for numbering, historical cutoffs, Inventory, Story, and provenance. The rail keeps the number and adds a visible <strong>Gauntlet</strong> badge; the workspace kicker reads, for example, <strong>Gauntlet 3 of 8</strong>. Library cards identify native Gauntlet packages, while an applied badge belongs only to the affected chain entry and identifies its source on inspection.</p>
+        <p>Jump imagery is promoted atomically. A selected Jump first renders as an inert, invisible staging workspace and every rendered image must finish <code>decode()</code> before that same DOM workspace becomes visible. This gate applies to Jump-to-Jump selection, returning from Inventory or another Chain Tracker tab, and the initial Chain Tracker route mount. With no previously promoted Jump, a stable preparation surface occupies the workspace; an incomplete Jump is never revealed as a timeout fallback. Pointer and keyboard intent may still preload package assets, but rendered-image decoding remains the final authority.</p>
         <p>For the Jumper, a native Gauntlet contributes its authored starting points or the native default of 0. Applying Gauntlet rules to an ordinary entry changes its ordinary starting-point contribution to 0. Drawbacks, Quest awards, and other explicit grants still add to the same resource ledger; purchases continue to subtract. Companion participation and allowances remain controlled by explicit import grants rather than being inferred from the Jumper’s Gauntlet base.</p>
 
         <h3>Reordering and Historical Views</h3>
@@ -142,7 +143,8 @@
                 </section>
               </aside>
 
-              <div class="chain-jump-workspace">
+              <div class="atomic-jump-switcher" aria-busy="false">
+              <div class="chain-jump-workspace" data-jump-entry-id="arcane-realms">
                 <header class="chain-context-header"><div><p id="chain-current-position">Jump 2 of 3</p><h3 id="chain-current-title">Arcane Realms</h3><span id="chain-current-source">Version 1.0 · Imported package · 2 choices</span><strong id="chain-negative-status" class="chain-negative-status" role="status" hidden>⚠ Negative point balance</strong></div><label class="chain-actor-control"><span>Make choices as</span><select id="chain-actor-select"><option value="jumper">Morgan · Jumper</option></select></label></header>
                 <div class="chain-view-panel">
                   <div class="shared-renderer-label" hidden><small>Format 1 evaluated package</small></div>
@@ -157,6 +159,7 @@
                     <section class="tracker-render-section"><div><p>Perks</p><h5>Early advantages</h5></div><div class="tracker-choice-grid"><button type="button" class="tracker-choice" data-choice-key="quick-study" data-choice-cost="100" aria-pressed="false"><span><strong>Quick Study</strong><small>100 CP</small></span><p>Learn unfamiliar systems rapidly.</p></button><button type="button" class="tracker-choice" data-choice-key="warded-soul" data-choice-cost="200" aria-pressed="false"><span><strong>Warded Soul</strong><small>200 CP</small></span><p>Resist hostile spiritual influence.</p></button><button type="button" class="tracker-choice" data-choice-key="reality-rewrite" data-choice-cost="900" aria-pressed="false"><span><strong>Reality Rewrite</strong><small>900 CP</small></span><p>Reshape one foundational rule of the world around you.</p></button></div></section>
                   </article>
                 </div>
+              </div>
               </div>
               <section id="chain-supp-context" class="chain-supp-context" role="dialog" aria-modal="false" aria-labelledby="chain-supp-context-title" hidden>
                 <header><div><p>Current-Jump supplements</p><h4 id="chain-supp-context-title">Arcane Realms</h4></div><button id="chain-close-supp-context" type="button" aria-label="Close current-Jump supplements">×</button></header>

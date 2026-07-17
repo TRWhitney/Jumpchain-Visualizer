@@ -6,6 +6,7 @@ import {
   useState,
   type CSSProperties,
   type Dispatch,
+  type Ref,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
@@ -29,6 +30,11 @@ import { JumpRenderer } from "./JumpRenderer";
 import type { RandomIndexSource } from "../domain";
 import { EarthJumpRenderer } from "./EarthJumpRenderer";
 import { evaluateTracker, projectEvaluation } from "./evaluateTracker";
+import {
+  jumpPackageImageSources,
+  preloadJumpImages,
+  waitForRenderedJumpImages,
+} from "./jumpImages";
 import {
   aggregateInventoryRecords,
   filteredInventory,
@@ -271,21 +277,24 @@ function ChainRail({
   enabled,
   openSupp,
   actorId,
-  setActorId,
   runtime,
+  preloadEntry,
 }: TrackerProps & {
   enabled: EnabledModules;
   openSupp: () => void;
   actorId: string;
-  setActorId: (id: string) => void;
   runtime: EvaluatedJumpRuntime;
+  preloadEntry: (entryId: string) => void;
 }) {
   const [dragged, setDragged] = useState<string | null>(null);
   const [dropIndicator, setDropIndicator] = useState<{
     entryId: string;
     edge: DropEdge;
   } | null>(null);
-  const actor = state.actors[actorId] ?? state.actors.jumper;
+  const requestedActorId = runtime[state.selectedEntryId]?.actors[actorId]
+    ? actorId
+    : "jumper";
+  const actor = state.actors[requestedActorId] ?? state.actors.jumper;
   const evaluation = runtime[state.selectedEntryId]?.actors[actor.id];
   const balance = evaluation?.balance ?? 0;
   const alternativeResources = Object.values(
@@ -498,11 +507,11 @@ function ChainRail({
                     type="button"
                     className="chain-jump-select"
                     aria-pressed={state.selectedEntryId === id}
-                    onClick={() => {
-                      dispatch({ type: "select-entry", entryId: id });
-                      const ids = Object.keys(runtime[id]?.actors ?? {});
-                      if (!ids.includes(actorId)) setActorId("jumper");
-                    }}
+                    onPointerEnter={() => preloadEntry(id)}
+                    onFocus={() => preloadEntry(id)}
+                    onClick={() =>
+                      dispatch({ type: "select-entry", entryId: id })
+                    }
                   >
                     <span>
                       {number ? `${number}. ` : ""}
@@ -658,17 +667,51 @@ function JumpPage({
   randomIndex?: RandomIndexSource;
 }) {
   const [actorId, setActorId] = useState("jumper");
-  const selected = state.entries[state.selectedEntryId];
-  const item = packageForEntry(state, state.selectedEntryId);
-  const actorIds = Object.keys(runtime[state.selectedEntryId]?.actors ?? {});
-  const activeActorId = actorIds.includes(actorId) ? actorId : "jumper";
-  const evaluation = runtime[state.selectedEntryId]?.actors[activeActorId];
-  const balance = evaluation?.balance ?? 0;
-  const negativeActors = actorIds.filter(
-    (id) => (runtime[state.selectedEntryId]?.actors[id]?.balance ?? 0) < 0,
+  const requestedEntryId = state.selectedEntryId;
+  const [displayedEntryId, setDisplayedEntryId] = useState<string | null>(
+    () => {
+      const packageDocument = packageForEntry(state, requestedEntryId).document;
+      const requiresImagePreparation =
+        Boolean(jumpRenderer) ||
+        Boolean(
+          packageDocument && jumpPackageImageSources(packageDocument).length,
+        );
+      return requiresImagePreparation ? null : requestedEntryId;
+    },
   );
-  const number = jumpNumber(state, state.selectedEntryId);
-  const gauntlet = runtime[state.selectedEntryId]?.gauntlet;
+  const visibleEntryId =
+    displayedEntryId && state.entries[displayedEntryId]
+      ? displayedEntryId
+      : null;
+  const transitioning = visibleEntryId !== requestedEntryId;
+  const stagedWorkspace = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!transitioning) return;
+    const root = stagedWorkspace.current;
+    if (!root) return;
+    let cancelled = false;
+    let promotionFrame = 0;
+    void waitForRenderedJumpImages(root).then(() => {
+      promotionFrame = window.requestAnimationFrame(() => {
+        if (cancelled) return;
+        if (!runtime[requestedEntryId]?.actors[actorId]) setActorId("jumper");
+        setDisplayedEntryId(requestedEntryId);
+      });
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(promotionFrame);
+    };
+  }, [actorId, requestedEntryId, runtime, transitioning, visibleEntryId]);
+  const preloadEntry = (entryId: string) => {
+    const packageItem = packageForEntry(state, entryId).document;
+    if (packageItem) void preloadJumpImages(packageItem);
+  };
+  const workspaceEntryIds = visibleEntryId
+    ? transitioning
+      ? [visibleEntryId, requestedEntryId]
+      : [visibleEntryId]
+    : [requestedEntryId];
   return (
     <section className="chain-workspace-page chain-jump-page" role="tabpanel">
       <ChainRail
@@ -677,131 +720,196 @@ function JumpPage({
         enabled={enabled}
         openSupp={openSupp}
         actorId={actorId}
-        setActorId={setActorId}
         runtime={runtime}
+        preloadEntry={preloadEntry}
       />
-      <div className="chain-jump-workspace">
-        <header className="chain-context-header">
-          <div>
-            <p>
-              {number
-                ? `${gauntlet?.active ? "Gauntlet · " : ""}Jump ${number} of ${jumpEntryIds(state).length}`
-                : "Before Jump 1"}
-            </p>
-            <h3>{item.name}</h3>
-            <span>
-              {number
-                ? `Version ${item.version} · ${item.source === "builtin" ? "Built-in" : "Imported"} package${selected.status === "Negative balance" ? "" : ` · ${selected.status}`}`
-                : EARTH_ENTRY_STATUS}
-            </span>
-            {negativeActors.length > 0 && (
-              <strong className="chain-negative-status" role="status">
-                ⚠{" "}
-                {negativeActors
-                  .map((id) => state.actors[id]?.name ?? id)
-                  .join(", ")}{" "}
-                {negativeActors.length === 1 ? "has" : "have"} a negative point
-                balance
-              </strong>
-            )}
+      <div className="atomic-jump-switcher" aria-busy={transitioning}>
+        {!visibleEntryId && (
+          <div className="atomic-jump-preparing" role="status">
+            <span aria-hidden="true" />
+            Preparing selected Jump…
           </div>
-          <div className="chain-context-actions">
-            <label className="chain-actor-control">
-              <span>Make choices as</span>
-              <select
-                value={activeActorId}
-                className={balance < 0 ? "has-negative-actor" : undefined}
-                onChange={(event) => setActorId(event.target.value)}
-              >
-                {actorIds.map((id) => (
-                  <option key={id} value={id}>
-                    {(runtime[state.selectedEntryId]?.actors[id]?.balance ??
-                      0) < 0
-                      ? "⚠ "
-                      : ""}
-                    {state.actors[id]?.name ?? id} ·{" "}
-                    {state.actors[id]?.role ?? "Companion"}
-                    {(runtime[state.selectedEntryId]?.actors[id]?.balance ??
-                      0) < 0
-                      ? ` · ${runtime[state.selectedEntryId]?.actors[id]?.balance} CP`
-                      : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {selected.kind === "jump" && (
-              <button
-                type="button"
-                className="chain-gauntlet-action"
-                disabled={Boolean(gauntlet?.native)}
-                title={gauntlet?.sources
-                  .map((source) => source.label)
-                  .join(", ")}
-                onClick={() =>
-                  dispatch({
-                    type: "toggle-applied-gauntlet",
-                    entryId: state.selectedEntryId,
-                  })
-                }
-              >
-                {gauntlet?.native
-                  ? "Native Gauntlet"
-                  : gauntlet?.active
-                    ? "Remove Gauntlet rules"
-                    : "Apply Gauntlet rules"}
-              </button>
-            )}
-          </div>
-        </header>
-        {jumpRenderer ??
-          (evaluation &&
-            (selected.kind === "earth" ? (
-              <EarthJumpRenderer
-                state={state}
-                dispatch={dispatch}
-                evaluation={evaluation}
-              />
-            ) : item.document ? (
-              <JumpRenderer
-                packageItem={item.document}
-                entryId={state.selectedEntryId}
-                actorId={activeActorId}
-                state={
-                  state.jumpState[state.selectedEntryId]?.actors[
-                    activeActorId
-                  ] ?? {
-                    choices: {},
-                    inputs: {},
-                    choiceRolls: {},
-                    sourceRolls: {},
-                  }
-                }
-                evaluation={evaluation}
-                preferences={state.preferences}
-                tags={state.tags}
-                companions={Object.values(state.actors)
-                  .filter(
-                    (actor) =>
-                      actor.role === "Companion" &&
-                      Boolean(actor.joinedEntryId) &&
-                      state.order.indexOf(actor.joinedEntryId!) <
-                        state.order.indexOf(state.selectedEntryId),
-                  )
-                  .map((actor) => ({ id: actor.id, name: actor.name }))}
-                gauntletActive={Boolean(gauntlet?.active)}
-                randomIndex={randomIndex}
-                dispatch={dispatch}
-              />
-            ) : (
-              <div className="chain-view-panel tracker-renderer-placeholder">
-                <p>
-                  This exact package is unavailable. Stored selections are
-                  preserved until it is restored.
-                </p>
-              </div>
-            )))}
+        )}
+        {workspaceEntryIds.map((entryId) => {
+          const staged = entryId !== visibleEntryId;
+          return (
+            <JumpWorkspace
+              key={entryId}
+              state={state}
+              dispatch={dispatch}
+              entryId={entryId}
+              actorId={actorId}
+              setActorId={setActorId}
+              jumpRenderer={jumpRenderer}
+              runtime={runtime}
+              randomIndex={randomIndex}
+              staged={staged}
+              workspaceRef={staged ? stagedWorkspace : undefined}
+            />
+          );
+        })}
+        <span className="sr-only" role="status">
+          {visibleEntryId && transitioning
+            ? "Preparing selected Jump images"
+            : ""}
+        </span>
       </div>
     </section>
+  );
+}
+
+function JumpWorkspace({
+  state,
+  dispatch,
+  entryId,
+  actorId,
+  setActorId,
+  jumpRenderer,
+  runtime,
+  randomIndex,
+  staged,
+  workspaceRef,
+}: TrackerProps & {
+  entryId: string;
+  actorId: string;
+  setActorId: (id: string) => void;
+  jumpRenderer?: ReactNode;
+  runtime: EvaluatedJumpRuntime;
+  randomIndex?: RandomIndexSource;
+  staged: boolean;
+  workspaceRef?: Ref<HTMLDivElement>;
+}) {
+  const selected = state.entries[entryId];
+  const item = packageForEntry(state, entryId);
+  const actorIds = Object.keys(runtime[entryId]?.actors ?? {});
+  const activeActorId = actorIds.includes(actorId) ? actorId : "jumper";
+  const evaluation = runtime[entryId]?.actors[activeActorId];
+  const balance = evaluation?.balance ?? 0;
+  const negativeActors = actorIds.filter(
+    (id) => (runtime[entryId]?.actors[id]?.balance ?? 0) < 0,
+  );
+  const number = jumpNumber(state, entryId);
+  const gauntlet = runtime[entryId]?.gauntlet;
+  return (
+    <div
+      ref={workspaceRef}
+      className={`chain-jump-workspace${staged ? " is-atomic-stage" : ""}`}
+      data-jump-entry-id={entryId}
+      inert={staged || undefined}
+      aria-hidden={staged || undefined}
+    >
+      <header className="chain-context-header">
+        <div>
+          <p>
+            {number
+              ? `${gauntlet?.active ? "Gauntlet · " : ""}Jump ${number} of ${jumpEntryIds(state).length}`
+              : "Before Jump 1"}
+          </p>
+          <h3>{item.name}</h3>
+          <span>
+            {number
+              ? `Version ${item.version} · ${item.source === "builtin" ? "Built-in" : "Imported"} package${selected.status === "Negative balance" ? "" : ` · ${selected.status}`}`
+              : EARTH_ENTRY_STATUS}
+          </span>
+          {negativeActors.length > 0 && (
+            <strong className="chain-negative-status" role="status">
+              ⚠{" "}
+              {negativeActors
+                .map((id) => state.actors[id]?.name ?? id)
+                .join(", ")}{" "}
+              {negativeActors.length === 1 ? "has" : "have"} a negative point
+              balance
+            </strong>
+          )}
+        </div>
+        <div className="chain-context-actions">
+          <label className="chain-actor-control">
+            <span>Make choices as</span>
+            <select
+              value={activeActorId}
+              className={balance < 0 ? "has-negative-actor" : undefined}
+              onChange={(event) => setActorId(event.target.value)}
+            >
+              {actorIds.map((id) => (
+                <option key={id} value={id}>
+                  {(runtime[entryId]?.actors[id]?.balance ?? 0) < 0 ? "⚠ " : ""}
+                  {state.actors[id]?.name ?? id} ·{" "}
+                  {state.actors[id]?.role ?? "Companion"}
+                  {(runtime[entryId]?.actors[id]?.balance ?? 0) < 0
+                    ? ` · ${runtime[entryId]?.actors[id]?.balance} CP`
+                    : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          {selected.kind === "jump" && (
+            <button
+              type="button"
+              className="chain-gauntlet-action"
+              disabled={Boolean(gauntlet?.native)}
+              title={gauntlet?.sources.map((source) => source.label).join(", ")}
+              onClick={() =>
+                dispatch({
+                  type: "toggle-applied-gauntlet",
+                  entryId,
+                })
+              }
+            >
+              {gauntlet?.native
+                ? "Native Gauntlet"
+                : gauntlet?.active
+                  ? "Remove Gauntlet rules"
+                  : "Apply Gauntlet rules"}
+            </button>
+          )}
+        </div>
+      </header>
+      {jumpRenderer ??
+        (evaluation &&
+          (selected.kind === "earth" ? (
+            <EarthJumpRenderer
+              state={state}
+              dispatch={dispatch}
+              evaluation={evaluation}
+            />
+          ) : item.document ? (
+            <JumpRenderer
+              packageItem={item.document}
+              entryId={entryId}
+              actorId={activeActorId}
+              state={
+                state.jumpState[entryId]?.actors[activeActorId] ?? {
+                  choices: {},
+                  inputs: {},
+                  choiceRolls: {},
+                  sourceRolls: {},
+                }
+              }
+              evaluation={evaluation}
+              preferences={state.preferences}
+              tags={state.tags}
+              companions={Object.values(state.actors)
+                .filter(
+                  (actor) =>
+                    actor.role === "Companion" &&
+                    Boolean(actor.joinedEntryId) &&
+                    state.order.indexOf(actor.joinedEntryId!) <
+                      state.order.indexOf(entryId),
+                )
+                .map((actor) => ({ id: actor.id, name: actor.name }))}
+              gauntletActive={Boolean(gauntlet?.active)}
+              randomIndex={randomIndex}
+              dispatch={dispatch}
+            />
+          ) : (
+            <div className="chain-view-panel tracker-renderer-placeholder">
+              <p>
+                This exact package is unavailable. Stored selections are
+                preserved until it is restored.
+              </p>
+            </div>
+          )))}
+    </div>
   );
 }
 

@@ -1419,12 +1419,69 @@
   color: #aaa9a3 !important;
 }
 
+.atomic-jump-switcher {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.atomic-jump-switcher > .chain-jump-workspace {
+  height: 100%;
+}
+
+.atomic-jump-preparing {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  place-content: center;
+  place-items: center;
+  gap: 0.65rem;
+  color: #aaa9a3;
+  background: #20201e;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.atomic-jump-preparing > span {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid #4a4a45;
+  border-top-color: var(--chain-accent);
+  border-radius: 50%;
+  animation: atomic-jump-preparing-spin 0.8s linear infinite;
+}
+
+@keyframes atomic-jump-preparing-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atomic-jump-preparing > span {
+    animation: none;
+  }
+}
+
+[data-app-motion="reduced"] .atomic-jump-preparing > span {
+  animation: none;
+}
+
 .chain-jump-workspace {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
   background: #242422;
+}
+
+.chain-jump-workspace.is-atomic-stage {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .chain-jump-workspace > .chain-view-panel {

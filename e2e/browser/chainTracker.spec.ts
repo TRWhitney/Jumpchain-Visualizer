@@ -27,6 +27,40 @@ async function attachScreenshot(
   });
 }
 
+async function holdAssetResponse(page: Page, url: string) {
+  let release!: () => void;
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(url, async (route) => {
+    const response = await route.fetch();
+    await released;
+    await route.fulfill({ response });
+  });
+  return release;
+}
+
+async function holdAssetAfterFirstResponse(page: Page, url: string) {
+  let release!: () => void;
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let responseCount = 0;
+  await page.route(url, async (route) => {
+    const response = await route.fetch();
+    responseCount += 1;
+    if (responseCount > 1) await released;
+    await route.fulfill({
+      response,
+      headers: {
+        ...response.headers(),
+        "cache-control": "no-store",
+      },
+    });
+  });
+  return release;
+}
+
 test("renders one three-Jump Morgan chain and its evaluator-derived totals", async ({
   page,
 }, testInfo) => {
@@ -75,13 +109,27 @@ test("renders and captures every canonical Format 1 Jump", async ({
 }, testInfo) => {
   const tracker = trackerFor(page);
   const jumps = [
-    [/1\. Threshold of a Thousand Roads/, "threshold-full-render"],
-    [/2\. The Confluence Engine/, "confluence-full-render"],
-    [/3\. The Last Trial/, "last-trial-full-render"],
+    [
+      /1\. Threshold of a Thousand Roads/,
+      "Threshold of a Thousand Roads",
+      "threshold-full-render",
+    ],
+    [
+      /2\. The Confluence Engine/,
+      "The Confluence Engine",
+      "confluence-full-render",
+    ],
+    [/3\. The Last Trial/, "The Last Trial", "last-trial-full-render"],
   ] as const;
-  for (const [name, artifact] of jumps) {
+  for (const [name, heading, artifact] of jumps) {
     await tracker.getByRole("button", { name }).click();
-    const renderer = tracker.locator(".format-one-jump-renderer");
+    const workspace = tracker.locator(
+      ".chain-jump-workspace:not(.is-atomic-stage)",
+    );
+    await expect(workspace.locator(".chain-context-header h3")).toHaveText(
+      heading,
+    );
+    const renderer = workspace.locator(".format-one-jump-renderer");
     await expect(renderer).toBeVisible();
     await attachScreenshot(testInfo, artifact, renderer);
   }
@@ -89,6 +137,270 @@ test("renders and captures every canonical Format 1 Jump", async ({
     tracker.getByRole("button", { name: "Native Gauntlet" }),
   ).toBeDisabled();
   await expect(tracker.getByText(/Gauntlet · Jump 3 of 3/)).toBeVisible();
+});
+
+test("an image Jump switches atomically after its images decode", async ({
+  page,
+}, testInfo) => {
+  const tracker = trackerFor(page);
+  await tracker.getByRole("button", { name: /^Earth/ }).click();
+  await expect(
+    tracker.locator(
+      ".chain-jump-workspace:not(.is-atomic-stage) .chain-context-header h3",
+    ),
+  ).toHaveText("Earth");
+  const releaseImage = await holdAssetResponse(
+    page,
+    "**/assets/confluence-engine.svg",
+  );
+
+  await tracker
+    .getByRole("button", { name: /2\. The Confluence Engine/ })
+    .click();
+  const activeWorkspace = tracker.locator(
+    ".chain-jump-workspace:not(.is-atomic-stage)",
+  );
+  const stagedWorkspace = tracker.locator(
+    ".chain-jump-workspace.is-atomic-stage",
+  );
+  await expect(
+    activeWorkspace.getByRole("heading", { name: "Earth", level: 3 }),
+  ).toBeVisible();
+  await expect(stagedWorkspace.locator("h3")).toHaveText(
+    "The Confluence Engine",
+  );
+  await expect(stagedWorkspace).toHaveAttribute("aria-hidden", "true");
+  const stagedImage = stagedWorkspace
+    .locator(
+      '.format-one-jump-renderer img[src="/assets/confluence-engine.svg"]',
+    )
+    .first();
+  expect(
+    await stagedImage.evaluate((element: HTMLImageElement) => element.complete),
+  ).toBe(false);
+  const stagedImageElement = await stagedImage.elementHandle();
+  expect(stagedImageElement).not.toBeNull();
+  await page.waitForTimeout(150);
+  await attachScreenshot(
+    testInfo,
+    "image-jump-held-until-decode",
+    tracker.locator(".atomic-jump-switcher"),
+  );
+
+  releaseImage();
+  await expect(
+    activeWorkspace.getByRole("heading", {
+      name: "The Confluence Engine",
+      level: 3,
+    }),
+  ).toBeVisible();
+  const image = activeWorkspace
+    .locator(
+      '.format-one-jump-renderer img[src="/assets/confluence-engine.svg"]',
+    )
+    .first();
+  await expect
+    .poll(() =>
+      image.evaluate(
+        (element: HTMLImageElement) =>
+          element.complete && element.naturalWidth > 0,
+      ),
+    )
+    .toBe(true);
+  expect(
+    await stagedImageElement!.evaluate(
+      (element: HTMLImageElement) =>
+        element.isConnected &&
+        element.complete &&
+        element.naturalWidth > 0 &&
+        !element
+          .closest(".chain-jump-workspace")
+          ?.classList.contains("is-atomic-stage"),
+    ),
+  ).toBe(true);
+  await expect(stagedWorkspace).toHaveCount(0);
+  await image.scrollIntoViewIfNeeded();
+  await attachScreenshot(
+    testInfo,
+    "image-jump-revealed-after-decode",
+    tracker.locator(".atomic-jump-switcher"),
+  );
+});
+
+test("a newer Jump selection cancels a stale staged promotion", async ({
+  page,
+}) => {
+  const tracker = trackerFor(page);
+  await tracker.getByRole("button", { name: /^Earth/ }).click();
+  await expect(
+    tracker.locator(
+      ".chain-jump-workspace:not(.is-atomic-stage) .chain-context-header h3",
+    ),
+  ).toHaveText("Earth");
+  const releaseImage = await holdAssetResponse(
+    page,
+    "**/assets/confluence-engine.svg",
+  );
+  await tracker
+    .getByRole("button", { name: /2\. The Confluence Engine/ })
+    .click();
+  const activeWorkspace = tracker.locator(
+    ".chain-jump-workspace:not(.is-atomic-stage)",
+  );
+  const stagedWorkspace = tracker.locator(
+    ".chain-jump-workspace.is-atomic-stage",
+  );
+  await expect(stagedWorkspace.locator(".chain-context-header h3")).toHaveText(
+    "The Confluence Engine",
+  );
+
+  await tracker
+    .getByRole("button", { name: /1\. Threshold of a Thousand Roads/ })
+    .click();
+  await expect(activeWorkspace.locator(".chain-context-header h3")).toHaveText(
+    "Threshold of a Thousand Roads",
+  );
+  releaseImage();
+  await page.waitForTimeout(100);
+  await expect(activeWorkspace.locator(".chain-context-header h3")).toHaveText(
+    "Threshold of a Thousand Roads",
+  );
+  await expect(stagedWorkspace).toHaveCount(0);
+});
+
+test("returning from Inventory keeps an image Jump staged until decode", async ({
+  page,
+}, testInfo) => {
+  const tracker = trackerFor(page);
+  const releaseImage = await holdAssetAfterFirstResponse(
+    page,
+    "**/assets/confluence-engine.svg",
+  );
+  await tracker
+    .getByRole("button", { name: /2\. The Confluence Engine/ })
+    .evaluate((element: HTMLButtonElement) => element.click());
+  const activeWorkspace = tracker.locator(
+    ".chain-jump-workspace:not(.is-atomic-stage)",
+  );
+  await expect(activeWorkspace.locator(".chain-context-header h3")).toHaveText(
+    "The Confluence Engine",
+  );
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await tracker.getByRole("tab", { name: "Chain & Jump" }).click();
+
+  const stagedWorkspace = tracker.locator(
+    ".chain-jump-workspace.is-atomic-stage",
+  );
+  await expect
+    .poll(
+      async () =>
+        (await activeWorkspace.count()) + (await stagedWorkspace.count()),
+    )
+    .toBe(1);
+  if (await stagedWorkspace.count()) {
+    await expect(activeWorkspace).toHaveCount(0);
+    await expect(
+      stagedWorkspace.locator(".chain-context-header h3"),
+    ).toHaveText("The Confluence Engine");
+    await expect(
+      tracker.getByText("Preparing selected Jump…", { exact: true }),
+    ).toBeVisible();
+    const stagedImage = stagedWorkspace
+      .locator('img[src="/assets/confluence-engine.svg"]')
+      .first();
+    expect(
+      await stagedImage.evaluate(
+        (element: HTMLImageElement) =>
+          element.complete || element.naturalWidth > 0,
+      ),
+    ).toBe(false);
+    await attachScreenshot(
+      testInfo,
+      "inventory-return-image-jump-preparing",
+      tracker.locator(".chain-jump-page"),
+    );
+  } else {
+    const alreadyDecodedImage = activeWorkspace
+      .locator('img[src="/assets/confluence-engine.svg"]')
+      .first();
+    expect(
+      await alreadyDecodedImage.evaluate(
+        (element: HTMLImageElement) =>
+          element.complete && element.naturalWidth > 0,
+      ),
+    ).toBe(true);
+  }
+
+  releaseImage();
+  await expect(activeWorkspace.locator(".chain-context-header h3")).toHaveText(
+    "The Confluence Engine",
+  );
+  const decodedImage = activeWorkspace
+    .locator('img[src="/assets/confluence-engine.svg"]')
+    .first();
+  await expect
+    .poll(() =>
+      decodedImage.evaluate(
+        (element: HTMLImageElement) =>
+          element.complete && element.naturalWidth > 0,
+      ),
+    )
+    .toBe(true);
+  await decodedImage.scrollIntoViewIfNeeded();
+  await attachScreenshot(
+    testInfo,
+    "inventory-return-image-jump-decoded",
+    decodedImage,
+  );
+});
+
+test("a cold Chain Tracker mount never promotes its initial image Jump early", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/editor");
+  const releaseImage = await holdAssetResponse(
+    page,
+    "**/assets/confluence-engine.svg",
+  );
+  await page.goto("/review/chain-tracker?initialEntry=entry-1", {
+    waitUntil: "domcontentloaded",
+  });
+  const tracker = trackerFor(page);
+  const activeWorkspace = tracker.locator(
+    ".chain-jump-workspace:not(.is-atomic-stage)",
+  );
+  const stagedWorkspace = tracker.locator(
+    ".chain-jump-workspace.is-atomic-stage",
+  );
+  await expect(activeWorkspace).toHaveCount(0);
+  await expect(stagedWorkspace.locator(".chain-context-header h3")).toHaveText(
+    "The Confluence Engine",
+  );
+  await expect(
+    tracker.getByText("Preparing selected Jump…", { exact: true }),
+  ).toBeVisible();
+  await attachScreenshot(
+    testInfo,
+    "cold-route-image-jump-preparing",
+    tracker.locator(".chain-jump-page"),
+  );
+
+  releaseImage();
+  await expect(activeWorkspace.locator(".chain-context-header h3")).toHaveText(
+    "The Confluence Engine",
+  );
+  await expect(stagedWorkspace).toHaveCount(0);
+  const decodedImage = activeWorkspace
+    .locator('img[src="/assets/confluence-engine.svg"]')
+    .first();
+  await expect
+    .poll(() =>
+      decodedImage.evaluate(
+        (element: HTMLImageElement) =>
+          element.complete && element.naturalWidth > 0,
+      ),
+    )
+    .toBe(true);
 });
 
 test("inventory shows rank, quantity, and conditional detail projections", async ({
@@ -381,11 +693,20 @@ test("the imported companion is selectable only in the funded Last Trial", async
   await tracker
     .getByRole("button", { name: /2\. The Confluence Engine/ })
     .click();
+  const activeWorkspace = tracker.locator(
+    ".chain-jump-workspace:not(.is-atomic-stage)",
+  );
+  await expect(activeWorkspace.locator(".chain-context-header h3")).toHaveText(
+    "The Confluence Engine",
+  );
   await expect(
-    tracker.getByLabel("Make choices as").locator("option"),
+    activeWorkspace.getByLabel("Make choices as").locator("option"),
   ).toHaveCount(1);
   await tracker.getByRole("button", { name: /3\. The Last Trial/ }).click();
-  const actor = tracker.getByLabel("Make choices as");
+  await expect(activeWorkspace.locator(".chain-context-header h3")).toHaveText(
+    "The Last Trial",
+  );
+  const actor = activeWorkspace.getByLabel("Make choices as");
   await expect(actor.locator("option").filter({ hasText: "Lyra" })).toHaveCount(
     1,
   );
@@ -549,10 +870,16 @@ test("Earth remains immutable and drives previous continuity into Jump 1", async
   await tracker
     .getByRole("button", { name: /1\. Threshold of a Thousand Roads/ })
     .click();
-  await expect(tracker.getByLabel("Gender")).toHaveValue("Male");
-  await expect(tracker.getByRole("spinbutton", { name: "Age" })).toHaveValue(
-    "",
+  const activeWorkspace = tracker.locator(
+    ".chain-jump-workspace:not(.is-atomic-stage)",
   );
+  await expect(activeWorkspace.locator(".chain-context-header h3")).toHaveText(
+    "Threshold of a Thousand Roads",
+  );
+  await expect(activeWorkspace.getByLabel("Gender")).toHaveValue("Male");
+  await expect(
+    activeWorkspace.getByRole("spinbutton", { name: "Age" }),
+  ).toHaveValue("");
   await attachScreenshot(
     testInfo,
     "earth-to-threshold-identity-continuity",

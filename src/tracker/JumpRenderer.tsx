@@ -24,6 +24,7 @@ import { platformRandomIndex, type RandomIndexSource } from "../domain";
 import { CanonicalTrackerTagBadge } from "../settings/TagBadge";
 import type { TagDefinition, TrackerAction, TrackerPreferences } from "./model";
 import { NumberStepper } from "./NumberStepper";
+import { resolveJumpImageSource, type JumpAssetResolver } from "./jumpImages";
 
 const label = (value: Renderable | undefined, fallback = "") =>
   value?.base ?? value?.variants[0]?.value ?? fallback;
@@ -91,7 +92,7 @@ type Props = {
   tags: Readonly<Record<string, TagDefinition>>;
   companions: readonly { id: string; name: string }[];
   gauntletActive: boolean;
-  resolveAsset?: (packageRelativePath: string) => string;
+  resolveAsset?: JumpAssetResolver;
   randomIndex?: RandomIndexSource;
   dispatch: Dispatch<TrackerAction>;
 };
@@ -1097,9 +1098,11 @@ function Layout({
     const shorthand = node.presentation.size
       ? sizes[node.presentation.size]
       : undefined;
-    return item?.src && !/^(?:[a-z]+:|\/)/i.test(item.src) ? (
+    if (!item) return null;
+    const source = resolveJumpImageSource(item.src, props.resolveAsset);
+    return source ? (
       <img
-        src={props.resolveAsset?.(item.src) ?? `/${item.src}`}
+        src={source}
         alt={label(item.alt)}
         style={{
           width: shorthand ?? sizes[node.presentation.width ?? ""],
@@ -1292,9 +1295,9 @@ function TraitLayoutNode({
   }
   if (node.kind === "image") {
     const item = trait.images?.find((image) => image.handle === node.target);
-    return item?.src && !/^(?:[a-z]+:|\/)/i.test(item.src) ? (
-      <img src={item.src} alt={resolved(item.alt, props)} />
-    ) : null;
+    if (!item) return null;
+    const source = resolveJumpImageSource(item.src, props.resolveAsset);
+    return source ? <img src={source} alt={resolved(item.alt, props)} /> : null;
   }
   if (node.kind === "rule") return <hr />;
   if (!["stack", "inline", "wrap", "grid"].includes(node.kind)) return null;

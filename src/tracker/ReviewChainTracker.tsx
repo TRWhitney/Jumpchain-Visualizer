@@ -30,6 +30,7 @@ export function ReviewChainTracker() {
   const allowNegativePointBalances =
     parameters.get("negativeBalances") === "on";
   const allowDuplicateJumps = parameters.get("duplicateJumps") === "on";
+  const initialEntryId = parameters.get("initialEntry");
   const [state, rawDispatch] = useReducer(trackerReducer, undefined, () => {
     const preferences = {
       warnUpstreamChanges,
@@ -41,7 +42,16 @@ export function ReviewChainTracker() {
     };
     if (fixture === "companion-profiles")
       return createCompanionProfileTrackerFixture(preferences);
-    if (fixture !== "reference") return createDenseTrackerFixture(preferences);
+    if (fixture !== "reference") {
+      const initial = createDenseTrackerFixture(preferences);
+      return initialEntryId && initial.entries[initialEntryId]
+        ? {
+            ...initial,
+            selectedEntryId: initialEntryId,
+            inspectionPointId: initialEntryId,
+          }
+        : initial;
+    }
     const initial = createReferenceTrackerFixture();
     return {
       ...initial,

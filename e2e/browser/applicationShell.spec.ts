@@ -1,4 +1,27 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+
+async function expectModalBelowRouter(page: Page, layer: Locator) {
+  const [routerBox, layerBox] = await Promise.all([
+    page.getByLabel("Application location").boundingBox(),
+    layer.boundingBox(),
+  ]);
+  expect(routerBox).not.toBeNull();
+  expect(layerBox).not.toBeNull();
+  expect(
+    Math.abs(layerBox!.y - (routerBox!.y + routerBox!.height)),
+  ).toBeLessThan(2);
+  expect(layerBox!.height).toBeGreaterThan(300);
+}
+
+async function resumeMorgan(page: Page) {
+  await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
+  await page
+    .getByRole("region", { name: "Chains" })
+    .getByRole("button", { name: "Resume" })
+    .first()
+    .click();
+  return page.getByLabel("Interactive Chain Tracker workspace");
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
@@ -117,6 +140,149 @@ test("returning to the mounted chain restores its internal workspace state", asy
   await expect(
     tracker.getByRole("button", { name: "Items", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
+});
+
+test("tracker dialogs share the application modal boundary and close on route departure", async ({
+  page,
+}, testInfo) => {
+  await page.getByRole("button", { name: "Settings" }).click();
+  const settingsLayer = page.locator(".app-settings-layer.is-overlay");
+  await expectModalBelowRouter(page, settingsLayer);
+  if (testInfo.project.name === "chromium")
+    await testInfo.attach("settings-application-modal-boundary", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+  const accent = page.locator("#accent");
+  await accent.evaluate((element) => {
+    const input = element as HTMLInputElement;
+    const setValue = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
+    setValue.call(input, "#7655e8");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await expect(accent).toHaveValue("#7655e8");
+  await page.getByRole("button", { name: "Close Settings" }).click();
+
+  const tracker = await resumeMorgan(page);
+  await tracker.getByRole("tab", { name: /^Forms/ }).click();
+  await tracker
+    .locator(".chain-form-grid article")
+    .filter({ hasText: "Prism Form" })
+    .getByRole("button", { name: "View" })
+    .click();
+  await tracker.getByRole("button", { name: "Full details" }).click();
+  const formDialog = page.getByRole("dialog", {
+    name: "Form details: Prism Form",
+  });
+  const profileLayer = page.locator(".companion-profile-layer");
+  if (testInfo.project.name === "chromium")
+    await testInfo.attach("form-profile-modal-before", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+  await expectModalBelowRouter(page, profileLayer);
+  await expect(tracker).toHaveAttribute("inert", "");
+  const formPerk = formDialog.getByRole("button", {
+    name: "Refractive Hide",
+  });
+  await formPerk.hover();
+  const hoveredColors = await formPerk.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      background: style.backgroundColor,
+      border: style.borderColor,
+    };
+  });
+  if (testInfo.project.name === "chromium")
+    await testInfo.attach("form-profile-accent-modal", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+  expect(hoveredColors.background).not.toBe("rgb(60, 60, 56)");
+  expect(hoveredColors.border).not.toBe("rgb(141, 120, 49)");
+
+  await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
+  await expect(formDialog).toHaveCount(0);
+  const returnedTracker = await resumeMorgan(page);
+  await expect(formDialog).toHaveCount(0);
+
+  await returnedTracker.getByRole("tab", { name: /^Companions/ }).click();
+  await returnedTracker
+    .locator(".chain-companion-grid article")
+    .filter({ hasText: "Lyra" })
+    .getByRole("button", { name: "View" })
+    .click();
+  await returnedTracker.getByRole("button", { name: "Full profile" }).click();
+  const companionDialog = page.getByRole("dialog", {
+    name: "Companion profile: Lyra",
+  });
+  await expectModalBelowRouter(page, page.locator(".companion-profile-layer"));
+  const companionRecord = companionDialog
+    .locator(".companion-profile-columns button")
+    .first();
+  await companionRecord.hover();
+  await expect(companionRecord).not.toHaveCSS(
+    "border-color",
+    "rgb(141, 120, 49)",
+  );
+  if (testInfo.project.name === "chromium")
+    await testInfo.attach("companion-profile-accent-modal", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+  await page.getByRole("button", { name: "Editor", exact: true }).click();
+  await expect(companionDialog).toHaveCount(0);
+
+  const inventoryTracker = await resumeMorgan(page);
+  await expect(companionDialog).toHaveCount(0);
+  await inventoryTracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await inventoryTracker.locator(".chain-record-list article").first().click();
+  const recordDialog = page.getByRole("dialog", {
+    name: /(?:perk|item) details:/i,
+  });
+  await expect(recordDialog).toBeVisible();
+  await expectModalBelowRouter(page, page.locator(".record-detail-layer"));
+  await expect(inventoryTracker).toHaveAttribute("inert", "");
+  if (testInfo.project.name === "chromium")
+    await testInfo.attach("record-detail-application-modal", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+  await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
+  await expect(recordDialog).toHaveCount(0);
+  await resumeMorgan(page);
+  await expect(recordDialog).toHaveCount(0);
+
+  await page.getByRole("tab", { name: "Chain & Jump" }).click();
+  await page.getByRole("button", { name: "Supp", exact: true }).click();
+  const supplementDialog = page.getByRole("dialog", {
+    name: /current-Jump supplements/,
+  });
+  await expectModalBelowRouter(
+    page,
+    page.locator(".tracker-supp-application-layer"),
+  );
+  await expect(
+    page.getByLabel("Interactive Chain Tracker workspace"),
+  ).toHaveAttribute("inert", "");
+  if (testInfo.project.name === "chromium")
+    await testInfo.attach("supp-application-modal", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+  await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
+  await expect(supplementDialog).toHaveCount(0);
+  await resumeMorgan(page);
+  await expect(supplementDialog).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  if (testInfo.project.name === "chromium")
+    await testInfo.attach("tracker-dialogs-closed-after-route-return", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
 });
 
 test("the Chain Tracker hub lists all chains and supports create and rename flows", async ({

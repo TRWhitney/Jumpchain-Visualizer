@@ -93,6 +93,28 @@ function firstStepWithoutSupplementPoints() {
 }
 
 describe("Chain Tracker aggregate", () => {
+  it("closes transient tracker dialogs without clearing their selected records", () => {
+    const fixture = createDenseTrackerFixture();
+    const withDialogs = {
+      ...fixture,
+      selectedRecordId: "record-perk-0",
+      selectedFormId: "form-0",
+      activeProfile: "form" as const,
+      pending: {
+        kind: "remove" as const,
+        entryId: "entry-2",
+        impacts: [],
+      },
+    };
+
+    const closed = trackerReducer(withDialogs, { type: "close-dialogs" });
+
+    expect(closed.selectedRecordId).toBeNull();
+    expect(closed.activeProfile).toBeNull();
+    expect(closed.pending).toBeNull();
+    expect(closed.selectedFormId).toBe("form-0");
+  });
+
   it("ships complete deterministic dense and reference fixtures", () => {
     const dense = createDenseTrackerFixture();
     const reference = createReferenceTrackerFixture();

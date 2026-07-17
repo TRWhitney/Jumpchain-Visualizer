@@ -200,11 +200,15 @@ function FocusModal({
   label,
   className,
   onClose,
+  applicationOverlay = false,
+  inactive = false,
   children,
 }: {
   label: string;
   className: string;
   onClose: () => void;
+  applicationOverlay?: boolean;
+  inactive?: boolean;
   children: ReactNode;
 }) {
   const root = useRef<HTMLDivElement>(null);
@@ -257,7 +261,9 @@ function FocusModal({
   return (
     <div
       ref={root}
-      className={className}
+      className={`${className}${applicationOverlay ? " app-settings-layer is-overlay tracker-dialog-application-layer" : ""}`}
+      inert={inactive || undefined}
+      aria-hidden={inactive || undefined}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -1425,7 +1431,11 @@ function CompanionsPage({ state, dispatch }: TrackerProps) {
   );
 }
 
-function RecordModal({ state, dispatch }: TrackerProps) {
+function RecordModal({
+  state,
+  dispatch,
+  applicationOverlay,
+}: TrackerProps & { applicationOverlay: boolean }) {
   const record = aggregateInventoryRecords(
     state.records.filter((item) =>
       visibleAtInspection(state, item.sourceEntryId),
@@ -1437,6 +1447,7 @@ function RecordModal({ state, dispatch }: TrackerProps) {
     <FocusModal
       label={`${record.kind} details: ${record.name}`}
       className="record-detail-layer"
+      applicationOverlay={applicationOverlay}
       onClose={() => dispatch({ type: "open-record", id: null })}
     >
       <header>
@@ -1521,7 +1532,12 @@ function RecordModal({ state, dispatch }: TrackerProps) {
   );
 }
 
-function ProfileModal({ state, dispatch }: TrackerProps) {
+function ProfileModal({
+  state,
+  dispatch,
+  applicationOverlay,
+  inactive,
+}: TrackerProps & { applicationOverlay: boolean; inactive: boolean }) {
   if (!state.activeProfile) return null;
   const isForm = state.activeProfile === "form";
   const form = isForm
@@ -1543,6 +1559,8 @@ function ProfileModal({ state, dispatch }: TrackerProps) {
     <FocusModal
       label={`${isForm ? "Form details" : "Companion profile"}: ${name}`}
       className="companion-profile-layer"
+      applicationOverlay={applicationOverlay}
+      inactive={inactive}
       onClose={() => dispatch({ type: "open-profile", profile: null })}
     >
       <header>
@@ -1804,10 +1822,12 @@ export function ChainTracker({
   jumpRenderer,
   randomIndex,
   showApplicationHeader = true,
+  active = true,
 }: TrackerProps & {
   jumpRenderer?: ReactNode;
   showApplicationHeader?: boolean;
   randomIndex?: RandomIndexSource;
+  active?: boolean;
 }) {
   const [suppOpen, setSuppOpen] = useState(false);
   const enabled = state.enabledSupplements;
@@ -1837,6 +1857,29 @@ export function ChainTracker({
     typeof document === "undefined"
       ? null
       : document.querySelector<HTMLElement>(".app-primary-shell");
+  useEffect(() => {
+    if (
+      active ||
+      (!suppOpen &&
+        !state.activeProfile &&
+        !state.selectedRecordId &&
+        !state.pending)
+    )
+      return;
+    const frame = window.requestAnimationFrame(() => {
+      setSuppOpen(false);
+      if (state.activeProfile || state.selectedRecordId || state.pending)
+        dispatch({ type: "close-dialogs" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    active,
+    dispatch,
+    suppOpen,
+    state.activeProfile,
+    state.pending,
+    state.selectedRecordId,
+  ]);
   const closeSupplement = () => {
     setSuppOpen(false);
     window.setTimeout(
@@ -1845,7 +1888,7 @@ export function ChainTracker({
     );
   };
   const supplementDialog =
-    suppOpen && projectedState.page === "jump" ? (
+    active && suppOpen && projectedState.page === "jump" ? (
       <TrackerSupplementContext
         jumpName={selectedItem.name}
         jumpEntryId={projectedState.selectedEntryId}
@@ -1874,6 +1917,26 @@ export function ChainTracker({
       {supplementDialog}
     </div>
   ) : null;
+  const profileOpen = projectedState.activeProfile !== null;
+  const applicationModalOpen =
+    Boolean(applicationShell) &&
+    active &&
+    (suppOpen || selectedRecord || profileOpen);
+  const trackerDialogs = active ? (
+    <>
+      <ProfileModal
+        state={projectedState}
+        dispatch={dispatch}
+        applicationOverlay={Boolean(applicationShell)}
+        inactive={selectedRecord && profileOpen}
+      />
+      <RecordModal
+        state={projectedState}
+        dispatch={dispatch}
+        applicationOverlay={Boolean(applicationShell)}
+      />
+    </>
+  ) : null;
   return (
     <SupplementProviders
       bodyMod={projectedState.bodyMod}
@@ -1886,6 +1949,8 @@ export function ChainTracker({
       <div
         className={`chain-mockup tracker-review-frame${showApplicationHeader ? "" : " is-shell-embedded"}`}
         aria-label="Interactive Chain Tracker workspace"
+        inert={applicationModalOpen || undefined}
+        aria-hidden={applicationModalOpen || undefined}
       >
         {showApplicationHeader && <ChainHeader />}
         <MainTabs state={projectedState} dispatch={dispatch} />
@@ -1929,18 +1994,13 @@ export function ChainTracker({
         </div>
         {!applicationShell && supplementLayer}
         <MutationModal state={projectedState} dispatch={dispatch} />
-        <div
-          aria-hidden={
-            selectedRecord && state.activeProfile ? "true" : undefined
-          }
-          inert={selectedRecord && state.activeProfile ? true : undefined}
-        >
-          <ProfileModal state={projectedState} dispatch={dispatch} />
-        </div>
-        <RecordModal state={projectedState} dispatch={dispatch} />
+        {!applicationShell && trackerDialogs}
       </div>
       {applicationShell && supplementLayer
         ? createPortal(supplementLayer, applicationShell)
+        : null}
+      {applicationShell && trackerDialogs
+        ? createPortal(trackerDialogs, applicationShell)
         : null}
     </SupplementProviders>
   );

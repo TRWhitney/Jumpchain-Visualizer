@@ -2360,9 +2360,23 @@
   cursor: pointer;
 }
 
-.companion-profile-columns button:hover {
-  background: #3c3c38;
-  border-color: #8d7831;
+.companion-profile-columns button:hover,
+.companion-profile-columns button:focus-visible {
+  background: color-mix(
+    in srgb,
+    var(--app-accent-raw, var(--chain-accent)) 18%,
+    #333330
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--app-accent-border, var(--chain-accent)) 62%,
+    #4d4d47
+  );
+}
+
+.companion-profile-columns button:focus-visible {
+  outline: 2px solid var(--app-accent-focus, var(--chain-accent));
+  outline-offset: 2px;
 }
 
 .record-detail-layer {

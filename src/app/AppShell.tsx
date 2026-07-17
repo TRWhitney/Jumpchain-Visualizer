@@ -124,6 +124,9 @@ function AppShellContent() {
   );
   const chainStatesRef = useRef(chainStates);
   const [chainSaveError, setChainSaveError] = useState<string | null>(null);
+  const [lastActiveChainId, setLastActiveChainId] = useState(
+    DEMONSTRATION_CHAIN_ID,
+  );
   const mainRef = useRef<HTMLElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const restoreSettingsFocus = useRef(false);
@@ -171,7 +174,7 @@ function AppShellContent() {
     backgroundRoute.kind === "chain-workspace"
       ? chainRegistry.chains[backgroundRoute.chainId]
       : undefined;
-  const activeChainId = activeChain?.id ?? DEMONSTRATION_CHAIN_ID;
+  const activeChainId = activeChain?.id ?? lastActiveChainId;
   const trackerState = reconcileDemonstrationPackageBindings(
     chainStates[activeChainId] ?? createBlankTrackerFixture(activeChain?.name),
     activeChainId,
@@ -318,6 +321,8 @@ function AppShellContent() {
   const navigate = useCallback(
     (nextPath: string, extraState: Partial<ShellHistoryState> = {}) => {
       if (window.location.pathname === nextPath) return;
+      if (backgroundRoute.kind === "chain-workspace")
+        setLastActiveChainId(backgroundRoute.chainId);
       const nextIndex = historyIndex + 1;
       window.history.pushState(
         { jvIndex: nextIndex, ...extraState },
@@ -334,7 +339,7 @@ function AppShellContent() {
           : null,
       );
     },
-    [historyIndex],
+    [backgroundRoute, historyIndex],
   );
 
   const isActive = (kind: typeof backgroundRoute.kind) =>
@@ -364,6 +369,7 @@ function AppShellContent() {
 
   const openChain = useCallback(
     (chain: SavedChain) => {
+      setLastActiveChainId(chain.id);
       chainRegistryDispatch({ type: "open", id: chain.id });
       navigate(`/chain/${chain.id}`);
     },
@@ -375,6 +381,7 @@ function AppShellContent() {
       const normalized = normalizeChainName(name);
       if (!normalized) return false;
       const id = `ch-new-${chainRegistry.nextSerial}`;
+      setLastActiveChainId(id);
       chainRegistryDispatch({ type: "create", id, name: normalized });
       setChainStates((current) => ({
         ...current,
@@ -805,6 +812,7 @@ function AppShellContent() {
               }}
               dispatch={effectiveTrackerDispatch}
               showApplicationHeader={false}
+              active={knownChain}
             />
             {chainSaveError && (
               <div className="tracker-undo" role="alert">

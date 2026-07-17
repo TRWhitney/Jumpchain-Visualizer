@@ -272,6 +272,7 @@ export type TrackerAction =
   | { type: "select-form"; id: string | null }
   | { type: "select-companion"; id: string | null }
   | { type: "open-profile"; profile: TrackerState["activeProfile"] }
+  | { type: "close-dialogs" }
   | {
       type: "set-choice";
       entryId: string;
@@ -1395,6 +1396,13 @@ export function trackerReducer(
       return { ...state, selectedCompanionId: action.id };
     case "open-profile":
       return { ...state, activeProfile: action.profile };
+    case "close-dialogs":
+      return {
+        ...state,
+        selectedRecordId: null,
+        activeProfile: null,
+        pending: null,
+      };
     case "set-choice": {
       const entry = state.jumpState[action.entryId];
       if (!entry) return state;

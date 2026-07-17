@@ -321,6 +321,12 @@ body:has(.tracker-review) {
   backdrop-filter: blur(3px);
 }
 
+.tracker-dialog-application-layer {
+  --chain-accent: var(--app-accent-raw, #d4af37);
+  --chain-accent-text: var(--app-accent-text, #a98f36);
+  --chain-accent-fill-text: var(--app-accent-fill-text, #171717);
+}
+
 .tracker-supp-context .chain-supp-context-layout {
   grid-template-columns: 16rem minmax(0, 1fr);
 }

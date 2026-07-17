@@ -492,11 +492,64 @@ body:has(.app-primary-shell) #root {
   font-weight: 700;
 }
 
+button.app-chain-star {
+  display: grid;
+  width: 2.2rem;
+  min-width: 2.2rem;
+  height: 2.2rem;
+  min-height: 2.2rem;
+  padding: 0;
+  place-items: center;
+  color: #9b9b94;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  font: inherit;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.app-chain-star:hover,
+.app-chain-star:focus-visible,
+.app-chain-star[aria-pressed="true"] {
+  color: var(--app-accent-text);
+  background: transparent;
+}
+
+.app-chain-star:focus-visible {
+  outline: 2px solid var(--app-accent-focus);
+  outline-offset: 2px;
+}
+
+.app-chain-card > .app-chain-star {
+  grid-row: 2;
+  grid-column: 1;
+  align-self: end;
+}
+
 .app-chain-card-actions {
   display: flex;
   grid-column: 2 / -1;
   justify-content: flex-end;
   gap: 0.45rem;
+}
+
+.app-recent-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.app-chain-star-indicator {
+  display: grid;
+  width: 2.2rem;
+  height: 2.2rem;
+  place-items: center;
+  color: var(--app-accent-text);
+  font-size: 1.75rem;
+  line-height: 1;
 }
 
 .app-chain-card-actions button:last-child,
@@ -661,7 +714,7 @@ body:has(.app-primary-shell) #root {
   }
 
   .app-chain-card-actions {
-    grid-column: 1 / -1;
+    grid-column: 2;
   }
 
   .app-chain-tag-summary {

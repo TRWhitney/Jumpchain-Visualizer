@@ -54,6 +54,53 @@ describe("saved chain registry", () => {
     expect(orderedChains(state)[0].id).toBe("ch-92b1");
   });
 
+  it("sorts starred chains first and preserves recency within both groups", () => {
+    let state = createChainRegistryFixture();
+    state = chainRegistryReducer(state, {
+      type: "create",
+      id: "ch-new-1",
+      name: "Alpha",
+    });
+    state = chainRegistryReducer(state, {
+      type: "create",
+      id: "ch-new-2",
+      name: "Beta",
+    });
+    state = chainRegistryReducer(state, {
+      type: "set-starred",
+      id: "ch-92b1",
+      starred: true,
+    });
+    state = chainRegistryReducer(state, {
+      type: "set-starred",
+      id: "ch-new-1",
+      starred: true,
+    });
+    expect(orderedChains(state).map((chain) => chain.name)).toEqual([
+      "Alpha",
+      "Morgan",
+      "Beta",
+    ]);
+
+    state = chainRegistryReducer(state, { type: "open", id: "ch-92b1" });
+    expect(orderedChains(state).map((chain) => chain.name)).toEqual([
+      "Morgan",
+      "Alpha",
+      "Beta",
+    ]);
+
+    state = chainRegistryReducer(state, {
+      type: "set-starred",
+      id: "ch-92b1",
+      starred: false,
+    });
+    expect(orderedChains(state).map((chain) => chain.name)).toEqual([
+      "Alpha",
+      "Morgan",
+      "Beta",
+    ]);
+  });
+
   it("rejects blank names and actions for unknown records", () => {
     const state = createChainRegistryFixture();
     expect(
@@ -69,6 +116,13 @@ describe("saved chain registry", () => {
         id: "missing",
         name: "Nope",
         description: "Missing",
+      }),
+    ).toBe(state);
+    expect(
+      chainRegistryReducer(state, {
+        type: "set-starred",
+        id: "missing",
+        starred: true,
       }),
     ).toBe(state);
   });

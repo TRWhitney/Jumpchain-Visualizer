@@ -6,6 +6,7 @@ export type SavedChain = {
   jumpCount: number;
   lastOpenedSequence: number;
   lastOpenedLabel: string;
+  starred: boolean;
   description: string;
   tagCounts: Record<TagCategory, number>;
 };
@@ -26,7 +27,9 @@ export type ChainRegistryAction =
       description: string;
       lastOpenedSequence: number;
       lastOpenedLabel: string;
+      starred?: boolean;
     }
+  | { type: "set-starred"; id: string; starred: boolean }
   | { type: "update-details"; id: string; name: string; description: string };
 
 const tagCounts = (values: readonly number[]): Record<TagCategory, number> =>
@@ -41,6 +44,7 @@ const fixtureChains: readonly SavedChain[] = [
     jumpCount: 3,
     lastOpenedSequence: 80,
     lastOpenedLabel: "Opened yesterday",
+    starred: false,
     description:
       "A three-Jump demonstration chain spanning every Format 1 capability.",
     tagCounts: tagCounts([4, 5, 3, 6, 5, 2, 4, 7, 5, 5, 6, 4]),
@@ -58,6 +62,7 @@ export function createChainRegistryFixture(): ChainRegistryState {
 export function orderedChains(state: ChainRegistryState) {
   return Object.values(state.chains).sort(
     (left, right) =>
+      Number(right.starred) - Number(left.starred) ||
       right.lastOpenedSequence - left.lastOpenedSequence ||
       left.name.localeCompare(right.name),
   );
@@ -106,6 +111,7 @@ export function chainRegistryReducer(
           description: action.description.trim(),
           lastOpenedSequence: sequence,
           lastOpenedLabel: action.lastOpenedLabel,
+          starred: Boolean(action.starred),
           jumpCount: existing?.jumpCount ?? 0,
           tagCounts: existing?.tagCounts ?? tagCounts([]),
         },
@@ -130,6 +136,18 @@ export function chainRegistryReducer(
         },
       },
       nextSequence: state.nextSequence + 1,
+    };
+  }
+
+  if (action.type === "set-starred") {
+    const chain = state.chains[action.id];
+    if (!chain || chain.starred === action.starred) return state;
+    return {
+      ...state,
+      chains: {
+        ...state.chains,
+        [action.id]: { ...chain, starred: action.starred },
+      },
     };
   }
 
@@ -162,6 +180,7 @@ export function chainRegistryReducer(
         jumpCount: 0,
         lastOpenedSequence: state.nextSequence,
         lastOpenedLabel: "Opened just now",
+        starred: false,
         description: "A new chain ready for its first Jump.",
         tagCounts: tagCounts([]),
       },

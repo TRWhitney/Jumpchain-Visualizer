@@ -23,6 +23,40 @@ async function resumeMorgan(page: Page) {
   return page.getByLabel("Interactive Chain Tracker workspace");
 }
 
+async function expectStoredChain(page: Page, id: string) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        ({ databaseName, databaseVersion, chainId }) =>
+          new Promise<boolean>((resolve, reject) => {
+            const open = indexedDB.open(databaseName, databaseVersion);
+            open.onerror = () => reject(open.error);
+            open.onsuccess = () => {
+              const database = open.result;
+              const request = database
+                .transaction("chains", "readonly")
+                .objectStore("chains")
+                .get(chainId);
+              request.onerror = () => {
+                database.close();
+                reject(request.error);
+              };
+              request.onsuccess = () => {
+                database.close();
+                resolve(Boolean(request.result));
+              };
+            };
+          }),
+        {
+          databaseName: "jumpchain-visualizer",
+          databaseVersion: 2,
+          chainId: id,
+        },
+      ),
+    )
+    .toBe(true);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
 });
@@ -355,6 +389,113 @@ test("the Chain Tracker hub lists all chains and supports create and rename flow
   await expect(homeChains.locator(".app-recent-work").first()).toContainText(
     "Lantern Sea",
   );
+});
+
+test("starred chains lead both lists while each group retains recency order", async ({
+  page,
+}, testInfo) => {
+  await page.getByRole("button", { name: "Open Chain Tracker" }).click();
+
+  const createChain = async (name: string, id: string) => {
+    await page.getByLabel("Start a new chain").fill(name);
+    await page.getByRole("button", { name: "Start Chain" }).click();
+    await expect(page).toHaveTitle(`${name} · Chain Tracker`);
+    await expectStoredChain(page, id);
+    await page
+      .getByRole("button", { name: "Chain Tracker", exact: true })
+      .click();
+  };
+  const cardNames = page.locator(".app-chain-card h3");
+
+  await createChain("Alpha", "ch-new-1");
+  await createChain("Beta", "ch-new-2");
+  await expect(cardNames).toHaveText(["Beta", "Alpha", "Morgan"]);
+
+  await page.getByRole("button", { name: "Star Morgan" }).click();
+  await expect(cardNames).toHaveText(["Morgan", "Beta", "Alpha"]);
+  await page.getByRole("button", { name: "Star Alpha" }).click();
+  await expect(cardNames).toHaveText(["Alpha", "Morgan", "Beta"]);
+
+  const alphaToggle = page.getByRole("button", { name: "Unstar Alpha" });
+  const betaToggle = page.getByRole("button", { name: "Star Beta" });
+  await expect(alphaToggle).toHaveAttribute("aria-pressed", "true");
+  await expect(betaToggle).toHaveAttribute("aria-pressed", "false");
+  await expect(alphaToggle).toHaveCSS("border-top-width", "0px");
+  const [accentColor, expectedAccentColor, inactiveColor, toggleSize] =
+    await Promise.all([
+      alphaToggle.evaluate((element) => getComputedStyle(element).color),
+      page.locator(".app-primary-shell").evaluate((element) => {
+        const probe = document.createElement("span");
+        probe.style.color = "var(--app-accent-text)";
+        element.append(probe);
+        const color = getComputedStyle(probe).color;
+        probe.remove();
+        return color;
+      }),
+      betaToggle.evaluate((element) => getComputedStyle(element).color),
+      alphaToggle.evaluate((element) => getComputedStyle(element).fontSize),
+    ]);
+  expect(accentColor).toBe(expectedAccentColor);
+  expect(accentColor).not.toBe(inactiveColor);
+
+  if (testInfo.project.name === "chromium")
+    await testInfo.attach("starred-chain-hub-order", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+
+  await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
+  const homeChains = page.getByRole("region", { name: "Chains" });
+  await expect(
+    homeChains.locator(".app-recent-work > span > strong"),
+  ).toHaveText(["Alpha", "Morgan", "Beta"]);
+  await expect(
+    homeChains.getByRole("img", { name: "Alpha is starred" }),
+  ).toBeVisible();
+  await expect(
+    homeChains.getByRole("img", { name: "Morgan is starred" }),
+  ).toBeVisible();
+  await expect(
+    homeChains.getByRole("button", { name: /^(?:un)?star /i }),
+  ).toHaveCount(0);
+  expect(
+    await homeChains
+      .getByRole("img", { name: "Alpha is starred" })
+      .evaluate((element) => getComputedStyle(element).fontSize),
+  ).toBe(toggleSize);
+
+  if (testInfo.project.name === "chromium")
+    await testInfo.attach("starred-chain-home-order", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+
+  await page.reload();
+  await expect(homeChains.locator(".app-recent-work")).toHaveCount(3);
+  await expect(
+    homeChains.locator(".app-recent-work > span > strong"),
+  ).toHaveText(["Alpha", "Morgan", "Beta"]);
+  await expect(
+    homeChains.getByRole("img", { name: "Alpha is starred" }),
+  ).toBeVisible();
+
+  await page
+    .getByRole("button", { name: "Chain Tracker", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Unstar Alpha" }).click();
+  await expect(cardNames).toHaveText(["Morgan", "Beta", "Alpha"]);
+  if (testInfo.project.name === "chromium")
+    await testInfo.attach("unstarred-chain-hub-order", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+  await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
+  await expect(
+    homeChains.locator(".app-recent-work > span > strong"),
+  ).toHaveText(["Morgan", "Beta", "Alpha"]);
+  await expect(
+    homeChains.getByRole("img", { name: "Alpha is starred" }),
+  ).toHaveCount(0);
 });
 
 test("saved-chain search and radar summaries preserve the fixed hub", async ({

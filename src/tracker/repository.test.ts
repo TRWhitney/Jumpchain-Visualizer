@@ -15,6 +15,7 @@ import {
 describe("chain repository", () => {
   it("round-trips independent versioned aggregates", async () => {
     const first = aggregateFromTracker("one", createDenseTrackerFixture());
+    first.starred = true;
     const second = {
       ...aggregateFromTracker("two", createDenseTrackerFixture()),
       name: "Second",
@@ -27,6 +28,7 @@ describe("chain repository", () => {
     ]);
     const loaded = await repository.load("two");
     expect(loaded?.name).toBe("Second");
+    expect((await repository.load("one"))?.starred).toBe(true);
     expect(applyAggregate(createDenseTrackerFixture(), loaded!).chainName).toBe(
       "Second",
     );

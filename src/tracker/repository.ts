@@ -25,6 +25,7 @@ export type ChainAggregate = {
   description: string;
   lastOpenedSequence: number;
   lastOpenedLabel: string;
+  starred?: boolean;
   entries: Record<string, ChainEntry>;
   order: string[];
   jumpState: JumpRuntimeState;
@@ -62,6 +63,7 @@ export function aggregateFromTracker(
     description: string;
     lastOpenedSequence: number;
     lastOpenedLabel: string;
+    starred?: boolean;
   },
 ): ChainAggregate {
   return {
@@ -72,6 +74,7 @@ export function aggregateFromTracker(
       metadata?.description ?? "A chain saved by Jumpchain Visualizer.",
     lastOpenedSequence: metadata?.lastOpenedSequence ?? 0,
     lastOpenedLabel: metadata?.lastOpenedLabel ?? "Saved",
+    starred: metadata?.starred ?? false,
     entries: normalizeSystemEntries(state.entries),
     order: state.order,
     jumpState: state.jumpState,
@@ -153,6 +156,7 @@ export function isChainAggregate(value: unknown): value is ChainAggregate {
     Number.isSafeInteger(item.lastOpenedSequence) &&
     typeof item.lastOpenedLabel === "string" &&
     item.lastOpenedLabel.length <= 500 &&
+    (item.starred === undefined || typeof item.starred === "boolean") &&
     Array.isArray(item.order) &&
     order.length > 0 &&
     order.length <= 1000 &&

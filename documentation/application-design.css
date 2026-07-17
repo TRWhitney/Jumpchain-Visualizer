@@ -316,6 +316,23 @@
   border-color: var(--app-accent-border, #a98e36);
 }
 
+.app-recent-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.app-chain-star-indicator {
+  display: grid;
+  width: 2.2rem;
+  height: 2.2rem;
+  place-items: center;
+  color: var(--app-accent-text, #d4bd68);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
 .app-route-actions {
   display: flex;
   align-items: center;

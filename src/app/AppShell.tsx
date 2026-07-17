@@ -230,6 +230,7 @@ function AppShellContent() {
             description: aggregate.description,
             lastOpenedSequence: aggregate.lastOpenedSequence,
             lastOpenedLabel: aggregate.lastOpenedLabel,
+            starred: aggregate.starred ?? false,
           });
         setChainStates((current) => {
           const next = { ...current };
@@ -392,6 +393,31 @@ function AppShellContent() {
       return true;
     },
     [chainRegistry.nextSerial, logger, navigate],
+  );
+
+  const setChainStarred = useCallback(
+    (chain: SavedChain, starred: boolean) => {
+      chainRegistryDispatch({ type: "set-starred", id: chain.id, starred });
+      const current = chainStatesRef.current[chain.id];
+      if (current)
+        void chainRepository
+          .save(
+            aggregateFromTracker(chain.id, current, {
+              description: chain.description,
+              lastOpenedSequence: chain.lastOpenedSequence,
+              lastOpenedLabel: chain.lastOpenedLabel,
+              starred,
+            }),
+          )
+          .then(() => setChainSaveError(null))
+          .catch(() =>
+            setChainSaveError(
+              "Autosave failed. Your in-memory changes are still available.",
+            ),
+          );
+      logger.emit(starred ? "chain.starred" : "chain.unstarred");
+    },
+    [chainRepository, logger],
   );
 
   const trackerDispatchRef = useRef<Dispatch<TrackerAction>>(() => undefined);
@@ -749,6 +775,7 @@ function AppShellContent() {
               includeItemTags={settings.chain.includeItemTagsInRadar}
               onCreate={createChain}
               onOpen={openChain}
+              onToggleStar={(chain) => setChainStarred(chain, !chain.starred)}
               onUpdateDetails={(id, name, description) => {
                 const normalizedName = normalizeChainName(name);
                 chainRegistryDispatch({
@@ -776,6 +803,7 @@ function AppShellContent() {
                         description: description.trim(),
                         lastOpenedSequence: metadata.lastOpenedSequence,
                         lastOpenedLabel: metadata.lastOpenedLabel,
+                        starred: metadata.starred,
                       }),
                     )
                     .then(() => setChainSaveError(null))
@@ -890,6 +918,27 @@ function AppShellContent() {
   );
 }
 
+function ChainStarButton({
+  chain,
+  onToggle,
+}: {
+  chain: SavedChain;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="app-chain-star"
+      aria-label={`${chain.starred ? "Unstar" : "Star"} ${chain.name}`}
+      aria-pressed={chain.starred}
+      title={`${chain.starred ? "Unstar" : "Star"} ${chain.name}`}
+      onClick={onToggle}
+    >
+      <span aria-hidden="true">{chain.starred ? "★" : "☆"}</span>
+    </button>
+  );
+}
+
 function RecentChain({
   chain,
   tags,
@@ -927,9 +976,20 @@ function RecentChain({
           {chain.lastOpenedLabel.toLocaleLowerCase()}
         </small>
       </span>
-      <button type="button" onClick={onOpen}>
-        Resume
-      </button>
+      <div className="app-recent-actions">
+        {chain.starred && (
+          <span
+            className="app-chain-star-indicator"
+            role="img"
+            aria-label={`${chain.name} is starred`}
+          >
+            ★
+          </span>
+        )}
+        <button type="button" onClick={onOpen}>
+          Resume
+        </button>
+      </div>
     </div>
   );
 }
@@ -941,6 +1001,7 @@ function ChainHub({
   includeItemTags,
   onCreate,
   onOpen,
+  onToggleStar,
   onUpdateDetails,
 }: {
   chains: readonly SavedChain[];
@@ -949,6 +1010,7 @@ function ChainHub({
   includeItemTags: boolean;
   onCreate: (name: string) => boolean;
   onOpen: (chain: SavedChain) => void;
+  onToggleStar: (chain: SavedChain) => void;
   onUpdateDetails: (id: string, name: string, description: string) => void;
 }) {
   const [newName, setNewName] = useState("");
@@ -1012,7 +1074,7 @@ function ChainHub({
         <div className="app-saved-chains-heading">
           <div>
             <h2 id="saved-chains-heading">All saved chains</h2>
-            <p>Ordered by when you last opened them.</p>
+            <p>Starred chains first, then by when you last opened them.</p>
           </div>
           <label className="app-chain-search">
             <span>Search saved chains</span>
@@ -1038,6 +1100,7 @@ function ChainHub({
               colorNameByPrimaryTag={colorNamesByPrimaryTag}
               includeItemTags={includeItemTags}
               onOpen={() => onOpen(chain)}
+              onToggleStar={() => onToggleStar(chain)}
               onUpdateDetails={(name, description) =>
                 onUpdateDetails(chain.id, name, description)
               }
@@ -1061,6 +1124,7 @@ function ChainCard({
   colorNameByPrimaryTag,
   includeItemTags,
   onOpen,
+  onToggleStar,
   onUpdateDetails,
 }: {
   chain: SavedChain;
@@ -1068,6 +1132,7 @@ function ChainCard({
   colorNameByPrimaryTag: boolean;
   includeItemTags: boolean;
   onOpen: () => void;
+  onToggleStar: () => void;
   onUpdateDetails: (name: string, description: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -1232,6 +1297,7 @@ function ChainCard({
           <dd>{chain.jumpCount}</dd>
         </div>
       </dl>
+      <ChainStarButton chain={chain} onToggle={onToggleStar} />
       {!editing && (
         <div className="app-chain-card-actions">
           <button type="button" onClick={onOpen}>

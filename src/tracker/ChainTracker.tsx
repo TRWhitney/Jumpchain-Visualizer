@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type Dispatch,
   type ReactNode,
 } from "react";
@@ -31,17 +32,18 @@ import { evaluateTracker, projectEvaluation } from "./evaluateTracker";
 import {
   aggregateInventoryRecords,
   filteredInventory,
+  inventoryTagTree,
   EARTH_ENTRY_STATUS,
   jumpEntryIds,
   jumpNumber,
   packageForEntry,
-  tagCategories,
   trackerPages,
   visibleCompanions,
   visibleForms,
   visibleAtInspection,
   type FormRecord,
   type InventoryRecord,
+  type InventoryTagNode,
   type TrackerAction,
   type TrackerPage,
   type TrackerState,
@@ -803,8 +805,47 @@ function JumpPage({
   );
 }
 
+function flattenInventoryTagNodes(
+  nodes: readonly InventoryTagNode[],
+  depth = 1,
+): { node: InventoryTagNode; depth: number }[] {
+  return nodes.flatMap((node) => [
+    { node, depth },
+    ...flattenInventoryTagNodes(node.children, depth + 1),
+  ]);
+}
+
 function InventoryPage({ state, dispatch }: TrackerProps) {
   const records = filteredInventory(state);
+  const tagTree = useMemo(() => inventoryTagTree(state), [state]);
+  const [expandedTagCategories, setExpandedTagCategories] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
+  const availableTagIds = useMemo(() => {
+    const ids = new Set<string>();
+    const visit = (nodes: readonly InventoryTagNode[]) => {
+      for (const node of nodes) {
+        ids.add(node.id);
+        visit(node.children);
+      }
+    };
+    visit(tagTree);
+    return ids;
+  }, [tagTree]);
+  useEffect(() => {
+    if (
+      state.inventoryTag !== "all" &&
+      !availableTagIds.has(state.inventoryTag)
+    )
+      dispatch({ type: "set-inventory-tag", value: "all" });
+  }, [availableTagIds, dispatch, state.inventoryTag]);
+  const toggleCategory = (id: string) =>
+    setExpandedTagCategories((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   return (
     <section
       className="chain-workspace-page chain-view-panel chain-inventory-panel"
@@ -851,7 +892,10 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
         </button>
       </div>
       {state.inventoryView === "search" ? (
-        <section className="inventory-subpage" role="tabpanel">
+        <section
+          className="inventory-subpage inventory-search-subpage"
+          role="tabpanel"
+        >
           <div className="inventory-search-toolbar">
             <input
               type="search"
@@ -888,6 +932,7 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
                 <h5>Relationships</h5>
               </header>
               <button
+                className="inventory-all-tags"
                 type="button"
                 aria-pressed={state.inventoryTag === "all"}
                 onClick={() =>
@@ -897,41 +942,73 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
                 <span>All tags</span>
                 <small>Exact inventory point</small>
               </button>
-              {tagCategories.map((category) => (
-                <div key={category} className="tracker-tag-filter-group">
-                  <button
-                    type="button"
-                    aria-pressed={state.inventoryTag === category}
-                    onClick={() =>
-                      dispatch({ type: "set-inventory-tag", value: category })
-                    }
-                  >
-                    <span>◆ {state.tags[category].label}</span>
-                    <small>Includes descendants</small>
-                  </button>
-                  {Object.values(state.tags)
-                    .filter((tag) => tag.parent === category)
-                    .map((tag) => (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        aria-pressed={state.inventoryTag === tag.id}
-                        onClick={() =>
-                          dispatch({ type: "set-inventory-tag", value: tag.id })
-                        }
-                      >
-                        <span>└ {tag.label}</span>
-                        <small>
-                          {tag.aliases[0]
-                            ? `Alias: ${tag.aliases[0]}`
-                            : "Exact tag"}
-                        </small>
-                      </button>
-                    ))}
-                </div>
-              ))}
+              <div className="inventory-tag-tree-scroll">
+                {tagTree.map((category) => {
+                  const expanded = expandedTagCategories.has(category.id);
+                  return (
+                    <div key={category.id} className="tracker-tag-filter-group">
+                      <div className="inventory-tag-root-row">
+                        <button
+                          className="inventory-tag-select"
+                          type="button"
+                          aria-pressed={state.inventoryTag === category.id}
+                          onClick={() =>
+                            dispatch({
+                              type: "set-inventory-tag",
+                              value: category.id,
+                            })
+                          }
+                        >
+                          <span>◆ {state.tags[category.id].label}</span>
+                          <small>Includes descendants</small>
+                        </button>
+                        {category.children.length > 0 && (
+                          <button
+                            className="inventory-tag-expander"
+                            type="button"
+                            aria-label={`${expanded ? "Collapse" : "Expand"} ${state.tags[category.id].label} tags`}
+                            aria-expanded={expanded}
+                            onClick={() => toggleCategory(category.id)}
+                          >
+                            <span aria-hidden="true">›</span>
+                          </button>
+                        )}
+                      </div>
+                      {expanded &&
+                        flattenInventoryTagNodes(category.children).map(
+                          ({ node, depth }) => (
+                            <button
+                              key={node.id}
+                              className="inventory-tag-select inventory-tag-descendant"
+                              style={
+                                {
+                                  "--inventory-tag-depth": depth,
+                                } as CSSProperties
+                              }
+                              type="button"
+                              aria-pressed={state.inventoryTag === node.id}
+                              onClick={() =>
+                                dispatch({
+                                  type: "set-inventory-tag",
+                                  value: node.id,
+                                })
+                              }
+                            >
+                              <span>└ {state.tags[node.id].label}</span>
+                              <small>
+                                {state.tags[node.id].aliases[0]
+                                  ? `Alias: ${state.tags[node.id].aliases[0]}`
+                                  : "Exact tag"}
+                              </small>
+                            </button>
+                          ),
+                        )}
+                    </div>
+                  );
+                })}
+              </div>
             </aside>
-            <div>
+            <div className="inventory-results-pane">
               <div className="inventory-result-note" role="status">
                 {records.length} {records.length === 1 ? "record" : "records"}{" "}
                 through {packageForEntry(state, state.inspectionPointId).name}.
@@ -995,19 +1072,25 @@ function RecordCard({
         <p>
           {record.kind === "perk" ? "Perk" : "Item"} · {item.name}
         </p>
-        <h5>{record.name}</h5>
+        <div className="inventory-record-title">
+          <h5>{record.name}</h5>
+          <div className="inventory-record-measures">
+            {record.measure && (
+              <span className="record-measure">
+                {record.measure.kind === "rank"
+                  ? `Rank ${record.measure.value}`
+                  : `x${record.measure.value}`}
+              </span>
+            )}
+            {record.aggregateQuantity && (
+              <span className="record-measure">
+                x{record.aggregateQuantity}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
       <div>
-        {record.measure && (
-          <span className="record-measure">
-            {record.measure.kind === "rank"
-              ? `Rank ${record.measure.value}`
-              : `x${record.measure.value}`}
-          </span>
-        )}
-        {record.aggregateQuantity && (
-          <span className="record-measure">x{record.aggregateQuantity}</span>
-        )}
         {record.tags
           .slice(0, 3)
           .map(

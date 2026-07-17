@@ -77,6 +77,16 @@ test("category radar supports selection and breakdown", async () => {
     .toBeVisible();
 });
 
+test("a direct-only breakdown renders a solid disk", async () => {
+  render(<RadarHarness />);
+  const combat = page.getByRole("button", { name: "Combat" });
+  await combat.click();
+  await combat.click();
+  expect(document.querySelectorAll("circle.pie-slice")).toHaveLength(1);
+  expect(document.querySelectorAll("path.pie-slice")).toHaveLength(0);
+  expect(document.querySelectorAll(".pie-center-backplate")).toHaveLength(0);
+});
+
 test("canonical tag badges retain their distinct presentation styles", async () => {
   render(<TrackerHarness />);
   await page.getByRole("tab", { name: /^Inventory/ }).click();

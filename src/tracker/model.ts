@@ -355,51 +355,117 @@ export function tagIsWithin(
   return false;
 }
 
-export function filteredInventory(state: TrackerState) {
-  const terms = normalize(state.inventorySearch).split(/\s+/).filter(Boolean);
-  const records = aggregateInventoryRecords(
+function inventoryRecordPool(state: TrackerState) {
+  return aggregateInventoryRecords(
     state.records.filter((record) => {
       if (record.ownerActorId !== "jumper") return false;
       if (record.ownerFormId) return false;
       if (!visibleAtInspection(state, record.sourceEntryId)) return false;
       if (state.inventoryKind !== "all" && record.kind !== state.inventoryKind)
         return false;
-      if (
-        state.inventoryTag !== "all" &&
-        !record.tags.some((tag) => tagIsWithin(state, tag, state.inventoryTag))
-      )
-        return false;
       return true;
     }),
   );
-  return records.filter((record) => {
-    const relatedTags = record.tags.flatMap((tag) => {
-      const related: string[] = [];
-      let current: string | undefined = tag;
+}
+
+function inventoryRecordMatchesSearch(
+  state: TrackerState,
+  record: InventoryRecord,
+  terms: readonly string[],
+) {
+  if (!terms.length) return true;
+  const relatedTags = record.tags.flatMap((tag) => {
+    const related: string[] = [];
+    let current: string | undefined = tag;
+    const visited = new Set<string>();
+    while (current && !visited.has(current)) {
+      visited.add(current);
+      const definition: TagDefinition | undefined = state.tags[current];
+      if (!definition) break;
+      related.push(definition.label, ...definition.aliases);
+      current = definition.parent;
+    }
+    return related;
+  });
+  const acquisitions = record.acquisitions ?? [record];
+  const haystack = normalize(
+    [
+      record.name,
+      ...acquisitions.flatMap((acquisition) => [
+        acquisition.description,
+        packageForEntry(state, acquisition.sourceEntryId)?.name,
+      ]),
+      ...record.tags,
+      ...relatedTags,
+    ].join(" "),
+  );
+  return terms.every((term) => haystack.includes(term));
+}
+
+function inventoryRecordsBeforeTagFilter(state: TrackerState) {
+  const terms = normalize(state.inventorySearch).split(/\s+/).filter(Boolean);
+  return inventoryRecordPool(state).filter((record) =>
+    inventoryRecordMatchesSearch(state, record, terms),
+  );
+}
+
+export function filteredInventory(state: TrackerState) {
+  return inventoryRecordsBeforeTagFilter(state).filter(
+    (record) =>
+      state.inventoryTag === "all" ||
+      record.tags.some((tag) => tagIsWithin(state, tag, state.inventoryTag)),
+  );
+}
+
+export type InventoryTagNode = {
+  id: string;
+  children: readonly InventoryTagNode[];
+};
+
+export function inventoryTagTree(state: TrackerState): InventoryTagNode[] {
+  const available = new Set<string>();
+  for (const record of inventoryRecordsBeforeTagFilter(state))
+    for (const id of record.tags) {
+      let current: string | undefined = id;
       const visited = new Set<string>();
       while (current && !visited.has(current)) {
         visited.add(current);
-        const definition: TagDefinition | undefined = state.tags[current];
-        if (!definition) break;
-        related.push(definition.label, ...definition.aliases);
-        current = definition.parent;
+        if (!state.tags[current]) break;
+        available.add(current);
+        current = state.tags[current].parent;
       }
-      return related;
-    });
-    const acquisitions = record.acquisitions ?? [record];
-    const haystack = normalize(
-      [
-        record.name,
-        ...acquisitions.flatMap((acquisition) => [
-          acquisition.description,
-          packageForEntry(state, acquisition.sourceEntryId)?.name,
-        ]),
-        ...record.tags,
-        ...relatedTags,
-      ].join(" "),
+    }
+
+  const childrenByParent = new Map<string, string[]>();
+  for (const tag of Object.values(state.tags)) {
+    if (!tag.parent || !available.has(tag.id)) continue;
+    childrenByParent.set(tag.parent, [
+      ...(childrenByParent.get(tag.parent) ?? []),
+      tag.id,
+    ]);
+  }
+  for (const children of childrenByParent.values())
+    children.sort((first, second) =>
+      state.tags[first].label.localeCompare(state.tags[second].label),
     );
-    return terms.every((term) => haystack.includes(term));
-  });
+
+  const build = (
+    id: string,
+    ancestors: ReadonlySet<string>,
+  ): InventoryTagNode | null => {
+    if (!available.has(id) || ancestors.has(id)) return null;
+    const nextAncestors = new Set(ancestors).add(id);
+    return {
+      id,
+      children: (childrenByParent.get(id) ?? [])
+        .map((child) => build(child, nextAncestors))
+        .filter((child): child is InventoryTagNode => child !== null),
+    } satisfies InventoryTagNode;
+  };
+
+  return tagCategories
+    .map((category) => build(category, new Set()))
+    .filter((node): node is InventoryTagNode => node !== null);
 }
 
 export function aggregateInventoryRecords(

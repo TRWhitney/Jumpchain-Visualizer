@@ -97,6 +97,11 @@ test("inventory shows rank, quantity, and conditional detail projections", async
   const tracker = trackerFor(page);
   await tracker.getByRole("tab", { name: /^Inventory/ }).click();
   const search = tracker.getByLabel("Search inventory");
+  await attachScreenshot(
+    testInfo,
+    "inventory-search-layout",
+    tracker.locator(".chain-inventory-panel"),
+  );
 
   await search.fill("Adaptive Mastery");
   const ranked = tracker.locator(".chain-record-list > article");
@@ -127,6 +132,145 @@ test("inventory shows rank, quantity, and conditional detail projections", async
     testInfo,
     "inventory-rank-and-quantity-detail",
     page.locator("body"),
+  );
+});
+
+test("inventory record highlight follows the active application accent", async ({
+  page,
+}, testInfo) => {
+  await page.locator("html").evaluate((element) => {
+    const root = element as HTMLElement;
+    root.style.setProperty("--app-accent-raw", "#7657e8");
+    root.style.setProperty("--app-accent-focus", "#9a86ee");
+    root.style.setProperty("--app-accent-border", "#9a86ee");
+    root.style.setProperty("--app-accent-soft", "#373044");
+  });
+  const tracker = trackerFor(page);
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await tracker.getByLabel("Search inventory").fill("Gate Scholar");
+  const record = tracker.locator(".chain-record-list > article");
+  await expect(record).toHaveCount(1);
+  await record.hover();
+  const expected = await page.locator("html").evaluate((element) => {
+    const probe = document.createElement("span");
+    probe.style.background = "var(--app-accent-soft)";
+    probe.style.border =
+      "1px solid color-mix(in srgb, var(--app-accent-border) 62%, #41413d)";
+    element.append(probe);
+    const style = getComputedStyle(probe);
+    const colors = {
+      background: style.backgroundColor,
+      border: style.borderColor,
+    };
+    probe.remove();
+    return colors;
+  });
+  await expect(record).toHaveCSS("background-color", expected.background);
+  await expect(record).toHaveCSS("border-color", expected.border);
+  await attachScreenshot(
+    testInfo,
+    "inventory-record-active-accent-highlight",
+    tracker.locator(".inventory-results-pane"),
+  );
+});
+
+test("inventory breakdown renders direct-only tags without false drilldown", async ({
+  page,
+}, testInfo) => {
+  const tracker = trackerFor(page);
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await tracker.getByRole("tab", { name: "Stats" }).click();
+  await tracker.getByRole("button", { name: "Combat", exact: true }).click();
+  await tracker.getByRole("button", { name: "Open breakdown" }).click();
+  await expect(tracker.locator("circle.pie-slice")).toHaveCount(1);
+  await expect(tracker.locator("path.pie-slice")).toHaveCount(0);
+  await expect(tracker.locator(".pie-center-backplate")).toHaveCount(0);
+  await attachScreenshot(
+    testInfo,
+    "inventory-direct-only-breakdown",
+    tracker.locator(".tracker-radar-page"),
+  );
+  await tracker.getByRole("button", { name: "← Radar" }).click();
+  await tracker.getByRole("button", { name: "Mental", exact: true }).click();
+  await tracker.getByRole("button", { name: "Open breakdown" }).click();
+  const learning = tracker.getByRole("button", {
+    name: /Learning, 1 records/i,
+  });
+  await expect(learning).toBeVisible();
+  await expect(learning.locator(".pie-drill-marker")).toHaveCount(0);
+  await learning.dblclick();
+  await expect(
+    tracker.getByRole("heading", { name: "Mental", exact: true }),
+  ).toBeVisible();
+  await attachScreenshot(
+    testInfo,
+    "inventory-learning-without-false-drilldown",
+    tracker.locator(".tracker-radar-page"),
+  );
+});
+
+test("inventory tag navigation prunes, expands, and scrolls independently", async ({
+  page,
+}, testInfo) => {
+  const tracker = trackerFor(page);
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  const search = tracker.getByLabel("Search inventory");
+  const allTags = tracker.locator(".inventory-all-tags");
+  const tagScroller = tracker.locator(".inventory-tag-tree-scroll");
+  const resultsScroller = tracker.locator(".inventory-results-pane");
+  const initialSearchBox = await search.boundingBox();
+  const initialAllTagsBox = await allTags.boundingBox();
+
+  await tracker.getByRole("button", { name: "Expand Mental tags" }).click();
+  const learning = tracker
+    .locator(".inventory-tag-descendant")
+    .filter({ hasText: "Learning" });
+  await expect(learning).toBeVisible();
+  await expect(
+    tracker.getByRole("button", { name: "Expand Learning tags" }),
+  ).toHaveCount(0);
+  await tagScroller.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  expect(
+    await tagScroller.evaluate((element) => element.scrollTop),
+  ).toBeGreaterThan(0);
+  expect(await search.boundingBox()).toEqual(initialSearchBox);
+  expect(await allTags.boundingBox()).toEqual(initialAllTagsBox);
+  const tagScrollTop = await tagScroller.evaluate(
+    (element) => element.scrollTop,
+  );
+  await resultsScroller.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  expect(
+    await resultsScroller.evaluate((element) => element.scrollTop),
+  ).toBeGreaterThan(0);
+  expect(await tagScroller.evaluate((element) => element.scrollTop)).toBe(
+    tagScrollTop,
+  );
+  expect(await search.boundingBox()).toEqual(initialSearchBox);
+  expect(await allTags.boundingBox()).toEqual(initialAllTagsBox);
+  await attachScreenshot(
+    testInfo,
+    "inventory-independent-tag-scroll",
+    tracker.locator(".chain-inventory-panel"),
+  );
+
+  await tagScroller.evaluate((element) => {
+    element.scrollTop = 0;
+  });
+  await tracker.getByRole("button", { name: "Items" }).click();
+  await expect(
+    tracker.locator(".inventory-tag-root-row").filter({ hasText: "Social" }),
+  ).toHaveCount(0);
+  await expect(
+    tracker.locator(".inventory-tag-root-row").filter({ hasText: "Crafting" }),
+  ).toBeVisible();
+  await attachScreenshot(
+    testInfo,
+    "inventory-pruned-item-tags-and-independent-scroll",
+    tracker.locator(".chain-inventory-panel"),
   );
 });
 

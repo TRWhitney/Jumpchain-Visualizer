@@ -248,7 +248,7 @@ body:has(.tracker-review) {
 }
 
 .tracker-review-frame .inventory-tag-dialog {
-  overflow: auto;
+  overflow: hidden;
 }
 
 .tracker-review-frame .chain-record-list {

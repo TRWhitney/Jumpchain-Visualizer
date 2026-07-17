@@ -6,6 +6,7 @@ import {
 import {
   aggregateInventoryRecords,
   filteredInventory,
+  inventoryTagTree,
   EARTH_ENTRY_ID,
   jumpEntryIds,
   jumpNumber,
@@ -20,6 +21,7 @@ import {
   visibleTagBreakdownSlices,
   visibleCompanions,
   visibleForms,
+  type InventoryTagNode,
 } from "./model";
 import { evaluateTracker, projectEvaluation } from "./evaluateTracker";
 
@@ -490,6 +492,33 @@ describe("Chain Tracker aggregate", () => {
         record.tags.includes("pyrokinesis"),
       ),
     ).toBe(true);
+  });
+
+  it("projects only inventory tag branches used by the active kind and search", () => {
+    const fixture = projectedFixture();
+    const flatten = (nodes: readonly InventoryTagNode[]): string[] =>
+      nodes.flatMap((node) => [node.id, ...flatten(node.children)]);
+    const itemState = { ...fixture, inventoryKind: "item" as const };
+    const itemTree = inventoryTagTree(itemState);
+    const itemIds = flatten(itemTree);
+    expect(itemIds).not.toContain("social");
+    expect(itemIds).toContain("crafting");
+
+    const perkTree = inventoryTagTree({
+      ...fixture,
+      inventoryKind: "perk",
+      inventorySearch: "Gate Scholar",
+    });
+    const perkIds = flatten(perkTree);
+    expect(perkIds).toEqual(
+      expect.arrayContaining(["social", "mental", "learning", "physical"]),
+    );
+    expect(perkIds).not.toContain("crafting");
+    expect(
+      perkTree
+        .find((node) => node.id === "mental")
+        ?.children.find((node) => node.id === "learning")?.children,
+    ).toEqual([]);
   });
 
   it("scopes Inventory to the Jumper and radar records to the Jumper and forms", () => {

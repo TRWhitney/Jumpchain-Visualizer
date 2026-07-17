@@ -1,4 +1,9 @@
-import { useState, type CSSProperties, type Dispatch } from "react";
+import {
+  useState,
+  type CSSProperties,
+  type Dispatch,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import {
   radarCounts,
   resolveTagBreakdownStack,
@@ -134,6 +139,18 @@ const compactAliases = (aliases: readonly string[]) => {
     : `aka ${aliases[0]} +${aliases.length - 1}`;
 };
 
+const hasTagChildren = (node: TagBreakdownNode) =>
+  node.children.some((child) => !child.direct);
+
+const readableTextColor = (color: string) => {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
+  if (!match) return "#ffffff";
+  const [red, green, blue] = match.slice(1).map((part) => parseInt(part, 16));
+  return red * 0.299 + green * 0.587 + blue * 0.114 > 155
+    ? "#171717"
+    : "#ffffff";
+};
+
 function PieGraphic({
   state,
   current,
@@ -168,6 +185,10 @@ function PieGraphic({
     };
   });
   const captionSlice = slices.find((slice) => slice.key === hovered);
+  const singleSlice = arcs.length === 1 ? arcs[0] : null;
+  const centerTextColor = singleSlice
+    ? readableTextColor(singleSlice.slice.color)
+    : undefined;
   return (
     <>
       <svg
@@ -175,48 +196,66 @@ function PieGraphic({
         viewBox="0 0 520 520"
         aria-label={`${current.node.label} tag breakdown`}
       >
-        {arcs.map(({ slice, path, popX, popY }) => (
-          <path
-            key={slice.key}
-            d={path}
-            fill={slice.color}
-            className={`pie-slice${hovered === slice.key ? " is-hovered" : ""}${state.radarPoppedSlice === slice.key ? " is-popped" : ""}`}
-            data-pie-key={slice.key}
-            style={
-              {
-                "--pop-x": `${popX}px`,
-                "--pop-y": `${popY}px`,
-              } as CSSProperties
-            }
-            tabIndex={0}
-            role="button"
-            aria-pressed={state.radarPoppedSlice === slice.key}
-            aria-label={`${slice.isMore ? "More tags" : slice.node.label}: ${slice.node.count} records${!slice.isMore && slice.node.aliases.length ? `. Aliases: ${slice.node.aliases.join(", ")}` : ""}`}
-            onClick={() => toggle(slice)}
-            onDoubleClick={() => drill(slice)}
-            onMouseEnter={() => setHovered(slice.key)}
-            onMouseLeave={() => setHovered(null)}
-            onFocus={() => setHovered(slice.key)}
-            onBlur={() => setHovered(null)}
-            onKeyDown={(event) => {
+        {arcs.map(({ slice, path, popX, popY }) => {
+          const interaction = {
+            fill: slice.color,
+            className: `pie-slice${hovered === slice.key ? " is-hovered" : ""}${state.radarPoppedSlice === slice.key ? " is-popped" : ""}`,
+            "data-pie-key": slice.key,
+            style: {
+              "--pop-x": `${popX}px`,
+              "--pop-y": `${popY}px`,
+            } as CSSProperties,
+            tabIndex: 0,
+            role: "button",
+            "aria-pressed": state.radarPoppedSlice === slice.key,
+            "aria-label": `${slice.isMore ? "More tags" : slice.node.label}: ${slice.node.count} records${!slice.isMore && slice.node.aliases.length ? `. Aliases: ${slice.node.aliases.join(", ")}` : ""}`,
+            onClick: () => toggle(slice),
+            onDoubleClick: () => drill(slice),
+            onMouseEnter: () => setHovered(slice.key),
+            onMouseLeave: () => setHovered(null),
+            onFocus: () => setHovered(slice.key),
+            onBlur: () => setHovered(null),
+            onKeyDown: (event: ReactKeyboardEvent<SVGElement>) => {
               if (event.key !== "Enter") return;
               event.preventDefault();
               if (
                 state.radarPoppedSlice === slice.key &&
-                slice.node.children.length
+                hasTagChildren(slice.node)
               )
                 drill(slice);
               else toggle(slice);
-            }}
-          >
-            <title>{`${slice.isMore ? "More tags" : slice.node.label}: ${slice.node.count} records${!slice.isMore && slice.node.aliases.length ? `. Aliases: ${slice.node.aliases.join(", ")}` : ""}`}</title>
-          </path>
-        ))}
-        <circle cx="260" cy="260" r="56" className="pie-center-backplate" />
-        <text x="260" y="255" className="pie-center-label" textAnchor="middle">
+            },
+          };
+          const title = `${slice.isMore ? "More tags" : slice.node.label}: ${slice.node.count} records${!slice.isMore && slice.node.aliases.length ? `. Aliases: ${slice.node.aliases.join(", ")}` : ""}`;
+          return singleSlice ? (
+            <circle key={slice.key} cx="260" cy="260" r="180" {...interaction}>
+              <title>{title}</title>
+            </circle>
+          ) : (
+            <path key={slice.key} d={path} {...interaction}>
+              <title>{title}</title>
+            </path>
+          );
+        })}
+        {!singleSlice && (
+          <circle cx="260" cy="260" r="56" className="pie-center-backplate" />
+        )}
+        <text
+          x="260"
+          y="255"
+          className="pie-center-label"
+          textAnchor="middle"
+          style={centerTextColor ? { fill: centerTextColor } : undefined}
+        >
           {current.isMore ? "More" : current.node.label}
         </text>
-        <text x="260" y="278" className="pie-center-count" textAnchor="middle">
+        <text
+          x="260"
+          y="278"
+          className="pie-center-count"
+          textAnchor="middle"
+          style={centerTextColor ? { fill: centerTextColor } : undefined}
+        >
           {current.node.count} records
         </text>
       </svg>
@@ -297,7 +336,7 @@ function PieSidebar({
                     event.preventDefault();
                     if (
                       state.radarPoppedSlice === slice.key &&
-                      slice.node.children.length
+                      hasTagChildren(slice.node)
                     )
                       drill(slice);
                     else toggle(slice);
@@ -317,7 +356,7 @@ function PieSidebar({
                       </small>
                     )}
                   </span>
-                  {slice.node.children.length > 0 && (
+                  {hasTagChildren(slice.node) && (
                     <span className="pie-drill-marker" aria-hidden="true">
                       ›
                     </span>
@@ -398,7 +437,7 @@ export function TagRadar({
   const togglePie = (slice: TagBreakdownSlice) =>
     dispatch({ type: "toggle-radar-slice", value: slice.key });
   const drillPie = (slice: TagBreakdownSlice) => {
-    if (!slice.node.children.length) return;
+    if (!hasTagChildren(slice.node)) return;
     dispatch({ type: "open-radar-node", value: slice.node.id });
     setHovered(null);
   };

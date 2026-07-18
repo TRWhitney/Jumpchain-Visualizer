@@ -9,6 +9,47 @@ type Props = {
   onChange: (value: number | null) => void;
 };
 
+export function NumberStepperButtons({
+  label,
+  increaseDisabled = false,
+  decreaseDisabled = false,
+  onIncrease,
+  onDecrease,
+}: {
+  label: string;
+  increaseDisabled?: boolean;
+  decreaseDisabled?: boolean;
+  onIncrease: () => void;
+  onDecrease: () => void;
+}) {
+  return (
+    <span className="number-stepper-buttons">
+      <button
+        type="button"
+        aria-label="Increase"
+        title={`Increase ${label}`}
+        disabled={increaseDisabled}
+        onClick={onIncrease}
+      >
+        <svg aria-hidden="true" viewBox="0 0 12 8">
+          <path d="M2 6 6 2l4 4" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        aria-label="Decrease"
+        title={`Decrease ${label}`}
+        disabled={decreaseDisabled}
+        onClick={onDecrease}
+      >
+        <svg aria-hidden="true" viewBox="0 0 12 8">
+          <path d="m2 2 4 4 4-4" />
+        </svg>
+      </button>
+    </span>
+  );
+}
+
 export function NumberStepper({
   label,
   value,
@@ -46,34 +87,17 @@ export function NumberStepper({
           }
         />
       </label>
-      <span className="number-stepper-buttons">
-        <button
-          type="button"
-          aria-label="Increase"
-          title={`Increase ${label}`}
-          disabled={
-            disabled || (max !== undefined && value !== null && value >= max)
-          }
-          onClick={() => step(1)}
-        >
-          <svg aria-hidden="true" viewBox="0 0 12 8">
-            <path d="M2 6 6 2l4 4" />
-          </svg>
-        </button>
-        <button
-          type="button"
-          aria-label="Decrease"
-          title={`Decrease ${label}`}
-          disabled={
-            disabled || (min !== undefined && value !== null && value <= min)
-          }
-          onClick={() => step(-1)}
-        >
-          <svg aria-hidden="true" viewBox="0 0 12 8">
-            <path d="m2 2 4 4 4-4" />
-          </svg>
-        </button>
-      </span>
+      <NumberStepperButtons
+        label={label}
+        increaseDisabled={
+          disabled || (max !== undefined && value !== null && value >= max)
+        }
+        decreaseDisabled={
+          disabled || (min !== undefined && value !== null && value <= min)
+        }
+        onIncrease={() => step(1)}
+        onDecrease={() => step(-1)}
+      />
     </span>
   );
 }

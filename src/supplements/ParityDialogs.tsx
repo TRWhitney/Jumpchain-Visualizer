@@ -9,6 +9,7 @@ import {
   type FormEvent,
 } from "react";
 import { Modal } from "../ui/SupplementWidgets";
+import { ConfirmationDialog } from "../ui/ConfirmationDialog";
 import {
   dropEdgeAtPointer,
   dropIndexForTarget,
@@ -2445,27 +2446,15 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
           </button>
         </footer>
         {deleteChapter && (
-          <div className="story-chapter-confirm-layer">
-            <section
-              role="alertdialog"
-              aria-modal="true"
-              aria-labelledby="story-delete-chapter-heading"
-            >
-              <h5 id="story-delete-chapter-heading">Remove chapter?</h5>
-              <p>
-                Are you sure you want to remove “
-                {deleteChapter.title || "Untitled chapter"}”?
-              </p>
-              <div>
-                <button type="button" onClick={() => setDeleteChapter(null)}>
-                  Cancel
-                </button>
-                <button type="button" onClick={removeConfirmedChapter}>
-                  Remove chapter
-                </button>
-              </div>
-            </section>
-          </div>
+          <ConfirmationDialog
+            title="Remove chapter?"
+            confirmLabel="Remove chapter"
+            onCancel={() => setDeleteChapter(null)}
+            onConfirm={removeConfirmedChapter}
+          >
+            Are you sure you want to remove “
+            {deleteChapter.title || "Untitled chapter"}”?
+          </ConfirmationDialog>
         )}
       </section>
     </div>

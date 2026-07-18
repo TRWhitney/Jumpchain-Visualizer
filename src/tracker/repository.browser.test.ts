@@ -14,6 +14,7 @@ beforeEach(async () => {
 
 test("IndexedDB stores independent complete chain aggregates", async () => {
   const repository = new IndexedDbChainRepository();
+  expect(await repository.isInitialized()).toBe(false);
   const first = aggregateFromTracker(
     "browser-one",
     createBlankTrackerFixture("One"),
@@ -43,4 +44,9 @@ test("IndexedDB stores independent complete chain aggregates", async () => {
     description: "First durable chain",
     order: ["entry-earth"],
   });
+  expect(await repository.isInitialized()).toBe(true);
+  await repository.remove("browser-one");
+  await repository.remove("browser-two");
+  expect(await repository.list()).toEqual([]);
+  expect(await repository.isInitialized()).toBe(true);
 });

@@ -534,7 +534,7 @@ button.app-chain-star {
   outline-offset: 2px;
 }
 
-.app-chain-card > .app-chain-star {
+.app-chain-card > .app-card-delete {
   grid-row: 2;
   grid-column: 1;
   align-self: end;
@@ -564,20 +564,65 @@ button.app-chain-star {
   line-height: 1;
 }
 
-.app-chain-card-actions button:last-child,
+.app-chain-card-actions .app-chain-secondary-action,
 .app-edit-chain button:last-child {
   color: var(--app-accent-text);
   background: transparent;
   border-color: var(--app-accent-border);
 }
 
-.app-chain-card-actions button:last-child:hover,
-.app-chain-card-actions button:last-child:focus-visible,
+.app-chain-card-actions .app-chain-secondary-action:hover,
+.app-chain-card-actions .app-chain-secondary-action:focus-visible,
 .app-edit-chain button:last-child:hover,
 .app-edit-chain button:last-child:focus-visible {
   color: var(--app-accent-text);
   background: color-mix(in srgb, var(--app-accent-raw) 12%, #262624);
   border-color: var(--app-accent-border);
+}
+
+.app-chain-card-actions > .app-chain-star {
+  width: 2.2rem;
+  min-width: 2.2rem;
+  height: 2.2rem;
+  min-height: 2.2rem;
+  padding: 0;
+  color: #9b9b94;
+  background: transparent;
+  border: 0;
+}
+
+.app-chain-card-actions > .app-chain-star:hover,
+.app-chain-card-actions > .app-chain-star:focus-visible,
+.app-chain-card-actions > .app-chain-star[aria-pressed="true"] {
+  color: var(--app-accent-text);
+  background: transparent;
+  border: 0;
+}
+
+.app-card-delete {
+  min-width: 2.6rem;
+  min-height: 2.2rem;
+  padding: 0.3rem 0.4rem;
+  color: var(--app-danger-text);
+  background: transparent;
+  border: 1px solid var(--app-danger-border);
+  border-radius: 0.22rem;
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.app-card-delete:hover,
+.app-card-delete:focus-visible {
+  color: var(--app-danger-text-strong);
+  background: var(--app-danger-surface);
+  border-color: var(--app-danger-border-strong);
+}
+
+.app-card-delete:focus-visible {
+  outline: 2px solid var(--app-danger-focus);
+  outline-offset: 2px;
 }
 
 .app-edit-chain {

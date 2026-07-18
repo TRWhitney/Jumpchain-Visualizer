@@ -127,6 +127,19 @@ describe("saved chain registry", () => {
     ).toBe(state);
   });
 
+  it("removes one chain and can clear the persisted registry projection", () => {
+    const state = createChainRegistryFixture();
+    const removed = chainRegistryReducer(state, {
+      type: "remove",
+      id: "ch-92b1",
+    });
+    expect(removed.chains).toEqual({});
+    expect(
+      chainRegistryReducer(removed, { type: "remove", id: "missing" }),
+    ).toBe(removed);
+    expect(chainRegistryReducer(state, { type: "clear" }).chains).toEqual({});
+  });
+
   it("searches names and descriptions and derives the strongest perk category", () => {
     const chains = orderedChains(createChainRegistryFixture());
     expect(

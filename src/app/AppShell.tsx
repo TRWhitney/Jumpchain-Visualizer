@@ -66,6 +66,7 @@ import {
   type EditorWorkspaceSnapshot,
 } from "../editor";
 import { JumpPackageImportService, type PackageImportReview } from "../archive";
+import { ConfirmationDialog } from "../ui/ConfirmationDialog";
 import "../../documentation/styles.css";
 import "../../documentation/application-design.css";
 import "../../documentation/chain-tracker-design.css";
@@ -87,6 +88,10 @@ type ShellHistoryState = {
   jvIndex?: number;
   settingsBackgroundPath?: string;
 } & Record<string, unknown>;
+
+type DeletionTarget =
+  | { kind: "chain"; id: string; name: string }
+  | { kind: "editor"; id: string; name: string };
 
 const currentHistoryIndex = () => {
   const value = (window.history.state as ShellHistoryState | null)?.jvIndex;
@@ -143,6 +148,7 @@ function AppShellContent() {
     "Saved" | "Saving" | "Unsaved" | "Save failed"
   >("Saved");
   const editorSaveTimer = useRef<number | null>(null);
+  const editorSavingIndicatorTimer = useRef<number | null>(null);
   const [pendingEditorNavigation, setPendingEditorNavigation] = useState<{
     path: string;
     state: Partial<ShellHistoryState>;
@@ -154,6 +160,7 @@ function AppShellContent() {
     file: string;
   } | null>(null);
   const chainRepository = useMemo(() => createPlatformChainRepository(), []);
+  const chainInitializationRef = useRef<Promise<void>>(Promise.resolve());
   const [chainStates, setChainStates] = useState<Record<string, TrackerState>>(
     () =>
       Object.fromEntries(
@@ -165,6 +172,11 @@ function AppShellContent() {
   );
   const chainStatesRef = useRef(chainStates);
   const [chainSaveError, setChainSaveError] = useState<string | null>(null);
+  const [deletionTarget, setDeletionTarget] = useState<DeletionTarget | null>(
+    null,
+  );
+  const [deletionError, setDeletionError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [lastActiveChainId, setLastActiveChainId] = useState(
     DEMONSTRATION_CHAIN_ID,
   );
@@ -287,11 +299,13 @@ function AppShellContent() {
 
   useEffect(() => {
     let live = true;
-    void chainRepository
-      .list()
-      .then(async (stored) => {
+    const initialize = Promise.all([
+      chainRepository.list(),
+      chainRepository.isInitialized(),
+    ])
+      .then(async ([stored, initialized]) => {
         if (!live) return;
-        if (!stored.length) {
+        if (!initialized) {
           await Promise.all(
             Object.entries(chainStates).map(([id, value]) =>
               chainRepository.save(
@@ -301,6 +315,7 @@ function AppShellContent() {
           );
           return;
         }
+        chainRegistryDispatch({ type: "clear" });
         for (const aggregate of stored)
           chainRegistryDispatch({
             type: "hydrate",
@@ -311,21 +326,25 @@ function AppShellContent() {
             lastOpenedLabel: aggregate.lastOpenedLabel,
             starred: aggregate.starred ?? false,
           });
-        setChainStates((current) => {
-          const next = { ...current };
-          for (const aggregate of stored) {
+        const next = Object.fromEntries(
+          stored.map((aggregate) => {
             const base =
-              current[aggregate.id] ??
+              chainStates[aggregate.id] ??
               createBlankTrackerFixture(aggregate.name);
-            next[aggregate.id] = reconcileDemonstrationPackageBindings(
-              applyAggregate(base, aggregate),
+            return [
               aggregate.id,
-            );
-          }
-          return next;
-        });
+              reconcileDemonstrationPackageBindings(
+                applyAggregate(base, aggregate),
+                aggregate.id,
+              ),
+            ];
+          }),
+        );
+        chainStatesRef.current = next;
+        setChainStates(next);
       })
       .catch(() => setChainSaveError("Saved chains could not be loaded."));
+    chainInitializationRef.current = initialize;
     return () => {
       live = false;
     };
@@ -478,21 +497,23 @@ function AppShellContent() {
   };
 
   const persistEditorWorkspace = useCallback(
-    async (workspace: EditorWorkspaceSnapshot) => {
+    async (workspace: EditorWorkspaceSnapshot, updateSaveState = true) => {
       try {
         await editorRepository.save(workspace);
         persistedEditorWorkspacesRef.current = {
           ...persistedEditorWorkspacesRef.current,
           [workspace.id]: workspace,
         };
-        setEditorSaveState("Saved");
+        if (updateSaveState) setEditorSaveState("Saved");
         setEditorError(null);
         return true;
       } catch {
-        setEditorSaveState("Save failed");
-        setEditorError(
-          "Editor autosave failed. Your in-memory source is still available.",
-        );
+        if (updateSaveState) {
+          setEditorSaveState("Save failed");
+          setEditorError(
+            "Editor autosave failed. Your in-memory source is still available.",
+          );
+        }
         return false;
       }
     },
@@ -500,7 +521,7 @@ function AppShellContent() {
   );
 
   const changeEditorWorkspace = useCallback(
-    (next: EditorWorkspaceSnapshot, continuous = false) => {
+    (next: EditorWorkspaceSnapshot) => {
       const nextWorkspaces = {
         ...editorWorkspacesRef.current,
         [next.id]: next,
@@ -509,12 +530,39 @@ function AppShellContent() {
       setEditorWorkspaces(nextWorkspaces);
       setEditorSaveState("Unsaved");
       if (settings.editor.saveMode !== "autosave") return;
-      setEditorSaveState("Saving");
       if (editorSaveTimer.current) window.clearTimeout(editorSaveTimer.current);
-      editorSaveTimer.current = window.setTimeout(
-        () => void persistEditorWorkspace(next),
-        continuous ? 350 : 80,
-      );
+      if (editorSavingIndicatorTimer.current)
+        window.clearTimeout(editorSavingIndicatorTimer.current);
+      editorSaveTimer.current = window.setTimeout(() => {
+        const saving = editorWorkspacesRef.current[next.id];
+        editorSavingIndicatorTimer.current = window.setTimeout(() => {
+          if (
+            editorWorkspacesRef.current[next.id]?.revision === saving.revision
+          )
+            setEditorSaveState("Saving");
+        }, 150);
+        void persistEditorWorkspace(saving, false)
+          .then((saved) => {
+            if (
+              editorWorkspacesRef.current[next.id]?.revision !== saving.revision
+            )
+              return;
+            if (saved) {
+              setEditorSaveState("Saved");
+              setEditorError(null);
+            } else {
+              setEditorSaveState("Save failed");
+              setEditorError(
+                "Editor autosave failed. Your in-memory source is still available.",
+              );
+            }
+          })
+          .finally(() => {
+            if (editorSavingIndicatorTimer.current)
+              window.clearTimeout(editorSavingIndicatorTimer.current);
+            editorSavingIndicatorTimer.current = null;
+          });
+      }, 500);
     },
     [persistEditorWorkspace, settings.editor.saveMode],
   );
@@ -572,6 +620,57 @@ function AppShellContent() {
     },
     [logger, persistEditorWorkspace],
   );
+
+  const confirmDeletion = useCallback(async () => {
+    const target = deletionTarget;
+    if (!target || deleting) return;
+    setDeleting(true);
+    setDeletionError(null);
+    try {
+      if (target.kind === "editor") {
+        if (editorSaveTimer.current) {
+          window.clearTimeout(editorSaveTimer.current);
+          editorSaveTimer.current = null;
+        }
+        if (editorSavingIndicatorTimer.current) {
+          window.clearTimeout(editorSavingIndicatorTimer.current);
+          editorSavingIndicatorTimer.current = null;
+        }
+        await editorRepository.remove(target.id);
+        const next = { ...editorWorkspacesRef.current };
+        delete next[target.id];
+        editorWorkspacesRef.current = next;
+        setEditorWorkspaces(next);
+        const persisted = { ...persistedEditorWorkspacesRef.current };
+        delete persisted[target.id];
+        persistedEditorWorkspacesRef.current = persisted;
+        setEditorError(null);
+        logger.emit("editor.project.deleted");
+      } else {
+        await chainInitializationRef.current;
+        await chainRepository.remove(target.id);
+        chainRegistryDispatch({ type: "remove", id: target.id });
+        const next = { ...chainStatesRef.current };
+        delete next[target.id];
+        chainStatesRef.current = next;
+        setChainStates(next);
+        setLastActiveChainId((current) =>
+          current === target.id ? (Object.keys(next)[0] ?? "") : current,
+        );
+        setChainSaveError(null);
+        logger.emit("chain.deleted");
+      }
+      setDeletionTarget(null);
+    } catch {
+      setDeletionError(
+        target.kind === "editor"
+          ? "The project could not be deleted. Nothing was removed."
+          : "The chain could not be deleted. Nothing was removed.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }, [chainRepository, deleting, deletionTarget, editorRepository, logger]);
 
   const importEditorProject = useCallback(
     (review: PackageImportReview) => {
@@ -916,9 +1015,10 @@ function AppShellContent() {
           ref={mainRef}
           className="app-mock-views app-primary-views"
           hidden={route.kind === "settings" && !settingsBackgroundPath}
-          inert={route.kind === "settings" || undefined}
+          inert={route.kind === "settings" || deletionTarget ? true : undefined}
           aria-hidden={
-            route.kind === "settings" && Boolean(settingsBackgroundPath)
+            deletionTarget ||
+            (route.kind === "settings" && Boolean(settingsBackgroundPath))
               ? true
               : undefined
           }
@@ -1060,6 +1160,14 @@ function AppShellContent() {
               onOpenFolder={openEditorFolder}
               onImport={importEditorProject}
               onToggleStar={toggleEditorStar}
+              onDelete={(workspace) => {
+                setDeletionError(null);
+                setDeletionTarget({
+                  kind: "editor",
+                  id: workspace.id,
+                  name: summarizeWorkspace(workspace).name,
+                });
+              }}
             />
           </section>
 
@@ -1082,6 +1190,7 @@ function AppShellContent() {
                   onChange={changeEditorWorkspace}
                   onSave={() => void saveActiveEditor()}
                   onExport={() => setExportWorkspace(activeEditorWorkspace)}
+                  onFeedback={(eventName) => logger.emit(eventName)}
                 />
               </>
             )}
@@ -1102,6 +1211,7 @@ function AppShellContent() {
             aria-labelledby="app-chain-heading"
           >
             <ChainHub
+              active={route.kind === "chain-hub"}
               chains={savedChains}
               tags={effectiveTrackerState.tags}
               colorNamesByPrimaryTag={settings.chain.colorNamesByPrimaryTag}
@@ -1109,6 +1219,14 @@ function AppShellContent() {
               onCreate={createChain}
               onOpen={openChain}
               onToggleStar={(chain) => setChainStarred(chain, !chain.starred)}
+              onDelete={(chain) => {
+                setDeletionError(null);
+                setDeletionTarget({
+                  kind: "chain",
+                  id: chain.id,
+                  name: chain.name,
+                });
+              }}
               onUpdateDetails={(id, name, description) => {
                 const normalizedName = normalizeChainName(name);
                 chainRegistryDispatch({
@@ -1231,6 +1349,28 @@ function AppShellContent() {
             </div>
           </section>
         </main>
+        {deletionTarget && (
+          <ConfirmationDialog
+            application
+            title={`Delete ${deletionTarget.name}?`}
+            confirmLabel={
+              deletionTarget.kind === "chain"
+                ? "Delete chain"
+                : "Delete project"
+            }
+            busy={deleting}
+            error={deletionError}
+            onCancel={() => {
+              if (deleting) return;
+              setDeletionTarget(null);
+              setDeletionError(null);
+            }}
+            onConfirm={() => void confirmDeletion()}
+          >
+            Are you sure you want to delete “{deletionTarget.name}”? This cannot
+            be undone.
+          </ConfirmationDialog>
+        )}
         {route.kind === "settings" && (
           <div
             className={`app-settings-layer${settingsBackgroundPath ? " is-overlay" : " is-direct"}`}
@@ -1589,6 +1729,7 @@ function RecentChain({
 }
 
 function ChainHub({
+  active,
   chains,
   tags,
   colorNamesByPrimaryTag,
@@ -1596,8 +1737,10 @@ function ChainHub({
   onCreate,
   onOpen,
   onToggleStar,
+  onDelete,
   onUpdateDetails,
 }: {
+  active: boolean;
   chains: readonly SavedChain[];
   tags: Record<string, TagDefinition>;
   colorNamesByPrimaryTag: boolean;
@@ -1605,6 +1748,7 @@ function ChainHub({
   onCreate: (name: string) => boolean;
   onOpen: (chain: SavedChain) => void;
   onToggleStar: (chain: SavedChain) => void;
+  onDelete: (chain: SavedChain) => void;
   onUpdateDetails: (id: string, name: string, description: string) => void;
 }) {
   const [newName, setNewName] = useState("");
@@ -1688,13 +1832,14 @@ function ChainHub({
         <div className="app-chain-card-list" tabIndex={0}>
           {visibleChains.map((chain) => (
             <ChainCard
-              key={chain.id}
+              key={`${chain.id}:${active ? "active" : "inactive"}`}
               chain={chain}
               tags={tags}
               colorNameByPrimaryTag={colorNamesByPrimaryTag}
               includeItemTags={includeItemTags}
               onOpen={() => onOpen(chain)}
               onToggleStar={() => onToggleStar(chain)}
+              onDelete={() => onDelete(chain)}
               onUpdateDetails={(name, description) =>
                 onUpdateDetails(chain.id, name, description)
               }
@@ -1719,6 +1864,7 @@ function ChainCard({
   includeItemTags,
   onOpen,
   onToggleStar,
+  onDelete,
   onUpdateDetails,
 }: {
   chain: SavedChain;
@@ -1727,6 +1873,7 @@ function ChainCard({
   includeItemTags: boolean;
   onOpen: () => void;
   onToggleStar: () => void;
+  onDelete: () => void;
   onUpdateDetails: (name: string, description: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -1891,7 +2038,15 @@ function ChainCard({
           <dd>{chain.jumpCount}</dd>
         </div>
       </dl>
-      <ChainStarButton chain={chain} onToggle={onToggleStar} />
+      <button
+        type="button"
+        className="app-card-delete"
+        aria-label={`Delete ${chain.name}`}
+        title={`Delete ${chain.name}`}
+        onClick={onDelete}
+      >
+        Delete
+      </button>
       {!editing && (
         <div className="app-chain-card-actions">
           <button type="button" onClick={onOpen}>
@@ -1899,11 +2054,13 @@ function ChainCard({
           </button>
           <button
             type="button"
+            className="app-chain-secondary-action"
             aria-label={`Edit ${chain.name}`}
             onClick={() => setEditing(true)}
           >
             Edit details
           </button>
+          <ChainStarButton chain={chain} onToggle={onToggleStar} />
         </div>
       )}
     </article>

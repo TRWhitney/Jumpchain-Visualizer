@@ -268,6 +268,21 @@ test("appearance, motion, and keybinding validation apply through their real con
   );
 
   await page.getByRole("tab", { name: "Key bindings" }).click();
+  await expect(page.locator(".keybinding-list > div")).toHaveCount(5);
+  const format = page
+    .locator(".keybinding-list > div")
+    .filter({ hasText: "Format" });
+  await expect(format.locator("kbd")).toContainText(/⌘ Shift F/);
+  const completions = page
+    .locator(".keybinding-list > div")
+    .filter({ hasText: "All Completions" });
+  await expect(completions.locator("kbd")).toContainText(/⌘ Space/);
+  await completions.getByRole("button", { name: "Change" }).click();
+  await completions
+    .getByRole("button", { name: "Cancel" })
+    .press("Control+Shift+j");
+  await expect(completions.locator("kbd")).toContainText(/⌘ Shift J/);
+  await completions.getByRole("button", { name: "Reset" }).click();
   const quickAdd = page
     .locator(".keybinding-list > div")
     .filter({ hasText: "Quick Add" });
@@ -277,11 +292,9 @@ test("appearance, motion, and keybinding validation apply through their real con
   await quickAdd
     .getByRole("button", { name: "Cancel" })
     .press("Control+Shift+k");
-  await expect(quickAdd.locator("kbd")).toContainText(
-    /Ctrl\+Shift\+K|⌘\+Shift\+K/,
-  );
+  await expect(quickAdd.locator("kbd")).toContainText(/⌘ Shift K/);
   await quickAdd.getByRole("button", { name: "Reset" }).click();
-  await expect(quickAdd.locator("kbd")).toContainText(/Ctrl\+Enter|⌘\+Enter/);
+  await expect(quickAdd.locator("kbd")).toContainText(/⌘ Enter/);
 });
 
 test("continuous accent changes stay bounded and project through the complete application", async ({

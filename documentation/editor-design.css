@@ -839,11 +839,11 @@
 }
 
 .mock-pane-source-toolbar button[data-pane-source-action="find"]::after {
-  content: "Ctrl/⌘ F";
+  content: "⌘ F";
 }
 
 .mock-pane-source-toolbar button[data-pane-source-action="palette"]::after {
-  content: "Ctrl/⌘ Enter";
+  content: "⌘ Enter";
 }
 
 .mock-pane-source-toolbar button:hover,

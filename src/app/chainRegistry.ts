@@ -20,6 +20,8 @@ export type ChainRegistryState = {
 export type ChainRegistryAction =
   | { type: "open"; id: string }
   | { type: "create"; id: string; name: string }
+  | { type: "clear" }
+  | { type: "remove"; id: string }
   | {
       type: "hydrate";
       id: string;
@@ -97,6 +99,13 @@ export function chainRegistryReducer(
   state: ChainRegistryState,
   action: ChainRegistryAction,
 ): ChainRegistryState {
+  if (action.type === "clear") return { ...state, chains: {} };
+  if (action.type === "remove") {
+    if (!state.chains[action.id]) return state;
+    const chains = { ...state.chains };
+    delete chains[action.id];
+    return { ...state, chains };
+  }
   if (action.type === "hydrate") {
     const existing = state.chains[action.id];
     const sequence = Math.max(0, Math.trunc(action.lastOpenedSequence));

@@ -32,6 +32,18 @@ describe("chain repository", () => {
     expect(applyAggregate(createDenseTrackerFixture(), loaded!).chainName).toBe(
       "Second",
     );
+    expect(await repository.isInitialized()).toBe(true);
+    await repository.remove("one");
+    expect(await repository.load("one")).toBeNull();
+    expect((await repository.list()).map((item) => item.id)).toEqual(["two"]);
+  });
+
+  it("distinguishes an uninitialized registry from an initialized empty one", async () => {
+    const repository = new MemoryChainRepository();
+    expect(await repository.isInitialized()).toBe(false);
+    await repository.remove("missing");
+    expect(await repository.isInitialized()).toBe(true);
+    expect(await repository.list()).toEqual([]);
   });
 
   it("rejects unsupported and malformed values", () => {

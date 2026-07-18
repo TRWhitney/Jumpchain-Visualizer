@@ -42,9 +42,13 @@ export type ChainAggregate = {
 
 export interface ChainRepository {
   list(): Promise<readonly ChainAggregate[]>;
+  isInitialized(): Promise<boolean>;
   load(id: string): Promise<ChainAggregate | null>;
   save(value: ChainAggregate): Promise<void>;
+  remove(id: string): Promise<void>;
 }
+
+const CHAIN_REGISTRY_SENTINEL_ID = "__chain_registry_initialized__";
 
 const normalizeSystemEntries = (
   entries: Record<string, ChainEntry>,
@@ -182,11 +186,16 @@ export function isChainAggregate(value: unknown): value is ChainAggregate {
 
 export class MemoryChainRepository implements ChainRepository {
   private readonly values = new Map<string, ChainAggregate>();
+  private initialized: boolean;
   constructor(seed: readonly ChainAggregate[] = []) {
     seed.forEach((item) => this.values.set(item.id, structuredClone(item)));
+    this.initialized = seed.length > 0;
   }
   async list() {
     return [...this.values.values()].map((item) => structuredClone(item));
+  }
+  async isInitialized() {
+    return this.initialized;
   }
   async load(id: string) {
     const item = this.values.get(id);
@@ -194,7 +203,12 @@ export class MemoryChainRepository implements ChainRepository {
   }
   async save(value: ChainAggregate) {
     if (!isChainAggregate(value)) throw new Error("Invalid chain aggregate.");
+    this.initialized = true;
     this.values.set(value.id, structuredClone(value));
+  }
+  async remove(id: string) {
+    this.initialized = true;
+    this.values.delete(id);
   }
 }
 
@@ -214,10 +228,15 @@ export class IndexedDbChainRepository implements ChainRepository {
     });
   }
   async list() {
-    const values = await this.request<ChainAggregate[]>("readonly", (store) =>
+    const values = await this.request<unknown[]>("readonly", (store) =>
       store.getAll(),
     );
     return values.filter(isChainAggregate);
+  }
+  async isInitialized() {
+    return (
+      (await this.request<number>("readonly", (store) => store.count())) > 0
+    );
   }
   async load(id: string) {
     const value = await this.request<ChainAggregate | undefined>(
@@ -230,6 +249,21 @@ export class IndexedDbChainRepository implements ChainRepository {
     if (!isChainAggregate(value)) throw new Error("Invalid chain aggregate.");
     await this.request<IDBValidKey>("readwrite", (store) => store.put(value));
   }
+  async remove(id: string) {
+    const database = await openApplicationDatabase();
+    return new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(CHAINS_STORE_NAME, "readwrite");
+      const store = transaction.objectStore(CHAINS_STORE_NAME);
+      store.delete(id);
+      store.put({ id: CHAIN_REGISTRY_SENTINEL_ID });
+      transaction.onerror = () =>
+        reject(transaction.error ?? new Error("Chain could not be removed."));
+      transaction.oncomplete = () => {
+        database.close();
+        resolve();
+      };
+    });
+  }
 }
 
 export class TauriChainRepository implements ChainRepository {
@@ -240,9 +274,15 @@ export class TauriChainRepository implements ChainRepository {
   async load(id: string) {
     return (await this.list()).find((item) => item.id === id) ?? null;
   }
+  async isInitialized() {
+    return invoke<boolean>("chains_initialized");
+  }
   async save(value: ChainAggregate) {
     if (!isChainAggregate(value)) throw new Error("Invalid chain aggregate.");
     await invoke("save_chain", { payload: JSON.stringify(value) });
+  }
+  async remove(id: string) {
+    await invoke("remove_chain", { id });
   }
 }
 

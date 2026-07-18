@@ -1,4 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 
 async function expectModalBelowRouter(page: Page, layer: Locator) {
   const [routerBox, layerBox] = await Promise.all([
@@ -11,6 +13,17 @@ async function expectModalBelowRouter(page: Page, layer: Locator) {
     Math.abs(layerBox!.y - (routerBox!.y + routerBox!.height)),
   ).toBeLessThan(2);
   expect(layerBox!.height).toBeGreaterThan(300);
+}
+
+async function resolveColorToken(page: Page, token: string) {
+  return page.locator("html").evaluate((element, customProperty) => {
+    const probe = document.createElement("span");
+    probe.style.color = `var(${customProperty})`;
+    element.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  }, token);
 }
 
 async function resumeMorgan(page: Page) {
@@ -176,6 +189,128 @@ test("returning to the mounted chain restores its internal workspace state", asy
   await expect(
     tracker.getByRole("button", { name: "Items", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
+});
+
+test("leaving the Chain hub cancels open Edit details drafts", async ({
+  page,
+}) => {
+  await page
+    .getByRole("button", { name: "Chain Tracker", exact: true })
+    .click();
+  const card = page.locator(".app-chain-card").filter({ hasText: "Morgan" });
+  await card.getByRole("button", { name: "Edit Morgan" }).click();
+  const name = card.getByLabel("Chain name");
+  const description = card.getByLabel("Description");
+  const savedDescription = await description.inputValue();
+  await name.fill("Unsaved route draft");
+  await description.fill("This draft must be discarded on route departure.");
+
+  await page.getByRole("button", { name: "Editor", exact: true }).click();
+  await expect(page).toHaveURL(/\/editor$/);
+  await page
+    .getByRole("button", { name: "Chain Tracker", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/chain$/);
+
+  await expect(card.locator(".app-edit-chain")).toHaveCount(0);
+  await expect(card.getByRole("heading", { name: "Morgan" })).toBeVisible();
+  await card.getByRole("button", { name: "Edit Morgan" }).click();
+  await expect(card.getByLabel("Chain name")).toHaveValue("Morgan");
+  await expect(card.getByLabel("Description")).toHaveValue(savedDescription);
+});
+
+test("Chain cards delete only after the shared confirmation", async ({
+  page,
+}, testInfo) => {
+  await page
+    .getByRole("button", { name: "Chain Tracker", exact: true })
+    .click();
+  const card = page.locator(".app-chain-card").filter({ hasText: "Morgan" });
+  const remove = card.getByRole("button", { name: "Delete Morgan" });
+  const edit = card.getByRole("button", { name: "Edit Morgan" });
+  const star = card.getByRole("button", { name: "Star Morgan" });
+  const [removeBox, editBox, starBox] = await Promise.all([
+    remove.boundingBox(),
+    edit.boundingBox(),
+    star.boundingBox(),
+  ]);
+  expect(removeBox).not.toBeNull();
+  expect(editBox).not.toBeNull();
+  expect(starBox).not.toBeNull();
+  expect(removeBox!.x).toBeLessThan(editBox!.x);
+  expect(starBox!.x).toBeGreaterThan(editBox!.x + editBox!.width - 1);
+
+  await remove.click();
+  const confirmation = page.getByRole("alertdialog", {
+    name: "Delete Morgan?",
+  });
+  await expect(confirmation).toContainText(
+    "Are you sure you want to delete “Morgan”?",
+  );
+  await expect(confirmation).toHaveCSS(
+    "border-color",
+    await resolveColorToken(page, "--app-accent-border"),
+  );
+  await expect(confirmation).toHaveCSS("background-color", "rgb(41, 41, 39)");
+  const confirmDelete = confirmation.getByRole("button", {
+    name: "Delete chain",
+  });
+  await expect(confirmDelete).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(confirmDelete).toHaveCSS(
+    "color",
+    await resolveColorToken(page, "--app-danger-text"),
+  );
+  await expect(confirmDelete).toHaveCSS(
+    "border-color",
+    await resolveColorToken(page, "--app-danger-border"),
+  );
+  const cancelDelete = confirmation.getByRole("button", { name: "Cancel" });
+  await expect(cancelDelete).toHaveCSS("background-color", "rgb(32, 32, 30)");
+  await expect(cancelDelete).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(confirmDelete).toBeFocused();
+  await expect(confirmDelete).toHaveCSS(
+    "background-color",
+    await resolveColorToken(page, "--app-danger-surface"),
+  );
+  await expect(confirmDelete).toHaveCSS(
+    "outline-color",
+    await resolveColorToken(page, "--app-danger-focus"),
+  );
+  if (testInfo.project.name === "chromium") {
+    const screenshot = await page.screenshot({ animations: "disabled" });
+    await testInfo.attach("chain-delete-confirmation", {
+      body: screenshot,
+      contentType: "image/png",
+    });
+    const artifactDirectory = join(
+      process.cwd(),
+      "artifacts",
+      "application-visual",
+    );
+    await mkdir(artifactDirectory, { recursive: true });
+    await writeFile(
+      join(artifactDirectory, "chain-delete-confirmation-production.png"),
+      screenshot,
+    );
+  }
+  await cancelDelete.click();
+  await expect(card).toBeVisible();
+  await page.reload();
+  await expect(card).toBeVisible();
+
+  await remove.click();
+  await confirmation.getByRole("button", { name: "Delete chain" }).click();
+  await expect(card).toHaveCount(0);
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Chain Tracker", exact: true })
+    .click();
+  await expect(page.locator(".app-chain-card")).toHaveCount(0);
+  await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
+  await expect(
+    page.getByRole("region", { name: "Chains" }).getByText("Morgan"),
+  ).toHaveCount(0);
 });
 
 test("tracker dialogs share the application modal boundary and close on route departure", async ({

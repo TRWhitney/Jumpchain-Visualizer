@@ -196,6 +196,97 @@ export const eventCatalog: Record<string, EventDefinition> = {
       dedupeKey: "chain-remove",
     },
   },
+  "editor.format.succeeded": {
+    severity: "info",
+    category: "editor",
+    attributes: [],
+    notification: {
+      class: "confirmations",
+      message: "Format successful",
+      dedupeKey: "editor-format-success",
+    },
+  },
+  "editor.format.noop": {
+    severity: "info",
+    category: "editor",
+    attributes: [],
+    notification: {
+      class: "confirmations",
+      message: "Nothing to format",
+      dedupeKey: "editor-format-noop",
+    },
+  },
+  "editor.quick_fix.succeeded": {
+    severity: "info",
+    category: "editor",
+    attributes: [],
+    notification: {
+      class: "confirmations",
+      message: "Quick Fix successful",
+      dedupeKey: "editor-quick-fix-success",
+    },
+  },
+  "editor.quick_fix.noop": {
+    severity: "info",
+    category: "editor",
+    attributes: [],
+    notification: {
+      class: "confirmations",
+      message: "Nothing to fix",
+      dedupeKey: "editor-quick-fix-noop",
+    },
+  },
+  "editor.format.failed": {
+    severity: "error",
+    category: "editor",
+    attributes: [],
+    notification: {
+      class: "errors",
+      message: "Formatting failed. Source was not changed.",
+      dedupeKey: "editor-format-failed",
+    },
+  },
+  "editor.quick_fix.failed": {
+    severity: "error",
+    category: "editor",
+    attributes: [],
+    notification: {
+      class: "errors",
+      message: "Quick Fix failed. Source was not changed.",
+      dedupeKey: "editor-quick-fix-failed",
+    },
+  },
+  "editor.asset.added": {
+    severity: "info",
+    category: "editor",
+    attributes: [],
+    notification: {
+      class: "confirmations",
+      message: "Asset added",
+      dedupeKey: "editor-asset-added",
+    },
+  },
+  "editor.asset.rejected": {
+    severity: "warn",
+    category: "editor",
+    attributes: [],
+    notification: {
+      class: "validation",
+      message:
+        "That asset is unsafe, unsupported, or over the effective limit.",
+      dedupeKey: "editor-asset-rejected",
+    },
+  },
+  "editor.asset.removed": {
+    severity: "info",
+    category: "editor",
+    attributes: [],
+    notification: {
+      class: "confirmations",
+      message: "Asset removed",
+      dedupeKey: "editor-asset-removed",
+    },
+  },
   "renderer.cache.reused": {
     severity: "debug",
     category: "renderer",

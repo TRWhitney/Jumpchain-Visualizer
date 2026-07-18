@@ -7,7 +7,14 @@ export type MotionPreference = "system" | "reduced" | "full";
 export type NotificationClass =
   "confirmations" | "editor" | "chain" | "validation" | "errors";
 
-export type KeybindingAction = "quickAdd" | "quickFix" | "find";
+export const keybindingActions = [
+  "find",
+  "quickAdd",
+  "format",
+  "quickFix",
+  "completions",
+] as const;
+export type KeybindingAction = (typeof keybindingActions)[number];
 export type KeybindingChord = {
   key: string;
   primary: boolean;
@@ -45,6 +52,7 @@ export type ApplicationSettings = {
   accessibility: { motion: MotionPreference };
   developer: {
     showAdditionalJumpInformation: boolean;
+    showOpenProjectFolder: boolean;
     useCustomPackageSizeLimits: boolean;
   } & PackageSizeLimits;
   editor: {
@@ -102,9 +110,19 @@ const bool = (value: unknown, fallback: boolean) =>
 const record = (value: unknown) => (isObject(value) ? value : {});
 
 export const defaultKeybindings: Record<KeybindingAction, KeybindingChord> = {
-  quickAdd: { key: "Enter", primary: true, alt: false, shift: false },
-  quickFix: { key: ".", primary: true, alt: false, shift: false },
   find: { key: "f", primary: true, alt: false, shift: false },
+  quickAdd: { key: "Enter", primary: true, alt: false, shift: false },
+  format: { key: "f", primary: true, alt: false, shift: true },
+  quickFix: { key: ".", primary: true, alt: false, shift: false },
+  completions: { key: "Space", primary: true, alt: false, shift: false },
+};
+
+export const keybindingLabels: Record<KeybindingAction, string> = {
+  find: "Find",
+  quickAdd: "Quick Add",
+  format: "Format",
+  quickFix: "Quick Fix",
+  completions: "All Completions",
 };
 
 export function defaultSettings(profile: TagProfile): ApplicationSettings {
@@ -114,6 +132,7 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
     accessibility: { motion: "system" },
     developer: {
       showAdditionalJumpInformation: false,
+      showOpenProjectFolder: false,
       useCustomPackageSizeLimits: false,
       ...SAFE_PACKAGE_SIZE_LIMITS,
     },
@@ -229,7 +248,7 @@ export function hydrateSettings(
     : fallback.notifications.durationMs;
   const validatedOverrides: Partial<Record<KeybindingAction, KeybindingChord>> =
     {};
-  for (const action of Object.keys(defaultKeybindings) as KeybindingAction[]) {
+  for (const action of keybindingActions) {
     if (isChord(overrides[action]))
       validatedOverrides[action] = overrides[action];
   }
@@ -285,6 +304,10 @@ export function hydrateSettings(
       showAdditionalJumpInformation: bool(
         developer.showAdditionalJumpInformation,
         fallback.developer.showAdditionalJumpInformation,
+      ),
+      showOpenProjectFolder: bool(
+        developer.showOpenProjectFolder,
+        fallback.developer.showOpenProjectFolder,
       ),
       useCustomPackageSizeLimits:
         validHydratedPackageLimits &&
@@ -368,7 +391,44 @@ export function chordFor(
 }
 
 export function chordKey(chord: KeybindingChord) {
-  return `${chord.primary ? "P" : ""}${chord.alt ? "A" : ""}${chord.shift ? "S" : ""}:${chord.key.toLocaleLowerCase()}`;
+  return `${chord.primary ? "P" : ""}${chord.alt ? "A" : ""}${chord.shift ? "S" : ""}:${normalizedKey(chord.key)}`;
+}
+
+const normalizedKey = (key: string) =>
+  key === " " || key.toLocaleLowerCase() === "space"
+    ? "space"
+    : key.toLocaleLowerCase();
+
+export function keybindingDisplay(chord: KeybindingChord, primaryLabel = "⌘") {
+  const key = normalizedKey(chord.key);
+  const keyLabel =
+    key === "space"
+      ? "Space"
+      : chord.key.length === 1
+        ? chord.key.toLocaleUpperCase()
+        : chord.key;
+  const modifiers = [
+    chord.primary ? primaryLabel : "",
+    chord.alt ? "Alt" : "",
+    chord.shift ? "Shift" : "",
+  ].filter(Boolean);
+  return [...modifiers, keyLabel].join(" ");
+}
+
+export function matchesKeybinding(
+  event: Pick<
+    KeyboardEvent,
+    "key" | "code" | "ctrlKey" | "metaKey" | "altKey" | "shiftKey"
+  >,
+  chord: KeybindingChord,
+) {
+  return (
+    (event.ctrlKey || event.metaKey) === chord.primary &&
+    event.altKey === chord.alt &&
+    event.shiftKey === chord.shift &&
+    normalizedKey(event.code === "Space" ? "Space" : event.key) ===
+      normalizedKey(chord.key)
+  );
 }
 
 export function validateKeybinding(
@@ -391,9 +451,7 @@ export function validateKeybinding(
     return "That shortcut is reserved by the platform.";
   if (!chord.primary && !chord.alt && !chord.shift)
     return "Shortcuts must include a modifier key.";
-  for (const candidate of Object.keys(
-    defaultKeybindings,
-  ) as KeybindingAction[]) {
+  for (const candidate of keybindingActions) {
     if (
       candidate !== action &&
       chordKey(chordFor(settings, candidate)) === normalized

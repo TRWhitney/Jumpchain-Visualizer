@@ -1,0 +1,10 @@
+jump
+  format: 1
+  name: "Embedded Field"
+  author: "Conformance"
+  version: "1"
+  layout: points-name: "Choice Points"
+
+section
+  handle: introduction
+  name: "Introduction"

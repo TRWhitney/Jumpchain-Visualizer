@@ -80,6 +80,27 @@ describe("session event pipeline", () => {
     ).toBe(true);
   });
 
+  it("routes Editor format and Quick Fix outcomes through confirmation preferences", () => {
+    vi.useFakeTimers();
+    const { pipeline, settings } = createPipeline();
+    pipeline.emit("editor.format.succeeded");
+    pipeline.emit("editor.quick_fix.noop");
+    vi.advanceTimersByTime(500);
+    expect(pipeline.toastSnapshot().map((toast) => toast.message)).toEqual(
+      expect.arrayContaining(["Format successful", "Nothing to fix"]),
+    );
+
+    settings.notifications.classes.confirmations = false;
+    pipeline.syncNotificationPreferences();
+    pipeline.emit("editor.format.noop");
+    vi.runAllTimers();
+    expect(
+      pipeline
+        .toastSnapshot()
+        .some((toast) => toast.message === "Nothing to format"),
+    ).toBe(false);
+  });
+
   it("carries actions through the shared toast lifecycle", () => {
     vi.useFakeTimers();
     const { pipeline } = createPipeline();

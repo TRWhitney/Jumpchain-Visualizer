@@ -13,6 +13,14 @@ use tauri_plugin_dialog::DialogExt;
 
 struct PersistenceState(Mutex<AggregateStore>);
 
+fn safe_workspace_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 200
+        && id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+}
+
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 fn load_settings(state: State<'_, PersistenceState>) -> Result<Option<serde_json::Value>, String> {
@@ -55,6 +63,18 @@ fn load_chains(state: State<'_, PersistenceState>) -> Result<Vec<serde_json::Val
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
+fn chains_initialized(state: State<'_, PersistenceState>) -> Result<bool, String> {
+    state
+        .0
+        .lock()
+        .map_err(|_| "chain database lock failed")?
+        .load("chains")
+        .map(|value| value.is_some())
+        .map_err(|_| "chain read failed".to_owned())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 fn save_chain(payload: String, state: State<'_, PersistenceState>) -> Result<(), String> {
     let value = validate_chain_payload(&payload)?;
     let mut store = state.0.lock().map_err(|_| "chain database lock failed")?;
@@ -77,6 +97,24 @@ fn save_chain(payload: String, state: State<'_, PersistenceState>) -> Result<(),
     } else {
         chains.push(value);
     }
+    let encoded = serde_json::to_string(&chains).map_err(|_| "chain serialization failed")?;
+    store
+        .save("chains", 1, &encoded)
+        .map_err(|_| "chain write failed".to_owned())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn remove_chain(id: String, state: State<'_, PersistenceState>) -> Result<(), String> {
+    let mut store = state.0.lock().map_err(|_| "chain database lock failed")?;
+    let existing = store.load("chains").map_err(|_| "chain read failed")?;
+    let mut chains: Vec<serde_json::Value> = existing
+        .map(|current| {
+            serde_json::from_str(&current).map_err(|_| "stored chains are invalid JSON".to_owned())
+        })
+        .transpose()?
+        .unwrap_or_default();
+    chains.retain(|item| item.get("id").and_then(serde_json::Value::as_str) != Some(&id));
     let encoded = serde_json::to_string(&chains).map_err(|_| "chain serialization failed")?;
     store
         .save("chains", 1, &encoded)
@@ -111,7 +149,7 @@ fn validate_editor_workspace_payload(payload: &str) -> Result<serde_json::Value,
     if !value
         .get("id")
         .and_then(serde_json::Value::as_str)
-        .is_some_and(|id| !id.is_empty() && id.len() <= 200)
+        .is_some_and(safe_workspace_id)
     {
         return Err("Editor workspace id is invalid".to_owned());
     }
@@ -259,7 +297,14 @@ fn save_editor_workspace(
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-fn remove_editor_workspace(id: String, state: State<'_, PersistenceState>) -> Result<(), String> {
+fn remove_editor_workspace(
+    app: tauri::AppHandle,
+    id: String,
+    state: State<'_, PersistenceState>,
+) -> Result<(), String> {
+    if !safe_workspace_id(&id) {
+        return Err("Editor workspace id is invalid".to_owned());
+    }
     let mut store = state.0.lock().map_err(|_| "Editor registry lock failed")?;
     let mut workspaces = editor_workspace_values(&store)?;
     workspaces.retain(|workspace| {
@@ -267,9 +312,33 @@ fn remove_editor_workspace(id: String, state: State<'_, PersistenceState>) -> Re
     });
     let encoded =
         serde_json::to_string(&workspaces).map_err(|_| "Editor registry encoding failed")?;
-    store
+    let recovery = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "application recovery path is unavailable")?
+        .join("editor-recovery")
+        .join(format!("{id}.json"));
+    let staged_recovery = recovery.with_extension("json.jumpchain-delete");
+    let staged = match std::fs::rename(&recovery, &staged_recovery) {
+        Ok(()) => true,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+        Err(_) => return Err("Editor recovery data could not be staged for removal".to_owned()),
+    };
+    if let Err(error) = store
         .save("editor-workspaces", 1, &encoded)
         .map_err(|_| "Editor registry write failed".to_owned())
+    {
+        if staged {
+            let _ = std::fs::rename(&staged_recovery, &recovery);
+        }
+        return Err(error);
+    }
+    drop(store);
+    if staged {
+        std::fs::remove_file(staged_recovery)
+            .map_err(|_| "Editor recovery data could not be removed".to_owned())?;
+    }
+    Ok(())
 }
 
 fn safe_project_entry(path: &Path, root: &Path) -> Result<String, String> {
@@ -569,7 +638,9 @@ pub fn run() {
             load_settings,
             save_settings,
             load_chains,
+            chains_initialized,
             save_chain,
+            remove_chain,
             list_editor_workspaces,
             load_editor_workspace,
             save_editor_workspace,
@@ -591,8 +662,8 @@ mod tests {
     };
 
     use super::{
-        EffectivePackageSizeLimits, atomic_write, read_project_folder, sanitize_suggested_name,
-        validate_chain_payload, validate_settings_payload,
+        EffectivePackageSizeLimits, atomic_write, read_project_folder, safe_workspace_id,
+        sanitize_suggested_name, validate_chain_payload, validate_settings_payload,
     };
 
     fn limits() -> EffectivePackageSizeLimits {
@@ -629,6 +700,14 @@ mod tests {
             "..privatereportname.txt"
         );
         assert_eq!(sanitize_suggested_name(&"a".repeat(120)).len(), 100);
+    }
+
+    #[test]
+    fn bounds_editor_recovery_ids_to_local_safe_characters() {
+        assert!(safe_workspace_id("desktop-1234_abcd"));
+        assert!(!safe_workspace_id("../editor-recovery"));
+        assert!(!safe_workspace_id("folder/project"));
+        assert!(!safe_workspace_id(""));
     }
 
     #[test]

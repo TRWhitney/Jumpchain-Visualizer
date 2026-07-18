@@ -6,6 +6,12 @@
   --app-accent-fill: #d4af37;
   --app-accent-fill-text: #171717;
   --app-accent-soft: #393426;
+  --app-danger-text: #dc9292;
+  --app-danger-text-strong: #ffd1d1;
+  --app-danger-border: #744b4b;
+  --app-danger-border-strong: #a45e5e;
+  --app-danger-surface: #382323;
+  --app-danger-focus: #c97878;
 }
 
 .app-settings-loading {

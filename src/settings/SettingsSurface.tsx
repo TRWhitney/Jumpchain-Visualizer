@@ -14,6 +14,9 @@ import {
   chordFor,
   defaultSettings,
   effectivePackageSizeLimits,
+  keybindingActions,
+  keybindingDisplay,
+  keybindingLabels,
   validatePackageSizeLimits,
   validateKeybinding,
   type ApplicationSettings,
@@ -147,7 +150,7 @@ const searchEntries = [
     "keybindings.overrides",
     "keys",
     "keybindings",
-    "keyboard key bindings shortcuts quick add quick fix find overrides",
+    "keyboard key bindings shortcuts quick add quick fix find format all completions overrides",
   ],
   [
     "Motion",
@@ -169,6 +172,13 @@ const searchEntries = [
     "developer",
     "additional-jump-information",
     "developer jump format additional information diagnostics format 1",
+  ],
+  [
+    "Show Open Project Folder",
+    "developer.showOpenProjectFolder",
+    "developer",
+    "show-open-project-folder",
+    "developer editor open project folder desktop filesystem external files",
   ],
   [
     "Package size limits",
@@ -224,6 +234,8 @@ const searchValue = (
       return "session only";
     case "developer.showAdditionalJumpInformation":
       return String(settings.developer.showAdditionalJumpInformation);
+    case "developer.showOpenProjectFolder":
+      return String(settings.developer.showOpenProjectFolder);
     case "developer.packageSizeLimits":
       return JSON.stringify({
         enabled: settings.developer.useCustomPackageSizeLimits,
@@ -1061,15 +1073,15 @@ function CategoryPanel({
       <section role="tabpanel" aria-labelledby="settings-keys-tab">
         <h4>Key bindings</h4>
         <div id="keybindings" className="keybinding-list">
-          {(["quickAdd", "quickFix", "find"] as KeybindingAction[]).map(
-            (action) => (
-              <KeybindingRow key={action} action={action} settings={settings} />
-            ),
-          )}
+          {keybindingActions.map((action) => (
+            <KeybindingRow key={action} action={action} settings={settings} />
+          ))}
         </div>
         <div className="setting-explanation">
           Overrides are user-local. Duplicate or platform-reserved bindings are
-          reported before a change is accepted. Editor commands remain inert.
+          reported before a change is accepted. Editor commands update
+          immediately, including while a workspace remains mounted behind
+          Settings.
         </div>
       </section>
     );
@@ -1176,6 +1188,38 @@ function CategoryPanel({
                   },
                 },
                 "developer.showAdditionalJumpInformation",
+              )
+            }
+          />
+          <CheckRow
+            id="show-open-project-folder"
+            label="Show Open Project Folder"
+            description="Show the desktop-only external-folder workflow on the Editor hub."
+            checked={settings.developer.showOpenProjectFolder}
+            text="Show folder action"
+            onChange={(value) =>
+              patch(
+                {
+                  ...settings,
+                  developer: {
+                    ...settings.developer,
+                    showOpenProjectFolder: value,
+                  },
+                },
+                "developer.showOpenProjectFolder",
+              )
+            }
+            reset={() =>
+              patch(
+                {
+                  ...settings,
+                  developer: {
+                    ...settings.developer,
+                    showOpenProjectFolder:
+                      defaults.developer.showOpenProjectFolder,
+                  },
+                },
+                "developer.showOpenProjectFolder",
               )
             }
           />
@@ -1623,19 +1667,8 @@ function KeybindingRow({
   const { update, logger } = useSettings();
   const [capturing, setCapturing] = useState(false);
   const [error, setError] = useState("");
-  const labels = { quickAdd: "Quick Add", quickFix: "Quick Fix", find: "Find" };
   const chord = chordFor(settings, action);
-  const platformPrimary = /Mac|iPhone|iPad/.test(navigator.platform)
-    ? "⌘"
-    : "Ctrl";
-  const display = [
-    chord.primary ? platformPrimary : "",
-    chord.alt ? "Alt" : "",
-    chord.shift ? "Shift" : "",
-    chord.key.length === 1 ? chord.key.toLocaleUpperCase() : chord.key,
-  ]
-    .filter(Boolean)
-    .join("+");
+  const display = keybindingDisplay(chord);
   const capture = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (!capturing) return;
     event.preventDefault();
@@ -1646,7 +1679,7 @@ function KeybindingRow({
     }
     if (["Control", "Meta", "Alt", "Shift"].includes(event.key)) return;
     const next: KeybindingChord = {
-      key: event.key,
+      key: event.code === "Space" ? "Space" : event.key,
       primary: event.ctrlKey || event.metaKey,
       alt: event.altKey,
       shift: event.shiftKey,
@@ -1674,7 +1707,7 @@ function KeybindingRow({
   return (
     <div>
       <span>
-        {labels[action]}
+        {keybindingLabels[action]}
         {error && <small role="alert">{error}</small>}
       </span>
       <kbd>{capturing ? "Press shortcut…" : display}</kbd>

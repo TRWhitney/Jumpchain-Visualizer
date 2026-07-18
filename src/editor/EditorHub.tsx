@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   JumpPackageImportService,
   PackageSecurityError,
@@ -23,6 +23,51 @@ const openedLabel = (value: string) => {
   return `Opened ${new Date(value).toLocaleDateString()}`;
 };
 
+function ProjectDescription({ children }: { children: string }) {
+  const tooltipId = useId();
+  const text = useRef<HTMLParagraphElement>(null);
+  const [truncated, setTruncated] = useState(false);
+  const [above, setAbove] = useState(false);
+  useLayoutEffect(() => {
+    const element = text.current;
+    if (!element) return;
+    const measure = () => {
+      setTruncated(element.scrollHeight > element.clientHeight + 1);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [children]);
+  return (
+    <span
+      className={`editor-project-description-wrap${above ? " is-above" : ""}`}
+      onPointerEnter={() => {
+        const bounds = text.current?.getBoundingClientRect();
+        if (bounds) setAbove(window.innerHeight - bounds.bottom < 180);
+      }}
+    >
+      <p
+        ref={text}
+        className="editor-project-card-description"
+        tabIndex={truncated ? 0 : undefined}
+        aria-describedby={truncated ? tooltipId : undefined}
+      >
+        {children}
+      </p>
+      {truncated && (
+        <span
+          id={tooltipId}
+          className="editor-project-description-tooltip"
+          role="tooltip"
+        >
+          {children}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function EditorHub({
   workspaces,
   loading,
@@ -33,6 +78,7 @@ export function EditorHub({
   onOpenFolder,
   onImport,
   onToggleStar,
+  onDelete,
 }: {
   workspaces: readonly EditorWorkspaceSnapshot[];
   loading: boolean;
@@ -43,6 +89,7 @@ export function EditorHub({
   onOpenFolder: () => void;
   onImport: (review: PackageImportReview) => void;
   onToggleStar: (workspace: EditorWorkspaceSnapshot) => void;
+  onDelete: (workspace: EditorWorkspaceSnapshot) => void;
 }) {
   const { settings, logger } = useSettings();
   const [search, setSearch] = useState("");
@@ -137,18 +184,20 @@ export function EditorHub({
         <button type="button" onClick={onCreate}>
           Create Project
         </button>
-        <button
-          type="button"
-          onClick={onOpenFolder}
-          disabled={!desktop}
-          title={
-            desktop
-              ? "Choose a project folder"
-              : "Project folders are available in the desktop application"
-          }
-        >
-          Open Project Folder
-        </button>
+        {settings.developer.showOpenProjectFolder && (
+          <button
+            type="button"
+            onClick={onOpenFolder}
+            disabled={!desktop}
+            title={
+              desktop
+                ? "Choose a project folder"
+                : "Project folders are available in the desktop application"
+            }
+          >
+            Open Project Folder
+          </button>
+        )}
         <button type="button" onClick={() => fileInput.current?.click()}>
           Import .jmp
         </button>
@@ -219,15 +268,12 @@ export function EditorHub({
                 >
                   <button
                     type="button"
-                    className="app-chain-star"
-                    aria-label={`${summary.starred ? "Unstar" : "Star"} ${summary.name}`}
-                    aria-pressed={summary.starred}
-                    title={`${summary.starred ? "Unstar" : "Star"} ${summary.name}`}
-                    onClick={() => onToggleStar(workspace)}
+                    className="app-card-delete"
+                    aria-label={`Delete ${summary.name}`}
+                    title={`Delete ${summary.name}`}
+                    onClick={() => onDelete(workspace)}
                   >
-                    <span aria-hidden="true">
-                      {summary.starred ? "★" : "☆"}
-                    </span>
+                    Delete
                   </button>
                   <div className="editor-project-card-main">
                     <p className="editor-project-card-format">
@@ -236,16 +282,16 @@ export function EditorHub({
                         : "Format 1 Jump"}
                     </p>
                     <h3 title={summary.name}>{summary.name}</h3>
-                    <span title={summary.authors.join(", ")}>
+                    <span
+                      className="editor-project-card-author"
+                      title={summary.authors.join(", ")}
+                    >
                       {summary.authors.join(", ") || "Unknown author"}
                     </span>
                     <small>{openedLabel(summary.lastOpenedAt)}</small>
-                    <p
-                      className="editor-project-card-description"
-                      title={summary.description}
-                    >
+                    <ProjectDescription>
                       {summary.description}
-                    </p>
+                    </ProjectDescription>
                   </div>
                   <dl>
                     <div>
@@ -282,6 +328,18 @@ export function EditorHub({
                   <div className="app-chain-card-actions">
                     <button type="button" onClick={() => onOpen(workspace)}>
                       Open Project
+                    </button>
+                    <button
+                      type="button"
+                      className="app-chain-star"
+                      aria-label={`${summary.starred ? "Unstar" : "Star"} ${summary.name}`}
+                      aria-pressed={summary.starred}
+                      title={`${summary.starred ? "Unstar" : "Star"} ${summary.name}`}
+                      onClick={() => onToggleStar(workspace)}
+                    >
+                      <span aria-hidden="true">
+                        {summary.starred ? "★" : "☆"}
+                      </span>
                     </button>
                   </div>
                 </article>

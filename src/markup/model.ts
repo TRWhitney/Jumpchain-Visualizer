@@ -20,6 +20,9 @@ export type SourceField = {
   value: string;
   condition?: string;
   range: SourceRange;
+  nameRange: SourceRange;
+  conditionRange?: SourceRange;
+  valueRange: SourceRange;
 };
 
 export type SourceNode = {

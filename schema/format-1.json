@@ -13,6 +13,7 @@
     "integerPattern": "^-?(?:0|[1-9][0-9]*)$",
     "hexColorPattern": "^#[0-9A-Fa-f]{6}$",
     "assetPathSeparator": "/",
+    "fieldLine": "one field per physical line; an unquoted second field delimiter is an error",
     "fieldOrder": "insignificant except conditional variants and source-ordered collections",
     "duplicateScalarField": "error"
   },

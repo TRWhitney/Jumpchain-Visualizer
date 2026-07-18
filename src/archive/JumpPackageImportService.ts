@@ -595,6 +595,12 @@ async function validateImages(assets: Readonly<Record<string, Uint8Array>>) {
   }
 }
 
+/** Uses the same mandatory signature, polyglot, geometry, and decode boundary
+ * as package import for an asset selected directly in Structured authoring. */
+export async function validatePackageAsset(path: string, bytes: Uint8Array) {
+  await validateImages({ [path]: bytes });
+}
+
 function referencedAssets(packageItem: CanonicalJumpPackage) {
   const fromGrants = packageItem.choices.flatMap((choice) => [
     ...choice.grants.flatMap((grant) => grant.images),

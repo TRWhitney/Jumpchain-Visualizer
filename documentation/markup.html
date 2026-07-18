@@ -192,6 +192,7 @@ intentionally repeatable or ordered.</p>
 <li>leading zeroes and negative zero are accepted, but explicit formatting emits the canonical numeric value, so <code>007</code> becomes <code>7</code> and <code>-0</code> becomes <code>0</code></li>
 <li>boolean literals are exactly the lowercase bare tokens <code>true</code> and <code>false</code>; quoted equivalents are strings, and aliases or differently cased forms are invalid</li>
 <li>v1 has no <code>null</code> literal; optional fields are unset by omission, and clearing one through structured editing removes it from source</li>
+<li>one physical line may contain only one field; a second field-shaped token and unquoted colon in the first field’s value is a syntax error, while a colon inside a correctly quoted string remains ordinary text</li>
 <li>a field with a colon but no same-line value introduces an indented value only when that field explicitly supports one, such as a fenced <code>content</code> body; it never implicitly means an empty string, which is written as <code>&quot;&quot;</code></li>
 </ul>
 <h3>Field Order and Repetition</h3>
@@ -684,6 +685,7 @@ matching typed layout leaves.</p>
 jump-wide defaults.</p>
 <p>Every Jump has an implicit engine-owned primary resource with the stable handle <code>jump_points</code>. It defaults to the display name <q>Choice Points</q> and abbreviation <q>CP</q>. An ordinary Jump defaults to a starting balance of 1000, while a native Gauntlet defaults to 0. Authors never need to declare this resource, and supplements may rely on it existing.</p>
 <p>Every secondary resource referenced by costs or grants requires an authored <code>resource</code> declaration. Its <code>initial</code> field is optional and defaults to zero. Undeclared secondary-resource references are distributable-package errors, while the Editor retains them as WIP diagnostics.</p>
+<p>Structured editing resolves the exact parsed occurrence of every scalar, repeated, or conditional field. Clearing or replacing one occurrence never broadens across a newline into a neighboring field. Rich-text fence extents include both delimiters, so converting between a scalar and fenced value removes the prior representation atomically while preserving unrelated source byte-for-byte.</p>
 <p>Secondary resources are top-level declarations in <code>jump.jdef</code>, alongside <code>jump</code> and <code>section</code>; they are not nested inside the root Jump declaration.</p>
 <p>Current direction:</p>
 <ul>

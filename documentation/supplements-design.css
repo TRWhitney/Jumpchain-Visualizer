@@ -2682,6 +2682,20 @@
   background: rgb(12 10 13 / 76%);
 }
 
+.story-chapter-confirm-layer.is-application-confirmation {
+  position: fixed;
+  z-index: 120;
+}
+
+.story-chapter-confirm-layer.is-application-confirmation > section {
+  color: #d8d8d2;
+  background: #292927;
+  border-color: var(--app-accent-border);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--app-accent-border) 24%, transparent),
+    0 0.8rem 2rem rgb(0 0 0 / 35%);
+}
+
 .story-chapter-confirm-layer > section {
   width: min(24rem, 100%);
   padding: 1rem;
@@ -2703,6 +2717,14 @@
   font-size: 0.68rem !important;
 }
 
+.story-chapter-confirm-layer.is-application-confirmation p {
+  color: #aaa9a3 !important;
+}
+
+.story-chapter-confirm-layer .confirmation-dialog-error {
+  color: #ef9b9b !important;
+}
+
 .story-chapter-confirm-layer > section > div {
   display: flex;
   justify-content: flex-end;
@@ -2716,6 +2738,46 @@
   border: 1px solid #514a55;
   border-radius: 0.22rem;
   cursor: pointer;
+}
+
+.story-chapter-confirm-layer.is-application-confirmation button {
+  color: #f4f1e7;
+  background: #20201e;
+  border-color: #52524c;
+}
+
+.story-chapter-confirm-layer.is-application-confirmation
+  > section
+  > div
+  > button:last-child {
+  color: var(--app-danger-text);
+  background: transparent;
+  border-color: var(--app-danger-border);
+}
+
+.story-chapter-confirm-layer.is-application-confirmation button:focus-visible {
+  outline: 2px solid var(--app-accent-focus);
+  outline-offset: 2px;
+}
+
+.story-chapter-confirm-layer.is-application-confirmation
+  > section
+  > div
+  > button:last-child:hover:not(:disabled),
+.story-chapter-confirm-layer.is-application-confirmation
+  > section
+  > div
+  > button:last-child:focus-visible {
+  color: var(--app-danger-text-strong);
+  background: var(--app-danger-surface);
+  border-color: var(--app-danger-border-strong);
+}
+
+.story-chapter-confirm-layer.is-application-confirmation
+  > section
+  > div
+  > button:last-child:focus-visible {
+  outline-color: var(--app-danger-focus);
 }
 
 .story-rich-editor:empty::before {

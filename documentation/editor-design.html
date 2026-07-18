@@ -40,6 +40,7 @@
       <div class="status-note" role="note">
         <strong>Draft premise:</strong> the saved <code>.jdef</code> text remains canonical. Structured controls, raw source, and preview are synchronized views of the same parsed document.
       </div>
+      <p><a href="editor-control-audit.html">Open the production control and mutation audit</a> for the per-control contract, root-cause evidence, and verification owner.</p>
     </header>
 
     <section class="agreed-section" aria-labelledby="agreed-heading">
@@ -152,7 +153,7 @@
       <div class="section-heading">
         <p class="eyebrow">Concept mockup</p>
         <h2 id="mockup-heading">Adaptive three-pane workspace</h2>
-        <p>The Content view keeps every declaration searchable and groups longer lists into collapsible sections. Its Content/Files tabs and content search remain visible while only the declarations beneath them scroll. Sidebar entry names truncate with an ellipsis when space is insufficient and expose the complete name as a hover hint. The root Jump’s Description field is authored package metadata shared by hub cards, previews, and Chain Tracker. Content selections retain the author’s last Structured or Source tab; package files open in Source without overwriting that content preference. The Source tab uses the language-aware editing surface documented below, populated with the current selection. The preview stays contextual to the current selection. When the current preview is a layout or uses one, Show bounds reveals color-coded containers, slots, and content references around the populated preview data; hovering one boundary identifies it in the debugger readout without covering the content. A compact diagnostics strip remains available at the bottom, previews the highest-priority problem, and opens its scrollable details upward without changing the mockup height.</p>
+        <p>The Content view keeps every declaration searchable and groups longer lists into collapsible sections. Its Content/Files tabs and content search remain visible while only the declarations beneath them scroll. Sidebar entry names truncate with an ellipsis when space is insufficient and expose the complete name as a hover hint. The root Jump’s Description field is authored package metadata shared by hub cards, previews, and Chain Tracker. Content selections expose both Structured and Source and retain the author’s last choice between them. Entering Files exposes Source only because a package file does not necessarily correspond to one structured declaration; returning to Content restores the retained Content editing view. The Source tab uses the language-aware editing surface documented below, populated with the current selection. The preview stays contextual to the current selection. When the current preview is a layout or uses one, Show bounds reveals color-coded containers, slots, and content references around the populated preview data; hovering one boundary identifies it in the debugger readout without covering the content. Bounds are geometry-neutral: the authored preview surface and its package colors remain limited to rendered content rather than expanding into otherwise unused pane space. A compact diagnostics strip remains available at the bottom, previews the highest-priority problem, and opens its scrollable details upward without changing the mockup height.</p>
       </div>
 
       <div class="editor-mockup" aria-label="Interactive editor concept">
@@ -316,15 +317,15 @@
       <div class="source-feature-grid">
         <article>
           <h3>Editing essentials</h3>
-          <p>Line numbers, declaration and block folding, syntax highlighting, indentation guides, auto-indentation, <kbd>Ctrl/⌘ F</kbd> search and replace, multi-cursor editing, and durable undo/redo.</p>
+          <p>Line numbers, declaration and block folding, syntax highlighting, indentation guides, auto-indentation, <kbd>⌘ F</kbd> search and replace, multi-cursor editing, and durable undo/redo. Find opens as one compact row: a rounded field contains subdued gray <code>Aa</code>, <code>ab</code>, and <code>.*</code> toggles that brighten when active, followed by previous/next arrows, the current-match count, and a Replace checkbox. Replace remains collapsed until requested, then adds one row with its rounded field and both replacement actions inline. Up and Down in either text field perform the same wrapping navigation as the visible arrow controls; the Find and Replace placeholder text remains visible when each entry is empty. A narrow accent bar at the code edge identifies the cursor line or the lines crossed by a selection; it never fills the line. The insertion caret and the exact selected text remain separate, unmistakable states. A single restrained gutter chevron communicates each fold state; folded text adds no ellipsis pill or duplicate inline arrow.</p>
         </article>
         <article>
           <h3>Language intelligence</h3>
-          <p>Contextual ghost text accepted with <kbd>Tab</kbd>, a full <kbd>Ctrl/⌘ Space</kbd> completion list, field and token documentation, handle suggestions, definitions, references, safe rename, symbols, and formatting.</p>
+          <p>Contextual ghost text accepted with <kbd>Tab</kbd>, a full <kbd>⌘ Space</kbd> completion list, field and token documentation, handle suggestions, definitions, references, safe rename, symbols, and formatting. <kbd>⌘ Space</kbd> toggles the completion list; when invoked from Quick Add, the list overlays the palette so closing it returns to the same context. <kbd>⌘ Enter</kbd> likewise toggles Quick Add. Quick Add selects the inserted value at its natural editing point and exposes collision-free, underlined letter mnemonics for Valid-here actions, displayed with the primary-modifier icon before the letter.</p>
         </article>
         <article>
           <h3>Diagnostics and preview</h3>
-          <p>Inline errors and warnings, preview-only deterministic recovery, <kbd>Ctrl/⌘ .</kbd> Quick Fix source edits, explicit actions for ambiguous fixes, debounced parsing, and a clearly marked last-valid or safely recovered preview.</p>
+          <p>Inline errors and warnings, preview-only deterministic recovery, <kbd>⌘ .</kbd> Quick Fix source edits, explicit actions for ambiguous fixes, debounced parsing, and a clearly marked last-valid or safely recovered preview. A missing declaration field underlines only that declaration’s keyword; its hover details use the editor’s dark diagnostic surface rather than painting the whole block or opening a light tooltip.</p>
         </article>
       </div>
 
@@ -335,7 +336,7 @@
         </article>
         <article>
           <h3>One context palette</h3>
-          <p><kbd>Ctrl/⌘ Enter</kbd> opens a palette for the cursor location. It replaces a separate cheat sheet by listing valid fields and child declarations together with relevant editor commands. Every entry displays its accelerator, preserving fast keyboard-oriented insertion without requiring authors to memorize hidden shortcuts.</p>
+          <p><kbd>⌘ Enter</kbd> opens a palette for the cursor location. It replaces a separate cheat sheet by listing valid fields and child declarations together with relevant editor commands. Empty required fields already present in source remain listed as completion targets and select their existing editable value rather than inserting a duplicate. Every entry and each Source-toolbar command displays its effective accelerator, preserving fast keyboard-oriented insertion without requiring authors to memorize hidden shortcuts.</p>
         </article>
         <article>
           <h3>Recovery does not rewrite</h3>
@@ -347,15 +348,14 @@
         <div class="source-demo-toolbar">
           <span><strong>jump.jdef</strong> / Origins</span>
           <div class="source-demo-actions">
-            <button id="source-demo-find" type="button" aria-expanded="false" aria-controls="source-find-bar">Find <kbd>Ctrl/⌘ F</kbd></button>
-            <button id="source-demo-palette" type="button" aria-expanded="false" aria-controls="source-context-palette">Quick add <kbd>Ctrl/⌘ Enter</kbd></button>
+            <button id="source-demo-find" type="button" aria-expanded="false" aria-controls="source-find-bar">Find <kbd>⌘ F</kbd></button>
+            <button id="source-demo-palette" type="button" aria-expanded="false" aria-controls="source-context-palette">Quick add <kbd>⌘ Enter</kbd></button>
             <button id="source-demo-type" type="button">Simulate invalid syntax</button>
           </div>
         </div>
         <div id="source-find-bar" class="source-find-bar" hidden>
           <label>Find <input id="source-find-input" type="search" value="choice-source"></label>
           <span id="source-find-count">1 of 1</span>
-          <button id="source-find-close" type="button" aria-label="Close find">×</button>
         </div>
         <div class="source-code-stage">
           <div id="source-code-demo" class="source-code-demo" aria-label="Jump definition source example" tabindex="0">
@@ -381,17 +381,17 @@
               <button id="source-palette-close" type="button" aria-label="Close context palette">×</button>
             </header>
             <p class="source-palette-label">Valid unused fields</p>
-            <button id="source-palette-resolution" type="button" data-source-palette-action="resolution"><span><code>resolution</code><small>random or either</small></span><kbd>R</kbd></button>
+            <button id="source-palette-resolution" type="button" data-source-palette-action="resolution"><span><code>resolution</code><small>random or either</small></span><kbd>⌘ R</kbd></button>
             <p id="source-palette-no-fields" class="source-palette-empty" hidden>All available fields are already present.</p>
             <p class="source-palette-label">Relevant commands</p>
-            <button id="source-palette-quick-fix" type="button" data-source-palette-action="quick-fix"><span>Quick Fix<small>Write the recovered colon</small></span><kbd>Ctrl/⌘ .</kbd></button>
-            <button type="button" data-source-palette-action="find"><span>Find<small>Search this file</small></span><kbd>Ctrl/⌘ F</kbd></button>
-            <button type="button" data-source-palette-action="completion"><span>All completions<small>Show valid values and handles</small></span><kbd>Ctrl/⌘ Space</kbd></button>
-            <button type="button" data-source-palette-action="fold"><span>Fold current block<small>Collapse choice-source</small></span><kbd>Ctrl/⌘ Shift [</kbd></button>
+            <button id="source-palette-quick-fix" type="button" data-source-palette-action="quick-fix"><span>Quick Fix<small>Write the recovered colon</small></span><kbd>⌘ .</kbd></button>
+            <button type="button" data-source-palette-action="find"><span>Find<small>Search this file</small></span><kbd>⌘ F</kbd></button>
+            <button type="button" data-source-palette-action="completion"><span>All completions<small>Show valid values and handles</small></span><kbd>⌘ Space</kbd></button>
+            <button type="button" data-source-palette-action="fold"><span>Fold current block<small>Collapse choice-source</small></span><kbd>⌘ Shift [</kbd></button>
           </aside>
         </div>
         <div class="source-demo-status">
-          <span id="source-demo-diagnostic">Warning: preview inferred the missing “:” after <code>mode</code>; press <kbd>Ctrl/⌘ .</kbd> to update source.</span>
+          <span id="source-demo-diagnostic">Warning: preview inferred the missing “:” after <code>mode</code>; press <kbd>⌘ .</kbd> to update source.</span>
           <strong id="source-preview-status">Preview: safely recovered</strong>
         </div>
       </div>
@@ -404,7 +404,7 @@
         <h2 id="implemented-editor-heading">Hub, recovery, and secure package transport</h2>
       </div>
       <div class="research-list">
-        <article><h3>One source-authoritative workspace</h3><p>The production Editor implements this mock’s Content/Files, Structured/Source, and Preview/Properties panes with one package-wide history. Browser workspaces persist in IndexedDB; desktop folders remain canonical and use atomic replacement plus an application-data recovery mirror. Invalid authored source is retained while preview uses deterministic recovery or the last valid package.</p></article>
+        <article><h3>One source-authoritative workspace</h3><p>The production Editor implements this mock’s Content/Files, Structured/Source, and Preview/Properties panes with one package-wide history. Browser workspaces persist in IndexedDB; desktop folders remain canonical and use atomic replacement plus an application-data recovery mirror. The operational Open Project Folder action is hidden by default and can be exposed from Developer settings. Invalid authored source is retained while preview uses deterministic recovery or the last valid package.</p></article>
         <article><h3>The real renderer owns preview</h3><p>Package, section, choice, and layout preview scopes use the same canonical renderer and disposable evaluator as Chain Tracker. Show Bounds annotations are geometry-neutral, use fixed semantic debug colors, and never inherit the application accent.</p></article>
         <article><h3>Portable packages cross one security gate</h3><p>Editor import and Chain installation stage and validate an entire <code>.jmp</code> before creating anything. Reviews show identity, version, content hash, counts, diagnostics, and effective limits. Authoring warnings require an explicit Import Anyway; security, integrity, schema, missing-asset, unsupported-format, and limit failures cannot be overridden.</p></article>
       </div>

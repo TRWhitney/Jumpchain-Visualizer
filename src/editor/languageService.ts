@@ -54,6 +54,10 @@ function symbolsForNode(node: SourceNode, depth: number): FormatSymbol[] {
   ];
 }
 
+function flattenNodes(nodes: readonly SourceNode[]): SourceNode[] {
+  return nodes.flatMap((node) => [node, ...flattenNodes(node.children)]);
+}
+
 export class Format1LanguageService {
   analyze(files: Readonly<Record<string, string>>) {
     const parsed = Object.entries(files).map(([file, source]) =>
@@ -97,6 +101,26 @@ export class Format1LanguageService {
       fields: Object.keys(fields).filter((field) => !used.has(field)),
       children: Object.keys(children),
     };
+  }
+
+  diagnosticExtent(
+    diagnostic: PackageDiagnostic,
+    parsed: readonly ReturnType<typeof parseFormatFile>[],
+  ) {
+    const range = diagnostic.range;
+    if (!range) return null;
+    const declaration = parsed
+      .filter((item) => item.file === range.file)
+      .flatMap((item) => flattenNodes(item.tree))
+      .find(
+        (node) => node.range.from === range.from && node.range.to === range.to,
+      );
+    return declaration
+      ? {
+          from: declaration.range.from,
+          to: declaration.range.from + declaration.kind.length,
+        }
+      : { from: range.from, to: Math.max(range.from, range.to) };
   }
 
   definition(

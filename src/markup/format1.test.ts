@@ -313,4 +313,25 @@ choice
       "cost.unique_resource",
     );
   });
+
+  it("rejects a second field embedded in an unquoted field value", () => {
+    const source = `jump
+  layout: points-name: "Choice Points"
+  description: "A time: loop premise"
+`;
+    const parsed = parseFormatFile("jump.jdef", source);
+    const diagnostic = parsed.diagnostics.find(
+      (item) => item.code === "syntax.embedded_field",
+    );
+    expect(diagnostic).toBeDefined();
+    expect(source.slice(diagnostic!.range!.from, diagnostic!.range!.to)).toBe(
+      "points-name:",
+    );
+    expect(
+      parseFormatFile(
+        "jump.jdef",
+        'jump\n  description: "A time: loop premise"\n\nsection\n  layout: default_layout\n',
+      ).diagnostics,
+    ).toEqual([]);
+  });
 });

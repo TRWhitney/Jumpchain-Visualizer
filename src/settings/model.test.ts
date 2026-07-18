@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   SAFE_PACKAGE_SIZE_LIMITS,
+  defaultKeybindings,
   defaultSettings,
   effectivePackageSizeLimits,
   hydrateSettings,
+  keybindingActions,
+  keybindingDisplay,
+  matchesKeybinding,
   validateKeybinding,
   validatePackageSizeLimits,
 } from "./model";
@@ -23,7 +27,10 @@ describe("application settings", () => {
           includeItemTagsInRadar: true,
           aggregateSimilarInventory: false,
         },
-        developer: { showAdditionalJumpInformation: true },
+        developer: {
+          showAdditionalJumpInformation: true,
+          showOpenProjectFolder: true,
+        },
         notifications: { maxVisible: 5, durationMs: 1234 },
       },
       profile,
@@ -37,6 +44,7 @@ describe("application settings", () => {
     expect(result.chain.includeItemTagsInRadar).toBe(true);
     expect(result.chain.aggregateSimilarInventory).toBe(false);
     expect(result.developer.showAdditionalJumpInformation).toBe(true);
+    expect(result.developer.showOpenProjectFolder).toBe(true);
     expect(result.notifications.maxVisible).toBe(5);
     expect(result.notifications.durationMs).toBe(5000);
   });
@@ -44,7 +52,14 @@ describe("application settings", () => {
   it("defaults similar inventory aggregation on when the stored field is absent", () => {
     const profile = createDefaultTagProfile();
     const result = hydrateSettings({}, profile, hydrateTagProfile);
+    const malformed = hydrateSettings(
+      { developer: { showOpenProjectFolder: "yes" } },
+      profile,
+      hydrateTagProfile,
+    );
     expect(result.chain.aggregateSimilarInventory).toBe(true);
+    expect(result.developer.showOpenProjectFolder).toBe(false);
+    expect(malformed.developer.showOpenProjectFolder).toBe(false);
   });
 
   it("hydrates only bounded internally consistent package size overrides", () => {
@@ -122,5 +137,56 @@ describe("application settings", () => {
         shift: false,
       }),
     ).toContain("reserved");
+  });
+
+  it("defines, displays, and matches every Editor command binding", () => {
+    expect(keybindingActions).toEqual([
+      "find",
+      "quickAdd",
+      "format",
+      "quickFix",
+      "completions",
+    ]);
+    expect(keybindingDisplay(defaultKeybindings.completions)).toBe("⌘ Space");
+    expect(keybindingDisplay(defaultKeybindings.format)).toBe("⌘ Shift F");
+    expect(
+      matchesKeybinding(
+        {
+          key: "F",
+          code: "KeyF",
+          ctrlKey: true,
+          metaKey: false,
+          altKey: false,
+          shiftKey: true,
+        },
+        defaultKeybindings.format,
+      ),
+    ).toBe(true);
+    expect(
+      matchesKeybinding(
+        {
+          key: " ",
+          code: "Space",
+          ctrlKey: true,
+          metaKey: false,
+          altKey: false,
+          shiftKey: false,
+        },
+        defaultKeybindings.completions,
+      ),
+    ).toBe(true);
+    expect(
+      matchesKeybinding(
+        {
+          key: "p",
+          code: "KeyP",
+          ctrlKey: true,
+          metaKey: false,
+          altKey: false,
+          shiftKey: false,
+        },
+        { key: "p", primary: true, alt: false, shift: false },
+      ),
+    ).toBe(true);
   });
 });

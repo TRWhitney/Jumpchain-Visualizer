@@ -680,11 +680,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
     findInput.setAttribute("aria-label", "Find in selected source");
     const findCount = element("span", "", "No query");
     findCount.dataset.paneSourceFindCount = "";
-    const findClose = element("button", "", "×");
-    findClose.type = "button";
-    findClose.dataset.paneSourceAction = "close-find";
-    findClose.setAttribute("aria-label", "Close find");
-    findBar.append(findInput, findCount, findClose);
+    findBar.append(findInput, findCount);
 
     const stage = element("div", "mock-pane-source-stage");
     const editor = element("div", "mock-pane-source-code");
@@ -752,7 +748,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
       option.dataset.paneSourceShortcut = shortcut.toLowerCase();
       const labelGroup = element("span");
       labelGroup.append(element("span", "", label), element("small", "", `Insert into ${view.keyword}`));
-      option.append(labelGroup, element("kbd", "", shortcut));
+      option.append(labelGroup, element("kbd", "", `⌘ ${shortcut}`));
       palette.append(option);
     });
     palette.append(element("p", "source-palette-label", "Commands"));
@@ -761,7 +757,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
     quickFix.disabled = true;
     const quickFixLabel = element("span");
     quickFixLabel.append(element("span", "", "Quick Fix"), element("small", "", "No deterministic fix at cursor"));
-    quickFix.append(quickFixLabel, element("kbd", "", "Ctrl/⌘ ."));
+    quickFix.append(quickFixLabel, element("kbd", "", "⌘ ."));
     palette.append(quickFix);
 
     stage.append(editor, palette);
@@ -1368,7 +1364,6 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
 
     const action = event.target.closest("[data-pane-source-action]")?.dataset.paneSourceAction;
     if (action === "find") setPaneSourceFindOpen(sourcePanel.querySelector(".mock-pane-source-find").hidden);
-    if (action === "close-find") setPaneSourceFindOpen(false);
     if (action === "palette") setPaneSourcePaletteOpen(sourcePanel.querySelector("[data-pane-source-palette]").hidden);
     if (action === "close-palette") setPaneSourcePaletteOpen(false);
 
@@ -1410,7 +1405,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
       return;
     }
     const palette = sourcePanel.querySelector("[data-pane-source-palette]");
-    if (!commandKey && !palette.hidden) {
+    if (commandKey && !event.altKey && !event.shiftKey && !palette.hidden) {
       const shortcut = palette.querySelector(`[data-pane-source-shortcut="${event.key.toLowerCase()}"]`);
       if (shortcut) {
         event.preventDefault();
@@ -1620,7 +1615,6 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
   const sourceFindBar = document.querySelector("#source-find-bar");
   const sourceFindInput = document.querySelector("#source-find-input");
   const sourceFindCount = document.querySelector("#source-find-count");
-  const sourceFindClose = document.querySelector("#source-find-close");
   const sourceCodeStage = document.querySelector(".source-code-stage");
   const sourceDemoPalette = document.querySelector("#source-demo-palette");
   const sourceContextPalette = document.querySelector("#source-context-palette");
@@ -1745,10 +1739,6 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
   });
 
   sourceDemoFind?.addEventListener("click", () => setSourceFindOpen(sourceFindBar.hidden));
-  sourceFindClose?.addEventListener("click", () => {
-    setSourceFindOpen(false);
-    sourceDemo?.focus();
-  });
   sourceFindInput?.addEventListener("input", updateSourceFind);
 
   sourceDemoPalette?.addEventListener("click", () => setSourcePaletteOpen(sourceContextPalette.hidden));
@@ -1785,7 +1775,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
       runSourcePaletteAction("fold");
       return;
     }
-    if (!sourceContextPalette.hidden && !commandKey && event.key.toLowerCase() === "r") {
+    if (!sourceContextPalette.hidden && commandKey && event.key.toLowerCase() === "r") {
       event.preventDefault();
       runSourcePaletteAction("resolution");
       return;
@@ -1815,7 +1805,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
         document.createTextNode("Preview safely inferred the missing “:” after "),
         element("code", "", "mode"),
         document.createTextNode(" without rewriting source. Press "),
-        element("kbd", "", "Ctrl/⌘ ."),
+        element("kbd", "", "⌘ ."),
         document.createTextNode(" to commit it."),
       );
       sourcePreviewStatus.textContent = "Preview: safely recovered";

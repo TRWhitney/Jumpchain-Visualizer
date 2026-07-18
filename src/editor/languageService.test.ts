@@ -43,4 +43,20 @@ describe("Format1LanguageService", () => {
       "jump\n\n  format: 1\n",
     );
   });
+
+  it("limits declaration diagnostics to the declaration keyword", () => {
+    const files = {
+      "jump.jdef": 'jump\n  description: "Incomplete metadata"\n',
+    };
+    const analysis = service.analyze(files);
+    const diagnostic = analysis.diagnostics.find(
+      (item) => item.message === "jump requires at least one author.",
+    );
+    expect(diagnostic).toBeDefined();
+    expect(service.diagnosticExtent(diagnostic!, analysis.parsed)).toEqual({
+      from: 0,
+      to: 4,
+    });
+    expect(files["jump.jdef"].slice(0, 4)).toBe("jump");
+  });
 });

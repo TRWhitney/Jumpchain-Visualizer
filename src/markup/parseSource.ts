@@ -36,6 +36,36 @@ function stripComment(value: string) {
   return value;
 }
 
+function embeddedField(value: string) {
+  let quoted = false;
+  let escaped = false;
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (character === "\\" && quoted) {
+      escaped = true;
+      continue;
+    }
+    if (character === '"') {
+      quoted = !quoted;
+      continue;
+    }
+    if (character !== ":" || quoted) continue;
+    let from = index;
+    while (from > 0 && /[a-z0-9-]/i.test(value[from - 1])) from -= 1;
+    const name = value.slice(from, index);
+    if (
+      /^[a-z][a-z0-9-]*$/.test(name) &&
+      (from === 0 || /\s/.test(value[from - 1]))
+    )
+      return { name, from, to: index + 1 };
+  }
+  return null;
+}
+
 export function parseFormatFile(
   file: string,
   source: string,
@@ -101,6 +131,7 @@ export function parseFormatFile(
       if (indentation === fenced.indent && raw.trim() === '"""') {
         fenced.field.value = fenced.content.join("\n");
         fenced.field.range.to = offset + raw.length;
+        fenced.field.valueRange.to = offset + raw.length;
         fenced = undefined;
       } else if (raw.trim() && indentation < fenced.indent) {
         diagnostics.push({
@@ -172,6 +203,13 @@ export function parseFormatFile(
           ),
         });
       } else {
+        const nameFrom = offset + indent;
+        const conditionFrom = fieldMatch[2]
+          ? nameFrom + fieldMatch[1].length + " when ".length
+          : undefined;
+        const colon = text.indexOf(":");
+        let valueColumn = colon + 1;
+        while (text[valueColumn] === " ") valueColumn += 1;
         const field: SourceField = {
           name: fieldMatch[1],
           condition: fieldMatch[2],
@@ -183,8 +221,46 @@ export function parseFormatFile(
             offset + indent,
             offset + raw.length,
           ),
+          nameRange: range(
+            file,
+            lineNumber,
+            indent + 1,
+            nameFrom,
+            nameFrom + fieldMatch[1].length,
+          ),
+          conditionRange:
+            conditionFrom === undefined
+              ? undefined
+              : range(
+                  file,
+                  lineNumber,
+                  indent + fieldMatch[1].length + " when ".length + 1,
+                  conditionFrom,
+                  conditionFrom + fieldMatch[2].length,
+                ),
+          valueRange: range(
+            file,
+            lineNumber,
+            indent + valueColumn + 1,
+            offset + indent + valueColumn,
+            offset + indent + valueColumn + fieldMatch[3].length,
+          ),
         };
         owner.fields.push(field);
+        const embedded = embeddedField(field.value);
+        if (embedded)
+          diagnostics.push({
+            code: "syntax.embedded_field",
+            severity: "error",
+            message: `Field “${embedded.name}” must start on its own line.`,
+            range: range(
+              file,
+              lineNumber,
+              indent + valueColumn + embedded.from + 1,
+              field.valueRange.from + embedded.from,
+              field.valueRange.from + embedded.to,
+            ),
+          });
         if (!field.value && lines[lineIndex + 1]?.trim() === '"""') {
           lineIndex += 1;
           const fenceRaw = lines[lineIndex];

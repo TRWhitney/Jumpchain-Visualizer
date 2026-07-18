@@ -3,6 +3,7 @@
   "format": 1,
   "cases": [
     { "name": "minimal-valid", "directory": "fixtures/minimal-valid", "exportValid": true, "diagnostics": [] },
+    { "name": "embedded-field-invalid", "directory": "fixtures/embedded-field-invalid", "exportValid": false, "diagnostics": ["error:syntax.embedded_field"] },
     { "name": "representative-valid", "directory": "fixtures/representative-valid", "exportValid": true, "diagnostics": [] },
     { "name": "form-measure-valid", "directory": "fixtures/form-measure-valid", "exportValid": true, "diagnostics": [] },
     { "name": "form-measure-invalid", "directory": "fixtures/form-measure-invalid", "exportValid": false, "diagnostics": ["error:grant.form.handle", "error:grant.form.reference", "error:grant.form.target_kind", "error:grant.measure.integer_only"] },

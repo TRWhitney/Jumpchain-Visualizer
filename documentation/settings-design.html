@@ -565,6 +565,10 @@
           <li>Manual and imported profile-only tags may be deleted. Deletion automatically removes their alias links and reparents direct children; built-ins and tags discovered from installed Jumps remain protected.</li>
         </ul>
 
+        <h2>Developer Package Size Limits</h2>
+        <p>Developer → Overview contains an opt-in <strong>Package size limits</strong> section. Safe effective defaults are 64 MiB archive, 2 MiB definition, 16 MiB asset, and 96 MiB expanded. Enabling overrides first displays <strong>Increase package limits at your own risk</strong>; cancellation leaves defaults effective. Disabling preserves entered values but restores safe effective values, while Reset disables and restores all defaults.</p>
+        <p>Values are whole MiB, definition and asset limits cannot exceed the expanded limit, and absolute ceilings are 512/16/256/1024 MiB respectively. Invalid persisted or edited values fall back safely and never reach archive adapters. Active overrides appear with an At your own risk warning in every import review and export confirmation, and affect Editor import/export, desktop folder loading, and Chain Tracker installation. They never disable structural or malicious-file protections.</p>
+
         <h2>Persistence and Migration</h2>
         <ul>
           <li>Settings persist independently from Jump packages and Chain records.</li>

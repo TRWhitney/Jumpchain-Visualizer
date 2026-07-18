@@ -690,6 +690,7 @@ jump-wide defaults.</p>
 <li>no <code>handle</code></li>
 <li>required integer <code>format</code></li>
 <li><code>name</code></li>
+<li>optional package <code>description</code></li>
 <li>one or more repeated <code>author</code> fields</li>
 <li>required <code>version</code></li>
 <li>optional boolean <code>gauntlet</code></li>
@@ -716,6 +717,7 @@ jump-wide defaults.</p>
 <li>author order is preserved for display but does not affect logical package identity; identity compares the authors as an order-independent set</li>
 <li>repeating the same author value within one Jump declaration is an error</li>
 <li><code>version</code> is required user-facing metadata so installed releases can be distinguished in the library and chain</li>
+<li><code>description</code> is concise package-level library and preview metadata; it is distinct from handled <code>text</code> blocks rendered inside sections and choices</li>
 <li><code>version</code> is user-facing metadata, not the system&#39;s authoritative internal
 compatibility key</li>
 <li><code>gauntlet</code> defaults to <code>false</code>; <code>gauntlet: true</code> declares that the installed package is intrinsically a Gauntlet</li>
@@ -734,6 +736,7 @@ strings as machine truth</li>
 <pre><code class="language-text">jump
   format: 1
   name: &quot;Example Jump&quot;
+  description: &quot;A concise premise shown while browsing this Jump.&quot;
   author: &quot;Author One&quot;
   author: &quot;Author Two&quot;
   version: &quot;1.0&quot;
@@ -864,10 +867,11 @@ special one-off text fields or role-tagged variants.</p>
     Alternate text.
     &quot;&quot;&quot;
 </code></pre>
-<p>This replaces the earlier idea of special prose fields like <code>description:</code>.
-Prose should be authored uniformly as <code>text</code> blocks, with default renderers
-looking for documented conventional handles such as <code>description</code> where that is
-useful.</p>
+<p>This replaces the earlier idea of special prose fields inside sections, choices, and grants.
+Rendered content prose should be authored uniformly as <code>text</code> blocks, with default
+renderers looking for documented conventional handles such as <code>description</code> where that
+is useful. The root Jump’s concise <code>description</code> remains package metadata for library
+cards and package headers rather than rendered section content.</p>
 <h3>Placeholder Direction</h3>
 <p>Placeholder interpolation should be supported in renderable string content
 using property handles such as <code>{{companion_name}}</code>.</p>
@@ -2000,6 +2004,10 @@ an implementation detail.</p>
 <li>Every authored layout has exactly one handled container root. Grid requires <code>columns</code> from 1 through 12; typed leaves use their matching owner-local namespace; <code>expand</code> and compact direct <code>choice</code> placement remain section-layout-only.</li>
 </ul>
 <h3>Schema Change Policy</h3>
+<h3>Secure <code>.jmp</code> transport</h3>
+<p>Package archives are untrusted. Import streams actual decompressed bytes and never trusts ZIP-declared sizes. It allows no more than 256 regular entries, a 100:1 per-entry and overall compression ratio, root <code>.jdef</code> files, and PNG/JPEG/GIF/WebP/AVIF files below <code>assets/</code>. Traversal, absolute and non-canonical names, normalized or case-folded collisions, links, devices, encryption, multi-disk or nested archives, corrupt headers, CRC or size disagreement, trailing polyglot data, unsupported files, signature/extension mismatch, and malformed images are blocking failures.</p>
+<p>Images are decoded within bounded memory before their bytes are exposed. Width and height are each limited to 8192 pixels, each image to 24 megapixels, and the package to 64 megapixels. The staged package becomes visible only after archive, source, schema, semantic, reference, and asset validation all succeed.</p>
+<p>Effective byte budgets default to 64 MiB compressed archive, 2 MiB per definition, 16 MiB per asset, and 96 MiB expanded. Validated Developer overrides can increase byte budgets only; path, ratio, signature, decoder, schema, and atomicity safeguards remain mandatory.</p>
 <p>Corrections that only improve diagnostics, recovery, documentation, or editor
 assistance may retain format 1 when they do not change the valid source language.
 After the first release, any new declaration, field, scalar form, node kind, or contextual placement that

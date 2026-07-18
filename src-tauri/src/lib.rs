@@ -1,5 +1,12 @@
-use std::sync::Mutex;
+use std::{
+    collections::HashSet,
+    io::Cursor,
+    path::{Path, PathBuf},
+    sync::Mutex,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
+use archive_core::{EffectivePackageSizeLimits, inspect_archive, validate_image};
 use persistence::AggregateStore;
 use tauri::{Manager, State};
 use tauri_plugin_dialog::DialogExt;
@@ -74,6 +81,361 @@ fn save_chain(payload: String, state: State<'_, PersistenceState>) -> Result<(),
     store
         .save("chains", 1, &encoded)
         .map_err(|_| "chain write failed".to_owned())
+}
+
+fn editor_workspace_values(store: &AggregateStore) -> Result<Vec<serde_json::Value>, String> {
+    store
+        .load("editor-workspaces")
+        .map_err(|_| "Editor registry read failed".to_owned())?
+        .map(|value| {
+            serde_json::from_str(&value)
+                .map_err(|_| "stored Editor registry is invalid JSON".to_owned())
+        })
+        .transpose()
+        .map(Option::unwrap_or_default)
+}
+
+fn validate_editor_workspace_payload(payload: &str) -> Result<serde_json::Value, String> {
+    if payload.len() > 128 * 1024 * 1024 {
+        return Err("Editor recovery payload exceeds the application limit".to_owned());
+    }
+    let value: serde_json::Value =
+        serde_json::from_str(payload).map_err(|_| "Editor payload is invalid JSON")?;
+    if value
+        .get("schemaVersion")
+        .and_then(serde_json::Value::as_u64)
+        != Some(1)
+    {
+        return Err("Editor schema version is unsupported".to_owned());
+    }
+    if !value
+        .get("id")
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(|id| !id.is_empty() && id.len() <= 200)
+    {
+        return Err("Editor workspace id is invalid".to_owned());
+    }
+    if !value.get("files").is_some_and(serde_json::Value::is_object) {
+        return Err("Editor source files are missing".to_owned());
+    }
+    Ok(value)
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn list_editor_workspaces(
+    state: State<'_, PersistenceState>,
+) -> Result<Vec<serde_json::Value>, String> {
+    let store = state.0.lock().map_err(|_| "Editor registry lock failed")?;
+    editor_workspace_values(&store)
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn load_editor_workspace(
+    id: String,
+    state: State<'_, PersistenceState>,
+) -> Result<Option<serde_json::Value>, String> {
+    let store = state.0.lock().map_err(|_| "Editor registry lock failed")?;
+    Ok(editor_workspace_values(&store)?
+        .into_iter()
+        .find(|workspace| {
+            workspace.get("id").and_then(serde_json::Value::as_str) == Some(id.as_str())
+        }))
+}
+
+fn atomic_write(path: &Path, content: &[u8]) -> Result<(), String> {
+    let name = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or("project file name is invalid")?;
+    let temporary = path.with_file_name(format!(".{name}.jumpchain-tmp-{}", std::process::id()));
+    std::fs::write(&temporary, content).map_err(|_| "temporary project write failed")?;
+    std::fs::rename(&temporary, path).map_err(|_| {
+        let _ = std::fs::remove_file(&temporary);
+        "atomic project replacement failed".to_owned()
+    })
+}
+
+fn save_external_workspace(value: &serde_json::Value) -> Result<(), String> {
+    if value.get("location").and_then(serde_json::Value::as_str) != Some("desktop") {
+        return Ok(());
+    }
+    let folder = value
+        .get("externalFolder")
+        .and_then(serde_json::Value::as_str)
+        .ok_or("desktop project folder is missing")?;
+    let root = PathBuf::from(folder)
+        .canonicalize()
+        .map_err(|_| "desktop project folder is unavailable")?;
+    if !root.is_dir() {
+        return Err("desktop project folder is unavailable".to_owned());
+    }
+    let files = value
+        .get("files")
+        .and_then(serde_json::Value::as_object)
+        .ok_or("Editor source files are missing")?;
+    for (name, source) in files {
+        if name.contains('/')
+            || name.contains('\\')
+            || !name.to_ascii_lowercase().ends_with(".jdef")
+        {
+            return Err("desktop project contains an invalid source path".to_owned());
+        }
+        let source = source.as_str().ok_or("Editor source is not text")?;
+        atomic_write(&root.join(name), source.as_bytes())?;
+    }
+    let assets = value
+        .get("assets")
+        .and_then(serde_json::Value::as_object)
+        .ok_or("Editor assets are missing")?;
+    let asset_root = root.join("assets");
+    if !assets.is_empty() {
+        std::fs::create_dir_all(&asset_root)
+            .map_err(|_| "desktop asset folder could not be created")?;
+    }
+    for (name, encoded) in assets {
+        let relative = Path::new(name);
+        if relative.parent() != Some(Path::new("assets")) {
+            return Err("desktop project contains an invalid asset path".to_owned());
+        }
+        let file_name = relative
+            .file_name()
+            .and_then(|item| item.to_str())
+            .ok_or("desktop asset name is invalid")?;
+        let bytes: Vec<u8> = encoded
+            .as_array()
+            .ok_or("desktop asset bytes are invalid")?
+            .iter()
+            .map(|byte| {
+                byte.as_u64()
+                    .and_then(|value| u8::try_from(value).ok())
+                    .ok_or("desktop asset bytes are invalid")
+            })
+            .collect::<Result<_, _>>()?;
+        atomic_write(&asset_root.join(file_name), &bytes)?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn save_editor_workspace(
+    app: tauri::AppHandle,
+    payload: String,
+    state: State<'_, PersistenceState>,
+) -> Result<(), String> {
+    let value = validate_editor_workspace_payload(&payload)?;
+    save_external_workspace(&value)?;
+    let id = value
+        .get("id")
+        .and_then(serde_json::Value::as_str)
+        .ok_or("Editor workspace id is missing")?;
+    let recovery_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "application recovery path is unavailable")?
+        .join("editor-recovery");
+    std::fs::create_dir_all(&recovery_dir)
+        .map_err(|_| "Editor recovery directory could not be created")?;
+    atomic_write(&recovery_dir.join(format!("{id}.json")), payload.as_bytes())?;
+
+    let mut store = state.0.lock().map_err(|_| "Editor registry lock failed")?;
+    let mut workspaces = editor_workspace_values(&store)?;
+    if let Some(index) = workspaces
+        .iter()
+        .position(|workspace| workspace.get("id").and_then(serde_json::Value::as_str) == Some(id))
+    {
+        workspaces[index] = value;
+    } else {
+        workspaces.push(value);
+    }
+    let encoded =
+        serde_json::to_string(&workspaces).map_err(|_| "Editor registry encoding failed")?;
+    store
+        .save("editor-workspaces", 1, &encoded)
+        .map_err(|_| "Editor registry write failed".to_owned())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn remove_editor_workspace(id: String, state: State<'_, PersistenceState>) -> Result<(), String> {
+    let mut store = state.0.lock().map_err(|_| "Editor registry lock failed")?;
+    let mut workspaces = editor_workspace_values(&store)?;
+    workspaces.retain(|workspace| {
+        workspace.get("id").and_then(serde_json::Value::as_str) != Some(id.as_str())
+    });
+    let encoded =
+        serde_json::to_string(&workspaces).map_err(|_| "Editor registry encoding failed")?;
+    store
+        .save("editor-workspaces", 1, &encoded)
+        .map_err(|_| "Editor registry write failed".to_owned())
+}
+
+fn safe_project_entry(path: &Path, root: &Path) -> Result<String, String> {
+    let relative = path
+        .strip_prefix(root)
+        .map_err(|_| "project entry escapes its root")?;
+    let parts: Vec<_> = relative
+        .components()
+        .map(|part| part.as_os_str().to_string_lossy().into_owned())
+        .collect();
+    if parts
+        .iter()
+        .any(|part| part.is_empty() || part == "." || part == "..")
+    {
+        return Err("project entry path is invalid".to_owned());
+    }
+    Ok(parts.join("/"))
+}
+
+type ProjectFolderContents = (
+    serde_json::Map<String, serde_json::Value>,
+    serde_json::Map<String, serde_json::Value>,
+);
+
+fn read_project_folder(
+    root: &Path,
+    limits: EffectivePackageSizeLimits,
+) -> Result<ProjectFolderContents, String> {
+    let limits = limits.validate().map_err(|error| error.to_string())?;
+    let mut files = serde_json::Map::new();
+    let mut assets = serde_json::Map::new();
+    let mut entries = Vec::new();
+    for item in std::fs::read_dir(root).map_err(|_| "project folder cannot be read")? {
+        let item = item.map_err(|_| "project folder contains an unreadable entry")?;
+        let file_type = item
+            .file_type()
+            .map_err(|_| "project entry type cannot be read")?;
+        if file_type.is_symlink() {
+            return Err("project folders cannot contain symbolic links".to_owned());
+        }
+        if file_type.is_file() {
+            entries.push(item.path());
+        } else if file_type.is_dir() && item.file_name() == "assets" {
+            for asset in
+                std::fs::read_dir(item.path()).map_err(|_| "project assets cannot be read")?
+            {
+                let asset = asset.map_err(|_| "project asset cannot be read")?;
+                if !asset
+                    .file_type()
+                    .map_err(|_| "project asset type cannot be read")?
+                    .is_file()
+                {
+                    return Err("project assets cannot contain links or directories".to_owned());
+                }
+                entries.push(asset.path());
+            }
+        } else {
+            return Err("project folder contains an unexpected entry".to_owned());
+        }
+    }
+    if entries.is_empty() || entries.len() > 256 {
+        return Err("project folder entry count is invalid".to_owned());
+    }
+    let mut total = 0_u64;
+    let mut total_image_pixels = 0_u64;
+    let mut collisions = HashSet::new();
+    for path in entries {
+        let relative = safe_project_entry(&path, root)?;
+        if !collisions.insert(relative.to_lowercase()) {
+            return Err("project folder contains colliding paths".to_owned());
+        }
+        let bytes = std::fs::read(&path).map_err(|_| "project entry cannot be read")?;
+        total = total.saturating_add(bytes.len() as u64);
+        if total > limits.max_expanded_package_mi_b * 1024 * 1024 {
+            return Err("project folder exceeds the expanded package limit".to_owned());
+        }
+        if Path::new(&relative)
+            .extension()
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("jdef"))
+            && !relative.contains('/')
+        {
+            if bytes.len() as u64 > limits.max_definition_file_mi_b * 1024 * 1024 {
+                return Err("project definition exceeds its effective limit".to_owned());
+            }
+            let source =
+                String::from_utf8(bytes).map_err(|_| "project definition is not valid UTF-8")?;
+            files.insert(relative, serde_json::Value::String(source));
+        } else if relative.starts_with("assets/")
+            && ["png", "jpg", "jpeg", "gif", "webp", "avif"]
+                .iter()
+                .any(|extension| {
+                    relative
+                        .to_ascii_lowercase()
+                        .ends_with(&format!(".{extension}"))
+                })
+        {
+            if bytes.len() as u64 > limits.max_asset_file_mi_b * 1024 * 1024 {
+                return Err("project asset exceeds its effective limit".to_owned());
+            }
+            let (width, height) =
+                validate_image(&relative, &bytes).map_err(|error| error.to_string())?;
+            total_image_pixels = total_image_pixels.saturating_add(width.saturating_mul(height));
+            if total_image_pixels > 64_000_000 {
+                return Err("project images exceed the mandatory pixel limit".to_owned());
+            }
+            assets.insert(relative, serde_json::json!(bytes));
+        } else {
+            return Err("project folder contains an unsupported file".to_owned());
+        }
+    }
+    if !files.contains_key("jump.jdef") {
+        return Err("project folder is missing jump.jdef".to_owned());
+    }
+    Ok((files, assets))
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn open_editor_project_folder(
+    app: tauri::AppHandle,
+    limits: EffectivePackageSizeLimits,
+) -> Result<Option<serde_json::Value>, String> {
+    let selected = app.dialog().file().blocking_pick_folder();
+    let Some(selected) = selected else {
+        return Ok(None);
+    };
+    let root = selected
+        .into_path()
+        .map_err(|_| "the selected project is not a local folder")?
+        .canonicalize()
+        .map_err(|_| "the selected project folder is unavailable")?;
+    let (files, assets) = read_project_folder(&root, limits)?;
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| "system time is unavailable")?
+        .as_nanos();
+    let now = stamp / 1_000_000;
+    Ok(Some(serde_json::json!({
+        "schemaVersion": 1,
+        "id": format!("desktop-{stamp:x}-{:x}", std::process::id()),
+        "location": "desktop",
+        "externalFolder": root,
+        "files": files,
+        "assets": assets,
+        "starred": false,
+        "createdAt": format!("{now}"),
+        "updatedAt": format!("{now}"),
+        "lastOpenedAt": format!("{now}"),
+        "revision": 0
+    })))
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn scan_editor_project_folder(
+    folder: String,
+    limits: EffectivePackageSizeLimits,
+) -> Result<serde_json::Value, String> {
+    let root = PathBuf::from(folder)
+        .canonicalize()
+        .map_err(|_| "desktop project folder is unavailable")?;
+    if !root.is_dir() {
+        return Err("desktop project folder is unavailable".to_owned());
+    }
+    let (files, assets) = read_project_folder(&root, limits)?;
+    Ok(serde_json::json!({ "files": files, "assets": assets }))
 }
 
 fn validate_chain_payload(payload: &str) -> Result<serde_json::Value, String> {
@@ -155,6 +517,35 @@ fn save_diagnostic_report(
     Ok("saved")
 }
 
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn save_editor_package(
+    app: tauri::AppHandle,
+    suggested_name: String,
+    bytes: Vec<u8>,
+    limits: EffectivePackageSizeLimits,
+) -> Result<&'static str, String> {
+    inspect_archive(Cursor::new(&bytes), limits).map_err(|error| error.to_string())?;
+    let safe_name = sanitize_suggested_name(&suggested_name);
+    let selected = app
+        .dialog()
+        .file()
+        .set_file_name(if safe_name.is_empty() {
+            "jump-package.jmp"
+        } else {
+            &safe_name
+        })
+        .blocking_save_file();
+    let Some(selected) = selected else {
+        return Ok("cancelled");
+    };
+    let path = selected
+        .into_path()
+        .map_err(|_| "the selected package destination is not a local path")?;
+    atomic_write(&path, &bytes)?;
+    Ok("saved")
+}
+
 /// Starts the desktop application shell.
 ///
 /// # Panics
@@ -179,7 +570,14 @@ pub fn run() {
             save_settings,
             load_chains,
             save_chain,
-            save_diagnostic_report
+            list_editor_workspaces,
+            load_editor_workspace,
+            save_editor_workspace,
+            remove_editor_workspace,
+            open_editor_project_folder,
+            scan_editor_project_folder,
+            save_diagnostic_report,
+            save_editor_package
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Jumpchain Visualizer");
@@ -187,7 +585,35 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{sanitize_suggested_name, validate_chain_payload, validate_settings_payload};
+    use std::{
+        path::PathBuf,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    use super::{
+        EffectivePackageSizeLimits, atomic_write, read_project_folder, sanitize_suggested_name,
+        validate_chain_payload, validate_settings_payload,
+    };
+
+    fn limits() -> EffectivePackageSizeLimits {
+        EffectivePackageSizeLimits {
+            max_archive_mi_b: 64,
+            max_definition_file_mi_b: 2,
+            max_asset_file_mi_b: 16,
+            max_expanded_package_mi_b: 96,
+        }
+    }
+
+    fn temporary_folder(label: &str) -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "jumpchain-visualizer-{label}-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ))
+    }
 
     #[test]
     fn rejects_invalid_or_unsupported_settings_payloads() {
@@ -210,5 +636,39 @@ mod tests {
         assert!(validate_chain_payload(r#"{"schemaVersion":1,"id":"chain-1"}"#).is_ok());
         assert!(validate_chain_payload(r#"{"schemaVersion":2,"id":"chain-1"}"#).is_err());
         assert!(validate_chain_payload(r#"{"schemaVersion":1,"id":""}"#).is_err());
+    }
+
+    #[test]
+    fn reads_only_bounded_desktop_project_entries() {
+        let folder = temporary_folder("folder-read");
+        std::fs::create_dir_all(&folder).expect("create fixture folder");
+        std::fs::write(folder.join("jump.jdef"), "jump\n  format: 1\n")
+            .expect("write fixture source");
+        let (files, assets) = read_project_folder(&folder, limits()).expect("read project");
+        assert!(files.contains_key("jump.jdef"));
+        assert!(assets.is_empty());
+        std::fs::write(folder.join("payload.html"), "unsafe").expect("write attack file");
+        assert!(read_project_folder(&folder, limits()).is_err());
+        std::fs::remove_dir_all(&folder).expect("remove fixture folder");
+    }
+
+    #[test]
+    fn atomic_write_replaces_complete_content_without_a_temp_remnant() {
+        let folder = temporary_folder("atomic-write");
+        std::fs::create_dir_all(&folder).expect("create fixture folder");
+        let target = folder.join("jump.jdef");
+        std::fs::write(&target, "old").expect("write original");
+        atomic_write(&target, b"new complete source").expect("atomic replacement");
+        assert_eq!(
+            std::fs::read_to_string(&target).expect("read replacement"),
+            "new complete source"
+        );
+        assert_eq!(
+            std::fs::read_dir(&folder)
+                .expect("read fixture folder")
+                .count(),
+            1
+        );
+        std::fs::remove_dir_all(&folder).expect("remove fixture folder");
     }
 }

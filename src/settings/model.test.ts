@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { defaultSettings, hydrateSettings, validateKeybinding } from "./model";
+import {
+  SAFE_PACKAGE_SIZE_LIMITS,
+  defaultSettings,
+  effectivePackageSizeLimits,
+  hydrateSettings,
+  validateKeybinding,
+  validatePackageSizeLimits,
+} from "./model";
 import { createDefaultTagProfile, hydrateTagProfile } from "./tagProfile";
 
 describe("application settings", () => {
@@ -38,6 +45,55 @@ describe("application settings", () => {
     const profile = createDefaultTagProfile();
     const result = hydrateSettings({}, profile, hydrateTagProfile);
     expect(result.chain.aggregateSimilarInventory).toBe(true);
+  });
+
+  it("hydrates only bounded internally consistent package size overrides", () => {
+    const profile = createDefaultTagProfile();
+    const custom = hydrateSettings(
+      {
+        developer: {
+          useCustomPackageSizeLimits: true,
+          maxArchiveMiB: 128,
+          maxDefinitionFileMiB: 4,
+          maxAssetFileMiB: 64,
+          maxExpandedPackageMiB: 256,
+        },
+      },
+      profile,
+      hydrateTagProfile,
+    );
+    expect(effectivePackageSizeLimits(custom.developer)).toEqual({
+      maxArchiveMiB: 128,
+      maxDefinitionFileMiB: 4,
+      maxAssetFileMiB: 64,
+      maxExpandedPackageMiB: 256,
+    });
+
+    const invalid = hydrateSettings(
+      {
+        developer: {
+          useCustomPackageSizeLimits: true,
+          maxArchiveMiB: 513,
+          maxDefinitionFileMiB: 16,
+          maxAssetFileMiB: 100,
+          maxExpandedPackageMiB: 10,
+        },
+      },
+      profile,
+      hydrateTagProfile,
+    );
+    expect(invalid.developer.useCustomPackageSizeLimits).toBe(false);
+    expect(effectivePackageSizeLimits(invalid.developer)).toEqual(
+      SAFE_PACKAGE_SIZE_LIMITS,
+    );
+    expect(
+      validatePackageSizeLimits({
+        maxArchiveMiB: 64,
+        maxDefinitionFileMiB: 2,
+        maxAssetFileMiB: 17,
+        maxExpandedPackageMiB: 16,
+      }),
+    ).toContain("cannot exceed");
   });
 
   it("rejects duplicate, unmodified, and platform-reserved bindings", () => {

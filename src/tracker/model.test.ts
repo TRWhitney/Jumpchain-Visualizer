@@ -1002,4 +1002,37 @@ describe("Chain Tracker aggregate", () => {
         .jumper.balance,
     ).toBe(300);
   });
+
+  it("installs a validated package immutably without adding it to the chain", () => {
+    const state = createDenseTrackerFixture();
+    const document = Object.values(state.packages).find(
+      (item) => item.document,
+    )!.document!;
+    const installed = trackerReducer(state, {
+      type: "install-package",
+      packageItem: {
+        id: "imported-safe-hash",
+        logicalId: "safe-package",
+        exactHash: "safe-hash",
+        name: "Safe Import",
+        version: "1.0",
+        source: "imported",
+        description: "Validated before installation.",
+        tags: [],
+        availability: "library",
+        document: {
+          ...document,
+          id: "imported-safe-hash",
+          exactHash: "safe-hash",
+        },
+      },
+    });
+    expect(installed.packages["imported-safe-hash"]).toMatchObject({
+      name: "Safe Import",
+      exactHash: "safe-hash",
+      source: "imported",
+    });
+    expect(installed.order).toEqual(state.order);
+    expect(installed.librarySource).toBe("imported");
+  });
 });

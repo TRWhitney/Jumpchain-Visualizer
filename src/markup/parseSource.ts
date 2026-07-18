@@ -100,6 +100,7 @@ export function parseFormatFile(
       const indentation = raw.match(/^ */)?.[0].length ?? 0;
       if (indentation === fenced.indent && raw.trim() === '"""') {
         fenced.field.value = fenced.content.join("\n");
+        fenced.field.range.to = offset + raw.length;
         fenced = undefined;
       } else if (raw.trim() && indentation < fenced.indent) {
         diagnostics.push({
@@ -148,7 +149,10 @@ export function parseFormatFile(
       offset += raw.length + 1;
       continue;
     }
-    while (stack.length && stack.at(-1)!.indent >= indent) stack.pop();
+    while (stack.length && stack.at(-1)!.indent >= indent) {
+      const complete = stack.pop()!;
+      complete.node.range.to = Math.max(complete.node.range.to, offset - 1);
+    }
     const owner = stack.at(-1)?.node;
     const fieldMatch = text.match(
       /^([a-z][a-z0-9-]*)(?:\s+when\s+(.+?))?:\s*(.*)$/,
@@ -245,5 +249,7 @@ export function parseFormatFile(
       message: "Rich-text fence is not closed.",
       range: fenced.field.range,
     });
+  for (const pending of stack)
+    pending.node.range.to = Math.max(pending.node.range.to, source.length);
   return { file, source, tree: roots, diagnostics };
 }

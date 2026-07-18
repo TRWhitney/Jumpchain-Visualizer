@@ -10,9 +10,15 @@ import {
 } from "react";
 import { SettingsSurface } from "../settings/SettingsSurface";
 import { useOptionalSettings, useSettings } from "../settings/SettingsContext";
-import type { SettingsCategory } from "../settings/model";
+import {
+  effectivePackageSizeLimits,
+  type SettingsCategory,
+} from "../settings/model";
 import { SettingsProvider } from "../settings/SettingsProvider";
-import { MemorySettingsRepository } from "../settings/repository";
+import {
+  isTauriRuntime,
+  MemorySettingsRepository,
+} from "../settings/repository";
 import { projectTagDefinitions } from "../settings/tagProfile";
 import { SupplementProviders } from "../supplements/TrackerSupplements";
 import { ChainTracker } from "../tracker/ChainTracker";
@@ -31,12 +37,7 @@ import {
   type TrackerAction,
   type TagDefinition,
 } from "../tracker/model";
-import {
-  exampleWorkspaceId,
-  routeFromPath,
-  titleForRoute,
-  workspaceForRoute,
-} from "./routes";
+import { routeFromPath, titleForRoute, workspaceForRoute } from "./routes";
 import {
   chainRegistryReducer,
   createChainRegistryFixture,
@@ -53,6 +54,18 @@ import {
 } from "../tracker/repository";
 import type { TrackerState } from "../tracker/model";
 import { evaluateTracker, projectEvaluation } from "../tracker/evaluateTracker";
+import {
+  createPlatformEditorWorkspaceRepository,
+  createStarterWorkspace,
+  EditorHub,
+  EditorWorkspace,
+  exactHashForFiles,
+  hydrateEditorWorkspace,
+  orderedEditorWorkspaces,
+  summarizeWorkspace,
+  type EditorWorkspaceSnapshot,
+} from "../editor";
+import { JumpPackageImportService, type PackageImportReview } from "../archive";
 import "../../documentation/styles.css";
 import "../../documentation/application-design.css";
 import "../../documentation/chain-tracker-design.css";
@@ -68,6 +81,7 @@ import "../../documentation/supplements-universal-drawbacks.css";
 import "../supplements/review.css";
 import "../tracker/review.css";
 import "./shell.css";
+import "../editor/editor.css";
 
 type ShellHistoryState = {
   jvIndex?: number;
@@ -112,6 +126,33 @@ function AppShellContent() {
     undefined,
     createChainRegistryFixture,
   );
+  const editorRepository = useMemo(
+    () => createPlatformEditorWorkspaceRepository(),
+    [],
+  );
+  const [editorWorkspaces, setEditorWorkspaces] = useState<
+    Record<string, EditorWorkspaceSnapshot>
+  >({});
+  const editorWorkspacesRef = useRef(editorWorkspaces);
+  const persistedEditorWorkspacesRef = useRef<
+    Record<string, EditorWorkspaceSnapshot>
+  >({});
+  const [editorLoading, setEditorLoading] = useState(true);
+  const [editorError, setEditorError] = useState<string | null>(null);
+  const [editorSaveState, setEditorSaveState] = useState<
+    "Saved" | "Saving" | "Unsaved" | "Save failed"
+  >("Saved");
+  const editorSaveTimer = useRef<number | null>(null);
+  const [pendingEditorNavigation, setPendingEditorNavigation] = useState<{
+    path: string;
+    state: Partial<ShellHistoryState>;
+  } | null>(null);
+  const [exportWorkspace, setExportWorkspace] =
+    useState<EditorWorkspaceSnapshot | null>(null);
+  const [externalEditorConflict, setExternalEditorConflict] = useState<{
+    disk: EditorWorkspaceSnapshot;
+    file: string;
+  } | null>(null);
   const chainRepository = useMemo(() => createPlatformChainRepository(), []);
   const [chainStates, setChainStates] = useState<Record<string, TrackerState>>(
     () =>
@@ -139,6 +180,10 @@ function AppShellContent() {
         : route,
     [route, settingsBackgroundPath],
   );
+  const activeEditorWorkspace =
+    backgroundRoute.kind === "editor-workspace"
+      ? editorWorkspaces[backgroundRoute.workspaceId]
+      : undefined;
   const workspace = workspaceForRoute(backgroundRoute);
   const savedChains = useMemo(
     () =>
@@ -169,6 +214,10 @@ function AppShellContent() {
         };
       }),
     [chainRegistry, chainStates, settings.chain.includeItemTagsInRadar],
+  );
+  const savedEditorWorkspaces = useMemo(
+    () => orderedEditorWorkspaces(Object.values(editorWorkspaces)),
+    [editorWorkspaces],
   );
   const activeChain =
     backgroundRoute.kind === "chain-workspace"
@@ -205,6 +254,36 @@ function AppShellContent() {
     }),
     [projectedTags, trackerPreferences, trackerState],
   );
+
+  useEffect(() => {
+    let live = true;
+    void editorRepository
+      .list()
+      .then((stored) => {
+        if (!live) return;
+        const storedById = Object.fromEntries(
+          stored.map((workspace) => [workspace.id, workspace]),
+        );
+        const indexed = { ...storedById, ...editorWorkspacesRef.current };
+        editorWorkspacesRef.current = indexed;
+        persistedEditorWorkspacesRef.current = indexed;
+        setEditorWorkspaces(indexed);
+        setEditorError(null);
+        setEditorLoading(false);
+      })
+      .catch(() => {
+        if (!live) return;
+        setEditorError("Saved Editor projects could not be loaded.");
+        setEditorLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [editorRepository]);
+
+  useEffect(() => {
+    editorWorkspacesRef.current = editorWorkspaces;
+  }, [editorWorkspaces]);
 
   useEffect(() => {
     let live = true;
@@ -302,7 +381,10 @@ function AppShellContent() {
   }, []);
 
   useEffect(() => {
-    document.title = titleForRoute(route, activeChain?.name);
+    document.title =
+      route.kind === "editor-workspace" && activeEditorWorkspace
+        ? `${summarizeWorkspace(activeEditorWorkspace).name} · Editor`
+        : titleForRoute(route, activeChain?.name);
     if (previousPathname.current === pathname) return;
     previousPathname.current = pathname;
     if (route.kind === "settings") return;
@@ -317,9 +399,9 @@ function AppShellContent() {
         settingsButtonRef.current?.focus();
       }
     });
-  }, [activeChain?.name, pathname, route]);
+  }, [activeChain?.name, activeEditorWorkspace, pathname, route]);
 
-  const navigate = useCallback(
+  const performNavigation = useCallback(
     (nextPath: string, extraState: Partial<ShellHistoryState> = {}) => {
       if (window.location.pathname === nextPath) return;
       if (backgroundRoute.kind === "chain-workspace")
@@ -343,12 +425,39 @@ function AppShellContent() {
     [backgroundRoute, historyIndex],
   );
 
+  const navigate = useCallback(
+    (nextPath: string, extraState: Partial<ShellHistoryState> = {}) => {
+      const leavingEditor =
+        backgroundRoute.kind === "editor-workspace" &&
+        !nextPath.startsWith(`/editor/${backgroundRoute.workspaceId}`) &&
+        nextPath !== "/settings";
+      if (
+        leavingEditor &&
+        settings.editor.saveMode === "explicit" &&
+        editorSaveState !== "Saved"
+      ) {
+        setPendingEditorNavigation({ path: nextPath, state: extraState });
+        return;
+      }
+      performNavigation(nextPath, extraState);
+    },
+    [
+      backgroundRoute,
+      editorSaveState,
+      performNavigation,
+      settings.editor.saveMode,
+    ],
+  );
+
   const isActive = (kind: typeof backgroundRoute.kind) =>
     backgroundRoute.kind === kind;
   const knownEditor =
-    backgroundRoute.kind === "editor-workspace" && backgroundRoute.available;
+    backgroundRoute.kind === "editor-workspace" &&
+    activeEditorWorkspace !== undefined;
   const missingEditor =
-    backgroundRoute.kind === "editor-workspace" && !backgroundRoute.available;
+    backgroundRoute.kind === "editor-workspace" &&
+    !editorLoading &&
+    activeEditorWorkspace === undefined;
   const knownChain =
     backgroundRoute.kind === "chain-workspace" && activeChain !== undefined;
   const missingChain =
@@ -367,6 +476,215 @@ function AppShellContent() {
     if (route.kind === "settings") closeSettings();
     else openSettings();
   };
+
+  const persistEditorWorkspace = useCallback(
+    async (workspace: EditorWorkspaceSnapshot) => {
+      try {
+        await editorRepository.save(workspace);
+        persistedEditorWorkspacesRef.current = {
+          ...persistedEditorWorkspacesRef.current,
+          [workspace.id]: workspace,
+        };
+        setEditorSaveState("Saved");
+        setEditorError(null);
+        return true;
+      } catch {
+        setEditorSaveState("Save failed");
+        setEditorError(
+          "Editor autosave failed. Your in-memory source is still available.",
+        );
+        return false;
+      }
+    },
+    [editorRepository],
+  );
+
+  const changeEditorWorkspace = useCallback(
+    (next: EditorWorkspaceSnapshot, continuous = false) => {
+      const nextWorkspaces = {
+        ...editorWorkspacesRef.current,
+        [next.id]: next,
+      };
+      editorWorkspacesRef.current = nextWorkspaces;
+      setEditorWorkspaces(nextWorkspaces);
+      setEditorSaveState("Unsaved");
+      if (settings.editor.saveMode !== "autosave") return;
+      setEditorSaveState("Saving");
+      if (editorSaveTimer.current) window.clearTimeout(editorSaveTimer.current);
+      editorSaveTimer.current = window.setTimeout(
+        () => void persistEditorWorkspace(next),
+        continuous ? 350 : 80,
+      );
+    },
+    [persistEditorWorkspace, settings.editor.saveMode],
+  );
+
+  const saveActiveEditor = useCallback(async () => {
+    if (backgroundRoute.kind !== "editor-workspace") return false;
+    const current = editorWorkspacesRef.current[backgroundRoute.workspaceId];
+    if (!current) return false;
+    setEditorSaveState("Saving");
+    return persistEditorWorkspace(current);
+  }, [backgroundRoute, persistEditorWorkspace]);
+
+  const createEditorProject = useCallback(() => {
+    const created = createStarterWorkspace();
+    const next = { ...editorWorkspacesRef.current, [created.id]: created };
+    editorWorkspacesRef.current = next;
+    setEditorWorkspaces(next);
+    setEditorSaveState("Saved");
+    void persistEditorWorkspace(created);
+    logger.emit("editor.project.created", {
+      attributes: { location: created.location },
+    });
+    navigate(`/editor/${encodeURIComponent(created.id)}`);
+  }, [logger, navigate, persistEditorWorkspace]);
+
+  const openEditorProject = useCallback(
+    (workspace: EditorWorkspaceSnapshot) => {
+      const opened = {
+        ...workspace,
+        lastOpenedAt: new Date().toISOString(),
+      };
+      const next = { ...editorWorkspacesRef.current, [opened.id]: opened };
+      editorWorkspacesRef.current = next;
+      setEditorWorkspaces(next);
+      setEditorSaveState("Saved");
+      void persistEditorWorkspace(opened);
+      navigate(`/editor/${encodeURIComponent(opened.id)}`);
+    },
+    [navigate, persistEditorWorkspace],
+  );
+
+  const toggleEditorStar = useCallback(
+    (workspace: EditorWorkspaceSnapshot) => {
+      const nextWorkspace = { ...workspace, starred: !workspace.starred };
+      const next = {
+        ...editorWorkspacesRef.current,
+        [workspace.id]: nextWorkspace,
+      };
+      editorWorkspacesRef.current = next;
+      setEditorWorkspaces(next);
+      void persistEditorWorkspace(nextWorkspace);
+      logger.emit(
+        nextWorkspace.starred ? "editor.starred" : "editor.unstarred",
+      );
+    },
+    [logger, persistEditorWorkspace],
+  );
+
+  const importEditorProject = useCallback(
+    (review: PackageImportReview) => {
+      const now = new Date().toISOString();
+      const imported: EditorWorkspaceSnapshot = {
+        schemaVersion: 1,
+        id: globalThis.crypto.randomUUID(),
+        location: "imported",
+        files: { ...review.files.definitions },
+        assets: { ...review.files.assets },
+        starred: false,
+        createdAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        revision: 0,
+      };
+      const next = { ...editorWorkspacesRef.current, [imported.id]: imported };
+      editorWorkspacesRef.current = next;
+      setEditorWorkspaces(next);
+      void persistEditorWorkspace(imported);
+      logger.emit("editor.package.imported", {
+        attributes: {
+          warningOverride: review.status === "warning",
+          definitionCount: review.definitionCount,
+          assetCount: review.assetCount,
+        },
+      });
+      navigate(`/editor/${encodeURIComponent(imported.id)}`);
+    },
+    [logger, navigate, persistEditorWorkspace],
+  );
+
+  const openEditorFolder = useCallback(() => {
+    if (!isTauriRuntime()) return;
+    void import("@tauri-apps/api/core")
+      .then(({ invoke }) =>
+        invoke<EditorWorkspaceSnapshot | null>("open_editor_project_folder", {
+          limits: effectivePackageSizeLimits(settings.developer),
+        }),
+      )
+      .then((opened) => {
+        if (opened) openEditorProject(opened);
+      })
+      .catch(() =>
+        setEditorError(
+          "The project folder could not be opened safely or permission was lost.",
+        ),
+      );
+  }, [openEditorProject, settings.developer]);
+
+  useEffect(() => {
+    if (
+      !isTauriRuntime() ||
+      !activeEditorWorkspace?.externalFolder ||
+      activeEditorWorkspace.location !== "desktop" ||
+      externalEditorConflict
+    )
+      return;
+    let live = true;
+    const scan = async () => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const diskValue = await invoke<unknown>("scan_editor_project_folder", {
+          folder: activeEditorWorkspace.externalFolder,
+          limits: effectivePackageSizeLimits(settings.developer),
+        });
+        if (!live || !diskValue || typeof diskValue !== "object") return;
+        const disk = hydrateEditorWorkspace({
+          ...activeEditorWorkspace,
+          ...(diskValue as object),
+          updatedAt: new Date().toISOString(),
+          revision: activeEditorWorkspace.revision + 1,
+        });
+        if (
+          !disk ||
+          exactHashForFiles(disk.files) ===
+            exactHashForFiles(activeEditorWorkspace.files)
+        )
+          return;
+        if (editorSaveState === "Saved") {
+          const next = { ...editorWorkspacesRef.current, [disk.id]: disk };
+          editorWorkspacesRef.current = next;
+          setEditorWorkspaces(next);
+          persistedEditorWorkspacesRef.current = {
+            ...persistedEditorWorkspacesRef.current,
+            [disk.id]: disk,
+          };
+          return;
+        }
+        const file =
+          Object.keys(disk.files).find(
+            (path) => disk.files[path] !== activeEditorWorkspace.files[path],
+          ) ?? "jump.jdef";
+        setExternalEditorConflict({ disk, file });
+      } catch {
+        if (live)
+          setEditorError(
+            "The desktop project folder is unavailable or its permission was lost. Your Editor buffers and recovery copy are retained.",
+          );
+      }
+    };
+    const timer = window.setInterval(() => void scan(), 2_000);
+    void scan();
+    return () => {
+      live = false;
+      window.clearInterval(timer);
+    };
+  }, [
+    activeEditorWorkspace,
+    editorSaveState,
+    externalEditorConflict,
+    settings.developer,
+  ]);
 
   const openChain = useCallback(
     (chain: SavedChain) => {
@@ -652,17 +970,46 @@ function AppShellContent() {
                 aria-labelledby="recent-editor-heading"
               >
                 <h4 id="recent-editor-heading">Editor workspaces</h4>
-                <div className="app-recent-work">
-                  <span>
-                    <strong>Example Jump</strong>
-                    <small>Edited today</small>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/editor/${exampleWorkspaceId}`)}
-                  >
-                    Resume
-                  </button>
+                <div className="app-recent-list">
+                  {savedEditorWorkspaces.slice(0, 5).map((workspace) => {
+                    const summary = summarizeWorkspace(workspace);
+                    return (
+                      <div className="app-recent-work" key={workspace.id}>
+                        <span>
+                          <strong>{summary.name}</strong>
+                          <small>
+                            {summary.authors.join(", ") || "Unknown author"} · v
+                            {summary.version}
+                          </small>
+                        </span>
+                        <div className="app-recent-actions">
+                          {workspace.starred && (
+                            <span
+                              className="app-chain-star-indicator"
+                              role="img"
+                              aria-label={`${summary.name} is starred`}
+                            >
+                              ★
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => openEditorProject(workspace)}
+                          >
+                            Resume
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {!savedEditorWorkspaces.length && (
+                    <div className="app-recent-work is-empty">
+                      <span>
+                        <strong>No recent Editor projects</strong>
+                        <small>Create or import a Jump to begin.</small>
+                      </span>
+                    </div>
+                  )}
                 </div>
               </section>
               <section
@@ -697,61 +1044,47 @@ function AppShellContent() {
           </section>
 
           <section
+            className="app-editor-hub-route"
             hidden={!isActive("editor-hub")}
             inert={!isActive("editor-hub") || undefined}
             data-active-route={isActive("editor-hub")}
             aria-labelledby="app-editor-heading"
           >
-            <p className="app-mock-kicker">Editor hub</p>
-            <h1
-              id="app-editor-heading"
-              className="app-route-heading"
-              data-route-heading
-              tabIndex={-1}
-            >
-              Create or open a Jump package
-            </h1>
-            <p>
-              The hub owns project creation, folder access, portable imports,
-              and recent Editor workspaces. Opening a project moves to its
-              addressable workspace route.
-            </p>
-            <div className="app-route-actions">
-              <button
-                type="button"
-                onClick={() => navigate(`/editor/${exampleWorkspaceId}`)}
-              >
-                Open Example Jump
-              </button>
-              <a href="/documentation/editor-design.html">
-                View detailed Editor design
-              </a>
-            </div>
+            <EditorHub
+              workspaces={savedEditorWorkspaces}
+              loading={editorLoading}
+              error={editorError}
+              desktop={isTauriRuntime()}
+              onCreate={createEditorProject}
+              onOpen={openEditorProject}
+              onOpenFolder={openEditorFolder}
+              onImport={importEditorProject}
+              onToggleStar={toggleEditorStar}
+            />
           </section>
 
           <section
+            className="app-editor-workspace"
             hidden={!knownEditor}
             inert={!knownEditor || undefined}
             data-active-route={knownEditor}
-            aria-labelledby="app-editor-workspace-heading"
+            aria-label="Editor workspace"
           >
-            <p className="app-mock-kicker">Editor workspace</p>
-            <h1
-              id="app-editor-workspace-heading"
-              className="app-route-heading"
-              data-route-heading
-              tabIndex={-1}
-            >
-              Example Jump
-            </h1>
-            <p>
-              The established three-pane Editor will mount here. The shell
-              retains responsibility only for product navigation, routing, and
-              application-wide services.
-            </p>
-            <a href="/documentation/editor-design.html">
-              Open the Editor mockup
-            </a>
+            {activeEditorWorkspace && (
+              <>
+                <h1 className="sr-only" data-route-heading tabIndex={-1}>
+                  {summarizeWorkspace(activeEditorWorkspace).name}
+                </h1>
+                <EditorWorkspace
+                  workspace={activeEditorWorkspace}
+                  settings={settings}
+                  saveState={editorSaveState}
+                  onChange={changeEditorWorkspace}
+                  onSave={() => void saveActiveEditor()}
+                  onExport={() => setExportWorkspace(activeEditorWorkspace)}
+                />
+              </>
+            )}
           </section>
 
           <RecoveryView
@@ -913,8 +1246,269 @@ function AppShellContent() {
             />
           </div>
         )}
+        {pendingEditorNavigation && (
+          <div className="editor-departure-backdrop">
+            <section
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="editor-departure-heading"
+            >
+              <p>Unsaved source</p>
+              <h2 id="editor-departure-heading">
+                Save before leaving the Editor?
+              </h2>
+              <p>
+                This project uses explicit saves. Leaving now without saving
+                discards the in-memory source changes from this session.
+              </p>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const pending = pendingEditorNavigation;
+                    void saveActiveEditor().then((saved) => {
+                      if (!saved) return;
+                      setPendingEditorNavigation(null);
+                      performNavigation(pending.path, pending.state);
+                    });
+                  }}
+                >
+                  Save and Leave
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const pending = pendingEditorNavigation;
+                    if (backgroundRoute.kind === "editor-workspace") {
+                      const saved =
+                        persistedEditorWorkspacesRef.current[
+                          backgroundRoute.workspaceId
+                        ];
+                      if (saved) {
+                        const next = {
+                          ...editorWorkspacesRef.current,
+                          [saved.id]: saved,
+                        };
+                        editorWorkspacesRef.current = next;
+                        setEditorWorkspaces(next);
+                      }
+                    }
+                    setPendingEditorNavigation(null);
+                    setEditorSaveState("Saved");
+                    performNavigation(pending.path, pending.state);
+                  }}
+                >
+                  Discard
+                </button>
+                <button
+                  autoFocus
+                  type="button"
+                  onClick={() => setPendingEditorNavigation(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+        {exportWorkspace && (
+          <EditorExportReview
+            workspace={exportWorkspace}
+            settings={settings}
+            onClose={() => setExportWorkspace(null)}
+            onOverrideUse={() =>
+              logger.emit("package.limits.override_used", {
+                attributes: { operation: "editor-export" },
+              })
+            }
+          />
+        )}
+        {externalEditorConflict && activeEditorWorkspace && (
+          <div className="editor-departure-backdrop">
+            <section
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="editor-conflict-heading"
+            >
+              <p>External change detected</p>
+              <h2 id="editor-conflict-heading">The project changed on disk</h2>
+              <p>
+                Autosave is paused for {externalEditorConflict.file}. Compare
+                both versions, keep the Editor buffer, or use the disk version.
+              </p>
+              <details>
+                <summary>Compare {externalEditorConflict.file}</summary>
+                <div className="editor-conflict-compare">
+                  <section>
+                    <strong>Editor version</strong>
+                    <pre>
+                      {activeEditorWorkspace.files[
+                        externalEditorConflict.file
+                      ] ?? "(missing)"}
+                    </pre>
+                  </section>
+                  <section>
+                    <strong>Disk version</strong>
+                    <pre>
+                      {externalEditorConflict.disk.files[
+                        externalEditorConflict.file
+                      ] ?? "(missing)"}
+                    </pre>
+                  </section>
+                </div>
+              </details>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExternalEditorConflict(null);
+                    void saveActiveEditor();
+                  }}
+                >
+                  Keep Editor Version
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const disk = externalEditorConflict.disk;
+                    const next = {
+                      ...editorWorkspacesRef.current,
+                      [disk.id]: disk,
+                    };
+                    editorWorkspacesRef.current = next;
+                    persistedEditorWorkspacesRef.current = {
+                      ...persistedEditorWorkspacesRef.current,
+                      [disk.id]: disk,
+                    };
+                    setEditorWorkspaces(next);
+                    setEditorSaveState("Saved");
+                    setExternalEditorConflict(null);
+                    void editorRepository.save(disk);
+                  }}
+                >
+                  Use Disk Version
+                </button>
+                <button
+                  autoFocus
+                  type="button"
+                  onClick={() => setExternalEditorConflict(null)}
+                >
+                  Continue Comparing
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
       </div>
     </SupplementProviders>
+  );
+}
+
+function EditorExportReview({
+  workspace,
+  settings,
+  onClose,
+  onOverrideUse,
+}: {
+  workspace: EditorWorkspaceSnapshot;
+  settings: ReturnType<typeof useSettings>["settings"];
+  onClose: () => void;
+  onOverrideUse: () => void;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const limits = effectivePackageSizeLimits(settings.developer);
+  const summary = summarizeWorkspace(workspace);
+  const perform = async () => {
+    setExporting(true);
+    setError(null);
+    try {
+      const archive = await new JumpPackageImportService().export(
+        { definitions: workspace.files, assets: workspace.assets },
+        limits,
+      );
+      if (settings.developer.useCustomPackageSizeLimits) onOverrideUse();
+      const safeName =
+        summary.name
+          .toLocaleLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "") || "jump-package";
+      if (isTauriRuntime()) {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("save_editor_package", {
+          suggestedName: `${safeName}.jmp`,
+          bytes: [...archive],
+          limits,
+        });
+      } else {
+        const url = URL.createObjectURL(new Blob([archive.slice().buffer]));
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `${safeName}.jmp`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+      }
+      onClose();
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Export could not be completed safely.",
+      );
+      setExporting(false);
+    }
+  };
+  return (
+    <div className="editor-departure-backdrop">
+      <section
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="editor-export-heading"
+      >
+        <p>Preflight and export</p>
+        <h2 id="editor-export-heading">Export {summary.name} as .jmp?</h2>
+        <p>
+          Every source file and asset will be validated before compression.
+          Export is blocked if any effective limit or mandatory image/file
+          protection fails.
+        </p>
+        <div className="editor-export-limits">
+          <strong>Effective limits</strong>
+          <span>Archive {limits.maxArchiveMiB} MiB</span>
+          <span>Definition {limits.maxDefinitionFileMiB} MiB</span>
+          <span>Asset {limits.maxAssetFileMiB} MiB</span>
+          <span>Expanded {limits.maxExpandedPackageMiB} MiB</span>
+        </div>
+        {settings.developer.useCustomPackageSizeLimits && (
+          <p className="editor-export-risk">
+            <strong>At your own risk.</strong> Custom package byte budgets are
+            active. Mandatory security checks remain enabled.
+          </p>
+        )}
+        {error && (
+          <p className="editor-export-error" role="alert">
+            {error}
+          </p>
+        )}
+        <div>
+          <button
+            type="button"
+            disabled={exporting}
+            onClick={() => void perform()}
+          >
+            {exporting ? "Exporting…" : "Export Package"}
+          </button>
+          <button
+            autoFocus
+            type="button"
+            disabled={exporting}
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 

@@ -65,6 +65,7 @@ export type InstalledPackage = {
   authors?: readonly string[];
   nativeGauntlet?: boolean;
   document?: CanonicalJumpPackage;
+  assets?: Readonly<Record<string, Uint8Array>>;
 };
 
 export type ChainEntry = {
@@ -255,6 +256,7 @@ export type TrackerAction =
   | { type: "commit-mutation" }
   | { type: "undo" }
   | { type: "dismiss-undo" }
+  | { type: "install-package"; packageItem: InstalledPackage }
   | { type: "add-package"; packageId: string }
   | { type: "set-library-search"; value: string }
   | { type: "set-library-source"; value: TrackerState["librarySource"] }
@@ -1287,6 +1289,23 @@ export function trackerReducer(
         : state;
     case "dismiss-undo":
       return state.undo ? { ...state, undo: null } : state;
+    case "install-package": {
+      const packageItem = action.packageItem;
+      if (
+        !packageItem.exactHash ||
+        state.packages[packageItem.id]?.exactHash === packageItem.exactHash
+      )
+        return state;
+      return {
+        ...state,
+        packages: {
+          ...state.packages,
+          [packageItem.id]: packageItem,
+        },
+        librarySource: "imported",
+        librarySearch: "",
+      };
+    }
     case "add-package": {
       const packageItem = state.packages[action.packageId];
       if (!packageItem) return state;

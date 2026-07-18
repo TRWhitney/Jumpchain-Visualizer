@@ -1,6 +1,7 @@
 jump
   format: 1
   name: "The Confluence Engine"
+  description: "Align realities through an engine built from compatible rules."
   author: "Jumpchain Visualizer"
   author: "The Cartographers of Threshold"
   version: "1.0"

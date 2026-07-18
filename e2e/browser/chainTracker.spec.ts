@@ -934,7 +934,7 @@ test("a stale canonical demo hash rebinds without losing selections or reaching 
   await expect
     .poll(async () =>
       page.evaluate(async () => {
-        const request = indexedDB.open("jumpchain-visualizer", 2);
+        const request = indexedDB.open("jumpchain-visualizer", 3);
         const database = await new Promise<IDBDatabase>((resolve, reject) => {
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
@@ -952,7 +952,7 @@ test("a stale canonical demo hash rebinds without losing selections or reaching 
     .toBe(true);
 
   await page.evaluate(async () => {
-    const request = indexedDB.open("jumpchain-visualizer", 2);
+    const request = indexedDB.open("jumpchain-visualizer", 3);
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);

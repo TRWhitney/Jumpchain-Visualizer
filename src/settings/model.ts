@@ -15,6 +15,27 @@ export type KeybindingChord = {
   shift: boolean;
 };
 
+export type PackageSizeLimits = {
+  maxArchiveMiB: number;
+  maxDefinitionFileMiB: number;
+  maxAssetFileMiB: number;
+  maxExpandedPackageMiB: number;
+};
+
+export const SAFE_PACKAGE_SIZE_LIMITS: Readonly<PackageSizeLimits> = {
+  maxArchiveMiB: 64,
+  maxDefinitionFileMiB: 2,
+  maxAssetFileMiB: 16,
+  maxExpandedPackageMiB: 96,
+};
+
+export const ABSOLUTE_PACKAGE_SIZE_LIMITS: Readonly<PackageSizeLimits> = {
+  maxArchiveMiB: 512,
+  maxDefinitionFileMiB: 16,
+  maxAssetFileMiB: 256,
+  maxExpandedPackageMiB: 1024,
+};
+
 export type ApplicationSettings = {
   schemaVersion: 1;
   appearance: {
@@ -22,7 +43,10 @@ export type ApplicationSettings = {
     accentColor: string;
   };
   accessibility: { motion: MotionPreference };
-  developer: { showAdditionalJumpInformation: boolean };
+  developer: {
+    showAdditionalJumpInformation: boolean;
+    useCustomPackageSizeLimits: boolean;
+  } & PackageSizeLimits;
   editor: {
     saveMode: "autosave" | "explicit";
     warnMissingImageAlt: boolean;
@@ -88,7 +112,11 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
     appearance: { theme: "system", accentColor: "#d4af37" },
     accessibility: { motion: "system" },
-    developer: { showAdditionalJumpInformation: false },
+    developer: {
+      showAdditionalJumpInformation: false,
+      useCustomPackageSizeLimits: false,
+      ...SAFE_PACKAGE_SIZE_LIMITS,
+    },
     editor: {
       saveMode: "autosave",
       warnMissingImageAlt: true,
@@ -129,6 +157,51 @@ const isChord = (value: unknown): value is KeybindingChord => {
   );
 };
 
+const boundedWholeMiB = (value: unknown, maximum: number, fallback: number) =>
+  typeof value === "number" &&
+  Number.isInteger(value) &&
+  value >= 1 &&
+  value <= maximum
+    ? value
+    : fallback;
+
+export function validatePackageSizeLimits(limits: PackageSizeLimits) {
+  const entries = (
+    [
+      "maxArchiveMiB",
+      "maxDefinitionFileMiB",
+      "maxAssetFileMiB",
+      "maxExpandedPackageMiB",
+    ] as const
+  ).map((key) => [key, limits[key]] as const);
+  for (const [key, value] of entries) {
+    if (!Number.isInteger(value) || value < 1)
+      return "Package limits must be whole MiB values of at least 1.";
+    if (value > ABSOLUTE_PACKAGE_SIZE_LIMITS[key])
+      return `${key} exceeds the absolute application ceiling.`;
+  }
+  if (
+    limits.maxDefinitionFileMiB > limits.maxExpandedPackageMiB ||
+    limits.maxAssetFileMiB > limits.maxExpandedPackageMiB
+  )
+    return "Definition and asset limits cannot exceed the expanded package limit.";
+  return null;
+}
+
+export function effectivePackageSizeLimits(
+  developer: ApplicationSettings["developer"],
+): Readonly<PackageSizeLimits> {
+  return developer.useCustomPackageSizeLimits &&
+    !validatePackageSizeLimits(developer)
+    ? {
+        maxArchiveMiB: developer.maxArchiveMiB,
+        maxDefinitionFileMiB: developer.maxDefinitionFileMiB,
+        maxAssetFileMiB: developer.maxAssetFileMiB,
+        maxExpandedPackageMiB: developer.maxExpandedPackageMiB,
+      }
+    : SAFE_PACKAGE_SIZE_LIMITS;
+}
+
 export function hydrateSettings(
   value: unknown,
   defaultProfile: TagProfile,
@@ -161,6 +234,32 @@ export function hydrateSettings(
       validatedOverrides[action] = overrides[action];
   }
 
+  const hydratedPackageSizeLimits: PackageSizeLimits = {
+    maxArchiveMiB: boundedWholeMiB(
+      developer.maxArchiveMiB,
+      ABSOLUTE_PACKAGE_SIZE_LIMITS.maxArchiveMiB,
+      fallback.developer.maxArchiveMiB,
+    ),
+    maxDefinitionFileMiB: boundedWholeMiB(
+      developer.maxDefinitionFileMiB,
+      ABSOLUTE_PACKAGE_SIZE_LIMITS.maxDefinitionFileMiB,
+      fallback.developer.maxDefinitionFileMiB,
+    ),
+    maxAssetFileMiB: boundedWholeMiB(
+      developer.maxAssetFileMiB,
+      ABSOLUTE_PACKAGE_SIZE_LIMITS.maxAssetFileMiB,
+      fallback.developer.maxAssetFileMiB,
+    ),
+    maxExpandedPackageMiB: boundedWholeMiB(
+      developer.maxExpandedPackageMiB,
+      ABSOLUTE_PACKAGE_SIZE_LIMITS.maxExpandedPackageMiB,
+      fallback.developer.maxExpandedPackageMiB,
+    ),
+  };
+  const validHydratedPackageLimits = !validatePackageSizeLimits(
+    hydratedPackageSizeLimits,
+  );
+
   return {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
     appearance: {
@@ -187,6 +286,10 @@ export function hydrateSettings(
         developer.showAdditionalJumpInformation,
         fallback.developer.showAdditionalJumpInformation,
       ),
+      useCustomPackageSizeLimits:
+        validHydratedPackageLimits &&
+        bool(developer.useCustomPackageSizeLimits, false),
+      ...hydratedPackageSizeLimits,
     },
     editor: {
       saveMode: oneOf(

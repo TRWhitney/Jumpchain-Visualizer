@@ -152,7 +152,7 @@
       <div class="section-heading">
         <p class="eyebrow">Concept mockup</p>
         <h2 id="mockup-heading">Adaptive three-pane workspace</h2>
-        <p>The Content view keeps every declaration searchable and groups longer lists into collapsible sections. Its Content/Files tabs and content search remain visible while only the declarations beneath them scroll. Sidebar entry names truncate with an ellipsis when space is insufficient and expose the complete name as a hover hint. Content selections retain the author’s last Structured or Source tab; package files open in Source without overwriting that content preference. The Source tab uses the language-aware editing surface documented below, populated with the current selection. The preview stays contextual to the current selection. When the current preview is a layout or uses one, Show bounds reveals color-coded containers, slots, and content references around the populated preview data; hovering one boundary identifies it in the debugger readout without covering the content. A compact diagnostics strip remains available at the bottom, previews the highest-priority problem, and opens its scrollable details upward without changing the mockup height.</p>
+        <p>The Content view keeps every declaration searchable and groups longer lists into collapsible sections. Its Content/Files tabs and content search remain visible while only the declarations beneath them scroll. Sidebar entry names truncate with an ellipsis when space is insufficient and expose the complete name as a hover hint. The root Jump’s Description field is authored package metadata shared by hub cards, previews, and Chain Tracker. Content selections retain the author’s last Structured or Source tab; package files open in Source without overwriting that content preference. The Source tab uses the language-aware editing surface documented below, populated with the current selection. The preview stays contextual to the current selection. When the current preview is a layout or uses one, Show bounds reveals color-coded containers, slots, and content references around the populated preview data; hovering one boundary identifies it in the debugger readout without covering the content. A compact diagnostics strip remains available at the bottom, previews the highest-priority problem, and opens its scrollable details upward without changing the mockup height.</p>
       </div>
 
       <div class="editor-mockup" aria-label="Interactive editor concept">
@@ -397,6 +397,18 @@
       </div>
     </section>
 
+
+    <section class="research-section" aria-labelledby="implemented-editor-heading">
+      <div class="section-heading">
+        <p class="eyebrow">Implementation contract</p>
+        <h2 id="implemented-editor-heading">Hub, recovery, and secure package transport</h2>
+      </div>
+      <div class="research-list">
+        <article><h3>One source-authoritative workspace</h3><p>The production Editor implements this mock’s Content/Files, Structured/Source, and Preview/Properties panes with one package-wide history. Browser workspaces persist in IndexedDB; desktop folders remain canonical and use atomic replacement plus an application-data recovery mirror. Invalid authored source is retained while preview uses deterministic recovery or the last valid package.</p></article>
+        <article><h3>The real renderer owns preview</h3><p>Package, section, choice, and layout preview scopes use the same canonical renderer and disposable evaluator as Chain Tracker. Show Bounds annotations are geometry-neutral, use fixed semantic debug colors, and never inherit the application accent.</p></article>
+        <article><h3>Portable packages cross one security gate</h3><p>Editor import and Chain installation stage and validate an entire <code>.jmp</code> before creating anything. Reviews show identity, version, content hash, counts, diagnostics, and effective limits. Authoring warnings require an explicit Import Anyway; security, integrity, schema, missing-asset, unsupported-format, and limit failures cannot be overridden.</p></article>
+      </div>
+    </section>
 
     <section class="research-section" aria-labelledby="research-heading">
       <div class="section-heading">

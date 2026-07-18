@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Deterministic archive-boundary attack corpus generated in tests without retaining executable payloads.",
+  "cases": [
+    { "id": "forged-expanded-size", "expected": "archive.size_mismatch" },
+    { "id": "compression-bomb", "expected": "archive.ratio" },
+    { "id": "path-traversal", "expected": "archive.path" },
+    { "id": "case-folded-collision", "expected": "archive.path_collision" },
+    { "id": "nested-archive", "expected": "archive.entry_type" },
+    { "id": "encrypted-entry", "expected": "archive.encrypted" },
+    { "id": "corrupt-crc", "expected": "archive.crc" },
+    { "id": "trailing-polyglot", "expected": "archive.trailing_data" },
+    { "id": "malformed-image", "expected": "asset.decode" },
+    { "id": "image-pixel-budget", "expected": "asset.dimensions" }
+  ]
+}

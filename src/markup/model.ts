@@ -224,7 +224,6 @@ export type PackageSources = {
   id: string;
   logicalId?: string;
   source?: "builtin" | "imported";
-  description?: string;
   exactHash: string;
   files: Readonly<Record<string, string>>;
 };

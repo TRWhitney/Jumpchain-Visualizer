@@ -1,4 +1,3 @@
-export const exampleWorkspaceId = "ws-7f3a";
 export const exampleChainId = "ch-92b1";
 
 export type ApplicationRoute =
@@ -8,7 +7,6 @@ export type ApplicationRoute =
       kind: "editor-workspace";
       path: string;
       workspaceId: string;
-      available: boolean;
     }
   | { kind: "chain-hub"; path: "/chain" }
   | {
@@ -47,7 +45,6 @@ export function routeFromPath(pathname: string): ApplicationRoute {
       kind: "editor-workspace",
       path,
       workspaceId,
-      available: workspaceId === exampleWorkspaceId,
     };
   }
 
@@ -72,9 +69,7 @@ export function titleForRoute(route: ApplicationRoute, chainName?: string) {
     case "editor-hub":
       return "Editor · Jumpchain Visualizer";
     case "editor-workspace":
-      return route.available
-        ? "Example Jump · Editor"
-        : "Editor workspace unavailable · Jumpchain Visualizer";
+      return "Editor workspace · Jumpchain Visualizer";
     case "chain-hub":
       return "Chain Tracker · Jumpchain Visualizer";
     case "chain-workspace":

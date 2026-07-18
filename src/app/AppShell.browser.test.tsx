@@ -22,9 +22,7 @@ test("primary navigation updates paths, titles, selection, and route focus", asy
   await page.getByRole("button", { name: "Open Editor" }).click();
   await nextRouteFocus();
   expect(document.activeElement).toBe(
-    page
-      .getByRole("heading", { name: "Create or open a Jump package" })
-      .element(),
+    page.getByRole("heading", { name: "Your Jump projects" }).element(),
   );
   expect(window.location.pathname).toBe("/editor");
   expect(document.title).toBe("Editor · Jumpchain Visualizer");
@@ -32,12 +30,15 @@ test("primary navigation updates paths, titles, selection, and route focus", asy
     .element(page.getByRole("button", { name: "Editor", exact: true }))
     .toHaveAttribute("aria-pressed", "true");
 
-  await page.getByRole("button", { name: "Open Example Jump" }).click();
+  await page.getByRole("button", { name: "Create Project" }).click();
   await nextRouteFocus();
-  expect(window.location.pathname).toBe("/editor/ws-7f3a");
+  expect(window.location.pathname).toMatch(/^\/editor\/[0-9a-f-]+$/);
   expect(document.activeElement).toBe(
-    page.getByRole("heading", { name: "Example Jump" }).element(),
+    page.getByRole("heading", { name: "Untitled Jump", level: 1 }).element(),
   );
+  await expect
+    .element(page.getByLabelText("Untitled Jump Editor"))
+    .toBeVisible();
 });
 
 const nextRouteFocus = () =>

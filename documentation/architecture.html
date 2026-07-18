@@ -194,9 +194,13 @@ src-tauri/
       <p>Browser IndexedDB uses the same aggregate and index split. Repository contracts define behavior, not SQLite-specific queries.</p>
       <p>The current chain aggregate persists exact package references, actor selections, nested inputs, roll provenance, entry-scoped Gauntlet sources, enabled-module state, and supplement state through IndexedDB or the SQLite-backed Tauri aggregate store. Derived balances, properties, records, Companions, tags, and summaries are recomputed on load rather than persisted as UI-shaped truth.</p>
 
+      <h2>Editor Repository and Package Boundary</h2>
+      <p><code>EditorWorkspaceRepository</code> separates versioned summaries, snapshots, revisions, recovery, and external conflicts from React. Browser projects use the dedicated IndexedDB workspace store. Desktop folders remain the canonical source and SQLite retains the registry/recovery aggregate; source writes use temporary-file replacement and a recovery mirror.</p>
+      <p><code>JumpPackageImportService</code> is shared by Editor and Chain Tracker. Editor commits a validated authoring copy; Chain Tracker commits an immutable content-addressed package. Both operations are staged and atomic. <code>EffectivePackageSizeLimits</code> is created only from validated settings and is the only size-budget type accepted at archive and native folder boundaries.</p>
+
       <h2>Trusted Native Boundary</h2>
       <ul>
-        <li>Rust owns bounded ZIP inspection, entry/path validation, decompression limits, graphical asset signature checks, complete archive hashing, SQLite access, and final atomic file operations.</li>
+        <li>Rust owns bounded ZIP inspection, entry/path validation, streamed decompression limits, bounded graphical asset decoding, SQLite access, desktop folder containment, recovery mirrors, and final atomic file operations.</li>
         <li><code>archive-core</code> is written without Tauri dependencies and compiled natively for desktop and to WebAssembly for browser imports, minimizing security-rule drift.</li>
         <li>The frontend receives validated bounded data and structured diagnostics, never unrestricted native paths or a shell/command-execution primitive.</li>
         <li>Tauri capabilities grant only the commands needed by the main application window. Remote navigation and arbitrary child webviews are disabled.</li>

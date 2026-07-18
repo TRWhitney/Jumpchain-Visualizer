@@ -9,13 +9,18 @@ import { LoggingViewer } from "./LoggingViewer";
 import { TagProfileEditor } from "./TagProfileEditor";
 import { useSettings } from "./SettingsContext";
 import {
+  ABSOLUTE_PACKAGE_SIZE_LIMITS,
+  SAFE_PACKAGE_SIZE_LIMITS,
   chordFor,
   defaultSettings,
+  effectivePackageSizeLimits,
+  validatePackageSizeLimits,
   validateKeybinding,
   type ApplicationSettings,
   type KeybindingAction,
   type KeybindingChord,
   type NotificationClass,
+  type PackageSizeLimits,
   type SettingsCategory,
 } from "./model";
 import { createDefaultTagProfile } from "./tagProfile";
@@ -165,6 +170,13 @@ const searchEntries = [
     "additional-jump-information",
     "developer jump format additional information diagnostics format 1",
   ],
+  [
+    "Package size limits",
+    "developer.packageSizeLimits",
+    "developer",
+    "custom-package-limits",
+    "developer package archive definition asset expanded size limits mib import export at your own risk",
+  ],
 ] as const;
 
 const searchValue = (
@@ -212,6 +224,14 @@ const searchValue = (
       return "session only";
     case "developer.showAdditionalJumpInformation":
       return String(settings.developer.showAdditionalJumpInformation);
+    case "developer.packageSizeLimits":
+      return JSON.stringify({
+        enabled: settings.developer.useCustomPackageSizeLimits,
+        maxArchiveMiB: settings.developer.maxArchiveMiB,
+        maxDefinitionFileMiB: settings.developer.maxDefinitionFileMiB,
+        maxAssetFileMiB: settings.developer.maxAssetFileMiB,
+        maxExpandedPackageMiB: settings.developer.maxExpandedPackageMiB,
+      });
   }
 };
 
@@ -229,6 +249,7 @@ export function SettingsSurface({
   const { settings, replace } = useSettings();
   const [query, setQuery] = useState("");
   const [resetConfirm, setResetConfirm] = useState<"all" | "tags" | null>(null);
+  const [packageRiskConfirm, setPackageRiskConfirm] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const defaults = useMemo(
     () => defaultSettings(createDefaultTagProfile()),
@@ -254,10 +275,11 @@ export function SettingsSurface({
   }, []);
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
-      if (resetConfirm) {
+      if (resetConfirm || packageRiskConfirm) {
         if (event.key === "Escape") {
           event.preventDefault();
           setResetConfirm(null);
+          setPackageRiskConfirm(false);
           return;
         }
         if (event.key !== "Tab") return;
@@ -305,7 +327,7 @@ export function SettingsSurface({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [direct, onClose, resetConfirm]);
+  }, [direct, onClose, packageRiskConfirm, resetConfirm]);
 
   const activate = (next: SettingsCategory, focus = false) => {
     onCategoryChange(next);
@@ -347,6 +369,7 @@ export function SettingsSurface({
     if (category === "keys") next.keybindings = defaults.keybindings;
     if (category === "accessibility")
       next.accessibility = defaults.accessibility;
+    if (category === "developer") next.developer = defaults.developer;
     replace(next, `${category}.reset`);
   };
 
@@ -467,6 +490,7 @@ export function SettingsSurface({
             category={category}
             settings={settings}
             defaults={defaults}
+            onRequestPackageLimitOverride={() => setPackageRiskConfirm(true)}
           />
         )}
       </div>
@@ -516,6 +540,56 @@ export function SettingsSurface({
           </section>
         </div>
       )}
+      {packageRiskConfirm && (
+        <div className="settings-confirm-backdrop">
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="package-risk-heading"
+          >
+            <p>Developer override</p>
+            <h4 id="package-risk-heading">
+              Increase package limits at your own risk
+            </h4>
+            <p>
+              Larger packages can consume substantial memory, disk space, and
+              processing time. These limits affect Editor import and export,
+              desktop project loading, and Chain Tracker package installation.
+            </p>
+            <p>
+              Path, file-type, compression-ratio, image, schema, and atomicity
+              protections remain mandatory and cannot be disabled.
+            </p>
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  replace(
+                    {
+                      ...settings,
+                      developer: {
+                        ...settings.developer,
+                        useCustomPackageSizeLimits: true,
+                      },
+                    },
+                    "developer.packageSizeLimits.enabled",
+                  );
+                  setPackageRiskConfirm(false);
+                }}
+              >
+                I understand, enable
+              </button>
+              <button
+                autoFocus
+                type="button"
+                onClick={() => setPackageRiskConfirm(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
@@ -524,10 +598,12 @@ function CategoryPanel({
   category,
   settings,
   defaults,
+  onRequestPackageLimitOverride,
 }: {
   category: SettingsCategory;
   settings: ApplicationSettings;
   defaults: ApplicationSettings;
+  onRequestPackageLimitOverride: () => void;
 }) {
   const { update, logger } = useSettings();
   const [developerPage, setDeveloperPage] = useState<"overview" | "logs">(
@@ -538,6 +614,22 @@ function CategoryPanel({
   );
   const patch = (next: ApplicationSettings, key: string, continuous = false) =>
     update(() => next, key, continuous);
+  const packageLimitError = validatePackageSizeLimits(settings.developer);
+  const effectiveLimits = effectivePackageSizeLimits(settings.developer);
+  const updatePackageLimit = (key: keyof PackageSizeLimits, value: number) => {
+    if (!Number.isFinite(value)) return;
+    patch(
+      {
+        ...settings,
+        developer: {
+          ...settings.developer,
+          [key]: value,
+        },
+      },
+      `developer.packageSizeLimits.${key}`,
+      true,
+    );
+  };
   if (category === "general")
     return (
       <section role="tabpanel" aria-labelledby="settings-general-tab">
@@ -1087,6 +1179,141 @@ function CategoryPanel({
               )
             }
           />
+          <div className="setting-row developer-package-limits">
+            <div>
+              <label htmlFor="custom-package-limits">Package size limits</label>
+              <p>
+                Byte budgets shared by Editor import/export, desktop projects,
+                and Chain Tracker installation.
+              </p>
+              <dl className="developer-effective-limits">
+                <div>
+                  <dt>Archive</dt>
+                  <dd>{effectiveLimits.maxArchiveMiB} MiB</dd>
+                </div>
+                <div>
+                  <dt>Definition</dt>
+                  <dd>{effectiveLimits.maxDefinitionFileMiB} MiB</dd>
+                </div>
+                <div>
+                  <dt>Asset</dt>
+                  <dd>{effectiveLimits.maxAssetFileMiB} MiB</dd>
+                </div>
+                <div>
+                  <dt>Expanded</dt>
+                  <dd>{effectiveLimits.maxExpandedPackageMiB} MiB</dd>
+                </div>
+              </dl>
+            </div>
+            <div className="developer-package-limit-controls">
+              <label className="setting-check">
+                <input
+                  id="custom-package-limits"
+                  type="checkbox"
+                  checked={settings.developer.useCustomPackageSizeLimits}
+                  onChange={(event) => {
+                    if (event.target.checked) onRequestPackageLimitOverride();
+                    else
+                      patch(
+                        {
+                          ...settings,
+                          developer: {
+                            ...settings.developer,
+                            useCustomPackageSizeLimits: false,
+                          },
+                        },
+                        "developer.packageSizeLimits.enabled",
+                      );
+                  }}
+                />
+                <span>Use custom package limits</span>
+              </label>
+              <div
+                className="developer-limit-grid"
+                aria-describedby={
+                  packageLimitError ? "package-limit-error" : undefined
+                }
+              >
+                {(
+                  [
+                    ["maxArchiveMiB", "Archive", "Compressed .jmp file"],
+                    [
+                      "maxDefinitionFileMiB",
+                      "Definition file",
+                      "Individual .jdef file",
+                    ],
+                    ["maxAssetFileMiB", "Asset file", "Individual asset"],
+                    [
+                      "maxExpandedPackageMiB",
+                      "Expanded package",
+                      "All expanded files",
+                    ],
+                  ] as const
+                ).map(([key, label, description]) => (
+                  <label className="developer-limit-field" key={key}>
+                    <span>{label}</span>
+                    <small>{description}</small>
+                    <span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={ABSOLUTE_PACKAGE_SIZE_LIMITS[key]}
+                        step={1}
+                        inputMode="numeric"
+                        disabled={
+                          !settings.developer.useCustomPackageSizeLimits
+                        }
+                        value={settings.developer[key]}
+                        aria-invalid={Boolean(packageLimitError)}
+                        onChange={(event) =>
+                          updatePackageLimit(key, event.target.valueAsNumber)
+                        }
+                      />
+                      MiB
+                    </span>
+                    <small>
+                      Absolute ceiling: {ABSOLUTE_PACKAGE_SIZE_LIMITS[key]} MiB
+                    </small>
+                  </label>
+                ))}
+              </div>
+              {packageLimitError && (
+                <p
+                  id="package-limit-error"
+                  className="developer-limit-error"
+                  role="alert"
+                >
+                  {packageLimitError}
+                </p>
+              )}
+              {settings.developer.useCustomPackageSizeLimits && (
+                <p className="developer-risk-warning" role="status">
+                  <strong>At your own risk.</strong> Increased byte budgets may
+                  use substantially more memory, disk space, and processing
+                  time. Other malicious-file protections stay active.
+                </p>
+              )}
+              <button
+                className="setting-reset developer-limit-reset"
+                type="button"
+                onClick={() =>
+                  patch(
+                    {
+                      ...settings,
+                      developer: {
+                        ...settings.developer,
+                        useCustomPackageSizeLimits: false,
+                        ...SAFE_PACKAGE_SIZE_LIMITS,
+                      },
+                    },
+                    "developer.packageSizeLimits.reset",
+                  )
+                }
+              >
+                Reset package limits
+              </button>
+            </div>
+          </div>
           <div className="setting-row">
             <div>
               <label htmlFor="debug-events">Debug events</label>

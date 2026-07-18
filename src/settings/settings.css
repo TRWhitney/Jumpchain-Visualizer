@@ -101,6 +101,121 @@
   cursor: pointer;
 }
 
+.developer-package-limits {
+  grid-template-columns: minmax(12rem, 0.8fr) minmax(18rem, 1.2fr);
+  align-items: start;
+}
+
+.developer-effective-limits {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem 0.65rem;
+  margin: 0.75rem 0 0;
+}
+
+.developer-effective-limits div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid #41413d;
+}
+
+.developer-effective-limits :is(dt, dd) {
+  margin: 0;
+  font-size: 0.72rem;
+}
+
+.developer-effective-limits dt {
+  color: #92928c;
+}
+
+.developer-effective-limits dd {
+  color: #dddcd6;
+  font-variant-numeric: tabular-nums;
+}
+
+.developer-package-limit-controls {
+  min-width: 0;
+}
+
+.developer-limit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.developer-limit-field {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.45rem;
+  background: #232321;
+  border: 1px solid #484844;
+  border-radius: 0.25rem;
+}
+
+.developer-limit-field > span:first-child {
+  font-size: 0.77rem;
+}
+
+.developer-limit-field small {
+  color: #92928c;
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+.developer-limit-field > span:nth-of-type(2) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.35rem;
+  color: #aaa9a3;
+  font-size: 0.72rem;
+}
+
+.developer-limit-field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2rem;
+  padding: 0.3rem 0.4rem;
+  color: #f0f0eb;
+  background: #20201e;
+  border: 1px solid #52524c;
+  border-radius: 0.2rem;
+  font: inherit;
+}
+
+.developer-limit-field input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.developer-limit-field input:focus-visible {
+  outline: 2px solid var(--app-accent-focus);
+  outline-offset: 1px;
+}
+
+.developer-limit-error,
+.developer-risk-warning {
+  padding: 0.5rem;
+  color: #f2d7a0 !important;
+  background: #382f22;
+  border: 1px solid #9d7441;
+  border-radius: 0.25rem;
+  font-size: 0.72rem;
+}
+
+.developer-limit-error {
+  color: #f2b3b3 !important;
+  background: #3a2525;
+  border-color: #a55252;
+}
+
+.developer-limit-reset {
+  justify-self: end;
+}
+
 .settings-confirm-backdrop,
 .logging-export-backdrop {
   position: absolute;
@@ -668,6 +783,20 @@
 [data-app-theme="light"] .app-settings-surface .accent-color-control output {
   color: #4f4f49;
 }
+[data-app-theme="light"] .developer-effective-limits div {
+  border-color: #cbc8bf;
+}
+[data-app-theme="light"] .developer-effective-limits dt,
+[data-app-theme="light"] .developer-limit-field small {
+  color: #686861;
+}
+[data-app-theme="light"] .developer-effective-limits dd {
+  color: #292927;
+}
+[data-app-theme="light"] .developer-limit-field {
+  background: #f3f1eb;
+  border-color: #cbc8bf;
+}
 [data-app-theme="light"]
   .app-settings-surface
   :is(.settings-reset-all, .setting-reset, .keybinding-list button) {
@@ -688,6 +817,10 @@
     border-radius: 0;
   }
   .setting-control-with-reset {
+    grid-template-columns: 1fr;
+  }
+  .developer-package-limits,
+  .developer-limit-grid {
     grid-template-columns: 1fr;
   }
 }

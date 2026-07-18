@@ -1,6 +1,7 @@
 jump
   format: 1
   name: "Representative Jump"
+  description: "A representative package covering the complete Format 1 schema."
   author: "Schema Working Group"
   version: "1.0"
   section-layout: choice_section

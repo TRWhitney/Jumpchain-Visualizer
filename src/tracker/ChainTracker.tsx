@@ -30,6 +30,17 @@ import { TagBadge, TagRadar } from "./TagRadar";
 import { JumpRenderer } from "./JumpRenderer";
 import type { RandomIndexSource } from "../domain";
 import { EarthJumpRenderer } from "./EarthJumpRenderer";
+import {
+  JumpPackageImportService,
+  PackageSecurityError,
+  type PackageImportReview,
+} from "../archive";
+import { PackageReview } from "../editor/EditorHub";
+import { useOptionalSettings } from "../settings/SettingsContext";
+import {
+  effectivePackageSizeLimits,
+  SAFE_PACKAGE_SIZE_LIMITS,
+} from "../settings/model";
 import { evaluateTracker, projectEvaluation } from "./evaluateTracker";
 import {
   jumpPackageImageSources,
@@ -295,11 +306,19 @@ function ChainRail({
   runtime: EvaluatedJumpRuntime;
   preloadEntry: (entryId: string) => void;
 }) {
+  const settingsContext = useOptionalSettings();
   const [dragged, setDragged] = useState<string | null>(null);
   const [dropIndicator, setDropIndicator] = useState<{
     entryId: string;
     edge: DropEdge;
   } | null>(null);
+  const packageInput = useRef<HTMLInputElement>(null);
+  const [packageImport, setPackageImport] = useState<
+    | { kind: "idle" }
+    | { kind: "inspecting" }
+    | { kind: "review"; review: PackageImportReview }
+    | { kind: "blocked"; code: string; message: string }
+  >({ kind: "idle" });
   const requestedActorId = runtime[state.selectedEntryId]?.actors[actorId]
     ? actorId
     : "jumper";
@@ -583,6 +602,66 @@ function ChainRail({
               <p>Parallel versions enabled</p>
               <strong>Available packages</strong>
             </div>
+            <button
+              type="button"
+              className="chain-library-import"
+              onClick={() => packageInput.current?.click()}
+            >
+              Import .jmp
+            </button>
+            <input
+              ref={packageInput}
+              className="sr-only"
+              type="file"
+              accept=".jmp,application/zip"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                setPackageImport({ kind: "inspecting" });
+                void file
+                  .arrayBuffer()
+                  .then((buffer) =>
+                    new JumpPackageImportService().inspect(
+                      new Uint8Array(buffer),
+                      settingsContext
+                        ? effectivePackageSizeLimits(
+                            settingsContext.settings.developer,
+                          )
+                        : SAFE_PACKAGE_SIZE_LIMITS,
+                    ),
+                  )
+                  .then((review) => {
+                    if (
+                      settingsContext?.settings.developer
+                        .useCustomPackageSizeLimits
+                    )
+                      settingsContext.logger.emit(
+                        "package.limits.override_used",
+                        {
+                          attributes: { operation: "chain-install" },
+                        },
+                      );
+                    setPackageImport({ kind: "review", review });
+                  })
+                  .catch((error: unknown) => {
+                    const blocked =
+                      error instanceof PackageSecurityError
+                        ? error
+                        : new PackageSecurityError(
+                            "archive.inspect_failed",
+                            "The package could not be inspected safely.",
+                          );
+                    setPackageImport({
+                      kind: "blocked",
+                      code: blocked.code,
+                      message: blocked.message,
+                    });
+                  })
+                  .finally(() => {
+                    if (packageInput.current) packageInput.current.value = "";
+                  });
+              }}
+            />
           </header>
           <label className="chain-library-search">
             <span className="sr-only">Find available jump</span>
@@ -653,6 +732,92 @@ function ChainRail({
           </div>
           {!filteredPackages.length && (
             <p className="chain-empty">No available jumps match this filter.</p>
+          )}
+          {packageImport.kind !== "idle" && (
+            <div className="package-review-backdrop">
+              {packageImport.kind === "inspecting" ? (
+                <section
+                  role="alertdialog"
+                  aria-modal="true"
+                  aria-labelledby="chain-import-inspecting-heading"
+                >
+                  <p>Secure package inspection</p>
+                  <h2 id="chain-import-inspecting-heading">
+                    Inspecting every entry…
+                  </h2>
+                  <p>
+                    Nothing enters the immutable package library until archive,
+                    image, source, schema, reference, and size validation
+                    completes.
+                  </p>
+                </section>
+              ) : packageImport.kind === "blocked" ? (
+                <section
+                  role="alertdialog"
+                  aria-modal="true"
+                  aria-labelledby="chain-import-blocked-heading"
+                >
+                  <p>Installation blocked</p>
+                  <h2 id="chain-import-blocked-heading">
+                    This package may be unsafe or malformed
+                  </h2>
+                  <p>{packageImport.message}</p>
+                  <code>{packageImport.code}</code>
+                  <p>
+                    <strong>
+                      Nothing was installed, extracted, or added to the chain.
+                    </strong>
+                  </p>
+                  <div>
+                    <button
+                      autoFocus
+                      type="button"
+                      onClick={() => setPackageImport({ kind: "idle" })}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </section>
+              ) : (
+                <PackageReview
+                  review={packageImport.review}
+                  customLimits={Boolean(
+                    settingsContext?.settings.developer
+                      .useCustomPackageSizeLimits,
+                  )}
+                  onCancel={() => setPackageImport({ kind: "idle" })}
+                  onImport={() => {
+                    const review = packageImport.review;
+                    dispatch({
+                      type: "install-package",
+                      packageItem: {
+                        id: `imported-${review.hash}`,
+                        logicalId: review.packageItem.logicalId,
+                        exactHash: review.hash,
+                        name: review.name,
+                        version: review.version,
+                        source: "imported",
+                        description: review.packageItem.description,
+                        tags: review.packageItem.tags,
+                        authors: review.packageItem.authors,
+                        nativeGauntlet: review.packageItem.nativeGauntlet,
+                        availability: "library",
+                        document: review.packageItem,
+                        assets: review.files.assets,
+                      },
+                    });
+                    settingsContext?.logger.emit("chain.package.installed", {
+                      attributes: {
+                        warningOverride: review.status === "warning",
+                        definitionCount: review.definitionCount,
+                        assetCount: review.assetCount,
+                      },
+                    });
+                    setPackageImport({ kind: "idle" });
+                  }}
+                />
+              )}
+            </div>
           )}
         </section>
       )}
@@ -799,6 +964,22 @@ function JumpWorkspace({
   );
   const number = jumpNumber(state, entryId);
   const gauntlet = runtime[entryId]?.gauntlet;
+  const assetUrls = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(item.assets ?? {}).map(([path, bytes]) => [
+          path,
+          URL.createObjectURL(new Blob([Uint8Array.from(bytes).buffer])),
+        ]),
+      ),
+    [item.assets],
+  );
+  useEffect(
+    () => () => {
+      for (const url of Object.values(assetUrls)) URL.revokeObjectURL(url);
+    },
+    [assetUrls],
+  );
   return (
     <div
       ref={workspaceRef}
@@ -907,6 +1088,7 @@ function JumpWorkspace({
                 )
                 .map((actor) => ({ id: actor.id, name: actor.name }))}
               gauntletActive={Boolean(gauntlet?.active)}
+              resolveAsset={(path) => assetUrls[path]}
               randomIndex={randomIndex}
               dispatch={dispatch}
             />

@@ -9,23 +9,15 @@ const rawFiles = import.meta.glob<string>("./jumps/*/*.jdef", {
 });
 
 const metadata: Readonly<
-  Record<
-    string,
-    { description: string; source: "builtin" | "imported"; logicalId?: string }
-  >
+  Record<string, { source: "builtin" | "imported"; logicalId?: string }>
 > = {
   "threshold-roads": {
-    description:
-      "Enter a city of doors and establish the chain's first identity.",
     source: "builtin",
   },
   "confluence-engine": {
-    description:
-      "Align realities through an engine built from compatible rules.",
     source: "imported",
   },
   "last-trial": {
-    description: "Complete a native Gauntlet at the final sealed gate.",
     source: "builtin",
   },
 };
@@ -51,9 +43,6 @@ function packageSources() {
         id,
         logicalId: details?.logicalId ?? id,
         source: details?.source ?? (id.length % 2 ? "builtin" : "imported"),
-        description:
-          details?.description ??
-          "A generated Format 1 package with complete choices and provenance.",
         exactHash: sha256(completeSource),
         files,
       };

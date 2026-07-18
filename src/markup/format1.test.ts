@@ -50,7 +50,12 @@ describe("Format 1 source pipeline", () => {
     expect(confluence).toMatchObject({
       nativeGauntlet: false,
       startingPoints: 1600,
+      description:
+        "Align realities through an engine built from compatible rules.",
     });
+    expect(trial?.description).toBe(
+      "Complete a native Gauntlet at the final sealed gate.",
+    );
     const trialCard = trial?.layouts.find(
       (layout) => layout.handle === "trial_card",
     );
@@ -82,6 +87,24 @@ describe("Format 1 source pipeline", () => {
       trial?.choices.find((choice) => choice.handle === "random_age")
         ?.resolution,
     ).toBe("random");
+  });
+
+  it("uses the authored Jump description as canonical package metadata", () => {
+    const packageItem = canonicalizePackage({
+      id: "authored-description",
+      exactHash: "d".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Described Jump"
+  description: "Authored package description."
+  author: "Tester"
+  version: "1"
+`,
+      },
+    });
+
+    expect(packageItem.description).toBe("Authored package description.");
   });
 
   it("canonicalizes form ownership and explicit quantity measures", () => {

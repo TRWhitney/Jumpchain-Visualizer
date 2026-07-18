@@ -49,7 +49,7 @@ async function expectStoredChain(page: Page, id: string) {
           }),
         {
           databaseName: "jumpchain-visualizer",
-          databaseVersion: 2,
+          databaseVersion: 3,
           chainId: id,
         },
       ),
@@ -76,7 +76,7 @@ test("Home matches the shell proposal and exposes explicit workspace choices and
   ).toBeVisible();
   await expect(
     shell.getByRole("region", { name: "Editor workspaces" }),
-  ).toContainText("Example Jump");
+  ).toContainText("No recent Editor projects");
   await expect(shell.getByRole("region", { name: "Chains" })).toContainText(
     "Morgan",
   );
@@ -95,15 +95,16 @@ test("workspace navigation uses real paths, history, titles, and predictable foc
   await expect(page).toHaveURL(/\/editor$/);
   await expect(page).toHaveTitle("Editor · Jumpchain Visualizer");
   await expect(
-    page.getByRole("heading", { name: "Create or open a Jump package" }),
+    page.getByRole("heading", { name: "Your Jump projects" }),
   ).toBeFocused();
 
-  await page.getByRole("button", { name: "Open Example Jump" }).click();
-  await expect(page).toHaveURL(/\/editor\/ws-7f3a$/);
-  await expect(page).toHaveTitle("Example Jump · Editor");
+  await page.getByRole("button", { name: "Create Project" }).click();
+  await expect(page).toHaveURL(/\/editor\/[0-9a-f-]+$/);
+  await expect(page).toHaveTitle("Untitled Jump · Editor");
   await expect(
-    page.getByRole("heading", { name: "Example Jump" }),
+    page.getByRole("heading", { name: "Untitled Jump", level: 1 }),
   ).toBeFocused();
+  const editorPath = new URL(page.url()).pathname;
 
   await page
     .getByRole("button", { name: "Chain Tracker", exact: true })
@@ -114,9 +115,9 @@ test("workspace navigation uses real paths, history, titles, and predictable foc
   ).toBeFocused();
 
   await page.getByRole("button", { name: "Back" }).click();
-  await expect(page).toHaveURL(/\/editor\/ws-7f3a$/);
+  await expect(page).toHaveURL(editorPath);
   await expect(
-    page.getByRole("heading", { name: "Example Jump" }),
+    page.getByRole("heading", { name: "Untitled Jump", level: 1 }),
   ).toBeFocused();
   await page.getByRole("button", { name: "Forward" }).click();
   await expect(page).toHaveURL(/\/chain$/);
@@ -125,14 +126,15 @@ test("workspace navigation uses real paths, history, titles, and predictable foc
 test("recent work opens addressable Editor and real Chain Tracker workspaces", async ({
   page,
 }) => {
+  await page.getByRole("button", { name: "Open Editor" }).click();
+  await page.getByRole("button", { name: "Create Project" }).click();
+  await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
   await page
     .getByRole("region", { name: "Editor workspaces" })
     .getByRole("button", { name: "Resume" })
     .click();
-  await expect(page).toHaveURL(/\/editor\/ws-7f3a$/);
-  await expect(
-    page.getByText("The established three-pane Editor will mount here."),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/editor\/[0-9a-f-]+$/);
+  await expect(page.getByLabel("Untitled Jump Editor")).toBeVisible();
 
   await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
   await page
@@ -352,7 +354,7 @@ test("the Chain Tracker hub lists all chains and supports create and rename flow
   const [editingBox, neighboringBox, listBox] = await Promise.all([
     editingCard.boundingBox(),
     neighboringCard.boundingBox(),
-    page.locator(".app-chain-card-list").boundingBox(),
+    page.locator(".app-chain-hub-route .app-chain-card-list").boundingBox(),
   ]);
   expect(editingBox).not.toBeNull();
   expect(neighboringBox).not.toBeNull();
@@ -504,7 +506,7 @@ test("saved-chain search and radar summaries preserve the fixed hub", async ({
   await page.getByRole("button", { name: "Open Chain Tracker" }).click();
   const hubHeading = page.getByRole("heading", { name: "Your chains" });
   const createBlock = page.locator(".app-new-chain");
-  const list = page.locator(".app-chain-card-list");
+  const list = page.locator(".app-chain-hub-route .app-chain-card-list");
   const headingTop = await hubHeading.evaluate(
     (element) => element.getBoundingClientRect().top,
   );

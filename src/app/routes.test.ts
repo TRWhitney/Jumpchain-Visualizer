@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   exampleChainId,
-  exampleWorkspaceId,
   routeFromPath,
   titleForRoute,
   workspaceForRoute,
@@ -14,9 +13,9 @@ describe("application routes", () => {
       kind: "editor-hub",
       path: "/editor",
     });
-    expect(routeFromPath(`/editor/${exampleWorkspaceId}`)).toMatchObject({
+    expect(routeFromPath("/editor/workspace-one")).toMatchObject({
       kind: "editor-workspace",
-      available: true,
+      workspaceId: "workspace-one",
     });
     expect(routeFromPath("/chain")).toEqual({
       kind: "chain-hub",
@@ -40,12 +39,12 @@ describe("application routes", () => {
     const chain = routeFromPath("/chain/missing-local-chain");
     expect(editor).toMatchObject({
       kind: "editor-workspace",
-      available: false,
+      workspaceId: "missing-local-workspace",
     });
     expect(chain).toMatchObject({ kind: "chain-workspace" });
     expect(workspaceForRoute(editor)).toBe("editor");
     expect(workspaceForRoute(chain)).toBe("chain");
-    expect(titleForRoute(editor)).toContain("unavailable");
+    expect(titleForRoute(editor)).toContain("Editor workspace");
     expect(titleForRoute(chain)).toContain("unavailable");
     expect(titleForRoute(chain, "Saved name")).toBe(
       "Saved name · Chain Tracker",

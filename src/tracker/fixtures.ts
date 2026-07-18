@@ -24,14 +24,6 @@ const packageOrder = [
   "last-trial",
 ] as const;
 
-const descriptions: Readonly<Record<string, string>> = {
-  "threshold-roads":
-    "Enter a city of doors and establish the chain's first identity.",
-  "confluence-engine":
-    "Align realities through an engine built from compatible rules.",
-  "last-trial": "Complete a native Gauntlet at the final sealed gate.",
-};
-
 const packageList: InstalledPackage[] = validGeneratedJumpPackages
   .map((document) => ({
     id: document.id,
@@ -39,7 +31,7 @@ const packageList: InstalledPackage[] = validGeneratedJumpPackages
     name: document.name.base ?? document.id,
     version: document.version,
     source: document.source,
-    description: descriptions[document.id] ?? document.description,
+    description: document.description,
     tags: [
       ...new Set([
         ...document.tags,

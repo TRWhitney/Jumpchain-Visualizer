@@ -1,6 +1,7 @@
 jump
   format: 1
   name: "The Last Trial"
+  description: "Complete a native Gauntlet at the final sealed gate."
   author: "Jumpchain Visualizer"
   version: "1.0"
   gauntlet: true

@@ -1226,7 +1226,7 @@ export function canonicalizePackage(
     name: renderable(root, "name"),
     authors,
     version: requireValue(root, "version", diagnostics),
-    description: sources.description ?? "",
+    description: value(root, "description") ?? "",
     source: sources.source ?? "builtin",
     nativeGauntlet,
     startingPoints:

@@ -15,9 +15,10 @@ const roundConstants = [
 const rotateRight = (value: number, amount: number) =>
   (value >>> amount) | (value << (32 - amount));
 
-/** Browser-safe synchronous SHA-256 for immutable bundled source fixtures. */
-export function sha256(value: string) {
-  const source = new TextEncoder().encode(value);
+/** Browser-safe synchronous SHA-256 for source text and package bytes. */
+export function sha256(value: string | Uint8Array) {
+  const source =
+    typeof value === "string" ? new TextEncoder().encode(value) : value;
   const paddedLength = Math.ceil((source.length + 9) / 64) * 64;
   const padded = new Uint8Array(paddedLength);
   padded.set(source);

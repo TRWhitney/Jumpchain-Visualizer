@@ -332,3 +332,12 @@
     grid-template-columns: 1fr !important;
   }
 }
+.chain-library-import {
+  min-height: 2rem;
+  padding: 0.3rem 0.5rem;
+  color: var(--app-accent-text);
+  background: transparent;
+  border: 1px solid var(--app-accent-border);
+  border-radius: 0.2rem;
+  cursor: pointer;
+}

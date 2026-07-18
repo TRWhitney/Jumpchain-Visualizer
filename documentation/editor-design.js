@@ -187,6 +187,7 @@ ${body}`;
       title: "Example Jump",
       fields: [
         field("name", "Name", "Example Jump", { sourceKey: "name", quoted: true }),
+        field("description", "Description", "Choose where a chain enters a city of doors.", { sourceKey: "description", quoted: true, block: true, wide: true, type: "textarea" }),
         field("authors", "Authors", "Author One; Author Two", { sourceKey: "author", multiple: true }),
         field("version", "Version", "1.0", { sourceKey: "version", quoted: true }),
         field("sectionLayout", "Default section layout", "default_section", { sourceKey: "section-layout" }),
@@ -195,8 +196,9 @@ ${body}`;
       contextualAdd: "Add author",
       source(view) {
         const authors = valueOf(view, "authors").split(";").map((author) => author.trim()).filter(Boolean);
-        return `jump
+      return `jump
   name: ${quoted(valueOf(view, "name"))}
+  description: ${quoted(valueOf(view, "description"))}
 ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
   version: ${quoted(valueOf(view, "version"))}
   section-layout: ${valueOf(view, "sectionLayout")}

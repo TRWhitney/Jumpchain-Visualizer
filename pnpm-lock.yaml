@@ -31,6 +31,9 @@ importers:
       "@tauri-apps/api":
         specifier: 2.11.1
         version: 2.11.1
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
       react:
         specifier: 19.2.7
         version: 19.2.7
@@ -53,6 +56,12 @@ importers:
       "@types/node":
         specifier: 24.10.1
         version: 24.10.1
+      "@types/pixelmatch":
+        specifier: ^5.2.6
+        version: 5.2.6
+      "@types/pngjs":
+        specifier: ^6.0.5
+        version: 6.0.5
       "@types/react":
         specifier: 19.2.17
         version: 19.2.17
@@ -98,6 +107,12 @@ importers:
       globals:
         specifier: 17.7.0
         version: 17.7.0
+      pixelmatch:
+        specifier: ^7.2.0
+        version: 7.2.0
+      pngjs:
+        specifier: ^7.0.0
+        version: 7.0.0
       prettier:
         specifier: 3.9.5
         version: 3.9.5
@@ -1362,6 +1377,18 @@ packages:
     resolution:
       {
         integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==,
+      }
+
+  "@types/pixelmatch@5.2.6":
+    resolution:
+      {
+        integrity: sha512-wC83uexE5KGuUODn6zkm9gMzTwdY5L0chiK+VrKcDfEjzxh1uadlWTvOmAbCpnM9zx/Ww3f8uKlYQVnO/TrqVg==,
+      }
+
+  "@types/pngjs@6.0.5":
+    resolution:
+      {
+        integrity: sha512-0k5eKfrA83JOZPppLtS2C7OUtyNAl2wKNxfyYl9Q5g9lPkgBl/9hNyAu6HuEH2J4XmIv2znEpkDd0SaZVxW6iQ==,
       }
 
   "@types/react-dom@19.2.3":
@@ -2845,6 +2872,12 @@ packages:
       picomatch:
         optional: true
 
+  fflate@0.8.3:
+    resolution:
+      {
+        integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==,
+      }
+
   figures@6.1.0:
     resolution:
       {
@@ -4003,6 +4036,13 @@ packages:
         integrity: sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==,
       }
     engines: { node: ">=12" }
+
+  pixelmatch@7.2.0:
+    resolution:
+      {
+        integrity: sha512-xhcb4yHu9sM/G7foGzoLtXYcC0zHEaOXXjRKhGup0fw78Nf2Tkiapv4EQyMzrbcmQPsllAI7DbFY2UT7PlI9Pg==,
+      }
+    hasBin: true
 
   playwright-core@1.61.1:
     resolution:
@@ -5833,6 +5873,14 @@ snapshots:
 
   "@types/normalize-package-data@2.4.4": {}
 
+  "@types/pixelmatch@5.2.6":
+    dependencies:
+      "@types/node": 24.10.1
+
+  "@types/pngjs@6.0.5":
+    dependencies:
+      "@types/node": 24.10.1
+
   "@types/react-dom@19.2.3(@types/react@19.2.17)":
     dependencies:
       "@types/react": 19.2.17
@@ -6946,6 +6994,8 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.5
 
+  fflate@0.8.3: {}
+
   figures@6.1.0:
     dependencies:
       is-unicode-supported: 2.1.0
@@ -7565,6 +7615,10 @@ snapshots:
   picomatch@2.3.2: {}
 
   picomatch@4.0.5: {}
+
+  pixelmatch@7.2.0:
+    dependencies:
+      pngjs: 7.0.0
 
   playwright-core@1.61.1: {}
 

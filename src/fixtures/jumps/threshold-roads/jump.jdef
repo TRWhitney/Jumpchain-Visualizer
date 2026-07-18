@@ -2,6 +2,7 @@
 jump
   format: 1
   name: "Threshold of a Thousand Roads"
+  description: "Enter a city of doors and establish the chain's first identity."
   author: "Jumpchain Visualizer"
   version: "1.0"
 

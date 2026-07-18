@@ -82,7 +82,7 @@ function RichText({
   });
 }
 
-type Props = {
+export type JumpRendererProps = {
   packageItem: CanonicalJumpPackage;
   entryId: string;
   actorId: string;
@@ -96,6 +96,8 @@ type Props = {
   randomIndex?: RandomIndexSource;
   dispatch: Dispatch<TrackerAction>;
 };
+
+type Props = JumpRendererProps;
 
 function ChoiceTags({ choice, props }: { choice: JumpChoice; props: Props }) {
   if (!choice.tags.length) return null;
@@ -1160,7 +1162,12 @@ function Layout({
   if (!children.some((child) => child !== null && child !== undefined))
     return null;
   return (
-    <Tag className={`jump-layout-${node.kind}`} style={style}>
+    <Tag
+      className={`jump-layout-${node.kind}`}
+      style={style}
+      data-layout-bound={`${node.kind}:${node.handle ?? node.target ?? "anonymous"}`}
+      data-layout-kind={node.kind}
+    >
       {children.map((child, index) => (
         <Fragment
           key={`${node.children[index].kind}-${node.children[index].handle ?? node.children[index].target ?? index}`}
@@ -1337,6 +1344,28 @@ function TraitView({
       <span>{trait.description}</span>
     </article>
   );
+}
+
+/** Canonical section rendering scope shared by the Tracker and Editor preview. */
+export function JumpSectionRendererScope({
+  section,
+  rendererProps,
+}: {
+  section: CanonicalJumpPackage["sections"][number];
+  rendererProps: JumpRendererProps;
+}) {
+  return <JumpSectionView section={section} props={rendererProps} />;
+}
+
+/** Canonical choice rendering scope shared by the Tracker and Editor preview. */
+export function JumpChoiceRendererScope({
+  choice,
+  rendererProps,
+}: {
+  choice: JumpChoice;
+  rendererProps: JumpRendererProps;
+}) {
+  return <ChoiceWithLayout choice={choice} props={rendererProps} />;
 }
 
 export function JumpRenderer(props: Props) {

@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { CrashBoundary } from "./CrashBoundary";
 import { useSessionEvents, useSettings } from "./SettingsContext";
 import { SettingsProvider } from "./SettingsProvider";
+import { SettingsSurface } from "./SettingsSurface";
 import { MemorySettingsRepository, type ReportExporter } from "./repository";
 import "../../documentation/styles.css";
 import "../../documentation/settings-design.css";
@@ -59,6 +61,26 @@ function PersistenceHarness() {
   );
 }
 
+function SettingsSurfaceHarness() {
+  const [category, setCategory] = useState<
+    | "general"
+    | "editor"
+    | "chain"
+    | "notifications"
+    | "tags"
+    | "keys"
+    | "accessibility"
+    | "developer"
+  >("general");
+  return (
+    <SettingsSurface
+      category={category}
+      onCategoryChange={setCategory}
+      onClose={() => undefined}
+    />
+  );
+}
+
 test("recoverable React failures render the private diagnostic surface", async () => {
   render(
     <SettingsProvider
@@ -107,4 +129,45 @@ test("a failed coalesced write rolls back to the last durable aggregate", async 
   await expect
     .element(page.getByLabelText("Storage failures"))
     .toHaveTextContent("1");
+});
+
+test("custom package limits require risk consent and invalid values never become effective", async () => {
+  render(
+    <SettingsProvider
+      repository={new MemorySettingsRepository()}
+      reportExporter={exporter}
+    >
+      <SettingsSurfaceHarness />
+    </SettingsProvider>,
+  );
+  await page.getByRole("tab", { name: "Developer" }).click();
+  const toggle = page.getByLabelText("Use custom package limits");
+  await toggle.click();
+  await expect
+    .element(
+      page.getByRole("heading", {
+        name: "Increase package limits at your own risk",
+      }),
+    )
+    .toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect.element(toggle).not.toBeChecked();
+  await expect
+    .element(page.getByRole("spinbutton", { name: /Archive/ }))
+    .toBeDisabled();
+
+  await toggle.click();
+  await page.getByRole("button", { name: "I understand, enable" }).click();
+  const expanded = page.getByRole("spinbutton", { name: /Expanded package/ });
+  await expect.element(expanded).toBeEnabled();
+  await expanded.fill("8");
+  await expect
+    .element(page.getByText(/cannot exceed the expanded package limit/))
+    .toBeVisible();
+  await expect.element(page.getByText("Archive").last()).toBeVisible();
+  await expect.element(page.getByText("64 MiB").first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Reset package limits" }).click();
+  await expect.element(toggle).not.toBeChecked();
+  await expect.element(expanded).toHaveValue(96);
 });

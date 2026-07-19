@@ -235,8 +235,10 @@ document while showing the current diagnostics</li>
 <li>editing preserves the author&#39;s formatting; an explicit format action applies
 canonical indentation, field order, and spacing</li>
 </ul>
-<p>The exact field compatibility matrix for each declaration kind remains to be
-specified.</p>
+<p>The machine-readable <code>schema/format-1.json</code> field and child matrices are
+the executable source of truth for declaration compatibility. The Editor validates
+that matrix after every Structured or Source edit and associates each diagnostic
+with the exact authored value or missing Structured field.</p>
 <h2>Package Structure</h2>
 <h3>Rigid Project Structure</h3>
 <p>The package structure should be fixed by the language/tooling rather than left
@@ -687,6 +689,7 @@ jump-wide defaults.</p>
 <p>Every secondary resource referenced by costs or grants requires an authored <code>resource</code> declaration. Its <code>initial</code> field is optional and defaults to zero. Undeclared secondary-resource references are distributable-package errors, while the Editor retains them as WIP diagnostics.</p>
 <p>Structured editing resolves the exact parsed occurrence of every scalar, repeated, or conditional field. Clearing or replacing one occurrence never broadens across a newline into a neighboring field. Rich-text fence extents include both delimiters, so converting between a scalar and fenced value removes the prior representation atomically while preserving unrelated source byte-for-byte.</p>
 <p>Secondary resources are top-level declarations in <code>jump.jdef</code>, alongside <code>jump</code> and <code>section</code>; they are not nested inside the root Jump declaration.</p>
+<p>The schema’s <code>appliesWhen</code> metadata describes existing context rules for authoring tools without changing the accepted Format 1 language. Structured and Source completion use it to expose selection-dependent choice/input fields and grant-kind fields consistently; authored fields outside their active context remain diagnosed and removable rather than being silently discarded.</p>
 <p>Current direction:</p>
 <ul>
 <li>no <code>handle</code></li>
@@ -1469,6 +1472,17 @@ styling</li>
 <p><code>slot</code> and the typed content nodes remain leaves. They may carry presentation fields, but they do
 not gain child nodes.</p>
 <h3>Diagnostic Policy</h3>
+<p>Diagnostics have two validation profiles. The Editor profile keeps explicitly
+documented work-in-progress states recoverable as warnings so preview can use a
+safe fallback. The distribution profile promotes export-invalid references,
+assets, and incomplete required content to errors before import or export. Both
+profiles report lexical, type, context, cardinality, and semantic contradictions
+as errors.</p>
+<p>Structured editing shows field diagnostics beside the affected control and in
+the global diagnostic strip; Source editing marks the same exact source range.
+Messages are localized at the presentation boundary. Missing-image-alt and
+missing-layout-target warnings continue to honor their Editor preferences without
+weakening distribution validation.</p>
 <p>Layout-field compatibility uses these levels:</p>
 <ul>
 <li>an unknown presentation field is an error</li>

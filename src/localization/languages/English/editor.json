@@ -54,6 +54,266 @@
       "archive_limit": "The compressed archive exceeds the archive limit."
     }
   },
+  "diagnostics": {
+    "source": {
+      "too_large": "Source exceeds {{limit}} characters.",
+      "too_many_lines": "Source exceeds {{limit}} lines.",
+      "line_too_long": "Line exceeds {{limit}} characters.",
+      "too_deep": "Nesting exceeds {{limit}} levels.",
+      "too_many_nodes": "Source exceeds {{limit}} declarations."
+    },
+    "syntax": {
+      "document": "The source could not be tokenized.",
+      "fence_indent": "Fenced content is indented less than its fence.",
+      "tab": "Tabs are not valid indentation in Format 1.",
+      "indent": "Indentation must use multiples of two spaces.",
+      "orphan_field": "Field “{{field}}” has no declaration owner.",
+      "embedded_field": "Field “{{field}}” must start on its own line.",
+      "line": "Expected a declaration, layout node, or field.",
+      "unclosed_fence": "Rich-text fence is not closed."
+    },
+    "schema": {
+      "declaration": {
+        "unknown": "Unknown declaration “{{declaration}}”.",
+        "unknownSuggested": "Unknown declaration “{{declaration}}”. Did you mean “{{suggestion}}”?",
+        "context": "“{{declaration}}” is not valid inside {{context}}.",
+        "scalar": "{{declaration}} does not support scalar shorthand."
+      },
+      "field": {
+        "unknown": "Unknown field “{{field}}” on {{declaration}}.",
+        "unknownSuggested": "Unknown field “{{field}}” on {{declaration}}. Did you mean “{{suggestion}}”?",
+        "condition": "Field “{{field}}” does not support conditional variants.",
+        "required": "{{declaration}} requires {{field}}.",
+        "duplicate": "Field “{{field}}” may appear only once on {{declaration}}.",
+        "exactDuplicate": "Field “{{field}}” repeats the value “{{value}}”.",
+        "exclusive": "Fields “{{field}}” and “{{other}}” cannot be used together.",
+        "optionAssociation": "A conditional option must follow the base option it modifies."
+      },
+      "value": {
+        "handle": "“{{value}}” is not a legal handle. Use lowercase letters, numbers, and single underscores.",
+        "handleReference": "“{{value}}” is not a legal handle reference.",
+        "type": "“{{value}}” is not a valid {{expected}} value for {{field}}.",
+        "const": "Field “{{field}}” must be {{expected}}.",
+        "bounds": "Field “{{field}}” is outside its allowed bounds."
+      },
+      "child": {
+        "invalid": "“{{child}}” is not valid inside {{declaration}}.",
+        "required": "{{declaration}} requires a {{child}} child.",
+        "cardinality": "{{declaration}} contains too many {{child}} children."
+      },
+      "handle": {
+        "duplicate": "Handle “{{handle}}” is repeated in the {{namespace}} namespace."
+      },
+      "file": {
+        "placement": "“{{declaration}}” is not allowed in {{file}}."
+      }
+    },
+    "reference": {
+      "unresolved": "{{field}} reference “{{value}}” does not resolve to a {{namespace}} declaration."
+    },
+    "text": {
+      "empty": "This text block has no content and renders nothing."
+    },
+    "image": {
+      "src": {
+        "missing": "This image has no source and is incomplete for export."
+      },
+      "asset": {
+        "missing": "Image asset “{{path}}” does not exist in the package."
+      },
+      "alt": {
+        "missing": "This image has no alternative text."
+      }
+    },
+    "layout": {
+      "node": {
+        "context": "{{node}} is not valid in a {{layout}}."
+      },
+      "slot": {
+        "target": "Slot target “{{target}}” is not valid in a {{layout}}.",
+        "context": "Trait layout {{layout}} supports only the name slot."
+      },
+      "root": {
+        "cardinality": "A {{layout}} requires exactly one container root; found {{count}}.",
+        "child": "{{child}} cannot be a direct root of a {{layout}}."
+      },
+      "expand": {
+        "ambiguous": "Layout “{{layout}}” must name an expansion source when rendered for {{owner}}.",
+        "source": "Expansion source “{{source}}” does not exist in {{owner}}.",
+        "using": "Expansion layout “{{layout}}” is not a choice layout.",
+        "unique": "Section layout {{layout}} expands source “{{source}}” more than once.",
+        "unreachable": "Choice source {{section}}.{{source}} is omitted by its explicit layout."
+      },
+      "choice": {
+        "target": "Direct-choice placement “{{target}}” does not exist in {{owner}}.",
+        "unique": "Section layout {{layout}} places “{{target}}” more than once.",
+        "unreachable": "Direct choice {{section}}.{{choice}} is omitted by its explicit layout."
+      },
+      "container": {
+        "empty": "This layout container is empty and renders nothing.",
+        "handle": {
+          "required": "Layout {{layout}} contains a container without a handle.",
+          "unique": "Layout {{layout}} repeats container handle “{{handle}}”."
+        }
+      },
+      "grid": {
+        "columns": "Grid in {{layout}} requires columns from 1 through 12."
+      },
+      "reference": "{{ownerKind}} layout “{{layout}}” does not exist.",
+      "typedTarget": {
+        "missing": "{{kind}} target “{{target}}” is absent from {{owner}} and collapses there."
+      }
+    },
+    "choice": {
+      "continuity": {
+        "domain": "Continuity requires a select choice copying exactly one gender property."
+      },
+      "integer": {
+        "bounds": "Integer choice bounds are incomplete or invalid."
+      },
+      "resolution": {
+        "domain": "Choice resolution is valid only for integer and select choices."
+      },
+      "unreachable": "Choice “{{choice}}” is not associated with a section.",
+      "select": {
+        "options": "This select choice has no options."
+      },
+      "option": {
+        "domain": "Options are valid only when selection is select."
+      },
+      "group": {
+        "missing": "This choice belongs to no group and may be unreachable.",
+        "invalid": "Choice group “{{value}}” is not a legal handle.",
+        "duplicate": "Choice group “{{value}}” is repeated."
+      }
+    },
+    "choiceSource": {
+      "group": {
+        "missing": "Choice source “{{source}}” has no group and cannot match choices.",
+        "invalid": "Choice-source group “{{value}}” is not a legal handle."
+      },
+      "empty": "Choice source “{{source}}” matches no choices in group “{{group}}”."
+    },
+    "choice-source": {
+      "group": {
+        "missing": "Choice source {{section}}.{{source}} has no group and cannot contain choices."
+      },
+      "empty": "Choice source {{section}}.{{source}} matches no choices."
+    },
+    "jump": {
+      "cardinality": "A package requires exactly one jump declaration; found {{count}}.",
+      "format": "Only Format 1 packages are supported.",
+      "author": {
+        "duplicate": "Author “{{author}}” is repeated."
+      }
+    },
+    "input": {
+      "selection": "Invalid input selection “{{selection}}”.",
+      "bounds": {
+        "domain": "Min and max do not apply to a {{selection}} input.",
+        "order": "Input min must not exceed max."
+      },
+      "companions": {
+        "max": "A companions input requires max greater than zero."
+      },
+      "option": {
+        "domain": "Options do not apply to a {{selection}} input.",
+        "empty": "This select input has no options."
+      }
+    },
+    "grant": {
+      "kind": "Unknown grant kind “{{kind}}”.",
+      "resource": {
+        "fields": "Resource grants require resource and amount."
+      },
+      "property": {
+        "fields": "Property grants require a handle.",
+        "reserved_types": "Property {{property}} is incompatible with its authored value or {{selection}} control."
+      },
+      "form": {
+        "handle": "Form grants require a unique stable handle.",
+        "target_kind": "Only perk grants may target a form.",
+        "context": "Form grants are valid only directly on choices.",
+        "shorthand": "Choice form requires exactly one shorthand perk grant.",
+        "reference": "Form target “{{target}}” does not exist."
+      },
+      "companion": {
+        "handle": "Companion targets require a unique stable handle.",
+        "target_kind": "Only perk and resource grants may target a companion.",
+        "shorthand": "Choice companion requires exactly one shorthand perk grant.",
+        "reference": "Companion target “{{target}}” does not exist."
+      },
+      "companion_import": {
+        "handle": "Companion import grants require a unique stable handle.",
+        "context": "Companion imports are valid only on companion inputs.",
+        "funding": "Companion import “{{handle}}” requires a positive targeted resource grant.",
+        "inline_budget": "Companion import currency uses a resource grant targeting the import handle."
+      },
+      "owner": {
+        "conflict": "A grant cannot target both a form and a companion."
+      },
+      "measure": {
+        "integer_only": "Measure requires an owning integer choice or input.",
+        "kind": "Measure is valid only on perk, item, and trait grants.",
+        "shorthand": "Choice measure requires exactly one shorthand perk or item grant.",
+        "value": "Measure must be rank or quantity."
+      },
+      "visible": {
+        "field": "Field “{{field}}” is not valid for a {{kind}} grant."
+      }
+    },
+    "tag": {
+      "empty": "Field “{{field}}” has an empty canonical identity.",
+      "duplicate": "Field “{{field}}” repeats “{{value}}” after canonicalization."
+    },
+    "condition": {
+      "syntax": "Condition “{{condition}}” is not valid Format 1 expression syntax.",
+      "type": "Property “{{property}}” is {{propertyType}}, so operator “{{operator}}” cannot compare it with a {{literalType}} value.",
+      "property": {
+        "unresolved": "Condition property “{{property}}” is not defined by this package."
+      }
+    },
+    "placeholder": {
+      "field": {
+        "invalid": "Placeholders are not valid in the structural field “{{field}}”."
+      },
+      "property": {
+        "unresolved": "Placeholder property “{{property}}” is not defined by this package."
+      }
+    },
+    "file": {
+      "choice": {
+        "mixed": "This choice remains in jump.jdef even though choices.jdef is present."
+      },
+      "layout": {
+        "mixed": "This presentation declaration remains in jump.jdef even though layout.jdef is present."
+      }
+    },
+    "color": {
+      "reference": "Color token “{{value}}” does not resolve to a built-in color or theme."
+    },
+    "cost": {
+      "unique_resource": "A choice may declare at most one cost for resource “{{resource}}”.",
+      "each": {
+        "integer_only": "Per-rank costs require an integer choice with an explicit non-negative min."
+      }
+    },
+    "resource": {
+      "reserved": "jump_points is the engine-owned primary resource.",
+      "reference": "{{usage}} resource “{{resource}}” is not declared."
+    },
+    "package": {
+      "asset_path": "Assets must use a supported package-relative path without traversal or a URI scheme."
+    },
+    "section": {
+      "required": "A distributable package requires at least one section.",
+      "choice": {
+        "target": {
+          "unique": "This section associates choice “{{target}}” more than once."
+        }
+      }
+    }
+  },
   "ui": {
     "editorHub": {
       "text": {
@@ -106,6 +366,14 @@
       }
     },
     "editorWorkspace": {
+      "defaultValue": {
+        "template": "Default: {{value}}",
+        "booleanTrue": "true",
+        "booleanFalse": "false",
+        "builtInSectionLayout": "built-in section layout",
+        "builtInChoiceLayout": "built-in choice layout",
+        "builtInTraitLayout": "built-in trait layout"
+      },
       "ariaLabel": {
         "undo": "Undo",
         "redo": "Redo",
@@ -126,7 +394,53 @@
         "filterDiagnosticsBySeverity": "Filter diagnostics by severity",
         "declarationBreadcrumbs": "Declaration breadcrumbs",
         "quickAdd": "Quick add",
-        "closeQuickAdd": "Close Quick Add"
+        "closeQuickAdd": "Close Quick Add",
+        "moveDeclarationUp": "Move {{declaration}} up",
+        "moveDeclarationDown": "Move {{declaration}} down",
+        "removeDeclaration": "Remove {{declaration}}",
+        "moveLayoutNodeUp": "Move {{node}} up",
+        "moveLayoutNodeDown": "Move {{node}} down",
+        "moveLayoutNodeIn": "Move {{node}} into a container",
+        "moveLayoutNodeOut": "Move {{node}} out of its container",
+        "removeLayoutNode": "Remove {{node}}",
+        "layoutNodeTarget": "{{node}} target",
+        "editLayoutNodePresentation": "Edit {{node}} presentation fields",
+        "removeConditionalVariant": "Remove {{field}} conditional variant {{occurrence}}"
+      },
+      "announcement": {
+        "declarationAdded": "{{declaration}} added and opened for editing.",
+        "declarationRemoved": "{{declaration}} removed.",
+        "declarationMoved": "{{declaration}} moved.",
+        "resourceCreated": "{{resource}} was created, assigned, and opened for editing."
+      },
+      "field": {
+        "handle": "Handle",
+        "name": "Name",
+        "abbreviation": "Abbreviation",
+        "initial": "Initial balance"
+      },
+      "declaration": {
+        "resource": "Resource",
+        "section": "Section",
+        "choice-source": "Choice source",
+        "choice": "Choice",
+        "directChoice": "Direct choice",
+        "text": "Text",
+        "image": "Image",
+        "input": "Input",
+        "cost": "Cost",
+        "grant": "Grant",
+        "section-layout": "Section layout",
+        "choice-layout": "Choice layout",
+        "trait-layout": "Trait layout",
+        "theme": "Theme",
+        "stack": "Stack",
+        "inline": "Inline",
+        "wrap": "Wrap",
+        "grid": "Grid",
+        "slot": "Slot",
+        "rule": "Rule",
+        "expand": "Expand"
       },
       "text": {
         "save": "Save",
@@ -164,11 +478,13 @@
         "when": "When",
         "value": "Value",
         "addConditionalVariant": "+ Add conditional variant",
+        "variantsForOccurrence": "Variants for {{field}} {{occurrence}}",
         "package": "Package",
         "identity": "Identity",
         "scalarShorthand": "Scalar shorthand",
         "valuePrefix": "Value ",
         "expandToFields": "Expand to fields",
+        "collapseToShorthand": "Collapse to shorthand",
         "layoutTree": "Layout tree",
         "navigateContainersSlotsControlsAndReferencesReorderButtonsCommit": "Navigate containers, slots, controls, and references. Reorder buttons commit through the shared source history.",
         "fieldsAndBehavior": "Fields and behavior",
@@ -179,6 +495,9 @@
         "noAdditionalDeclarationsAreValidHere": "No additional declarations are valid here.",
         "commands": "Commands",
         "writeADeterministicRepair": "Write a deterministic repair",
+        "completeExistingFieldIn": "Complete existing field in {{title}}",
+        "addToDeclaration": "Add to {{title}}",
+        "insertInside": "Insert inside {{title}}",
         "allCompletions": "All completions",
         "showFieldsValuesAndHandles": "Show fields, values, and handles",
         "selection": "Selection",
@@ -192,7 +511,18 @@
         "choices": "Choices",
         "gauntlet": "Gauntlet",
         "removeAsset": "Remove asset",
-        "propertiesAreDerivedFromCanonicalSourceEditThemIn": "Properties are derived from canonical source. Edit them in Structured or Source."
+        "propertiesAreDerivedFromCanonicalSourceEditThemIn": "Properties are derived from canonical source. Edit them in Structured or Source.",
+        "needsAttention": "Needs attention",
+        "fieldsInvalidInContext": "These authored fields are not valid in the current context. Correct or remove them to resolve their diagnostics.",
+        "createResourceEllipsis": "Create resource…",
+        "removeInvalidField": "Remove invalid field",
+        "secondaryCurrency": "Secondary currency",
+        "createResource": "Create resource",
+        "resourceValuesInvalid": "Use a unique legal handle other than jump_points and a literal integer initial balance.",
+        "cancel": "Cancel",
+        "createAndUseResource": "Create and use resource",
+        "backToDeclaration": "Back to {{declaration}}",
+        "editLayoutNode": "Edit {{node}} node"
       },
       "placeholder": {
         "searchContent": "Search content",

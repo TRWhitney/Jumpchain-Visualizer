@@ -46,6 +46,7 @@ export class PackageSecurityError extends Error {
   constructor(
     readonly code: string,
     readonly parameters: Record<string, string | number> = {},
+    readonly diagnostic?: PackageDiagnostic,
   ) {
     super(code);
     this.name = "PackageSecurityError";
@@ -553,17 +554,21 @@ function decodePackage(
       }
     } else assets[path] = bytes;
   }
-  const packageItem = canonicalizePackage({
-    id: hash.slice(0, 24),
-    logicalId: hash.slice(0, 24),
-    source: "imported",
-    exactHash: hash,
-    files: definitions,
-  });
+  const packageItem = canonicalizePackage(
+    {
+      id: hash.slice(0, 24),
+      logicalId: hash.slice(0, 24),
+      source: "imported",
+      exactHash: hash,
+      files: definitions,
+    },
+    { profile: "distribution", assetPaths: Object.keys(assets) },
+  );
   const errors = packageItem.diagnostics.filter(
     (diagnostic) => diagnostic.severity === "error",
   );
-  if (errors.length) fail("package.invalid", { value0: errors[0].message });
+  if (errors.length)
+    throw new PackageSecurityError("package.invalid", {}, errors[0]);
   for (const path of referencedAssets(packageItem))
     if (!assets[path]) fail("package.missing_asset", { value0: path });
   return { packageItem, definitions, assets };

@@ -24,14 +24,23 @@ import { Format1LanguageService, type FormatSymbol } from "./languageService";
 import { summarizeWorkspace, type EditorWorkspaceSnapshot } from "./model";
 import {
   addDocumentField,
+  createAndAssignDocumentResource,
   declarationFieldNames,
+  fieldDefault,
   fieldDefinition,
+  fieldValues,
+  insertDocumentChild,
+  moveDocumentChild,
+  removeDocumentDeclaration,
+  removeDocumentFields,
+  type FieldDefault,
   quickAddFieldMode,
-  readConditionalSourceFields,
+  readConditionalSourceFieldGroups,
   readSourceField,
   readSourceFields,
   setDocumentField,
   setConditionalDocumentField,
+  structuredContext,
 } from "./documentEditor";
 import {
   SourceCodeEditor,
@@ -39,7 +48,7 @@ import {
   type SourceSearchStatus,
 } from "./SourceCodeEditor";
 import { assignQuickAddMnemonics } from "./quickAdd";
-import { translate } from "../localization";
+import { translate, translateDiagnostic } from "../localization";
 
 type SaveState = "Saved" | "Saving" | "Unsaved" | "Save failed";
 type NavigationTab = "content" | "files";
@@ -57,6 +66,25 @@ const declarationGroups = [
   ["Layouts", ["section-layout", "choice-layout", "trait-layout"]],
   ["Themes", ["theme"]],
 ] as const;
+
+function defaultShadowText(defaultValue: FieldDefault | null) {
+  if (!defaultValue) return undefined;
+  const value =
+    defaultValue.kind === "built-in-layout"
+      ? translate(
+          {
+            section: "ui.editorWorkspace.defaultValue.builtInSectionLayout",
+            choice: "ui.editorWorkspace.defaultValue.builtInChoiceLayout",
+            trait: "ui.editorWorkspace.defaultValue.builtInTraitLayout",
+          }[defaultValue.layout],
+        )
+      : typeof defaultValue.value === "boolean"
+        ? translate(
+            `ui.editorWorkspace.defaultValue.boolean${defaultValue.value ? "True" : "False"}`,
+          )
+        : String(defaultValue.value);
+  return translate("ui.editorWorkspace.defaultValue.template", { value });
+}
 
 function symbolLabel(symbol: FormatSymbol) {
   return symbol.name || symbol.handle || symbol.kind.replaceAll("-", " ");
@@ -155,12 +183,28 @@ function mutateLayoutNode(source: string, lineIndex: number, move: LayoutMove) {
 const addTemplates = {
   resource: `\nresource\n  handle: new_resource\n  name: "New Resource"\n  abbreviation: "NR"\n  initial: 0\n`,
   section: `\nsection\n  handle: new_section\n  name: "New Section"\n`,
-  choice: `\nchoice\n  handle: new_choice\n  name: "New Choice"\n  selection: toggle\n  resolution: manual\n`,
+  choice: `\nchoice\n  handle: new_choice\n  name: "New Choice"\n  selection: toggle\n`,
   "section layout": `\nsection-layout\n  handle: new_section_layout\n  name: "New Section Layout"\n\n  stack\n    handle: root\n    gap: md\n\n    slot: name\n`,
   "choice layout": `\nchoice-layout\n  handle: new_choice_layout\n  name: "New Choice Layout"\n\n  stack\n    handle: root\n    gap: sm\n\n    slot: name\n    slot: control\n`,
   "trait layout": `\ntrait-layout\n  handle: new_trait_layout\n  name: "New Trait Layout"\n\n  stack\n    handle: root\n    gap: sm\n\n    slot: name\n`,
   theme: `\ntheme\n  handle: new_theme\n  name: "New Theme"\n  color: "#68707c"\n`,
 } as const;
+
+function uniqueTopLevelTemplate(
+  template: string,
+  symbols: readonly FormatSymbol[],
+) {
+  const match = /\n {2}handle:\s*([a-z0-9_]+)/.exec(template);
+  if (!match) return template;
+  const handles = new Set(symbols.flatMap((symbol) => symbol.handle ?? []));
+  if (!handles.has(match[1])) return template;
+  let suffix = 2;
+  while (handles.has(`${match[1]}_${suffix}`)) suffix += 1;
+  return template.replace(
+    `\n  handle: ${match[1]}`,
+    `\n  handle: ${match[1]}_${suffix}`,
+  );
+}
 
 export function EditorWorkspace({
   workspace,
@@ -214,6 +258,13 @@ export function EditorWorkspace({
   const [completionOpen, setCompletionOpen] = useState(false);
   const [sourceCursor, setSourceCursor] = useState(0);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [structuredFocus, setStructuredFocus] = useState<string | null>(null);
+  const [structuredAnnouncement, setStructuredAnnouncement] = useState("");
+  const [resourceCreation, setResourceCreation] = useState<{
+    owner: FormatSymbol;
+  } | null>(null);
+  const [structuredReturnTarget, setStructuredReturnTarget] =
+    useState<FormatSymbol | null>(null);
   const [diagnosticFilters, setDiagnosticFilters] = useState<
     Record<Severity, boolean>
   >({ error: true, warning: true, info: true });
@@ -285,8 +336,20 @@ export function EditorWorkspace({
     [sourceKeybindings],
   );
   const analysis = useMemo(
-    () => service.analyze(workspace.files),
-    [workspace.files],
+    () =>
+      service.analyze(workspace.files, {
+        assetPaths: Object.keys(workspace.assets),
+        warnings: {
+          missingImageAlt: settings.editor.warnMissingImageAlt,
+          missingLayoutTargets: settings.editor.warnMissingLayoutTargets,
+        },
+      }),
+    [
+      settings.editor.warnMissingImageAlt,
+      settings.editor.warnMissingLayoutTargets,
+      workspace.assets,
+      workspace.files,
+    ],
   );
   const resolvedSelectedSymbol = selectedSymbol
     ? (analysis.symbols.find(
@@ -297,8 +360,20 @@ export function EditorWorkspace({
       ) ?? selectedSymbol)
     : null;
   const recoveredAnalysis = useMemo(
-    () => service.analyze(service.recover(workspace.files)),
-    [workspace.files],
+    () =>
+      service.analyze(service.recover(workspace.files), {
+        assetPaths: Object.keys(workspace.assets),
+        warnings: {
+          missingImageAlt: settings.editor.warnMissingImageAlt,
+          missingLayoutTargets: settings.editor.warnMissingLayoutTargets,
+        },
+      }),
+    [
+      settings.editor.warnMissingImageAlt,
+      settings.editor.warnMissingLayoutTargets,
+      workspace.assets,
+      workspace.files,
+    ],
   );
   const currentValid = packageIsValid(analysis.packageItem);
   const recoveredValid = packageIsValid(recoveredAnalysis.packageItem);
@@ -340,15 +415,22 @@ export function EditorWorkspace({
         kind: "field" as const,
       }));
     const source = workspace.files[sourceContextSymbol.file] ?? "";
+    const context = structuredContext(workspace.files, sourceContextSymbol);
     return [
-      ...declarationFieldNames(sourceContextSymbol.kind)
-        .filter(
+      ...service
+        .contextualCompletions(workspace.files, sourceContextSymbol)
+        .fields.filter(
           (value) =>
-            quickAddFieldMode(source, sourceContextSymbol, value) !== null,
+            quickAddFieldMode(
+              source,
+              sourceContextSymbol,
+              value,
+              context?.fields[value],
+            ) !== null,
         )
         .map((value) => ({ value, kind: "field" as const })),
       ...service
-        .completions(sourceContextSymbol.kind)
+        .contextualCompletions(workspace.files, sourceContextSymbol)
         .children.map((value) => ({ value, kind: "declaration" as const })),
     ];
   }, [sourceContextSymbol, workspace.files]);
@@ -474,6 +556,7 @@ export function EditorWorkspace({
   };
 
   const openSymbol = (symbol: FormatSymbol) => {
+    setStructuredReturnTarget(null);
     setSelectedAsset(null);
     setSelectedSymbol(symbol);
     setSelected({
@@ -644,11 +727,13 @@ export function EditorWorkspace({
                         : kind === "choice"
                           ? "choices.jdef"
                           : "jump.jdef";
+                    const template = uniqueTopLevelTemplate(
+                      addTemplates[kind as keyof typeof addTemplates],
+                      analysis.symbols,
+                    );
                     const nextFiles = {
                       ...workspace.files,
-                      [target]:
-                        (workspace.files[target] ?? "") +
-                        addTemplates[kind as keyof typeof addTemplates],
+                      [target]: (workspace.files[target] ?? "") + template,
                     };
                     commitFiles(nextFiles);
                     setFile(target);
@@ -661,11 +746,32 @@ export function EditorWorkspace({
                           symbol.kind === declarationKind,
                       )
                       .at(-1);
-                    if (added) openSymbol(added);
+                    if (added) {
+                      setStructuredFocus(
+                        ["resource", "section", "choice", "theme"].includes(
+                          declarationKind,
+                        )
+                          ? "handle"
+                          : "name",
+                      );
+                      openSymbol(added);
+                      setStructuredAnnouncement(
+                        translate(
+                          "ui.editorWorkspace.announcement.declarationAdded",
+                          {
+                            declaration: translate(
+                              `ui.editorWorkspace.declaration.${declarationKind}`,
+                            ),
+                          },
+                        ),
+                      );
+                    }
                     setAddOpen(false);
                   }}
                 >
-                  {kind[0].toLocaleUpperCase() + kind.slice(1)}
+                  {translate(
+                    `ui.editorWorkspace.declaration.${kind.replaceAll(" ", "-")}`,
+                  )}
                 </button>
               ))}
               <button
@@ -925,77 +1031,177 @@ export function EditorWorkspace({
           ))}
         </div>
         {editingTab === "structured" ? (
-          <StructuredPanel
-            packageName={summary.name}
-            symbol={
-              resolvedSelectedSymbol ??
-              analysis.symbols.find((item) => item.kind === "jump") ??
-              null
-            }
-            files={workspace.files}
-            onOpenPackage={() => {
-              const jump = analysis.symbols.find(
-                (item) => item.kind === "jump",
-              );
-              if (jump) openSymbol(jump);
-            }}
-            onEndFieldEdit={endHistoryGroup}
-            onUpdate={(symbol, field, value, occurrence = 0) => {
-              const result = setDocumentField(
-                workspace.files,
-                symbol,
-                field,
-                value,
-                occurrence,
-              );
-              if (!result.changed) return;
-              commitFiles(
-                result.files,
-                true,
-                false,
-                `field:${symbol.file}:${symbol.from}:${field}:${occurrence}`,
-              );
-              setSelectedSymbol(
-                service
-                  .analyze(result.files)
-                  .symbols.find(
-                    (candidate) =>
-                      candidate.file === symbol.file &&
-                      candidate.kind === symbol.kind &&
-                      candidate.from === symbol.from,
-                  ) ?? symbol,
-              );
-            }}
-            onAddField={(symbol, field) => {
-              const result = addDocumentField(workspace.files, symbol, field);
-              if (result.changed) commitFiles(result.files);
-            }}
-            onUpdateVariant={(symbol, field, occurrence, condition, value) => {
-              const result = setConditionalDocumentField(
-                workspace.files,
+          <>
+            <span className="sr-only" aria-live="polite">
+              {structuredAnnouncement}
+            </span>
+            <StructuredPanel
+              key={`${resolvedSelectedSymbol?.file ?? "jump.jdef"}:${resolvedSelectedSymbol?.from ?? 0}`}
+              packageName={summary.name}
+              diagnostics={analysis.diagnostics}
+              symbol={
+                resolvedSelectedSymbol ??
+                analysis.symbols.find((item) => item.kind === "jump") ??
+                null
+              }
+              files={workspace.files}
+              assets={Object.keys(workspace.assets)}
+              focusField={structuredFocus}
+              returnTarget={structuredReturnTarget}
+              onOpenSymbol={openSymbol}
+              onOpenPackage={() => {
+                const jump = analysis.symbols.find(
+                  (item) => item.kind === "jump",
+                );
+                if (jump) openSymbol(jump);
+              }}
+              onEndFieldEdit={endHistoryGroup}
+              onUpdate={(symbol, field, value, occurrence = 0) => {
+                const result = setDocumentField(
+                  workspace.files,
+                  symbol,
+                  field,
+                  value,
+                  occurrence,
+                );
+                if (!result.changed) return;
+                commitFiles(
+                  result.files,
+                  true,
+                  false,
+                  `field:${symbol.file}:${symbol.from}:${field}:${occurrence}`,
+                );
+                setSelectedSymbol(
+                  service
+                    .analyze(result.files)
+                    .symbols.find(
+                      (candidate) =>
+                        candidate.file === symbol.file &&
+                        candidate.kind === symbol.kind &&
+                        candidate.from === symbol.from,
+                    ) ?? symbol,
+                );
+              }}
+              onUpdateNested={(symbol, field, value, occurrence = 0) => {
+                const result = setDocumentField(
+                  workspace.files,
+                  symbol,
+                  field,
+                  value,
+                  occurrence,
+                );
+                if (!result.changed) return;
+                commitFiles(
+                  result.files,
+                  true,
+                  false,
+                  `field:${symbol.file}:${symbol.from}:${field}:${occurrence}`,
+                );
+              }}
+              onAddField={(symbol, field) => {
+                const result = addDocumentField(workspace.files, symbol, field);
+                if (result.changed) commitFiles(result.files);
+              }}
+              onInsertChild={(owner, kind) => {
+                const result = insertDocumentChild(
+                  workspace.files,
+                  owner,
+                  kind,
+                );
+                if (!result.changed || !result.target) return;
+                commitFiles(result.files);
+                setStructuredFocus(result.focusField ?? null);
+                openSymbol(result.target);
+                setStructuredAnnouncement(
+                  translate(
+                    "ui.editorWorkspace.announcement.declarationAdded",
+                    {
+                      declaration: kind.replaceAll("-", " "),
+                    },
+                  ),
+                );
+              }}
+              onCreateResource={(owner) => setResourceCreation({ owner })}
+              onRemoveChild={(owner, child) => {
+                const result = removeDocumentDeclaration(
+                  workspace.files,
+                  child,
+                );
+                if (!result.changed) return;
+                commitFiles(result.files);
+                setStructuredFocus(null);
+                openSymbol(result.target ?? owner);
+                setStructuredAnnouncement(
+                  translate(
+                    "ui.editorWorkspace.announcement.declarationRemoved",
+                    {
+                      declaration: child.kind.replaceAll("-", " "),
+                    },
+                  ),
+                );
+              }}
+              onRemoveInvalidField={(symbol, field) => {
+                const result = removeDocumentFields(
+                  workspace.files,
+                  symbol,
+                  field,
+                );
+                if (result.changed) commitFiles(result.files);
+              }}
+              onMoveChild={(owner, child, direction) => {
+                const result = moveDocumentChild(
+                  workspace.files,
+                  owner,
+                  child,
+                  direction,
+                );
+                if (!result.changed) return;
+                commitFiles(result.files);
+                if (result.target) openSymbol(result.target);
+                setStructuredAnnouncement(
+                  translate(
+                    "ui.editorWorkspace.announcement.declarationMoved",
+                    {
+                      declaration: child.kind.replaceAll("-", " "),
+                    },
+                  ),
+                );
+              }}
+              onUpdateVariant={(
                 symbol,
                 field,
                 occurrence,
                 condition,
                 value,
-              );
-              if (result.changed) commitFiles(result.files);
-            }}
-            onReplace={(symbol, declaration, continuous = false) =>
-              commitFiles(
-                {
-                  ...workspace.files,
-                  [symbol.file]:
-                    workspace.files[symbol.file].slice(0, symbol.from) +
-                    declaration +
-                    workspace.files[symbol.file].slice(symbol.to),
-                },
-                continuous,
-                false,
-                `field:${symbol.file}:${symbol.from}:layout-tree`,
-              )
-            }
-          />
+                baseOccurrence,
+              ) => {
+                const result = setConditionalDocumentField(
+                  workspace.files,
+                  symbol,
+                  field,
+                  occurrence,
+                  condition,
+                  value,
+                  baseOccurrence,
+                );
+                if (result.changed) commitFiles(result.files);
+              }}
+              onReplace={(symbol, declaration, continuous = false) =>
+                commitFiles(
+                  {
+                    ...workspace.files,
+                    [symbol.file]:
+                      workspace.files[symbol.file].slice(0, symbol.from) +
+                      declaration +
+                      workspace.files[symbol.file].slice(symbol.to),
+                  },
+                  continuous,
+                  false,
+                  `field:${symbol.file}:${symbol.from}:layout-tree`,
+                )
+              }
+            />
+          </>
         ) : (
           <div className={`editor-source-panel${findOpen ? " has-find" : ""}`}>
             <div className="editor-source-toolbar">
@@ -1219,7 +1425,7 @@ export function EditorWorkspace({
                         {
                           ...extent,
                           severity: diagnostic.severity,
-                          message: diagnostic.message,
+                          message: translateDiagnostic(diagnostic),
                         } as const,
                       ]
                     : [];
@@ -1241,6 +1447,7 @@ export function EditorWorkspace({
                       : file
                   }
                   symbol={sourceContextSymbol}
+                  files={workspace.files}
                   source={
                     workspace.files[sourceContextSymbol?.file ?? file] ?? ""
                   }
@@ -1569,7 +1776,7 @@ export function EditorWorkspace({
             )}
             <span className="editor-diagnostics-summary-text">
               {priorityDiagnostic
-                ? priorityDiagnostic.message
+                ? translateDiagnostic(priorityDiagnostic)
                 : "No included diagnostics."}
             </span>
           </div>
@@ -1600,7 +1807,7 @@ export function EditorWorkspace({
                       ? "!"
                       : "i"}
                 </span>
-                <span>{diagnostic.message}</span>
+                <span>{translateDiagnostic(diagnostic)}</span>
                 <code>
                   {diagnostic.range
                     ? `${diagnostic.range.file}:${diagnostic.range.line}`
@@ -1618,25 +1825,330 @@ export function EditorWorkspace({
           </div>
         )}
       </section>
+      {resourceCreation && (
+        <ResourceCreationDialog
+          onCancel={() => setResourceCreation(null)}
+          onCreate={(values) => {
+            const result = createAndAssignDocumentResource(
+              workspace.files,
+              resourceCreation.owner,
+              values,
+            );
+            if (!result.changed || !result.target) return false;
+            commitFiles(result.files);
+            setResourceCreation(null);
+            setStructuredFocus(result.focusField ?? null);
+            openSymbol(result.target);
+            setStructuredReturnTarget(resourceCreation.owner);
+            setStructuredAnnouncement(
+              translate("ui.editorWorkspace.announcement.resourceCreated", {
+                resource: values.name,
+              }),
+            );
+            return true;
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function LayoutNodeFields({
+  assets,
+  diagnostics,
+  files,
+  symbol,
+  onEndFieldEdit,
+  onUpdate,
+}: {
+  assets: readonly string[];
+  diagnostics: readonly PackageDiagnostic[];
+  files: Readonly<Record<string, string>>;
+  symbol: FormatSymbol;
+  onEndFieldEdit: () => void;
+  onUpdate: (
+    symbol: FormatSymbol,
+    field: string,
+    value: string,
+    occurrence?: number,
+  ) => void;
+}) {
+  const context = structuredContext(files, symbol);
+  if (!context) return null;
+  const symbols = service.analyze(files).symbols;
+  return (
+    <div className="editor-form-grid editor-layout-node-fields">
+      <strong>
+        {translate("ui.editorWorkspace.text.editLayoutNode", {
+          node: symbol.kind,
+        })}
+      </strong>
+      {context.visibleFields.map((fieldName) => {
+        const definition = context.fields[fieldName];
+        const value = readSourceField(files[symbol.file], symbol, fieldName);
+        const options = fieldValues(definition);
+        const omissionDefault: FieldDefault | null =
+          definition.default === undefined
+            ? null
+            : { kind: "value", value: definition.default };
+        const referenceKind = definition.type?.startsWith("handleReference:")
+          ? definition.type.slice("handleReference:".length)
+          : null;
+        const references = [
+          ...(definition.type === "quotedString:packageRelativeAssetPath"
+            ? assets
+            : []),
+          ...(referenceKind
+            ? symbols
+                .filter((candidate) => {
+                  if (referenceKind === "owner-local-content")
+                    return ["text", "image", "input"].includes(candidate.kind);
+                  if (referenceKind === "choice-placement")
+                    return candidate.kind === "choice" && candidate.depth > 0;
+                  return candidate.kind === referenceKind;
+                })
+                .flatMap((candidate) =>
+                  candidate.handle ? [candidate.handle] : [],
+                )
+            : []),
+          ...(definition.type === "color"
+            ? [
+                ...options,
+                ...symbols
+                  .filter((candidate) => candidate.kind === "theme")
+                  .flatMap((candidate) => candidate.handle ?? []),
+              ]
+            : []),
+        ];
+        const matchingDiagnostics = diagnostics.filter(
+          (diagnostic) =>
+            diagnostic.target?.file === symbol.file &&
+            diagnostic.target.declarationFrom === symbol.from &&
+            diagnostic.target.field === fieldName,
+        );
+        const listId = `layout-${symbol.from}-${fieldName}`;
+        const common = {
+          "aria-invalid": matchingDiagnostics.length ? true : undefined,
+          "aria-describedby": matchingDiagnostics.length
+            ? `${listId}-diagnostics`
+            : undefined,
+        } as const;
+        return (
+          <div className="editor-schema-field" key={fieldName}>
+            <div className="editor-field-occurrence">
+              <span>
+                {fieldName.replaceAll("-", " ")}
+                {definition.required && (
+                  <small>{translate("ui.editorWorkspace.text.required")}</small>
+                )}
+              </span>
+              {options.length &&
+              [
+                "enum",
+                "spacing",
+                "size",
+                "align",
+                "justify",
+                "textAlign",
+              ].includes(definition.type ?? "") ? (
+                <select
+                  aria-label={fieldName}
+                  value={value}
+                  {...common}
+                  onChange={(event) =>
+                    onUpdate(symbol, fieldName, event.target.value)
+                  }
+                  onBlur={onEndFieldEdit}
+                >
+                  {!definition.required && (
+                    <option value="">
+                      {defaultShadowText(omissionDefault) ??
+                        translate("ui.editorWorkspace.text.notSet")}
+                    </option>
+                  )}
+                  {options.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  aria-label={fieldName}
+                  type={definition.type === "integer" ? "number" : "text"}
+                  min={definition.minimum}
+                  max={definition.maximum}
+                  value={value}
+                  list={references.length ? listId : undefined}
+                  {...common}
+                  onChange={(event) =>
+                    onUpdate(symbol, fieldName, event.target.value)
+                  }
+                  onBlur={onEndFieldEdit}
+                />
+              )}
+              {matchingDiagnostics.length > 0 && (
+                <span
+                  className="editor-field-diagnostics"
+                  id={`${listId}-diagnostics`}
+                >
+                  {matchingDiagnostics.map((diagnostic, index) => (
+                    <small
+                      className={`is-${diagnostic.severity}`}
+                      key={`${diagnostic.code}:${index}`}
+                    >
+                      {translateDiagnostic(diagnostic)}
+                    </small>
+                  ))}
+                </span>
+              )}
+              {references.length > 0 && (
+                <datalist id={listId}>
+                  {references.map((reference) => (
+                    <option key={reference} value={reference} />
+                  ))}
+                </datalist>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ResourceCreationDialog({
+  onCancel,
+  onCreate,
+}: {
+  onCancel: () => void;
+  onCreate: (values: {
+    handle: string;
+    name: string;
+    abbreviation?: string;
+    initial?: string;
+  }) => boolean;
+}) {
+  const [handle, setHandle] = useState("");
+  const [name, setName] = useState("");
+  const [abbreviation, setAbbreviation] = useState("");
+  const [initial, setInitial] = useState("0");
+  const [error, setError] = useState("");
+  return (
+    <div className="editor-departure-backdrop">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="editor-create-resource-heading"
+      >
+        <p>{translate("ui.editorWorkspace.text.secondaryCurrency")}</p>
+        <h2 id="editor-create-resource-heading">
+          {translate("ui.editorWorkspace.text.createResource")}
+        </h2>
+        <form
+          className="editor-resource-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const created = onCreate({
+              handle,
+              name,
+              abbreviation: abbreviation || undefined,
+              initial,
+            });
+            if (!created)
+              setError(
+                translate("ui.editorWorkspace.text.resourceValuesInvalid"),
+              );
+          }}
+        >
+          <label>
+            <span>{translate("ui.editorWorkspace.field.handle")}</span>
+            <input
+              autoFocus
+              required
+              pattern="[a-z0-9]+(?:_[a-z0-9]+)*"
+              value={handle}
+              onChange={(event) => {
+                setHandle(event.target.value);
+                setError("");
+              }}
+            />
+          </label>
+          <label>
+            <span>{translate("ui.editorWorkspace.field.name")}</span>
+            <input
+              required
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </label>
+          <label>
+            <span>{translate("ui.editorWorkspace.field.abbreviation")}</span>
+            <input
+              value={abbreviation}
+              onChange={(event) => setAbbreviation(event.target.value)}
+            />
+          </label>
+          <label>
+            <span>{translate("ui.editorWorkspace.field.initial")}</span>
+            <input
+              required
+              type="number"
+              value={initial}
+              onChange={(event) => setInitial(event.target.value)}
+            />
+          </label>
+          {error && <p role="alert">{error}</p>}
+          <div>
+            <button type="submit">
+              {translate("ui.editorWorkspace.text.createAndUseResource")}
+            </button>
+            <button type="button" onClick={onCancel}>
+              {translate("ui.editorWorkspace.text.cancel")}
+            </button>
+          </div>
+        </form>
+      </section>
     </div>
   );
 }
 
 function StructuredPanel({
   packageName,
+  diagnostics,
   symbol,
   files,
+  assets,
+  focusField,
+  returnTarget,
   onUpdate,
+  onUpdateNested,
   onReplace,
   onOpenPackage,
+  onOpenSymbol,
   onAddField,
+  onInsertChild,
+  onCreateResource,
+  onRemoveChild,
+  onRemoveInvalidField,
+  onMoveChild,
   onUpdateVariant,
   onEndFieldEdit,
 }: {
   packageName: string;
+  diagnostics: readonly PackageDiagnostic[];
   symbol: FormatSymbol | null;
   files: Readonly<Record<string, string>>;
+  assets: readonly string[];
+  focusField: string | null;
+  returnTarget: FormatSymbol | null;
   onUpdate: (
+    symbol: FormatSymbol,
+    field: string,
+    value: string,
+    occurrence?: number,
+  ) => void;
+  onUpdateNested: (
     symbol: FormatSymbol,
     field: string,
     value: string,
@@ -1648,7 +2160,17 @@ function StructuredPanel({
     continuous?: boolean,
   ) => void;
   onOpenPackage: () => void;
+  onOpenSymbol: (symbol: FormatSymbol) => void;
   onAddField: (symbol: FormatSymbol, field: string) => void;
+  onInsertChild: (symbol: FormatSymbol, kind: string) => void;
+  onCreateResource: (symbol: FormatSymbol) => void;
+  onRemoveChild: (owner: FormatSymbol, child: FormatSymbol) => void;
+  onRemoveInvalidField: (symbol: FormatSymbol, field: string) => void;
+  onMoveChild: (
+    owner: FormatSymbol,
+    child: FormatSymbol,
+    direction: "up" | "down",
+  ) => void;
   onEndFieldEdit: () => void;
   onUpdateVariant: (
     symbol: FormatSymbol,
@@ -1656,8 +2178,12 @@ function StructuredPanel({
     occurrence: number,
     condition: string,
     value: string,
+    baseOccurrence?: number,
   ) => void;
 }) {
+  const [selectedLayoutLine, setSelectedLayoutLine] = useState<number | null>(
+    null,
+  );
   const source = symbol ? files[symbol.file].slice(symbol.from, symbol.to) : "";
   const field = (name: string) =>
     symbol ? readSourceField(files[symbol.file], symbol, name) : "";
@@ -1676,75 +2202,120 @@ function StructuredPanel({
     );
   const handle = field("handle");
   const name = field("name") || (symbol.kind === "jump" ? packageName : handle);
+  const resolvedContext = structuredContext(files, symbol);
   const isLayout = symbol.kind.includes("layout");
   const scalarForm = new RegExp(
     `^\\s*${symbol.kind.replaceAll("-", "\\-")}:\\s*(.+)$`,
   ).exec(source.split("\n")[0] ?? "");
-  const identityFields = declarationFieldNames(symbol.kind).filter((item) =>
+  const visibleFieldNames =
+    resolvedContext?.visibleFields ?? declarationFieldNames(symbol.kind);
+  const identityFields = visibleFieldNames.filter((item) =>
     ["handle", "name", "description", "author", "version"].includes(item),
   );
-  const detailFields = declarationFieldNames(symbol.kind).filter(
+  const detailFields = visibleFieldNames.filter(
     (item) => !identityFields.includes(item),
   );
-  const childTemplates: Record<string, readonly [string, string][]> = {
-    section: [
-      ["Text", '\n  text\n    handle: new_text\n    content: ""\n'],
-      [
-        "Image",
-        '\n  image\n    handle: new_image\n    src: "assets/image.png"\n    alt: ""\n',
-      ],
-      [
-        "Choice source",
-        "\n  choice-source\n    handle: new_source\n    mode: multi\n",
-      ],
-      [
-        "Direct choice",
-        "\n  choice\n    handle: new_placement\n    target: choice_handle\n",
-      ],
-    ],
-    choice: [
-      ["Text", '\n  text\n    handle: new_text\n    content: ""\n'],
-      [
-        "Image",
-        '\n  image\n    handle: new_image\n    src: "assets/image.png"\n    alt: ""\n',
-      ],
-      ["Cost", "\n  cost\n    resource: jump_points\n    amount: 0\n"],
-      ["Grant", '\n  grant\n    kind: perk\n    name: "New grant"\n'],
-      ["Input", "\n  input\n    handle: new_input\n    selection: text\n"],
-    ],
-    input: [
-      [
-        "Grant",
-        "\n  grant\n    kind: resource\n    resource: jump_points\n    amount: 0\n",
-      ],
-    ],
-    grant: [
-      ["Text", '\n  text\n    handle: new_text\n    content: ""\n'],
-      [
-        "Image",
-        '\n  image\n    handle: new_image\n    src: "assets/image.png"\n    alt: ""\n',
-      ],
-    ],
-  };
-  const children = childTemplates[symbol.kind] ?? [];
+  const childKinds = resolvedContext?.childKinds ?? [];
+  const symbols = service.analyze(files).symbols;
+  const jumpSymbol = symbols.find((candidate) => candidate.kind === "jump");
+  const jumpField = (name: string) =>
+    jumpSymbol ? readSourceField(files[jumpSymbol.file], jumpSymbol, name) : "";
+  const owningControl = symbols
+    .filter(
+      (candidate) =>
+        candidate.file === symbol.file &&
+        candidate.from < symbol.from &&
+        candidate.to >= symbol.to &&
+        ["choice", "input"].includes(candidate.kind),
+    )
+    .sort((left, right) => right.depth - left.depth)[0];
+  const ownerSelection = owningControl
+    ? readSourceField(files[owningControl.file], owningControl, "selection")
+    : "";
+  const directGrants =
+    symbol.kind === "choice"
+      ? readSourceFields(files[symbol.file], symbol, "grant")
+      : [];
+  const integerVisibleGrant =
+    (symbol.kind === "grant" &&
+      ownerSelection === "integer" &&
+      ["perk", "item", "trait"].includes(field("kind"))) ||
+    (symbol.kind === "choice" &&
+      field("selection") === "integer" &&
+      directGrants.length === 1 &&
+      ["perk", "item"].includes(directGrants[0]));
   const renderField = (fieldName: string) => {
-    const definition = fieldDefinition(symbol.kind, fieldName);
+    const definition =
+      resolvedContext?.fields[fieldName] ??
+      fieldDefinition(symbol.kind, fieldName);
+    const defaultValue = fieldDefault(symbol.kind, fieldName, {
+      gauntlet: field("gauntlet"),
+      selection: field("selection"),
+      grantKind: field("kind"),
+      integerVisibleGrant: String(integerVisibleGrant),
+      sectionLayout: jumpField("section-layout"),
+      choiceLayout: jumpField("choice-layout"),
+      traitLayout: jumpField("trait-layout"),
+    });
+    const shadowText = defaultShadowText(defaultValue);
     const referenceKind = definition?.type?.startsWith("handleReference:")
       ? definition.type.slice("handleReference:".length)
       : null;
-    const referenceOptions = referenceKind
-      ? service
-          .analyze(files)
-          .symbols.filter((candidate) => candidate.kind === referenceKind)
-          .flatMap((candidate) => (candidate.handle ? [candidate.handle] : []))
-      : [];
+    const referenceSymbolKinds: Readonly<Record<string, readonly string[]>> = {
+      form: ["grant"],
+      companionTarget: ["grant"],
+      "owner-local-content": ["text", "image", "input"],
+      "choice-placement": ["choice"],
+    };
+    const referenceOptions = [
+      ...(referenceKind === "resource" ? ["jump_points"] : []),
+      ...(referenceKind
+        ? symbols
+            .filter((candidate) =>
+              (referenceSymbolKinds[referenceKind] ?? [referenceKind]).includes(
+                candidate.kind,
+              ),
+            )
+            .filter((candidate) => {
+              if (referenceKind === "form")
+                return (
+                  readSourceField(files[candidate.file], candidate, "kind") ===
+                  "form"
+                );
+              if (referenceKind === "companionTarget")
+                return ["companion", "companion-import"].includes(
+                  readSourceField(files[candidate.file], candidate, "kind"),
+                );
+              if (referenceKind === "choice-placement")
+                return candidate.depth > 0;
+              return true;
+            })
+            .flatMap((candidate) =>
+              candidate.handle ? [candidate.handle] : [],
+            )
+        : []),
+      ...(definition?.type === "quotedString:packageRelativeAssetPath"
+        ? assets
+        : []),
+      ...(["costAmount", "grantAmount", "color"].includes(
+        definition?.type ?? "",
+      )
+        ? fieldValues(definition)
+        : []),
+      ...(definition?.type === "color"
+        ? symbols
+            .filter((candidate) => candidate.kind === "theme")
+            .flatMap((candidate) => candidate.handle ?? [])
+        : []),
+    ].filter((option, index, options) => options.indexOf(option) === index);
+    const enumValues = fieldValues(definition);
     const listId =
       `editor-${symbol.file}-${symbol.from}-${fieldName}`.replaceAll(
         /[^a-zA-Z0-9_-]/g,
         "-",
       );
     const values = readSourceFields(files[symbol.file], symbol, fieldName);
-    const variants = readConditionalSourceFields(
+    const variants = readConditionalSourceFieldGroups(
       files[symbol.file],
       symbol,
       fieldName,
@@ -1755,164 +2326,262 @@ function StructuredPanel({
         className={`editor-schema-field${["description", "content", "author", "option", "tag", "group"].includes(fieldName) ? " is-wide" : ""}`}
         key={fieldName}
       >
-        {displayed.map((value, occurrence) => (
-          <div
-            className="editor-field-occurrence"
-            key={`${fieldName}:${occurrence}`}
-          >
-            <span>
-              {fieldName.replaceAll("-", " ")}
-              {definition?.required && (
-                <small>{translate("ui.editorWorkspace.text.required")}</small>
-              )}
-            </span>
-            <span className="editor-schema-field-control">
-              {definition?.type === "boolean" ? (
-                <input
-                  type="checkbox"
-                  aria-label={`${fieldName}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
-                  checked={value === "true"}
-                  onChange={(event) =>
-                    onUpdate(
-                      symbol,
-                      fieldName,
-                      String(event.target.checked),
-                      occurrence,
-                    )
-                  }
-                  onBlur={onEndFieldEdit}
-                />
-              ) : definition?.values?.length ? (
-                <select
-                  aria-label={`${fieldName}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
-                  value={value}
-                  onChange={(event) =>
-                    onUpdate(symbol, fieldName, event.target.value, occurrence)
-                  }
-                  onBlur={onEndFieldEdit}
-                >
-                  {!definition?.required && (
-                    <option value="">
-                      {translate("ui.editorWorkspace.text.notSet")}
-                    </option>
+        {displayed.map((value, occurrence) =>
+          (() => {
+            const matchingDiagnostics = diagnostics.filter(
+              (diagnostic) =>
+                diagnostic.target?.file === symbol.file &&
+                diagnostic.target.declarationFrom === symbol.from &&
+                diagnostic.target.field === fieldName &&
+                (diagnostic.target.occurrence ?? 0) === occurrence,
+            );
+            const fieldSeverity = (["error", "warning", "info"] as const).find(
+              (severity) =>
+                matchingDiagnostics.some(
+                  (diagnostic) => diagnostic.severity === severity,
+                ),
+            );
+            const diagnosticId = matchingDiagnostics.length
+              ? `${listId}-${occurrence}-diagnostics`
+              : undefined;
+            const accessibility = {
+              "aria-invalid": matchingDiagnostics.length ? true : undefined,
+              "aria-describedby": diagnosticId,
+            } as const;
+            return (
+              <div
+                className={`editor-field-occurrence${fieldSeverity ? ` is-${fieldSeverity}` : ""}`}
+                key={`${fieldName}:${occurrence}`}
+              >
+                <span>
+                  {fieldName.replaceAll("-", " ")}
+                  {definition?.required && (
+                    <small>
+                      {translate("ui.editorWorkspace.text.required")}
+                    </small>
                   )}
-                  {definition.values.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              ) : ["description", "content"].includes(fieldName) ||
-                definition?.type === "richText" ? (
-                <textarea
-                  spellCheck
-                  aria-label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
-                  rows={fieldName === "content" ? 6 : 3}
-                  value={value}
-                  onChange={(event) =>
-                    onUpdate(symbol, fieldName, event.target.value, occurrence)
-                  }
-                  onBlur={onEndFieldEdit}
-                />
-              ) : definition?.type === "integer" ||
-                definition?.type === "number" ? (
-                <span className="number-stepper editor-number-stepper is-fluid">
-                  <input
-                    aria-label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
-                    type="number"
-                    min={
-                      typeof definition.const === "number"
-                        ? definition.const
-                        : undefined
-                    }
-                    max={
-                      typeof definition.const === "number"
-                        ? definition.const
-                        : undefined
-                    }
-                    placeholder={
-                      definition.const === undefined
-                        ? undefined
-                        : String(definition.const)
-                    }
-                    value={value}
-                    onChange={(event) =>
-                      onUpdate(
-                        symbol,
-                        fieldName,
-                        event.target.value,
-                        occurrence,
-                      )
-                    }
-                    onBlur={onEndFieldEdit}
-                  />
-                  <NumberStepperButtons
-                    label={fieldName.replaceAll("-", " ")}
-                    increaseDisabled={
-                      typeof definition.const === "number" &&
-                      value !== "" &&
-                      Number(value) >= definition.const
-                    }
-                    decreaseDisabled={
-                      typeof definition.const === "number" &&
-                      value !== "" &&
-                      Number(value) <= definition.const
-                    }
-                    onIncrease={() => {
-                      const parsed = Number(value);
-                      const next =
-                        typeof definition.const === "number"
-                          ? definition.const
-                          : (Number.isFinite(parsed) ? parsed : -1) + 1;
-                      onUpdate(symbol, fieldName, String(next), occurrence);
-                    }}
-                    onDecrease={() => {
-                      const parsed = Number(value);
-                      const next =
-                        typeof definition.const === "number"
-                          ? definition.const
-                          : (Number.isFinite(parsed) ? parsed : 1) - 1;
-                      onUpdate(symbol, fieldName, String(next), occurrence);
-                    }}
-                  />
                 </span>
-              ) : (
-                <input
-                  aria-label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
-                  type="text"
-                  spellCheck={[
-                    "author",
-                    "description",
-                    "name",
-                    "title",
-                  ].includes(fieldName)}
-                  value={value}
-                  list={referenceOptions.length ? listId : undefined}
-                  onChange={(event) =>
-                    onUpdate(symbol, fieldName, event.target.value, occurrence)
-                  }
-                  onBlur={onEndFieldEdit}
-                />
-              )}
-              {definition?.repeatable && values.length > 0 && (
-                <button
-                  type="button"
-                  aria-label={`Remove ${fieldName} ${occurrence + 1}`}
-                  onClick={() => onUpdate(symbol, fieldName, "", occurrence)}
-                >
-                  ×
-                </button>
-              )}
-            </span>
-            {referenceOptions.length > 0 && (
-              <datalist id={listId}>
-                {referenceOptions.map((option) => (
-                  <option value={option} key={option} />
-                ))}
-              </datalist>
-            )}
-          </div>
-        ))}
+                <span className="editor-schema-field-control">
+                  {definition?.type === "boolean" ? (
+                    <>
+                      <input
+                        type="checkbox"
+                        autoFocus={fieldName === focusField && occurrence === 0}
+                        aria-label={`${fieldName}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
+                        checked={value === "true"}
+                        {...accessibility}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+                          const matchesDefault =
+                            defaultValue?.kind === "value" &&
+                            defaultValue.value === checked;
+                          onUpdate(
+                            symbol,
+                            fieldName,
+                            matchesDefault ? "" : String(checked),
+                            occurrence,
+                          );
+                        }}
+                        onBlur={onEndFieldEdit}
+                      />
+                      {value === "" && shadowText && (
+                        <small className="editor-field-default">
+                          {shadowText}
+                        </small>
+                      )}
+                    </>
+                  ) : enumValues.length > 0 &&
+                    [
+                      "enum",
+                      "spacing",
+                      "size",
+                      "align",
+                      "justify",
+                      "textAlign",
+                    ].includes(definition?.type ?? "") ? (
+                    <select
+                      autoFocus={fieldName === focusField && occurrence === 0}
+                      aria-label={`${fieldName}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      className={
+                        value === "" && shadowText
+                          ? "has-default-shadowtext"
+                          : undefined
+                      }
+                      value={value}
+                      {...accessibility}
+                      onChange={(event) =>
+                        onUpdate(
+                          symbol,
+                          fieldName,
+                          event.target.value,
+                          occurrence,
+                        )
+                      }
+                      onBlur={onEndFieldEdit}
+                    >
+                      {!definition?.required && (
+                        <option value="">
+                          {shadowText ??
+                            translate("ui.editorWorkspace.text.notSet")}
+                        </option>
+                      )}
+                      {enumValues.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : ["description", "content"].includes(fieldName) ||
+                    definition?.type === "richText" ? (
+                    <textarea
+                      autoFocus={fieldName === focusField && occurrence === 0}
+                      spellCheck
+                      aria-label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      rows={fieldName === "content" ? 6 : 3}
+                      value={value}
+                      {...accessibility}
+                      onChange={(event) =>
+                        onUpdate(
+                          symbol,
+                          fieldName,
+                          event.target.value,
+                          occurrence,
+                        )
+                      }
+                      onBlur={onEndFieldEdit}
+                    />
+                  ) : definition?.type === "integer" ||
+                    definition?.type === "number" ? (
+                    <span className="number-stepper editor-number-stepper is-fluid">
+                      <input
+                        autoFocus={fieldName === focusField && occurrence === 0}
+                        aria-label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
+                        type="number"
+                        min={
+                          typeof definition.const === "number"
+                            ? definition.const
+                            : undefined
+                        }
+                        max={
+                          typeof definition.const === "number"
+                            ? definition.const
+                            : undefined
+                        }
+                        placeholder={value === "" ? shadowText : undefined}
+                        value={value}
+                        {...accessibility}
+                        onChange={(event) =>
+                          onUpdate(
+                            symbol,
+                            fieldName,
+                            event.target.value,
+                            occurrence,
+                          )
+                        }
+                        onBlur={onEndFieldEdit}
+                      />
+                      <NumberStepperButtons
+                        label={fieldName.replaceAll("-", " ")}
+                        increaseDisabled={
+                          typeof definition.const === "number" &&
+                          value !== "" &&
+                          Number(value) >= definition.const
+                        }
+                        decreaseDisabled={
+                          typeof definition.const === "number" &&
+                          value !== "" &&
+                          Number(value) <= definition.const
+                        }
+                        onIncrease={() => {
+                          const parsed = Number(value);
+                          const next =
+                            typeof definition.const === "number"
+                              ? definition.const
+                              : (Number.isFinite(parsed) ? parsed : -1) + 1;
+                          onUpdate(symbol, fieldName, String(next), occurrence);
+                        }}
+                        onDecrease={() => {
+                          const parsed = Number(value);
+                          const next =
+                            typeof definition.const === "number"
+                              ? definition.const
+                              : (Number.isFinite(parsed) ? parsed : 1) - 1;
+                          onUpdate(symbol, fieldName, String(next), occurrence);
+                        }}
+                      />
+                    </span>
+                  ) : (
+                    <input
+                      autoFocus={fieldName === focusField && occurrence === 0}
+                      aria-label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      type="text"
+                      spellCheck={[
+                        "author",
+                        "description",
+                        "name",
+                        "title",
+                      ].includes(fieldName)}
+                      value={value}
+                      {...accessibility}
+                      placeholder={value === "" ? shadowText : undefined}
+                      list={referenceOptions.length ? listId : undefined}
+                      onChange={(event) =>
+                        onUpdate(
+                          symbol,
+                          fieldName,
+                          event.target.value,
+                          occurrence,
+                        )
+                      }
+                      onBlur={onEndFieldEdit}
+                    />
+                  )}
+                  {fieldName === "resource" &&
+                    ["cost", "grant"].includes(symbol.kind) && (
+                      <button
+                        type="button"
+                        onClick={() => onCreateResource(symbol)}
+                      >
+                        {translate(
+                          "ui.editorWorkspace.text.createResourceEllipsis",
+                        )}
+                      </button>
+                    )}
+                  {definition?.repeatable && values.length > 0 && (
+                    <button
+                      type="button"
+                      aria-label={`Remove ${fieldName} ${occurrence + 1}`}
+                      onClick={() =>
+                        onUpdate(symbol, fieldName, "", occurrence)
+                      }
+                    >
+                      ×
+                    </button>
+                  )}
+                </span>
+                {matchingDiagnostics.length > 0 && (
+                  <span className="editor-field-diagnostics" id={diagnosticId}>
+                    {matchingDiagnostics.map((diagnostic, diagnosticIndex) => (
+                      <small
+                        className={`is-${diagnostic.severity}`}
+                        key={`${diagnostic.code}:${diagnosticIndex}`}
+                      >
+                        {translateDiagnostic(diagnostic)}
+                      </small>
+                    ))}
+                  </span>
+                )}
+                {referenceOptions.length > 0 && (
+                  <datalist id={listId}>
+                    {referenceOptions.map((option) => (
+                      <option value={option} key={option} />
+                    ))}
+                  </datalist>
+                )}
+              </div>
+            );
+          })(),
+        )}
         {definition?.repeatable && (
           <button type="button" onClick={() => onAddField(symbol, fieldName)}>
             {translate("ui.editorWorkspace.text.addPrefix")}
@@ -1921,66 +2590,148 @@ function StructuredPanel({
         )}
         {definition?.conditionalVariants && (
           <div className="editor-conditional-variants">
-            {variants.map((variant, occurrence) => (
-              <div key={`${fieldName}:variant:${occurrence}`}>
-                <label>
-                  <span>{translate("ui.editorWorkspace.text.when")}</span>
-                  <input
-                    spellCheck={false}
-                    value={variant.condition}
-                    onChange={(event) =>
-                      onUpdateVariant(
-                        symbol,
-                        fieldName,
-                        occurrence,
-                        event.target.value,
-                        variant.value,
-                      )
-                    }
-                    onBlur={onEndFieldEdit}
-                  />
-                </label>
-                <label>
-                  <span>{translate("ui.editorWorkspace.text.value")}</span>
-                  <input
-                    spellCheck
-                    value={variant.value}
-                    onChange={(event) =>
-                      onUpdateVariant(
-                        symbol,
-                        fieldName,
-                        occurrence,
-                        variant.condition,
-                        event.target.value,
-                      )
-                    }
-                    onBlur={onEndFieldEdit}
-                  />
-                </label>
+            {(definition.repeatable
+              ? displayed.map((_, occurrence) => occurrence)
+              : [0]
+            ).map((baseOccurrence) => (
+              <div
+                className="editor-conditional-variant-group"
+                key={`${fieldName}:base:${baseOccurrence}`}
+              >
+                {definition.repeatable && (
+                  <strong>
+                    {translate(
+                      "ui.editorWorkspace.text.variantsForOccurrence",
+                      {
+                        field: fieldName.replaceAll("-", " "),
+                        occurrence: baseOccurrence + 1,
+                      },
+                    )}
+                  </strong>
+                )}
+                {variants
+                  .filter(
+                    (variant) => variant.baseOccurrence === baseOccurrence,
+                  )
+                  .map((variant) => (
+                    <div key={`${fieldName}:variant:${variant.occurrence}`}>
+                      <label>
+                        <span>{translate("ui.editorWorkspace.text.when")}</span>
+                        <input
+                          spellCheck={false}
+                          value={variant.condition}
+                          onChange={(event) =>
+                            onUpdateVariant(
+                              symbol,
+                              fieldName,
+                              variant.occurrence,
+                              event.target.value,
+                              variant.value,
+                            )
+                          }
+                          onBlur={onEndFieldEdit}
+                        />
+                      </label>
+                      <label>
+                        <span>
+                          {translate("ui.editorWorkspace.text.value")}
+                        </span>
+                        <input
+                          spellCheck
+                          value={variant.value}
+                          onChange={(event) =>
+                            onUpdateVariant(
+                              symbol,
+                              fieldName,
+                              variant.occurrence,
+                              variant.condition,
+                              event.target.value,
+                            )
+                          }
+                          onBlur={onEndFieldEdit}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        aria-label={translate(
+                          "ui.editorWorkspace.ariaLabel.removeConditionalVariant",
+                          {
+                            field: fieldName,
+                            occurrence: variant.occurrence + 1,
+                          },
+                        )}
+                        onClick={() =>
+                          onUpdateVariant(
+                            symbol,
+                            fieldName,
+                            variant.occurrence,
+                            "",
+                            "",
+                          )
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
                 <button
                   type="button"
-                  aria-label={`Remove ${fieldName} conditional variant ${occurrence + 1}`}
                   onClick={() =>
-                    onUpdateVariant(symbol, fieldName, occurrence, "", "")
+                    onUpdateVariant(
+                      symbol,
+                      fieldName,
+                      variants.length,
+                      "true",
+                      "",
+                      baseOccurrence,
+                    )
                   }
                 >
-                  ×
+                  {translate("ui.editorWorkspace.text.addConditionalVariant")}
                 </button>
               </div>
             ))}
-            <button
-              type="button"
-              onClick={() =>
-                onUpdateVariant(symbol, fieldName, variants.length, "true", "")
-              }
-            >
-              {translate("ui.editorWorkspace.text.addConditionalVariant")}
-            </button>
           </div>
         )}
       </div>
     );
   };
+  const layoutLines = source.split("\n");
+  const layoutLineOffsets = layoutLines.map((_, index) =>
+    layoutLines
+      .slice(0, index)
+      .reduce((total, line) => total + line.length + 1, 0),
+  );
+  const layoutNodeSymbolAt = (index: number) => {
+    const line = layoutLines[index] ?? "";
+    const from = symbol.from + layoutLineOffsets[index] + line.search(/\S/);
+    return symbols.find(
+      (candidate) => candidate.file === symbol.file && candidate.from === from,
+    );
+  };
+  const selectedLayoutNode =
+    selectedLayoutLine === null
+      ? undefined
+      : layoutNodeSymbolAt(selectedLayoutLine);
+  const authoredFieldNames = resolvedContext?.node.fields.map(
+    (candidate) => candidate.name,
+  );
+  const collapseValue =
+    symbol.kind === "cost" &&
+    !scalarForm &&
+    field("resource") === "jump_points" &&
+    ["", "flat"].includes(field("mode")) &&
+    (authoredFieldNames ?? []).every((item) =>
+      ["resource", "amount", "mode"].includes(item),
+    )
+      ? field("amount")
+      : symbol.kind === "grant" &&
+          !scalarForm &&
+          ["perk", "item", "companion"].includes(field("kind")) &&
+          authoredFieldNames?.every((item) => item === "kind") &&
+          !resolvedContext?.children.length
+        ? field("kind")
+        : "";
   return (
     <div className="editor-structured-scroll">
       <header className="editor-structured-heading">
@@ -1996,11 +2747,31 @@ function StructuredPanel({
           "ui.editorWorkspace.ariaLabel.declarationBreadcrumbs",
         )}
       >
+        {returnTarget && (
+          <>
+            <button type="button" onClick={() => onOpenSymbol(returnTarget)}>
+              {translate("ui.editorWorkspace.text.backToDeclaration", {
+                declaration: symbolLabel(returnTarget),
+              })}
+            </button>
+            <span>›</span>
+          </>
+        )}
         <button type="button" onClick={onOpenPackage}>
           {translate("ui.editorWorkspace.text.package")}
         </button>
+        {resolvedContext?.ancestors
+          .filter((ancestor) => ancestor.kind !== "jump")
+          .map((ancestor) => (
+            <span key={`${ancestor.file}:${ancestor.from}`}>
+              <span>›</span>
+              <button type="button" onClick={() => onOpenSymbol(ancestor)}>
+                {symbolLabel(ancestor)}
+              </button>
+            </span>
+          ))}
         <span>›</span>
-        <span>{symbol.kind}</span>
+        <span>{symbol.kind.replaceAll("-", " ")}</span>
         {handle && (
           <>
             <span>›</span>
@@ -2051,7 +2822,7 @@ function StructuredPanel({
               "ui.editorWorkspace.text.navigateContainersSlotsControlsAndReferencesReorderButtonsCommit",
             )}
           </p>
-          {source.split("\n").map((line, index) =>
+          {layoutLines.map((line, index) =>
             /^\s{2,}(stack|inline|wrap|grid|slot|text|image|input|rule|choice|expand)/.test(
               line,
             ) ? (
@@ -2063,7 +2834,10 @@ function StructuredPanel({
               >
                 <button
                   type="button"
-                  aria-label={`Move ${line.trim()} up`}
+                  aria-label={translate(
+                    "ui.editorWorkspace.ariaLabel.moveLayoutNodeUp",
+                    { node: line.trim() },
+                  )}
                   disabled={mutateLayoutNode(source, index, "up") === source}
                   onClick={() =>
                     onReplace(symbol, mutateLayoutNode(source, index, "up"))
@@ -2073,7 +2847,10 @@ function StructuredPanel({
                 </button>
                 <button
                   type="button"
-                  aria-label={`Move ${line.trim()} down`}
+                  aria-label={translate(
+                    "ui.editorWorkspace.ariaLabel.moveLayoutNodeDown",
+                    { node: line.trim() },
+                  )}
                   disabled={mutateLayoutNode(source, index, "down") === source}
                   onClick={() =>
                     onReplace(symbol, mutateLayoutNode(source, index, "down"))
@@ -2083,7 +2860,10 @@ function StructuredPanel({
                 </button>
                 <button
                   type="button"
-                  aria-label={`Move ${line.trim()} into a container`}
+                  aria-label={translate(
+                    "ui.editorWorkspace.ariaLabel.moveLayoutNodeIn",
+                    { node: line.trim() },
+                  )}
                   disabled={mutateLayoutNode(source, index, "in") === source}
                   onClick={() =>
                     onReplace(symbol, mutateLayoutNode(source, index, "in"))
@@ -2093,7 +2873,10 @@ function StructuredPanel({
                 </button>
                 <button
                   type="button"
-                  aria-label={`Move ${line.trim()} out of its container`}
+                  aria-label={translate(
+                    "ui.editorWorkspace.ariaLabel.moveLayoutNodeOut",
+                    { node: line.trim() },
+                  )}
                   disabled={mutateLayoutNode(source, index, "out") === source}
                   onClick={() =>
                     onReplace(symbol, mutateLayoutNode(source, index, "out"))
@@ -2101,22 +2884,82 @@ function StructuredPanel({
                 >
                   ←
                 </button>
-                <input
-                  spellCheck={false}
-                  aria-label={`${line.trim().split(/[:\s]/)[0]} layout node`}
-                  value={line.trim()}
-                  onChange={(event) => {
-                    const lines = source.split("\n");
-                    lines[index] =
-                      " ".repeat(Math.max(0, line.search(/\S/))) +
-                      event.target.value;
-                    onReplace(symbol, lines.join("\n"), true);
-                  }}
-                  onBlur={onEndFieldEdit}
-                />
+                {line.includes(":") ? (
+                  <label className="editor-layout-target">
+                    <span>{line.trim().split(":", 1)[0]}</span>
+                    <input
+                      autoFocus={selectedLayoutLine === index}
+                      spellCheck={false}
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.layoutNodeTarget",
+                        { node: line.trim().split(":", 1)[0] },
+                      )}
+                      value={line
+                        .trim()
+                        .slice(line.trim().indexOf(":") + 1)
+                        .trim()}
+                      onFocus={() => setSelectedLayoutLine(index)}
+                      onChange={(event) => {
+                        const lines = source.split("\n");
+                        const kind = line.trim().split(":", 1)[0];
+                        lines[index] =
+                          " ".repeat(Math.max(0, line.search(/\S/))) +
+                          `${kind}: ${event.target.value}`;
+                        onReplace(symbol, lines.join("\n"), true);
+                      }}
+                      onBlur={onEndFieldEdit}
+                    />
+                  </label>
+                ) : (
+                  <button
+                    type="button"
+                    className={
+                      selectedLayoutLine === index ? "is-selected" : undefined
+                    }
+                    onClick={() => setSelectedLayoutLine(index)}
+                  >
+                    {line.trim()}
+                  </button>
+                )}
+                {line.includes(":") &&
+                  ["slot", "text", "image", "input"].includes(
+                    line.trim().split(":", 1)[0],
+                  ) && (
+                    <button
+                      type="button"
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
+                        { node: line.trim().split(":", 1)[0] },
+                      )}
+                      onClick={() => {
+                        const lines = source.split("\n");
+                        const indentation = " ".repeat(
+                          Math.max(0, line.search(/\S/)),
+                        );
+                        const kind = line.trim().split(":", 1)[0];
+                        const target = line
+                          .trim()
+                          .slice(line.trim().indexOf(":") + 1)
+                          .trim();
+                        lines.splice(
+                          index,
+                          1,
+                          `${indentation}${kind}`,
+                          `${indentation}  target: ${target}`,
+                        );
+                        setSelectedLayoutLine(index);
+                        onReplace(symbol, lines.join("\n"));
+                      }}
+                    >
+                      …
+                    </button>
+                  )}
                 <button
                   type="button"
-                  aria-label={`Remove ${line.trim()}`}
+                  aria-label={translate(
+                    "ui.editorWorkspace.ariaLabel.removeLayoutNode",
+                    { node: line.trim() },
+                  )}
                   onClick={() =>
                     onReplace(symbol, mutateLayoutNode(source, index, "remove"))
                   }
@@ -2126,31 +2969,49 @@ function StructuredPanel({
               </div>
             ) : null,
           )}
+          {selectedLayoutNode && (
+            <LayoutNodeFields
+              assets={assets}
+              diagnostics={diagnostics}
+              files={files}
+              symbol={selectedLayoutNode}
+              onEndFieldEdit={onEndFieldEdit}
+              onUpdate={onUpdateNested}
+            />
+          )}
           <div className="editor-layout-insertions">
             {[
-              ["Container", "stack\n    handle: new_container\n    gap: md"],
-              ["Grid", "grid\n    handle: new_grid\n    columns: 2"],
-              ["Slot", "slot: name"],
-              ["Text", "text: description"],
-              ["Image", "image: hero"],
-              ["Input", "input: value"],
-              ["Rule", "rule"],
-              ["Choice", "choice: placement"],
-              ["Expand", "expand: source_handle"],
-            ].map(([label, node]) => (
-              <button
-                type="button"
-                key={label}
-                onClick={() =>
-                  onReplace(
-                    symbol,
-                    `${source.trimEnd()}\n\n  ${node.replaceAll("\n", "\n  ")}\n`,
-                  )
-                }
-              >
-                + {label}
-              </button>
-            ))}
+              ["stack", "stack\n    handle: new_container\n    gap: md"],
+              ["grid", "grid\n    handle: new_grid\n    columns: 2"],
+              ["slot", "slot: name"],
+              ["text", "text: description"],
+              ["image", "image: hero"],
+              ["input", "input: value"],
+              ["rule", "rule"],
+              ["choice", "choice: placement"],
+              ["expand", "expand\n    source: source_handle"],
+            ]
+              .filter(([kind]) => {
+                if (kind === "choice" || kind === "expand")
+                  return symbol.kind === "section-layout";
+                if (kind === "input") return symbol.kind === "choice-layout";
+                return true;
+              })
+              .map(([kind, node]) => (
+                <button
+                  type="button"
+                  key={kind}
+                  onClick={() => {
+                    setSelectedLayoutLine(layoutLines.length + 1);
+                    onReplace(
+                      symbol,
+                      `${source.trimEnd()}\n\n  ${node.replaceAll("\n", "\n  ")}\n`,
+                    );
+                  }}
+                >
+                  + {translate(`ui.editorWorkspace.declaration.${kind}`)}
+                </button>
+              ))}
           </div>
         </section>
       ) : (
@@ -2161,34 +3022,107 @@ function StructuredPanel({
             <div className="editor-form-grid">
               {detailFields.map(renderField)}
             </div>
+            {collapseValue && (
+              <button
+                type="button"
+                onClick={() =>
+                  onReplace(symbol, `${symbol.kind}: ${collapseValue}`)
+                }
+              >
+                {translate("ui.editorWorkspace.text.collapseToShorthand")}
+              </button>
+            )}
           </section>
         )
       )}
-      {children.length > 0 && (
-        <section className="editor-form-card">
-          <h3>{translate("ui.editorWorkspace.text.contentAndDeclarations")}</h3>
-          <p>
-            {translate(
-              "ui.editorWorkspace.text.addADeclarationValidInsideThis",
+      {!isLayout &&
+        (childKinds.length > 0 ||
+          Boolean(resolvedContext?.children.length)) && (
+          <section className="editor-form-card">
+            <h3>
+              {translate("ui.editorWorkspace.text.contentAndDeclarations")}
+            </h3>
+            <p>
+              {translate(
+                "ui.editorWorkspace.text.addADeclarationValidInsideThis",
+              )}
+              {symbol.kind}.
+            </p>
+            {Boolean(resolvedContext?.children.length) && (
+              <div className="editor-child-list">
+                {resolvedContext?.children.map((child, index, allChildren) => (
+                  <div key={`${child.file}:${child.from}`}>
+                    <button type="button" onClick={() => onOpenSymbol(child)}>
+                      <span>{symbolLabel(child)}</span>
+                      <small>{child.kind.replaceAll("-", " ")}</small>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.moveDeclarationUp",
+                        { declaration: symbolLabel(child) },
+                      )}
+                      onClick={() => onMoveChild(symbol, child, "up")}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === allChildren.length - 1}
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.moveDeclarationDown",
+                        { declaration: symbolLabel(child) },
+                      )}
+                      onClick={() => onMoveChild(symbol, child, "down")}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.removeDeclaration",
+                        { declaration: symbolLabel(child) },
+                      )}
+                      onClick={() => onRemoveChild(symbol, child)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
-            {symbol.kind}.
-          </p>
-          <div className="editor-contextual-add">
-            {children.map(([label, template]) => (
-              <button
-                type="button"
-                key={label}
-                onClick={() => {
-                  const indentation = " ".repeat(symbol.depth * 2);
-                  const nestedTemplate = template.replaceAll(
-                    /\n(?=\s*\S)/g,
-                    `\n${indentation}`,
-                  );
-                  onReplace(symbol, `${source.trimEnd()}${nestedTemplate}`);
-                }}
-              >
-                + {label}
-              </button>
+            <div className="editor-contextual-add">
+              {childKinds.map((kind) => (
+                <button
+                  type="button"
+                  key={kind}
+                  onClick={() => onInsertChild(symbol, kind)}
+                >
+                  +{" "}
+                  {kind === "choice" && symbol.kind === "section"
+                    ? translate("ui.editorWorkspace.declaration.directChoice")
+                    : translate(`ui.editorWorkspace.declaration.${kind}`)}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+      {Boolean(resolvedContext?.invalidAuthoredFields.length) && (
+        <section className="editor-form-card editor-needs-attention">
+          <h3>{translate("ui.editorWorkspace.text.needsAttention")}</h3>
+          <p>{translate("ui.editorWorkspace.text.fieldsInvalidInContext")}</p>
+          <div className="editor-form-grid">
+            {resolvedContext?.invalidAuthoredFields.map((fieldName) => (
+              <div className="editor-invalid-field" key={fieldName}>
+                {renderField(fieldName)}
+                <button
+                  type="button"
+                  onClick={() => onRemoveInvalidField(symbol, fieldName)}
+                >
+                  {translate("ui.editorWorkspace.text.removeInvalidField")}
+                </button>
+              </div>
             ))}
           </div>
         </section>
@@ -2200,6 +3134,7 @@ function StructuredPanel({
 function SourcePalette({
   title,
   symbol,
+  files,
   source,
   onClose,
   onAdd,
@@ -2212,6 +3147,7 @@ function SourcePalette({
 }: {
   title: string;
   symbol: FormatSymbol | null;
+  files: Readonly<Record<string, string>>;
   source: string;
   onClose: () => void;
   onAdd: (field: string) => void;
@@ -2222,19 +3158,26 @@ function SourcePalette({
   shortcutLabels: Record<KeybindingAction, string>;
   onCompletion: () => void;
 }) {
+  const context = symbol ? structuredContext(files, symbol) : null;
   const completions = useMemo(
     () =>
       (symbol
-        ? declarationFieldNames(symbol.kind).filter(
-            (field) => quickAddFieldMode(source, symbol, field) !== null,
+        ? (context?.visibleFields ?? declarationFieldNames(symbol.kind)).filter(
+            (field) =>
+              quickAddFieldMode(
+                source,
+                symbol,
+                field,
+                context?.fields[field],
+              ) !== null,
           )
         : service.completions("jump").fields
       ).slice(0, 8),
-    [source, symbol],
+    [context, source, symbol],
   );
   const childCompletions = useMemo(
-    () => (symbol ? service.completions(symbol.kind).children.slice(0, 8) : []),
-    [symbol],
+    () => (symbol ? (context?.childKinds ?? []).slice(0, 8) : []),
+    [context, symbol],
   );
   const validItems = useMemo(
     () => [
@@ -2242,19 +3185,34 @@ function SourcePalette({
         id: `field:${label}`,
         label,
         description:
-          symbol && quickAddFieldMode(source, symbol, label) === "complete"
-            ? `Complete existing field in ${title}`
-            : `Add to ${title}`,
+          symbol &&
+          quickAddFieldMode(source, symbol, label, context?.fields[label]) ===
+            "complete"
+            ? translate("ui.editorWorkspace.text.completeExistingFieldIn", {
+                title,
+              })
+            : translate("ui.editorWorkspace.text.addToDeclaration", { title }),
         action: () => onAdd(label),
       })),
       ...childCompletions.map((label) => ({
         id: `child:${label}`,
         label,
-        description: `Insert inside ${title}`,
+        description: translate("ui.editorWorkspace.text.insertInside", {
+          title,
+        }),
         action: () => onAddChild(label),
       })),
     ],
-    [childCompletions, completions, onAdd, onAddChild, source, symbol, title],
+    [
+      childCompletions,
+      completions,
+      context,
+      onAdd,
+      onAddChild,
+      source,
+      symbol,
+      title,
+    ],
   );
   const mnemonics = useMemo(
     () =>

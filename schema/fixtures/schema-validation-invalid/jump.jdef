@@ -1,0 +1,18 @@
+jump
+  format: 1
+  name: "Invalid Schema Values"
+  author: "Jumpchain Visualizer"
+  version: "1"
+  gauntlet: maybe
+  starting-points: 1.5
+
+section
+  handle: intro
+  name: "Intro"
+  layuot: missing
+
+choice
+  handle: example
+  name: "Example"
+  selection: toggle
+  selection: integer

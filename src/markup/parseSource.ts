@@ -80,7 +80,8 @@ export function parseFormatFile(
         {
           code: "source.too_large",
           severity: "error",
-          message: `Source exceeds ${limits.sourceLength} characters.`,
+          messageKey: "diagnostics.source.too_large",
+          parameters: { limit: limits.sourceLength },
         },
       ],
     };
@@ -92,7 +93,7 @@ export function parseFormatFile(
     diagnostics.push({
       code: "syntax.document",
       severity: "error",
-      message: "The source could not be tokenized.",
+      messageKey: "diagnostics.syntax.document",
     });
 
   const lines = source.replace(/^\uFEFF/, "").split(/\r?\n/);
@@ -100,7 +101,8 @@ export function parseFormatFile(
     diagnostics.push({
       code: "source.too_many_lines",
       severity: "error",
-      message: `Source exceeds ${limits.lines} lines.`,
+      messageKey: "diagnostics.source.too_many_lines",
+      parameters: { limit: limits.lines },
     });
   const roots: SourceNode[] = [];
   const stack: { indent: number; node: SourceNode }[] = [];
@@ -122,7 +124,8 @@ export function parseFormatFile(
       diagnostics.push({
         code: "source.line_too_long",
         severity: "error",
-        message: `Line exceeds ${limits.lineLength} characters.`,
+        messageKey: "diagnostics.source.line_too_long",
+        parameters: { limit: limits.lineLength },
         range: range(file, lineNumber, 1, offset, offset + raw.length),
       });
 
@@ -137,7 +140,7 @@ export function parseFormatFile(
         diagnostics.push({
           code: "syntax.fence_indent",
           severity: "error",
-          message: "Fenced content is indented less than its fence.",
+          messageKey: "diagnostics.syntax.fence_indent",
           range: range(file, lineNumber, 1, offset, offset + raw.length),
         });
         fenced.content.push(raw);
@@ -156,7 +159,7 @@ export function parseFormatFile(
       diagnostics.push({
         code: "syntax.tab",
         severity: "error",
-        message: "Tabs are not valid indentation in Format 1.",
+        messageKey: "diagnostics.syntax.tab",
         range: range(file, lineNumber, 1, offset, offset + raw.length),
       });
     const indent = raw.match(/^ */)?.[0].length ?? 0;
@@ -164,14 +167,15 @@ export function parseFormatFile(
       diagnostics.push({
         code: "syntax.indent",
         severity: "error",
-        message: "Indentation must use multiples of two spaces.",
+        messageKey: "diagnostics.syntax.indent",
         range: range(file, lineNumber, 1, offset, offset + indent),
       });
     if (indent / 2 > limits.depth)
       diagnostics.push({
         code: "source.too_deep",
         severity: "error",
-        message: `Nesting exceeds ${limits.depth} levels.`,
+        messageKey: "diagnostics.source.too_deep",
+        parameters: { limit: limits.depth },
         range: range(file, lineNumber, 1, offset, offset + indent),
       });
 
@@ -193,7 +197,8 @@ export function parseFormatFile(
         diagnostics.push({
           code: "syntax.orphan_field",
           severity: "error",
-          message: `Field ${fieldMatch[1]} has no declaration owner.`,
+          messageKey: "diagnostics.syntax.orphan_field",
+          parameters: { field: fieldMatch[1] },
           range: range(
             file,
             lineNumber,
@@ -252,7 +257,8 @@ export function parseFormatFile(
           diagnostics.push({
             code: "syntax.embedded_field",
             severity: "error",
-            message: `Field “${embedded.name}” must start on its own line.`,
+            messageKey: "diagnostics.syntax.embedded_field",
+            parameters: { field: embedded.name },
             range: range(
               file,
               lineNumber,
@@ -262,6 +268,7 @@ export function parseFormatFile(
             ),
           });
         if (!field.value && lines[lineIndex + 1]?.trim() === '"""') {
+          field.fenced = true;
           lineIndex += 1;
           const fenceRaw = lines[lineIndex];
           const fenceIndent = fenceRaw.match(/^ */)?.[0].length ?? 0;
@@ -279,7 +286,7 @@ export function parseFormatFile(
       diagnostics.push({
         code: "syntax.line",
         severity: "error",
-        message: "Expected a declaration, layout node, or field.",
+        messageKey: "diagnostics.syntax.line",
         range: range(
           file,
           lineNumber,
@@ -309,7 +316,8 @@ export function parseFormatFile(
       diagnostics.push({
         code: "source.too_many_nodes",
         severity: "error",
-        message: `Source exceeds ${limits.nodes} declarations.`,
+        messageKey: "diagnostics.source.too_many_nodes",
+        parameters: { limit: limits.nodes },
         range: node.range,
       });
     if (owner) owner.children.push(node);
@@ -322,7 +330,7 @@ export function parseFormatFile(
     diagnostics.push({
       code: "syntax.unclosed_fence",
       severity: "error",
-      message: "Rich-text fence is not closed.",
+      messageKey: "diagnostics.syntax.unclosed_fence",
       range: fenced.field.range,
     });
   for (const pending of stack)

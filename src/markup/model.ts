@@ -8,17 +8,39 @@ export type SourceRange = {
 
 export type DiagnosticSeverity = "info" | "warning" | "error";
 
+export type DiagnosticTarget = {
+  file: string;
+  declarationFrom: number;
+  field?: string;
+  occurrence?: number;
+  part?: "declaration" | "name" | "value" | "condition";
+};
+
 export type PackageDiagnostic = {
   code: string;
   severity: DiagnosticSeverity;
-  message: string;
+  messageKey?: string;
+  parameters?: Readonly<Record<string, string | number>>;
   range?: SourceRange;
+  target?: DiagnosticTarget;
+};
+
+export type PackageValidationProfile = "editor" | "distribution";
+
+export type PackageValidationOptions = {
+  profile?: PackageValidationProfile;
+  assetPaths?: readonly string[];
+  warnings?: {
+    missingImageAlt?: boolean;
+    missingLayoutTargets?: boolean;
+  };
 };
 
 export type SourceField = {
   name: string;
   value: string;
   condition?: string;
+  fenced?: boolean;
   range: SourceRange;
   nameRange: SourceRange;
   conditionRange?: SourceRange;

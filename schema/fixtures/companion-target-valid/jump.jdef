@@ -40,6 +40,7 @@ choice
   input
     handle: roster
     selection: companions
+    max: 1
 
     grant
       kind: companion-import

@@ -4,8 +4,10 @@ import {
   parseFormatFile,
   sha256,
   type PackageDiagnostic,
+  type PackageValidationOptions,
   type SourceNode,
 } from "../markup";
+import { structuredContext } from "./documentEditor";
 
 export type FormatSymbol = {
   kind: string;
@@ -59,20 +61,26 @@ function flattenNodes(nodes: readonly SourceNode[]): SourceNode[] {
 }
 
 export class Format1LanguageService {
-  analyze(files: Readonly<Record<string, string>>) {
+  analyze(
+    files: Readonly<Record<string, string>>,
+    options: Omit<PackageValidationOptions, "profile"> = {},
+  ) {
     const parsed = Object.entries(files).map(([file, source]) =>
       parseFormatFile(file, source),
     );
-    const packageItem = canonicalizePackage({
-      id: "editor-preview",
-      exactHash: sha256(
-        Object.entries(files)
-          .sort(([left], [right]) => left.localeCompare(right))
-          .map(([file, source]) => `${file}\0${source}`)
-          .join("\0"),
-      ),
-      files,
-    });
+    const packageItem = canonicalizePackage(
+      {
+        id: "editor-preview",
+        exactHash: sha256(
+          Object.entries(files)
+            .sort(([left], [right]) => left.localeCompare(right))
+            .map(([file, source]) => `${file}\0${source}`)
+            .join("\0"),
+        ),
+        files,
+      },
+      { ...options, profile: "editor" },
+    );
     return {
       parsed,
       packageItem,
@@ -100,6 +108,20 @@ export class Format1LanguageService {
     return {
       fields: Object.keys(fields).filter((field) => !used.has(field)),
       children: Object.keys(children),
+    };
+  }
+
+  contextualCompletions(
+    files: Readonly<Record<string, string>>,
+    symbol: FormatSymbol,
+    fieldsAlreadyPresent: readonly string[] = [],
+  ) {
+    const resolved = structuredContext(files, symbol);
+    if (!resolved) return this.completions(symbol.kind, fieldsAlreadyPresent);
+    const used = new Set(fieldsAlreadyPresent);
+    return {
+      fields: resolved.visibleFields.filter((field) => !used.has(field)),
+      children: resolved.childKinds,
     };
   }
 

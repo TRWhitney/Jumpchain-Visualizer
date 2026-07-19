@@ -2,13 +2,20 @@ import { describe, expect, it } from "vitest";
 import { Format1LanguageService } from "./languageService";
 import {
   addDocumentField,
+  createAndAssignDocumentResource,
   declarationFieldNames,
+  fieldDefault,
   fieldDefinition,
+  insertDocumentChild,
+  moveDocumentChild,
   quickAddFieldMode,
+  readConditionalSourceFieldGroups,
   readConditionalSourceFields,
   readSourceField,
   setConditionalDocumentField,
   setDocumentField,
+  removeDocumentDeclaration,
+  structuredContext,
 } from "./documentEditor";
 
 const source = `jump
@@ -24,6 +31,87 @@ section
 
 describe("Format 1 structured document edits", () => {
   const service = new Format1LanguageService();
+
+  it("identifies every static omission default without treating format as defaulted", () => {
+    expect(
+      [
+        ["jump", "gauntlet"],
+        ["jump", "starting-points"],
+        ["jump", "points-name"],
+        ["jump", "points-abbreviation"],
+        ["resource", "initial"],
+        ["choice-source", "mode"],
+        ["choice-source", "resolution"],
+        ["choice", "selection"],
+        ["choice", "resolution"],
+        ["cost", "mode"],
+      ].map(([kind, field]) => [kind, field, fieldDefault(kind, field)]),
+    ).toEqual([
+      ["jump", "gauntlet", { kind: "value", value: false }],
+      ["jump", "starting-points", { kind: "value", value: 1000 }],
+      ["jump", "points-name", { kind: "value", value: "Choice Points" }],
+      ["jump", "points-abbreviation", { kind: "value", value: "CP" }],
+      ["resource", "initial", { kind: "value", value: 0 }],
+      ["choice-source", "mode", { kind: "value", value: "multi" }],
+      ["choice-source", "resolution", { kind: "value", value: "manual" }],
+      ["choice", "selection", { kind: "value", value: "toggle" }],
+      ["choice", "resolution", { kind: "value", value: "manual" }],
+      ["cost", "mode", { kind: "value", value: "flat" }],
+    ]);
+    expect(fieldDefault("jump", "format")).toBeNull();
+    expect(fieldDefault("choice", "continuity")).toBeNull();
+    expect(
+      fieldDefault("jump", "starting-points", { gauntlet: "true" }),
+    ).toEqual({ kind: "value", value: 0 });
+    expect(
+      fieldDefault("choice", "measure", {
+        integerVisibleGrant: "true",
+      }),
+    ).toEqual({ kind: "value", value: "rank" });
+    expect(
+      fieldDefault("grant", "measure", {
+        integerVisibleGrant: "true",
+      }),
+    ).toEqual({ kind: "value", value: "rank" });
+    expect(fieldDefault("input", "min", { selection: "companions" })).toEqual({
+      kind: "value",
+      value: 0,
+    });
+    expect(fieldDefault("input", "min", { selection: "integer" })).toBeNull();
+  });
+
+  it("identifies built-in section, choice, and trait layout fallbacks", () => {
+    expect(fieldDefault("jump", "section-layout")).toEqual({
+      kind: "built-in-layout",
+      layout: "section",
+    });
+    expect(fieldDefault("section", "layout")).toEqual({
+      kind: "built-in-layout",
+      layout: "section",
+    });
+    expect(fieldDefault("jump", "choice-layout")).toEqual({
+      kind: "built-in-layout",
+      layout: "choice",
+    });
+    expect(fieldDefault("choice", "layout")).toEqual({
+      kind: "built-in-layout",
+      layout: "choice",
+    });
+    expect(fieldDefault("jump", "trait-layout")).toEqual({
+      kind: "built-in-layout",
+      layout: "trait",
+    });
+    expect(fieldDefault("grant", "layout")).toBeNull();
+    expect(fieldDefault("grant", "layout", { grantKind: "trait" })).toEqual({
+      kind: "built-in-layout",
+      layout: "trait",
+    });
+    expect(
+      fieldDefault("section", "layout", {
+        sectionLayout: "authored_section",
+      }),
+    ).toEqual({ kind: "value", value: "authored_section" });
+  });
 
   it("clears an optional field without consuming the adjacent handle", () => {
     const files = { "jump.jdef": source };
@@ -181,6 +269,42 @@ describe("Format 1 structured document edits", () => {
     ).toEqual([{ condition: "actor.level > 3", value: "Expert" }]);
   });
 
+  it("associates repeated option variants with the selected base occurrence", () => {
+    const conditional = `${source}\nchoice\n  handle: select\n  name: "Select"\n  selection: select\n  option: "First"\n  option: "Second"\n`;
+    const files = { "jump.jdef": conditional };
+    const choice = service
+      .analyze(files)
+      .symbols.find(
+        (symbol) => symbol.kind === "choice" && symbol.handle === "select",
+      )!;
+    const changed = setConditionalDocumentField(
+      files,
+      choice,
+      "option",
+      0,
+      "route = true",
+      "Conditional first",
+      0,
+    );
+    expect(changed.files["jump.jdef"].indexOf("option when")).toBeLessThan(
+      changed.files["jump.jdef"].indexOf('option: "Second"'),
+    );
+    expect(
+      readConditionalSourceFieldGroups(
+        changed.files["jump.jdef"],
+        choice,
+        "option",
+      ),
+    ).toEqual([
+      {
+        baseOccurrence: 0,
+        occurrence: 0,
+        condition: "route = true",
+        value: "Conditional first",
+      },
+    ]);
+  });
+
   it("replaces a fenced rich-text extent without leaving its old fence", () => {
     const fenced = `${source}\ntext\n  handle: premise\n  content:\n    """\n    First line\n    Second line\n    """\n`;
     const files = { "jump.jdef": fenced };
@@ -244,5 +368,118 @@ describe("Format 1 structured document edits", () => {
         );
       }
     }
+  });
+
+  it("resolves declaration fields from ancestry and active control modes", () => {
+    const files = {
+      "jump.jdef": `${source}\n  choice\n    handle: placement\n    target: top_choice\n`,
+      "choices.jdef": `choice\n  handle: top_choice\n  name: "Top"\n  selection: select\n  option: "One"\n\n  grant\n    kind: resource\n    resource: jump_points\n    amount: 10\n`,
+    };
+    const symbols = service.analyze(files).symbols;
+    const direct = symbols.find(
+      (symbol) => symbol.kind === "choice" && symbol.depth === 1,
+    )!;
+    const top = symbols.find(
+      (symbol) => symbol.kind === "choice" && symbol.depth === 0,
+    )!;
+    const grant = symbols.find((symbol) => symbol.kind === "grant")!;
+
+    expect(structuredContext(files, direct)?.visibleFields).toEqual([
+      "handle",
+      "target",
+    ]);
+    expect(structuredContext(files, top)?.visibleFields).toContain("option");
+    expect(structuredContext(files, top)?.visibleFields).not.toContain("min");
+    expect(structuredContext(files, grant)?.visibleFields).toEqual([
+      "kind",
+      "resource",
+      "amount",
+      "companion",
+    ]);
+    expect(service.contextualCompletions(files, direct).fields).toEqual([
+      "handle",
+      "target",
+    ]);
+  });
+
+  it("returns exact created child targets and preserves owner navigation", () => {
+    const files = { "jump.jdef": `${source}# after\n` };
+    const section = service
+      .analyze(files)
+      .symbols.find((symbol) => symbol.kind === "section")!;
+    const first = insertDocumentChild(files, section, "text");
+    expect(first.changed).toBe(true);
+    expect(first.target).toMatchObject({ kind: "text", handle: "new_text" });
+    expect(first.focusField).toBe("content");
+    expect(first.files["jump.jdef"]).toContain("# after\n");
+
+    const currentSection = service
+      .analyze(first.files)
+      .symbols.find((symbol) => symbol.kind === "section")!;
+    const second = insertDocumentChild(first.files, currentSection, "image");
+    const nextSection = service
+      .analyze(second.files)
+      .symbols.find((symbol) => symbol.kind === "section")!;
+    const secondContext = structuredContext(second.files, nextSection)!;
+    const text = secondContext.children.find((child) => child.kind === "text")!;
+    const moved = moveDocumentChild(second.files, nextSection, text, "down");
+    expect(moved.changed).toBe(true);
+    expect(
+      structuredContext(moved.files, nextSection)?.children.map(
+        (child) => child.kind,
+      ),
+    ).toEqual(["image", "text"]);
+    const movedText = service
+      .analyze(moved.files)
+      .symbols.find((symbol) => symbol.kind === "text")!;
+    const removed = removeDocumentDeclaration(moved.files, movedText);
+    expect(removed.files["jump.jdef"]).not.toContain("handle: new_text");
+    expect(removed.files["jump.jdef"]).toContain("# after\n");
+  });
+
+  it("creates and assigns a secondary resource atomically", () => {
+    const files = {
+      "jump.jdef": source,
+      "choices.jdef": `choice\n  handle: priced\n  name: "Priced"\n\n  cost\n    resource: jump_points\n    amount: 10\n`,
+    };
+    const cost = service
+      .analyze(files)
+      .symbols.find((symbol) => symbol.kind === "cost")!;
+    const result = createAndAssignDocumentResource(files, cost, {
+      handle: "mana",
+      name: "Mana",
+      abbreviation: "MP",
+      initial: "25",
+    });
+    expect(result.target).toMatchObject({ kind: "resource", handle: "mana" });
+    expect(result.files["choices.jdef"]).toContain("resource: mana");
+    expect(result.files["jump.jdef"]).toContain(
+      'resource\n  handle: mana\n  name: "Mana"\n  abbreviation: "MP"\n  initial: 25',
+    );
+    expect(
+      createAndAssignDocumentResource(files, cost, {
+        handle: "unsafe",
+        name: "Unsafe\nresource",
+        initial: "0\nsection",
+      }).changed,
+    ).toBe(false);
+  });
+
+  it("resolves layout-node presentation fields without treating content declarations as nodes", () => {
+    const files = {
+      "jump.jdef": `${source}\ntext\n  handle: outside\n  content: "Text"\n`,
+      "layout.jdef": `section-layout\n  handle: layout\n\n  grid\n    handle: root\n    columns: 2\n`,
+    };
+    const symbols = service.analyze(files).symbols;
+    const text = symbols.find(
+      (symbol) => symbol.kind === "text" && symbol.file === "jump.jdef",
+    )!;
+    const grid = symbols.find((symbol) => symbol.kind === "grid")!;
+    expect(structuredContext(files, text)?.visibleFields).toEqual([
+      "handle",
+      "content",
+    ]);
+    expect(structuredContext(files, grid)?.visibleFields).toContain("columns");
+    expect(structuredContext(files, grid)?.childKinds).toContain("expand");
   });
 });

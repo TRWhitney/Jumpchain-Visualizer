@@ -13,6 +13,7 @@ import type {
   JumpSection,
   LayoutNode,
   PackageDiagnostic,
+  PackageValidationOptions,
   PackageSources,
   ParsedFormatFile,
   Renderable,
@@ -21,6 +22,7 @@ import type {
   TextBlock,
 } from "./model";
 import { parseFormatFile } from "./parseSource";
+import { validateFormat1 } from "./validateFormat1";
 
 const handles = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 const costTokens: Record<string, number> = {
@@ -85,11 +87,18 @@ function renderable(node: SourceNode, name: string): Renderable {
 function diagnostic(
   diagnostics: PackageDiagnostic[],
   code: string,
-  message: string,
+  _message: string,
   node?: SourceNode | SourceField,
   severity: PackageDiagnostic["severity"] = "error",
+  parameters: Readonly<Record<string, string | number>> = {},
 ) {
-  diagnostics.push({ code, severity, message, range: node?.range });
+  diagnostics.push({
+    code,
+    severity,
+    messageKey: `diagnostics.${code}`,
+    parameters,
+    range: node?.range,
+  });
 }
 
 function requireValue(
@@ -190,6 +199,8 @@ function grant(
       "grant.kind",
       `Unknown grant kind “${kind}”.`,
       node,
+      "error",
+      { kind },
     );
   const result: JumpGrant = {
     kind: (permitted.has(kind) ? kind : "trait") as JumpGrant["kind"],
@@ -359,6 +370,8 @@ function validatePropertyGrants(
         "grant.property.reserved_types",
         `Property ${item.handle} is incompatible with its authored value or ${selection} control.`,
         node,
+        "error",
+        { property: item.handle ?? "", selection },
       );
   }
 }
@@ -390,6 +403,8 @@ function input(node: SourceNode, diagnostics: PackageDiagnostic[]): JumpInput {
       "input.selection",
       `Invalid input selection “${selection}”.`,
       node,
+      "error",
+      { selection },
     );
   const grants = [
     ...fields(node, "grant").map((item) => grant(item, diagnostics)),
@@ -866,6 +881,9 @@ function validateRelations(
         diagnostics,
         `${namespace}.handle.unique`,
         `Duplicate ${namespace} handle “${duplicate}”.`,
+        undefined,
+        "error",
+        { namespace, handle: duplicate },
       );
 
   const choices = new Set(result.choices.map((item) => item.handle));
@@ -904,12 +922,18 @@ function validateRelations(
       diagnostics,
       "grant.form.handle",
       `Form handle “${duplicate}” must be unique within the package.`,
+      undefined,
+      "error",
+      { handle: duplicate },
     );
   for (const duplicate of duplicates(companionHandles))
     diagnostic(
       diagnostics,
       "grant.companion.handle",
       `Companion target handle “${duplicate}” must be unique within the package.`,
+      undefined,
+      "error",
+      { handle: duplicate },
     );
   for (const importHandle of allGrants.flatMap((grantItem) =>
     grantItem.kind === "companion-import" && grantItem.handle
@@ -929,6 +953,9 @@ function validateRelations(
         diagnostics,
         "grant.companion_import.funding",
         `Companion import “${importHandle}” requires a positive targeted resource grant.`,
+        undefined,
+        "error",
+        { handle: importHandle },
       );
   for (const sectionItem of result.sections) {
     const directHandles = sectionItem.directChoices.map((item) => item.handle);
@@ -938,12 +965,18 @@ function validateRelations(
         diagnostics,
         "section.choice.handle.unique",
         `Section ${sectionItem.handle} repeats placement “${duplicate}”.`,
+        undefined,
+        "error",
+        { section: sectionItem.handle, handle: duplicate },
       );
     for (const duplicate of duplicates(directTargets))
       diagnostic(
         diagnostics,
         "section.choice.target.unique",
         `Section ${sectionItem.handle} associates choice “${duplicate}” more than once.`,
+        undefined,
+        "error",
+        { section: sectionItem.handle, target: duplicate },
       );
     for (const direct of sectionItem.directChoices)
       if (!choices.has(direct.target))
@@ -951,12 +984,18 @@ function validateRelations(
           diagnostics,
           "section.choice.target",
           `Direct choice target “${direct.target}” does not exist.`,
+          undefined,
+          "error",
+          { target: direct.target },
         );
     if (sectionItem.layout && !layouts.has(sectionItem.layout))
       diagnostic(
         diagnostics,
         "layout.reference",
         `Section layout “${sectionItem.layout}” does not exist.`,
+        undefined,
+        "error",
+        { layout: sectionItem.layout, ownerKind: "Section" },
       );
     for (const source of sectionItem.sources) {
       if (!source.group)
@@ -966,6 +1005,7 @@ function validateRelations(
           `Choice source ${sectionItem.handle}.${source.handle} has no group and cannot contain choices.`,
           undefined,
           "warning",
+          { section: sectionItem.handle, source: source.handle },
         );
       else if (
         !result.choices.some((item) => item.groups.includes(source.group!))
@@ -976,6 +1016,7 @@ function validateRelations(
           `Choice source ${sectionItem.handle}.${source.handle} matches no choices.`,
           undefined,
           "warning",
+          { section: sectionItem.handle, source: source.handle },
         );
     }
   }
@@ -985,6 +1026,9 @@ function validateRelations(
         diagnostics,
         "layout.reference",
         `Choice layout “${choiceItem.layout}” does not exist.`,
+        undefined,
+        "error",
+        { layout: choiceItem.layout, ownerKind: "Choice" },
       );
     for (const cost of choiceItem.costs)
       if (!resources.has(cost.resource))
@@ -992,6 +1036,9 @@ function validateRelations(
           diagnostics,
           "resource.reference",
           `Cost resource “${cost.resource}” is not declared.`,
+          undefined,
+          "error",
+          { resource: cost.resource, usage: "Cost" },
         );
     for (const item of [
       ...choiceItem.grants,
@@ -1002,18 +1049,27 @@ function validateRelations(
           diagnostics,
           "resource.reference",
           `Grant resource “${item.resource}” is not declared.`,
+          undefined,
+          "error",
+          { resource: item.resource, usage: "Grant" },
         );
       if (item.form && !forms.has(item.form))
         diagnostic(
           diagnostics,
           "grant.form.reference",
           `Form target “${item.form}” does not exist.`,
+          undefined,
+          "error",
+          { target: item.form },
         );
       if (item.companion && !companions.has(item.companion))
         diagnostic(
           diagnostics,
           "grant.companion.reference",
           `Companion target “${item.companion}” does not exist.`,
+          undefined,
+          "error",
+          { target: item.companion },
         );
     }
   }
@@ -1039,6 +1095,7 @@ function validateRelations(
         `Choice “${choiceItem.handle}” is not associated with a section.`,
         undefined,
         "warning",
+        { choice: choiceItem.handle },
       );
 
   const walk = (node: LayoutNode): LayoutNode[] => [
@@ -1057,6 +1114,9 @@ function validateRelations(
           diagnostics,
           "layout.container.handle.required",
           `Layout ${layoutItem.handle} contains a container without a handle.`,
+          undefined,
+          "error",
+          { layout: layoutItem.handle },
         );
       if (
         container.kind === "grid" &&
@@ -1068,6 +1128,9 @@ function validateRelations(
           diagnostics,
           "layout.grid.columns",
           `Grid in ${layoutItem.handle} requires columns from 1 through 12.`,
+          undefined,
+          "error",
+          { layout: layoutItem.handle },
         );
     }
     for (const duplicate of duplicates(containerHandles))
@@ -1075,6 +1138,9 @@ function validateRelations(
         diagnostics,
         "layout.container.handle.unique",
         `Layout ${layoutItem.handle} repeats container handle “${duplicate}”.`,
+        undefined,
+        "error",
+        { layout: layoutItem.handle, handle: duplicate },
       );
     if (
       layoutItem.kind !== "section-layout" &&
@@ -1084,6 +1150,9 @@ function validateRelations(
         diagnostics,
         "layout.node.context",
         `${layoutItem.kind} ${layoutItem.handle} cannot contain expand or direct choice nodes.`,
+        undefined,
+        "error",
+        { layout: layoutItem.handle, layoutKind: layoutItem.kind },
       );
     if (
       layoutItem.kind === "trait-layout" &&
@@ -1095,6 +1164,9 @@ function validateRelations(
         diagnostics,
         "layout.slot.context",
         `Trait layout ${layoutItem.handle} supports only the name slot.`,
+        undefined,
+        "error",
+        { layout: layoutItem.handle },
       );
   }
 
@@ -1120,6 +1192,9 @@ function validateRelations(
         diagnostics,
         "layout.expand.ambiguous",
         `Layout ${selectedLayout.handle} omits an expansion source for section ${sectionItem.handle}.`,
+        undefined,
+        "error",
+        { layout: selectedLayout.handle, section: sectionItem.handle },
       );
     for (const source of expanded) {
       const target = source.source ?? sourceHandles[0];
@@ -1128,12 +1203,18 @@ function validateRelations(
           diagnostics,
           "layout.expand.source",
           `Expansion source “${target}” does not exist in section ${sectionItem.handle}.`,
+          undefined,
+          "error",
+          { source: target, section: sectionItem.handle },
         );
       if (source.using && layouts.get(source.using)?.kind !== "choice-layout")
         diagnostic(
           diagnostics,
           "layout.expand.using",
           `Expansion layout “${source.using}” is not a choice layout.`,
+          undefined,
+          "error",
+          { layout: source.using },
         );
     }
     for (const duplicate of duplicates(expandedHandles))
@@ -1141,6 +1222,9 @@ function validateRelations(
         diagnostics,
         "layout.expand.unique",
         `Section layout ${selectedLayout.handle} expands source “${duplicate}” more than once.`,
+        undefined,
+        "error",
+        { layout: selectedLayout.handle, source: duplicate },
       );
     for (const source of sectionItem.sources)
       if (!expandedHandles.includes(source.handle))
@@ -1150,6 +1234,7 @@ function validateRelations(
           `Choice source ${sectionItem.handle}.${source.handle} is omitted by its explicit layout.`,
           undefined,
           "warning",
+          { section: sectionItem.handle, source: source.handle },
         );
     const placementHandles = sectionItem.directChoices.map(
       (item) => item.handle,
@@ -1160,12 +1245,18 @@ function validateRelations(
           diagnostics,
           "layout.choice.target",
           `Direct choice placement “${target}” does not exist in section ${sectionItem.handle}.`,
+          undefined,
+          "error",
+          { target, section: sectionItem.handle },
         );
     for (const duplicate of duplicates(placed))
       diagnostic(
         diagnostics,
         "layout.choice.unique",
         `Section layout ${selectedLayout.handle} places “${duplicate}” more than once.`,
+        undefined,
+        "error",
+        { layout: selectedLayout.handle, target: duplicate },
       );
     for (const direct of sectionItem.directChoices)
       if (!placed.includes(direct.handle))
@@ -1175,12 +1266,14 @@ function validateRelations(
           `Direct choice ${sectionItem.handle}.${direct.handle} is omitted by its explicit layout.`,
           undefined,
           "warning",
+          { section: sectionItem.handle, choice: direct.handle },
         );
   }
 }
 
 export function canonicalizePackage(
   sources: PackageSources,
+  options: PackageValidationOptions = {},
 ): CanonicalJumpPackage {
   const parsed: ParsedFormatFile[] = Object.entries(sources.files).map(
     ([file, source]) => parseFormatFile(file, source),
@@ -1274,6 +1367,51 @@ export function canonicalizePackage(
       root,
     );
   validateRelations(canonical, diagnostics);
+  const schemaDiagnostics = validateFormat1(parsed, canonical, options);
+  const replacedLegacyCodes = new Set([
+    "handle.invalid",
+    "input.selection",
+    "layout.reference",
+    "section.choice.target",
+    "resource.reference",
+    "grant.form.reference",
+    "grant.companion.reference",
+    "choice-source.group.missing",
+    "choice-source.empty",
+    "jump.cardinality",
+    "section.required",
+    "layout.root",
+    "layout.node.context",
+    "layout.expand.ambiguous",
+    "layout.expand.source",
+    "layout.expand.using",
+    "layout.choice.target",
+    "cost.unique_resource",
+    "cost.each.integer_only",
+    "resource.reserved",
+    "section.choice.target.unique",
+    "choice.select.options",
+  ]);
+  const retainedDiagnostics = diagnostics
+    .filter(
+      (item) =>
+        !replacedLegacyCodes.has(item.code) &&
+        !item.code.endsWith(".handle.unique") &&
+        !(item.code.endsWith(".required") && item.code !== "section.required"),
+    )
+    .map((item) => {
+      if (
+        options.profile === "editor" &&
+        [
+          "layout.expand.ambiguous",
+          "layout.expand.source",
+          "layout.expand.using",
+          "layout.choice.target",
+        ].includes(item.code)
+      )
+        return { ...item, severity: "warning" as const };
+      return item;
+    });
   return {
     ...canonical,
     tags: [
@@ -1284,7 +1422,7 @@ export function canonicalizePackage(
         ]),
       ),
     ],
-    diagnostics,
+    diagnostics: [...retainedDiagnostics, ...schemaDiagnostics],
   };
 }
 

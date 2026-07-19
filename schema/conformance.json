@@ -10,6 +10,8 @@
     { "name": "companion-target-valid", "directory": "fixtures/companion-target-valid", "exportValid": true, "diagnostics": [] },
     { "name": "companion-target-invalid", "directory": "fixtures/companion-target-invalid", "exportValid": false, "diagnostics": ["error:grant.companion.handle", "error:grant.companion_import.handle", "error:grant.companion.reference", "error:grant.companion.target_kind", "error:grant.owner.conflict", "error:grant.companion_import.inline_budget", "error:grant.companion_import.funding"] },
     { "name": "ungrouped-wip", "directory": "fixtures/ungrouped-wip", "exportValid": true, "diagnostics": ["warning:choice.unreachable"] },
-    { "name": "duplicate-primary-cost", "directory": "fixtures/duplicate-primary-cost", "exportValid": false, "diagnostics": ["error:cost.unique_resource"] }
+    { "name": "duplicate-primary-cost", "directory": "fixtures/duplicate-primary-cost", "exportValid": false, "diagnostics": ["error:cost.unique_resource"] },
+    { "name": "schema-validation-invalid", "directory": "fixtures/schema-validation-invalid", "exportValid": false, "diagnostics": ["error:schema.value.type", "error:schema.field.unknownSuggested", "error:schema.field.duplicate"] },
+    { "name": "unresolved-layout-invalid", "directory": "fixtures/unresolved-layout-invalid", "exportValid": false, "diagnostics": ["error:layout.reference"] }
   ]
 }

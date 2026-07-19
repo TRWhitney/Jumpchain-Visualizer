@@ -248,6 +248,11 @@ test("See Mock Data gates Morgan and the explicit Mock Library source", async ({
     page.getByRole("heading", { name: "User Journey" }),
   ).toBeVisible();
 
+  await page.mouse.move(0, 500);
+  await expect(page.getByText("Chain created.", { exact: true })).toHaveCount(
+    0,
+    { timeout: 6_000 },
+  );
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await visibility.uncheck();
   await page.getByRole("button", { name: "Close Settings" }).click();

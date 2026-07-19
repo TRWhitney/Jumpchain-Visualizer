@@ -46,6 +46,7 @@ describe("unreleased Format 1 identity amendment", () => {
       values: ["previous", "original"],
       min: 0,
       max: 1,
+      appliesWhen: { selection: ["select"] },
     });
     expect(choice.formsByContext?.section.fields.continuity).toBeUndefined();
     expect(

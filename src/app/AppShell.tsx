@@ -66,7 +66,11 @@ import {
   summarizeWorkspace,
   type EditorWorkspaceSnapshot,
 } from "../editor";
-import { JumpPackageImportService, type PackageImportReview } from "../archive";
+import {
+  JumpPackageImportService,
+  PackageSecurityError,
+  type PackageImportReview,
+} from "../archive";
 import { ConfirmationDialog } from "../ui/ConfirmationDialog";
 import { mockChainDefinition } from "../fixtures/mockData";
 import "../../documentation/styles.css";
@@ -89,6 +93,7 @@ import "./light-theme.css";
 import {
   isStructuredCommandError,
   translate,
+  translateDiagnostic,
   translateError,
 } from "../localization";
 
@@ -1704,11 +1709,18 @@ function EditorExportReview({
       onClose();
     } catch (caught) {
       setError(
-        caught instanceof Error
-          ? caught.message
+        caught instanceof PackageSecurityError
+          ? translate(`packageErrors.${caught.code}`, {
+              ...caught.parameters,
+              ...(caught.diagnostic
+                ? { value0: translateDiagnostic(caught.diagnostic) }
+                : {}),
+            })
           : isStructuredCommandError(caught)
             ? translateError(caught)
-            : translate("errors.EXPORT_FAILED"),
+            : caught instanceof Error
+              ? caught.message
+              : translate("errors.EXPORT_FAILED"),
       );
       setExporting(false);
     }

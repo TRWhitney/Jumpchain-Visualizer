@@ -3,6 +3,7 @@ import { generatedJumpPackages } from "../fixtures/generatedPackages";
 import { canonicalizePackage, parseFormatFile, type LayoutNode } from ".";
 import conformance from "../../schema/conformance.json";
 import { sha256 } from "./sha256";
+import { translateDiagnostic } from "../localization";
 
 const conformanceSources = import.meta.glob("../../schema/fixtures/**/*.jdef", {
   query: "?raw",
@@ -30,8 +31,11 @@ describe("Format 1 source pipeline", () => {
     expect(generatedJumpPackages).toHaveLength(3);
     const failures = generatedJumpPackages.flatMap((packageItem) =>
       packageItem.diagnostics
-        .filter((item) => item.severity !== "info")
-        .map((item) => `${packageItem.id}: ${item.code} ${item.message}`),
+        .filter((item) => item.severity === "error")
+        .map(
+          (item) =>
+            `${packageItem.id}: ${item.code} ${translateDiagnostic(item)}`,
+        ),
     );
     expect(failures).toEqual([]);
     expect(
@@ -274,6 +278,10 @@ describe("Format 1 source pipeline", () => {
       );
       for (const expected of fixture.diagnostics)
         expect(actual, fixture.name).toContain(expected);
+      for (const diagnostic of packageItem.diagnostics)
+        expect(translateDiagnostic(diagnostic), diagnostic.code).not.toBe(
+          diagnostic.code,
+        );
       expect(
         packageItem.diagnostics.every((item) => item.severity !== "error"),
         fixture.name,
@@ -333,5 +341,265 @@ choice
         'jump\n  description: "A time: loop premise"\n\nsection\n  layout: default_layout\n',
       ).diagnostics,
     ).toEqual([]);
+  });
+
+  it.each([
+    ["boolean", "  gauntlet: maybe", "schema.value.type", "gauntlet"],
+    [
+      "integer",
+      "  starting-points: 1.5",
+      "schema.value.type",
+      "starting-points",
+    ],
+    ["enum", "  selection: nonsense", "schema.value.type", "selection"],
+    [
+      "unknown field",
+      "  slelection: toggle",
+      "schema.field.unknownSuggested",
+      "slelection",
+    ],
+    [
+      "duplicate scalar",
+      "  selection: toggle\n  selection: integer",
+      "schema.field.duplicate",
+      "selection",
+    ],
+  ])(
+    "reports invalid %s values at their exact field",
+    (_name, authored, code, field) => {
+      const jumpField = ["gauntlet", "starting-points"].includes(field);
+      const source = `jump
+  format: 1
+  name: "Diagnostics"
+  author: "Tester"
+  version: "1"
+${jumpField ? authored : ""}
+
+section
+  handle: intro
+  name: "Intro"
+
+choice
+  handle: example
+  name: "Example"
+  group: examples
+${jumpField ? "" : authored}
+`;
+      const packageItem = canonicalizePackage({
+        id: "schema-diagnostic",
+        exactHash: "0".repeat(64),
+        files: { "jump.jdef": source },
+      });
+      const diagnostic = packageItem.diagnostics.find(
+        (item) => item.code === code && item.target?.field === field,
+      );
+      expect(diagnostic).toBeDefined();
+      expect(diagnostic?.range?.file).toBe("jump.jdef");
+      expect(source.slice(diagnostic!.range!.from, diagnostic!.range!.to)).toBe(
+        authored.trim().split("\n").at(-1)?.split(": ").at(-1),
+      );
+    },
+  );
+
+  it.each([
+    ["quoted string", "jump", "  description: unquoted", "description"],
+    ["renderable string", "jump", "  points-name: unquoted", "points-name"],
+    ["boolean", "jump", "  gauntlet: yes", "gauntlet"],
+    ["integer", "jump", "  starting-points: 1.5", "starting-points"],
+    ["enum", "choice", "  selection: invalid", "selection"],
+    ["const", "jump", "  format: 2", "format"],
+    ["tag", "choice", '  group: "---"', "group"],
+    ["handle", "choiceChild", "  text\n    handle: Not_A_Handle", "handle"],
+    ["handle reference", "section", "  layout: Not A Handle!", "layout"],
+    [
+      "rich text",
+      "choiceChild",
+      "  text\n    handle: prose\n    content: unquoted",
+      "content",
+    ],
+    ["cost amount", "choice", "  cost: gigantic", "cost"],
+    ["scalar grant", "choice", "  grant: nonsense", "grant"],
+    [
+      "grant amount",
+      "choiceChild",
+      "  grant\n    kind: resource\n    resource: jump_points\n    amount: gigantic",
+      "amount",
+    ],
+    [
+      "property value",
+      "choiceChild",
+      "  grant\n    kind: property\n    handle: signal\n    value: unquoted",
+      "value",
+    ],
+    [
+      "asset path",
+      "choiceChild",
+      '  image\n    handle: hero\n    src: "../hero.png"',
+      "src",
+    ],
+    ["hex color", "top", "theme\n  handle: bad_theme\n  color: #12", "color"],
+    ["spacing", "layout", "    gap: huge", "gap"],
+    ["size", "layout", "    text-size: huge", "text-size"],
+    ["alignment", "layout", "    align: sideways", "align"],
+    ["justification", "layout", "    justify: sideways", "justify"],
+    ["text alignment", "layout", "    text-align: sideways", "text-align"],
+    ["color", "layout", "    background: @invalid", "background"],
+    ["bounded integer", "grid", "    columns: 13", "columns"],
+  ])("validates the %s schema type", (_type, scope, authored, field) => {
+    const source = `jump
+  format: 1
+  name: "Schema types"
+  author: "Tester"
+  version: "1"
+${scope === "jump" ? authored : ""}
+
+section
+  handle: intro
+  name: "Intro"
+${scope === "section" ? authored : ""}
+
+choice
+  handle: example
+  name: "Example"
+  group: examples
+${scope === "choice" ? authored : ""}
+${scope === "choiceChild" ? authored : ""}
+
+${scope === "layout" ? `section-layout\n  handle: invalid_layout\n  stack\n    handle: root\n${authored}` : ""}
+${scope === "grid" ? `section-layout\n  handle: invalid_layout\n  grid\n    handle: root\n${authored}` : ""}
+${scope === "top" ? authored : ""}
+`;
+    const packageItem = canonicalizePackage({
+      id: `schema-type-${_type}`,
+      exactHash: "3".repeat(64),
+      files: { "jump.jdef": source },
+    });
+    expect(packageItem.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: expect.stringMatching(
+          /^(?:schema\.value\.(?:type|handle|handleReference|const|bounds)|tag\.empty)$/,
+        ),
+        target: expect.objectContaining({ field }),
+      }),
+    );
+  });
+
+  it("uses warning diagnostics in Editor and blocking diagnostics for distribution", () => {
+    const source = `jump
+  format: 1
+  name: "Profiles"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+  layout: missing_layout
+`;
+    const sources = {
+      id: "profiles",
+      exactHash: "1".repeat(64),
+      files: { "jump.jdef": source },
+    };
+    const editor = canonicalizePackage(sources, { profile: "editor" });
+    const distribution = canonicalizePackage(sources, {
+      profile: "distribution",
+    });
+    const editorDiagnostic = editor.diagnostics.find(
+      (item) => item.code === "layout.reference",
+    );
+    const distributionDiagnostic = distribution.diagnostics.find(
+      (item) => item.code === "layout.reference",
+    );
+    expect(editorDiagnostic).toMatchObject({
+      severity: "warning",
+      target: { field: "layout", occurrence: 0 },
+    });
+    expect(distributionDiagnostic?.severity).toBe("error");
+  });
+
+  it("honors image warning preferences without suppressing export requirements", () => {
+    const source = `jump
+  format: 1
+  name: "Images"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+
+  image
+    handle: hero
+`;
+    const sources = {
+      id: "images",
+      exactHash: "2".repeat(64),
+      files: { "jump.jdef": source },
+    };
+    const editor = canonicalizePackage(sources, {
+      profile: "editor",
+      assetPaths: [],
+      warnings: { missingImageAlt: false },
+    });
+    expect(editor.diagnostics.map((item) => item.code)).not.toContain(
+      "image.alt.missing",
+    );
+    expect(editor.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "image.src.missing",
+        severity: "warning",
+      }),
+    );
+    const distribution = canonicalizePackage(sources, {
+      profile: "distribution",
+      assetPaths: [],
+    });
+    expect(distribution.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "image.src.missing", severity: "error" }),
+    );
+  });
+
+  it("honors the reusable-layout target warning preference", () => {
+    const source = `jump
+  format: 1
+  name: "Layout warning preference"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+  layout: detailed
+
+section-layout
+  handle: detailed
+  stack
+    handle: root
+    text: absent_text
+`;
+    const sources = {
+      id: "layout-warning-preference",
+      exactHash: "4".repeat(64),
+      files: { "jump.jdef": source },
+    };
+    expect(
+      canonicalizePackage(sources, {
+        profile: "editor",
+        warnings: { missingLayoutTargets: false },
+      }).diagnostics.map((item) => item.code),
+    ).not.toContain("layout.typedTarget.missing");
+    expect(
+      canonicalizePackage(sources, {
+        profile: "editor",
+        warnings: { missingLayoutTargets: true },
+      }).diagnostics,
+    ).toContainEqual(
+      expect.objectContaining({
+        code: "layout.typedTarget.missing",
+        severity: "warning",
+        target: expect.objectContaining({ field: "text" }),
+      }),
+    );
   });
 });

@@ -1,4 +1,5 @@
 import i18next, { type TOptions } from "i18next";
+import type { PackageDiagnostic } from "../markup";
 
 export type TextDirection = "ltr" | "rtl";
 export type TranslationMessages = Record<string, unknown>;
@@ -329,6 +330,14 @@ export function translateError(error: unknown) {
   return error instanceof Error
     ? error.message
     : translate("errors.UNKNOWN_COMMAND_ERROR");
+}
+
+export function translateDiagnostic(diagnostic: PackageDiagnostic) {
+  if (!diagnostic.messageKey) return diagnostic.code;
+  return translate(diagnostic.messageKey, {
+    ...diagnostic.parameters,
+    defaultValue: diagnostic.code,
+  });
 }
 
 initializeLocalization();

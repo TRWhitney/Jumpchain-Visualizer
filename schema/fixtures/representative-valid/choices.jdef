@@ -20,4 +20,13 @@ choice
     amount: 100
     mode: each
 
+  cost
+    resource: mana
+    amount: small
+
+  grant
+    kind: resource
+    resource: mana
+    amount: 5
+
   grant: perk

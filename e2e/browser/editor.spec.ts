@@ -916,6 +916,312 @@ section
   await expect(source).not.toContainText("new_textintro_text");
 });
 
+test("Structured fields show localized omission defaults from first render and after boolean toggles", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const editor = await openCreatedEditor(page);
+  const fieldsCard = editor
+    .locator(".editor-form-card")
+    .filter({ hasText: "Fields and behavior" });
+  const gauntletField = editor.locator(
+    '.editor-schema-field:has(input[aria-label="gauntlet"])',
+  );
+  const gauntlet = gauntletField.getByRole("checkbox");
+  const gauntletDefault = gauntletField.getByText("Default: false", {
+    exact: true,
+  });
+
+  await expect(gauntlet).not.toBeChecked();
+  await expect(gauntletDefault).toBeVisible();
+  await expect(
+    editor.getByLabel("section-layout", { exact: true }),
+  ).toHaveAttribute("placeholder", "Default: built-in section layout");
+  await expect(
+    editor.getByLabel("choice-layout", { exact: true }),
+  ).toHaveAttribute("placeholder", "Default: built-in choice layout");
+  await expect(
+    editor.getByLabel("trait-layout", { exact: true }),
+  ).toHaveAttribute("placeholder", "Default: built-in trait layout");
+  await attachProductionState(
+    testInfo,
+    "editor-default-shadowtext-initial-production",
+    fieldsCard,
+  );
+
+  await gauntlet.check();
+  await expect(gauntletDefault).toHaveCount(0);
+  await gauntlet.uncheck();
+  await expect(gauntletDefault).toBeVisible();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  await expect(editor.getByLabel("jump.jdef source")).not.toContainText(
+    "gauntlet:",
+  );
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await attachProductionState(
+    testInfo,
+    "editor-default-shadowtext-boolean-restored-production",
+    fieldsCard,
+  );
+
+  const format = editor.getByLabel("format", { exact: true });
+  const startingPoints = editor.getByLabel("starting-points", { exact: true });
+  await format.fill("");
+  await startingPoints.fill("");
+  await editor.getByLabel("points-name", { exact: true }).fill("");
+  await editor.getByLabel("points-abbreviation", { exact: true }).fill("");
+  await expect(format).not.toHaveAttribute("placeholder");
+  await expect(startingPoints).toHaveAttribute("placeholder", "Default: 1000");
+  await expect(
+    editor.getByLabel("points-name", { exact: true }),
+  ).toHaveAttribute("placeholder", "Default: Choice Points");
+  await expect(
+    editor.getByLabel("points-abbreviation", { exact: true }),
+  ).toHaveAttribute("placeholder", "Default: CP");
+  await expect(editor.locator(".editor-diagnostics-summary")).toContainText(
+    "Only Format 1 packages are supported.",
+  );
+  await gauntlet.check();
+  await expect(startingPoints).toHaveAttribute("placeholder", "Default: 0");
+  await gauntlet.uncheck();
+  await expect(startingPoints).toHaveAttribute("placeholder", "Default: 1000");
+  await attachProductionState(
+    testInfo,
+    "editor-default-shadowtext-jump-fields-production",
+    fieldsCard,
+  );
+
+  await editor
+    .getByRole("button", { name: "Introduction", exact: true })
+    .click();
+  await expect(editor.getByLabel("layout", { exact: true })).toHaveAttribute(
+    "placeholder",
+    "Default: built-in section layout",
+  );
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice", exact: true }).click();
+  const choiceLayout = editor.getByLabel("layout", { exact: true });
+  const selection = editor.getByLabel("selection", { exact: true });
+  await selection.selectOption("");
+  await expect(editor.getByLabel("resolution", { exact: true })).toHaveCount(0);
+  await expect(selection.locator("option:checked")).toHaveText(
+    "Default: toggle",
+  );
+  await selection.selectOption("integer");
+  const resolution = editor.getByLabel("resolution", { exact: true });
+  await resolution.selectOption("");
+  await expect(choiceLayout).toHaveAttribute(
+    "placeholder",
+    "Default: built-in choice layout",
+  );
+  await expect(resolution.locator("option:checked")).toHaveText(
+    "Default: manual",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-default-shadowtext-choice-fields-production",
+    editor
+      .locator(".editor-form-card")
+      .filter({ hasText: "Fields and behavior" }),
+  );
+
+  await selection.selectOption("integer");
+  await editor.getByRole("button", { name: "+ Grant", exact: true }).click();
+  const contentSearch = editor.getByPlaceholder("Search content");
+  await contentSearch.fill("New grant");
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "New grant grant", exact: true })
+    .click();
+  await editor.getByLabel("kind", { exact: true }).selectOption("trait");
+  await expect(editor.getByLabel("layout", { exact: true })).toHaveAttribute(
+    "placeholder",
+    "Default: built-in trait layout",
+  );
+  await expect(
+    editor.getByLabel("measure", { exact: true }).locator("option:checked"),
+  ).toHaveText("Default: rank");
+  await attachProductionState(
+    testInfo,
+    "editor-default-shadowtext-trait-grant-fields-production",
+    editor
+      .locator(".editor-form-card")
+      .filter({ hasText: "Fields and behavior" }),
+  );
+
+  await contentSearch.fill("New Choice");
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "New Choice", exact: true })
+    .click();
+  await editor.getByRole("button", { name: "+ Input", exact: true }).click();
+  await contentSearch.fill("new_input");
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "new_input input", exact: true })
+    .click();
+  await editor
+    .getByLabel("selection", { exact: true })
+    .selectOption("companions");
+  await expect(editor.getByLabel("min", { exact: true })).toHaveAttribute(
+    "placeholder",
+    "Default: 0",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-default-shadowtext-companion-input-fields-production",
+    editor
+      .locator(".editor-form-card")
+      .filter({ hasText: "Fields and behavior" }),
+  );
+});
+
+test("Structured section references and handles show live localized diagnostics", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const editor = await openCreatedEditor(page);
+  await editor
+    .getByRole("button", { name: "Introduction", exact: true })
+    .click();
+
+  const layout = editor.getByLabel("layout", { exact: true });
+  const layoutField = editor.locator(
+    '.editor-schema-field:has(input[aria-label="layout"])',
+  );
+  await layout.fill("missing_layout");
+  await expect(layout).toHaveAttribute("aria-invalid", "true");
+  await expect(layout).toHaveAttribute("aria-describedby", /diagnostics$/);
+  await expect(layoutField.locator(".editor-field-diagnostics")).toContainText(
+    "layout reference “missing_layout” does not resolve to a section-layout declaration.",
+  );
+  await expect(layoutField.locator(".editor-field-occurrence")).toHaveClass(
+    /is-warning/,
+  );
+  await expect(editor.locator(".editor-diagnostics-summary")).toContainText(
+    "missing_layout",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-section-unresolved-layout-inline-warning-production",
+    editor,
+  );
+
+  await layout.fill("Not A Handle!");
+  await expect(layoutField.locator(".editor-field-diagnostics")).toContainText(
+    "is not a legal handle reference",
+  );
+  await expect(layoutField.locator(".editor-field-occurrence")).toHaveClass(
+    /is-error/,
+  );
+  const handle = editor.getByLabel("handle", { exact: true });
+  await handle.fill("Not A Handle!");
+  const handleField = editor.locator(
+    '.editor-schema-field:has(input[aria-label="handle"])',
+  );
+  await expect(handleField.locator(".editor-field-diagnostics")).toContainText(
+    "is not a legal handle",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-section-illegal-handles-inline-errors-production",
+    editor,
+  );
+
+  await editor
+    .getByRole("button", { name: "Diagnostics", exact: true })
+    .click();
+  await editor
+    .locator(".editor-diagnostics-details button")
+    .filter({ hasText: "is not a legal handle reference" })
+    .click();
+  await expect(editor.getByRole("tab", { name: "Source" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(editor.locator(".cm-selectionBackground")).toHaveCount(1);
+  await expect(editor.locator(".cm-lintRange-error")).toHaveCount(2);
+  await attachProductionState(
+    testInfo,
+    "editor-section-illegal-handles-source-markers-production",
+    editor.locator(".editor-authoring-pane"),
+  );
+
+  await editor.getByRole("tab", { name: "Content" }).click();
+  await editor
+    .getByRole("button", { name: "Introduction", exact: true })
+    .click();
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await handle.fill("introduction");
+  await layout.fill("missing_layout");
+  await editor.getByRole("button", { name: "Export .jmp" }).click();
+  await page.getByRole("button", { name: "Export Package" }).click();
+  await expect(page.locator(".editor-export-error")).toContainText(
+    "The package is malformed",
+  );
+  await expect(page.locator(".editor-export-error")).toContainText(
+    "missing_layout",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-unresolved-layout-distribution-error-production",
+    page.getByRole("alertdialog"),
+  );
+});
+
+test("Structured choice-source groups distinguish missing, unmatched, and illegal handles", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const editor = await openCreatedEditor(page);
+  await editor
+    .getByRole("button", { name: "Introduction", exact: true })
+    .click();
+  await editor
+    .getByRole("button", { name: "+ Choice source", exact: true })
+    .click();
+  await editor.getByPlaceholder("Search content").fill("new_source");
+  await editor
+    .getByRole("button", { name: "new_source choice-source", exact: true })
+    .click();
+
+  const group = editor.getByLabel("group", { exact: true });
+  const groupField = editor.locator(
+    '.editor-schema-field:has(input[aria-label="group"])',
+  );
+  await expect(groupField.locator(".editor-field-diagnostics")).toContainText(
+    "has no group and cannot match choices",
+  );
+
+  await group.fill("missing_group");
+  await expect(groupField.locator(".editor-field-diagnostics")).toContainText(
+    "matches no choices in group “missing_group”",
+  );
+  await expect(groupField.locator(".editor-field-occurrence")).toHaveClass(
+    /is-warning/,
+  );
+
+  await group.fill("Not A Handle!");
+  await expect(groupField.locator(".editor-field-diagnostics")).toContainText(
+    "is not a legal handle",
+  );
+  await expect(
+    groupField.locator(".editor-field-diagnostics"),
+  ).not.toContainText("matches no choices");
+  const handle = editor.getByLabel("handle", { exact: true });
+  await handle.fill("Not A Handle!");
+  await expect(handle).toHaveAttribute("aria-invalid", "true");
+  await attachProductionState(
+    testInfo,
+    "editor-choice-source-missing-unmatched-illegal-diagnostics-production",
+    editor,
+  );
+});
+
 test("Quick Add offers and focuses an existing empty required field", async ({
   page,
 }, testInfo) => {
@@ -1389,6 +1695,152 @@ test("Structured authors representative Format 1 fields, children, repeats, and 
   );
   await expect(editor.getByLabel("choices.jdef source")).toContainText(
     "audit-tag",
+  );
+});
+
+test("Structured contextual additions open editable fields without redesigning the workspace", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const editor = await openCreatedEditor(page);
+
+  await editor
+    .getByRole("button", { name: "Introduction", exact: true })
+    .click();
+  await editor.getByRole("button", { name: "+ Text", exact: true }).click();
+  const content = editor.getByLabel("content", { exact: true });
+  await expect(
+    editor.getByRole("heading", { name: "new_text", exact: true }),
+  ).toBeVisible();
+  await expect(content).toBeFocused();
+  await expect(content).toHaveAttribute("aria-invalid", "true");
+  await expect(editor.locator(".editor-field-diagnostics")).toContainText(
+    "This text block has no content and renders nothing.",
+  );
+  await expect(
+    editor.locator(".editor-diagnostics-summary-text"),
+  ).toContainText("This text block has no content and renders nothing.");
+  await attachProductionState(
+    testInfo,
+    "editor-structured-child-text-feedback-production",
+    editor,
+  );
+
+  await editor
+    .locator(".editor-breadcrumbs")
+    .getByRole("button", { name: "Introduction" })
+    .click();
+  const childList = editor.locator(".editor-child-list");
+  await expect(childList).toContainText("new_text");
+  await expect(
+    childList.getByRole("button", { name: "Remove new_text" }),
+  ).toBeVisible();
+  await editor
+    .getByRole("button", { name: "+ Choice source", exact: true })
+    .click();
+  await expect(editor.getByLabel("group", { exact: true })).toBeFocused();
+  await expect(editor.locator(".editor-field-diagnostics")).toContainText(
+    "has no group and cannot match choices",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-structured-child-choice-source-feedback-production",
+    editor,
+  );
+
+  await editor
+    .locator(".editor-breadcrumbs")
+    .getByRole("button", { name: "Introduction" })
+    .click();
+  await editor.getByRole("button", { name: "+ Image", exact: true }).click();
+  await expect(editor.getByLabel("src", { exact: true })).toBeFocused();
+  await expect(
+    editor.locator(".editor-field-diagnostics").first(),
+  ).toContainText("does not exist in the package");
+  await editor
+    .locator(".editor-breadcrumbs")
+    .getByRole("button", { name: "Introduction" })
+    .click();
+  await editor
+    .getByRole("button", { name: "+ Direct choice", exact: true })
+    .click();
+  await expect(editor.getByLabel("target", { exact: true })).toBeFocused();
+  await expect(editor.locator(".editor-field-diagnostics")).toContainText(
+    "does not resolve to a choice declaration",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-structured-child-image-direct-choice-production",
+    editor,
+  );
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice", exact: true }).click();
+  await editor.getByRole("button", { name: "+ Cost", exact: true }).click();
+  await editor
+    .getByRole("button", { name: "Create resource…", exact: true })
+    .click();
+  const resourceDialog = page.getByRole("dialog", {
+    name: "Create resource",
+  });
+  await resourceDialog.getByLabel("Handle").fill("mana");
+  await resourceDialog.getByLabel("Name").fill("Mana");
+  await resourceDialog.getByLabel("Abbreviation").fill("MP");
+  await resourceDialog
+    .getByRole("button", { name: "Create and use resource" })
+    .click();
+  await expect(
+    editor.getByRole("heading", { name: "Mana", exact: true }),
+  ).toBeVisible();
+  await expect(
+    editor.getByRole("button", { name: "Back to cost" }),
+  ).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-contextual-resource-production",
+    editor,
+  );
+  await editor.getByRole("button", { name: "Back to cost" }).click();
+  await expect(editor.getByLabel("resource", { exact: true })).toHaveValue(
+    "mana",
+  );
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "New Choice", exact: true })
+    .click();
+  await editor.getByRole("button", { name: "+ Grant", exact: true }).click();
+  await editor.getByLabel("kind", { exact: true }).selectOption("resource");
+  await expect(editor.getByLabel("resource", { exact: true })).toBeVisible();
+  await expect(editor.getByLabel("amount", { exact: true })).toBeVisible();
+  await expect(editor.getByLabel("layout", { exact: true })).toHaveCount(0);
+  await expect(
+    editor.getByRole("heading", { name: "Needs attention" }),
+  ).toBeVisible();
+  await editor.getByRole("button", { name: "Remove invalid field" }).click();
+  await attachProductionState(
+    testInfo,
+    "editor-contextual-grant-fields-production",
+    editor,
+  );
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Section layout" }).click();
+  await expect(
+    editor.getByRole("heading", { name: "New Section Layout", exact: true }),
+  ).toBeVisible();
+  await editor.getByRole("button", { name: "stack", exact: true }).click();
+  await expect(
+    editor.getByText("Edit stack node", { exact: true }),
+  ).toBeVisible();
+  await expect(editor.getByLabel("padding", { exact: true })).toContainText(
+    "Default: none",
+  );
+  await expect(editor.getByLabel(/layout node$/)).toHaveCount(0);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-node-fields-production",
+    editor,
   );
 });
 

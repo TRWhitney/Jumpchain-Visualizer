@@ -12,7 +12,7 @@ import {
   summarizeWorkspace,
   type EditorWorkspaceSnapshot,
 } from "./model";
-import { translate } from "../localization";
+import { translate, translateDiagnostic } from "../localization";
 
 const service = new JumpPackageImportService();
 
@@ -134,7 +134,12 @@ export function EditorHub({
       setInspectState({
         kind: "blocked",
         code: blocked.code,
-        message: translate(`packageErrors.${blocked.code}`, blocked.parameters),
+        message: translate(`packageErrors.${blocked.code}`, {
+          ...blocked.parameters,
+          ...(blocked.diagnostic
+            ? { value0: translateDiagnostic(blocked.diagnostic) }
+            : {}),
+        }),
       });
     } finally {
       if (fileInput.current) fileInput.current.value = "";
@@ -547,7 +552,8 @@ export function PackageReview({
               className={`is-${diagnostic.severity}`}
               key={`${diagnostic.code}:${index}`}
             >
-              <strong>{diagnostic.severity}</strong> {diagnostic.message}
+              <strong>{diagnostic.severity}</strong>{" "}
+              {translateDiagnostic(diagnostic)}
             </p>
           ))}
         </div>

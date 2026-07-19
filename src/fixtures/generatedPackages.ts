@@ -50,7 +50,7 @@ function packageSources() {
 }
 
 export const generatedJumpPackages: readonly CanonicalJumpPackage[] =
-  packageSources().map(canonicalizePackage);
+  packageSources().map((sources) => canonicalizePackage(sources));
 
 export const validGeneratedJumpPackages =
   generatedJumpPackages.filter(packageIsValid);

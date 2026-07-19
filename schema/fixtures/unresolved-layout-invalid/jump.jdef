@@ -1,0 +1,10 @@
+jump
+  format: 1
+  name: "Unresolved Layout"
+  author: "Jumpchain Visualizer"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+  layout: missing_layout

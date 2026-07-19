@@ -94,7 +94,7 @@ describe("secure Jump package boundary", () => {
   it("rejects a malformed image before exposing package bytes", async () => {
     const source = createStarterWorkspace().files["jump.jdef"].replace(
       "section\n  handle: introduction",
-      'section\n  handle: introduction\n\n  image\n    handle: bad\n    src: "assets/bad.png"\n    alt: "Bad"\n\nsection\n  handle: second',
+      'section\n  handle: introduction\n  name: "Introduction"\n\n  image\n    handle: bad\n    src: "assets/bad.png"\n    alt: "Bad"\n\nsection\n  handle: second',
     );
     const archive = zipSync({
       "jump.jdef": bytes(source),

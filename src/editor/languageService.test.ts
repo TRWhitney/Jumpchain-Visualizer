@@ -50,7 +50,9 @@ describe("Format1LanguageService", () => {
     };
     const analysis = service.analyze(files);
     const diagnostic = analysis.diagnostics.find(
-      (item) => item.message === "jump requires at least one author.",
+      (item) =>
+        item.code === "schema.field.required" &&
+        item.parameters?.field === "author",
     );
     expect(diagnostic).toBeDefined();
     expect(service.diagnosticExtent(diagnostic!, analysis.parsed)).toEqual({

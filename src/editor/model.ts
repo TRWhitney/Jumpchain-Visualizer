@@ -4,6 +4,7 @@ import {
   type CanonicalJumpPackage,
   type PackageDiagnostic,
 } from "../markup";
+import { translateDiagnostic } from "../localization";
 
 export const EDITOR_WORKSPACE_SCHEMA_VERSION = 1;
 
@@ -128,7 +129,10 @@ export function filterEditorWorkspaces(
       ...summary.authors,
       summary.version,
       ...summary.tags,
-      ...summary.diagnostics.flatMap((item) => [item.code, item.message]),
+      ...summary.diagnostics.flatMap((item) => [
+        item.code,
+        translateDiagnostic(item),
+      ]),
     ]
       .join(" ")
       .toLocaleLowerCase();

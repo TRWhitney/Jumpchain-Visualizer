@@ -7,6 +7,12 @@ jump
   section-layout: choice_section
   choice-layout: choice_card
 
+resource
+  handle: mana
+  name: "Mana"
+  abbreviation: "MP"
+  initial: 25
+
 section
   handle: perks
   name: "Perks"

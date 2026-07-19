@@ -73,7 +73,7 @@ import {
 
 const packageSourceLabel = (source: InstalledPackage["source"]) =>
   source === "builtin" ? "Built-in" : source === "mock" ? "Mock" : "Imported";
-import { translate } from "../localization";
+import { translate, translateDiagnostic } from "../localization";
 
 const PROFILE_RECORDS_BEFORE_SCROLL = 5;
 const PROFILE_IMPORTS_BEFORE_SCROLL = 9;
@@ -695,10 +695,14 @@ function ChainRail({
                     setPackageImport({
                       kind: "blocked",
                       code: blocked.code,
-                      message: translate(
-                        `packageErrors.${blocked.code}`,
-                        blocked.parameters,
-                      ),
+                      message: translate(`packageErrors.${blocked.code}`, {
+                        ...blocked.parameters,
+                        ...(blocked.diagnostic
+                          ? {
+                              value0: translateDiagnostic(blocked.diagnostic),
+                            }
+                          : {}),
+                      }),
                     });
                   })
                   .finally(() => {

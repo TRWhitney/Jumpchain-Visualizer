@@ -9,7 +9,13 @@ import {
 } from "./catalogs";
 import { purchaseTotal, storyWordCount, toggleValue } from "./supplementState";
 import type { CatalogEntry } from "./model";
-import { questRows, warehouseCost, warehouseGroups } from "./parityData";
+import {
+  questRows,
+  warehouseCost,
+  warehouseGroups,
+  warehouseLabel,
+} from "./parityData";
+import { translate } from "../localization";
 
 const title = (value: string) =>
   value.replaceAll("-", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -76,7 +82,10 @@ function PurchaseRows({
                 <em key={badge}>{badge}</em>
               ))}
               {!!entry.requires?.length && (
-                <em>Requires {entry.requires.join(", ")}</em>
+                <em>
+                  {translate("ui.parityPages.text.requires")}
+                  {entry.requires.join(", ")}
+                </em>
               )}
               <span>{entry.summary}</span>
             </div>
@@ -88,7 +97,9 @@ function PurchaseRows({
                 onChange(entry.id, Number(event.target.value))
               }
             >
-              <option value="0">Not selected</option>
+              <option value="0">
+                {translate("ui.parityPages.text.notSelected")}
+              </option>
               {entry.costs.map((_, index) => (
                 <option
                   key={index}
@@ -346,27 +357,31 @@ export function EssentialParityPage() {
   return (
     <div
       className="essential-full-mock"
-      aria-label="Interactive Essential Body Modification full supplement page"
+      aria-label={translate(
+        "ui.parityPages.ariaLabel.interactiveEssentialBodyModificationFullSupplementPage",
+      )}
     >
       <header>
         <div>
-          <p>Foundation supplement</p>
-          <h4>Essential Body Modification</h4>
-          <span>Source edition 1.00 · Morgan</span>
+          <p>{translate("ui.parityPages.text.foundationSupplement")}</p>
+          <h4>{translate("ui.parityPages.text.essentialBodyModification")}</h4>
+          <span>{translate("ui.parityPages.text.sourceEdition100Morgan")}</span>
         </div>
         <div className="essential-balance">
-          <span>Initial EP remaining</span>
+          <span>{translate("ui.parityPages.text.initialEPRemaining")}</span>
           <output className={balance < 0 ? "is-negative" : ""}>
-            {balance} EP
+            {balance} {translate("ui.parityPages.text.ep")}
           </output>
         </div>
       </header>
       <div className="essential-full-body">
         <aside>
-          <p>Build</p>
+          <p>{translate("ui.parityPages.text.build")}</p>
           <nav
             id="essential-category-nav"
-            aria-label="Essential Body Modification categories"
+            aria-label={translate(
+              "ui.parityPages.ariaLabel.essentialBodyModificationCategories",
+            )}
           >
             {categories.map((category) => (
               <button
@@ -405,10 +420,13 @@ export function EssentialParityPage() {
             </div>
             {!["setup", "essences"].includes(state.category) && (
               <label>
-                <span>Find in category</span>
+                <span>{translate("ui.parityPages.text.findInCategory")}</span>
                 <input
                   type="search"
-                  placeholder="Find a perk or ability"
+                  spellCheck={false}
+                  placeholder={translate(
+                    "ui.parityPages.placeholder.findAPerkOrAbility",
+                  )}
                   value={state.search}
                   onChange={(event) => set({ search: event.target.value })}
                 />
@@ -472,7 +490,11 @@ export function EssentialParityPage() {
                   ))}
                 </div>
                 <section className="essential-setup-group">
-                  <h6>Variants and access modifiers</h6>
+                  <h6>
+                    {translate(
+                      "ui.parityPages.text.variantsAndAccessModifiers",
+                    )}
+                  </h6>
                   <div className="essential-toggle-list">
                     {[
                       [
@@ -552,14 +574,17 @@ export function EssentialParityPage() {
                   ))}
                 </div>
                 <section className="essential-essence-detail">
-                  <strong>Essence of the {state.essenceDetail}</strong>
+                  <strong>
+                    {translate("ui.parityPages.text.essenceOfThe")}
+                    {state.essenceDetail}
+                  </strong>
                   <p>
                     {essentialEssences.find(
                       ([name]) => name === state.essenceDetail,
                     )?.[1] ?? "Select an Essence to inspect it."}{" "}
-                    It discounts every source perk marked for this Essence by
-                    50%; a discounted 50 EP perk becomes free. In Single Essence
-                    Mode, choosing it replaces the current Essence.
+                    {translate(
+                      "ui.parityPages.text.itDiscountsEverySourcePerkMarkedForThisEssence",
+                    )}
                   </p>
                 </section>
               </>
@@ -647,21 +672,27 @@ export function WarehouseParityPage() {
     <div className="warehouse-full-mock">
       <header className="warehouse-full-header">
         <div>
-          <p>Persistent-space supplement</p>
-          <h4>Cosmic Warehouse</h4>
-          <span>Updated Quicksilver edition · 40,000 ft²</span>
+          <p>{translate("ui.parityPages.text.persistentSpaceSupplement")}</p>
+          <h4>{translate("ui.parityPages.text.cosmicWarehouse")}</h4>
+          <span>
+            {translate("ui.parityPages.text.updatedQuicksilverEdition40000Ft²")}
+          </span>
         </div>
         <div
           className={`warehouse-budget ${remaining < 0 ? "is-negative" : ""}`}
         >
-          <span>Remaining</span>
-          <output>{remaining} WP</output>
+          <span>{translate("ui.parityPages.text.remaining")}</span>
+          <output>
+            {remaining} {translate("ui.parityPages.text.wp")}
+          </output>
         </div>
       </header>
       <nav
         className="warehouse-full-tabs"
         role="tablist"
-        aria-label="Cosmic Warehouse page section"
+        aria-label={translate(
+          "ui.parityPages.ariaLabel.cosmicWarehousePageSection",
+        )}
       >
         {tabs.map(([id, label]) => (
           <button
@@ -681,30 +712,33 @@ export function WarehouseParityPage() {
       </nav>
       <div className="warehouse-full-layout">
         <aside className="warehouse-summary">
-          <p>Current space</p>
-          <div className="warehouse-summary-icon">CW</div>
+          <p>{translate("ui.parityPages.text.currentSpace")}</p>
+          <div className="warehouse-summary-icon">
+            {translate("ui.parityPages.text.cw")}
+          </div>
           <h5>
-            {state.selected.includes("Free Space") ? "80,000" : "40,000"} ft²
+            {state.selected.includes("Free Space") ? "80,000" : "40,000"}{" "}
+            {translate("ui.parityPages.text.ft²")}
           </h5>
           <span>
             {state.selected.includes("Portal") ? "Portal access" : "Key access"}
           </span>
           <dl>
             <div>
-              <dt>Utilities</dt>
+              <dt>{translate("ui.parityPages.text.utilities")}</dt>
               <dd>{count("utilities")}</dd>
             </div>
             <div>
-              <dt>Structures</dt>
+              <dt>{translate("ui.parityPages.text.structures")}</dt>
               <dd>{count("structures")}</dd>
             </div>
             <div>
-              <dt>Other upgrades</dt>
+              <dt>{translate("ui.parityPages.text.otherUpgrades")}</dt>
               <dd>{count("misc")}</dd>
             </div>
           </dl>
           <div className="warehouse-key-summary">
-            <strong>Entry method</strong>
+            <strong>{translate("ui.parityPages.text.entryMethod")}</strong>
             <p>
               {state.selected.includes("Portal")
                 ? "Portal on a suitable surface"
@@ -715,75 +749,113 @@ export function WarehouseParityPage() {
         <div className="warehouse-panel-stack" ref={panelRef}>
           {state.tab === "intro" ? (
             <section className="warehouse-panel">
-              <p className="warehouse-kicker">What this provides</p>
-              <h5>A persistent storage dimension</h5>
+              <p className="warehouse-kicker">
+                {translate("ui.parityPages.text.whatThisProvides")}
+              </p>
+              <h5>
+                {translate("ui.parityPages.text.aPersistentStorageDimension")}
+              </h5>
               <p>
-                The Warehouse is a chain-wide space reached through a special
-                key, or through Portal when purchased. It stores possessions
-                between Jumps and remains accessible across universes.
+                {translate(
+                  "ui.parityPages.text.theWarehouseIsAChainWideSpaceReachedThrough",
+                )}
               </p>
               <div className="warehouse-facts">
                 <article>
-                  <strong>40,000 ft²</strong>
-                  <span>Updated starting floor area.</span>
+                  <strong>{translate("ui.parityPages.text.40000Ft²")}</strong>
+                  <span>
+                    {translate("ui.parityPages.text.updatedStartingFloorArea")}
+                  </span>
                 </article>
                 <article>
-                  <strong>150 WP</strong>
-                  <span>Independent Warehouse budget.</span>
+                  <strong>{translate("ui.parityPages.text.150WP")}</strong>
+                  <span>
+                    {translate(
+                      "ui.parityPages.text.independentWarehouseBudget",
+                    )}
+                  </span>
                 </article>
                 <article>
-                  <strong>One gateway</strong>
-                  <span>Only one entrance may be open.</span>
+                  <strong>{translate("ui.parityPages.text.oneGateway")}</strong>
+                  <span>
+                    {translate("ui.parityPages.text.onlyOneEntranceMayBeOpen")}
+                  </span>
                 </article>
                 <article>
-                  <strong>Time stops</strong>
-                  <span>When its gateway closes.</span>
+                  <strong>{translate("ui.parityPages.text.timeStops")}</strong>
+                  <span>
+                    {translate("ui.parityPages.text.whenItsGatewayCloses")}
+                  </span>
                 </article>
               </div>
-              <h6>Operating rules</h6>
+              <h6>{translate("ui.parityPages.text.operatingRules")}</h6>
               <ol className="warehouse-rules">
-                <li>The gateway remains open while the owner is inside.</li>
-                <li>Living people cannot be stored in the closed Warehouse.</li>
                 <li>
-                  Visitors may enter with the owner and leave when the owner
-                  does.
+                  {translate(
+                    "ui.parityPages.text.theGatewayRemainsOpenWhileTheOwnerIsInside",
+                  )}
                 </li>
-                <li>Time stops inside whenever the entrance closes.</li>
-                <li>Only one Warehouse gateway may be open at once.</li>
+                <li>
+                  {translate(
+                    "ui.parityPages.text.livingPeopleCannotBeStoredInTheClosedWarehouse",
+                  )}
+                </li>
+                <li>
+                  {translate(
+                    "ui.parityPages.text.visitorsMayEnterWithTheOwnerAndLeaveWhen",
+                  )}
+                </li>
+                <li>
+                  {translate(
+                    "ui.parityPages.text.timeStopsInsideWheneverTheEntranceCloses",
+                  )}
+                </li>
+                <li>
+                  {translate(
+                    "ui.parityPages.text.onlyOneWarehouseGatewayMayBeOpenAtOnce",
+                  )}
+                </li>
               </ol>
             </section>
           ) : state.tab === "review" ? (
             <section className="warehouse-panel">
-              <p className="warehouse-kicker">Review</p>
-              <h5>Your Cosmic Warehouse</h5>
+              <p className="warehouse-kicker">
+                {translate("ui.parityPages.text.review")}
+              </p>
+              <h5>{translate("ui.parityPages.text.yourCosmicWarehouse")}</h5>
               <div className="warehouse-review-cards">
                 <article>
-                  <span>Floor area</span>
+                  <span>{translate("ui.parityPages.text.floorArea")}</span>
                   <strong>
                     {state.selected.includes("Free Space")
                       ? "80,000"
                       : "40,000"}{" "}
-                    ft²
+                    {translate("ui.parityPages.text.ft²")}
                   </strong>
                 </article>
                 <article>
-                  <span>Access</span>
+                  <span>{translate("ui.parityPages.text.access")}</span>
                   <strong>
                     {state.selected.includes("Portal") ? "Portal" : "Key"}
                   </strong>
                 </article>
                 <article>
-                  <span>Spent</span>
-                  <strong>{150 - remaining} WP</strong>
+                  <span>{translate("ui.parityPages.text.spent")}</span>
+                  <strong>
+                    {150 - remaining} {translate("ui.parityPages.text.wp")}
+                  </strong>
                 </article>
               </div>
-              <h6>Installed features</h6>
+              <h6>{translate("ui.parityPages.text.installedFeatures")}</h6>
               <div className="warehouse-chip-list">
                 {state.selected.map((name) => (
-                  <span key={name}>{name}</span>
+                  <span key={name}>{warehouseLabel(name)}</span>
                 ))}
                 {state.stasisPods > 0 && (
-                  <span>Stasis Pod ×{state.stasisPods}</span>
+                  <span>
+                    {translate("ui.parityPages.text.stasisPod")}
+                    {state.stasisPods}
+                  </span>
                 )}
               </div>
               <div
@@ -820,14 +892,18 @@ export function WarehouseParityPage() {
                     name === "Stasis Pod" ? (
                       <article className="warehouse-quantity-option" key={name}>
                         <span>
-                          <strong>{name}</strong>
-                          <small>{cost} WP each</small>
+                          <strong>{warehouseLabel(name)}</strong>
+                          <small>
+                            {cost} {translate("ui.parityPages.text.wpEach")}
+                          </small>
                         </span>
                         <p>{copy}</p>
                         <div>
                           <button
                             type="button"
-                            aria-label="Remove Stasis Pod"
+                            aria-label={translate(
+                              "ui.parityPages.ariaLabel.removeStasisPod",
+                            )}
                             disabled={!state.stasisPods}
                             onClick={() =>
                               set({
@@ -840,7 +916,9 @@ export function WarehouseParityPage() {
                           <output>{state.stasisPods}</output>
                           <button
                             type="button"
-                            aria-label="Add Stasis Pod"
+                            aria-label={translate(
+                              "ui.parityPages.ariaLabel.addStasisPod",
+                            )}
                             disabled={state.stasisPods >= 4}
                             onClick={() =>
                               set({
@@ -868,7 +946,7 @@ export function WarehouseParityPage() {
                         onClick={() => toggle(name, requires)}
                       >
                         <span>
-                          <strong>{name}</strong>
+                          <strong>{warehouseLabel(name)}</strong>
                           <small>{cost ? `${cost} WP` : "Free"}</small>
                         </span>
                         <p>{copy}</p>
@@ -996,23 +1074,25 @@ export function PersonalRealityParityPage() {
     <div className="reality-full-mock">
       <header>
         <div>
-          <p>Persistent-space supplement</p>
-          <h4>Personal Reality</h4>
-          <span>Source edition 1.7 · Morgan</span>
+          <p>{translate("ui.parityPages.text.persistentSpaceSupplement")}</p>
+          <h4>{translate("ui.parityPages.text.personalReality")}</h4>
+          <span>{translate("ui.parityPages.text.sourceEdition17Morgan")}</span>
         </div>
         <div className="reality-balance">
-          <span>Initial WP remaining</span>
+          <span>{translate("ui.parityPages.text.initialWPRemaining")}</span>
           <output className={balance < 0 ? "is-negative" : ""}>
-            {balance} WP
+            {balance} {translate("ui.parityPages.text.wp")}
           </output>
         </div>
       </header>
       <div className="reality-full-body">
         <aside>
-          <p>Starting Reality</p>
+          <p>{translate("ui.parityPages.text.startingReality")}</p>
           <nav
             id="reality-category-nav"
-            aria-label="Personal Reality categories"
+            aria-label={translate(
+              "ui.parityPages.ariaLabel.personalRealityCategories",
+            )}
           >
             {categories.map((category) => (
               <button
@@ -1052,10 +1132,13 @@ export function PersonalRealityParityPage() {
             </div>
             {state.category !== "setup" && (
               <label>
-                <span>Find in category</span>
+                <span>{translate("ui.parityPages.text.findInCategory")}</span>
                 <input
                   type="search"
-                  placeholder="Find an upgrade"
+                  spellCheck={false}
+                  placeholder={translate(
+                    "ui.parityPages.placeholder.findAnUpgrade",
+                  )}
                   value={state.search}
                   onChange={(event) => set({ search: event.target.value })}
                 />
@@ -1079,13 +1162,15 @@ export function PersonalRealityParityPage() {
                         });
                       }}
                     >
-                      <strong>{name} Core Mode</strong>
+                      <strong>
+                        {name} {translate("ui.parityPages.text.coreMode")}
+                      </strong>
                       <span>{copy}</span>
                     </button>
                   ))}
                 </div>
                 <section className="reality-extra-group">
-                  <h6>Extra-Modes</h6>
+                  <h6>{translate("ui.parityPages.text.extraModes")}</h6>
                   <div className="reality-extra-list">
                     {[
                       [
@@ -1494,19 +1579,28 @@ export function UdsParityPage() {
     <div className="uds-full-mock">
       <header>
         <div>
-          <p>Rules supplement · SJ-Chan</p>
-          <h4>Universal Drawbacks</h4>
-          <span>Source edition 1.12 · Morgan’s Chain</span>
+          <p>{translate("ui.parityPages.text.rulesSupplementSJChan")}</p>
+          <h4>{translate("ui.parityPages.text.universalDrawbacks")}</h4>
+          <span>
+            {translate("ui.parityPages.text.sourceEdition112MorganSChain")}
+          </span>
         </div>
         <div className="uds-impact">
-          <span>Chain-wide adjustment</span>
-          <output>+{total} CP</output>
+          <span>{translate("ui.parityPages.text.chainWideAdjustment")}</span>
+          <output>
+            +{total} {translate("ui.parityPages.text.cp")}
+          </output>
         </div>
       </header>
       <div className="uds-full-body">
         <aside>
-          <p>Drawback families</p>
-          <nav id="uds-category-nav" aria-label="Universal Drawback categories">
+          <p>{translate("ui.parityPages.text.drawbackFamilies")}</p>
+          <nav
+            id="uds-category-nav"
+            aria-label={translate(
+              "ui.parityPages.ariaLabel.universalDrawbackCategories",
+            )}
+          >
             {udsCategories.map((category) => (
               <button
                 type="button"
@@ -1538,7 +1632,7 @@ export function UdsParityPage() {
                           category && active.has(entry.id),
                     ).length
                   }{" "}
-                  selected
+                  {translate("ui.parityPages.text.selected")}
                 </small>
               </button>
             ))}
@@ -1552,10 +1646,13 @@ export function UdsParityPage() {
               <span>{categoryCopy}</span>
             </div>
             <label>
-              <span>Find drawbacks</span>
+              <span>{translate("ui.parityPages.text.findDrawbacks")}</span>
               <input
                 type="search"
-                placeholder="Name, effect, or restriction"
+                spellCheck={false}
+                placeholder={translate(
+                  "ui.parityPages.placeholder.nameEffectOrRestriction",
+                )}
                 value={state.search}
                 onChange={(event) => set({ search: event.target.value })}
               />
@@ -1564,7 +1661,7 @@ export function UdsParityPage() {
           <div
             className="uds-filter-bar"
             role="group"
-            aria-label="Catalog filter"
+            aria-label={translate("ui.parityPages.ariaLabel.catalogFilter")}
           >
             {(["all", "selected", "available"] as const).map((filter) => (
               <button
@@ -1636,7 +1733,10 @@ export function UdsParityPage() {
                     </div>
                     {state.detail === entry.id && (
                       <div className="uds-card-detail">
-                        <strong>Current rule:</strong> {entry.summary}
+                        <strong>
+                          {translate("ui.parityPages.text.currentRule")}
+                        </strong>{" "}
+                        {entry.summary}
                         {entry.requires
                           ? ` Requires ${universalDrawbacks.find((candidate) => candidate.id === entry.requires)?.name ?? entry.requires}.`
                           : ""}
@@ -1669,19 +1769,21 @@ export function QuestParityPage() {
     <div className="quest-full-mock">
       <header className="quest-full-header">
         <div>
-          <p>Rules supplement</p>
-          <h4>Quest Mode</h4>
-          <span>Chain-wide rules · Per-Jump progress</span>
+          <p>{translate("ui.parityPages.text.rulesSupplement")}</p>
+          <h4>{translate("ui.parityPages.text.questMode")}</h4>
+          <span>
+            {translate("ui.parityPages.text.chainWideRulesPerJumpProgress")}
+          </span>
         </div>
         <div className="quest-mode-status">
-          <span>Starting balance</span>
-          <strong>0 CP</strong>
+          <span>{translate("ui.parityPages.text.startingBalance")}</span>
+          <strong>{translate("ui.parityPages.text.0CP")}</strong>
         </div>
       </header>
       <nav
         className="quest-full-tabs"
         role="tablist"
-        aria-label="Quest Mode page section"
+        aria-label={translate("ui.parityPages.ariaLabel.questModePageSection")}
       >
         {[
           ["intro", "Explanation"],
@@ -1704,21 +1806,24 @@ export function QuestParityPage() {
       </nav>
       <div className="quest-full-layout">
         <aside className="quest-summary">
-          <p>Current rules</p>
+          <p>{translate("ui.parityPages.text.currentRules")}</p>
           <div className="quest-summary-mark">Q</div>
-          <h5>Quest Mode active</h5>
-          <span>{state.rules.length} optional rules</span>
+          <h5>{translate("ui.parityPages.text.questModeActive")}</h5>
+          <span>
+            {state.rules.length}{" "}
+            {translate("ui.parityPages.text.optionalRules")}
+          </span>
           <dl>
             <div>
-              <dt>Jump start</dt>
-              <dd>0 CP</dd>
+              <dt>{translate("ui.parityPages.text.jumpStart")}</dt>
+              <dd>{translate("ui.parityPages.text.0CP")}</dd>
             </div>
             <div>
-              <dt>Award tiers</dt>
+              <dt>{translate("ui.parityPages.text.awardTiers")}</dt>
               <dd>4</dd>
             </div>
             <div>
-              <dt>Standard quests</dt>
+              <dt>{translate("ui.parityPages.text.standardQuests")}</dt>
               <dd>12</dd>
             </div>
           </dl>
@@ -1727,43 +1832,64 @@ export function QuestParityPage() {
           <section className="quest-panel">
             {state.tab === "intro" ? (
               <>
-                <p className="quest-kicker">How it changes a Jump</p>
-                <h5>Earn the budget through quests</h5>
+                <p className="quest-kicker">
+                  {translate("ui.parityPages.text.howItChangesAJump")}
+                </p>
+                <h5>
+                  {translate("ui.parityPages.text.earnTheBudgetThroughQuests")}
+                </h5>
                 <p>
-                  Every Jump begins with no ordinary starting CP. Completing a
-                  listed quest adds its award to the current Jump’s balance.
-                  Drawbacks may still provide CP at the beginning of the Jump.
+                  {translate(
+                    "ui.parityPages.text.everyJumpBeginsWithNoOrdinaryStartingCPCompleting",
+                  )}
                 </p>
                 <div className="quest-facts">
                   <article>
-                    <strong>0 CP</strong>
-                    <span>Default starting balance</span>
+                    <strong>{translate("ui.parityPages.text.0CP")}</strong>
+                    <span>
+                      {translate("ui.parityPages.text.defaultStartingBalance")}
+                    </span>
                   </article>
                   <article>
-                    <strong>100–600 CP</strong>
-                    <span>Awarded per completed quest</span>
+                    <strong>{translate("ui.parityPages.text.100600CP")}</strong>
+                    <span>
+                      {translate(
+                        "ui.parityPages.text.awardedPerCompletedQuest",
+                      )}
+                    </span>
                   </article>
                   <article>
-                    <strong>Per Jump</strong>
-                    <span>Each entry tracks its own progress</span>
+                    <strong>{translate("ui.parityPages.text.perJump")}</strong>
+                    <span>
+                      {translate(
+                        "ui.parityPages.text.eachEntryTracksItsOwnProgress",
+                      )}
+                    </span>
                   </article>
                 </div>
                 <div className="quest-effort-note">
-                  <strong>Effort is the requirement</strong>
+                  <strong>
+                    {translate("ui.parityPages.text.effortIsTheRequirement")}
+                  </strong>
                   <p>
-                    A perk, power, Origin, or other purchase cannot complete a
-                    quest automatically.
+                    {translate(
+                      "ui.parityPages.text.aPerkPowerOriginOrOtherPurchaseCannotComplete",
+                    )}
                   </p>
                 </div>
               </>
             ) : state.tab === "tiers" ? (
               <>
-                <p className="quest-kicker">Award structure</p>
-                <h5>Standard quest tiers</h5>
+                <p className="quest-kicker">
+                  {translate("ui.parityPages.text.awardStructure")}
+                </p>
+                <h5>{translate("ui.parityPages.text.standardQuestTiers")}</h5>
                 <div className="quest-tier-grid">
                   {[100, 200, 400, 600].map((tier) => (
                     <article key={tier}>
-                      <strong>{tier} CP</strong>
+                      <strong>
+                        {tier} {translate("ui.parityPages.text.cp")}
+                      </strong>
                       <span>
                         {questRows
                           .filter((row) => row[2] === tier)
@@ -1776,8 +1902,10 @@ export function QuestParityPage() {
               </>
             ) : (
               <>
-                <p className="quest-kicker">Source-defined variants</p>
-                <h5>Optional rules</h5>
+                <p className="quest-kicker">
+                  {translate("ui.parityPages.text.sourceDefinedVariants")}
+                </p>
+                <h5>{translate("ui.parityPages.text.optionalRulesHeading")}</h5>
                 <div className="quest-rule-list">
                   {[
                     [
@@ -1865,24 +1993,29 @@ export function StoryParityPage() {
     <div className="story-full-mock">
       <header>
         <div>
-          <p>Narrative supplement</p>
-          <h4>Morgan’s Story</h4>
+          <p>{translate("ui.parityPages.text.narrativeSupplement")}</p>
+          <h4>{translate("ui.parityPages.text.morganSStory")}</h4>
           <span>
-            3 Jumps ·{" "}
+            {translate("ui.parityPages.text.3Jumps")}{" "}
             {state.jumps.reduce(
               (sum, jump) =>
                 sum +
                 jump.chapters.filter((chapter) => chapter.source.trim()).length,
               0,
             )}{" "}
-            chapters written
+            {translate("ui.parityPages.text.chaptersWritten")}
           </span>
         </div>
       </header>
       <div className="story-full-layout">
         <aside>
-          <p>Oldest to newest</p>
-          <nav id="story-full-index" aria-label="Story Jump and chapter index">
+          <p>{translate("ui.parityPages.text.oldestToNewest")}</p>
+          <nav
+            id="story-full-index"
+            aria-label={translate(
+              "ui.parityPages.ariaLabel.storyJumpAndChapterIndex",
+            )}
+          >
             {state.jumps.map((jump, index) => (
               <div className="story-index-group" key={jump.id}>
                 <button
@@ -1893,7 +2026,10 @@ export function StoryParityPage() {
                     scrollToStory(`[data-story-jump="${jump.id}"]`);
                   }}
                 >
-                  <span>Jump {index + 1}</span>
+                  <span>
+                    {translate("ui.parityPages.text.jump")}
+                    {index + 1}
+                  </span>
                   <strong>{jump.name}</strong>
                   <small>
                     {jump.chapters.length
@@ -1929,10 +2065,13 @@ export function StoryParityPage() {
         </aside>
         <section className="story-full-reader" ref={readerRef}>
           <div className="story-reader-intro">
-            <strong>One ordered story for every Jump</strong>
+            <strong>
+              {translate("ui.parityPages.text.oneOrderedStoryForEveryJump")}
+            </strong>
             <p>
-              Read every chapter here or use Supp → Story to edit the current
-              Jump.
+              {translate(
+                "ui.parityPages.text.readEveryChapterHereOrUseSuppStoryTo",
+              )}
             </p>
           </div>
           <div id="story-full-chapters">
@@ -1943,7 +2082,10 @@ export function StoryParityPage() {
                 key={jump.id}
               >
                 <header>
-                  <span>Jump {index + 1}</span>
+                  <span>
+                    {translate("ui.parityPages.text.jump")}
+                    {index + 1}
+                  </span>
                   <h5>{jump.name}</h5>
                   <small>
                     {jump.chapters.length
@@ -1959,7 +2101,10 @@ export function StoryParityPage() {
                         data-story-chapter={`${jump.id}:${chapterIndex}`}
                         key={chapter.id}
                       >
-                        <span>Chapter {chapterIndex + 1}</span>
+                        <span>
+                          {translate("ui.parityPages.text.chapter")}
+                          {chapterIndex + 1}
+                        </span>
                         <h6>{chapter.title.trim() || "Untitled chapter"}</h6>
                         <p>
                           <Markup source={chapter.source} />
@@ -1968,8 +2113,9 @@ export function StoryParityPage() {
                     ))
                   ) : (
                     <p className="is-empty">
-                      Open this Jump and choose Supp → Story to add its first
-                      chapter.
+                      {translate(
+                        "ui.parityPages.text.openThisJumpAndChooseSuppStoryToAdd",
+                      )}
                     </p>
                   )}
                 </div>

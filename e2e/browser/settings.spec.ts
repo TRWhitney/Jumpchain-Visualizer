@@ -238,6 +238,107 @@ test("every Settings category preserves the fixed frame and has a fresh visual a
   }
 });
 
+test("Language selection switches, persists, falls back, and supports RTL", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/settings");
+  await expect(
+    page.getByRole("tab", { name: "Language", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Language", { exact: true })).toHaveValue("en");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+  await page.getByPlaceholder("Search settings").fill("language");
+  await page
+    .locator(".settings-search-list button")
+    .filter({ hasText: "language.tag" })
+    .click();
+  await expect(
+    page.getByRole("tab", { name: "General", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#language-selection")).toBeFocused();
+
+  await page.getByLabel("Language", { exact: true }).selectOption("es");
+  await expect(page.getByLabel("Idioma", { exact: true })).toHaveValue("es");
+  await expect(page.locator("html")).toHaveAttribute("lang", "es");
+  await page.getByPlaceholder("Buscar configuración").fill("zzzz-no-match");
+  await expect(page.getByText("No settings match this search.")).toBeVisible();
+  await testInfo.attach("settings-language-spanish", {
+    body: await page.getByLabel("Configuración de la aplicación").screenshot(),
+    contentType: "image/png",
+  });
+
+  await page.reload();
+  await expect(page.getByLabel("Idioma", { exact: true })).toHaveValue("es");
+
+  await page.goto("/chain/ch-92b1");
+  const supplementWorkspace = page.getByLabel(
+    "Interactive Chain Tracker workspace",
+  );
+  await supplementWorkspace.getByRole("tab", { name: "Supplements" }).click();
+  const translatedQuest = page
+    .locator(".supplement-manage-list article")
+    .filter({ hasText: "Modo de misiones" });
+  await expect(translatedQuest).toBeVisible();
+  await expect(translatedQuest.getByRole("checkbox")).not.toBeChecked();
+  await supplementWorkspace
+    .getByRole("tab", { name: "Universal Drawbacks" })
+    .click();
+  await expect(
+    supplementWorkspace.getByText("Sin saber por qué"),
+  ).toBeVisible();
+
+  await page.goto("/settings");
+  await page.getByRole("tab", { name: "Etiquetas" }).click();
+  await page.getByPlaceholder("Find tag").fill("Vehículos");
+  await page
+    .locator(".tag-profile-item")
+    .filter({ hasText: /^Vehículo/ })
+    .click();
+  await expect(page.locator(".tag-alias-chip")).toContainText("Vehículos");
+  await page.getByLabel("Tag to link as an alias").selectOption("perk");
+  await page.getByRole("button", { name: "Link alias", exact: true }).click();
+  await expect(
+    page.locator(".tag-alias-chip").filter({ hasText: /^Perk/ }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Unlink alias Vehículos" }).click();
+  await expect(
+    page.locator(".tag-alias-chip").filter({ hasText: /^Vehículos/ }),
+  ).toHaveCount(0);
+  await expect(
+    page.locator(".tag-alias-chip").filter({ hasText: /^Perk/ }),
+  ).toBeVisible();
+
+  await page.getByRole("tab", { name: "General" }).click();
+  await page.getByLabel("Idioma", { exact: true }).selectOption("en");
+  await page.getByRole("tab", { name: "Tags" }).click();
+  await page.getByPlaceholder("Find tag").fill("Vehicle");
+  await page
+    .locator(".tag-profile-item")
+    .filter({ hasText: /^Vehicle/ })
+    .click();
+  await expect(
+    page.locator(".tag-alias-chip").filter({ hasText: /^Vehicles/ }),
+  ).toHaveCount(0);
+  await expect(
+    page.locator(".tag-alias-chip").filter({ hasText: /^Perk/ }),
+  ).toBeVisible();
+
+  await page.getByRole("tab", { name: "General" }).click();
+  await page.getByLabel("Language", { exact: true }).selectOption("ar");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  const frame = page.getByLabel("إعدادات التطبيق");
+  await expect(frame).toBeVisible();
+  const bounds = await frame.boundingBox();
+  expect(bounds?.width).toBeGreaterThan(700);
+  expect(bounds?.height).toBeGreaterThan(500);
+  await testInfo.attach("settings-language-arabic-rtl", {
+    body: await frame.screenshot(),
+    contentType: "image/png",
+  });
+});
+
 test("appearance, motion, and keybinding validation apply through their real controls", async ({
   page,
 }, testInfo) => {

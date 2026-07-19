@@ -8,6 +8,7 @@ import { useSettings } from "./SettingsContext";
 import { CanonicalTagBadge } from "./TagBadge";
 import {
   addTag,
+  canonicalTagAlias,
   deleteTag,
   exportTagProfile,
   importTagProfile,
@@ -17,12 +18,15 @@ import {
   removeAlias,
   resetTag,
   setTagParent,
+  tagAliasesForPresentation,
+  tagLabelForPresentation,
   toggleAlias,
   updateTagPresentation,
   type TagPresentation,
   type TagProfile,
 } from "./tagProfile";
 import { primaryTagIds } from "./builtinTags";
+import { translate } from "../localization";
 
 const sourceLabels = {
   builtin: "Built-in",
@@ -41,6 +45,7 @@ const animationLabels: Record<TagPresentation["animation"], string> = {
 export function TagProfileEditor() {
   const { settings, update, logger, installedPackages } = useSettings();
   const profile = settings.tags.profile;
+  const languageTag = settings.language.tag;
   const [selectedId, setSelectedId] = useState(
     profile.tags.physical ? "physical" : Object.keys(profile.tags)[0],
   );
@@ -65,8 +70,12 @@ export function TagProfileEditor() {
   });
   const tag = profile.tags[selectedId] ?? Object.values(profile.tags)[0];
   const entries = Object.values(profile.tags);
+  const displayName = (entry: (typeof entries)[number]) =>
+    tagLabelForPresentation(entry, languageTag);
+  const displayAliases = (entry: (typeof entries)[number]) =>
+    tagAliasesForPresentation(entry, languageTag);
   const visible = entries.filter((entry) =>
-    [entry.name, ...entry.aliases]
+    [displayName(entry), ...displayAliases(entry), entry.name, ...entry.aliases]
       .join(" ")
       .toLocaleLowerCase()
       .includes(search.toLocaleLowerCase()),
@@ -194,35 +203,40 @@ export function TagProfileEditor() {
     <div className="tag-profile-editor" data-toc-ignore>
       <header className="tag-profile-toolbar">
         <div>
-          <p>User tag profile</p>
+          <p>{translate("ui.tagProfileEditor.text.userTagProfile")}</p>
           <h4>
-            Category, relationship,
+            {translate("ui.tagProfileEditor.text.categoryRelationship")}
             <br />
-            and badge editor
+            {translate("ui.tagProfileEditor.text.andBadgeEditor")}
           </h4>
         </div>
         <div>
           <button type="button" onClick={() => openJson("import")}>
-            Import
+            {translate("ui.tagProfileEditor.text.import")}
             <br />
-            JSON
+            {translate("ui.tagProfileEditor.text.json")}
           </button>
           <button type="button" onClick={() => openJson("export")}>
-            Export
+            {translate("ui.tagProfileEditor.text.export")}
             <br />
-            JSON
+            {translate("ui.tagProfileEditor.text.json")}
           </button>
         </div>
       </header>
       {jsonMode && (
         <section className="tag-json-panel" aria-labelledby="tag-json-heading">
           <div>
-            <p>Portable user configuration</p>
+            <p>
+              {translate("ui.tagProfileEditor.text.portableUserConfiguration")}
+            </p>
             <h4 id="tag-json-heading">
-              {jsonMode === "export" ? "Export" : "Import"} tag profile JSON
+              {jsonMode === "export" ? "Export" : "Import"}{" "}
+              {translate("ui.tagProfileEditor.text.tagProfileJSON")}
             </h4>
           </div>
-          <label htmlFor="tag-json-content">JSON document</label>
+          <label htmlFor="tag-json-content">
+            {translate("ui.tagProfileEditor.text.jsonDocument")}
+          </label>
           <textarea
             id="tag-json-content"
             spellCheck={false}
@@ -240,7 +254,9 @@ export function TagProfileEditor() {
           />
           {jsonMode === "import" && (
             <div className="tag-json-import-options">
-              <label htmlFor="tag-json-mode">Import behavior</label>
+              <label htmlFor="tag-json-mode">
+                {translate("ui.tagProfileEditor.text.importBehavior")}
+              </label>
               <select
                 id="tag-json-mode"
                 value={importMode}
@@ -249,9 +265,13 @@ export function TagProfileEditor() {
                   setPendingImport(null);
                 }}
               >
-                <option value="merge">Merge with this profile</option>
+                <option value="merge">
+                  {translate("ui.tagProfileEditor.text.mergeWithThisProfile")}
+                </option>
                 <option value="replace">
-                  Replace manual/imported tags and overrides
+                  {translate(
+                    "ui.tagProfileEditor.text.replaceManualImportedTagsAndOverrides",
+                  )}
                 </option>
               </select>
             </div>
@@ -264,7 +284,7 @@ export function TagProfileEditor() {
               </button>
             )}
             <button type="button" onClick={() => setJsonMode(null)}>
-              Close
+              {translate("ui.tagProfileEditor.text.close")}
             </button>
           </div>
         </section>
@@ -275,12 +295,19 @@ export function TagProfileEditor() {
           aria-labelledby="tag-profile-list-heading"
         >
           <div className="tag-profile-list-fixed">
-            <h4 id="tag-profile-list-heading">Tags</h4>
+            <h4 id="tag-profile-list-heading">
+              {translate("ui.tagProfileEditor.text.tags")}
+            </h4>
             <label>
-              <span className="sr-only">Find tag</span>
+              <span className="sr-only">
+                {translate("ui.tagProfileEditor.text.findTag")}
+              </span>
               <input
                 type="search"
-                placeholder="Find tag"
+                spellCheck={false}
+                placeholder={translate(
+                  "ui.tagProfileEditor.placeholder.findTag",
+                )}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
@@ -318,7 +345,12 @@ export function TagProfileEditor() {
                   </h5>
                   {(expandedGroups[group.id] || Boolean(search.trim())) &&
                     group.entries
-                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .sort((a, b) =>
+                        displayName(a).localeCompare(
+                          displayName(b),
+                          languageTag,
+                        ),
+                      )
                       .map((entry) => (
                         <button
                           key={entry.id}
@@ -328,11 +360,11 @@ export function TagProfileEditor() {
                           onClick={() => select(entry.id)}
                         >
                           <span>
-                            {entry.name}
+                            {displayName(entry)}
                             <small>
                               {entry.source === "builtin"
                                 ? entry.parent
-                                  ? `Built-in · From ${profile.tags[entry.parent]?.name ?? entry.parent}`
+                                  ? `Built-in · From ${profile.tags[entry.parent] ? displayName(profile.tags[entry.parent]) : entry.parent}`
                                   : "Built-in"
                                 : `${sourceLabels[entry.source]} · ${entry.appearanceSource === "derived" ? `From ${profile.tags[entry.parent ?? "miscellaneous"]?.name ?? "Miscellaneous"}` : "Custom appearance"}`}
                             </small>
@@ -351,7 +383,9 @@ export function TagProfileEditor() {
               ) : null,
             )}
             {!visible.length && (
-              <p className="tag-profile-empty">No tags match this search.</p>
+              <p className="tag-profile-empty">
+                {translate("ui.tagProfileEditor.text.noTagsMatchThisSearch")}
+              </p>
             )}
           </div>
           <div className="tag-profile-add-actions">
@@ -361,7 +395,7 @@ export function TagProfileEditor() {
                 setAddPanel(addPanel === "acquired" ? null : "acquired")
               }
             >
-              Refresh acquired tags
+              {translate("ui.tagProfileEditor.text.refreshAcquiredTags")}
             </button>
             <button
               type="button"
@@ -369,12 +403,12 @@ export function TagProfileEditor() {
                 setAddPanel(addPanel === "manual" ? null : "manual")
               }
             >
-              Enter tag manually
+              {translate("ui.tagProfileEditor.text.enterTagManually")}
             </button>
           </div>
           {addPanel === "acquired" && (
             <section className="tag-add-panel">
-              <h5>Newly detected tags</h5>
+              <h5>{translate("ui.tagProfileEditor.text.newlyDetectedTags")}</h5>
               {acquiredCandidates.length ? (
                 <ul>
                   {acquiredCandidates.map((candidate) => (
@@ -386,13 +420,15 @@ export function TagProfileEditor() {
                 </ul>
               ) : (
                 <p>
-                  Every normalized tag string from installed Jumps is already in
-                  this profile.
+                  {translate(
+                    "ui.tagProfileEditor.text.everyNormalizedTagStringFromInstalledJumpsIsAlready",
+                  )}
                 </p>
               )}
               <p>
-                Missing strings begin under Miscellaneous. Existing names and
-                aliases are never duplicated.
+                {translate(
+                  "ui.tagProfileEditor.text.missingStringsBeginUnderMiscellaneousExistingNamesAndAliases",
+                )}
               </p>
               <div>
                 {acquiredCandidates.length > 0 && (
@@ -413,7 +449,9 @@ export function TagProfileEditor() {
                       setAddPanel(null);
                     }}
                   >
-                    Add {acquiredCandidates.length} detected
+                    {translate("ui.tagProfileEditor.text.add")}
+                    {acquiredCandidates.length}{" "}
+                    {translate("ui.tagProfileEditor.text.detected")}
                   </button>
                 )}
                 <button type="button" onClick={() => setAddPanel(null)}>
@@ -424,13 +462,16 @@ export function TagProfileEditor() {
           )}
           {addPanel === "manual" && (
             <section className="tag-add-panel">
-              <h5>Enter tag string</h5>
+              <h5>{translate("ui.tagProfileEditor.text.enterTagString")}</h5>
               <label>
-                <span>Tag</span>
+                <span>{translate("ui.tagProfileEditor.text.tag")}</span>
                 <input
                   autoFocus
+                  spellCheck
                   value={manualName}
-                  placeholder="Example: Summoning"
+                  placeholder={translate(
+                    "ui.tagProfileEditor.placeholder.exampleSummoning",
+                  )}
                   onChange={(event) => setManualName(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
@@ -445,10 +486,10 @@ export function TagProfileEditor() {
               </p>
               <div>
                 <button type="button" onClick={addManualTag}>
-                  Add tag
+                  {translate("ui.tagProfileEditor.text.addTag")}
                 </button>
                 <button type="button" onClick={() => setAddPanel(null)}>
-                  Cancel
+                  {translate("ui.tagProfileEditor.text.cancel")}
                 </button>
               </div>
             </section>
@@ -468,7 +509,7 @@ export function TagProfileEditor() {
                     : "Built-in"
                   : `${sourceLabels[tag.source]} · ${tag.appearanceSource === "derived" ? `Derived from ${profile.tags[tag.parent ?? "miscellaneous"]?.name}` : "Custom appearance"}`}
               </p>
-              <h4 id="tag-profile-form-heading">{tag.name}</h4>
+              <h4 id="tag-profile-form-heading">{displayName(tag)}</h4>
             </div>
             <div className="tag-profile-form-actions">
               {(tag.source === "manual" || tag.source === "imported") && (
@@ -480,7 +521,7 @@ export function TagProfileEditor() {
                     select(parent);
                   }}
                 >
-                  Delete
+                  {translate("ui.tagProfileEditor.text.delete")}
                 </button>
               )}
               <button
@@ -492,23 +533,25 @@ export function TagProfileEditor() {
                 }
                 onClick={() => replaceProfile(resetTag(profile, tag.id))}
               >
-                Reset
+                {translate("ui.tagProfileEditor.text.reset")}
               </button>
             </div>
           </header>
           <div className="tag-profile-form-scroll">
             <fieldset>
-              <legend>Identity and category</legend>
+              <legend>
+                {translate("ui.tagProfileEditor.text.identityAndCategory")}
+              </legend>
               <label className="field-wide">
-                <span>Tag string</span>
+                <span>{translate("ui.tagProfileEditor.text.tagString")}</span>
                 <input value={tag.name} readOnly />
               </label>
               <label
                 className={`field-wide${primaryTagIds.has(tag.id) ? " is-locked" : ""}`}
               >
-                <span>Parent</span>
+                <span>{translate("ui.tagProfileEditor.text.parent")}</span>
                 <select
-                  aria-label="Parent"
+                  aria-label={translate("ui.tagProfileEditor.ariaLabel.parent")}
                   value={tag.parent ?? ""}
                   disabled={primaryTagIds.has(tag.id)}
                   onChange={(event) => {
@@ -522,28 +565,32 @@ export function TagProfileEditor() {
                   }}
                 >
                   {primaryTagIds.has(tag.id) ? (
-                    <option value="">Top level (fixed)</option>
+                    <option value="">
+                      {translate("ui.tagProfileEditor.text.topLevelFixed")}
+                    </option>
                   ) : (
                     entries
                       .filter((candidate) => candidate.id !== tag.id)
                       .map((candidate) => (
                         <option key={candidate.id} value={candidate.id}>
-                          {candidate.name}
+                          {displayName(candidate)}
                         </option>
                       ))
                   )}
                 </select>
                 {primaryTagIds.has(tag.id) && (
                   <small className="field-lock-reason">
-                    🔒 Primary tags are always top level.
+                    {translate(
+                      "ui.tagProfileEditor.text.primaryTagsAreAlwaysTopLevel",
+                    )}
                   </small>
                 )}
               </label>
               <div className="tag-alias-editor field-wide">
-                <span>Aliases</span>
+                <span>{translate("ui.tagProfileEditor.text.aliases")}</span>
                 <div className="tag-alias-list">
-                  {tag.aliases.length ? (
-                    tag.aliases.map((alias) => {
+                  {displayAliases(tag).length ? (
+                    displayAliases(tag).map((alias) => {
                       return (
                         <span className="tag-alias-chip" key={alias}>
                           {alias}
@@ -552,7 +599,11 @@ export function TagProfileEditor() {
                             aria-label={`Unlink alias ${alias}`}
                             onClick={() =>
                               replaceProfile(
-                                removeAlias(profile, tag.id, alias),
+                                removeAlias(
+                                  profile,
+                                  tag.id,
+                                  canonicalTagAlias(tag, alias, languageTag),
+                                ),
                               )
                             }
                           >
@@ -562,19 +613,25 @@ export function TagProfileEditor() {
                       );
                     })
                   ) : (
-                    <span className="tag-alias-empty">No aliases linked.</span>
+                    <span className="tag-alias-empty">
+                      {translate("ui.tagProfileEditor.text.noAliasesLinked")}
+                    </span>
                   )}
                 </div>
                 <div className="tag-alias-add">
                   <select
-                    aria-label="Tag to link as an alias"
+                    aria-label={translate(
+                      "ui.tagProfileEditor.ariaLabel.tagToLinkAsAnAlias",
+                    )}
                     value={aliasTarget}
                     onChange={(event) => setAliasTarget(event.target.value)}
                   >
-                    <option value="">Choose a tag</option>
+                    <option value="">
+                      {translate("ui.tagProfileEditor.text.chooseATag")}
+                    </option>
                     {aliasCandidates.map((candidate) => (
                       <option key={candidate.id} value={candidate.id}>
-                        {candidate.name}
+                        {displayName(candidate)}
                       </option>
                     ))}
                   </select>
@@ -588,20 +645,23 @@ export function TagProfileEditor() {
                       setAliasTarget("");
                     }}
                   >
-                    Link alias
+                    {translate("ui.tagProfileEditor.text.linkAlias")}
                   </button>
                 </div>
                 <small>
-                  Alias links are reciprocal. Linking two tags once updates both
-                  entries.
+                  {translate(
+                    "ui.tagProfileEditor.text.aliasLinksAreReciprocalLinkingTwoTagsOnceUpdates",
+                  )}
                 </small>
               </div>
             </fieldset>
 
             <fieldset>
-              <legend>Background and border</legend>
+              <legend>
+                {translate("ui.tagProfileEditor.text.backgroundAndBorder")}
+              </legend>
               <SelectField
-                label="Background"
+                label={translate("ui.tagProfileEditor.label.background")}
                 ariaLabel="Background"
                 value={presentation.background}
                 onChange={(value) =>
@@ -616,7 +676,7 @@ export function TagProfileEditor() {
                   presentation.background !== "solid" ? "is-locked" : ""
                 }
               >
-                <span>Solid color</span>
+                <span>{translate("ui.tagProfileEditor.text.solidColor")}</span>
                 <input
                   type="color"
                   disabled={presentation.background !== "solid"}
@@ -634,7 +694,9 @@ export function TagProfileEditor() {
                   }
                 />
                 <small className="field-lock-reason">
-                  🔒 Available when Background is Solid.
+                  {translate(
+                    "ui.tagProfileEditor.text.availableWhenBackgroundIsSolid",
+                  )}
                 </small>
               </label>
               <div
@@ -643,8 +705,14 @@ export function TagProfileEditor() {
               >
                 <div className="tag-gradient-heading">
                   <div>
-                    <span>Gradient stops</span>
-                    <small>Drag interior nodes to position them.</small>
+                    <span>
+                      {translate("ui.tagProfileEditor.text.gradientStops")}
+                    </span>
+                    <small>
+                      {translate(
+                        "ui.tagProfileEditor.text.dragInteriorNodesToPositionThem",
+                      )}
+                    </small>
                   </div>
                   <button
                     type="button"
@@ -674,7 +742,7 @@ export function TagProfileEditor() {
                       patchPresentation({ positions, colors });
                     }}
                   >
-                    + Add stop
+                    {translate("ui.tagProfileEditor.text.addStop")}
                   </button>
                 </div>
                 <GradientTrack
@@ -698,7 +766,9 @@ export function TagProfileEditor() {
                 />
                 <div className="tag-gradient-stop-controls">
                   <label>
-                    <span>Selected color</span>
+                    <span>
+                      {translate("ui.tagProfileEditor.text.selectedColor")}
+                    </span>
                     <input
                       type="color"
                       disabled={!gradientEnabled}
@@ -714,7 +784,9 @@ export function TagProfileEditor() {
                     />
                   </label>
                   <label className={endpoint ? "is-locked" : ""}>
-                    <span>Position</span>
+                    <span>
+                      {translate("ui.tagProfileEditor.text.position")}
+                    </span>
                     <span className="tag-gradient-position">
                       <input
                         type="range"
@@ -731,7 +803,9 @@ export function TagProfileEditor() {
                       <output>{presentation.positions[selectedStop]}%</output>
                     </span>
                     <small className="field-lock-reason">
-                      🔒 Endpoint positions stay at 0% and 100%.
+                      {translate(
+                        "ui.tagProfileEditor.text.endpointPositionsStayAt0And100",
+                      )}
                     </small>
                   </label>
                   <button
@@ -746,10 +820,10 @@ export function TagProfileEditor() {
                       patchPresentation({ colors, positions });
                     }}
                   >
-                    Remove stop
+                    {translate("ui.tagProfileEditor.text.removeStop")}
                   </button>
                   <label>
-                    <span>Angle</span>
+                    <span>{translate("ui.tagProfileEditor.text.angle")}</span>
                     <input
                       type="number"
                       min="0"
@@ -771,12 +845,13 @@ export function TagProfileEditor() {
                   </label>
                 </div>
                 <p className="field-lock-reason">
-                  🔒 Gradient controls are available when Background is
-                  Gradient.
+                  {translate(
+                    "ui.tagProfileEditor.text.gradientControlsAreAvailableWhenBackgroundIsGradient",
+                  )}
                 </p>
               </div>
               <label>
-                <span>Border color</span>
+                <span>{translate("ui.tagProfileEditor.text.borderColor")}</span>
                 <input
                   type="color"
                   value={presentation.borderColor}
@@ -786,7 +861,7 @@ export function TagProfileEditor() {
                 />
               </label>
               <SelectField
-                label="Border width"
+                label={translate("ui.tagProfileEditor.label.borderWidth")}
                 value={presentation.borderWidth}
                 onChange={(value) =>
                   patchPresentation({
@@ -796,7 +871,7 @@ export function TagProfileEditor() {
                 options={["none", "thin", "medium"]}
               />
               <SelectField
-                label="Corner style"
+                label={translate("ui.tagProfileEditor.label.cornerStyle")}
                 value={presentation.corners}
                 onChange={(value) =>
                   patchPresentation({
@@ -806,7 +881,7 @@ export function TagProfileEditor() {
                 options={["pill", "rounded", "square"]}
               />
               <SelectField
-                label="Padding"
+                label={translate("ui.tagProfileEditor.label.padding")}
                 value={presentation.padding}
                 onChange={(value) =>
                   patchPresentation({
@@ -818,9 +893,9 @@ export function TagProfileEditor() {
             </fieldset>
 
             <fieldset>
-              <legend>Text</legend>
+              <legend>{translate("ui.tagProfileEditor.text.text")}</legend>
               <SelectField
-                label="Text color mode"
+                label={translate("ui.tagProfileEditor.label.textColorMode")}
                 value={presentation.textMode}
                 onChange={(value) =>
                   patchPresentation({
@@ -834,7 +909,7 @@ export function TagProfileEditor() {
                   presentation.textMode !== "custom" ? "is-locked" : ""
                 }
               >
-                <span>Text color</span>
+                <span>{translate("ui.tagProfileEditor.text.textColor")}</span>
                 <input
                   type="color"
                   disabled={presentation.textMode !== "custom"}
@@ -844,11 +919,13 @@ export function TagProfileEditor() {
                   }
                 />
                 <small className="field-lock-reason">
-                  🔒 Choose Custom text color mode to edit.
+                  {translate(
+                    "ui.tagProfileEditor.text.chooseCustomTextColorModeToEdit",
+                  )}
                 </small>
               </label>
               <SelectField
-                label="Weight"
+                label={translate("ui.tagProfileEditor.label.weight")}
                 value={presentation.weight}
                 onChange={(value) =>
                   patchPresentation({
@@ -858,7 +935,7 @@ export function TagProfileEditor() {
                 options={["normal", "medium", "bold"]}
               />
               <SelectField
-                label="Style"
+                label={translate("ui.tagProfileEditor.label.style")}
                 value={presentation.fontStyle}
                 onChange={(value) =>
                   patchPresentation({
@@ -868,7 +945,7 @@ export function TagProfileEditor() {
                 options={["normal", "italic"]}
               />
               <SelectField
-                label="Decoration"
+                label={translate("ui.tagProfileEditor.label.decoration")}
                 value={presentation.decoration}
                 onChange={(value) =>
                   patchPresentation({
@@ -878,7 +955,7 @@ export function TagProfileEditor() {
                 options={["none", "underline", "strike"]}
               />
               <SelectField
-                label="Text effect"
+                label={translate("ui.tagProfileEditor.label.textEffect")}
                 value={presentation.textEffect}
                 onChange={(value) =>
                   patchPresentation({
@@ -888,14 +965,15 @@ export function TagProfileEditor() {
                 options={["none", "outline", "shadow", "glow"]}
               />
               <p className="field-note field-wide">
-                Text effects are static presets. Animation is configured
-                separately.
+                {translate(
+                  "ui.tagProfileEditor.text.textEffectsAreStaticPresetsAnimationIsConfiguredSeparately",
+                )}
               </p>
             </fieldset>
             <fieldset>
-              <legend>Animation</legend>
+              <legend>{translate("ui.tagProfileEditor.text.animation")}</legend>
               <div className="tag-animation-field">
-                <span>Animation</span>
+                <span>{translate("ui.tagProfileEditor.text.animation")}</span>
                 <div className="tag-animation-select">
                   <button
                     className="tag-animation-trigger"
@@ -923,7 +1001,9 @@ export function TagProfileEditor() {
                     <div
                       className="tag-animation-menu"
                       role="listbox"
-                      aria-label="Tag animation"
+                      aria-label={translate(
+                        "ui.tagProfileEditor.ariaLabel.tagAnimation",
+                      )}
                     >
                       {Object.entries(animationLabels).map(
                         ([value, label], index, all) => (
@@ -957,8 +1037,9 @@ export function TagProfileEditor() {
                 </div>
               </div>
               <p className="field-note">
-                Reduced Motion shows the original text color at full opacity
-                without movement.
+                {translate(
+                  "ui.tagProfileEditor.text.reducedMotionShowsTheOriginalTextColorAtFull",
+                )}
               </p>
             </fieldset>
             {message && (
@@ -974,34 +1055,44 @@ export function TagProfileEditor() {
           aria-labelledby="tag-profile-preview-heading"
         >
           <header>
-            <p>Live badge preview</p>
-            <h4 id="tag-profile-preview-heading">{tag.name}</h4>
+            <p>{translate("ui.tagProfileEditor.text.liveBadgePreview")}</p>
+            <h4 id="tag-profile-preview-heading">{displayName(tag)}</h4>
           </header>
           <div className="tag-profile-preview-surface is-dark">
-            <BadgePreview tag={tag} surface="#171717" />
+            <BadgePreview
+              tag={tag}
+              label={displayName(tag)}
+              surface="#171717"
+            />
           </div>
           <div className="tag-profile-preview-surface is-light">
-            <BadgePreview tag={tag} surface="#f6f5f1" />
+            <BadgePreview
+              tag={tag}
+              label={displayName(tag)}
+              surface="#f6f5f1"
+            />
           </div>
           <dl>
             <div>
-              <dt>Source</dt>
+              <dt>{translate("ui.tagProfileEditor.text.source")}</dt>
               <dd>{sourceLabels[tag.source]}</dd>
             </div>
             <div>
-              <dt>Parent</dt>
+              <dt>{translate("ui.tagProfileEditor.text.parent")}</dt>
               <dd>
                 {tag.parent
-                  ? (profile.tags[tag.parent]?.name ?? tag.parent)
+                  ? profile.tags[tag.parent]
+                    ? displayName(profile.tags[tag.parent])
+                    : tag.parent
                   : "Top level"}
               </dd>
             </div>
             <div>
-              <dt>Aliases</dt>
-              <dd>{tag.aliases.join(", ") || "None"}</dd>
+              <dt>{translate("ui.tagProfileEditor.text.aliases")}</dt>
+              <dd>{displayAliases(tag).join(", ") || "None"}</dd>
             </div>
             <div>
-              <dt>Appearance</dt>
+              <dt>{translate("ui.tagProfileEditor.text.appearance")}</dt>
               <dd>
                 {tag.appearanceSource === "builtin"
                   ? "Built-in"
@@ -1012,8 +1103,9 @@ export function TagProfileEditor() {
             </div>
           </dl>
           <p>
-            Changes affect this user profile only. The source Jump remains
-            unchanged.
+            {translate(
+              "ui.tagProfileEditor.text.changesAffectThisUserProfileOnlyTheSourceJump",
+            )}
           </p>
         </aside>
       </div>
@@ -1070,7 +1162,9 @@ function GradientTrack({
     <div
       ref={track}
       className="tag-gradient-track"
-      aria-label="Gradient stop positions"
+      aria-label={translate(
+        "ui.tagProfileEditor.ariaLabel.gradientStopPositions",
+      )}
       style={{
         background: `linear-gradient(90deg, ${presentation.colors.map((color, index) => `${color} ${presentation.positions[index]}%`).join(", ")})`,
       }}
@@ -1144,14 +1238,16 @@ function AnimatedText({
 
 function BadgePreview({
   tag,
+  label,
   surface,
 }: {
   tag: { name: string; presentation: TagPresentation };
+  label: string;
   surface: string;
 }) {
   return (
     <CanonicalTagBadge
-      label={tag.name}
+      label={label}
       presentation={tag.presentation}
       surface={surface}
     />

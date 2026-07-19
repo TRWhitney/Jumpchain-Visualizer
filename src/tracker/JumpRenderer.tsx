@@ -25,6 +25,7 @@ import { CanonicalTrackerTagBadge } from "../settings/TagBadge";
 import type { TagDefinition, TrackerAction, TrackerPreferences } from "./model";
 import { NumberStepper } from "./NumberStepper";
 import { resolveJumpImageSource, type JumpAssetResolver } from "./jumpImages";
+import { translate } from "../localization";
 
 const label = (value: Renderable | undefined, fallback = "") =>
   value?.base ?? value?.variants[0]?.value ?? fallback;
@@ -190,7 +191,9 @@ function CostBadges({
   )
     return (
       <div className="cost-badge-row">
-        <b className="cost-badge is-benefit">Free</b>
+        <b className="cost-badge is-benefit">
+          {translate("ui.jumpRenderer.text.free")}
+        </b>
       </div>
     );
   if (randomOnly && !rolled)
@@ -199,8 +202,8 @@ function CostBadges({
         <b className="cost-badge is-roll-pending">
           {choice.costs.some((cost) => cost.mode === "each") ? (
             <>
-              <strong>Roll for Free</strong>
-              <span>Rank count pending</span>
+              <strong>{translate("ui.jumpRenderer.text.rollForFree")}</strong>
+              <span>{translate("ui.jumpRenderer.text.rankCountPending")}</span>
             </>
           ) : (
             "Roll for Free"
@@ -220,7 +223,11 @@ function CostBadges({
               <strong>
                 {Math.abs(cost.originalAmount)} {suffix}
               </strong>
-              <span>Rolled {String(view.rolledResult)} is Free</span>
+              <span>
+                {translate("ui.jumpRenderer.text.rolled")}
+                {String(view.rolledResult)}{" "}
+                {translate("ui.jumpRenderer.text.isFree")}
+              </span>
             </b>
           );
         })}
@@ -250,10 +257,14 @@ function CostBadges({
         <div className="cost-badge-row">
           <b className="cost-badge is-ranked is-mixed">
             <span>
-              {allowance} rank{allowance === 1 ? "" : "s"} Free · Rolled
+              {allowance} {translate("ui.jumpRenderer.text.rank")}
+              {allowance === 1 ? "" : "s"}{" "}
+              {translate("ui.jumpRenderer.text.freeRolled")}
             </span>
             <strong>
-              {paidRanks} paid × {unit} CP · {paidRanks * unit} CP total
+              {paidRanks} {translate("ui.jumpRenderer.text.paid")}
+              {unit} {translate("ui.jumpRenderer.text.cp")}
+              {paidRanks * unit} {translate("ui.jumpRenderer.text.cpTotal")}
             </strong>
           </b>
         </div>
@@ -313,7 +324,7 @@ function CostBadges({
               className={`cost-badge is-ranked${award ? " is-award" : ""}`}
             >
               <span>
-                {each} {suffix} each
+                {each} {suffix} {translate("ui.jumpRenderer.text.each")}
               </span>
               <strong>
                 {cost.rankCount === undefined
@@ -424,7 +435,10 @@ function ChoiceControl({
             disabled={formDependencyUnavailable}
             onChange={(event) => set(event.target.checked)}
           />
-          <span>Take {label(choice.name, choice.handle)}</span>
+          <span>
+            {translate("ui.jumpRenderer.text.take")}
+            {label(choice.name, choice.handle)}
+          </span>
         </label>
       )}
       {showControl && showManual && choice.selection === "text" && (
@@ -432,7 +446,7 @@ function ChoiceControl({
           <span className="sr-only">{label(choice.name)}</span>
           <input
             type="text"
-            placeholder="Unset"
+            placeholder={translate("ui.jumpRenderer.placeholder.unset")}
             disabled={formDependencyUnavailable}
             value={typeof value === "string" ? value : ""}
             onChange={(event) => set(event.target.value || null)}
@@ -463,7 +477,7 @@ function ChoiceControl({
             disabled={formDependencyUnavailable}
             onChange={(event) => set(event.target.value || null)}
           >
-            <option value="">Unset</option>
+            <option value="">{translate("ui.jumpRenderer.text.unset")}</option>
             {choice.options.map((option) => {
               const text = resolved(option, props);
               const free = view?.continuityFreeValues.includes(text);
@@ -520,16 +534,20 @@ function ChoiceControl({
           disabled={storedValue === null}
           onClick={() => set(null)}
         >
-          Clear
+          {translate("ui.jumpRenderer.text.clear")}
         </button>
       )}
       {showControl && missingForm && (
         <em className="choice-provenance">
-          Requires {label(missingFormName, missingForm)}
+          {translate("ui.jumpRenderer.text.requires")}
+          {label(missingFormName, missingForm)}
         </em>
       )}
       {showRoll && rolled && choice.resolution === "either" && (
-        <em className="choice-provenance">Rolled {rolled.result}</em>
+        <em className="choice-provenance">
+          {translate("ui.jumpRenderer.text.rolled")}
+          {rolled.result}
+        </em>
       )}
     </div>
   );
@@ -597,7 +615,9 @@ function InputControls({
               <legend>{inputLabel}</legend>
               {importFunding.length > 0 && (
                 <em className="choice-provenance companion-import-funding">
-                  Each selected companion receives{" "}
+                  {translate(
+                    "ui.jumpRenderer.text.eachSelectedCompanionReceives",
+                  )}{" "}
                   {importFunding
                     .map(
                       (grant) =>
@@ -665,7 +685,9 @@ function InputControls({
                 value={typeof value === "string" ? value : ""}
                 onChange={(event) => update(event.target.value || null)}
               >
-                <option value="">Unset</option>
+                <option value="">
+                  {translate("ui.jumpRenderer.text.unset")}
+                </option>
                 {input.options.map((option) => (
                   <option key={resolved(option, props)}>
                     {resolved(option, props)}
@@ -674,7 +696,10 @@ function InputControls({
               </select>
             )}
             {missingForm && (
-              <em className="choice-provenance">Requires form {missingForm}</em>
+              <em className="choice-provenance">
+                {translate("ui.jumpRenderer.text.requiresForm")}
+                {missingForm}
+              </em>
             )}
           </label>
         );
@@ -735,7 +760,9 @@ function SourceOptionControl({
             : `${source.mode === "single" ? "Choose" : "Take"} ${label(choice.name)}`}
         </span>
       </label>
-      {sourceRoll?.result === choice.handle && <em>Rolled</em>}
+      {sourceRoll?.result === choice.handle && (
+        <em>{translate("ui.jumpRenderer.text.rolledLabel")}</em>
+      )}
     </div>
   );
 }
@@ -837,7 +864,7 @@ function SourceRollControls({
           disabled={Boolean(roll) && !props.preferences.allowRerolls}
           onClick={doRoll}
         >
-          Roll
+          {translate("ui.jumpRenderer.text.roll")}
         </button>
       )}
       <button
@@ -856,7 +883,7 @@ function SourceRollControls({
           )
         }
       >
-        Clear
+        {translate("ui.jumpRenderer.text.clear")}
       </button>
       {source.resolution !== "manual" && (
         <output data-group-status>
@@ -867,7 +894,7 @@ function SourceRollControls({
       )}
       {source.mode === "multi" && (
         <span className="spent-total">
-          Spent{" "}
+          {translate("ui.jumpRenderer.text.spent")}{" "}
           <output>
             {choices.reduce(
               (total, choice) =>
@@ -878,7 +905,7 @@ function SourceRollControls({
                 ) ?? 0),
               0,
             )}{" "}
-            CP
+            {translate("ui.jumpRenderer.text.cpSuffix")}
           </output>
         </span>
       )}
@@ -1373,7 +1400,9 @@ export function JumpRenderer(props: Props) {
     <div className="chain-view-panel tracker-renderer-placeholder">
       {props.preferences.showAdditionalJumpInformation && (
         <div className="shared-renderer-label">
-          <small>Format 1 evaluated package</small>
+          <small>
+            {translate("ui.jumpRenderer.text.format1EvaluatedPackage")}
+          </small>
         </div>
       )}
       <article className="shared-jump-renderer format-one-jump-renderer">
@@ -1384,7 +1413,7 @@ export function JumpRenderer(props: Props) {
             <span>{props.packageItem.description}</span>
           </div>
           <div className="tracker-budget">
-            <span>Available</span>
+            <span>{translate("ui.jumpRenderer.text.available")}</span>
             <output
               className={
                 props.evaluation.balance < 0 ? "is-negative" : undefined
@@ -1405,8 +1434,8 @@ export function JumpRenderer(props: Props) {
         {props.evaluation.traits.length > 0 && (
           <section className="rendered-jump-section">
             <header>
-              <p>Traits</p>
-              <h5>Current Jump traits</h5>
+              <p>{translate("ui.jumpRenderer.text.traits")}</p>
+              <h5>{translate("ui.jumpRenderer.text.currentJumpTraits")}</h5>
             </header>
             <div className="jump-trait-list">
               {props.evaluation.traits.map((trait) => (

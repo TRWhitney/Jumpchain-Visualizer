@@ -11,7 +11,7 @@ export type LogError = {
 type NotificationAppearance = "danger";
 type EventNotification = {
   class: NotificationClass;
-  message: string;
+  messageKey: string;
   dedupeKey: string;
   appearance?: NotificationAppearance;
 };
@@ -50,7 +50,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["routeKind", "errorCode"],
     notification: {
       class: "errors",
-      message: "The application encountered an unexpected error.",
+      messageKey: "logging.app_crashed",
       dedupeKey: "app-crash",
     },
   },
@@ -60,7 +60,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["aggregate", "errorCode"],
     notification: {
       class: "errors",
-      message: "A local preference could not be saved.",
+      messageKey: "logging.storage_write_failed",
       dedupeKey: "settings-write",
     },
   },
@@ -70,7 +70,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["aggregate", "reason"],
     notification: {
       class: "errors",
-      message: "Invalid local preferences were replaced with safe defaults.",
+      messageKey: "logging.storage_recovery_used",
       dedupeKey: "settings-recovery",
     },
   },
@@ -80,7 +80,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["settingKey"],
     notification: {
       class: "confirmations",
-      message: "Preferences updated.",
+      messageKey: "logging.settings_value_changed",
       dedupeKey: "settings-change",
     },
   },
@@ -90,7 +90,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["settingKey", "reason"],
     notification: {
       class: "validation",
-      message: "That preference could not be applied.",
+      messageKey: "logging.settings_value_rejected",
       dedupeKey: "settings-rejected",
     },
   },
@@ -100,7 +100,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["mode", "entryCount"],
     notification: {
       class: "confirmations",
-      message: "Tag profile imported.",
+      messageKey: "logging.settings_tag_profile_imported",
       dedupeKey: "tag-import",
     },
   },
@@ -110,7 +110,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["entryCount"],
     notification: {
       class: "confirmations",
-      message: "Tag profile export prepared.",
+      messageKey: "logging.settings_tag_profile_exported",
       dedupeKey: "tag-export",
     },
   },
@@ -120,7 +120,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: [],
     notification: {
       class: "confirmations",
-      message: "Notification preferences updated.",
+      messageKey: "logging.settings_notification_previewed",
       dedupeKey: "settings-preview",
     },
   },
@@ -130,7 +130,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["jumpCount"],
     notification: {
       class: "chain",
-      message: "Chain created.",
+      messageKey: "logging.chain_created",
       dedupeKey: "chain-create",
     },
   },
@@ -140,7 +140,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: [],
     notification: {
       class: "confirmations",
-      message: "Chain details updated.",
+      messageKey: "logging.chain_details_updated",
       dedupeKey: "chain-details",
     },
   },
@@ -150,7 +150,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["source", "parallelVersion"],
     notification: {
       class: "chain",
-      message: "Jump added to the chain.",
+      messageKey: "logging.chain_package_added",
       dedupeKey: "chain-package",
     },
   },
@@ -160,8 +160,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["reason"],
     notification: {
       class: "validation",
-      message:
-        "That package version cannot be added with the current preference.",
+      messageKey: "logging.chain_package_blocked",
       dedupeKey: "chain-package-blocked",
     },
   },
@@ -171,7 +170,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["entryId", "actorId"],
     notification: {
       class: "validation",
-      message: "Choice rejected, negative balance",
+      messageKey: "logging.chain_choice_overspend_blocked",
       dedupeKey: "chain-choice-overspend",
       appearance: "danger",
     },
@@ -182,7 +181,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["dependencyReview"],
     notification: {
       class: "chain",
-      message: "Reorder complete.",
+      messageKey: "logging.chain_reordered",
       dedupeKey: "chain-reorder",
     },
   },
@@ -192,7 +191,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["dependencyReview"],
     notification: {
       class: "chain",
-      message: "Remove Jump complete.",
+      messageKey: "logging.chain_removed",
       dedupeKey: "chain-remove",
     },
   },
@@ -202,7 +201,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: [],
     notification: {
       class: "confirmations",
-      message: "Format successful",
+      messageKey: "logging.editor_format_succeeded",
       dedupeKey: "editor-format-success",
     },
   },
@@ -212,7 +211,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: [],
     notification: {
       class: "confirmations",
-      message: "Nothing to format",
+      messageKey: "logging.editor_format_noop",
       dedupeKey: "editor-format-noop",
     },
   },
@@ -222,7 +221,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: [],
     notification: {
       class: "confirmations",
-      message: "Quick Fix successful",
+      messageKey: "logging.editor_quick_fix_succeeded",
       dedupeKey: "editor-quick-fix-success",
     },
   },
@@ -232,7 +231,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: [],
     notification: {
       class: "confirmations",
-      message: "Nothing to fix",
+      messageKey: "logging.editor_quick_fix_noop",
       dedupeKey: "editor-quick-fix-noop",
     },
   },
@@ -242,7 +241,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: [],
     notification: {
       class: "errors",
-      message: "Formatting failed. Source was not changed.",
+      messageKey: "logging.editor_format_failed",
       dedupeKey: "editor-format-failed",
     },
   },
@@ -252,7 +251,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: [],
     notification: {
       class: "errors",
-      message: "Quick Fix failed. Source was not changed.",
+      messageKey: "logging.editor_quick_fix_failed",
       dedupeKey: "editor-quick-fix-failed",
     },
   },
@@ -262,7 +261,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: [],
     notification: {
       class: "confirmations",
-      message: "Asset added",
+      messageKey: "logging.editor_asset_added",
       dedupeKey: "editor-asset-added",
     },
   },
@@ -272,8 +271,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: [],
     notification: {
       class: "validation",
-      message:
-        "That asset is unsafe, unsupported, or over the effective limit.",
+      messageKey: "logging.editor_asset_rejected",
       dedupeKey: "editor-asset-rejected",
     },
   },
@@ -283,7 +281,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: [],
     notification: {
       class: "confirmations",
-      message: "Asset removed",
+      messageKey: "logging.editor_asset_removed",
       dedupeKey: "editor-asset-removed",
     },
   },
@@ -298,7 +296,7 @@ export const eventCatalog: Record<string, EventDefinition> = {
     attributes: ["errorCode", "line", "column"],
     notification: {
       class: "errors",
-      message: "A package could not be parsed.",
+      messageKey: "logging.package_parse_failed",
       dedupeKey: "package-parse",
     },
   },
@@ -331,7 +329,7 @@ export type ToastRecord = {
   eventId: string;
   severity: LogSeverity;
   class: NotificationClass;
-  message: string;
+  messageKey: string;
   dedupeKey: string;
   occurrences: number;
   durationMs: number;
@@ -401,7 +399,7 @@ export class EventPipeline {
   private settings: () => ApplicationSettings;
   private route: () => string;
   private sequence = 0;
-  private toastTimers = new Map<string, number>();
+  private toastTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(settings: () => ApplicationSettings, route: () => string) {
     this.settings = settings;
@@ -520,7 +518,7 @@ export class EventPipeline {
             eventId: event.id,
             severity: event.severity,
             class: notification.class,
-            message: notification.message,
+            messageKey: notification.messageKey,
             dedupeKey: key,
             occurrences: 1,
             durationMs: latestPreferences.durationMs,

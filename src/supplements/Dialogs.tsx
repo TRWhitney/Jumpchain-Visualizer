@@ -4,9 +4,12 @@ import type { ModuleId, ToolId } from "./model";
 import { useBodyMod } from "./useBodyMod";
 import {
   bestialPresentation,
+  bodyModPerkLabel,
   bodyModPerks,
   bodyModRemaining,
+  bodyModStatLabel,
   bodyModStats,
+  bodyModTypeLabel,
   perkDescriptions,
   statDescriptions,
   totalPerk,
@@ -14,6 +17,7 @@ import {
   bodyTypes,
 } from "./bodyMod";
 import { ParityDialog } from "./ParityDialogs";
+import { translate } from "../localization";
 
 export function SupplementDialog({
   tool,
@@ -38,7 +42,7 @@ export function SupplementDialog({
   const [bodyDetail, setBodyDetail] = useState<string | null>(null);
   if (tool === "body") {
     const remaining = bodyModRemaining(state);
-    const bodyType = state.type === "None" ? "Current body" : state.type;
+    const bodyType = bodyModTypeLabel(state.type);
     const species =
       state.type === "Bestial" ? bestialPresentation(state) : "Human";
     const selectedPerks = bodyModPerks
@@ -49,7 +53,7 @@ export function SupplementDialog({
     );
     return (
       <Modal
-        title="Body Mod at a glance"
+        title={translate("ui.dialogs.title.bodyModAtAGlance")}
         kicker={`${jumpName} · Current-Jump projection`}
         className="bodymod-dialog-mock"
         onClose={close}
@@ -63,30 +67,32 @@ export function SupplementDialog({
                 : bodyTypes[state.type].initials}
             </div>
             <h5>{bodyType}</h5>
-            <span>{state.build} build</span>
+            <span>
+              {state.build} {translate("ui.dialogs.text.build")}
+            </span>
             <dl>
               <div>
-                <dt>Jump species</dt>
+                <dt>{translate("ui.dialogs.text.jumpSpecies")}</dt>
                 <dd>{species}</dd>
               </div>
               <div>
-                <dt>Current age</dt>
+                <dt>{translate("ui.dialogs.text.currentAge")}</dt>
                 <dd>24</dd>
               </div>
               <div>
-                <dt>Body Mod</dt>
+                <dt>{translate("ui.dialogs.text.bodyMod")}</dt>
                 <dd>{bodyType}</dd>
               </div>
             </dl>
             <button type="button" onClick={() => openPage("body-mod")}>
-              Open full Body Mod
+              {translate("ui.dialogs.text.openFullBodyMod")}
             </button>
           </aside>
           <section>
             <div className="bodymod-dialog-heading">
               <div>
-                <p>Persistent baseline</p>
-                <h5>Statistics</h5>
+                <p>{translate("ui.dialogs.text.persistentBaseline")}</p>
+                <h5>{translate("ui.dialogs.text.statistics")}</h5>
               </div>
               <span
                 id="bodymod-dialog-budget"
@@ -108,7 +114,7 @@ export function SupplementDialog({
                     tabIndex={0}
                     aria-describedby={tooltipId}
                   >
-                    <span>{name}</span>
+                    <span>{bodyModStatLabel(name)}</span>
                     <span className="bodymod-dialog-bar">
                       <i style={{ width: `${rank * 25}%` }} />
                     </span>
@@ -118,14 +124,16 @@ export function SupplementDialog({
                       className="bodymod-stat-tooltip"
                       role="tooltip"
                     >
-                      Rank {rank}: {statDescriptions[name][rank]}
+                      {translate("ui.dialogs.text.rank")}
+                      {rank}: {statDescriptions[name][rank]}
                     </span>
                   </div>
                 );
               })}
             </div>
             <h6>
-              Body Mod perks <span>Choose a badge for details</span>
+              {translate("ui.dialogs.text.bodyModPerks")}
+              <span>{translate("ui.dialogs.text.chooseABadgeForDetails")}</span>
             </h6>
             <div className="bodymod-dialog-perk-badges">
               {selectedPerks.length ? (
@@ -145,17 +153,17 @@ export function SupplementDialog({
                       )
                     }
                   >
-                    {name} {rank}
+                    {bodyModPerkLabel(name)} {rank}
                   </button>
                 ))
               ) : (
-                <span>No Body Mod perks</span>
+                <span>{translate("ui.dialogs.text.noBodyModPerks")}</span>
               )}
             </div>
             {selectedDetail && (
               <div className="bodymod-dialog-perk-detail" role="region">
                 <h6>
-                  {selectedDetail.name} {selectedDetail.rank}
+                  {bodyModPerkLabel(selectedDetail.name)} {selectedDetail.rank}
                 </h6>
                 <p>
                   {
@@ -170,9 +178,9 @@ export function SupplementDialog({
               </div>
             )}
             <p className="bodymod-dialog-note">
-              An authored Origin species is used when present. Otherwise the
-              active Bestial type or Human is shown. Body Mod remains visible
-              separately.
+              {translate(
+                "ui.dialogs.text.anAuthoredOriginSpeciesIsUsedWhenPresentOtherwise",
+              )}
             </p>
           </section>
         </div>

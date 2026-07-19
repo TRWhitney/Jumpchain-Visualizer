@@ -1,0 +1,24 @@
+{
+  "common": {
+    "settings": "Settings",
+    "preferences": "Preferences",
+    "applicationSettings": "Application Settings",
+    "searchSettings": "Search settings",
+    "resetCategory": "Reset category",
+    "resetAllSettings": "Reset all settings",
+    "closeSettings": "Close Settings",
+    "reset": "Reset",
+    "cancel": "Cancel",
+    "loadingPreferences": "Loading local preferences…"
+  },
+  "routes": {
+    "homeTitle": "Home · Jumpchain Visualizer",
+    "editorTitle": "Editor · Jumpchain Visualizer",
+    "editorWorkspaceTitle": "Editor workspace · Jumpchain Visualizer",
+    "chainTitle": "Chain Tracker · Jumpchain Visualizer",
+    "chainWorkspaceTitle": "{{name}} · Chain Tracker",
+    "chainUnavailableTitle": "Chain unavailable · Jumpchain Visualizer",
+    "settingsTitle": "Settings · Jumpchain Visualizer",
+    "notFoundTitle": "Page not found · Jumpchain Visualizer"
+  }
+}

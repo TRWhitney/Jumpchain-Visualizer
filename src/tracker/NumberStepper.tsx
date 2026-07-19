@@ -1,3 +1,4 @@
+import { translate } from "../localization";
 type Props = {
   label: string;
   value: number | null;
@@ -26,7 +27,7 @@ export function NumberStepperButtons({
     <span className="number-stepper-buttons">
       <button
         type="button"
-        aria-label="Increase"
+        aria-label={translate("ui.numberStepper.ariaLabel.increase")}
         title={`Increase ${label}`}
         disabled={increaseDisabled}
         onClick={onIncrease}
@@ -37,7 +38,7 @@ export function NumberStepperButtons({
       </button>
       <button
         type="button"
-        aria-label="Decrease"
+        aria-label={translate("ui.numberStepper.ariaLabel.decrease")}
         title={`Decrease ${label}`}
         disabled={decreaseDisabled}
         onClick={onDecrease}

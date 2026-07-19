@@ -19,6 +19,7 @@ import {
 } from "./model";
 import type { BodyModState } from "./bodyMod";
 import type { SupplementAction, SupplementState } from "./supplementState";
+import { translate } from "../localization";
 
 export type SupplementPageId = "manage" | ModuleId;
 
@@ -129,7 +130,9 @@ export function TrackerSupplementWorkspace({
       <div
         className="supplement-tabs"
         role="tablist"
-        aria-label="Supplement pages"
+        aria-label={translate(
+          "ui.trackerSupplements.ariaLabel.supplementPages",
+        )}
         onKeyDown={(event) => {
           const index = pages.findIndex((item) => item.id === page);
           let next = index;
@@ -162,11 +165,12 @@ export function TrackerSupplementWorkspace({
       <div hidden={page !== "manage"}>
         <section className="supplement-subpage" role="tabpanel">
           <header>
-            <p>Supplement library</p>
-            <h4>Manage supplements</h4>
+            <p>{translate("ui.trackerSupplements.text.supplementLibrary")}</p>
+            <h4>{translate("ui.trackerSupplements.text.manageSupplements")}</h4>
             <span>
-              Supported modules remain listed; enabled modules receive pages and
-              current-Jump tools.
+              {translate(
+                "ui.trackerSupplements.text.supportedModulesRemainListedEnabledModulesReceivePagesAnd",
+              )}
             </span>
           </header>
           <div className="supplement-manage-list">
@@ -190,14 +194,14 @@ export function TrackerSupplementWorkspace({
                       if (!next[page as ModuleId]) onPageChange("manage");
                     }}
                   />
-                  <span>Enabled</span>
+                  <span>{translate("ui.trackerSupplements.text.enabled")}</span>
                 </label>
                 <button
                   type="button"
                   disabled={!enabled[module.id]}
                   onClick={() => onPageChange(module.id)}
                 >
-                  Open page
+                  {translate("ui.trackerSupplements.text.openPage")}
                 </button>
               </article>
             ))}
@@ -280,19 +284,27 @@ export function TrackerSupplementContext({
     >
       <header>
         <div>
-          <p>Current-Jump supplements</p>
+          <p>
+            {translate("ui.trackerSupplements.text.currentJumpSupplements")}
+          </p>
           <h4>{jumpName}</h4>
         </div>
         <button
           type="button"
-          aria-label="Close current-Jump supplements"
+          aria-label={translate(
+            "ui.trackerSupplements.ariaLabel.closeCurrentJumpSupplements",
+          )}
           onClick={onClose}
         >
           ×
         </button>
       </header>
       <div className="chain-supp-context-layout">
-        <nav aria-label="Enabled supplement tools">
+        <nav
+          aria-label={translate(
+            "ui.trackerSupplements.ariaLabel.enabledSupplementTools",
+          )}
+        >
           {available.map((tool, index) => (
             <button
               key={tool.id}
@@ -324,7 +336,8 @@ export function TrackerSupplementContext({
         </nav>
         <div className="chain-supp-context-content">
           <div className="tracker-supp-jump-label">
-            Selected Jump · {jumpName}
+            {translate("ui.trackerSupplements.text.selectedJump")}
+            {jumpName}
           </div>
           <SupplementDialog
             tool={active}

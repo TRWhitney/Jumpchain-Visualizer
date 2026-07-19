@@ -1,0 +1,394 @@
+{
+  "language": {
+    "description": "Choose the language used by the application. The platform uses it as the spell-check dictionary signal when a matching dictionary is installed."
+  },
+  "settings": {
+    "categories": {
+      "general": "General",
+      "editor": "Editor",
+      "chain": "Chain Tracker",
+      "notifications": "Notifications",
+      "tags": "Tags",
+      "keys": "Key bindings",
+      "accessibility": "Accessibility",
+      "developer": "Developer"
+    },
+    "searchResults": "Search results",
+    "result_one": "{{count}} result",
+    "result_other": "{{count}} results",
+    "noResults": "No settings match this search."
+  },
+  "settingsSearch": {
+    "language_tag": {
+      "label": "Language",
+      "aliases": "language locale translation spellcheck dictionary"
+    },
+    "appearance_theme": {
+      "label": "Appearance",
+      "aliases": "appearance theme system light dark color mode"
+    },
+    "appearance_accentColor": {
+      "label": "Accent color",
+      "aliases": "accent color colour hex gold theme appearance"
+    },
+    "editor_saveMode": {
+      "label": "Saving",
+      "aliases": "saving save autosave explicit persistence editor"
+    },
+    "editor_warnMissingImageAlt": {
+      "label": "Missing image alt warning",
+      "aliases": "editor image alt alternative text accessibility warning"
+    },
+    "editor_warnMissingLayoutTargets": {
+      "label": "Missing layout target warning",
+      "aliases": "editor layout target reusable warning"
+    },
+    "chain_allowMultiplePackageVersions": {
+      "label": "Add another package version",
+      "aliases": "chain add second package version multiple parallel"
+    },
+    "chain_allowDuplicateJumps": {
+      "label": "Allow duplicate jumps",
+      "aliases": "chain add same exact jump package duplicate repeat again"
+    },
+    "chain_allowNegativePointBalances": {
+      "label": "Negative point balances",
+      "aliases": "chain negative point balance overspend currency"
+    },
+    "chain_allowRerolls": {
+      "label": "Allow rerolls",
+      "aliases": "chain reroll random replace result"
+    },
+    "chain_includeItemTagsInRadar": {
+      "label": "Include item tags in radar",
+      "aliases": "chain radar stats count item tags jumper forms inventory"
+    },
+    "chain_aggregateSimilarInventory": {
+      "label": "Aggregate similar perks and items",
+      "aliases": "chain inventory aggregate similar same name rank perk item copies sources descriptions"
+    },
+    "chain_warnUpstreamChanges": {
+      "label": "Upstream change warnings",
+      "aliases": "chain upstream change warning reorder remove dependency"
+    },
+    "chain_colorNamesByPrimaryTag": {
+      "label": "Color chain names by primary tag",
+      "aliases": "chain color names primary highest perk tag"
+    },
+    "notifications_": {
+      "label": "Toast notifications",
+      "aliases": "notifications toast enabled maximum duration confirmations editor chain validation errors"
+    },
+    "tags_profile": {
+      "label": "Tag profile",
+      "aliases": "tags profile category parent aliases badges colors gradients presentation import export"
+    },
+    "keybindings_overrides": {
+      "label": "Key bindings",
+      "aliases": "keyboard key bindings shortcuts quick add quick fix find format all completions overrides"
+    },
+    "accessibility_motion": {
+      "label": "Motion",
+      "aliases": "motion animation reduced full system accessibility"
+    },
+    "Developer_Logs": {
+      "label": "Session logs",
+      "aliases": "developer logs logging viewer stack trace crash report debug session export clear"
+    },
+    "developer_showAdditionalJumpInformation": {
+      "label": "Show additional Jump information",
+      "aliases": "developer jump format additional information diagnostics format 1"
+    },
+    "developer_showOpenProjectFolder": {
+      "label": "Show Open Project Folder",
+      "aliases": "developer editor open project folder desktop filesystem external files"
+    },
+    "developer_packageSizeLimits": {
+      "label": "Package size limits",
+      "aliases": "developer package archive definition asset expanded size limits mib import export at your own risk"
+    }
+  },
+  "logging": {
+    "app_crashed": "The application encountered an unexpected error.",
+    "storage_write_failed": "A local preference could not be saved.",
+    "storage_recovery_used": "Invalid local preferences were replaced with safe defaults.",
+    "settings_value_changed": "Preferences updated.",
+    "settings_value_rejected": "That preference could not be applied.",
+    "settings_tag_profile_imported": "Tag profile imported.",
+    "settings_tag_profile_exported": "Tag profile export prepared.",
+    "settings_notification_previewed": "Notification preferences updated.",
+    "chain_created": "Chain created.",
+    "chain_details_updated": "Chain details updated.",
+    "chain_package_added": "Jump added to the chain.",
+    "chain_package_blocked": "That package version cannot be added with the current preference.",
+    "chain_choice_overspend_blocked": "Choice rejected, negative balance",
+    "chain_reordered": "Reorder complete.",
+    "chain_removed": "Remove Jump complete.",
+    "editor_format_succeeded": "Format successful",
+    "editor_format_noop": "Nothing to format",
+    "editor_quick_fix_succeeded": "Quick Fix successful",
+    "editor_quick_fix_noop": "Nothing to fix",
+    "editor_format_failed": "Formatting failed. Source was not changed.",
+    "editor_quick_fix_failed": "Quick Fix failed. Source was not changed.",
+    "editor_asset_added": "Asset added",
+    "editor_asset_rejected": "That asset is unsafe, unsupported, or over the effective limit.",
+    "editor_asset_removed": "Asset removed",
+    "package_parse_failed": "A package could not be parsed."
+  },
+  "errors": {
+    "SETTINGS_DATABASE_LOCK_FAILED": "Settings database lock failed",
+    "SETTINGS_READ_FAILED": "Settings read failed",
+    "STORED_SETTINGS_ARE_INVALID_JSON": "Stored settings are invalid JSON",
+    "SETTINGS_WRITE_FAILED": "Settings write failed",
+    "CHAIN_DATABASE_LOCK_FAILED": "Chain database lock failed",
+    "CHAIN_READ_FAILED": "Chain read failed",
+    "STORED_CHAINS_ARE_INVALID_JSON": "Stored chains are invalid JSON",
+    "CHAIN_ID_IS_MISSING": "Chain id is missing",
+    "CHAIN_SERIALIZATION_FAILED": "Chain serialization failed",
+    "CHAIN_WRITE_FAILED": "Chain write failed",
+    "EDITOR_REGISTRY_READ_FAILED": "Editor registry read failed",
+    "STORED_EDITOR_REGISTRY_IS_INVALID_JSON": "Stored Editor registry is invalid JSON",
+    "EDITOR_RECOVERY_PAYLOAD_EXCEEDS_THE_APPLICATION_LIMIT": "Editor recovery payload exceeds the application limit",
+    "EDITOR_PAYLOAD_IS_INVALID_JSON": "Editor payload is invalid JSON",
+    "EDITOR_SCHEMA_VERSION_IS_UNSUPPORTED": "Editor schema version is unsupported",
+    "EDITOR_WORKSPACE_ID_IS_INVALID": "Editor workspace id is invalid",
+    "EDITOR_SOURCE_FILES_ARE_MISSING": "Editor source files are missing",
+    "EDITOR_REGISTRY_LOCK_FAILED": "Editor registry lock failed",
+    "PROJECT_FILE_NAME_IS_INVALID": "Project file name is invalid",
+    "TEMPORARY_PROJECT_WRITE_FAILED": "Temporary project write failed",
+    "ATOMIC_PROJECT_REPLACEMENT_FAILED": "Atomic project replacement failed",
+    "DESKTOP_PROJECT_FOLDER_IS_MISSING": "Desktop project folder is missing",
+    "DESKTOP_PROJECT_FOLDER_IS_UNAVAILABLE": "Desktop project folder is unavailable",
+    "DESKTOP_PROJECT_CONTAINS_AN_INVALID_SOURCE_PATH": "Desktop project contains an invalid source path",
+    "EDITOR_ASSETS_ARE_MISSING": "Editor assets are missing",
+    "DESKTOP_ASSET_FOLDER_COULD_NOT_BE_CREATED": "Desktop asset folder could not be created",
+    "DESKTOP_PROJECT_CONTAINS_AN_INVALID_ASSET_PATH": "Desktop project contains an invalid asset path",
+    "DESKTOP_ASSET_NAME_IS_INVALID": "Desktop asset name is invalid",
+    "DESKTOP_ASSET_BYTES_ARE_INVALID": "Desktop asset bytes are invalid",
+    "EDITOR_WORKSPACE_ID_IS_MISSING": "Editor workspace id is missing",
+    "APPLICATION_RECOVERY_PATH_IS_UNAVAILABLE": "Application recovery path is unavailable",
+    "EDITOR_RECOVERY_DIRECTORY_COULD_NOT_BE_CREATED": "Editor recovery directory could not be created",
+    "EDITOR_REGISTRY_ENCODING_FAILED": "Editor registry encoding failed",
+    "EDITOR_REGISTRY_WRITE_FAILED": "Editor registry write failed",
+    "EDITOR_RECOVERY_DATA_COULD_NOT_BE_STAGED_FOR_REMOVAL": "Editor recovery data could not be staged for removal",
+    "EDITOR_RECOVERY_DATA_COULD_NOT_BE_REMOVED": "Editor recovery data could not be removed",
+    "PROJECT_ENTRY_ESCAPES_ITS_ROOT": "Project entry escapes its root",
+    "PROJECT_ENTRY_PATH_IS_INVALID": "Project entry path is invalid",
+    "PROJECT_FOLDER_CANNOT_BE_READ": "Project folder cannot be read",
+    "PROJECT_FOLDER_CONTAINS_AN_UNREADABLE_ENTRY": "Project folder contains an unreadable entry",
+    "PROJECT_ENTRY_TYPE_CANNOT_BE_READ": "Project entry type cannot be read",
+    "PROJECT_FOLDERS_CANNOT_CONTAIN_SYMBOLIC_LINKS": "Project folders cannot contain symbolic links",
+    "PROJECT_ASSETS_CANNOT_BE_READ": "Project assets cannot be read",
+    "PROJECT_ASSET_CANNOT_BE_READ": "Project asset cannot be read",
+    "PROJECT_ASSET_TYPE_CANNOT_BE_READ": "Project asset type cannot be read",
+    "PROJECT_ASSETS_CANNOT_CONTAIN_LINKS_OR_DIRECTORIES": "Project assets cannot contain links or directories",
+    "PROJECT_FOLDER_CONTAINS_AN_UNEXPECTED_ENTRY": "Project folder contains an unexpected entry",
+    "PROJECT_FOLDER_ENTRY_COUNT_IS_INVALID": "Project folder entry count is invalid",
+    "PROJECT_FOLDER_CONTAINS_COLLIDING_PATHS": "Project folder contains colliding paths",
+    "PROJECT_ENTRY_CANNOT_BE_READ": "Project entry cannot be read",
+    "PROJECT_FOLDER_EXCEEDS_THE_EXPANDED_PACKAGE_LIMIT": "Project folder exceeds the expanded package limit",
+    "PROJECT_DEFINITION_EXCEEDS_ITS_EFFECTIVE_LIMIT": "Project definition exceeds its effective limit",
+    "PROJECT_DEFINITION_IS_NOT_VALID_UTF_8": "Project definition is not valid UTF-8",
+    "PROJECT_ASSET_EXCEEDS_ITS_EFFECTIVE_LIMIT": "Project asset exceeds its effective limit",
+    "PROJECT_IMAGES_EXCEED_THE_MANDATORY_PIXEL_LIMIT": "Project images exceed the mandatory pixel limit",
+    "PROJECT_FOLDER_CONTAINS_AN_UNSUPPORTED_FILE": "Project folder contains an unsupported file",
+    "PROJECT_FOLDER_IS_MISSING_JUMP_JDEF": "Project folder is missing jump.jdef",
+    "THE_SELECTED_PROJECT_IS_NOT_A_LOCAL_FOLDER": "The selected project is not a local folder",
+    "THE_SELECTED_PROJECT_FOLDER_IS_UNAVAILABLE": "The selected project folder is unavailable",
+    "SYSTEM_TIME_IS_UNAVAILABLE": "System time is unavailable",
+    "CHAIN_PAYLOAD_EXCEEDS_THE_APPLICATION_LIMIT": "Chain payload exceeds the application limit",
+    "CHAIN_PAYLOAD_IS_INVALID_JSON": "Chain payload is invalid JSON",
+    "CHAIN_SCHEMA_VERSION_IS_UNSUPPORTED": "Chain schema version is unsupported",
+    "CHAIN_ID_IS_INVALID": "Chain id is invalid",
+    "SETTINGS_PAYLOAD_EXCEEDS_THE_APPLICATION_LIMIT": "Settings payload exceeds the application limit",
+    "SETTINGS_PAYLOAD_IS_INVALID_JSON": "Settings payload is invalid JSON",
+    "SETTINGS_SCHEMA_VERSION_IS_UNSUPPORTED": "Settings schema version is unsupported",
+    "DIAGNOSTIC_REPORT_EXCEEDS_THE_APPLICATION_LIMIT": "Diagnostic report exceeds the application limit",
+    "THE_SELECTED_REPORT_DESTINATION_IS_NOT_A_LOCAL_PATH": "The selected report destination is not a local path",
+    "DIAGNOSTIC_REPORT_WRITE_FAILED": "Diagnostic report write failed",
+    "THE_SELECTED_PACKAGE_DESTINATION_IS_NOT_A_LOCAL_PATH": "The selected package destination is not a local path",
+    "FAILED_TO_RUN_JUMPCHAIN_VISUALIZER": "Failed to run Jumpchain Visualizer",
+    "UNSAFE": "Unsafe",
+    "UNKNOWN_COMMAND_ERROR": "The desktop operation could not be completed.",
+    "EDITOR_PROJECTS_LOAD_FAILED": "Saved Editor projects could not be loaded.",
+    "SAVED_CHAINS_LOAD_FAILED": "Saved chains could not be loaded.",
+    "AUTOSAVE_FAILED_MEMORY_RETAINED": "Autosave failed. Your in-memory changes are still available.",
+    "PROJECT_FOLDER_OPEN_FAILED": "The project folder could not be opened safely or permission was lost.",
+    "EXPORT_FAILED": "Export could not be completed safely.",
+    "EDITOR_AUTOSAVE_FAILED_MEMORY_RETAINED": "Editor autosave failed. Your in-memory source is still available.",
+    "DESKTOP_EDITOR_FOLDER_PERMISSION_LOST": "The desktop project folder is unavailable or its permission was lost. Your Editor buffers and recovery copy are retained."
+  },
+  "ui": {
+    "crashBoundary": {
+      "text": {
+        "applicationRecovery": "Application recovery",
+        "jumpchainVisualizerEncounteredAnError": "Jumpchain Visualizer encountered an error",
+        "theCurrentDiagnosticSessionIsStillMemoryOnlyReview": "The current diagnostic session is still memory-only. Review the report before copying or saving it; imported content, credentials, and user paths are excluded.",
+        "application": "Application",
+        "applicationVersion": "Jumpchain Visualizer 0.1.0",
+        "route": "Route",
+        "runtime": "Runtime",
+        "error": "Error",
+        "copyReport": "Copy report",
+        "saveReport": "Save report…",
+        "returnHome": "Return Home",
+        "reload": "Reload"
+      }
+    },
+    "loggingViewer": {
+      "text": {
+        "sessionDiagnostics": "Session diagnostics",
+        "recentEvents": "Recent events",
+        "export": "Export…",
+        "clearSession": "Clear session",
+        "searchLoggedEvents": "Search logged events",
+        "redactionPreview": "Redaction preview",
+        "exportSessionEvents": "Export session events",
+        "eventsToInclude": "Events to include",
+        "currentFilteredEvents": " Current filtered events",
+        "completeSession": " Complete session",
+        "importedContentFilesystemNamesCredentialsAndURLSecretsAre": "Imported content, filesystem names, credentials, and URL secrets are excluded. Attributes come only from the registered event catalog.",
+        "saveJSONLines": "Save JSON Lines",
+        "cancel": "Cancel",
+        "selectedEvent": "Selected event",
+        "severity": "Severity",
+        "category": "Category",
+        "correlation": "Correlation",
+        "safeAttributes": "Safe attributes",
+        "stackTrace": "Stack trace",
+        "copyReport": "Copy report",
+        "saveReport": "Save report…"
+      },
+      "placeholder": {
+        "findEventOrCategory": "Find event or category"
+      },
+      "ariaLabel": {
+        "minimumSeverity": "Minimum severity",
+        "filteredSessionDiagnosticEvents": "Filtered session diagnostic events",
+        "selectedLogEventDetails": "Selected log event details"
+      }
+    },
+    "settingsSurface": {
+      "ariaLabel": {
+        "settingCategory": "Setting category",
+        "developerSettingsPages": "Developer settings pages"
+      },
+      "text": {
+        "destructiveReset": "Destructive reset",
+        "reset": "Reset",
+        "cancel": "Cancel",
+        "developerOverride": "Developer override",
+        "increasePackageLimitsAtYourOwnRisk": "Increase package limits at your own risk",
+        "largerPackagesCanConsumeSubstantialMemoryDiskSpaceAnd": "Larger packages can consume substantial memory, disk space, and processing time. These limits affect Editor import and export, desktop project loading, and Chain Tracker package installation.",
+        "pathFileTypeCompressionRatioImageSchemaAndAtomicity": "Path, file-type, compression-ratio, image, schema, and atomicity protections remain mandatory and cannot be disabled.",
+        "iUnderstandEnable": "I understand, enable",
+        "general": "General",
+        "useSystemSetting": "Use system setting",
+        "light": "Light",
+        "dark": "Dark",
+        "homeIsAlwaysTheRootDestinationStartupRedirectionIs": "Home is always the root destination. Startup redirection is an agreed application behavior, not a configurable preference.",
+        "editor": "Editor",
+        "autosave": "Autosave",
+        "explicitSave": "Explicit save",
+        "showAccessibilityWarning": "Show accessibility warning",
+        "showMissingTargetWarning": "Show missing-target warning",
+        "thesePreferencesArePersistedNowEditorBehaviorRemainsInert": "These preferences are persisted now; Editor behavior remains inert until the Editor workspace is implemented.",
+        "chainTracker": "Chain Tracker",
+        "allowSecondVersion": "Allow second version",
+        "allowDuplicateJumps": "Allow duplicate jumps",
+        "allowNegativeBalances": "Allow negative balances",
+        "allowRerolls": "Allow rerolls",
+        "aggregateSimilarRecords": "Aggregate similar records",
+        "countItemTags": "Count item tags",
+        "warnAboutUpstreamChanges": "Warn about upstream changes",
+        "colorChainNames": "Color chain names",
+        "similarInventoryAggregationIsOnByDefaultTheOther": "Similar inventory aggregation is on by default; the other seven settings are off. Exact versions never duplicate, and upstream review remains material-only and undoable.",
+        "keyBindings": "Key bindings",
+        "overridesAreUserLocalDuplicateOrPlatformReservedBindings": "Overrides are user-local. Duplicate or platform-reserved bindings are reported before a change is accepted. Editor commands update immediately, including while a workspace remains mounted behind Settings.",
+        "accessibility": "Accessibility",
+        "reduceMotion": "Reduce motion",
+        "fullMotion": "Full motion",
+        "reducedMotionRemovesNonessentialMovementWithoutHidingStateChanges": "Reduced motion removes nonessential movement without hiding state changes or progress feedback.",
+        "overview": "Overview",
+        "logs": "Logs",
+        "developer": "Developer",
+        "enableExtraInformation": "Enable extra information",
+        "showFolderAction": "Show folder action",
+        "packageSizeLimits": "Package size limits",
+        "byteBudgetsSharedByEditorImportExportDesktopProjects": "Byte budgets shared by Editor import/export, desktop projects, and Chain Tracker installation.",
+        "archive": "Archive",
+        "mib": " MiB",
+        "definition": "Definition",
+        "asset": "Asset",
+        "expanded": "Expanded",
+        "useCustomPackageLimits": "Use custom package limits",
+        "absoluteCeiling": "Absolute ceiling: ",
+        "atYourOwnRisk": "At your own risk.",
+        "increasedByteBudgetsMayUseSubstantiallyMoreMemoryDisk": " Increased byte budgets may use substantially more memory, disk space, and processing time. Other malicious-file protections stay active.",
+        "resetPackageLimits": "Reset package limits",
+        "debugEvents": "Debug events",
+        "includeDetailedDebugEventsUntilTheApplicationExits": "Include detailed debug events until the application exits.",
+        "sessionOnly": "Session only",
+        "captureDebugEvents": "Capture debug events",
+        "logsAreNeverPersistedBetweenLaunchesThisSessionControl": "Logs are never persisted between launches. This session control is not stored as a preference.",
+        "notifications": "Notifications",
+        "enableToastNotifications": "Enable toast notifications",
+        "3Seconds": "3 seconds",
+        "5Seconds": "5 seconds",
+        "8Seconds": "8 seconds",
+        "15Seconds": "15 seconds",
+        "triggerClasses": "Trigger classes",
+        "previewToast": "Preview toast",
+        "inputDrivenCandidatesWait500MsRepeatedMatchingEvents": "Input-driven candidates wait 500 ms. Repeated matching events update one toast and its occurrence count."
+      },
+      "label": {
+        "appearance": "Appearance",
+        "accentColor": "Accent color",
+        "saving": "Saving",
+        "missingImageAltWarning": "Missing image alt warning",
+        "missingLayoutTargetWarning": "Missing layout target warning",
+        "addAnotherPackageVersion": "Add another package version",
+        "allowDuplicateJumps": "Allow duplicate jumps",
+        "negativePointBalances": "Negative point balances",
+        "rerolls": "Rerolls",
+        "aggregateSimilarPerksAndItems": "Aggregate similar perks and items",
+        "includeItemTagsInRadar": "Include item tags in radar",
+        "upstreamChangeWarnings": "Upstream change warnings",
+        "colorChainNamesByPrimaryTag": "Color chain names by primary tag",
+        "motion": "Motion",
+        "showAdditionalJumpInformation": "Show additional Jump information",
+        "showOpenProjectFolder": "Show Open Project Folder",
+        "toastNotifications": "Toast notifications",
+        "maximumVisible": "Maximum visible",
+        "toastDuration": "Toast duration"
+      },
+      "description": {
+        "chooseTheApplicationColorTheme": "Choose the application color theme.",
+        "chooseTheBaseColorUsedToDeriveAccessibleApplication": "Choose the base color used to derive accessible application accents.",
+        "chooseWhetherEditorChangesSaveAutomatically": "Choose whether Editor changes save automatically.",
+        "warnWhenAnImageBlockOmitsAlternativeText": "Warn when an image block omits alternative text.",
+        "warnWhenAReusableLayoutTargetIsAbsent": "Warn when a reusable layout target is absent.",
+        "allowAddToPlaceASecondInstalledVersionOf": "Allow Add to place a second installed version of a logical Jump package into the current chain.",
+        "allowTheSameExactJumpPackageToBeAdded": "Allow the same exact Jump package to be added to this chain more than once as independent entries.",
+        "permitActiveChoiceSelectionsThatWouldMakePrimaryJump": "Permit active choice selections that would make primary Jump points negative. Clearing choices and recalculation are never blocked.",
+        "allowARecordedRandomResultToBeReplacedFor": "Allow a recorded random result to be replaced for the same chain entry.",
+        "combineRecordsWithTheSameOwnerKindResolvedName": "Combine records with the same owner, kind, resolved name, and rank while retaining every source, description, and tag.",
+        "countTagsFromJumperAndFormItemsInRadar": "Count tags from Jumper and form items in radar statistics. Companion perks and items never contribute.",
+        "reviewReorderOrDeletionOnlyWhenAnExplicitActive": "Review reorder or deletion only when an explicit active downstream dependency would become invalid.",
+        "colorSavedChainNamesFromTheCategoryWithThe": "Color saved-chain names from the category with the greatest eligible radar count.",
+        "controlNonessentialInterfaceAnimation": "Control nonessential interface animation.",
+        "showTheEvaluatedPackageFormatAboveOrdinaryRenderedJumps": "Show the evaluated package format above ordinary rendered Jumps.",
+        "showTheDesktopOnlyExternalFolderWorkflowOnThe": "Show the desktop-only external-folder workflow on the Editor hub.",
+        "showUserFacingProjectionsOfSelectedSessionLogEvents": "Show user-facing projections of selected session log events.",
+        "additionalNotificationsWaitInTheQueue": "Additional notifications wait in the queue.",
+        "interactionPausesAutomaticDismissal": "Interaction pauses automatic dismissal."
+      }
+    },
+    "toastHost": {
+      "ariaLabel": {
+        "applicationNotifications": "Application notifications",
+        "dismissNotification": "Dismiss notification"
+      }
+    }
+  }
+}

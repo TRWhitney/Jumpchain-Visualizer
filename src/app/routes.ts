@@ -65,21 +65,21 @@ export function routeFromPath(pathname: string): ApplicationRoute {
 export function titleForRoute(route: ApplicationRoute, chainName?: string) {
   switch (route.kind) {
     case "home":
-      return "Home · Jumpchain Visualizer";
+      return translate("routes.homeTitle");
     case "editor-hub":
-      return "Editor · Jumpchain Visualizer";
+      return translate("routes.editorTitle");
     case "editor-workspace":
-      return "Editor workspace · Jumpchain Visualizer";
+      return translate("routes.editorWorkspaceTitle");
     case "chain-hub":
-      return "Chain Tracker · Jumpchain Visualizer";
+      return translate("routes.chainTitle");
     case "chain-workspace":
       return chainName
-        ? `${chainName} · Chain Tracker`
-        : "Chain unavailable · Jumpchain Visualizer";
+        ? translate("routes.chainWorkspaceTitle", { name: chainName })
+        : translate("routes.chainUnavailableTitle");
     case "settings":
-      return "Settings · Jumpchain Visualizer";
+      return translate("routes.settingsTitle");
     case "not-found":
-      return "Page not found · Jumpchain Visualizer";
+      return translate("routes.notFoundTitle");
   }
 }
 
@@ -90,3 +90,4 @@ export function workspaceForRoute(route: ApplicationRoute) {
     return "chain";
   return "home";
 }
+import { translate } from "../localization";

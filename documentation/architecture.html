@@ -124,6 +124,7 @@ Desktop adapters                 Browser adapters
   editor/        project navigation, structured/source editing, diagnostics
   tracker/       chain workspace, history views, inventory, companions
   supplements/   application-owned module contracts and datasets
+  localization/  validated bundled language packs, i18next catalogue, locale helpers
   platform/      TypeScript ports and browser adapters
   ui/            accessible unstyled primitives and application styling
 
@@ -137,6 +138,7 @@ src-tauri/
   application/   window lifecycle and adapter composition
 </code></pre>
       <p>Dependencies point inward: UI and adapters depend on application/domain contracts; domain code never imports React, Tauri, SQLite, browser globals, or filesystem APIs.</p>
+      <p>Localization initializes English before React mounts, then applies the validated persisted language before the application surface is shown. Bundled JSON packs are untrusted text resources subject to the schema, bounds, known-key, and token-parity policy in <a href="localization.html">Localization Resources</a>.</p>
 
       <h2>Domain State and Commands</h2>
       <ul>

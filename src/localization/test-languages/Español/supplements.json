@@ -1,0 +1,18 @@
+{
+  "supplements": {
+    "modules": {
+      "quest-mode": {
+        "shortName": "Modo de misiones",
+        "name": "Modo de misiones",
+        "description": "Las misiones por salto reemplazan los CP iniciales ordinarios."
+      }
+    },
+    "catalogs": {
+      "drawbacks": {
+        "without-why": {
+          "name": "Sin saber por qué"
+        }
+      }
+    }
+  }
+}

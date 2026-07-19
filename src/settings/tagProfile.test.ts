@@ -12,6 +12,9 @@ import {
   refreshInstalledTags,
   removeAlias,
   setTagParent,
+  tagAliasesForMatching,
+  tagAliasesForPresentation,
+  tagLabelForPresentation,
   tagDisplayName,
   tagTextContrast,
   toggleAlias,
@@ -89,6 +92,29 @@ describe("tag profiles", () => {
     expect(setTagParent(profile, "technology", "miscellaneous").error).toBe(
       "That parent would create an invalid relationship.",
     );
+  });
+
+  it("layers editable aliases over localized built-in presentation", () => {
+    let profile = createDefaultTagProfile();
+    const custom = addTag(profile, "Personal Auto", "manual");
+    profile = custom.profile;
+    profile = toggleAlias(profile, "vehicles", custom.selectedId!).profile;
+    const vehicle = profile.tags.vehicles;
+
+    expect(tagLabelForPresentation(vehicle, "en")).toBe("Vehicle");
+    expect(tagAliasesForPresentation(vehicle, "en")).toEqual([
+      "Vehicles",
+      "Personal Auto",
+    ]);
+    expect(tagAliasesForMatching(vehicle, "en")).toEqual([
+      "Vehicles",
+      "Personal Auto",
+    ]);
+
+    profile = removeAlias(profile, "vehicles", "Vehicles");
+    expect(tagAliasesForPresentation(profile.tags.vehicles, "en")).toEqual([
+      "Personal Auto",
+    ]);
   });
 
   it("discovers only missing installed-Jump strings when explicitly refreshed", () => {

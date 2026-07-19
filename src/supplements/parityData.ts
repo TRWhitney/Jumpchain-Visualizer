@@ -1,3 +1,8 @@
+import { translate } from "../localization";
+
+const optionSlug = (value: string) =>
+  value.toLocaleLowerCase("en").replaceAll(/[^a-z0-9]+/g, "-");
+
 export const warehouseGroups: Record<
   string,
   readonly [string, number, string, string?][]
@@ -111,3 +116,38 @@ export const questRows = [
     "Make the setting’s overall tone vastly better or worse.",
   ],
 ] as const;
+
+export const warehouseLabel = (name: string) =>
+  translate(`supplements.warehouse.${optionSlug(name)}.label`);
+
+for (const entries of Object.values(warehouseGroups))
+  for (const entry of entries) {
+    const name = entry[0];
+    Object.defineProperty(entry, 2, {
+      configurable: true,
+      enumerable: true,
+      get: () =>
+        translate(`supplements.warehouse.${optionSlug(name)}.description`),
+    });
+    Object.defineProperty(warehouseDescriptions, name, {
+      configurable: true,
+      enumerable: true,
+      get: () =>
+        translate(`supplements.warehouse.${optionSlug(name)}.description`),
+    });
+  }
+for (const quest of questRows) {
+  const id = quest[0];
+  Object.defineProperties(quest, {
+    1: {
+      configurable: true,
+      enumerable: true,
+      get: () => translate(`supplements.quests.${id}.label`),
+    },
+    3: {
+      configurable: true,
+      enumerable: true,
+      get: () => translate(`supplements.quests.${id}.description`),
+    },
+  });
+}

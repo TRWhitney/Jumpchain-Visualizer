@@ -12,6 +12,7 @@ import {
   summarizeWorkspace,
   type EditorWorkspaceSnapshot,
 } from "./model";
+import { translate } from "../localization";
 
 const service = new JumpPackageImportService();
 
@@ -129,14 +130,11 @@ export function EditorHub({
       const blocked =
         error instanceof PackageSecurityError
           ? error
-          : new PackageSecurityError(
-              "archive.inspect_failed",
-              "The package could not be inspected safely.",
-            );
+          : new PackageSecurityError("archive.inspect_failed", {});
       setInspectState({
         kind: "blocked",
         code: blocked.code,
-        message: blocked.message,
+        message: translate(`packageErrors.${blocked.code}`, blocked.parameters),
       });
     } finally {
       if (fileInput.current) fileInput.current.value = "";
@@ -147,23 +145,26 @@ export function EditorHub({
     <div className="app-chain-hub-content editor-hub-content">
       <header className="app-chain-hub-heading">
         <div>
-          <p className="app-mock-kicker">Editor</p>
+          <p className="app-mock-kicker">
+            {translate("ui.editorHub.text.editor")}
+          </p>
           <h1
             id="app-editor-heading"
             className="app-route-heading"
             data-route-heading
             tabIndex={-1}
           >
-            Your Jump projects
+            {translate("ui.editorHub.text.yourJumpProjects")}
           </h1>
           <p>
-            Create a package, resume recent authoring, or securely inspect a
-            portable .jmp.
+            {translate(
+              "ui.editorHub.text.createAPackageResumeRecentAuthoringOrSecurelyInspect",
+            )}
           </p>
         </div>
         <span>
           <strong>{workspaces.length}</strong>
-          <small>saved projects</small>
+          <small>{translate("ui.editorHub.text.savedProjects")}</small>
         </span>
       </header>
 
@@ -175,14 +176,17 @@ export function EditorHub({
           +
         </span>
         <div>
-          <h2 id="create-jump-heading">Create a new Jump</h2>
+          <h2 id="create-jump-heading">
+            {translate("ui.editorHub.text.createANewJump")}
+          </h2>
           <p>
-            Starts a valid Format 1 project authored by Anonymous, version 0.1,
-            with an Introduction section.
+            {translate(
+              "ui.editorHub.text.startsAValidFormat1ProjectAuthoredByAnonymous",
+            )}
           </p>
         </div>
         <button type="button" onClick={onCreate}>
-          Create Project
+          {translate("ui.editorHub.text.createProject")}
         </button>
         {settings.developer.showOpenProjectFolder && (
           <button
@@ -195,11 +199,11 @@ export function EditorHub({
                 : "Project folders are available in the desktop application"
             }
           >
-            Open Project Folder
+            {translate("ui.editorHub.text.openProjectFolder")}
           </button>
         )}
         <button type="button" onClick={() => fileInput.current?.click()}>
-          Import .jmp
+          {translate("ui.editorHub.text.importJmp")}
         </button>
         <input
           ref={fileInput}
@@ -219,16 +223,25 @@ export function EditorHub({
       >
         <div className="app-saved-chains-heading">
           <div>
-            <h2 id="saved-editor-heading">All saved projects</h2>
-            <p>Starred projects first, then by when you last opened them.</p>
+            <h2 id="saved-editor-heading">
+              {translate("ui.editorHub.text.allSavedProjects")}
+            </h2>
+            <p>
+              {translate(
+                "ui.editorHub.text.starredProjectsFirstThenByWhenYouLastOpened",
+              )}
+            </p>
           </div>
           <label className="app-chain-search">
-            <span>Search saved projects</span>
+            <span>{translate("ui.editorHub.text.searchSavedProjects")}</span>
             <input
               type="search"
+              spellCheck={false}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Name, author, version, tag, diagnostic"
+              placeholder={translate(
+                "ui.editorHub.placeholder.nameAuthorVersionTagDiagnostic",
+              )}
             />
           </label>
           <span>
@@ -243,13 +256,19 @@ export function EditorHub({
         >
           {loading && (
             <div className="app-chain-empty" role="status">
-              <strong>Loading saved projects…</strong>
+              <strong>
+                {translate("ui.editorHub.text.loadingSavedProjects")}
+              </strong>
             </div>
           )}
           {error && (
             <div className="app-chain-empty is-error" role="alert">
               <strong>{error}</strong>
-              <span>Your in-memory work remains available.</span>
+              <span>
+                {translate(
+                  "ui.editorHub.text.yourInMemoryWorkRemainsAvailable",
+                )}
+              </span>
             </div>
           )}
           {!loading &&
@@ -273,7 +292,7 @@ export function EditorHub({
                     title={`Delete ${summary.name}`}
                     onClick={() => onDelete(workspace)}
                   >
-                    Delete
+                    {translate("ui.editorHub.text.delete")}
                   </button>
                   <div className="editor-project-card-main">
                     <p className="editor-project-card-format">
@@ -295,19 +314,19 @@ export function EditorHub({
                   </div>
                   <dl>
                     <div>
-                      <dt>Version</dt>
+                      <dt>{translate("ui.editorHub.text.version")}</dt>
                       <dd>{summary.version}</dd>
                     </div>
                     <div>
-                      <dt>Sections</dt>
+                      <dt>{translate("ui.editorHub.text.sections")}</dt>
                       <dd>{summary.sectionCount}</dd>
                     </div>
                     <div>
-                      <dt>Choices</dt>
+                      <dt>{translate("ui.editorHub.text.choices")}</dt>
                       <dd>{summary.choiceCount}</dd>
                     </div>
                     <div>
-                      <dt>Diagnostics</dt>
+                      <dt>{translate("ui.editorHub.text.diagnostics")}</dt>
                       <dd
                         className={
                           errors
@@ -327,7 +346,7 @@ export function EditorHub({
                   </dl>
                   <div className="app-chain-card-actions">
                     <button type="button" onClick={() => onOpen(workspace)}>
-                      Open Project
+                      {translate("ui.editorHub.text.openProject")}
                     </button>
                     <button
                       type="button"
@@ -370,19 +389,21 @@ export function EditorHub({
               aria-modal="true"
               aria-labelledby="package-inspecting-heading"
             >
-              <p>Secure package inspection</p>
-              <h2 id="package-inspecting-heading">Inspecting every entry…</h2>
+              <p>{translate("ui.editorHub.text.securePackageInspection")}</p>
+              <h2 id="package-inspecting-heading">
+                {translate("ui.editorHub.text.inspectingEveryEntry")}
+              </h2>
               <p>
-                Compressed and expanded bytes, file types, paths, signatures,
-                images, source, schema, and references are being validated
-                before anything is created.
+                {translate(
+                  "ui.editorHub.text.compressedAndExpandedBytesFileTypesPathsSignaturesImages",
+                )}
               </p>
               <div>
                 <button
                   type="button"
                   onClick={() => inspectState.controller.abort()}
                 >
-                  Cancel
+                  {translate("ui.editorHub.text.cancel")}
                 </button>
               </div>
             </section>
@@ -392,14 +413,20 @@ export function EditorHub({
               aria-modal="true"
               aria-labelledby="package-blocked-heading"
             >
-              <p>Import blocked</p>
+              <p>{translate("ui.editorHub.text.importBlocked")}</p>
               <h2 id="package-blocked-heading">
-                This package may be unsafe or malformed
+                {translate(
+                  "ui.editorHub.text.thisPackageMayBeUnsafeOrMalformed",
+                )}
               </h2>
               <p>{inspectState.message}</p>
               <code>{inspectState.code}</code>
               <p>
-                <strong>Nothing was installed, extracted, or created.</strong>
+                <strong>
+                  {translate(
+                    "ui.editorHub.text.nothingWasInstalledExtractedOrCreated",
+                  )}
+                </strong>
               </p>
               <div>
                 <button
@@ -407,7 +434,7 @@ export function EditorHub({
                   type="button"
                   onClick={() => setInspectState({ kind: "idle" })}
                 >
-                  Close
+                  {translate("ui.editorHub.text.close")}
                 </button>
               </div>
             </section>
@@ -451,41 +478,66 @@ export function PackageReview({
           : "Secure inspection complete"}
       </p>
       <h2 id="package-review-heading">
-        {review.name} <small>version {review.version}</small>
+        {review.name}{" "}
+        <small>
+          {translate("ui.editorHub.text.versionPrefix")}
+          {review.version}
+        </small>
       </h2>
       <dl className="package-review-identity">
         <div>
-          <dt>Identity</dt>
+          <dt>{translate("ui.editorHub.text.identity")}</dt>
           <dd>{review.identity}</dd>
         </div>
         <div>
-          <dt>SHA-256</dt>
+          <dt>{translate("ui.editorHub.text.sha256")}</dt>
           <dd>
             <code>{review.hash}</code>
           </dd>
         </div>
         <div>
-          <dt>Files</dt>
+          <dt>{translate("ui.editorHub.text.files")}</dt>
           <dd>
-            {review.definitionCount} definitions · {review.assetCount} assets
+            {review.definitionCount}{" "}
+            {translate("ui.editorHub.text.definitions")}
+            {review.assetCount} {translate("ui.editorHub.text.assets")}
           </dd>
         </div>
         <div>
-          <dt>Expanded</dt>
-          <dd>{(review.expandedBytes / 1024 / 1024).toFixed(2)} MiB</dd>
+          <dt>{translate("ui.editorHub.text.expanded")}</dt>
+          <dd>
+            {(review.expandedBytes / 1024 / 1024).toFixed(2)}{" "}
+            {translate("ui.editorHub.text.mib")}
+          </dd>
         </div>
       </dl>
       <div className="package-review-limits">
-        <strong>Effective package limits</strong>
-        <span>Archive {review.limits.maxArchiveMiB} MiB</span>
-        <span>Definition {review.limits.maxDefinitionFileMiB} MiB</span>
-        <span>Asset {review.limits.maxAssetFileMiB} MiB</span>
-        <span>Expanded {review.limits.maxExpandedPackageMiB} MiB</span>
+        <strong>{translate("ui.editorHub.text.effectivePackageLimits")}</strong>
+        <span>
+          {translate("ui.editorHub.text.archive")}
+          {review.limits.maxArchiveMiB} {translate("ui.editorHub.text.mib")}
+        </span>
+        <span>
+          {translate("ui.editorHub.text.definition")}
+          {review.limits.maxDefinitionFileMiB}{" "}
+          {translate("ui.editorHub.text.mib")}
+        </span>
+        <span>
+          {translate("ui.editorHub.text.asset")}
+          {review.limits.maxAssetFileMiB} {translate("ui.editorHub.text.mib")}
+        </span>
+        <span>
+          {translate("ui.editorHub.text.expandedSizePrefix")}
+          {review.limits.maxExpandedPackageMiB}{" "}
+          {translate("ui.editorHub.text.mib")}
+        </span>
       </div>
       {customLimits && (
         <p className="package-review-risk">
-          <strong>At your own risk.</strong> Custom byte budgets are active.
-          Mandatory malicious-archive protections remain enforced.
+          <strong>{translate("ui.editorHub.text.atYourOwnRisk")}</strong>{" "}
+          {translate(
+            "ui.editorHub.text.customByteBudgetsAreActiveMandatoryMaliciousArchiveProtections",
+          )}
         </p>
       )}
       {review.diagnostics.length > 0 && (
@@ -509,7 +561,7 @@ export function PackageReview({
           {review.status === "warning" ? "Import Anyway" : "Import Project"}
         </button>
         <button autoFocus type="button" onClick={onCancel}>
-          Cancel
+          {translate("ui.editorHub.text.cancel")}
         </button>
       </div>
     </section>

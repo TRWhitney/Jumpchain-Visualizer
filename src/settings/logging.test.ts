@@ -74,7 +74,7 @@ describe("session event pipeline", () => {
         .toastSnapshot()
         .some(
           (toast) =>
-            toast.message === "Choice rejected, negative balance" &&
+            toast.messageKey === "logging.chain_choice_overspend_blocked" &&
             toast.appearance === "danger",
         ),
     ).toBe(true);
@@ -86,8 +86,11 @@ describe("session event pipeline", () => {
     pipeline.emit("editor.format.succeeded");
     pipeline.emit("editor.quick_fix.noop");
     vi.advanceTimersByTime(500);
-    expect(pipeline.toastSnapshot().map((toast) => toast.message)).toEqual(
-      expect.arrayContaining(["Format successful", "Nothing to fix"]),
+    expect(pipeline.toastSnapshot().map((toast) => toast.messageKey)).toEqual(
+      expect.arrayContaining([
+        "logging.editor_format_succeeded",
+        "logging.editor_quick_fix_noop",
+      ]),
     );
 
     settings.notifications.classes.confirmations = false;
@@ -97,7 +100,7 @@ describe("session event pipeline", () => {
     expect(
       pipeline
         .toastSnapshot()
-        .some((toast) => toast.message === "Nothing to format"),
+        .some((toast) => toast.messageKey === "logging.editor_format_noop"),
     ).toBe(false);
   });
 
@@ -113,7 +116,7 @@ describe("session event pipeline", () => {
 
     vi.advanceTimersByTime(500);
     const toast = pipeline.toastSnapshot()[0];
-    expect(toast.message).toBe("Reorder complete.");
+    expect(toast.messageKey).toBe("logging.chain_reordered");
     expect(toast.action?.label).toBe("Undo");
     toast.action?.invoke();
     expect(invoke).toHaveBeenCalledOnce();

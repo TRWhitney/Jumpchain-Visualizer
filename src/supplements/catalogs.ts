@@ -1,4 +1,5 @@
 import type { CatalogEntry } from "./model";
+import { translate } from "../localization";
 import essentialSource from "./essential-catalog.json";
 import personalRealitySource from "./personal-reality-catalog.json";
 import udsSource from "./uds-catalog.json";
@@ -1427,3 +1428,36 @@ export const universalDrawbacks: readonly CatalogEntry[] = (
     `${entry.name} applies its listed ${entry.category} restriction and CP adjustment while active.`,
   destination: "CP" as const,
 }));
+
+function applyLocalizedCatalog(
+  group: "essential" | "reality" | "drawbacks",
+  entries: readonly CatalogEntry[],
+) {
+  for (const entry of entries) {
+    const prefix = `supplements.catalogs.${group}.${entry.id}`;
+    Object.defineProperties(entry, {
+      name: {
+        configurable: true,
+        enumerable: true,
+        get: () => translate(`${prefix}.name`),
+      },
+      summary: {
+        configurable: true,
+        enumerable: true,
+        get: () => translate(`${prefix}.summary`),
+      },
+    });
+  }
+}
+
+for (const entries of Object.values(essentialPageCategories))
+  applyLocalizedCatalog("essential", entries);
+for (const entries of Object.values(essentialCategories))
+  applyLocalizedCatalog("essential", entries);
+for (const entries of Object.values(personalRealityPageCategories))
+  applyLocalizedCatalog("reality", entries);
+for (const entries of Object.values(personalRealityCategories))
+  applyLocalizedCatalog("reality", entries);
+applyLocalizedCatalog("drawbacks", representativeUniversalDrawbacks);
+applyLocalizedCatalog("drawbacks", universalDrawbacksPage);
+applyLocalizedCatalog("drawbacks", universalDrawbacks);

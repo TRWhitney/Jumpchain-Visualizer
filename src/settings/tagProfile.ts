@@ -2,6 +2,8 @@ import type { InstalledPackage, TagDefinition } from "../tracker/model";
 import {
   builtinTagPresetById,
   builtinTagPresets,
+  localizedBuiltinTagAliases,
+  localizedBuiltinTagLabel,
   primaryTagIds,
 } from "./builtinTags";
 import { shiftInheritedTagColor } from "./tagColor";
@@ -898,15 +900,16 @@ export function importTagProfile(
 
 export function projectTagDefinitions(
   profile: TagProfile,
+  languageTag?: string,
 ): Record<string, TagDefinition> {
   return Object.fromEntries(
     Object.values(profile.tags).map((tag) => [
       tag.id,
       {
         id: tag.id,
-        label: tag.name,
+        label: tagLabelForPresentation(tag, languageTag),
         parent: tag.parent ?? undefined,
-        aliases: tag.aliases,
+        aliases: tagAliasesForMatching(tag, languageTag),
         color: tag.presentation.colors[0],
         to: tag.presentation.colors[1] ?? tag.presentation.colors[0],
         style:
@@ -919,4 +922,64 @@ export function projectTagDefinitions(
       } satisfies TagDefinition,
     ]),
   );
+}
+
+export function tagLabelForPresentation(
+  tag: TagProfileEntry,
+  languageTag?: string,
+) {
+  return tag.source === "builtin"
+    ? localizedBuiltinTagLabel(tag.id, languageTag)
+    : tag.name;
+}
+
+function builtinAliasProjection(tag: TagProfileEntry, languageTag?: string) {
+  if (tag.source !== "builtin") return new Map<string, string>();
+  const preset = builtinTagPresetById[tag.id];
+  if (!preset) return new Map<string, string>();
+  const localized = localizedBuiltinTagAliases(tag.id, languageTag);
+  return new Map(
+    preset.aliases.map((canonical, index) => [
+      normalizeTag(canonical),
+      localized[index] ?? canonical,
+    ]),
+  );
+}
+
+export function tagAliasesForPresentation(
+  tag: TagProfileEntry,
+  languageTag?: string,
+) {
+  const localizedByCanonical = builtinAliasProjection(tag, languageTag);
+  return tag.aliases.map(
+    (alias) => localizedByCanonical.get(normalizeTag(alias)) ?? alias,
+  );
+}
+
+export function canonicalTagAlias(
+  tag: TagProfileEntry,
+  displayedAlias: string,
+  languageTag?: string,
+) {
+  const localizedByCanonical = builtinAliasProjection(tag, languageTag);
+  const displayed = normalizeTag(displayedAlias);
+  return (
+    tag.aliases.find((alias) => {
+      const localized = localizedByCanonical.get(normalizeTag(alias));
+      return normalizeTag(localized ?? alias) === displayed;
+    }) ?? displayedAlias
+  );
+}
+
+export function tagAliasesForMatching(
+  tag: TagProfileEntry,
+  languageTag?: string,
+) {
+  const aliases = [
+    ...tag.aliases,
+    ...tagAliasesForPresentation(tag, languageTag),
+  ];
+  return [
+    ...new Map(aliases.map((alias) => [normalizeTag(alias), alias])).values(),
+  ];
 }

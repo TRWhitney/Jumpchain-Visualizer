@@ -13,6 +13,50 @@ use tauri_plugin_dialog::DialogExt;
 
 struct PersistenceState(Mutex<AggregateStore>);
 
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CommandError {
+    code: String,
+    parameters: serde_json::Value,
+}
+
+impl CommandError {
+    fn from_message(message: &str) -> Self {
+        let code = message
+            .chars()
+            .map(|character| {
+                if character.is_ascii_alphanumeric() {
+                    character.to_ascii_uppercase()
+                } else {
+                    '_'
+                }
+            })
+            .collect::<String>()
+            .split('_')
+            .filter(|part| !part.is_empty())
+            .collect::<Vec<_>>()
+            .join("_");
+        Self {
+            code,
+            parameters: serde_json::json!({}),
+        }
+    }
+}
+
+impl From<String> for CommandError {
+    fn from(message: String) -> Self {
+        Self::from_message(&message)
+    }
+}
+
+impl From<&str> for CommandError {
+    fn from(message: &str) -> Self {
+        Self::from_message(message)
+    }
+}
+
+type CommandResult<T> = Result<T, CommandError>;
+
 fn safe_workspace_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 200
@@ -23,7 +67,7 @@ fn safe_workspace_id(id: &str) -> bool {
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-fn load_settings(state: State<'_, PersistenceState>) -> Result<Option<serde_json::Value>, String> {
+fn load_settings(state: State<'_, PersistenceState>) -> CommandResult<Option<serde_json::Value>> {
     let store = state
         .0
         .lock()
@@ -34,23 +78,24 @@ fn load_settings(state: State<'_, PersistenceState>) -> Result<Option<serde_json
             serde_json::from_str(&value).map_err(|_| "stored settings are invalid JSON".to_owned())
         })
         .transpose()
+        .map_err(Into::into)
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-fn save_settings(payload: String, state: State<'_, PersistenceState>) -> Result<(), String> {
+fn save_settings(payload: String, state: State<'_, PersistenceState>) -> CommandResult<()> {
     validate_settings_payload(&payload)?;
     state
         .0
         .lock()
         .map_err(|_| "settings database lock failed")?
         .save("settings", 1, &payload)
-        .map_err(|_| "settings write failed".to_owned())
+        .map_err(|_| CommandError::from("settings write failed"))
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-fn load_chains(state: State<'_, PersistenceState>) -> Result<Vec<serde_json::Value>, String> {
+fn load_chains(state: State<'_, PersistenceState>) -> CommandResult<Vec<serde_json::Value>> {
     let store = state.0.lock().map_err(|_| "chain database lock failed")?;
     let payload = store.load("chains").map_err(|_| "chain read failed")?;
     payload
@@ -59,23 +104,24 @@ fn load_chains(state: State<'_, PersistenceState>) -> Result<Vec<serde_json::Val
         })
         .transpose()
         .map(Option::unwrap_or_default)
+        .map_err(Into::into)
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-fn chains_initialized(state: State<'_, PersistenceState>) -> Result<bool, String> {
+fn chains_initialized(state: State<'_, PersistenceState>) -> CommandResult<bool> {
     state
         .0
         .lock()
         .map_err(|_| "chain database lock failed")?
         .load("chains")
         .map(|value| value.is_some())
-        .map_err(|_| "chain read failed".to_owned())
+        .map_err(|_| CommandError::from("chain read failed"))
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-fn save_chain(payload: String, state: State<'_, PersistenceState>) -> Result<(), String> {
+fn save_chain(payload: String, state: State<'_, PersistenceState>) -> CommandResult<()> {
     let value = validate_chain_payload(&payload)?;
     let mut store = state.0.lock().map_err(|_| "chain database lock failed")?;
     let existing = store.load("chains").map_err(|_| "chain read failed")?;
@@ -100,12 +146,12 @@ fn save_chain(payload: String, state: State<'_, PersistenceState>) -> Result<(),
     let encoded = serde_json::to_string(&chains).map_err(|_| "chain serialization failed")?;
     store
         .save("chains", 1, &encoded)
-        .map_err(|_| "chain write failed".to_owned())
+        .map_err(|_| CommandError::from("chain write failed"))
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-fn remove_chain(id: String, state: State<'_, PersistenceState>) -> Result<(), String> {
+fn remove_chain(id: String, state: State<'_, PersistenceState>) -> CommandResult<()> {
     let mut store = state.0.lock().map_err(|_| "chain database lock failed")?;
     let existing = store.load("chains").map_err(|_| "chain read failed")?;
     let mut chains: Vec<serde_json::Value> = existing
@@ -118,7 +164,7 @@ fn remove_chain(id: String, state: State<'_, PersistenceState>) -> Result<(), St
     let encoded = serde_json::to_string(&chains).map_err(|_| "chain serialization failed")?;
     store
         .save("chains", 1, &encoded)
-        .map_err(|_| "chain write failed".to_owned())
+        .map_err(|_| CommandError::from("chain write failed"))
 }
 
 fn editor_workspace_values(store: &AggregateStore) -> Result<Vec<serde_json::Value>, String> {
@@ -163,9 +209,9 @@ fn validate_editor_workspace_payload(payload: &str) -> Result<serde_json::Value,
 #[allow(clippy::needless_pass_by_value)]
 fn list_editor_workspaces(
     state: State<'_, PersistenceState>,
-) -> Result<Vec<serde_json::Value>, String> {
+) -> CommandResult<Vec<serde_json::Value>> {
     let store = state.0.lock().map_err(|_| "Editor registry lock failed")?;
-    editor_workspace_values(&store)
+    editor_workspace_values(&store).map_err(Into::into)
 }
 
 #[tauri::command]
@@ -173,7 +219,7 @@ fn list_editor_workspaces(
 fn load_editor_workspace(
     id: String,
     state: State<'_, PersistenceState>,
-) -> Result<Option<serde_json::Value>, String> {
+) -> CommandResult<Option<serde_json::Value>> {
     let store = state.0.lock().map_err(|_| "Editor registry lock failed")?;
     Ok(editor_workspace_values(&store)?
         .into_iter()
@@ -262,7 +308,7 @@ fn save_editor_workspace(
     app: tauri::AppHandle,
     payload: String,
     state: State<'_, PersistenceState>,
-) -> Result<(), String> {
+) -> CommandResult<()> {
     let value = validate_editor_workspace_payload(&payload)?;
     save_external_workspace(&value)?;
     let id = value
@@ -292,7 +338,7 @@ fn save_editor_workspace(
         serde_json::to_string(&workspaces).map_err(|_| "Editor registry encoding failed")?;
     store
         .save("editor-workspaces", 1, &encoded)
-        .map_err(|_| "Editor registry write failed".to_owned())
+        .map_err(|_| CommandError::from("Editor registry write failed"))
 }
 
 #[tauri::command]
@@ -301,9 +347,9 @@ fn remove_editor_workspace(
     app: tauri::AppHandle,
     id: String,
     state: State<'_, PersistenceState>,
-) -> Result<(), String> {
+) -> CommandResult<()> {
     if !safe_workspace_id(&id) {
-        return Err("Editor workspace id is invalid".to_owned());
+        return Err(CommandError::from("Editor workspace id is invalid"));
     }
     let mut store = state.0.lock().map_err(|_| "Editor registry lock failed")?;
     let mut workspaces = editor_workspace_values(&store)?;
@@ -322,7 +368,11 @@ fn remove_editor_workspace(
     let staged = match std::fs::rename(&recovery, &staged_recovery) {
         Ok(()) => true,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
-        Err(_) => return Err("Editor recovery data could not be staged for removal".to_owned()),
+        Err(_) => {
+            return Err(CommandError::from(
+                "Editor recovery data could not be staged for removal",
+            ));
+        }
     };
     if let Err(error) = store
         .save("editor-workspaces", 1, &encoded)
@@ -331,7 +381,7 @@ fn remove_editor_workspace(
         if staged {
             let _ = std::fs::rename(&staged_recovery, &recovery);
         }
-        return Err(error);
+        return Err(error.into());
     }
     drop(store);
     if staged {
@@ -460,7 +510,7 @@ fn read_project_folder(
 fn open_editor_project_folder(
     app: tauri::AppHandle,
     limits: EffectivePackageSizeLimits,
-) -> Result<Option<serde_json::Value>, String> {
+) -> CommandResult<Option<serde_json::Value>> {
     let selected = app.dialog().file().blocking_pick_folder();
     let Some(selected) = selected else {
         return Ok(None);
@@ -496,12 +546,12 @@ fn open_editor_project_folder(
 fn scan_editor_project_folder(
     folder: String,
     limits: EffectivePackageSizeLimits,
-) -> Result<serde_json::Value, String> {
+) -> CommandResult<serde_json::Value> {
     let root = PathBuf::from(folder)
         .canonicalize()
         .map_err(|_| "desktop project folder is unavailable")?;
     if !root.is_dir() {
-        return Err("desktop project folder is unavailable".to_owned());
+        return Err(CommandError::from("desktop project folder is unavailable"));
     }
     let (files, assets) = read_project_folder(&root, limits)?;
     Ok(serde_json::json!({ "files": files, "assets": assets }))
@@ -539,7 +589,7 @@ fn validate_settings_payload(payload: &str) -> Result<(), String> {
     if value
         .get("schemaVersion")
         .and_then(serde_json::Value::as_u64)
-        != Some(1)
+        != Some(2)
     {
         return Err("settings schema version is unsupported".to_owned());
     }
@@ -562,9 +612,11 @@ fn save_diagnostic_report(
     app: tauri::AppHandle,
     suggested_name: String,
     content: String,
-) -> Result<&'static str, String> {
+) -> CommandResult<&'static str> {
     if content.len() > 4 * 1024 * 1024 {
-        return Err("diagnostic report exceeds the application limit".to_owned());
+        return Err(CommandError::from(
+            "diagnostic report exceeds the application limit",
+        ));
     }
     let safe_name = sanitize_suggested_name(&suggested_name);
     let selected = app
@@ -593,7 +645,7 @@ fn save_editor_package(
     suggested_name: String,
     bytes: Vec<u8>,
     limits: EffectivePackageSizeLimits,
-) -> Result<&'static str, String> {
+) -> CommandResult<&'static str> {
     inspect_archive(Cursor::new(&bytes), limits).map_err(|error| error.to_string())?;
     let safe_name = sanitize_suggested_name(&suggested_name);
     let selected = app
@@ -662,8 +714,9 @@ mod tests {
     };
 
     use super::{
-        EffectivePackageSizeLimits, atomic_write, read_project_folder, safe_workspace_id,
-        sanitize_suggested_name, validate_chain_payload, validate_settings_payload,
+        CommandError, EffectivePackageSizeLimits, atomic_write, read_project_folder,
+        safe_workspace_id, sanitize_suggested_name, validate_chain_payload,
+        validate_settings_payload,
     };
 
     fn limits() -> EffectivePackageSizeLimits {
@@ -673,6 +726,15 @@ mod tests {
             max_asset_file_mi_b: 16,
             max_expanded_package_mi_b: 96,
         }
+    }
+
+    #[test]
+    fn command_errors_are_structured_codes_without_display_copy() {
+        let encoded = serde_json::to_value(CommandError::from("settings read failed"))
+            .expect("command error serializes");
+        assert_eq!(encoded["code"], "SETTINGS_READ_FAILED");
+        assert_eq!(encoded["parameters"], serde_json::json!({}));
+        assert!(encoded.get("message").is_none());
     }
 
     fn temporary_folder(label: &str) -> PathBuf {
@@ -689,8 +751,8 @@ mod tests {
     #[test]
     fn rejects_invalid_or_unsupported_settings_payloads() {
         assert!(validate_settings_payload("not-json").is_err());
-        assert!(validate_settings_payload(r#"{"schemaVersion":2}"#).is_err());
-        assert!(validate_settings_payload(r#"{"schemaVersion":1}"#).is_ok());
+        assert!(validate_settings_payload(r#"{"schemaVersion":1}"#).is_err());
+        assert!(validate_settings_payload(r#"{"schemaVersion":2}"#).is_ok());
     }
 
     #[test]

@@ -1,0 +1,11 @@
+{
+  "common": {
+    "settings": "Configuración",
+    "preferences": "Preferencias",
+    "applicationSettings": "Configuración de la aplicación",
+    "searchSettings": "Buscar configuración",
+    "resetCategory": "Restablecer categoría",
+    "resetAllSettings": "Restablecer toda la configuración",
+    "closeSettings": "Cerrar configuración"
+  }
+}

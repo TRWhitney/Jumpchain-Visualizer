@@ -69,6 +69,7 @@ import {
   type EvaluatedJumpRuntime,
   supplementStateForEntry,
 } from "./model";
+import { translate } from "../localization";
 
 const PROFILE_RECORDS_BEFORE_SCROLL = 5;
 const PROFILE_IMPORTS_BEFORE_SCROLL = 9;
@@ -107,20 +108,28 @@ function ChainHeader() {
     <header className="chain-mock-header">
       <div>
         <span className="chain-mock-mark" aria-hidden="true">
-          JV
+          {translate("ui.chainTracker.text.jv")}
         </span>
         <div>
-          <p>Chain Tracker</p>
-          <strong>Morgan</strong>
+          <p>{translate("ui.chainTracker.text.chainTracker")}</p>
+          <strong>{translate("ui.chainTracker.text.morgan")}</strong>
         </div>
       </div>
-      <nav aria-label="Application workspace switch">
-        <button type="button">Editor</button>
+      <nav
+        aria-label={translate(
+          "ui.chainTracker.ariaLabel.applicationWorkspaceSwitch",
+        )}
+      >
+        <button type="button">
+          {translate("ui.chainTracker.text.editor")}
+        </button>
         <button type="button" aria-current="page">
-          Chain Tracker
+          {translate("ui.chainTracker.text.chainTracker")}
         </button>
       </nav>
-      <button type="button">Settings</button>
+      <button type="button">
+        {translate("ui.chainTracker.text.settings")}
+      </button>
     </header>
   );
 }
@@ -140,7 +149,7 @@ function MainTabs({ state, dispatch }: TrackerProps) {
     <div
       className="chain-main-tabs"
       role="tablist"
-      aria-label="Chain workspace page"
+      aria-label={translate("ui.chainTracker.ariaLabel.chainWorkspacePage")}
       onKeyDown={(event) => {
         const index = trackerPages.indexOf(state.page);
         let next = index;
@@ -338,11 +347,14 @@ function ChainRail({
     return source && query;
   });
   return (
-    <aside className="chain-rail" aria-label="Chain and jump library">
+    <aside
+      className="chain-rail"
+      aria-label={translate("ui.chainTracker.ariaLabel.chainAndJumpLibrary")}
+    >
       <div
         className="chain-rail-tabs"
         role="tablist"
-        aria-label="Chain navigation"
+        aria-label={translate("ui.chainTracker.ariaLabel.chainNavigation")}
       >
         {(["chain", "library"] as const).map((page) => (
           <button
@@ -362,7 +374,10 @@ function ChainRail({
           <header>
             <div>
               <p>{state.chainName}</p>
-              <strong>{jumpEntryIds(state).length} Jumps</strong>
+              <strong>
+                {jumpEntryIds(state).length}{" "}
+                {translate("ui.chainTracker.text.jumps")}
+              </strong>
             </div>
             <div className="chain-rail-header-actions">
               {hasEnabledSupplements(enabled) && (
@@ -372,7 +387,7 @@ function ChainRail({
                   aria-haspopup="dialog"
                   onClick={openSupp}
                 >
-                  Supp
+                  {translate("ui.chainTracker.text.supp")}
                 </button>
               )}
               <button
@@ -381,19 +396,28 @@ function ChainRail({
                   dispatch({ type: "set-rail-page", page: "library" })
                 }
               >
-                + Add
+                {translate("ui.chainTracker.text.add")}
               </button>
             </div>
           </header>
-          <dl className="chain-jump-summary" aria-label="Current jump summary">
+          <dl
+            className="chain-jump-summary"
+            aria-label={translate(
+              "ui.chainTracker.ariaLabel.currentJumpSummary",
+            )}
+          >
             <div className="chain-summary-hover">
-              <dt>Currency</dt>
+              <dt>{translate("ui.chainTracker.text.currency")}</dt>
               <dd tabIndex={0}>
                 <span className={balance < 0 ? "is-negative" : undefined}>
-                  {balance} CP
+                  {balance} {translate("ui.chainTracker.text.cp")}
                 </span>
                 <span className="chain-summary-tooltip" role="tooltip">
-                  <strong>Alternative currencies remaining</strong>
+                  <strong>
+                    {translate(
+                      "ui.chainTracker.text.alternativeCurrenciesRemaining",
+                    )}
+                  </strong>
                   {alternativeResources.length ? (
                     alternativeResources.map((resource) => (
                       <span key={resource.handle}>
@@ -402,13 +426,17 @@ function ChainRail({
                       </span>
                     ))
                   ) : (
-                    <span>No alternative currencies in this Jump.</span>
+                    <span>
+                      {translate(
+                        "ui.chainTracker.text.noAlternativeCurrenciesInThisJump",
+                      )}
+                    </span>
                   )}
                 </span>
               </dd>
             </div>
             <div className="chain-summary-hover chain-summary-origin">
-              <dt>Origin</dt>
+              <dt>{translate("ui.chainTracker.text.origin")}</dt>
               <dd tabIndex={0}>
                 <span>{evaluation?.properties.origin?.value ?? "Unknown"}</span>
                 <span className="chain-summary-tooltip" role="tooltip">
@@ -420,27 +448,30 @@ function ChainRail({
                       "No Origin has been selected for this Jump."}
                   </span>
                   <span>
-                    Species: {evaluation?.properties.species?.value ?? "Human"}
+                    {translate("ui.chainTracker.text.species")}
+                    {evaluation?.properties.species?.value ?? "Human"}
                   </span>
                   <span>
-                    Location:{" "}
+                    {translate("ui.chainTracker.text.location")}{" "}
                     {evaluation?.properties.location?.value ?? "Unknown"}
                   </span>
                 </span>
               </dd>
             </div>
             <div>
-              <dt>Gender</dt>
+              <dt>{translate("ui.chainTracker.text.gender")}</dt>
               <dd>{evaluation?.properties.gender?.value ?? "Unknown"}</dd>
             </div>
             <div>
-              <dt>Age</dt>
+              <dt>{translate("ui.chainTracker.text.age")}</dt>
               <dd>{evaluation?.properties.age?.value ?? "Unknown"}</dd>
             </div>
           </dl>
           <div
             className="chain-jump-list"
-            aria-label="Ordered chain jumps, newest first"
+            aria-label={translate(
+              "ui.chainTracker.ariaLabel.orderedChainJumpsNewestFirst",
+            )}
             onDragLeave={(event) => {
               const bounds = event.currentTarget.getBoundingClientRect();
               if (
@@ -525,7 +556,7 @@ function ChainRail({
                   {!earth && (
                     <span
                       className="chain-jump-handle"
-                      title="Drag to reorder"
+                      title={translate("ui.chainTracker.title.dragToReorder")}
                       aria-hidden="true"
                     >
                       ⠿
@@ -599,15 +630,17 @@ function ChainRail({
         <section className="chain-rail-panel" role="tabpanel">
           <header>
             <div>
-              <p>Parallel versions enabled</p>
-              <strong>Available packages</strong>
+              <p>{translate("ui.chainTracker.text.parallelVersionsEnabled")}</p>
+              <strong>
+                {translate("ui.chainTracker.text.availablePackages")}
+              </strong>
             </div>
             <button
               type="button"
               className="chain-library-import"
               onClick={() => packageInput.current?.click()}
             >
-              Import .jmp
+              {translate("ui.chainTracker.text.importJmp")}
             </button>
             <input
               ref={packageInput}
@@ -649,12 +682,15 @@ function ChainRail({
                         ? error
                         : new PackageSecurityError(
                             "archive.inspect_failed",
-                            "The package could not be inspected safely.",
+                            {},
                           );
                     setPackageImport({
                       kind: "blocked",
                       code: blocked.code,
-                      message: blocked.message,
+                      message: translate(
+                        `packageErrors.${blocked.code}`,
+                        blocked.parameters,
+                      ),
                     });
                   })
                   .finally(() => {
@@ -664,11 +700,14 @@ function ChainRail({
             />
           </header>
           <label className="chain-library-search">
-            <span className="sr-only">Find available jump</span>
+            <span className="sr-only">
+              {translate("ui.chainTracker.text.findAvailableJump")}
+            </span>
             <input
               type="search"
+              spellCheck={false}
               value={state.librarySearch}
-              placeholder="Find a jump"
+              placeholder={translate("ui.chainTracker.placeholder.findAJump")}
               onChange={(event) =>
                 dispatch({
                   type: "set-library-search",
@@ -680,7 +719,7 @@ function ChainRail({
           <div
             className="chain-library-source"
             role="group"
-            aria-label="Jump source filter"
+            aria-label={translate("ui.chainTracker.ariaLabel.jumpSourceFilter")}
           >
             {(["all", "builtin", "imported"] as const).map((source) => (
               <button
@@ -731,7 +770,11 @@ function ChainRail({
             })}
           </div>
           {!filteredPackages.length && (
-            <p className="chain-empty">No available jumps match this filter.</p>
+            <p className="chain-empty">
+              {translate(
+                "ui.chainTracker.text.noAvailableJumpsMatchThisFilter",
+              )}
+            </p>
           )}
           {packageImport.kind !== "idle" && (
             <div className="package-review-backdrop">
@@ -741,14 +784,16 @@ function ChainRail({
                   aria-modal="true"
                   aria-labelledby="chain-import-inspecting-heading"
                 >
-                  <p>Secure package inspection</p>
+                  <p>
+                    {translate("ui.chainTracker.text.securePackageInspection")}
+                  </p>
                   <h2 id="chain-import-inspecting-heading">
-                    Inspecting every entry…
+                    {translate("ui.chainTracker.text.inspectingEveryEntry")}
                   </h2>
                   <p>
-                    Nothing enters the immutable package library until archive,
-                    image, source, schema, reference, and size validation
-                    completes.
+                    {translate(
+                      "ui.chainTracker.text.nothingEntersTheImmutablePackageLibraryUntilArchiveImage",
+                    )}
                   </p>
                 </section>
               ) : packageImport.kind === "blocked" ? (
@@ -757,15 +802,19 @@ function ChainRail({
                   aria-modal="true"
                   aria-labelledby="chain-import-blocked-heading"
                 >
-                  <p>Installation blocked</p>
+                  <p>{translate("ui.chainTracker.text.installationBlocked")}</p>
                   <h2 id="chain-import-blocked-heading">
-                    This package may be unsafe or malformed
+                    {translate(
+                      "ui.chainTracker.text.thisPackageMayBeUnsafeOrMalformed",
+                    )}
                   </h2>
                   <p>{packageImport.message}</p>
                   <code>{packageImport.code}</code>
                   <p>
                     <strong>
-                      Nothing was installed, extracted, or added to the chain.
+                      {translate(
+                        "ui.chainTracker.text.nothingWasInstalledExtractedOrAddedToTheChain",
+                      )}
                     </strong>
                   </p>
                   <div>
@@ -774,7 +823,7 @@ function ChainRail({
                       type="button"
                       onClick={() => setPackageImport({ kind: "idle" })}
                     >
-                      Close
+                      {translate("ui.chainTracker.text.close")}
                     </button>
                   </div>
                 </section>
@@ -901,7 +950,7 @@ function JumpPage({
         {!visibleEntryId && (
           <div className="atomic-jump-preparing" role="status">
             <span aria-hidden="true" />
-            Preparing selected Jump…
+            {translate("ui.chainTracker.text.preparingSelectedJump")}
           </div>
         )}
         {workspaceEntryIds.map((entryId) => {
@@ -1007,14 +1056,14 @@ function JumpWorkspace({
               {negativeActors
                 .map((id) => state.actors[id]?.name ?? id)
                 .join(", ")}{" "}
-              {negativeActors.length === 1 ? "has" : "have"} a negative point
-              balance
+              {negativeActors.length === 1 ? "has" : "have"}{" "}
+              {translate("ui.chainTracker.text.aNegativePointBalance")}
             </strong>
           )}
         </div>
         <div className="chain-context-actions">
           <label className="chain-actor-control">
-            <span>Make choices as</span>
+            <span>{translate("ui.chainTracker.text.makeChoicesAs")}</span>
             <select
               value={activeActorId}
               className={balance < 0 ? "has-negative-actor" : undefined}
@@ -1095,8 +1144,9 @@ function JumpWorkspace({
           ) : (
             <div className="chain-view-panel tracker-renderer-placeholder">
               <p>
-                This exact package is unavailable. Stored selections are
-                preserved until it is restored.
+                {translate(
+                  "ui.chainTracker.text.thisExactPackageIsUnavailableStoredSelectionsArePreserved",
+                )}
               </p>
             </div>
           )))}
@@ -1152,22 +1202,23 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
     >
       <header>
         <div>
-          <p>Accrued inventory</p>
-          <h4>Perks and items</h4>
+          <p>{translate("ui.chainTracker.text.accruedInventory")}</p>
+          <h4>{translate("ui.chainTracker.text.perksAndItems")}</h4>
           <span>
-            Through {packageForEntry(state, state.inspectionPointId).name}
+            {translate("ui.chainTracker.text.through")}
+            {packageForEntry(state, state.inspectionPointId).name}
           </span>
         </div>
         <HistoricalSelect
           state={state}
           dispatch={dispatch}
-          label="Inventory through"
+          label={translate("ui.chainTracker.label.inventoryThrough")}
         />
       </header>
       <div
         className="inventory-subtabs"
         role="tablist"
-        aria-label="Inventory view"
+        aria-label={translate("ui.chainTracker.ariaLabel.inventoryView")}
       >
         <button
           type="button"
@@ -1177,7 +1228,7 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
             dispatch({ type: "set-inventory-view", value: "search" })
           }
         >
-          Search
+          {translate("ui.chainTracker.text.search")}
         </button>
         <button
           type="button"
@@ -1187,7 +1238,7 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
             dispatch({ type: "set-inventory-view", value: "stats" })
           }
         >
-          Stats
+          {translate("ui.chainTracker.text.stats")}
         </button>
       </div>
       {state.inventoryView === "search" ? (
@@ -1198,8 +1249,13 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
           <div className="inventory-search-toolbar">
             <input
               type="search"
-              aria-label="Search inventory"
-              placeholder="Search names, tags, aliases, or jumps"
+              spellCheck={false}
+              aria-label={translate(
+                "ui.chainTracker.ariaLabel.searchInventory",
+              )}
+              placeholder={translate(
+                "ui.chainTracker.placeholder.searchNamesTagsAliasesOrJumps",
+              )}
               value={state.inventorySearch}
               onChange={(event) =>
                 dispatch({
@@ -1208,7 +1264,12 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
                 })
               }
             />
-            <div role="group" aria-label="Inventory record kind">
+            <div
+              role="group"
+              aria-label={translate(
+                "ui.chainTracker.ariaLabel.inventoryRecordKind",
+              )}
+            >
               {(["all", "perk", "item"] as const).map((kind) => (
                 <button
                   key={kind}
@@ -1225,10 +1286,13 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
             </div>
           </div>
           <div className="inventory-search-layout">
-            <aside className="inventory-tag-dialog" aria-label="Tag search">
+            <aside
+              className="inventory-tag-dialog"
+              aria-label={translate("ui.chainTracker.ariaLabel.tagSearch")}
+            >
               <header>
-                <p>Tag search</p>
-                <h5>Relationships</h5>
+                <p>{translate("ui.chainTracker.text.tagSearch")}</p>
+                <h5>{translate("ui.chainTracker.text.relationships")}</h5>
               </header>
               <button
                 className="inventory-all-tags"
@@ -1238,8 +1302,10 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
                   dispatch({ type: "set-inventory-tag", value: "all" })
                 }
               >
-                <span>All tags</span>
-                <small>Exact inventory point</small>
+                <span>{translate("ui.chainTracker.text.allTags")}</span>
+                <small>
+                  {translate("ui.chainTracker.text.exactInventoryPoint")}
+                </small>
               </button>
               <div className="inventory-tag-tree-scroll">
                 {tagTree.map((category) => {
@@ -1259,7 +1325,11 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
                           }
                         >
                           <span>◆ {state.tags[category.id].label}</span>
-                          <small>Includes descendants</small>
+                          <small>
+                            {translate(
+                              "ui.chainTracker.text.includesDescendants",
+                            )}
+                          </small>
                         </button>
                         {category.children.length > 0 && (
                           <button
@@ -1310,7 +1380,8 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
             <div className="inventory-results-pane">
               <div className="inventory-result-note" role="status">
                 {records.length} {records.length === 1 ? "record" : "records"}{" "}
-                through {packageForEntry(state, state.inspectionPointId).name}.
+                {translate("ui.chainTracker.text.throughRangeSeparator")}
+                {packageForEntry(state, state.inspectionPointId).name}.
               </div>
               <div className="chain-record-list">
                 {records.map((record) => (
@@ -1326,7 +1397,9 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
               </div>
               {!records.length && (
                 <p className="chain-record-empty">
-                  No inventory records match these filters.
+                  {translate(
+                    "ui.chainTracker.text.noInventoryRecordsMatchTheseFilters",
+                  )}
                 </p>
               )}
             </div>
@@ -1408,15 +1481,17 @@ function RecordCard({
           >
             <span aria-hidden="true">…</span>
             <span className="sr-only">
-              {tagProjection.hiddenCount} more tags. Hover or focus to show all
-              tags.
+              {tagProjection.hiddenCount}{" "}
+              {translate(
+                "ui.chainTracker.text.moreTagsHoverOrFocusToShowAllTags",
+              )}
             </span>
             <span
               id={tagTooltipId}
               className="inventory-tag-overflow-tooltip"
               role="tooltip"
             >
-              <strong>All tags</strong>
+              <strong>{translate("ui.chainTracker.text.allTags")}</strong>
               <span className="inventory-tag-overflow-list">
                 {tagProjection.allIds.map((id) => (
                   <TagBadge key={id} tag={state.tags[id]} />
@@ -1440,16 +1515,17 @@ function FormsPage({ state, dispatch }: TrackerProps) {
     >
       <header className="chain-panel-heading">
         <div>
-          <p>Accrued bodies</p>
-          <h4>Forms</h4>
+          <p>{translate("ui.chainTracker.text.accruedBodies")}</p>
+          <h4>{translate("ui.chainTracker.text.forms")}</h4>
           <span>
-            Through {packageForEntry(state, state.inspectionPointId).name}
+            {translate("ui.chainTracker.text.through")}
+            {packageForEntry(state, state.inspectionPointId).name}
           </span>
         </div>
         <HistoricalSelect
           state={state}
           dispatch={dispatch}
-          label="Forms through"
+          label={translate("ui.chainTracker.label.formsThrough")}
         />
       </header>
       {selected && (
@@ -1471,14 +1547,14 @@ function FormsPage({ state, dispatch }: TrackerProps) {
               type="button"
               onClick={() => dispatch({ type: "select-form", id: form.id })}
             >
-              View
+              {translate("ui.chainTracker.text.view")}
             </button>
           </article>
         ))}
       </div>
       {!forms.length && (
         <p className="chain-record-empty">
-          No forms are available at this point.
+          {translate("ui.chainTracker.text.noFormsAreAvailableAtThisPoint")}
         </p>
       )}
     </section>
@@ -1493,7 +1569,7 @@ function FormDetail({
   return (
     <section className="chain-form-detail">
       <div>
-        <p>Form record</p>
+        <p>{translate("ui.chainTracker.text.formRecord")}</p>
         <h5 tabIndex={-1}>{form.name}</h5>
         <span>
           {form.id === "form-0" ? "Base form" : "Alt form"} ·{" "}
@@ -1506,13 +1582,13 @@ function FormDetail({
           type="button"
           onClick={() => dispatch({ type: "open-profile", profile: "form" })}
         >
-          Full details
+          {translate("ui.chainTracker.text.fullDetails")}
         </button>
         <button
           type="button"
           onClick={() => dispatch({ type: "select-form", id: null })}
         >
-          Close
+          {translate("ui.chainTracker.text.close")}
         </button>
       </div>
     </section>
@@ -1531,25 +1607,27 @@ function CompanionsPage({ state, dispatch }: TrackerProps) {
     >
       <header className="chain-panel-heading">
         <div>
-          <p>Accrued roster</p>
-          <h4>Companions</h4>
+          <p>{translate("ui.chainTracker.text.accruedRoster")}</p>
+          <h4>{translate("ui.chainTracker.text.companions")}</h4>
           <span>
-            Through {packageForEntry(state, state.inspectionPointId).name}
+            {translate("ui.chainTracker.text.through")}
+            {packageForEntry(state, state.inspectionPointId).name}
           </span>
         </div>
         <HistoricalSelect
           state={state}
           dispatch={dispatch}
-          label="Roster through"
+          label={translate("ui.chainTracker.label.rosterThrough")}
         />
       </header>
       {selected && (
         <section className="chain-companion-detail">
           <div>
-            <p>Companion record</p>
+            <p>{translate("ui.chainTracker.text.companionRecord")}</p>
             <h5 tabIndex={-1}>{state.actors[selected.actorId].name}</h5>
             <span>
-              Joined in {packageForEntry(state, selected.sourceEntryId).name}
+              {translate("ui.chainTracker.text.joinedIn")}
+              {packageForEntry(state, selected.sourceEntryId).name}
             </span>
           </div>
           <p>{state.actors[selected.actorId].summary}</p>
@@ -1560,13 +1638,13 @@ function CompanionsPage({ state, dispatch }: TrackerProps) {
                 dispatch({ type: "open-profile", profile: "companion" })
               }
             >
-              Full profile
+              {translate("ui.chainTracker.text.fullProfile")}
             </button>
             <button
               type="button"
               onClick={() => dispatch({ type: "select-companion", id: null })}
             >
-              Close
+              {translate("ui.chainTracker.text.close")}
             </button>
           </div>
         </section>
@@ -1580,7 +1658,7 @@ function CompanionsPage({ state, dispatch }: TrackerProps) {
               <div>
                 <h5>{actor.name}</h5>
                 <p>
-                  Joined in{" "}
+                  {translate("ui.chainTracker.text.joinedInLabel")}{" "}
                   {packageForEntry(state, companion.sourceEntryId).name}
                 </p>
                 <div>
@@ -1598,7 +1676,7 @@ function CompanionsPage({ state, dispatch }: TrackerProps) {
                   dispatch({ type: "select-companion", id: companion.actorId })
                 }
               >
-                View
+                {translate("ui.chainTracker.text.view")}
               </button>
             </article>
           );
@@ -1606,7 +1684,7 @@ function CompanionsPage({ state, dispatch }: TrackerProps) {
       </div>
       {!companions.length && (
         <p className="chain-record-empty">
-          No companions have joined by this point.
+          {translate("ui.chainTracker.text.noCompanionsHaveJoinedByThisPoint")}
         </p>
       )}
     </section>
@@ -1634,12 +1712,17 @@ function RecordModal({
     >
       <header>
         <div>
-          <p>{record.kind === "perk" ? "Perk" : "Item"} details</p>
+          <p>
+            {record.kind === "perk" ? "Perk" : "Item"}{" "}
+            {translate("ui.chainTracker.text.details")}
+          </p>
           <h4 tabIndex={0}>{record.name}</h4>
         </div>
         <button
           type="button"
-          aria-label="Close perk or item details"
+          aria-label={translate(
+            "ui.chainTracker.ariaLabel.closePerkOrItemDetails",
+          )}
           onClick={() => dispatch({ type: "open-record", id: null })}
         >
           ×
@@ -1656,7 +1739,10 @@ function RecordModal({
               ? ` · ${state.actors[record.ownerActorId].name} record`
               : ""}
         </p>
-        <div className="record-detail-tags" aria-label="Tags">
+        <div
+          className="record-detail-tags"
+          aria-label={translate("ui.chainTracker.ariaLabel.tags")}
+        >
           {record.tags.map(
             (id) =>
               state.tags[id] && <TagBadge key={id} tag={state.tags[id]} />,
@@ -1673,7 +1759,7 @@ function RecordModal({
         {record.aggregateQuantity && (
           <dl className="record-detail-measure">
             <div>
-              <dt>Quantity</dt>
+              <dt>{translate("ui.chainTracker.text.quantity")}</dt>
               <dd>{record.aggregateQuantity}</dd>
             </div>
           </dl>
@@ -1686,7 +1772,9 @@ function RecordModal({
         {(record.acquisitions?.length ?? 0) > 1 ? (
           <ul
             className={`record-detail-acquisitions${(record.acquisitions?.length ?? 0) > RECORD_ACQUISITIONS_BEFORE_SCROLL ? " is-scrollable" : ""}`}
-            aria-label="Acquisition details"
+            aria-label={translate(
+              "ui.chainTracker.ariaLabel.acquisitionDetails",
+            )}
             tabIndex={
               (record.acquisitions?.length ?? 0) >
               RECORD_ACQUISITIONS_BEFORE_SCROLL
@@ -1697,9 +1785,11 @@ function RecordModal({
             {record.acquisitions?.map((acquisition) => (
               <li key={acquisition.recordId}>
                 <strong>
-                  Acquired in{" "}
+                  {translate("ui.chainTracker.text.acquiredIn")}{" "}
                   {packageForEntry(state, acquisition.sourceEntryId).name}
-                  {" · "}Jump {jumpNumber(state, acquisition.sourceEntryId)}
+                  {" · "}
+                  {translate("ui.chainTracker.text.jump")}
+                  {jumpNumber(state, acquisition.sourceEntryId)}
                   {acquisition.quantity > 1 && ` · x${acquisition.quantity}`}
                 </strong>
                 <p>{acquisition.description}</p>
@@ -1769,7 +1859,7 @@ function ProfileModal({
         {isForm && form ? (
           <>
             <section>
-              <h5>Details</h5>
+              <h5>{translate("ui.chainTracker.text.detailsLabel")}</h5>
               <ul>
                 {form.details.map((detail) => (
                   <li key={detail}>{detail}</li>
@@ -1780,7 +1870,7 @@ function ProfileModal({
               state={state}
               ids={recordIds}
               dispatch={dispatch}
-              title="Form perks"
+              title={translate("ui.chainTracker.title.formPerks")}
               emptyMessage="Form has no perks"
             />
           </>
@@ -1790,14 +1880,14 @@ function ProfileModal({
               state={state}
               ids={companion.perkRecordIds}
               dispatch={dispatch}
-              title="Perks"
+              title={translate("ui.chainTracker.title.perks")}
               emptyMessage="Companion has no perks"
             />
             <ProfileRecords
               state={state}
               ids={companion.itemRecordIds}
               dispatch={dispatch}
-              title="Items"
+              title={translate("ui.chainTracker.title.items")}
               emptyMessage="Companion has no items"
             />
             <ProfileImports state={state} ids={companion.importedEntryIds} />
@@ -1880,7 +1970,7 @@ function ProfileImports({
     <section>
       {entries.length ? (
         <>
-          <h5>Imported into</h5>
+          <h5>{translate("ui.chainTracker.text.importedInto")}</h5>
           <ul
             className={`companion-profile-list is-imports${entries.length > PROFILE_IMPORTS_BEFORE_SCROLL ? " is-scrollable" : ""}`}
           >
@@ -1891,7 +1981,9 @@ function ProfileImports({
         </>
       ) : (
         <p className="companion-profile-empty">
-          Companion has not been imported into any jumps
+          {translate(
+            "ui.chainTracker.text.companionHasNotBeenImportedIntoAnyJumps",
+          )}
         </p>
       )}
     </section>
@@ -1918,7 +2010,7 @@ function MutationModal({ state, dispatch }: TrackerProps) {
     >
       <header>
         <div>
-          <p>Dependency review</p>
+          <p>{translate("ui.chainTracker.text.dependencyReview")}</p>
           <h4>
             {state.pending.kind === "move"
               ? `Reorder ${item.name}`
@@ -1929,7 +2021,9 @@ function MutationModal({ state, dispatch }: TrackerProps) {
         </div>
         <button
           type="button"
-          aria-label="Close dependency review"
+          aria-label={translate(
+            "ui.chainTracker.ariaLabel.closeDependencyReview",
+          )}
           onClick={() => dispatch({ type: "cancel-mutation" })}
         >
           ×
@@ -1943,12 +2037,13 @@ function MutationModal({ state, dispatch }: TrackerProps) {
               ? "This deletion would remove a provider that a later Jump still imports. The installed package remains in the library."
               : "Removing this form also clears active perks assigned to it."}
         </p>
-        <h5>Affected dependencies</h5>
+        <h5>{translate("ui.chainTracker.text.affectedDependencies")}</h5>
         <ul>
           {state.pending.impacts.map((impact) =>
             impact.kind === "form-perk" ? (
               <li key={`${impact.kind}:${impact.formHandle}`}>
-                <strong>{formName(impact.formHandle)}</strong> owns active{" "}
+                <strong>{formName(impact.formHandle)}</strong>{" "}
+                {translate("ui.chainTracker.text.ownsActive")}{" "}
                 {impact.dependentChoiceHandles
                   .map((handle) => choiceName(handle))
                   .join(", ")}
@@ -1958,10 +2053,10 @@ function MutationModal({ state, dispatch }: TrackerProps) {
               <li
                 key={`${impact.kind}:${impact.subjectId}:${impact.providerEntryId}`}
               >
-                <strong>{state.actors[impact.subjectId]?.name}</strong> is
-                provided by{" "}
-                {packageForEntry(state, impact.providerEntryId)?.name} and
-                imported by{" "}
+                <strong>{state.actors[impact.subjectId]?.name}</strong>{" "}
+                {translate("ui.chainTracker.text.isProvidedBy")}{" "}
+                {packageForEntry(state, impact.providerEntryId)?.name}{" "}
+                {translate("ui.chainTracker.text.andImportedBy")}{" "}
                 {impact.consumerEntryIds
                   .map((entryId) => packageForEntry(state, entryId)?.name)
                   .join(", ")}
@@ -1975,7 +2070,7 @@ function MutationModal({ state, dispatch }: TrackerProps) {
             type="button"
             onClick={() => dispatch({ type: "cancel-mutation" })}
           >
-            Cancel
+            {translate("ui.chainTracker.text.cancel")}
           </button>
           <button
             type="button"
@@ -2130,7 +2225,9 @@ export function ChainTracker({
     >
       <div
         className={`chain-mockup tracker-review-frame${showApplicationHeader ? "" : " is-shell-embedded"}`}
-        aria-label="Interactive Chain Tracker workspace"
+        aria-label={translate(
+          "ui.chainTracker.ariaLabel.interactiveChainTrackerWorkspace",
+        )}
         inert={applicationModalOpen || undefined}
         aria-hidden={applicationModalOpen || undefined}
       >

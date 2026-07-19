@@ -83,6 +83,11 @@ import "../supplements/review.css";
 import "../tracker/review.css";
 import "./shell.css";
 import "../editor/editor.css";
+import {
+  isStructuredCommandError,
+  translate,
+  translateError,
+} from "../localization";
 
 type ShellHistoryState = {
   jvIndex?: number;
@@ -241,8 +246,8 @@ function AppShellContent() {
     activeChainId,
   );
   const projectedTags = useMemo(
-    () => projectTagDefinitions(settings.tags.profile),
-    [settings.tags.profile],
+    () => projectTagDefinitions(settings.tags.profile, settings.language.tag),
+    [settings.tags.profile, settings.language.tag],
   );
   const trackerPreferences = useMemo(
     () => ({
@@ -285,7 +290,7 @@ function AppShellContent() {
       })
       .catch(() => {
         if (!live) return;
-        setEditorError("Saved Editor projects could not be loaded.");
+        setEditorError(translate("errors.EDITOR_PROJECTS_LOAD_FAILED"));
         setEditorLoading(false);
       });
     return () => {
@@ -343,7 +348,9 @@ function AppShellContent() {
         chainStatesRef.current = next;
         setChainStates(next);
       })
-      .catch(() => setChainSaveError("Saved chains could not be loaded."));
+      .catch(() =>
+        setChainSaveError(translate("errors.SAVED_CHAINS_LOAD_FAILED")),
+      );
     chainInitializationRef.current = initialize;
     return () => {
       live = false;
@@ -369,7 +376,7 @@ function AppShellContent() {
         .then(() => setChainSaveError(null))
         .catch(() =>
           setChainSaveError(
-            "Autosave failed. Your in-memory changes are still available.",
+            translate("errors.AUTOSAVE_FAILED_MEMORY_RETAINED"),
           ),
         );
     }, 250);
@@ -511,7 +518,7 @@ function AppShellContent() {
         if (updateSaveState) {
           setEditorSaveState("Save failed");
           setEditorError(
-            "Editor autosave failed. Your in-memory source is still available.",
+            translate("errors.EDITOR_AUTOSAVE_FAILED_MEMORY_RETAINED"),
           );
         }
         return false;
@@ -553,7 +560,7 @@ function AppShellContent() {
             } else {
               setEditorSaveState("Save failed");
               setEditorError(
-                "Editor autosave failed. Your in-memory source is still available.",
+                translate("errors.EDITOR_AUTOSAVE_FAILED_MEMORY_RETAINED"),
               );
             }
           })
@@ -714,11 +721,7 @@ function AppShellContent() {
       .then((opened) => {
         if (opened) openEditorProject(opened);
       })
-      .catch(() =>
-        setEditorError(
-          "The project folder could not be opened safely or permission was lost.",
-        ),
-      );
+      .catch((error: unknown) => setEditorError(translateError(error)));
   }, [openEditorProject, settings.developer]);
 
   useEffect(() => {
@@ -768,7 +771,7 @@ function AppShellContent() {
       } catch {
         if (live)
           setEditorError(
-            "The desktop project folder is unavailable or its permission was lost. Your Editor buffers and recovery copy are retained.",
+            translate("errors.DESKTOP_EDITOR_FOLDER_PERMISSION_LOST"),
           );
       }
     };
@@ -829,7 +832,7 @@ function AppShellContent() {
           .then(() => setChainSaveError(null))
           .catch(() =>
             setChainSaveError(
-              "Autosave failed. Your in-memory changes are still available.",
+              translate("errors.AUTOSAVE_FAILED_MEMORY_RETAINED"),
             ),
           );
       logger.emit(starred ? "chain.starred" : "chain.unstarred");
@@ -951,7 +954,9 @@ function AppShellContent() {
     >
       <div
         className="app-shell-mockup app-primary-shell"
-        aria-label="Jumpchain Visualizer application"
+        aria-label={translate(
+          "ui.appShell.ariaLabel.jumpchainVisualizerApplication",
+        )}
       >
         <header className="app-mock-header">
           <button
@@ -960,23 +965,27 @@ function AppShellContent() {
             aria-pressed={workspace === "home"}
             onClick={() => navigate("/")}
           >
-            <span aria-hidden="true">JV</span>
-            <strong>Jumpchain Visualizer</strong>
+            <span aria-hidden="true">{translate("ui.appShell.text.jv")}</span>
+            <strong>{translate("ui.appShell.text.jumpchainVisualizer")}</strong>
           </button>
-          <nav aria-label="Application workspaces">
+          <nav
+            aria-label={translate(
+              "ui.appShell.ariaLabel.applicationWorkspaces",
+            )}
+          >
             <button
               type="button"
               aria-pressed={workspace === "editor"}
               onClick={() => navigate("/editor")}
             >
-              Editor
+              {translate("ui.appShell.text.editor")}
             </button>
             <button
               type="button"
               aria-pressed={workspace === "chain"}
               onClick={() => navigate("/chain")}
             >
-              Chain Tracker
+              {translate("ui.appShell.text.chainTracker")}
             </button>
           </nav>
           <button
@@ -986,14 +995,17 @@ function AppShellContent() {
             aria-pressed={route.kind === "settings"}
             onClick={toggleSettings}
           >
-            Settings
+            {translate("ui.appShell.text.settings")}
           </button>
         </header>
 
-        <div className="app-mock-location" aria-label="Application location">
+        <div
+          className="app-mock-location"
+          aria-label={translate("ui.appShell.ariaLabel.applicationLocation")}
+        >
           <button
             type="button"
-            aria-label="Back"
+            aria-label={translate("ui.appShell.ariaLabel.back")}
             disabled={historyIndex <= 0}
             onClick={() => window.history.back()}
           >
@@ -1001,7 +1013,7 @@ function AppShellContent() {
           </button>
           <button
             type="button"
-            aria-label="Forward"
+            aria-label={translate("ui.appShell.ariaLabel.forward")}
             disabled={historyIndex >= historyMaximum}
             onClick={() => window.history.forward()}
           >
@@ -1029,14 +1041,16 @@ function AppShellContent() {
             data-active-route={isActive("home")}
             aria-labelledby="app-home-heading"
           >
-            <p className="app-mock-kicker">Choose a workspace</p>
+            <p className="app-mock-kicker">
+              {translate("ui.appShell.text.chooseAWorkspace")}
+            </p>
             <h1
               id="app-home-heading"
               className="app-route-heading"
               data-route-heading
               tabIndex={-1}
             >
-              What would you like to do?
+              {translate("ui.appShell.text.whatWouldYouLikeToDo")}
             </h1>
             <div className="app-entry-grid">
               <article>
@@ -1044,11 +1058,15 @@ function AppShellContent() {
                   ✎
                 </span>
                 <div>
-                  <h4>Build a Jump</h4>
-                  <p>Create or continue a package in the Editor.</p>
+                  <h4>{translate("ui.appShell.text.buildAJump")}</h4>
+                  <p>
+                    {translate(
+                      "ui.appShell.text.createOrContinueAPackageInTheEditor",
+                    )}
+                  </p>
                 </div>
                 <button type="button" onClick={() => navigate("/editor")}>
-                  Open Editor
+                  {translate("ui.appShell.text.openEditor")}
                 </button>
               </article>
               <article>
@@ -1056,11 +1074,15 @@ function AppShellContent() {
                   ↝
                 </span>
                 <div>
-                  <h4>Start a Chain</h4>
-                  <p>Track choices across imported jumps.</p>
+                  <h4>{translate("ui.appShell.text.startAChain")}</h4>
+                  <p>
+                    {translate(
+                      "ui.appShell.text.trackChoicesAcrossImportedJumps",
+                    )}
+                  </p>
                 </div>
                 <button type="button" onClick={() => navigate("/chain")}>
-                  Open Chain Tracker
+                  {translate("ui.appShell.text.openChainTracker")}
                 </button>
               </article>
             </div>
@@ -1069,7 +1091,9 @@ function AppShellContent() {
                 className="app-recent-section"
                 aria-labelledby="recent-editor-heading"
               >
-                <h4 id="recent-editor-heading">Editor workspaces</h4>
+                <h4 id="recent-editor-heading">
+                  {translate("ui.appShell.text.editorWorkspaces")}
+                </h4>
                 <div className="app-recent-list">
                   {savedEditorWorkspaces.slice(0, 5).map((workspace) => {
                     const summary = summarizeWorkspace(workspace);
@@ -1096,7 +1120,7 @@ function AppShellContent() {
                             type="button"
                             onClick={() => openEditorProject(workspace)}
                           >
-                            Resume
+                            {translate("ui.appShell.text.resume")}
                           </button>
                         </div>
                       </div>
@@ -1105,8 +1129,14 @@ function AppShellContent() {
                   {!savedEditorWorkspaces.length && (
                     <div className="app-recent-work is-empty">
                       <span>
-                        <strong>No recent Editor projects</strong>
-                        <small>Create or import a Jump to begin.</small>
+                        <strong>
+                          {translate("ui.appShell.text.noRecentEditorProjects")}
+                        </strong>
+                        <small>
+                          {translate(
+                            "ui.appShell.text.createOrImportAJumpToBegin",
+                          )}
+                        </small>
                       </span>
                     </div>
                   )}
@@ -1116,7 +1146,9 @@ function AppShellContent() {
                 className="app-recent-section"
                 aria-labelledby="recent-chains-heading"
               >
-                <h4 id="recent-chains-heading">Chains</h4>
+                <h4 id="recent-chains-heading">
+                  {translate("ui.appShell.text.chains")}
+                </h4>
                 <div className="app-recent-list">
                   {savedChains.slice(0, 5).map((chain) => (
                     <RecentChain
@@ -1135,7 +1167,9 @@ function AppShellContent() {
                       type="button"
                       onClick={() => navigate("/chain")}
                     >
-                      View all {savedChains.length} chains
+                      {translate("ui.appShell.text.viewAll")}
+                      {savedChains.length}{" "}
+                      {translate("ui.appShell.text.chainsCountSuffix")}
                     </button>
                   )}
                 </div>
@@ -1176,7 +1210,7 @@ function AppShellContent() {
             hidden={!knownEditor}
             inert={!knownEditor || undefined}
             data-active-route={knownEditor}
-            aria-label="Editor workspace"
+            aria-label={translate("ui.appShell.ariaLabel.editorWorkspace")}
           >
             {activeEditorWorkspace && (
               <>
@@ -1260,7 +1294,7 @@ function AppShellContent() {
                     .then(() => setChainSaveError(null))
                     .catch(() =>
                       setChainSaveError(
-                        "Autosave failed. Your in-memory changes are still available.",
+                        translate("errors.AUTOSAVE_FAILED_MEMORY_RETAINED"),
                       ),
                     );
                 }
@@ -1311,7 +1345,7 @@ function AppShellContent() {
                       .then(() => setChainSaveError(null));
                   }}
                 >
-                  Retry
+                  {translate("ui.appShell.text.retry")}
                 </button>
               </div>
             )}
@@ -1330,21 +1364,25 @@ function AppShellContent() {
             data-active-route={isActive("not-found")}
             aria-labelledby="app-not-found-heading"
           >
-            <p className="app-mock-kicker">Unknown destination</p>
+            <p className="app-mock-kicker">
+              {translate("ui.appShell.text.unknownDestination")}
+            </p>
             <h1
               id="app-not-found-heading"
               className="app-route-heading"
               data-route-heading
               tabIndex={-1}
             >
-              Page not found
+              {translate("ui.appShell.text.pageNotFound")}
             </h1>
             <p>
-              This address does not identify an available application route.
+              {translate(
+                "ui.appShell.text.thisAddressDoesNotIdentifyAnAvailableApplicationRoute",
+              )}
             </p>
             <div className="app-route-actions">
               <button type="button" onClick={() => navigate("/")}>
-                Return Home
+                {translate("ui.appShell.text.returnHome")}
               </button>
             </div>
           </section>
@@ -1367,8 +1405,9 @@ function AppShellContent() {
             }}
             onConfirm={() => void confirmDeletion()}
           >
-            Are you sure you want to delete “{deletionTarget.name}”? This cannot
-            be undone.
+            {translate("ui.appShell.text.areYouSureYouWantToDelete")}
+            {deletionTarget.name}
+            {translate("ui.appShell.text.thisCannotBeUndone")}
           </ConfirmationDialog>
         )}
         {route.kind === "settings" && (
@@ -1376,7 +1415,7 @@ function AppShellContent() {
             className={`app-settings-layer${settingsBackgroundPath ? " is-overlay" : " is-direct"}`}
             role={settingsBackgroundPath ? "dialog" : undefined}
             aria-modal={settingsBackgroundPath ? true : undefined}
-            aria-label="Application settings"
+            aria-label={translate("ui.appShell.ariaLabel.applicationSettings")}
           >
             <SettingsSurface
               onClose={closeSettings}
@@ -1393,13 +1432,14 @@ function AppShellContent() {
               aria-modal="true"
               aria-labelledby="editor-departure-heading"
             >
-              <p>Unsaved source</p>
+              <p>{translate("ui.appShell.text.unsavedSource")}</p>
               <h2 id="editor-departure-heading">
-                Save before leaving the Editor?
+                {translate("ui.appShell.text.saveBeforeLeavingTheEditor")}
               </h2>
               <p>
-                This project uses explicit saves. Leaving now without saving
-                discards the in-memory source changes from this session.
+                {translate(
+                  "ui.appShell.text.thisProjectUsesExplicitSavesLeavingNowWithoutSaving",
+                )}
               </p>
               <div>
                 <button
@@ -1413,7 +1453,7 @@ function AppShellContent() {
                     });
                   }}
                 >
-                  Save and Leave
+                  {translate("ui.appShell.text.saveAndLeave")}
                 </button>
                 <button
                   type="button"
@@ -1438,14 +1478,14 @@ function AppShellContent() {
                     performNavigation(pending.path, pending.state);
                   }}
                 >
-                  Discard
+                  {translate("ui.appShell.text.discard")}
                 </button>
                 <button
                   autoFocus
                   type="button"
                   onClick={() => setPendingEditorNavigation(null)}
                 >
-                  Cancel
+                  {translate("ui.appShell.text.cancel")}
                 </button>
               </div>
             </section>
@@ -1470,17 +1510,27 @@ function AppShellContent() {
               aria-modal="true"
               aria-labelledby="editor-conflict-heading"
             >
-              <p>External change detected</p>
-              <h2 id="editor-conflict-heading">The project changed on disk</h2>
+              <p>{translate("ui.appShell.text.externalChangeDetected")}</p>
+              <h2 id="editor-conflict-heading">
+                {translate("ui.appShell.text.theProjectChangedOnDisk")}
+              </h2>
               <p>
-                Autosave is paused for {externalEditorConflict.file}. Compare
-                both versions, keep the Editor buffer, or use the disk version.
+                {translate("ui.appShell.text.autosaveIsPausedFor")}
+                {externalEditorConflict.file}
+                {translate(
+                  "ui.appShell.text.compareBothVersionsKeepTheEditorBufferOrUse",
+                )}
               </p>
               <details>
-                <summary>Compare {externalEditorConflict.file}</summary>
+                <summary>
+                  {translate("ui.appShell.text.compare")}
+                  {externalEditorConflict.file}
+                </summary>
                 <div className="editor-conflict-compare">
                   <section>
-                    <strong>Editor version</strong>
+                    <strong>
+                      {translate("ui.appShell.text.editorVersion")}
+                    </strong>
                     <pre>
                       {activeEditorWorkspace.files[
                         externalEditorConflict.file
@@ -1488,7 +1538,7 @@ function AppShellContent() {
                     </pre>
                   </section>
                   <section>
-                    <strong>Disk version</strong>
+                    <strong>{translate("ui.appShell.text.diskVersion")}</strong>
                     <pre>
                       {externalEditorConflict.disk.files[
                         externalEditorConflict.file
@@ -1505,7 +1555,7 @@ function AppShellContent() {
                     void saveActiveEditor();
                   }}
                 >
-                  Keep Editor Version
+                  {translate("ui.appShell.text.keepEditorVersion")}
                 </button>
                 <button
                   type="button"
@@ -1526,14 +1576,14 @@ function AppShellContent() {
                     void editorRepository.save(disk);
                   }}
                 >
-                  Use Disk Version
+                  {translate("ui.appShell.text.useDiskVersion")}
                 </button>
                 <button
                   autoFocus
                   type="button"
                   onClick={() => setExternalEditorConflict(null)}
                 >
-                  Continue Comparing
+                  {translate("ui.appShell.text.continueComparing")}
                 </button>
               </div>
             </section>
@@ -1593,7 +1643,9 @@ function EditorExportReview({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Export could not be completed safely.",
+          : isStructuredCommandError(caught)
+            ? translateError(caught)
+            : translate("errors.EXPORT_FAILED"),
       );
       setExporting(false);
     }
@@ -1605,24 +1657,41 @@ function EditorExportReview({
         aria-modal="true"
         aria-labelledby="editor-export-heading"
       >
-        <p>Preflight and export</p>
-        <h2 id="editor-export-heading">Export {summary.name} as .jmp?</h2>
+        <p>{translate("ui.appShell.text.preflightAndExport")}</p>
+        <h2 id="editor-export-heading">
+          {translate("ui.appShell.text.export")}
+          {summary.name} {translate("ui.appShell.text.asJmp")}
+        </h2>
         <p>
-          Every source file and asset will be validated before compression.
-          Export is blocked if any effective limit or mandatory image/file
-          protection fails.
+          {translate(
+            "ui.appShell.text.everySourceFileAndAssetWillBeValidatedBefore",
+          )}
         </p>
         <div className="editor-export-limits">
-          <strong>Effective limits</strong>
-          <span>Archive {limits.maxArchiveMiB} MiB</span>
-          <span>Definition {limits.maxDefinitionFileMiB} MiB</span>
-          <span>Asset {limits.maxAssetFileMiB} MiB</span>
-          <span>Expanded {limits.maxExpandedPackageMiB} MiB</span>
+          <strong>{translate("ui.appShell.text.effectiveLimits")}</strong>
+          <span>
+            {translate("ui.appShell.text.archive")}
+            {limits.maxArchiveMiB} {translate("ui.appShell.text.mib")}
+          </span>
+          <span>
+            {translate("ui.appShell.text.definition")}
+            {limits.maxDefinitionFileMiB} {translate("ui.appShell.text.mib")}
+          </span>
+          <span>
+            {translate("ui.appShell.text.asset")}
+            {limits.maxAssetFileMiB} {translate("ui.appShell.text.mib")}
+          </span>
+          <span>
+            {translate("ui.appShell.text.expanded")}
+            {limits.maxExpandedPackageMiB} {translate("ui.appShell.text.mib")}
+          </span>
         </div>
         {settings.developer.useCustomPackageSizeLimits && (
           <p className="editor-export-risk">
-            <strong>At your own risk.</strong> Custom package byte budgets are
-            active. Mandatory security checks remain enabled.
+            <strong>{translate("ui.appShell.text.atYourOwnRisk")}</strong>{" "}
+            {translate(
+              "ui.appShell.text.customPackageByteBudgetsAreActiveMandatorySecurityChecks",
+            )}
           </p>
         )}
         {error && (
@@ -1644,7 +1713,7 @@ function EditorExportReview({
             disabled={exporting}
             onClick={onClose}
           >
-            Cancel
+            {translate("ui.appShell.text.cancel")}
           </button>
         </div>
       </section>
@@ -1721,7 +1790,7 @@ function RecentChain({
           </span>
         )}
         <button type="button" onClick={onOpen}>
-          Resume
+          {translate("ui.appShell.text.resume")}
         </button>
       </div>
     </div>
@@ -1761,22 +1830,26 @@ function ChainHub({
     <div className="app-chain-hub-content">
       <header className="app-chain-hub-heading">
         <div>
-          <p className="app-mock-kicker">Chain Tracker</p>
+          <p className="app-mock-kicker">
+            {translate("ui.appShell.text.chainTracker")}
+          </p>
           <h1
             id="app-chain-heading"
             className="app-route-heading"
             data-route-heading
             tabIndex={-1}
           >
-            Your chains
+            {translate("ui.appShell.text.yourChains")}
           </h1>
           <p>
-            Resume a journey, update its details, or set out on something new.
+            {translate(
+              "ui.appShell.text.resumeAJourneyUpdateItsDetailsOrSetOut",
+            )}
           </p>
         </div>
         <span>
           <strong>{chains.length}</strong>
-          <small>saved chains</small>
+          <small>{translate("ui.appShell.text.savedChains")}</small>
         </span>
       </header>
 
@@ -1791,18 +1864,25 @@ function ChainHub({
           +
         </span>
         <div>
-          <label htmlFor="new-chain-name">Start a new chain</label>
-          <p>Name it now. You can edit its details from this page later.</p>
+          <label htmlFor="new-chain-name">
+            {translate("ui.appShell.text.startANewChain")}
+          </label>
+          <p>
+            {translate("ui.appShell.text.nameItNowYouCanEditItsDetailsFrom")}
+          </p>
         </div>
         <input
           id="new-chain-name"
+          spellCheck
           value={newName}
           onChange={(event) => setNewName(event.target.value)}
-          placeholder="Chain name"
+          placeholder={translate("ui.appShell.placeholder.chainName")}
           maxLength={80}
           required
         />
-        <button type="submit">Start Chain</button>
+        <button type="submit">
+          {translate("ui.appShell.text.startChain")}
+        </button>
       </form>
 
       <section
@@ -1811,16 +1891,25 @@ function ChainHub({
       >
         <div className="app-saved-chains-heading">
           <div>
-            <h2 id="saved-chains-heading">All saved chains</h2>
-            <p>Starred chains first, then by when you last opened them.</p>
+            <h2 id="saved-chains-heading">
+              {translate("ui.appShell.text.allSavedChains")}
+            </h2>
+            <p>
+              {translate(
+                "ui.appShell.text.starredChainsFirstThenByWhenYouLastOpened",
+              )}
+            </p>
           </div>
           <label className="app-chain-search">
-            <span>Search saved chains</span>
+            <span>{translate("ui.appShell.text.searchSavedChains")}</span>
             <input
               type="search"
+              spellCheck={false}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Name or description"
+              placeholder={translate(
+                "ui.appShell.placeholder.nameOrDescription",
+              )}
             />
           </label>
           <span>
@@ -1847,8 +1936,15 @@ function ChainHub({
           ))}
           {!visibleChains.length && (
             <div className="app-chain-empty" role="status">
-              <strong>No saved chains match “{search.trim()}”.</strong>
-              <span>Try a chain name or words from its description.</span>
+              <strong>
+                {translate("ui.appShell.text.noSavedChainsMatch")}
+                {search.trim()}”.
+              </strong>
+              <span>
+                {translate(
+                  "ui.appShell.text.tryAChainNameOrWordsFromItsDescription",
+                )}
+              </span>
             </div>
           )}
         </div>
@@ -1949,7 +2045,8 @@ function ChainCard({
               <strong>{chain.name}</strong>
             </div>
             <span>
-              {totalTagged} tagged {includeItemTags ? "records" : "perks"}
+              {totalTagged} {translate("ui.appShell.text.tagged")}
+              {includeItemTags ? "records" : "perks"}
             </span>
           </header>
           <StaticTagRadar
@@ -1978,25 +2075,33 @@ function ChainCard({
               setEditing(false);
             }}
           >
-            <label htmlFor={`rename-${chain.id}`}>Chain name</label>
+            <label htmlFor={`rename-${chain.id}`}>
+              {translate("ui.appShell.text.chainName")}
+            </label>
             <input
               ref={inputRef}
               id={`rename-${chain.id}`}
               value={name}
+              spellCheck
               onChange={(event) => setName(event.target.value)}
               maxLength={80}
               required
             />
-            <label htmlFor={`description-${chain.id}`}>Description</label>
+            <label htmlFor={`description-${chain.id}`}>
+              {translate("ui.appShell.text.description")}
+            </label>
             <textarea
               id={`description-${chain.id}`}
               value={description}
+              spellCheck
               onChange={(event) => setDescription(event.target.value)}
               maxLength={240}
               rows={2}
-              placeholder="Describe this chain"
+              placeholder={translate(
+                "ui.appShell.placeholder.describeThisChain",
+              )}
             />
-            <button type="submit">Save</button>
+            <button type="submit">{translate("ui.appShell.text.save")}</button>
             <button
               type="button"
               onClick={() => {
@@ -2005,7 +2110,7 @@ function ChainCard({
                 setEditing(false);
               }}
             >
-              Cancel
+              {translate("ui.appShell.text.cancel")}
             </button>
           </form>
         ) : (
@@ -2034,7 +2139,7 @@ function ChainCard({
       </div>
       <dl>
         <div>
-          <dt>Jumps</dt>
+          <dt>{translate("ui.appShell.text.jumps")}</dt>
           <dd>{chain.jumpCount}</dd>
         </div>
       </dl>
@@ -2045,12 +2150,12 @@ function ChainCard({
         title={`Delete ${chain.name}`}
         onClick={onDelete}
       >
-        Delete
+        {translate("ui.appShell.text.delete")}
       </button>
       {!editing && (
         <div className="app-chain-card-actions">
           <button type="button" onClick={onOpen}>
-            Open
+            {translate("ui.appShell.text.open")}
           </button>
           <button
             type="button"
@@ -2058,7 +2163,7 @@ function ChainCard({
             aria-label={`Edit ${chain.name}`}
             onClick={() => setEditing(true)}
           >
-            Edit details
+            {translate("ui.appShell.text.editDetails")}
           </button>
           <ChainStarButton chain={chain} onToggle={onToggleStar} />
         </div>
@@ -2085,18 +2190,21 @@ function RecoveryView({
       data-active-route={!hidden}
       aria-labelledby={`app-${type === "Chain" ? "chain" : "editor"}-recovery-heading`}
     >
-      <p className="app-mock-kicker">Recovery</p>
+      <p className="app-mock-kicker">
+        {translate("ui.appShell.text.recovery")}
+      </p>
       <h1
         id={`app-${type === "Chain" ? "chain" : "editor"}-recovery-heading`}
         className="app-route-heading"
         data-route-heading
         tabIndex={-1}
       >
-        {type} unavailable
+        {type} {translate("ui.appShell.text.unavailable")}
       </h1>
       <p>
-        The requested local record could not be restored. Its identifier was not
-        replaced with another workspace or exposed as user data.
+        {translate(
+          "ui.appShell.text.theRequestedLocalRecordCouldNotBeRestoredIts",
+        )}
       </p>
       <div className="app-route-actions">
         <button type="button" onClick={onReturn}>

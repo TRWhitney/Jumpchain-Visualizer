@@ -1,0 +1,22 @@
+{
+  "language": {
+    "description": "Elige el idioma que utiliza la aplicación. La plataforma lo utiliza como señal del diccionario ortográfico cuando hay uno compatible instalado."
+  },
+  "settings": {
+    "categories": {
+      "general": "General",
+      "editor": "Editor",
+      "chain": "Seguimiento de cadenas",
+      "notifications": "Notificaciones",
+      "tags": "Etiquetas",
+      "keys": "Atajos de teclado",
+      "accessibility": "Accesibilidad",
+      "developer": "Desarrollador"
+    }
+  },
+  "settingsSearch": {
+    "language_tag": {
+      "label": "Idioma"
+    }
+  }
+}

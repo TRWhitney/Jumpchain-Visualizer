@@ -47,6 +47,28 @@ describe("application settings", () => {
     expect(result.developer.showOpenProjectFolder).toBe(true);
     expect(result.notifications.maxVisible).toBe(5);
     expect(result.notifications.durationMs).toBe(5000);
+    expect(result.schemaVersion).toBe(2);
+    expect(result.language.tag).toBe("en");
+  });
+
+  it("migrates v1 settings and accepts only discovered language tags", () => {
+    const profile = createDefaultTagProfile();
+    expect(
+      hydrateSettings(
+        { schemaVersion: 1, language: { tag: "fr" } },
+        profile,
+        hydrateTagProfile,
+        ["en", "fr"],
+      ).language.tag,
+    ).toBe("fr");
+    expect(
+      hydrateSettings(
+        { schemaVersion: 2, language: { tag: "missing" } },
+        profile,
+        hydrateTagProfile,
+        ["en", "fr"],
+      ).language.tag,
+    ).toBe("en");
   });
 
   it("defaults similar inventory aggregation on when the stored field is absent", () => {

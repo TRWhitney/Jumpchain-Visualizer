@@ -27,165 +27,181 @@ import {
   type SettingsCategory,
 } from "./model";
 import { createDefaultTagProfile } from "./tagProfile";
+import { changeLanguage, translate, translationCatalog } from "../localization";
 
-const categories: { id: SettingsCategory; label: string }[] = [
-  { id: "general", label: "General" },
-  { id: "editor", label: "Editor" },
-  { id: "chain", label: "Chain Tracker" },
-  { id: "notifications", label: "Notifications" },
-  { id: "tags", label: "Tags" },
-  { id: "keys", label: "Key bindings" },
-  { id: "accessibility", label: "Accessibility" },
-  { id: "developer", label: "Developer" },
-];
+const categoriesFor = (): { id: SettingsCategory; label: string }[] => {
+  return [
+    { id: "general", label: translate("settings.categories.general") },
+    { id: "editor", label: translate("settings.categories.editor") },
+    { id: "chain", label: translate("settings.categories.chain") },
+    {
+      id: "notifications",
+      label: translate("settings.categories.notifications"),
+    },
+    { id: "tags", label: translate("settings.categories.tags") },
+    { id: "keys", label: translate("settings.categories.keys") },
+    {
+      id: "accessibility",
+      label: translate("settings.categories.accessibility"),
+    },
+    { id: "developer", label: translate("settings.categories.developer") },
+  ];
+};
 
 const searchEntries = [
   [
-    "Appearance",
+    "settingsSearch.language_tag.label",
+    "language.tag",
+    "general",
+    "language-selection",
+    "settingsSearch.language_tag.aliases",
+  ],
+  [
+    "settingsSearch.appearance_theme.label",
     "appearance.theme",
     "general",
     "theme",
-    "appearance theme system light dark color mode",
+    "settingsSearch.appearance_theme.aliases",
   ],
   [
-    "Accent color",
+    "settingsSearch.appearance_accentColor.label",
     "appearance.accentColor",
     "general",
     "accent",
-    "accent color colour hex gold theme appearance",
+    "settingsSearch.appearance_accentColor.aliases",
   ],
   [
-    "Saving",
+    "settingsSearch.editor_saveMode.label",
     "editor.saveMode",
     "editor",
     "save-mode",
-    "saving save autosave explicit persistence editor",
+    "settingsSearch.editor_saveMode.aliases",
   ],
   [
-    "Missing image alt warning",
+    "settingsSearch.editor_warnMissingImageAlt.label",
     "editor.warnMissingImageAlt",
     "editor",
     "warn-alt",
-    "editor image alt alternative text accessibility warning",
+    "settingsSearch.editor_warnMissingImageAlt.aliases",
   ],
   [
-    "Missing layout target warning",
+    "settingsSearch.editor_warnMissingLayoutTargets.label",
     "editor.warnMissingLayoutTargets",
     "editor",
     "warn-layout",
-    "editor layout target reusable warning",
+    "settingsSearch.editor_warnMissingLayoutTargets.aliases",
   ],
   [
-    "Add another package version",
+    "settingsSearch.chain_allowMultiplePackageVersions.label",
     "chain.allowMultiplePackageVersions",
     "chain",
     "multiple-versions",
-    "chain add second package version multiple parallel",
+    "settingsSearch.chain_allowMultiplePackageVersions.aliases",
   ],
   [
-    "Allow duplicate jumps",
+    "settingsSearch.chain_allowDuplicateJumps.label",
     "chain.allowDuplicateJumps",
     "chain",
     "duplicate-jumps",
-    "chain add same exact jump package duplicate repeat again",
+    "settingsSearch.chain_allowDuplicateJumps.aliases",
   ],
   [
-    "Negative point balances",
+    "settingsSearch.chain_allowNegativePointBalances.label",
     "chain.allowNegativePointBalances",
     "chain",
     "negative-balances",
-    "chain negative point balance overspend currency",
+    "settingsSearch.chain_allowNegativePointBalances.aliases",
   ],
   [
-    "Allow rerolls",
+    "settingsSearch.chain_allowRerolls.label",
     "chain.allowRerolls",
     "chain",
     "rerolls",
-    "chain reroll random replace result",
+    "settingsSearch.chain_allowRerolls.aliases",
   ],
   [
-    "Include item tags in radar",
+    "settingsSearch.chain_includeItemTagsInRadar.label",
     "chain.includeItemTagsInRadar",
     "chain",
     "item-tags-radar",
-    "chain radar stats count item tags jumper forms inventory",
+    "settingsSearch.chain_includeItemTagsInRadar.aliases",
   ],
   [
-    "Aggregate similar perks and items",
+    "settingsSearch.chain_aggregateSimilarInventory.label",
     "chain.aggregateSimilarInventory",
     "chain",
     "aggregate-similar-inventory",
-    "chain inventory aggregate similar same name rank perk item copies sources descriptions",
+    "settingsSearch.chain_aggregateSimilarInventory.aliases",
   ],
   [
-    "Upstream change warnings",
+    "settingsSearch.chain_warnUpstreamChanges.label",
     "chain.warnUpstreamChanges",
     "chain",
     "upstream",
-    "chain upstream change warning reorder remove dependency",
+    "settingsSearch.chain_warnUpstreamChanges.aliases",
   ],
   [
-    "Color chain names by primary tag",
+    "settingsSearch.chain_colorNamesByPrimaryTag.label",
     "chain.colorNamesByPrimaryTag",
     "chain",
     "color-chain",
-    "chain color names primary highest perk tag",
+    "settingsSearch.chain_colorNamesByPrimaryTag.aliases",
   ],
   [
-    "Toast notifications",
+    "settingsSearch.notifications_.label",
     "notifications.*",
     "notifications",
     "notifications-enabled",
-    "notifications toast enabled maximum duration confirmations editor chain validation errors",
+    "settingsSearch.notifications_.aliases",
   ],
   [
-    "Tag profile",
+    "settingsSearch.tags_profile.label",
     "tags.profile",
     "tags",
     "tag-profile-search",
-    "tags profile category parent aliases badges colors gradients presentation import export",
+    "settingsSearch.tags_profile.aliases",
   ],
   [
-    "Key bindings",
+    "settingsSearch.keybindings_overrides.label",
     "keybindings.overrides",
     "keys",
     "keybindings",
-    "keyboard key bindings shortcuts quick add quick fix find format all completions overrides",
+    "settingsSearch.keybindings_overrides.aliases",
   ],
   [
-    "Motion",
+    "settingsSearch.accessibility_motion.label",
     "accessibility.motion",
     "accessibility",
     "motion",
-    "motion animation reduced full system accessibility",
+    "settingsSearch.accessibility_motion.aliases",
   ],
   [
-    "Session logs",
+    "settingsSearch.Developer_Logs.label",
     "Developer → Logs",
     "developer",
     "developer-logs-tab",
-    "developer logs logging viewer stack trace crash report debug session export clear",
+    "settingsSearch.Developer_Logs.aliases",
   ],
   [
-    "Show additional Jump information",
+    "settingsSearch.developer_showAdditionalJumpInformation.label",
     "developer.showAdditionalJumpInformation",
     "developer",
     "additional-jump-information",
-    "developer jump format additional information diagnostics format 1",
+    "settingsSearch.developer_showAdditionalJumpInformation.aliases",
   ],
   [
-    "Show Open Project Folder",
+    "settingsSearch.developer_showOpenProjectFolder.label",
     "developer.showOpenProjectFolder",
     "developer",
     "show-open-project-folder",
-    "developer editor open project folder desktop filesystem external files",
+    "settingsSearch.developer_showOpenProjectFolder.aliases",
   ],
   [
-    "Package size limits",
+    "settingsSearch.developer_packageSizeLimits.label",
     "developer.packageSizeLimits",
     "developer",
     "custom-package-limits",
-    "developer package archive definition asset expanded size limits mib import export at your own risk",
+    "settingsSearch.developer_packageSizeLimits.aliases",
   ],
 ] as const;
 
@@ -194,6 +210,8 @@ const searchValue = (
   settings: ApplicationSettings,
 ) => {
   switch (key) {
+    case "language.tag":
+      return settings.language.tag;
     case "appearance.theme":
       return settings.appearance.theme;
     case "appearance.accentColor":
@@ -259,6 +277,7 @@ export function SettingsSurface({
   onCategoryChange: (category: SettingsCategory) => void;
 }) {
   const { settings, replace } = useSettings();
+  const categories = categoriesFor();
   const [query, setQuery] = useState("");
   const [resetConfirm, setResetConfirm] = useState<"all" | "tags" | null>(null);
   const [packageRiskConfirm, setPackageRiskConfirm] = useState(false);
@@ -274,7 +293,7 @@ export function SettingsSurface({
       .split(/\s+/)
       .filter(Boolean)
       .every((term) =>
-        `${entry[0]} ${entry[1]} ${entry[4]} ${searchValue(entry[1], settings)}`
+        `${translate(entry[0])} ${entry[1]} ${translate(entry[4])} ${searchValue(entry[1], settings)}`
           .toLocaleLowerCase()
           .includes(term),
       ),
@@ -373,7 +392,10 @@ export function SettingsSurface({
       return;
     }
     const next = structuredClone(settings);
-    if (category === "general") next.appearance = defaults.appearance;
+    if (category === "general") {
+      next.language = defaults.language;
+      next.appearance = defaults.appearance;
+    }
     if (category === "editor") next.editor = defaults.editor;
     if (category === "chain") next.chain = defaults.chain;
     if (category === "notifications")
@@ -389,18 +411,19 @@ export function SettingsSurface({
     <div
       ref={root}
       className={`settings-mockup app-settings-surface${direct ? " is-direct" : ""}`}
-      aria-label="Application Settings"
+      aria-label={translate("common.applicationSettings")}
     >
-      <aside aria-label="Settings categories">
+      <aside aria-label={translate("common.settings")}>
         <div className="settings-mock-title">
           <span aria-hidden="true">⚙</span>
-          <strong>Settings</strong>
+          <strong>{translate("common.settings")}</strong>
         </div>
         <label className="settings-mock-search">
-          <span className="sr-only">Search settings</span>
+          <span className="sr-only">{translate("common.searchSettings")}</span>
           <input
             type="search"
-            placeholder="Search settings"
+            placeholder={translate("common.searchSettings")}
+            spellCheck={false}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {
@@ -411,7 +434,10 @@ export function SettingsSurface({
             }}
           />
         </label>
-        <nav role="tablist" aria-label="Setting category">
+        <nav
+          role="tablist"
+          aria-label={translate("ui.settingsSurface.ariaLabel.settingCategory")}
+        >
           {categories.map((entry, index) => (
             <button
               id={`settings-${entry.id}-tab`}
@@ -432,22 +458,26 @@ export function SettingsSurface({
           type="button"
           onClick={() => setResetConfirm("all")}
         >
-          Reset all settings
+          {translate("common.resetAllSettings")}
         </button>
       </aside>
       <div className="settings-mock-content">
         <header>
           <div>
-            <p>Application settings</p>
+            <p>{translate("common.applicationSettings")}</p>
             <h3 data-settings-heading tabIndex={-1}>
-              Preferences
+              {translate("common.preferences")}
             </h3>
           </div>
           <div className="app-settings-header-actions">
             <button type="button" onClick={resetCategory}>
-              Reset category
+              {translate("common.resetCategory")}
             </button>
-            <button type="button" aria-label="Close Settings" onClick={onClose}>
+            <button
+              type="button"
+              aria-label={translate("common.closeSettings")}
+              onClick={onClose}
+            >
               ×
             </button>
           </div>
@@ -455,9 +485,9 @@ export function SettingsSurface({
         {query ? (
           <section className="settings-search-panel" aria-live="polite">
             <h4>
-              Search results{" "}
+              {translate("settings.searchResults")}{" "}
               <span>
-                {results.length} {results.length === 1 ? "result" : "results"}
+                {translate("settings.result", { count: results.length })}
               </span>
             </h4>
             {results.length ? (
@@ -477,7 +507,7 @@ export function SettingsSurface({
                     }}
                   >
                     <span>
-                      <strong>{entry[0]}</strong>
+                      <strong>{translate(entry[0])}</strong>
                       <small>
                         <code>{entry[1]}</code> ·{" "}
                         {
@@ -493,7 +523,7 @@ export function SettingsSurface({
               </div>
             ) : (
               <p className="settings-search-empty">
-                No settings match this search.
+                {translate("settings.noResults")}
               </p>
             )}
           </section>
@@ -513,7 +543,7 @@ export function SettingsSurface({
             aria-modal="true"
             aria-labelledby="settings-reset-heading"
           >
-            <p>Destructive reset</p>
+            <p>{translate("ui.settingsSurface.text.destructiveReset")}</p>
             <h4 id="settings-reset-heading">
               {resetConfirm === "all"
                 ? "Reset every application setting?"
@@ -539,14 +569,14 @@ export function SettingsSurface({
                   setResetConfirm(null);
                 }}
               >
-                Reset
+                {translate("ui.settingsSurface.text.reset")}
               </button>
               <button
                 autoFocus
                 type="button"
                 onClick={() => setResetConfirm(null)}
               >
-                Cancel
+                {translate("ui.settingsSurface.text.cancel")}
               </button>
             </div>
           </section>
@@ -559,18 +589,21 @@ export function SettingsSurface({
             aria-modal="true"
             aria-labelledby="package-risk-heading"
           >
-            <p>Developer override</p>
+            <p>{translate("ui.settingsSurface.text.developerOverride")}</p>
             <h4 id="package-risk-heading">
-              Increase package limits at your own risk
+              {translate(
+                "ui.settingsSurface.text.increasePackageLimitsAtYourOwnRisk",
+              )}
             </h4>
             <p>
-              Larger packages can consume substantial memory, disk space, and
-              processing time. These limits affect Editor import and export,
-              desktop project loading, and Chain Tracker package installation.
+              {translate(
+                "ui.settingsSurface.text.largerPackagesCanConsumeSubstantialMemoryDiskSpaceAnd",
+              )}
             </p>
             <p>
-              Path, file-type, compression-ratio, image, schema, and atomicity
-              protections remain mandatory and cannot be disabled.
+              {translate(
+                "ui.settingsSurface.text.pathFileTypeCompressionRatioImageSchemaAndAtomicity",
+              )}
             </p>
             <div>
               <button
@@ -589,14 +622,14 @@ export function SettingsSurface({
                   setPackageRiskConfirm(false);
                 }}
               >
-                I understand, enable
+                {translate("ui.settingsSurface.text.iUnderstandEnable")}
               </button>
               <button
                 autoFocus
                 type="button"
                 onClick={() => setPackageRiskConfirm(false)}
               >
-                Cancel
+                {translate("ui.settingsSurface.text.cancel")}
               </button>
             </div>
           </section>
@@ -645,11 +678,46 @@ function CategoryPanel({
   if (category === "general")
     return (
       <section role="tabpanel" aria-labelledby="settings-general-tab">
-        <h4>General</h4>
+        <h4>{translate("ui.settingsSurface.text.general")}</h4>
+        <SettingRow
+          id="language-selection"
+          label={translate("settingsSearch.language_tag.label")}
+          description={translate("language.description")}
+          reset={() => {
+            void changeLanguage(defaults.language.tag);
+            patch({ ...settings, language: defaults.language }, "language.tag");
+          }}
+        >
+          <select
+            id="language-selection"
+            value={settings.language.tag}
+            onChange={(event) => {
+              const languageTag = event.target.value;
+              void changeLanguage(languageTag);
+              patch(
+                { ...settings, language: { tag: languageTag } },
+                "language.tag",
+              );
+            }}
+          >
+            {translationCatalog.languages.map((pack) => (
+              <option
+                key={pack.languageTag}
+                value={pack.languageTag}
+                lang={pack.languageTag}
+                dir={pack.direction}
+              >
+                {pack.name}
+              </option>
+            ))}
+          </select>
+        </SettingRow>
         <SettingRow
           id="theme"
-          label="Appearance"
-          description="Choose the application color theme."
+          label={translate("ui.settingsSurface.label.appearance")}
+          description={translate(
+            "ui.settingsSurface.description.chooseTheApplicationColorTheme",
+          )}
           reset={() =>
             patch(
               {
@@ -680,15 +748,23 @@ function CategoryPanel({
               )
             }
           >
-            <option value="system">Use system setting</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
+            <option value="system">
+              {translate("ui.settingsSurface.text.useSystemSetting")}
+            </option>
+            <option value="light">
+              {translate("ui.settingsSurface.text.light")}
+            </option>
+            <option value="dark">
+              {translate("ui.settingsSurface.text.dark")}
+            </option>
           </select>
         </SettingRow>
         <SettingRow
           id="accent"
-          label="Accent color"
-          description="Choose the base color used to derive accessible application accents."
+          label={translate("ui.settingsSurface.label.accentColor")}
+          description={translate(
+            "ui.settingsSurface.description.chooseTheBaseColorUsedToDeriveAccessibleApplication",
+          )}
           reset={() =>
             patch(
               {
@@ -725,19 +801,22 @@ function CategoryPanel({
           </div>
         </SettingRow>
         <div className="setting-explanation">
-          Home is always the root destination. Startup redirection is an agreed
-          application behavior, not a configurable preference.
+          {translate(
+            "ui.settingsSurface.text.homeIsAlwaysTheRootDestinationStartupRedirectionIs",
+          )}
         </div>
       </section>
     );
   if (category === "editor")
     return (
       <section role="tabpanel" aria-labelledby="settings-editor-tab">
-        <h4>Editor</h4>
+        <h4>{translate("ui.settingsSurface.text.editor")}</h4>
         <SettingRow
           id="save-mode"
-          label="Saving"
-          description="Choose whether Editor changes save automatically."
+          label={translate("ui.settingsSurface.label.saving")}
+          description={translate(
+            "ui.settingsSurface.description.chooseWhetherEditorChangesSaveAutomatically",
+          )}
           reset={() =>
             patch(
               {
@@ -767,16 +846,22 @@ function CategoryPanel({
               )
             }
           >
-            <option value="autosave">Autosave</option>
-            <option value="explicit">Explicit save</option>
+            <option value="autosave">
+              {translate("ui.settingsSurface.text.autosave")}
+            </option>
+            <option value="explicit">
+              {translate("ui.settingsSurface.text.explicitSave")}
+            </option>
           </select>
         </SettingRow>
         <CheckRow
           id="warn-alt"
-          label="Missing image alt warning"
-          description="Warn when an image block omits alternative text."
+          label={translate("ui.settingsSurface.label.missingImageAltWarning")}
+          description={translate(
+            "ui.settingsSurface.description.warnWhenAnImageBlockOmitsAlternativeText",
+          )}
           checked={settings.editor.warnMissingImageAlt}
-          text="Show accessibility warning"
+          text={translate("ui.settingsSurface.text.showAccessibilityWarning")}
           onChange={(value) =>
             patch(
               {
@@ -798,10 +883,14 @@ function CategoryPanel({
         />
         <CheckRow
           id="warn-layout"
-          label="Missing layout target warning"
-          description="Warn when a reusable layout target is absent."
+          label={translate(
+            "ui.settingsSurface.label.missingLayoutTargetWarning",
+          )}
+          description={translate(
+            "ui.settingsSurface.description.warnWhenAReusableLayoutTargetIsAbsent",
+          )}
           checked={settings.editor.warnMissingLayoutTargets}
-          text="Show missing-target warning"
+          text={translate("ui.settingsSurface.text.showMissingTargetWarning")}
           onChange={(value) =>
             patch(
               {
@@ -822,21 +911,24 @@ function CategoryPanel({
           }
         />
         <div className="setting-explanation">
-          These preferences are persisted now; Editor behavior remains inert
-          until the Editor workspace is implemented.
+          {translate(
+            "ui.settingsSurface.text.thesePreferencesArePersistedNowEditorBehaviorRemainsInert",
+          )}
         </div>
       </section>
     );
   if (category === "chain")
     return (
       <section role="tabpanel" aria-labelledby="settings-chain-tab">
-        <h4>Chain Tracker</h4>
+        <h4>{translate("ui.settingsSurface.text.chainTracker")}</h4>
         <CheckRow
           id="multiple-versions"
-          label="Add another package version"
-          description="Allow Add to place a second installed version of a logical Jump package into the current chain."
+          label={translate("ui.settingsSurface.label.addAnotherPackageVersion")}
+          description={translate(
+            "ui.settingsSurface.description.allowAddToPlaceASecondInstalledVersionOf",
+          )}
           checked={settings.chain.allowMultiplePackageVersions}
-          text="Allow second version"
+          text={translate("ui.settingsSurface.text.allowSecondVersion")}
           onChange={(value) =>
             patch(
               {
@@ -864,10 +956,12 @@ function CategoryPanel({
         />
         <CheckRow
           id="duplicate-jumps"
-          label="Allow duplicate jumps"
-          description="Allow the same exact Jump package to be added to this chain more than once as independent entries."
+          label={translate("ui.settingsSurface.label.allowDuplicateJumps")}
+          description={translate(
+            "ui.settingsSurface.description.allowTheSameExactJumpPackageToBeAdded",
+          )}
           checked={settings.chain.allowDuplicateJumps}
-          text="Allow duplicate jumps"
+          text={translate("ui.settingsSurface.text.allowDuplicateJumps")}
           onChange={(value) =>
             patch(
               {
@@ -895,10 +989,12 @@ function CategoryPanel({
         />
         <CheckRow
           id="negative-balances"
-          label="Negative point balances"
-          description="Permit active choice selections that would make primary Jump points negative. Clearing choices and recalculation are never blocked."
+          label={translate("ui.settingsSurface.label.negativePointBalances")}
+          description={translate(
+            "ui.settingsSurface.description.permitActiveChoiceSelectionsThatWouldMakePrimaryJump",
+          )}
           checked={settings.chain.allowNegativePointBalances}
-          text="Allow negative balances"
+          text={translate("ui.settingsSurface.text.allowNegativeBalances")}
           onChange={(value) =>
             patch(
               {
@@ -920,10 +1016,12 @@ function CategoryPanel({
         />
         <CheckRow
           id="rerolls"
-          label="Rerolls"
-          description="Allow a recorded random result to be replaced for the same chain entry."
+          label={translate("ui.settingsSurface.label.rerolls")}
+          description={translate(
+            "ui.settingsSurface.description.allowARecordedRandomResultToBeReplacedFor",
+          )}
           checked={settings.chain.allowRerolls}
-          text="Allow rerolls"
+          text={translate("ui.settingsSurface.text.allowRerolls")}
           onChange={(value) =>
             patch(
               {
@@ -945,10 +1043,14 @@ function CategoryPanel({
         />
         <CheckRow
           id="aggregate-similar-inventory"
-          label="Aggregate similar perks and items"
-          description="Combine records with the same owner, kind, resolved name, and rank while retaining every source, description, and tag."
+          label={translate(
+            "ui.settingsSurface.label.aggregateSimilarPerksAndItems",
+          )}
+          description={translate(
+            "ui.settingsSurface.description.combineRecordsWithTheSameOwnerKindResolvedName",
+          )}
           checked={settings.chain.aggregateSimilarInventory}
-          text="Aggregate similar records"
+          text={translate("ui.settingsSurface.text.aggregateSimilarRecords")}
           onChange={(value) =>
             patch(
               {
@@ -976,10 +1078,12 @@ function CategoryPanel({
         />
         <CheckRow
           id="item-tags-radar"
-          label="Include item tags in radar"
-          description="Count tags from Jumper and form items in radar statistics. Companion perks and items never contribute."
+          label={translate("ui.settingsSurface.label.includeItemTagsInRadar")}
+          description={translate(
+            "ui.settingsSurface.description.countTagsFromJumperAndFormItemsInRadar",
+          )}
           checked={settings.chain.includeItemTagsInRadar}
-          text="Count item tags"
+          text={translate("ui.settingsSurface.text.countItemTags")}
           onChange={(value) =>
             patch(
               {
@@ -1001,10 +1105,12 @@ function CategoryPanel({
         />
         <CheckRow
           id="upstream"
-          label="Upstream change warnings"
-          description="Review reorder or deletion only when an explicit active downstream dependency would become invalid."
+          label={translate("ui.settingsSurface.label.upstreamChangeWarnings")}
+          description={translate(
+            "ui.settingsSurface.description.reviewReorderOrDeletionOnlyWhenAnExplicitActive",
+          )}
           checked={settings.chain.warnUpstreamChanges}
-          text="Warn about upstream changes"
+          text={translate("ui.settingsSurface.text.warnAboutUpstreamChanges")}
           onChange={(value) =>
             patch(
               {
@@ -1026,10 +1132,14 @@ function CategoryPanel({
         />
         <CheckRow
           id="color-chain"
-          label="Color chain names by primary tag"
-          description="Color saved-chain names from the category with the greatest eligible radar count."
+          label={translate(
+            "ui.settingsSurface.label.colorChainNamesByPrimaryTag",
+          )}
+          description={translate(
+            "ui.settingsSurface.description.colorSavedChainNamesFromTheCategoryWithThe",
+          )}
           checked={settings.chain.colorNamesByPrimaryTag}
-          text="Color chain names"
+          text={translate("ui.settingsSurface.text.colorChainNames")}
           onChange={(value) =>
             patch(
               {
@@ -1050,9 +1160,9 @@ function CategoryPanel({
           }
         />
         <div className="setting-explanation">
-          Similar inventory aggregation is on by default; the other seven
-          settings are off. Exact versions never duplicate, and upstream review
-          remains material-only and undoable.
+          {translate(
+            "ui.settingsSurface.text.similarInventoryAggregationIsOnByDefaultTheOther",
+          )}
         </div>
       </section>
     );
@@ -1071,28 +1181,29 @@ function CategoryPanel({
   if (category === "keys")
     return (
       <section role="tabpanel" aria-labelledby="settings-keys-tab">
-        <h4>Key bindings</h4>
+        <h4>{translate("ui.settingsSurface.text.keyBindings")}</h4>
         <div id="keybindings" className="keybinding-list">
           {keybindingActions.map((action) => (
             <KeybindingRow key={action} action={action} settings={settings} />
           ))}
         </div>
         <div className="setting-explanation">
-          Overrides are user-local. Duplicate or platform-reserved bindings are
-          reported before a change is accepted. Editor commands update
-          immediately, including while a workspace remains mounted behind
-          Settings.
+          {translate(
+            "ui.settingsSurface.text.overridesAreUserLocalDuplicateOrPlatformReservedBindings",
+          )}
         </div>
       </section>
     );
   if (category === "accessibility")
     return (
       <section role="tabpanel" aria-labelledby="settings-accessibility-tab">
-        <h4>Accessibility</h4>
+        <h4>{translate("ui.settingsSurface.text.accessibility")}</h4>
         <SettingRow
           id="motion"
-          label="Motion"
-          description="Control nonessential interface animation."
+          label={translate("ui.settingsSurface.label.motion")}
+          description={translate(
+            "ui.settingsSurface.description.controlNonessentialInterfaceAnimation",
+          )}
           reset={() =>
             patch(
               { ...settings, accessibility: defaults.accessibility },
@@ -1116,14 +1227,21 @@ function CategoryPanel({
               )
             }
           >
-            <option value="system">Use system setting</option>
-            <option value="reduced">Reduce motion</option>
-            <option value="full">Full motion</option>
+            <option value="system">
+              {translate("ui.settingsSurface.text.useSystemSetting")}
+            </option>
+            <option value="reduced">
+              {translate("ui.settingsSurface.text.reduceMotion")}
+            </option>
+            <option value="full">
+              {translate("ui.settingsSurface.text.fullMotion")}
+            </option>
           </select>
         </SettingRow>
         <div className="setting-explanation">
-          Reduced motion removes nonessential movement without hiding state
-          changes or progress feedback.
+          {translate(
+            "ui.settingsSurface.text.reducedMotionRemovesNonessentialMovementWithoutHidingStateChanges",
+          )}
         </div>
       </section>
     );
@@ -1136,7 +1254,9 @@ function CategoryPanel({
       <div
         className="settings-subtabs"
         role="tablist"
-        aria-label="Developer settings pages"
+        aria-label={translate(
+          "ui.settingsSurface.ariaLabel.developerSettingsPages",
+        )}
       >
         <button
           type="button"
@@ -1144,7 +1264,7 @@ function CategoryPanel({
           aria-selected={developerPage === "overview"}
           onClick={() => setDeveloperPage("overview")}
         >
-          Overview
+          {translate("ui.settingsSurface.text.overview")}
         </button>
         <button
           id="developer-logs-tab"
@@ -1153,18 +1273,22 @@ function CategoryPanel({
           aria-selected={developerPage === "logs"}
           onClick={() => setDeveloperPage("logs")}
         >
-          Logs
+          {translate("ui.settingsSurface.text.logs")}
         </button>
       </div>
       {developerPage === "overview" ? (
         <section className="developer-subpanel">
-          <h4>Developer</h4>
+          <h4>{translate("ui.settingsSurface.text.developer")}</h4>
           <CheckRow
             id="additional-jump-information"
-            label="Show additional Jump information"
-            description="Show the evaluated package format above ordinary rendered Jumps."
+            label={translate(
+              "ui.settingsSurface.label.showAdditionalJumpInformation",
+            )}
+            description={translate(
+              "ui.settingsSurface.description.showTheEvaluatedPackageFormatAboveOrdinaryRenderedJumps",
+            )}
             checked={settings.developer.showAdditionalJumpInformation}
-            text="Enable extra information"
+            text={translate("ui.settingsSurface.text.enableExtraInformation")}
             onChange={(value) =>
               patch(
                 {
@@ -1193,10 +1317,12 @@ function CategoryPanel({
           />
           <CheckRow
             id="show-open-project-folder"
-            label="Show Open Project Folder"
-            description="Show the desktop-only external-folder workflow on the Editor hub."
+            label={translate("ui.settingsSurface.label.showOpenProjectFolder")}
+            description={translate(
+              "ui.settingsSurface.description.showTheDesktopOnlyExternalFolderWorkflowOnThe",
+            )}
             checked={settings.developer.showOpenProjectFolder}
-            text="Show folder action"
+            text={translate("ui.settingsSurface.text.showFolderAction")}
             onChange={(value) =>
               patch(
                 {
@@ -1225,27 +1351,42 @@ function CategoryPanel({
           />
           <div className="setting-row developer-package-limits">
             <div>
-              <label htmlFor="custom-package-limits">Package size limits</label>
+              <label htmlFor="custom-package-limits">
+                {translate("ui.settingsSurface.text.packageSizeLimits")}
+              </label>
               <p>
-                Byte budgets shared by Editor import/export, desktop projects,
-                and Chain Tracker installation.
+                {translate(
+                  "ui.settingsSurface.text.byteBudgetsSharedByEditorImportExportDesktopProjects",
+                )}
               </p>
               <dl className="developer-effective-limits">
                 <div>
-                  <dt>Archive</dt>
-                  <dd>{effectiveLimits.maxArchiveMiB} MiB</dd>
+                  <dt>{translate("ui.settingsSurface.text.archive")}</dt>
+                  <dd>
+                    {effectiveLimits.maxArchiveMiB}{" "}
+                    {translate("ui.settingsSurface.text.mib")}
+                  </dd>
                 </div>
                 <div>
-                  <dt>Definition</dt>
-                  <dd>{effectiveLimits.maxDefinitionFileMiB} MiB</dd>
+                  <dt>{translate("ui.settingsSurface.text.definition")}</dt>
+                  <dd>
+                    {effectiveLimits.maxDefinitionFileMiB}{" "}
+                    {translate("ui.settingsSurface.text.mib")}
+                  </dd>
                 </div>
                 <div>
-                  <dt>Asset</dt>
-                  <dd>{effectiveLimits.maxAssetFileMiB} MiB</dd>
+                  <dt>{translate("ui.settingsSurface.text.asset")}</dt>
+                  <dd>
+                    {effectiveLimits.maxAssetFileMiB}{" "}
+                    {translate("ui.settingsSurface.text.mib")}
+                  </dd>
                 </div>
                 <div>
-                  <dt>Expanded</dt>
-                  <dd>{effectiveLimits.maxExpandedPackageMiB} MiB</dd>
+                  <dt>{translate("ui.settingsSurface.text.expanded")}</dt>
+                  <dd>
+                    {effectiveLimits.maxExpandedPackageMiB}{" "}
+                    {translate("ui.settingsSurface.text.mib")}
+                  </dd>
                 </div>
               </dl>
             </div>
@@ -1270,7 +1411,9 @@ function CategoryPanel({
                       );
                   }}
                 />
-                <span>Use custom package limits</span>
+                <span>
+                  {translate("ui.settingsSurface.text.useCustomPackageLimits")}
+                </span>
               </label>
               <div
                 className="developer-limit-grid"
@@ -1313,10 +1456,12 @@ function CategoryPanel({
                           updatePackageLimit(key, event.target.valueAsNumber)
                         }
                       />
-                      MiB
+                      {translate("ui.settingsSurface.text.mib")}
                     </span>
                     <small>
-                      Absolute ceiling: {ABSOLUTE_PACKAGE_SIZE_LIMITS[key]} MiB
+                      {translate("ui.settingsSurface.text.absoluteCeiling")}
+                      {ABSOLUTE_PACKAGE_SIZE_LIMITS[key]}{" "}
+                      {translate("ui.settingsSurface.text.mib")}
                     </small>
                   </label>
                 ))}
@@ -1332,9 +1477,12 @@ function CategoryPanel({
               )}
               {settings.developer.useCustomPackageSizeLimits && (
                 <p className="developer-risk-warning" role="status">
-                  <strong>At your own risk.</strong> Increased byte budgets may
-                  use substantially more memory, disk space, and processing
-                  time. Other malicious-file protections stay active.
+                  <strong>
+                    {translate("ui.settingsSurface.text.atYourOwnRisk")}
+                  </strong>{" "}
+                  {translate(
+                    "ui.settingsSurface.text.increasedByteBudgetsMayUseSubstantiallyMoreMemoryDisk",
+                  )}
                 </p>
               )}
               <button
@@ -1354,17 +1502,25 @@ function CategoryPanel({
                   )
                 }
               >
-                Reset package limits
+                {translate("ui.settingsSurface.text.resetPackageLimits")}
               </button>
             </div>
           </div>
           <div className="setting-row">
             <div>
-              <label htmlFor="debug-events">Debug events</label>
-              <p>Include detailed debug events until the application exits.</p>
+              <label htmlFor="debug-events">
+                {translate("ui.settingsSurface.text.debugEvents")}
+              </label>
+              <p>
+                {translate(
+                  "ui.settingsSurface.text.includeDetailedDebugEventsUntilTheApplicationExits",
+                )}
+              </p>
             </div>
             <div>
-              <span className="setting-state agreed">Session only</span>
+              <span className="setting-state agreed">
+                {translate("ui.settingsSurface.text.sessionOnly")}
+              </span>
               <label className="setting-check">
                 <input
                   id="debug-events"
@@ -1382,13 +1538,16 @@ function CategoryPanel({
                       });
                   }}
                 />
-                <span>Capture debug events</span>
+                <span>
+                  {translate("ui.settingsSurface.text.captureDebugEvents")}
+                </span>
               </label>
             </div>
           </div>
           <div className="setting-explanation">
-            Logs are never persisted between launches. This session control is
-            not stored as a preference.
+            {translate(
+              "ui.settingsSurface.text.logsAreNeverPersistedBetweenLaunchesThisSessionControl",
+            )}
           </div>
         </section>
       ) : (
@@ -1423,7 +1582,7 @@ function SettingRow({
         <div className="setting-control-with-reset">
           {children}
           <button type="button" className="setting-reset" onClick={reset}>
-            Reset
+            {translate("ui.settingsSurface.text.reset")}
           </button>
         </div>
       </div>
@@ -1506,13 +1665,15 @@ function NotificationsPanel({
       role="tabpanel"
       aria-labelledby="settings-notifications-tab"
     >
-      <h4>Notifications</h4>
+      <h4>{translate("ui.settingsSurface.text.notifications")}</h4>
       <CheckRow
         id="notifications-enabled"
-        label="Toast notifications"
-        description="Show user-facing projections of selected session log events."
+        label={translate("ui.settingsSurface.label.toastNotifications")}
+        description={translate(
+          "ui.settingsSurface.description.showUserFacingProjectionsOfSelectedSessionLogEvents",
+        )}
         checked={settings.notifications.enabled}
-        text="Enable toast notifications"
+        text={translate("ui.settingsSurface.text.enableToastNotifications")}
         onChange={(value) =>
           patch(
             {
@@ -1534,8 +1695,10 @@ function NotificationsPanel({
       />
       <SettingRow
         id="notifications-max"
-        label="Maximum visible"
-        description="Additional notifications wait in the queue."
+        label={translate("ui.settingsSurface.label.maximumVisible")}
+        description={translate(
+          "ui.settingsSurface.description.additionalNotificationsWaitInTheQueue",
+        )}
         reset={() =>
           patch(
             {
@@ -1572,8 +1735,10 @@ function NotificationsPanel({
       </SettingRow>
       <SettingRow
         id="notifications-duration"
-        label="Toast duration"
-        description="Interaction pauses automatic dismissal."
+        label={translate("ui.settingsSurface.label.toastDuration")}
+        description={translate(
+          "ui.settingsSurface.description.interactionPausesAutomaticDismissal",
+        )}
         reset={() =>
           patch(
             {
@@ -1602,14 +1767,22 @@ function NotificationsPanel({
             )
           }
         >
-          <option value="3000">3 seconds</option>
-          <option value="5000">5 seconds</option>
-          <option value="8000">8 seconds</option>
-          <option value="15000">15 seconds</option>
+          <option value="3000">
+            {translate("ui.settingsSurface.text.3Seconds")}
+          </option>
+          <option value="5000">
+            {translate("ui.settingsSurface.text.5Seconds")}
+          </option>
+          <option value="8000">
+            {translate("ui.settingsSurface.text.8Seconds")}
+          </option>
+          <option value="15000">
+            {translate("ui.settingsSurface.text.15Seconds")}
+          </option>
         </select>
       </SettingRow>
       <fieldset className="notification-class-settings">
-        <legend>Trigger classes</legend>
+        <legend>{translate("ui.settingsSurface.text.triggerClasses")}</legend>
         {classes.map((entry) => (
           <label key={entry.id}>
             <input
@@ -1645,13 +1818,14 @@ function NotificationsPanel({
           disabled={disabled || !settings.notifications.classes.confirmations}
           onClick={() => logger.emit("settings.notification.previewed")}
         >
-          Preview toast
+          {translate("ui.settingsSurface.text.previewToast")}
         </button>
         <div className="settings-toast-stage" aria-live="polite" />
       </div>
       <div className="setting-explanation">
-        Input-driven candidates wait 500 ms. Repeated matching events update one
-        toast and its occurrence count.
+        {translate(
+          "ui.settingsSurface.text.inputDrivenCandidatesWait500MsRepeatedMatchingEvents",
+        )}
       </div>
     </section>
   );
@@ -1729,7 +1903,7 @@ function KeybindingRow({
             }, `keybindings.${action}`)
           }
         >
-          Reset
+          {translate("ui.settingsSurface.text.reset")}
         </button>
       )}
     </div>

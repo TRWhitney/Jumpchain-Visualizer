@@ -1,0 +1,205 @@
+{
+  "ui": {
+    "chainTracker": {
+      "text": {
+        "jv": "JV",
+        "chainTracker": "Chain Tracker",
+        "morgan": "Morgan",
+        "editor": "Editor",
+        "settings": "Settings",
+        "jumps": " Jumps",
+        "supp": "Supp",
+        "add": "+ Add",
+        "currency": "Currency",
+        "cp": "CP",
+        "alternativeCurrenciesRemaining": "Alternative currencies remaining",
+        "noAlternativeCurrenciesInThisJump": "No alternative currencies in this Jump.",
+        "origin": "Origin",
+        "species": "Species: ",
+        "location": "Location:",
+        "gender": "Gender",
+        "age": "Age",
+        "parallelVersionsEnabled": "Parallel versions enabled",
+        "availablePackages": "Available packages",
+        "importJmp": "Import .jmp",
+        "findAvailableJump": "Find available jump",
+        "noAvailableJumpsMatchThisFilter": "No available jumps match this filter.",
+        "securePackageInspection": "Secure package inspection",
+        "inspectingEveryEntry": "Inspecting every entry…",
+        "nothingEntersTheImmutablePackageLibraryUntilArchiveImage": "Nothing enters the immutable package library until archive, image, source, schema, reference, and size validation completes.",
+        "installationBlocked": "Installation blocked",
+        "thisPackageMayBeUnsafeOrMalformed": "This package may be unsafe or malformed",
+        "nothingWasInstalledExtractedOrAddedToTheChain": "Nothing was installed, extracted, or added to the chain.",
+        "close": "Close",
+        "preparingSelectedJump": " Preparing selected Jump…",
+        "aNegativePointBalance": " a negative point balance",
+        "makeChoicesAs": "Make choices as",
+        "thisExactPackageIsUnavailableStoredSelectionsArePreserved": "This exact package is unavailable. Stored selections are preserved until it is restored.",
+        "accruedInventory": "Accrued inventory",
+        "perksAndItems": "Perks and items",
+        "through": "Through ",
+        "search": "Search",
+        "stats": "Stats",
+        "tagSearch": "Tag search",
+        "relationships": "Relationships",
+        "allTags": "All tags",
+        "exactInventoryPoint": "Exact inventory point",
+        "includesDescendants": "Includes descendants",
+        "throughRangeSeparator": " through ",
+        "noInventoryRecordsMatchTheseFilters": "No inventory records match these filters.",
+        "moreTagsHoverOrFocusToShowAllTags": " more tags. Hover or focus to show all tags.",
+        "accruedBodies": "Accrued bodies",
+        "forms": "Forms",
+        "view": "View",
+        "noFormsAreAvailableAtThisPoint": "No forms are available at this point.",
+        "formRecord": "Form record",
+        "fullDetails": "Full details",
+        "accruedRoster": "Accrued roster",
+        "companions": "Companions",
+        "companionRecord": "Companion record",
+        "joinedIn": "Joined in ",
+        "fullProfile": "Full profile",
+        "joinedInLabel": "Joined in",
+        "noCompanionsHaveJoinedByThisPoint": "No companions have joined by this point.",
+        "details": " details",
+        "quantity": "Quantity",
+        "acquiredIn": "Acquired in",
+        "jump": "Jump ",
+        "detailsLabel": "Details",
+        "importedInto": "Imported into",
+        "companionHasNotBeenImportedIntoAnyJumps": "Companion has not been imported into any jumps",
+        "dependencyReview": "Dependency review",
+        "affectedDependencies": "Affected dependencies",
+        "ownsActive": " owns active",
+        "isProvidedBy": " is provided by",
+        "andImportedBy": " and imported by",
+        "cancel": "Cancel"
+      },
+      "ariaLabel": {
+        "applicationWorkspaceSwitch": "Application workspace switch",
+        "chainWorkspacePage": "Chain workspace page",
+        "chainAndJumpLibrary": "Chain and jump library",
+        "chainNavigation": "Chain navigation",
+        "currentJumpSummary": "Current jump summary",
+        "orderedChainJumpsNewestFirst": "Ordered chain jumps, newest first",
+        "jumpSourceFilter": "Jump source filter",
+        "inventoryView": "Inventory view",
+        "searchInventory": "Search inventory",
+        "inventoryRecordKind": "Inventory record kind",
+        "tagSearch": "Tag search",
+        "closePerkOrItemDetails": "Close perk or item details",
+        "tags": "Tags",
+        "acquisitionDetails": "Acquisition details",
+        "closeDependencyReview": "Close dependency review",
+        "interactiveChainTrackerWorkspace": "Interactive Chain Tracker workspace"
+      },
+      "title": {
+        "dragToReorder": "Drag to reorder",
+        "formPerks": "Form perks",
+        "perks": "Perks",
+        "items": "Items"
+      },
+      "placeholder": {
+        "findAJump": "Find a jump",
+        "searchNamesTagsAliasesOrJumps": "Search names, tags, aliases, or jumps"
+      },
+      "label": {
+        "inventoryThrough": "Inventory through",
+        "formsThrough": "Forms through",
+        "rosterThrough": "Roster through"
+      }
+    },
+    "earthJumpRenderer": {
+      "text": {
+        "chainBeginning": "Chain beginning",
+        "earth": "Earth",
+        "setTheIdentityThatBeginsThisChain": "Set the identity that begins this chain.",
+        "available": "Available",
+        "0CP": "0 CP",
+        "beforeTheChain": "Before the chain",
+        "welcomeToYourJumpchain": "Welcome to your Jumpchain",
+        "startingIdentity": "Starting identity",
+        "chooseWhoBeginsTheChain": "Choose who begins the chain",
+        "selectManual": "Select · Manual",
+        "gender": "Gender",
+        "free": "Free",
+        "startingGender": "Starting gender",
+        "unset": "Unset",
+        "male": "Male",
+        "female": "Female",
+        "clear": "Clear",
+        "integerManual": "Integer · Manual",
+        "age": "Age",
+        "origin": "Origin",
+        "species": "Species",
+        "location": "Location"
+      },
+      "ariaLabel": {
+        "earthGender": "Earth gender"
+      },
+      "label": {
+        "earthAge": "Earth age"
+      }
+    },
+    "jumpRenderer": {
+      "text": {
+        "free": "Free",
+        "rollForFree": "Roll for Free",
+        "rankCountPending": "Rank count pending",
+        "rolled": "Rolled ",
+        "isFree": " is Free",
+        "rank": " rank",
+        "freeRolled": " Free · Rolled",
+        "paid": " paid × ",
+        "cp": " CP · ",
+        "cpTotal": " CP total",
+        "each": " each",
+        "take": "Take ",
+        "unset": "Unset",
+        "clear": "Clear",
+        "requires": "Requires ",
+        "eachSelectedCompanionReceives": "Each selected companion receives",
+        "requiresForm": "Requires form ",
+        "rolledLabel": "Rolled",
+        "roll": "Roll",
+        "spent": "Spent",
+        "cpSuffix": " CP",
+        "format1EvaluatedPackage": "Format 1 evaluated package",
+        "available": "Available",
+        "traits": "Traits",
+        "currentJumpTraits": "Current Jump traits"
+      },
+      "placeholder": {
+        "unset": "Unset"
+      }
+    },
+    "numberStepper": {
+      "ariaLabel": {
+        "increase": "Increase",
+        "decrease": "Decrease"
+      }
+    },
+    "tagRadar": {
+      "text": {
+        "records": " records",
+        "currentBreakdown": "Current breakdown",
+        "tagBreakdownFor": "Tag breakdown for ",
+        "tag": "Tag",
+        "recordsHeading": "Records",
+        "sort": "Sort",
+        "occurrences": "Occurrences",
+        "tagAZ": "Tag A–Z",
+        "allCategories": "All categories",
+        "openBreakdown": "Open breakdown",
+        "accrued": "Accrued ",
+        "countForEachBuiltInTagCategory": " count for each built-in tag category",
+        "category": "Category",
+        "selectACategoryToEmphasizeItsAxisSelectIt": "Select a category to emphasize its axis; select it again to open its breakdown."
+      },
+      "ariaLabel": {
+        "sortRadarCategories": "Sort radar categories",
+        "chartDrilldownPath": "Chart drilldown path"
+      }
+    }
+  }
+}

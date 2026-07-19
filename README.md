@@ -15,6 +15,10 @@ The Editor is available from Home → Build a Jump → Open Editor. Browser proj
 
 Run the complete verification surface with `corepack pnpm check`. Native packaged smoke tests use `corepack pnpm test:native`. Product and format documentation starts at [`documentation/index.html`](documentation/index.html).
 
+## Translating the application
+
+Application-owned interface text lives in feature files under `src/localization/languages/English/`; Jump package content and user-authored chain data do not. English is the canonical fallback. To add a translation, create a sibling folder named with the language's own display name (for example `Español/`), copy `manifest.json`, set its canonical BCP 47 `languageTag` and `direction`, and add any subset of the English feature files and message leaves. A rebuild is required because Vite bundles discovered JSON packs. Keep semantic keys unchanged, and do not add HTML, URLs, React properties, or alter interpolation/component tokens. Run `corepack pnpm test` to validate pack structure and the source audit, then the complete `corepack pnpm check` surface. See [`documentation/localization.html`](documentation/localization.html) for the folder schema, boundaries, fallback, tag customization, spell-check behavior, and security rules.
+
 ## Package security
 
 Archives, markup, and assets are untrusted. Imports enforce byte, entry, compression-ratio, path, file-type, integrity, image-decode, schema, reference, and atomic-commit protections. Developer package-size overrides increase byte budgets only and cannot disable mandatory malicious-archive safeguards.

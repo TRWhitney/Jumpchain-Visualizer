@@ -13,10 +13,13 @@ import {
 import {
   bestialPresentation,
   bodyModPerkCost,
+  bodyModPerkLabel,
   bodyModPerks,
   bodyModRemaining,
   bodyModStatCost,
+  bodyModStatLabel,
   bodyModStats,
+  bodyModTypeLabel,
   bodyTypes,
   freePerks,
   freeStats,
@@ -27,6 +30,7 @@ import {
   type BodyModStat,
   type BodyModType,
 } from "./bodyMod";
+import { translate } from "../localization";
 
 export function BodyModPage() {
   const [tab, setTab] = useState("body");
@@ -56,18 +60,22 @@ export function BodyModPage() {
   return (
     <div
       className="bodymod-full-mock"
-      aria-label="Interactive Classic Body Mod full supplement page"
+      aria-label={translate(
+        "ui.modulePages.ariaLabel.interactiveClassicBodyModFullSupplementPage",
+      )}
     >
       <header className="bodymod-full-header">
         <div>
-          <p>Foundation supplement</p>
-          <h4>Classic Body Mod</h4>
-          <span>Quicksilver edition · 600 CP</span>
+          <p>{translate("ui.modulePages.text.foundationSupplement")}</p>
+          <h4>{translate("ui.modulePages.text.classicBodyMod")}</h4>
+          <span>
+            {translate("ui.modulePages.text.quicksilverEdition600CP")}
+          </span>
         </div>
         <div className="bodymod-budget">
-          <span>Remaining</span>
+          <span>{translate("ui.modulePages.text.remaining")}</span>
           <output className={remaining < 0 ? "is-negative" : ""}>
-            {remaining} CP
+            {remaining} {translate("ui.modulePages.text.cp")}
           </output>
         </div>
       </header>
@@ -76,35 +84,43 @@ export function BodyModPage() {
         value={tab}
         onChange={setTab}
         className="bodymod-full-tabs"
-        label="Body Mod page section"
+        label={translate("ui.modulePages.label.bodyModPageSection")}
       />
       <div className="bodymod-full-layout">
         <aside className="bodymod-build-summary">
-          <p>Current foundation</p>
+          <p>{translate("ui.modulePages.text.currentFoundation")}</p>
           <div className="bodymod-summary-avatar">
             {state.type === "Bestial"
               ? `${(state.animal || "A")[0].toUpperCase()}D`
               : type.initials}
           </div>
-          <h5>{state.type === "None" ? "Current body" : state.type}</h5>
-          <span>{state.build} build</span>
+          <h5>{bodyModTypeLabel(state.type)}</h5>
+          <span>
+            {state.build} {translate("ui.modulePages.text.build")}
+          </span>
           <dl>
             <div>
-              <dt>Body type</dt>
-              <dd>{type.cost} CP</dd>
+              <dt>{translate("ui.modulePages.text.bodyType")}</dt>
+              <dd>
+                {type.cost} {translate("ui.modulePages.text.cp")}
+              </dd>
             </div>
             <div>
-              <dt>Stats</dt>
-              <dd>{statCost} CP</dd>
+              <dt>{translate("ui.modulePages.text.stats")}</dt>
+              <dd>
+                {statCost} {translate("ui.modulePages.text.cp")}
+              </dd>
             </div>
             <div>
-              <dt>Perks</dt>
-              <dd>{perkCost} CP</dd>
+              <dt>{translate("ui.modulePages.text.perks")}</dt>
+              <dd>
+                {perkCost} {translate("ui.modulePages.text.cp")}
+              </dd>
             </div>
           </dl>
           <div className="bodymod-free-grants">
             <strong>
-              Included with{" "}
+              {translate("ui.modulePages.text.includedWith")}{" "}
               {state.type === "None" ? "current body" : state.type}
             </strong>
             <p>
@@ -118,44 +134,71 @@ export function BodyModPage() {
         <div className="bodymod-panel-stack">
           {tab === "intro" && (
             <section className="bodymod-panel">
-              <p className="bodymod-kicker">What this changes</p>
-              <h5>Your persistent default body</h5>
+              <p className="bodymod-kicker">
+                {translate("ui.modulePages.text.whatThisChanges")}
+              </p>
+              <h5>
+                {translate("ui.modulePages.text.yourPersistentDefaultBody")}
+              </h5>
               <p>
-                Body Mod changes the Jumper’s default appearance and baseline
-                abilities across the chain. The chosen physique is presented
-                appropriately for the Jumper’s current age.
+                {translate(
+                  "ui.modulePages.text.bodyModChangesTheJumperSDefaultAppearanceAnd",
+                )}
               </p>
               <div className="bodymod-explanation-grid">
                 <article>
-                  <strong>600 CP</strong>
-                  <span>One independent supplement budget.</span>
+                  <strong>{translate("ui.modulePages.text.600CP")}</strong>
+                  <span>
+                    {translate(
+                      "ui.modulePages.text.oneIndependentSupplementBudget",
+                    )}
+                  </span>
                 </article>
                 <article>
-                  <strong>Fits current age</strong>
-                  <span>The physique follows the current age.</span>
+                  <strong>
+                    {translate("ui.modulePages.text.fitsCurrentAge")}
+                  </strong>
+                  <span>
+                    {translate(
+                      "ui.modulePages.text.thePhysiqueFollowsTheCurrentAge",
+                    )}
+                  </span>
                 </article>
                 <article>
-                  <strong>Adapts to other forms</strong>
-                  <span>Traits are interpreted for the active body.</span>
+                  <strong>
+                    {translate("ui.modulePages.text.adaptsToOtherForms")}
+                  </strong>
+                  <span>
+                    {translate(
+                      "ui.modulePages.text.traitsAreInterpretedForTheActiveBody",
+                    )}
+                  </span>
                 </article>
                 <article>
-                  <strong>Persistent</strong>
-                  <span>The baseline remains available.</span>
+                  <strong>{translate("ui.modulePages.text.persistent")}</strong>
+                  <span>
+                    {translate(
+                      "ui.modulePages.text.theBaselineRemainsAvailable",
+                    )}
+                  </span>
                 </article>
               </div>
             </section>
           )}
           {tab === "body" && (
             <section className="bodymod-panel">
-              <p className="bodymod-kicker">Step 1</p>
-              <h5>Choose build and body type</h5>
+              <p className="bodymod-kicker">
+                {translate("ui.modulePages.text.step1")}
+              </p>
+              <h5>{translate("ui.modulePages.text.chooseBuildAndBodyType")}</h5>
               <h6>
-                Build <span>Free · choose one</span>
+                {translate("ui.modulePages.text.buildPrefix")}
+                <span>{translate("ui.modulePages.text.freeChooseOne")}</span>
               </h6>
               <div
                 className="bodymod-choice-row"
                 role="group"
-                aria-label="Build"
+                aria-label={translate("ui.modulePages.ariaLabel.build")}
               >
                 {["Light", "Medium", "Heavy"].map((name) => (
                   <button
@@ -176,12 +219,15 @@ export function BodyModPage() {
                 ))}
               </div>
               <h6>
-                Body type <span>Optional · choose one</span>
+                {translate("ui.modulePages.text.bodyTypePrefix")}
+                <span>
+                  {translate("ui.modulePages.text.optionalChooseOne")}
+                </span>
               </h6>
               <div
                 className="bodymod-body-grid"
                 role="group"
-                aria-label="Body type"
+                aria-label={translate("ui.modulePages.ariaLabel.bodyType")}
               >
                 {[
                   [
@@ -214,7 +260,7 @@ export function BodyModPage() {
                     "150 CP",
                     "Sense 2 · Color 1 · animal traits",
                   ],
-                ].map(([id, name, cost, copy]) => (
+                ].map(([id, , cost, copy]) => (
                   <button
                     key={id}
                     type="button"
@@ -222,7 +268,7 @@ export function BodyModPage() {
                     onClick={() => setBody(id as BodyModType)}
                   >
                     <span>
-                      <strong>{name}</strong>
+                      <strong>{bodyModTypeLabel(id as BodyModType)}</strong>
                       <small>{cost}</small>
                     </span>
                     <p>{copy}</p>
@@ -232,45 +278,65 @@ export function BodyModPage() {
               {state.type === "Bestial" && (
                 <div className="bodymod-bestial-options">
                   <label>
-                    <span>Animal</span>
+                    <span>{translate("ui.modulePages.text.animal")}</span>
                     <input
-                      aria-label="Bestial animal"
+                      spellCheck
+                      aria-label={translate(
+                        "ui.modulePages.ariaLabel.bestialAnimal",
+                      )}
                       value={state.animal}
                       onChange={(event) => setAnimal(event.target.value)}
-                      placeholder="Choose a real animal"
+                      placeholder={translate(
+                        "ui.modulePages.placeholder.chooseARealAnimal",
+                      )}
                     />
                   </label>
                   <label>
-                    <span>Trait tier</span>
+                    <span>{translate("ui.modulePages.text.traitTier")}</span>
                     <select
-                      aria-label="Bestial trait tier"
+                      aria-label={translate(
+                        "ui.modulePages.ariaLabel.bestialTraitTier",
+                      )}
                       value={state.bestialTier}
                       onChange={(event) =>
                         setBestialTier(Number(event.target.value))
                       }
                     >
-                      <option value="0">Minor traits</option>
-                      <option value="1">Major traits</option>
-                      <option value="2">Full anthro</option>
+                      <option value="0">
+                        {translate("ui.modulePages.text.minorTraits")}
+                      </option>
+                      <option value="1">
+                        {translate("ui.modulePages.text.majorTraits")}
+                      </option>
+                      <option value="2">
+                        {translate("ui.modulePages.text.fullAnthro")}
+                      </option>
                     </select>
                   </label>
                   <label>
-                    <span>Animal-associated stat</span>
+                    <span>
+                      {translate("ui.modulePages.text.animalAssociatedStat")}
+                    </span>
                     <select
-                      aria-label="Bestial associated stat"
+                      aria-label={translate(
+                        "ui.modulePages.ariaLabel.bestialAssociatedStat",
+                      )}
                       value={state.bestialStat}
                       onChange={(event) =>
                         setBestialStat(event.target.value as BodyModStat)
                       }
                     >
                       {bodyModStats.map((name) => (
-                        <option key={name}>{name}</option>
+                        <option key={name} value={name}>
+                          {bodyModStatLabel(name)}
+                        </option>
                       ))}
                     </select>
                   </label>
                   <p>
-                    The selected stat receives included ranks equal to the trait
-                    tier.
+                    {translate(
+                      "ui.modulePages.text.theSelectedStatReceivesIncludedRanksEqualToThe",
+                    )}
                   </p>
                 </div>
               )}
@@ -278,11 +344,14 @@ export function BodyModPage() {
           )}
           {tab === "stats" && (
             <section className="bodymod-panel">
-              <p className="bodymod-kicker">Step 2</p>
-              <h5>Choose stats</h5>
+              <p className="bodymod-kicker">
+                {translate("ui.modulePages.text.step2")}
+              </p>
+              <h5>{translate("ui.modulePages.text.chooseStats")}</h5>
               <p>
-                Every purchased rank costs 50 CP, requires the previous rank,
-                and caps at rank 4.
+                {translate(
+                  "ui.modulePages.text.everyPurchasedRankCosts50CPRequiresThePrevious",
+                )}
               </p>
               <div className="bodymod-rank-list">
                 {bodyModStats.map((name) => {
@@ -290,11 +359,14 @@ export function BodyModPage() {
                   return (
                     <article key={name}>
                       <div>
-                        <strong>{name}</strong>
-                        <span>Persistent baseline {name.toLowerCase()}.</span>
+                        <strong>{bodyModStatLabel(name)}</strong>
+                        <span>
+                          {translate("ui.modulePages.text.persistentBaseline")}
+                          {name.toLowerCase()}.
+                        </span>
                       </div>
                       <Stepper
-                        name={name}
+                        name={bodyModStatLabel(name)}
                         value={rank}
                         min={freeStatRanks[name] ?? 0}
                         onChange={(value) => setStat(name, value)}
@@ -308,11 +380,14 @@ export function BodyModPage() {
           )}
           {tab === "perks" && (
             <section className="bodymod-panel">
-              <p className="bodymod-kicker">Step 3</p>
-              <h5>Choose perks</h5>
+              <p className="bodymod-kicker">
+                {translate("ui.modulePages.text.step3")}
+              </p>
+              <h5>{translate("ui.modulePages.text.choosePerks")}</h5>
               <p>
-                Perks retain the source document’s repeat limits and price per
-                tier.
+                {translate(
+                  "ui.modulePages.text.perksRetainTheSourceDocumentSRepeatLimitsAnd",
+                )}
               </p>
               <div className="bodymod-perk-list">
                 {bodyModPerks.map(([name, cost, max]) => {
@@ -320,7 +395,7 @@ export function BodyModPage() {
                   return (
                     <article key={name}>
                       <div>
-                        <strong>{name}</strong>
+                        <strong>{bodyModPerkLabel(name)}</strong>
                         <span>
                           {
                             perkDescriptions[name][
@@ -330,13 +405,15 @@ export function BodyModPage() {
                         </span>
                       </div>
                       <Stepper
-                        name={name}
+                        name={bodyModPerkLabel(name)}
                         value={rank}
                         min={freePerkRanks[name] ?? 0}
                         max={max}
                         onChange={(value) => setPerk(name, value)}
                       />
-                      <small>{cost} CP each</small>
+                      <small>
+                        {cost} {translate("ui.modulePages.text.cpEach")}
+                      </small>
                     </article>
                   );
                 })}
@@ -345,15 +422,17 @@ export function BodyModPage() {
           )}
           {tab === "review" && (
             <section className="bodymod-panel">
-              <p className="bodymod-kicker">Review</p>
-              <h5>Your Body Mod</h5>
+              <p className="bodymod-kicker">
+                {translate("ui.modulePages.text.review")}
+              </p>
+              <h5>{translate("ui.modulePages.text.yourBodyMod")}</h5>
               <div className="bodymod-review-cards">
                 <article>
-                  <span>Build</span>
+                  <span>{translate("ui.modulePages.text.buildHeading")}</span>
                   <strong>{state.build}</strong>
                 </article>
                 <article>
-                  <span>Body type</span>
+                  <span>{translate("ui.modulePages.text.bodyType")}</span>
                   <strong>
                     {state.type === "Bestial"
                       ? bestialPresentation(state)
@@ -363,8 +442,10 @@ export function BodyModPage() {
                   </strong>
                 </article>
                 <article>
-                  <span>Spent</span>
-                  <strong>{600 - remaining} CP</strong>
+                  <span>{translate("ui.modulePages.text.spent")}</span>
+                  <strong>
+                    {600 - remaining} {translate("ui.modulePages.text.cp")}
+                  </strong>
                 </article>
               </div>
               <div

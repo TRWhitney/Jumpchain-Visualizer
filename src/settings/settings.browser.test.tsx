@@ -6,6 +6,8 @@ import { CrashBoundary } from "./CrashBoundary";
 import { useSessionEvents, useSettings } from "./SettingsContext";
 import { SettingsProvider } from "./SettingsProvider";
 import { SettingsSurface } from "./SettingsSurface";
+import { defaultSettings, type SettingsCategory } from "./model";
+import { createDefaultTagProfile } from "./tagProfile";
 import { MemorySettingsRepository, type ReportExporter } from "./repository";
 import "../../documentation/styles.css";
 import "../../documentation/settings-design.css";
@@ -62,16 +64,7 @@ function PersistenceHarness() {
 }
 
 function SettingsSurfaceHarness() {
-  const [category, setCategory] = useState<
-    | "general"
-    | "editor"
-    | "chain"
-    | "notifications"
-    | "tags"
-    | "keys"
-    | "accessibility"
-    | "developer"
-  >("general");
+  const [category, setCategory] = useState<SettingsCategory>("general");
   return (
     <SettingsSurface
       category={category}
@@ -170,4 +163,27 @@ test("custom package limits require risk consent and invalid values never become
   await page.getByRole("button", { name: "Reset package limits" }).click();
   await expect.element(toggle).not.toBeChecked();
   await expect.element(expanded).toHaveValue(96);
+});
+
+test("an unavailable stored language recovers to English before Settings renders", async () => {
+  const stored = {
+    ...defaultSettings(createDefaultTagProfile()),
+    language: { tag: "zz-Invalid" },
+  };
+  render(
+    <SettingsProvider
+      repository={new MemorySettingsRepository(stored)}
+      reportExporter={exporter}
+    >
+      <SettingsSurfaceHarness />
+    </SettingsProvider>,
+  );
+  await expect
+    .element(page.getByRole("combobox", { name: "Language" }))
+    .toHaveValue("en");
+  expect(document.documentElement.lang).toBe("en");
+  expect(document.documentElement.dir).toBe("ltr");
+  expect(
+    (page.getByRole("searchbox").element() as HTMLInputElement).spellcheck,
+  ).toBe(false);
 });

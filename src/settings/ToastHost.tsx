@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSettings, useToasts } from "./SettingsContext";
 import type { ToastRecord } from "./logging";
+import { translate } from "../localization";
 
 export function ToastHost() {
   const toasts = useToasts();
   const { settings, logger } = useSettings();
   return (
-    <div className="app-toast-host" aria-label="Application notifications">
+    <div
+      className="app-toast-host"
+      aria-label={translate("ui.toastHost.ariaLabel.applicationNotifications")}
+    >
       <div aria-live="polite" aria-atomic="false">
         {toasts
           .slice(0, settings.notifications.maxVisible)
@@ -86,7 +90,7 @@ function Toast({
             : "✓"}
       </span>
       <div>
-        <p>{toast.message}</p>
+        <p>{translate(toast.messageKey)}</p>
         <small>
           {toast.class.replaceAll("-", " ")}
           {toast.occurrences > 1 ? ` · ${toast.occurrences} occurrences` : ""}
@@ -105,7 +109,7 @@ function Toast({
         <button
           type="button"
           className="app-toast-dismiss"
-          aria-label="Dismiss notification"
+          aria-label={translate("ui.toastHost.ariaLabel.dismissNotification")}
           onClick={dismiss}
         >
           ×

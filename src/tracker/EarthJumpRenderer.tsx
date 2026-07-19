@@ -2,6 +2,7 @@ import type { Dispatch } from "react";
 import type { EvaluatedActorJump } from "../domain";
 import { EARTH_ENTRY_ID, type TrackerAction, type TrackerState } from "./model";
 import { NumberStepper } from "./NumberStepper";
+import { translate } from "../localization";
 
 export const EARTH_EXPLANATION =
   "A Jumpchain is a sequence of worlds. In each Jump, you make choices under that Jump’s rules, carry acquired perks, items, forms, and companions forward, and then continue to the next world. Earth records the identity you begin with before Jump 1.";
@@ -21,45 +22,63 @@ export function EarthJumpRenderer({
       <article className="shared-jump-renderer format-one-jump-renderer">
         <header>
           <div>
-            <p>Chain beginning</p>
-            <h4>Earth</h4>
-            <span>Set the identity that begins this chain.</span>
+            <p>{translate("ui.earthJumpRenderer.text.chainBeginning")}</p>
+            <h4>{translate("ui.earthJumpRenderer.text.earth")}</h4>
+            <span>
+              {translate(
+                "ui.earthJumpRenderer.text.setTheIdentityThatBeginsThisChain",
+              )}
+            </span>
           </div>
           <div className="tracker-budget">
-            <span>Available</span>
-            <output>0 CP</output>
+            <span>{translate("ui.earthJumpRenderer.text.available")}</span>
+            <output>{translate("ui.earthJumpRenderer.text.0CP")}</output>
           </div>
         </header>
         <section className="rendered-jump-section">
           <header>
-            <p>Before the chain</p>
-            <h5>Welcome to your Jumpchain</h5>
+            <p>{translate("ui.earthJumpRenderer.text.beforeTheChain")}</p>
+            <h5>
+              {translate("ui.earthJumpRenderer.text.welcomeToYourJumpchain")}
+            </h5>
           </header>
           <p className="earth-explanation">{EARTH_EXPLANATION}</p>
         </section>
         <section className="rendered-jump-section">
           <header>
-            <p>Starting identity</p>
-            <h5>Choose who begins the chain</h5>
+            <p>{translate("ui.earthJumpRenderer.text.startingIdentity")}</p>
+            <h5>
+              {translate("ui.earthJumpRenderer.text.chooseWhoBeginsTheChain")}
+            </h5>
           </header>
           <div className="control-library-grid earth-identity-controls">
             <article className="control-specimen">
               <header>
-                <span>Select · Manual</span>
+                <span>
+                  {translate("ui.earthJumpRenderer.text.selectManual")}
+                </span>
                 <code>gender</code>
               </header>
               <div className="default-choice-card">
                 <div className="default-choice-heading">
-                  <strong>Gender</strong>
+                  <strong>
+                    {translate("ui.earthJumpRenderer.text.gender")}
+                  </strong>
                   <div className="cost-badge-row">
-                    <b className="cost-badge is-benefit">Free</b>
+                    <b className="cost-badge is-benefit">
+                      {translate("ui.earthJumpRenderer.text.free")}
+                    </b>
                   </div>
                 </div>
                 <div className="default-choice-actions">
                   <label>
-                    <span className="sr-only">Starting gender</span>
+                    <span className="sr-only">
+                      {translate("ui.earthJumpRenderer.text.startingGender")}
+                    </span>
                     <select
-                      aria-label="Earth gender"
+                      aria-label={translate(
+                        "ui.earthJumpRenderer.ariaLabel.earthGender",
+                      )}
                       value={
                         typeof choices.earth_gender === "string"
                           ? choices.earth_gender
@@ -75,9 +94,15 @@ export function EarthJumpRenderer({
                         })
                       }
                     >
-                      <option value="">Unset</option>
-                      <option>Male</option>
-                      <option>Female</option>
+                      <option value="">
+                        {translate("ui.earthJumpRenderer.text.unset")}
+                      </option>
+                      <option>
+                        {translate("ui.earthJumpRenderer.text.male")}
+                      </option>
+                      <option>
+                        {translate("ui.earthJumpRenderer.text.female")}
+                      </option>
                     </select>
                   </label>
                   <button
@@ -94,26 +119,30 @@ export function EarthJumpRenderer({
                       })
                     }
                   >
-                    Clear
+                    {translate("ui.earthJumpRenderer.text.clear")}
                   </button>
                 </div>
               </div>
             </article>
             <article className="control-specimen">
               <header>
-                <span>Integer · Manual</span>
+                <span>
+                  {translate("ui.earthJumpRenderer.text.integerManual")}
+                </span>
                 <code>age</code>
               </header>
               <div className="default-choice-card">
                 <div className="default-choice-heading">
-                  <strong>Age</strong>
+                  <strong>{translate("ui.earthJumpRenderer.text.age")}</strong>
                   <div className="cost-badge-row">
-                    <b className="cost-badge is-benefit">Free</b>
+                    <b className="cost-badge is-benefit">
+                      {translate("ui.earthJumpRenderer.text.free")}
+                    </b>
                   </div>
                 </div>
                 <div className="default-choice-actions">
                   <NumberStepper
-                    label="Earth age"
+                    label={translate("ui.earthJumpRenderer.label.earthAge")}
                     min={1}
                     value={
                       typeof choices.earth_age === "number"
@@ -145,7 +174,7 @@ export function EarthJumpRenderer({
                       })
                     }
                   >
-                    Clear
+                    {translate("ui.earthJumpRenderer.text.clear")}
                   </button>
                 </div>
               </div>
@@ -153,17 +182,17 @@ export function EarthJumpRenderer({
           </div>
           <div className="temporary-jump-property-grid">
             <article>
-              <span>Origin</span>
+              <span>{translate("ui.earthJumpRenderer.text.origin")}</span>
               <strong>
                 {evaluation.properties.origin?.value ?? "Unknown"}
               </strong>
             </article>
             <article>
-              <span>Species</span>
+              <span>{translate("ui.earthJumpRenderer.text.species")}</span>
               <strong>{evaluation.properties.species?.value ?? "Human"}</strong>
             </article>
             <article>
-              <span>Location</span>
+              <span>{translate("ui.earthJumpRenderer.text.location")}</span>
               <strong>
                 {evaluation.properties.location?.value ?? "Unknown"}
               </strong>

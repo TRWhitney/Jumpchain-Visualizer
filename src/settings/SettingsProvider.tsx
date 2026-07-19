@@ -23,6 +23,7 @@ import {
 } from "./repository";
 import { createDefaultTagProfile, hydrateTagProfile } from "./tagProfile";
 import { SettingsContext, type SettingsContextValue } from "./SettingsContext";
+import { changeLanguage, translate, translationCatalog } from "../localization";
 
 class SettingsSource {
   #value: ApplicationSettings;
@@ -83,14 +84,17 @@ export function SettingsProvider({
     let active = true;
     actualRepository
       .load()
-      .then((stored) => {
+      .then(async (stored) => {
         if (!active) return;
         if (stored) {
           const hydrated = hydrateSettings(
             stored,
             initial.tags.profile,
             hydrateTagProfile,
+            translationCatalog.languages.map((pack) => pack.languageTag),
           );
+          await changeLanguage(hydrated.language.tag);
+          if (!active) return;
           settingsSource.write(hydrated);
           persistedSource.write(hydrated);
           setSettings(hydrated);
@@ -98,7 +102,8 @@ export function SettingsProvider({
             logger.emit("storage.recovery_used", {
               attributes: { aggregate: "settings", reason: "invalid-values" },
             });
-        }
+        } else await changeLanguage(initial.language.tag);
+        if (!active) return;
         setLoaded(true);
         logger.emit("app.started", {
           attributes: {
@@ -120,6 +125,7 @@ export function SettingsProvider({
     };
   }, [
     actualRepository,
+    initial.language.tag,
     initial.tags.profile,
     logger,
     persistedSource,
@@ -252,6 +258,10 @@ export function SettingsProvider({
     };
   }, [settings.appearance, settings.accessibility.motion]);
 
+  useEffect(() => {
+    void changeLanguage(settings.language.tag);
+  }, [settings.language.tag]);
+
   useEffect(
     () => () => {
       if (continuousPublishTimer.current)
@@ -274,7 +284,7 @@ export function SettingsProvider({
   if (!loaded)
     return (
       <div className="app-settings-loading" role="status">
-        Loading local preferences…
+        {translate("common.loadingPreferences")}
       </div>
     );
   return (

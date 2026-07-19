@@ -17,6 +17,7 @@ import {
   type TrackerState,
 } from "./model";
 import { CanonicalTrackerTagBadge } from "../settings/TagBadge";
+import { translate } from "../localization";
 
 export function TagBadge({ tag }: { tag: TagDefinition }) {
   return <CanonicalTrackerTagBadge tag={tag} />;
@@ -256,7 +257,7 @@ function PieGraphic({
           textAnchor="middle"
           style={centerTextColor ? { fill: centerTextColor } : undefined}
         >
-          {current.node.count} records
+          {current.node.count} {translate("ui.tagRadar.text.records")}
         </text>
       </svg>
       <figcaption id="category-radar-caption">
@@ -294,17 +295,22 @@ function PieSidebar({
     >
       <header>
         <div>
-          <p>Current breakdown</p>
-          <h4 id="tracker-category-counts">{current.count} records</h4>
+          <p>{translate("ui.tagRadar.text.currentBreakdown")}</p>
+          <h4 id="tracker-category-counts">
+            {current.count} {translate("ui.tagRadar.text.records")}
+          </h4>
         </div>
         <RadarSort state={state} dispatch={dispatch} />
       </header>
       <table id="category-chart-table">
-        <caption className="sr-only">Tag breakdown for {current.label}</caption>
+        <caption className="sr-only">
+          {translate("ui.tagRadar.text.tagBreakdownFor")}
+          {current.label}
+        </caption>
         <thead>
           <tr>
-            <th>Tag</th>
-            <th>Records</th>
+            <th>{translate("ui.tagRadar.text.tag")}</th>
+            <th>{translate("ui.tagRadar.text.recordsHeading")}</th>
           </tr>
         </thead>
         <tbody>
@@ -381,10 +387,10 @@ function RadarSort({
 }) {
   return (
     <label className="category-chart-sort">
-      <span>Sort</span>
+      <span>{translate("ui.tagRadar.text.sort")}</span>
       <select
         id="category-chart-sort"
-        aria-label="Sort radar categories"
+        aria-label={translate("ui.tagRadar.ariaLabel.sortRadarCategories")}
         value={state.radarSort}
         onChange={(event) =>
           dispatch({
@@ -393,8 +399,10 @@ function RadarSort({
           })
         }
       >
-        <option value="count">Occurrences</option>
-        <option value="tag">Tag A–Z</option>
+        <option value="count">
+          {translate("ui.tagRadar.text.occurrences")}
+        </option>
+        <option value="tag">{translate("ui.tagRadar.text.tagAZ")}</option>
       </select>
     </label>
   );
@@ -482,7 +490,9 @@ export function TagRadar({
             {isPie && selected && (
               <nav
                 id="category-chart-breadcrumbs"
-                aria-label="Chart drilldown path"
+                aria-label={translate(
+                  "ui.tagRadar.ariaLabel.chartDrilldownPath",
+                )}
               >
                 <button
                   type="button"
@@ -490,7 +500,7 @@ export function TagRadar({
                     dispatch({ type: "select-radar-category", value: null })
                   }
                 >
-                  All categories
+                  {translate("ui.tagRadar.text.allCategories")}
                 </button>
                 {stack.map((entry, index) => (
                   <span key={`${entry.node.id}-${index}`}>
@@ -537,7 +547,7 @@ export function TagRadar({
                   dispatch({ type: "open-radar-node", value: selected })
                 }
               >
-                Open breakdown
+                {translate("ui.tagRadar.text.openBreakdown")}
               </button>
             )}
           </div>
@@ -595,12 +605,13 @@ export function TagRadar({
           </header>
           <table>
             <caption className="sr-only">
-              Accrued {includesItems ? "perk and item" : "perk"} count for each
-              built-in tag category
+              {translate("ui.tagRadar.text.accrued")}
+              {includesItems ? "perk and item" : "perk"}{" "}
+              {translate("ui.tagRadar.text.countForEachBuiltInTagCategory")}
             </caption>
             <thead>
               <tr>
-                <th>Category</th>
+                <th>{translate("ui.tagRadar.text.category")}</th>
                 <th>{includesItems ? "Records" : "Perks"}</th>
               </tr>
             </thead>
@@ -765,8 +776,9 @@ function RadarGraphic({
         })}
       </svg>
       <figcaption id="category-radar-caption">
-        Select a category to emphasize its axis; select it again to open its
-        breakdown.
+        {translate(
+          "ui.tagRadar.text.selectACategoryToEmphasizeItsAxisSelectIt",
+        )}
       </figcaption>
     </>
   );

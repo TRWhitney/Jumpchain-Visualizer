@@ -1,6 +1,6 @@
 import type { TagProfile } from "./tagProfile";
 
-export const SETTINGS_SCHEMA_VERSION = 1;
+export const SETTINGS_SCHEMA_VERSION = 2;
 
 export type ThemePreference = "system" | "light" | "dark";
 export type MotionPreference = "system" | "reduced" | "full";
@@ -44,7 +44,8 @@ export const ABSOLUTE_PACKAGE_SIZE_LIMITS: Readonly<PackageSizeLimits> = {
 };
 
 export type ApplicationSettings = {
-  schemaVersion: 1;
+  schemaVersion: 2;
+  language: { tag: string };
   appearance: {
     theme: ThemePreference;
     accentColor: string;
@@ -128,6 +129,7 @@ export const keybindingLabels: Record<KeybindingAction, string> = {
 export function defaultSettings(profile: TagProfile): ApplicationSettings {
   return {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
+    language: { tag: "en" },
     appearance: { theme: "system", accentColor: "#d4af37" },
     accessibility: { motion: "system" },
     developer: {
@@ -225,9 +227,11 @@ export function hydrateSettings(
   value: unknown,
   defaultProfile: TagProfile,
   hydrateProfile: (value: unknown, fallback: TagProfile) => TagProfile,
+  availableLanguageTags: readonly string[] = ["en"],
 ): ApplicationSettings {
   const fallback = defaultSettings(defaultProfile);
   const root = record(value);
+  const language = record(root.language);
   const appearance = record(root.appearance);
   const accessibility = record(root.accessibility);
   const developer = record(root.developer);
@@ -281,6 +285,13 @@ export function hydrateSettings(
 
   return {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
+    language: {
+      tag:
+        typeof language.tag === "string" &&
+        availableLanguageTags.includes(language.tag)
+          ? language.tag
+          : fallback.language.tag,
+    },
     appearance: {
       theme: oneOf(
         appearance.theme,

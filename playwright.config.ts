@@ -17,7 +17,7 @@ export default defineConfig({
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {
-    command: "corepack pnpm build && corepack pnpm preview",
+    command: "VITE_E2E_LOCALES=1 corepack pnpm build && corepack pnpm preview",
     url: "http://127.0.0.1:4173",
     reuseExistingServer: false,
   },

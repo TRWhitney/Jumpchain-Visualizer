@@ -1,0 +1,11 @@
+{
+  "common": {
+    "settings": "الإعدادات",
+    "preferences": "التفضيلات",
+    "applicationSettings": "إعدادات التطبيق",
+    "searchSettings": "البحث في الإعدادات",
+    "resetCategory": "إعادة ضبط الفئة",
+    "resetAllSettings": "إعادة ضبط كل الإعدادات",
+    "closeSettings": "إغلاق الإعدادات"
+  }
+}

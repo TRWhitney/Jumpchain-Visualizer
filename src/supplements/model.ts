@@ -1,3 +1,5 @@
+import { translate } from "../localization";
+
 export type ModuleId =
   | "body-mod"
   | "essential-body-mod"
@@ -37,55 +39,32 @@ export type SupplementModule = {
   family?: "foundation" | "space";
 };
 
+const supplementModule = (
+  id: ModuleId,
+  family?: SupplementModule["family"],
+): SupplementModule => ({
+  id,
+  get shortName() {
+    return translate(`supplements.modules.${id}.shortName`);
+  },
+  get name() {
+    return translate(`supplements.modules.${id}.name`);
+  },
+  get description() {
+    return translate(`supplements.modules.${id}.description`);
+  },
+  family,
+});
+
 export const modules: readonly SupplementModule[] = [
-  {
-    id: "body-mod",
-    shortName: "Body Mod",
-    name: "Classic Body Mod",
-    description: "Foundation alternative · full choices and statistics.",
-    family: "foundation",
-  },
-  {
-    id: "essential-body-mod",
-    shortName: "Essential Body Mod",
-    name: "Essential Body Modification",
-    description: "Foundation alternative · mutually exclusive with Classic.",
-    family: "foundation",
-  },
-  {
-    id: "warehouse",
-    shortName: "Cosmic Warehouse",
-    name: "Cosmic Warehouse",
-    description: "Persistent-space alternative.",
-    family: "space",
-  },
-  {
-    id: "personal-reality",
-    shortName: "Personal Reality",
-    name: "Personal Reality",
-    description:
-      "Persistent-space alternative · initial choices and accrued points.",
-    family: "space",
-  },
-  {
-    id: "universal-drawbacks",
-    shortName: "Universal Drawbacks",
-    name: "Universal Drawbacks",
-    description: "Chain-wide and recurring rule effects.",
-  },
-  {
-    id: "quest-mode",
-    shortName: "Quest Mode",
-    name: "Quest Mode",
-    description: "Per-Jump quests replace ordinary starting CP.",
-  },
-  {
-    id: "story",
-    shortName: "Story",
-    name: "Story",
-    description: "One Live Preview narrative for every Jump.",
-  },
-] as const;
+  supplementModule("body-mod", "foundation"),
+  supplementModule("essential-body-mod", "foundation"),
+  supplementModule("warehouse", "space"),
+  supplementModule("personal-reality", "space"),
+  supplementModule("universal-drawbacks"),
+  supplementModule("quest-mode"),
+  supplementModule("story"),
+];
 
 export type EnabledModules = Record<ModuleId, boolean>;
 
@@ -150,16 +129,25 @@ export function catalogDiagnostics(
   const problems: string[] = [];
   for (const id of selected) {
     const entry = byId.get(id);
-    if (!entry) problems.push(`Unknown catalog entry: ${id}`);
+    if (!entry)
+      problems.push(
+        translate("supplements.catalogDiagnostics.unknown", { id }),
+      );
     for (const requirement of entry?.requires ?? [])
       if (!selected.has(requirement))
         problems.push(
-          `${entry?.name} requires ${byId.get(requirement)?.name ?? requirement}.`,
+          translate("supplements.catalogDiagnostics.requires", {
+            entry: entry?.name,
+            requirement: byId.get(requirement)?.name ?? requirement,
+          }),
         );
     for (const conflict of entry?.conflicts ?? [])
       if (selected.has(conflict))
         problems.push(
-          `${entry?.name} conflicts with ${byId.get(conflict)?.name ?? conflict}.`,
+          translate("supplements.catalogDiagnostics.conflicts", {
+            entry: entry?.name,
+            conflict: byId.get(conflict)?.name ?? conflict,
+          }),
         );
   }
   return [...new Set(problems)];

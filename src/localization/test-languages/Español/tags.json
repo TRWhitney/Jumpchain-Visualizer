@@ -1,0 +1,10 @@
+{
+  "builtinTags": {
+    "vehicles": {
+      "label": "Vehículo",
+      "aliases": {
+        "0": "Vehículos"
+      }
+    }
+  }
+}

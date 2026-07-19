@@ -39,6 +39,7 @@ import {
   type SourceSearchStatus,
 } from "./SourceCodeEditor";
 import { assignQuickAddMnemonics } from "./quickAdd";
+import { translate } from "../localization";
 
 type SaveState = "Saved" | "Saving" | "Unsaved" | "Save failed";
 type NavigationTab = "content" | "files";
@@ -601,7 +602,7 @@ export function EditorWorkspace({
           type="button"
           onClick={undo}
           disabled={historyIndex <= 0}
-          aria-label="Undo"
+          aria-label={translate("ui.editorWorkspace.ariaLabel.undo")}
         >
           ↶
         </button>
@@ -609,17 +610,17 @@ export function EditorWorkspace({
           type="button"
           onClick={redo}
           disabled={historyIndex >= history.length - 1}
-          aria-label="Redo"
+          aria-label={translate("ui.editorWorkspace.ariaLabel.redo")}
         >
           ↷
         </button>
         {settings.editor.saveMode === "explicit" && (
           <button type="button" onClick={onSave}>
-            Save
+            {translate("ui.editorWorkspace.text.save")}
           </button>
         )}
         <button type="button" onClick={onExport}>
-          Export .jmp
+          {translate("ui.editorWorkspace.text.exportJmp")}
         </button>
         <div ref={addMenuRef} className="editor-add-menu">
           <button
@@ -628,7 +629,7 @@ export function EditorWorkspace({
             aria-expanded={addOpen}
             onClick={() => setAddOpen((value) => !value)}
           >
-            Add
+            {translate("ui.editorWorkspace.text.add")}
           </button>
           {addOpen && (
             <div className="editor-add-options">
@@ -674,7 +675,7 @@ export function EditorWorkspace({
                   assetInputRef.current?.click();
                 }}
               >
-                Asset…
+                {translate("ui.editorWorkspace.text.asset")}
               </button>
             </div>
           )}
@@ -696,7 +697,7 @@ export function EditorWorkspace({
         <div
           className="editor-tabs editor-navigation-tabs"
           role="tablist"
-          aria-label="Navigation"
+          aria-label={translate("ui.editorWorkspace.ariaLabel.navigation")}
         >
           {(["content", "files"] as const).map((tab) => (
             <button
@@ -716,10 +717,15 @@ export function EditorWorkspace({
         {navigationTab === "content" ? (
           <div className="editor-explorer-panel">
             <label className="editor-outline-search">
-              <span className="sr-only">Search package content</span>
+              <span className="sr-only">
+                {translate("ui.editorWorkspace.text.searchPackageContent")}
+              </span>
               <input
                 type="search"
-                placeholder="Search content"
+                spellCheck={false}
+                placeholder={translate(
+                  "ui.editorWorkspace.placeholder.searchContent",
+                )}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
@@ -740,7 +746,7 @@ export function EditorWorkspace({
                   setEditingTab(contentEditingTab);
                 }}
               >
-                <span>Jump details</span>
+                <span>{translate("ui.editorWorkspace.text.jumpDetails")}</span>
               </button>
               {declarationGroups.map(([heading, kinds]) => {
                 const symbols = visibleSymbols.filter(
@@ -786,7 +792,7 @@ export function EditorWorkspace({
                 ) && (
                   <details open>
                     <summary>
-                      Nested results{" "}
+                      {translate("ui.editorWorkspace.text.nestedResults")}{" "}
                       <span>
                         {
                           visibleSymbols.filter(
@@ -831,7 +837,8 @@ export function EditorWorkspace({
                 return (
                   <details open>
                     <summary>
-                      Assets <span>{assets.length}</span>
+                      {translate("ui.editorWorkspace.text.assets")}
+                      <span>{assets.length}</span>
                     </summary>
                     {assets.map((asset) => (
                       <button
@@ -854,7 +861,7 @@ export function EditorWorkspace({
           </div>
         ) : (
           <div className="editor-explorer-panel editor-file-list">
-            <p>Package files</p>
+            <p>{translate("ui.editorWorkspace.text.packageFiles")}</p>
             <div className="editor-outline-scroll">
               {Object.keys(workspace.files)
                 .sort()
@@ -890,8 +897,15 @@ export function EditorWorkspace({
         )}
       </aside>
 
-      <section className="editor-authoring-pane" aria-label="Authoring">
-        <div className="editor-tabs" role="tablist" aria-label="Editing view">
+      <section
+        className="editor-authoring-pane"
+        aria-label={translate("ui.editorWorkspace.ariaLabel.authoring")}
+      >
+        <div
+          className="editor-tabs"
+          role="tablist"
+          aria-label={translate("ui.editorWorkspace.ariaLabel.editingView")}
+        >
           {(navigationTab === "files"
             ? (["source"] as const)
             : (["structured", "source"] as const)
@@ -995,7 +1009,7 @@ export function EditorWorkspace({
                   aria-expanded={findOpen}
                   onClick={() => setFindOpen((value) => !value)}
                 >
-                  <span>Find</span>
+                  <span>{translate("ui.editorWorkspace.text.find")}</span>
                   <kbd aria-hidden="true">{sourceShortcutLabels.find}</kbd>
                 </button>
                 <button
@@ -1006,11 +1020,11 @@ export function EditorWorkspace({
                     setCompletionOpen(false);
                   }}
                 >
-                  <span>Quick Add</span>
+                  <span>{translate("ui.editorWorkspace.text.quickAdd")}</span>
                   <kbd aria-hidden="true">{sourceShortcutLabels.quickAdd}</kbd>
                 </button>
                 <button type="button" onClick={runFormat}>
-                  <span>Format</span>
+                  <span>{translate("ui.editorWorkspace.text.format")}</span>
                   <kbd aria-hidden="true">{sourceShortcutLabels.format}</kbd>
                 </button>
                 <button
@@ -1023,7 +1037,7 @@ export function EditorWorkspace({
                       : "No deterministic repair is available"
                   }
                 >
-                  <span>Quick Fix</span>
+                  <span>{translate("ui.editorWorkspace.text.quickFix")}</span>
                   <kbd aria-hidden="true">{sourceShortcutLabels.quickFix}</kbd>
                 </button>
               </div>
@@ -1033,10 +1047,15 @@ export function EditorWorkspace({
                 <div className="editor-find-row">
                   <div className="editor-find-field-shell">
                     <label>
-                      <span className="sr-only">Find</span>
+                      <span className="sr-only">
+                        {translate("ui.editorWorkspace.text.find")}
+                      </span>
                       <input
                         autoFocus
-                        placeholder="Find"
+                        spellCheck={false}
+                        placeholder={translate(
+                          "ui.editorWorkspace.placeholder.find",
+                        )}
                         value={find}
                         aria-invalid={!findStatus.valid}
                         onKeyDown={(event) =>
@@ -1048,34 +1067,46 @@ export function EditorWorkspace({
                     <div
                       className="editor-find-modes"
                       role="group"
-                      aria-label="Find options"
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.findOptions",
+                      )}
                     >
                       <button
                         type="button"
                         className="editor-find-mode"
-                        aria-label="Match case"
+                        aria-label={translate(
+                          "ui.editorWorkspace.ariaLabel.matchCase",
+                        )}
                         aria-pressed={findCaseSensitive}
-                        title="Match case"
+                        title={translate("ui.editorWorkspace.title.matchCase")}
                         onClick={() => setFindCaseSensitive((value) => !value)}
                       >
-                        Aa
+                        {translate("ui.editorWorkspace.text.aa")}
                       </button>
                       <button
                         type="button"
                         className="editor-find-mode"
-                        aria-label="Match whole word"
+                        aria-label={translate(
+                          "ui.editorWorkspace.ariaLabel.matchWholeWord",
+                        )}
                         aria-pressed={findWholeWord}
-                        title="Match whole word"
+                        title={translate(
+                          "ui.editorWorkspace.title.matchWholeWord",
+                        )}
                         onClick={() => setFindWholeWord((value) => !value)}
                       >
-                        ab
+                        {translate("ui.editorWorkspace.text.ab")}
                       </button>
                       <button
                         type="button"
                         className="editor-find-mode"
-                        aria-label="Use regular expression"
+                        aria-label={translate(
+                          "ui.editorWorkspace.ariaLabel.useRegularExpression",
+                        )}
                         aria-pressed={findRegexp}
-                        title="Use regular expression"
+                        title={translate(
+                          "ui.editorWorkspace.title.useRegularExpression",
+                        )}
                         onClick={() => setFindRegexp((value) => !value)}
                       >
                         .*
@@ -1085,7 +1116,9 @@ export function EditorWorkspace({
                   <div className="editor-find-navigation">
                     <button
                       type="button"
-                      aria-label="Previous match"
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.previousMatch",
+                      )}
                       disabled={!findStatus.valid || !findStatus.total}
                       onClick={() => sourceRef.current?.findPrevious()}
                     >
@@ -1093,7 +1126,9 @@ export function EditorWorkspace({
                     </button>
                     <button
                       type="button"
-                      aria-label="Next match"
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.nextMatch",
+                      )}
                       disabled={!findStatus.valid || !findStatus.total}
                       onClick={() => sourceRef.current?.findNext()}
                     >
@@ -1111,15 +1146,20 @@ export function EditorWorkspace({
                       checked={replaceOpen}
                       onChange={(event) => setReplaceOpen(event.target.checked)}
                     />
-                    <span>Replace</span>
+                    <span>{translate("ui.editorWorkspace.text.replace")}</span>
                   </label>
                 </div>
                 {replaceOpen && (
                   <div className="editor-replace-row">
                     <label className="editor-replace-field-shell">
-                      <span className="sr-only">Replace</span>
+                      <span className="sr-only">
+                        {translate("ui.editorWorkspace.text.replace")}
+                      </span>
                       <input
-                        placeholder="Replace"
+                        spellCheck={false}
+                        placeholder={translate(
+                          "ui.editorWorkspace.placeholder.replace",
+                        )}
                         value={replace}
                         onKeyDown={(event) =>
                           handleSearchInputKeyDown(event, "replace")
@@ -1133,14 +1173,14 @@ export function EditorWorkspace({
                         disabled={!findStatus.valid || !findStatus.total}
                         onClick={() => sourceRef.current?.replaceNext()}
                       >
-                        Replace
+                        {translate("ui.editorWorkspace.text.replace")}
                       </button>
                       <button
                         type="button"
                         disabled={!findStatus.valid || !findStatus.total}
                         onClick={() => sourceRef.current?.replaceAll()}
                       >
-                        Replace all
+                        {translate("ui.editorWorkspace.text.replaceAll")}
                       </button>
                     </div>
                   </div>
@@ -1269,7 +1309,9 @@ export function EditorWorkspace({
                 <div
                   className="editor-completion-list"
                   role="listbox"
-                  aria-label="All completions"
+                  aria-label={translate(
+                    "ui.editorWorkspace.ariaLabel.allCompletions",
+                  )}
                   onKeyDown={(event) => {
                     if (
                       matchesKeybinding(
@@ -1284,10 +1326,14 @@ export function EditorWorkspace({
                   }}
                 >
                   <header>
-                    <strong>Completions</strong>
+                    <strong>
+                      {translate("ui.editorWorkspace.text.completions")}
+                    </strong>
                     <button
                       type="button"
-                      aria-label="Close completions"
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.closeCompletions",
+                      )}
                       onClick={() => setCompletionOpen(false)}
                     >
                       ×
@@ -1330,7 +1376,10 @@ export function EditorWorkspace({
                       }}
                     >
                       <code>{item.value}</code>
-                      <small>Format 1 {item.kind}</small>
+                      <small>
+                        {translate("ui.editorWorkspace.text.format1")}
+                        {item.kind}
+                      </small>
                     </button>
                   ))}
                 </div>
@@ -1346,14 +1395,21 @@ export function EditorWorkspace({
                     ? "Preview recovered a deterministic incomplete field. Source is unchanged."
                     : "Preview retains the last valid package."}
               </span>
-              <strong>Preview: {previewStatus.toLocaleLowerCase()}</strong>
+              <strong>
+                {translate("ui.editorWorkspace.text.preview")}
+                {previewStatus.toLocaleLowerCase()}
+              </strong>
             </div>
           </div>
         )}
       </section>
 
       <aside className="editor-context-pane">
-        <div className="editor-tabs" role="tablist" aria-label="Context view">
+        <div
+          className="editor-tabs"
+          role="tablist"
+          aria-label={translate("ui.editorWorkspace.ariaLabel.contextView")}
+        >
           {(["preview", "properties"] as const).map((tab) => (
             <button
               key={tab}
@@ -1370,7 +1426,9 @@ export function EditorWorkspace({
           <div className="editor-preview-panel">
             <div className="editor-preview-toolbar">
               <span>
-                <strong>Live preview</strong>
+                <strong>
+                  {translate("ui.editorWorkspace.text.livePreview")}
+                </strong>
                 <small>{previewStatus}</small>
               </span>
               <label>
@@ -1379,17 +1437,25 @@ export function EditorWorkspace({
                   checked={showBounds}
                   onChange={(event) => setShowBounds(event.target.checked)}
                 />{" "}
-                Show bounds
+                {translate("ui.editorWorkspace.text.showBounds")}
               </label>
             </div>
             {showBounds && (
               <div
                 className="editor-bounds-legend"
-                aria-label="Layout bounds legend"
+                aria-label={translate(
+                  "ui.editorWorkspace.ariaLabel.layoutBoundsLegend",
+                )}
               >
-                <span className="is-container">Container</span>
-                <span className="is-slot">Slot</span>
-                <span className="is-reference">Reference</span>
+                <span className="is-container">
+                  {translate("ui.editorWorkspace.text.container")}
+                </span>
+                <span className="is-slot">
+                  {translate("ui.editorWorkspace.text.slot")}
+                </span>
+                <span className="is-reference">
+                  {translate("ui.editorWorkspace.text.reference")}
+                </span>
               </div>
             )}
             <div className="editor-preview-scroll">
@@ -1432,7 +1498,9 @@ export function EditorWorkspace({
 
       <section
         className={`editor-diagnostics ${diagnosticsOpen ? "is-open" : ""}`}
-        aria-label="Document diagnostics"
+        aria-label={translate(
+          "ui.editorWorkspace.ariaLabel.documentDiagnostics",
+        )}
       >
         <div className="editor-diagnostics-bar">
           <button
@@ -1444,11 +1512,13 @@ export function EditorWorkspace({
             <span className="editor-diagnostics-chevron" aria-hidden="true">
               ›
             </span>
-            <span>Diagnostics</span>
+            <span>{translate("ui.editorWorkspace.text.diagnostics")}</span>
           </button>
           <div
             className="editor-diagnostic-filters"
-            aria-label="Filter diagnostics by severity"
+            aria-label={translate(
+              "ui.editorWorkspace.ariaLabel.filterDiagnosticsBySeverity",
+            )}
           >
             {(["error", "warning", "info"] as const).map((severity) => {
               const count =
@@ -1539,7 +1609,11 @@ export function EditorWorkspace({
               </button>
             ))}
             {!filteredDiagnostics.length && (
-              <p>No diagnostic classes are included.</p>
+              <p>
+                {translate(
+                  "ui.editorWorkspace.text.noDiagnosticClassesAreIncluded",
+                )}
+              </p>
             )}
           </div>
         )}
@@ -1590,8 +1664,14 @@ function StructuredPanel({
   if (!symbol)
     return (
       <div className="editor-empty-panel">
-        <strong>No declaration selected</strong>
-        <span>Choose package content from the explorer.</span>
+        <strong>
+          {translate("ui.editorWorkspace.text.noDeclarationSelected")}
+        </strong>
+        <span>
+          {translate(
+            "ui.editorWorkspace.text.choosePackageContentFromTheExplorer",
+          )}
+        </span>
       </div>
     );
   const handle = field("handle");
@@ -1682,7 +1762,9 @@ function StructuredPanel({
           >
             <span>
               {fieldName.replaceAll("-", " ")}
-              {definition?.required && <small>Required</small>}
+              {definition?.required && (
+                <small>{translate("ui.editorWorkspace.text.required")}</small>
+              )}
             </span>
             <span className="editor-schema-field-control">
               {definition?.type === "boolean" ? (
@@ -1709,7 +1791,11 @@ function StructuredPanel({
                   }
                   onBlur={onEndFieldEdit}
                 >
-                  {!definition?.required && <option value="">Not set</option>}
+                  {!definition?.required && (
+                    <option value="">
+                      {translate("ui.editorWorkspace.text.notSet")}
+                    </option>
+                  )}
                   {definition.values.map((option) => (
                     <option key={option} value={option}>
                       {option}
@@ -1719,6 +1805,7 @@ function StructuredPanel({
               ) : ["description", "content"].includes(fieldName) ||
                 definition?.type === "richText" ? (
                 <textarea
+                  spellCheck
                   aria-label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
                   rows={fieldName === "content" ? 6 : 3}
                   value={value}
@@ -1793,6 +1880,12 @@ function StructuredPanel({
                 <input
                   aria-label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
                   type="text"
+                  spellCheck={[
+                    "author",
+                    "description",
+                    "name",
+                    "title",
+                  ].includes(fieldName)}
                   value={value}
                   list={referenceOptions.length ? listId : undefined}
                   onChange={(event) =>
@@ -1822,7 +1915,8 @@ function StructuredPanel({
         ))}
         {definition?.repeatable && (
           <button type="button" onClick={() => onAddField(symbol, fieldName)}>
-            + Add {fieldName.replaceAll("-", " ")}
+            {translate("ui.editorWorkspace.text.addPrefix")}
+            {fieldName.replaceAll("-", " ")}
           </button>
         )}
         {definition?.conditionalVariants && (
@@ -1830,8 +1924,9 @@ function StructuredPanel({
             {variants.map((variant, occurrence) => (
               <div key={`${fieldName}:variant:${occurrence}`}>
                 <label>
-                  <span>When</span>
+                  <span>{translate("ui.editorWorkspace.text.when")}</span>
                   <input
+                    spellCheck={false}
                     value={variant.condition}
                     onChange={(event) =>
                       onUpdateVariant(
@@ -1846,8 +1941,9 @@ function StructuredPanel({
                   />
                 </label>
                 <label>
-                  <span>Value</span>
+                  <span>{translate("ui.editorWorkspace.text.value")}</span>
                   <input
+                    spellCheck
                     value={variant.value}
                     onChange={(event) =>
                       onUpdateVariant(
@@ -1878,7 +1974,7 @@ function StructuredPanel({
                 onUpdateVariant(symbol, fieldName, variants.length, "true", "")
               }
             >
-              + Add conditional variant
+              {translate("ui.editorWorkspace.text.addConditionalVariant")}
             </button>
           </div>
         )}
@@ -1894,9 +1990,14 @@ function StructuredPanel({
           {symbol.file}:{sourceLine(files[symbol.file], symbol.from)}
         </code>
       </header>
-      <nav className="editor-breadcrumbs" aria-label="Declaration breadcrumbs">
+      <nav
+        className="editor-breadcrumbs"
+        aria-label={translate(
+          "ui.editorWorkspace.ariaLabel.declarationBreadcrumbs",
+        )}
+      >
         <button type="button" onClick={onOpenPackage}>
-          Package
+          {translate("ui.editorWorkspace.text.package")}
         </button>
         <span>›</span>
         <span>{symbol.kind}</span>
@@ -1909,16 +2010,17 @@ function StructuredPanel({
       </nav>
       {identityFields.length > 0 && (
         <section className="editor-form-card">
-          <h3>Identity</h3>
+          <h3>{translate("ui.editorWorkspace.text.identity")}</h3>
           {identityFields.map(renderField)}
         </section>
       )}
       {scalarForm && ["cost", "grant"].includes(symbol.kind) && (
         <section className="editor-form-card">
-          <h3>Scalar shorthand</h3>
+          <h3>{translate("ui.editorWorkspace.text.scalarShorthand")}</h3>
           <label className="editor-schema-field is-wide">
-            Value
+            {translate("ui.editorWorkspace.text.valuePrefix")}
             <input
+              spellCheck={false}
               value={scalarForm[1]}
               onChange={(event) =>
                 onReplace(symbol, `${symbol.kind}: ${event.target.value}`, true)
@@ -1937,16 +2039,17 @@ function StructuredPanel({
               )
             }
           >
-            Expand to fields
+            {translate("ui.editorWorkspace.text.expandToFields")}
           </button>
         </section>
       )}
       {isLayout ? (
         <section className="editor-form-card editor-layout-structure">
-          <h3>Layout tree</h3>
+          <h3>{translate("ui.editorWorkspace.text.layoutTree")}</h3>
           <p>
-            Navigate containers, slots, controls, and references. Reorder
-            buttons commit through the shared source history.
+            {translate(
+              "ui.editorWorkspace.text.navigateContainersSlotsControlsAndReferencesReorderButtonsCommit",
+            )}
           </p>
           {source.split("\n").map((line, index) =>
             /^\s{2,}(stack|inline|wrap|grid|slot|text|image|input|rule|choice|expand)/.test(
@@ -1999,6 +2102,7 @@ function StructuredPanel({
                   ←
                 </button>
                 <input
+                  spellCheck={false}
                   aria-label={`${line.trim().split(/[:\s]/)[0]} layout node`}
                   value={line.trim()}
                   onChange={(event) => {
@@ -2053,7 +2157,7 @@ function StructuredPanel({
         detailFields.length > 0 &&
         !scalarForm && (
           <section className="editor-form-card">
-            <h3>Fields and behavior</h3>
+            <h3>{translate("ui.editorWorkspace.text.fieldsAndBehavior")}</h3>
             <div className="editor-form-grid">
               {detailFields.map(renderField)}
             </div>
@@ -2062,8 +2166,13 @@ function StructuredPanel({
       )}
       {children.length > 0 && (
         <section className="editor-form-card">
-          <h3>Content and declarations</h3>
-          <p>Add a declaration valid inside this {symbol.kind}.</p>
+          <h3>{translate("ui.editorWorkspace.text.contentAndDeclarations")}</h3>
+          <p>
+            {translate(
+              "ui.editorWorkspace.text.addADeclarationValidInsideThis",
+            )}
+            {symbol.kind}.
+          </p>
           <div className="editor-contextual-add">
             {children.map(([label, template]) => (
               <button
@@ -2187,17 +2296,24 @@ function SourcePalette({
   }, [keybindings.quickAdd, mnemonics, onClose, validItems]);
 
   return (
-    <aside className="editor-source-palette" aria-label="Quick add">
+    <aside
+      className="editor-source-palette"
+      aria-label={translate("ui.editorWorkspace.ariaLabel.quickAdd")}
+    >
       <header>
         <span>
-          <strong>Quick add</strong>
+          <strong>{translate("ui.editorWorkspace.text.quickAddAction")}</strong>
           <small>{title}</small>
         </span>
-        <button type="button" aria-label="Close Quick Add" onClick={onClose}>
+        <button
+          type="button"
+          aria-label={translate("ui.editorWorkspace.ariaLabel.closeQuickAdd")}
+          onClick={onClose}
+        >
           ×
         </button>
       </header>
-      <p>Valid here</p>
+      <p>{translate("ui.editorWorkspace.text.validHere")}</p>
       {validItems.map((item, index) => {
         const mnemonic = mnemonics[index];
         return (
@@ -2223,9 +2339,13 @@ function SourcePalette({
         );
       })}
       {!completions.length && !childCompletions.length && (
-        <small>No additional declarations are valid here.</small>
+        <small>
+          {translate(
+            "ui.editorWorkspace.text.noAdditionalDeclarationsAreValidHere",
+          )}
+        </small>
       )}
-      <p>Commands</p>
+      <p>{translate("ui.editorWorkspace.text.commands")}</p>
       <button
         type="button"
         onClick={onQuickFix}
@@ -2237,13 +2357,19 @@ function SourcePalette({
         }
       >
         <span>
-          Quick Fix<small>Write a deterministic repair</small>
+          {translate("ui.editorWorkspace.text.quickFix")}
+          <small>
+            {translate("ui.editorWorkspace.text.writeADeterministicRepair")}
+          </small>
         </span>
         <kbd>{shortcutLabels.quickFix}</kbd>
       </button>
       <button type="button" onClick={onCompletion}>
         <span>
-          All completions<small>Show fields, values, and handles</small>
+          {translate("ui.editorWorkspace.text.allCompletions")}
+          <small>
+            {translate("ui.editorWorkspace.text.showFieldsValuesAndHandles")}
+          </small>
         </span>
         <kbd>{shortcutLabels.completions}</kbd>
       </button>
@@ -2266,52 +2392,56 @@ function PropertiesPanel({
 }) {
   return (
     <div className="editor-properties-panel">
-      <p>Selection</p>
+      <p>{translate("ui.editorWorkspace.text.selection")}</p>
       <h2>{asset ?? (symbol ? symbolLabel(symbol) : summary.name)}</h2>
       <dl>
         <div>
-          <dt>Kind</dt>
+          <dt>{translate("ui.editorWorkspace.text.kind")}</dt>
           <dd>{asset ? "asset" : (symbol?.kind ?? "jump package")}</dd>
         </div>
         <div>
-          <dt>File</dt>
+          <dt>{translate("ui.editorWorkspace.text.file")}</dt>
           <dd>{asset ?? symbol?.file ?? "jump.jdef"}</dd>
         </div>
         {asset && (
           <div>
-            <dt>Size</dt>
-            <dd>{assetBytes?.byteLength ?? 0} bytes</dd>
+            <dt>{translate("ui.editorWorkspace.text.size")}</dt>
+            <dd>
+              {assetBytes?.byteLength ?? 0}{" "}
+              {translate("ui.editorWorkspace.text.bytes")}
+            </dd>
           </div>
         )}
         <div>
-          <dt>Version</dt>
+          <dt>{translate("ui.editorWorkspace.text.version")}</dt>
           <dd>{summary.version}</dd>
         </div>
         <div>
-          <dt>Authors</dt>
+          <dt>{translate("ui.editorWorkspace.text.authors")}</dt>
           <dd>{summary.authors.join(", ")}</dd>
         </div>
         <div>
-          <dt>Sections</dt>
+          <dt>{translate("ui.editorWorkspace.text.sections")}</dt>
           <dd>{summary.sectionCount}</dd>
         </div>
         <div>
-          <dt>Choices</dt>
+          <dt>{translate("ui.editorWorkspace.text.choices")}</dt>
           <dd>{summary.choiceCount}</dd>
         </div>
         <div>
-          <dt>Gauntlet</dt>
+          <dt>{translate("ui.editorWorkspace.text.gauntlet")}</dt>
           <dd>{summary.nativeGauntlet ? "Native" : "No"}</dd>
         </div>
       </dl>
       {asset ? (
         <button type="button" onClick={onRemoveAsset}>
-          Remove asset
+          {translate("ui.editorWorkspace.text.removeAsset")}
         </button>
       ) : (
         <p className="editor-property-note">
-          Properties are derived from canonical source. Edit them in Structured
-          or Source.
+          {translate(
+            "ui.editorWorkspace.text.propertiesAreDerivedFromCanonicalSourceEditThemIn",
+          )}
         </p>
       )}
     </div>

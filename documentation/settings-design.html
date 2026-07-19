@@ -73,6 +73,7 @@
         <h2>Presentation and Routing</h2>
         <p>Settings uses the agreed <a href="application-design.html#route-backed-settings-overlay">route-backed overlay</a>. Opening it from Home or a workspace pushes <code>/settings</code>, preserves the prior route underneath as inert content, and restores that route on Close, Escape, or Back. Opening <code>/settings</code> directly renders the same content as a full page.</p>
         <p>The initial surface includes persistent categories, global setting search, visible defaults, and a per-setting Reset action. The Settings frame keeps one compact, stable height across categories; each category and complex editor scrolls inside its own content region instead of resizing the dialog. Changes normally apply immediately; settings that cannot apply safely without restart must say so before the user changes them.</p>
+        <p>Language is the first setting in General. Its native dropdown applies immediately and uses each pack folder name as that language's self-name. English appears first and remains the invalid-value fallback. See <a href="localization.html">Localization Resources</a>.</p>
 
         <h3>Settings Search</h3>
         <p>Search covers every category and matches visible labels, stable setting keys, descriptions, allowed values, and maintained aliases. Results identify their owning category. Selecting a result clears the query, opens that category, and focuses the setting. Clearing an unfinished search restores the category that was selected before searching.</p>
@@ -84,6 +85,13 @@
               <tr><th>Key</th><th>Default</th><th>Allowed values</th><th>Scope</th><th>Reason</th></tr>
             </thead>
             <tbody>
+              <tr>
+                <td><code>language.tag</code></td>
+                <td><code>en</code></td>
+                <td>Canonical tags of validated release-bundled packs</td>
+                <td>Application</td>
+                <td>Switches application copy, formatting, document direction, and the platform spell-check language signal without altering authored content.</td>
+              </tr>
               <tr>
                 <td><code>appearance.theme</code></td>
                 <td><code>system</code></td>
@@ -278,6 +286,7 @@
             <section id="settings-search-panel" class="settings-search-panel" aria-labelledby="settings-search-heading" aria-live="polite" hidden>
               <h4 id="settings-search-heading">Search results <span id="mock-settings-search-count"></span></h4>
               <div class="settings-search-list">
+                <button type="button" data-settings-search-entry data-settings-search-text="language locale translation spellcheck dictionary" data-settings-category="general" data-settings-focus="mock-language"><span><strong>Language</strong><small><code>language.tag</code> · General</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="appearance theme system light dark color mode" data-settings-category="general" data-settings-focus="mock-theme"><span><strong>Appearance</strong><small><code>appearance.theme</code> · General</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="accent color colour hex gold theme appearance" data-settings-category="general" data-settings-focus="mock-accent"><span><strong>Accent color</strong><small><code>appearance.accentColor</code> · General</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="saving save autosave explicit persistence editor" data-settings-category="editor" data-settings-focus="mock-save-mode"><span><strong>Saving</strong><small><code>editor.saveMode</code> · Editor</small></span><span aria-hidden="true">→</span></button>
@@ -304,6 +313,10 @@
 
             <section id="settings-general-panel" role="tabpanel" aria-labelledby="settings-general-tab">
               <h4>General</h4>
+              <div class="setting-row">
+                <div><label for="mock-language">Language</label><p>Choose the language used by the application. The platform uses it as the spell-check dictionary signal when a matching dictionary is installed.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><select id="mock-language"><option>English</option></select></div>
+              </div>
               <div class="setting-row">
                 <div><label for="mock-theme">Appearance</label><p>Choose the application color theme.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><select id="mock-theme"><option>Use system setting</option><option>Light</option><option>Dark</option></select></div>
@@ -578,7 +591,7 @@
         <h2>Persistence and Migration</h2>
         <ul>
           <li>Settings persist independently from Jump packages and Chain records.</li>
-          <li>The persisted object carries a schema version and is migrated before use.</li>
+          <li>The persisted object carries schema version 2 and is migrated before use; version 1 receives <code>language.tag = "en"</code>.</li>
           <li>Missing keys receive current defaults; migrations do not rewrite unrelated preferences.</li>
           <li>A Reset action restores one setting, one category, or the complete registry without deleting projects or chains.</li>
           <li>General preference import/export remains deferred. The tag profile is the explicit exception and has its own versioned JSON transfer format.</li>

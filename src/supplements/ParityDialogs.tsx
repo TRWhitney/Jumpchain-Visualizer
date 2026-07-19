@@ -27,6 +27,7 @@ import {
   warehouseCost,
   warehouseDescriptions,
   warehouseGroups,
+  warehouseLabel,
 } from "./parityData";
 import {
   essentialAdvancementAward,
@@ -36,6 +37,7 @@ import {
   type StoryChapter,
 } from "./supplementState";
 import type { ModuleId, ToolId } from "./model";
+import { translate } from "../localization";
 
 type Props = {
   tool: Exclude<ToolId, "body">;
@@ -305,38 +307,40 @@ function EssentialSummary({ openPage }: Pick<Props, "openPage">) {
         </span>
         <dl>
           <div>
-            <dt>Starting Mode</dt>
+            <dt>{translate("ui.parityDialogs.text.startingMode")}</dt>
             <dd>{state.startingMode}</dd>
           </div>
           <div>
-            <dt>Advancement</dt>
+            <dt>{translate("ui.parityDialogs.text.advancement")}</dt>
             <dd>{state.advancementMode}</dd>
           </div>
           <div>
-            <dt>EP Access</dt>
+            <dt>{translate("ui.parityDialogs.text.epAccess")}</dt>
             <dd>{state.accessMode}</dd>
           </div>
           <div>
-            <dt>EP remaining</dt>
+            <dt>{translate("ui.parityDialogs.text.epRemaining")}</dt>
             <dd>{balance}</dd>
           </div>
         </dl>
         <button type="button" onClick={() => openPage("essential-body-mod")}>
-          Open full Essential Body Mod
+          {translate("ui.parityDialogs.text.openFullEssentialBodyMod")}
         </button>
       </aside>
       <section>
         <div className="essential-dialog-heading">
           <div>
-            <p>Persistent capabilities</p>
-            <h5>Morgan’s build</h5>
+            <p>{translate("ui.parityDialogs.text.persistentCapabilities")}</p>
+            <h5>{translate("ui.parityDialogs.text.morganSBuild")}</h5>
           </div>
-          <span>Regular Jump</span>
+          <span>{translate("ui.parityDialogs.text.regularJump")}</span>
         </div>
         <div
           className="essential-dialog-filters"
           role="group"
-          aria-label="Filter Essential Body Modification abilities"
+          aria-label={translate(
+            "ui.parityDialogs.ariaLabel.filterEssentialBodyModificationAbilities",
+          )}
         >
           {(["base", "skills", "supernatural"] as const).map((filter) => (
             <button
@@ -388,8 +392,12 @@ function EssentialSummary({ openPage }: Pick<Props, "openPage">) {
           </div>
         )}
         <p className="essential-gauntlet-note">
-          <strong>Gauntlet projection:</strong> base-form and Skill capabilities
-          remain available. Supernatural purchases do not.
+          <strong>
+            {translate("ui.parityDialogs.text.gauntletProjection")}
+          </strong>{" "}
+          {translate(
+            "ui.parityDialogs.text.baseFormAndSkillCapabilitiesRemainAvailableSupernaturalPurchases",
+          )}
         </p>
       </section>
     </div>
@@ -470,39 +478,56 @@ function EssentialProgress({ openPage }: Pick<Props, "openPage">) {
   return (
     <div className="essential-progression-body">
       <aside>
-        <p>Net EP change</p>
-        <strong>{advancement + infusion - spent} EP</strong>
+        <p>{translate("ui.parityDialogs.text.netEPChange")}</p>
+        <strong>
+          {advancement + infusion - spent}{" "}
+          {translate("ui.parityDialogs.text.ep")}
+        </strong>
         <dl>
           <div>
-            <dt>Advancement</dt>
-            <dd>{advancement} EP</dd>
+            <dt>{translate("ui.parityDialogs.text.advancement")}</dt>
+            <dd>
+              {advancement} {translate("ui.parityDialogs.text.ep")}
+            </dd>
           </div>
           <div>
-            <dt>EP Infusion</dt>
-            <dd>{infusion} EP</dd>
+            <dt>{translate("ui.parityDialogs.text.epInfusion")}</dt>
+            <dd>
+              {infusion} {translate("ui.parityDialogs.text.ep")}
+            </dd>
           </div>
           <div>
-            <dt>EP spent here</dt>
-            <dd>{spent} EP</dd>
+            <dt>{translate("ui.parityDialogs.text.epSpentHere")}</dt>
+            <dd>
+              {spent} {translate("ui.parityDialogs.text.ep")}
+            </dd>
           </div>
           <div>
-            <dt>Jump CP spent</dt>
-            <dd>{cp} CP</dd>
+            <dt>{translate("ui.parityDialogs.text.jumpCPSpent")}</dt>
+            <dd>
+              {cp} {translate("ui.parityDialogs.text.cp")}
+            </dd>
           </div>
           <div>
-            <dt>New EP balance</dt>
-            <dd>{balance} EP</dd>
+            <dt>{translate("ui.parityDialogs.text.newEPBalance")}</dt>
+            <dd>
+              {balance} {translate("ui.parityDialogs.text.ep")}
+            </dd>
           </div>
         </dl>
         <button type="button" onClick={() => openPage("essential-body-mod")}>
-          Open starting build
+          {translate("ui.parityDialogs.text.openStartingBuild")}
         </button>
       </aside>
       <section>
         <div className="essential-progress-heading">
           <div>
-            <p>Selected Jump record</p>
-            <h5>Progression sources and purchases</h5>
+            <p>{translate("ui.parityDialogs.text.selectedJumpRecord")}</p>
+            <h5>
+              {translate(
+                "ui.parityDialogs.text.progressionSourcesAndPurchases",
+              )}
+            </h5>
           </div>
           <span>
             {state.advancementMode === "standard"
@@ -512,7 +537,9 @@ function EssentialProgress({ openPage }: Pick<Props, "openPage">) {
         </div>
         <article className="essential-progress-panel">
           <div>
-            <strong>Advancement Mode</strong>
+            <strong>
+              {translate("ui.parityDialogs.text.advancementMode")}
+            </strong>
             <small>
               {state.advancementMode === "standard"
                 ? "Standard Advancement provides no per-Jump EP award."
@@ -547,9 +574,14 @@ function EssentialProgress({ openPage }: Pick<Props, "openPage">) {
         {state.advancementMode === "questing" && (
           <article className="essential-progress-panel essential-questing-panel">
             <div>
-              <strong>Questing challenges</strong>
+              <strong>
+                {translate("ui.parityDialogs.text.questingChallenges")}
+              </strong>
               <small>
-                Record challenges completed during <CurrentJumpName />.
+                {translate(
+                  "ui.parityDialogs.text.recordChallengesCompletedDuring",
+                )}
+                <CurrentJumpName />.
               </small>
             </div>
             {[
@@ -572,14 +604,18 @@ function EssentialProgress({ openPage }: Pick<Props, "openPage">) {
                     })
                   }
                 />
-                {label} <b>{award} EP</b>
+                {label}{" "}
+                <b>
+                  {award} {translate("ui.parityDialogs.text.ep")}
+                </b>
               </label>
             ))}
           </article>
         )}
         <div className="essential-progress-section">
           <h6>
-            EP Infusion purchased in <CurrentJumpName />
+            {translate("ui.parityDialogs.text.epInfusionPurchasedIn")}
+            <CurrentJumpName />
           </h6>
           <p>
             {state.accessMode === "standard"
@@ -591,7 +627,9 @@ function EssentialProgress({ openPage }: Pick<Props, "openPage">) {
           <div
             className="essential-infusion-options"
             role="group"
-            aria-label="EP Infusion purchase"
+            aria-label={translate(
+              "ui.parityDialogs.ariaLabel.epInfusionPurchase",
+            )}
           >
             {[
               ["none", "None", "No CP or EP"],
@@ -622,16 +660,22 @@ function EssentialProgress({ openPage }: Pick<Props, "openPage">) {
         <div className="essential-progress-section essential-spend-section">
           <div>
             <h6>
-              Spend EP in <CurrentJumpName />
+              {translate("ui.parityDialogs.text.spendEPIn")}
+              <CurrentJumpName />
             </h6>
-            <span>{balance} EP available</span>
+            <span>
+              {balance} {translate("ui.parityDialogs.text.epAvailable")}
+            </span>
           </div>
           <p>
-            Purchases made here remain attributed to <CurrentJumpName />.
+            {translate(
+              "ui.parityDialogs.text.purchasesMadeHereRemainAttributedTo",
+            )}
+            <CurrentJumpName />.
           </p>
           <div className="essential-spend-tools">
             <label>
-              <span>Category</span>
+              <span>{translate("ui.parityDialogs.text.category")}</span>
               <select
                 value={p.category}
                 onChange={(event) =>
@@ -655,10 +699,13 @@ function EssentialProgress({ openPage }: Pick<Props, "openPage">) {
               </select>
             </label>
             <label>
-              <span>Find</span>
+              <span>{translate("ui.parityDialogs.text.find")}</span>
               <input
                 type="search"
-                placeholder="Find an upgrade"
+                spellCheck={false}
+                placeholder={translate(
+                  "ui.parityDialogs.placeholder.findAnUpgrade",
+                )}
                 value={p.search}
                 onChange={(event) =>
                   dispatch({
@@ -739,8 +786,9 @@ function EssentialProgress({ openPage }: Pick<Props, "openPage">) {
           </div>
         </div>
         <p className="essential-progress-note">
-          Changing this record recalculates the current Essential EP balance and
-          selected Jump’s CP balance.
+          {translate(
+            "ui.parityDialogs.text.changingThisRecordRecalculatesTheCurrentEssentialEPBalance",
+          )}
         </p>
       </section>
     </div>
@@ -763,38 +811,39 @@ function WarehouseSummary({ openPage }: Pick<Props, "openPage">) {
           <strong>
             {state.selected.includes("Free Space") ? "80,000" : "40,000"}
           </strong>
-          <span>square feet</span>
+          <span>{translate("ui.parityDialogs.text.squareFeet")}</span>
         </div>
         <dl>
           <div>
-            <dt>Access</dt>
+            <dt>{translate("ui.parityDialogs.text.access")}</dt>
             <dd>{state.selected.includes("Portal") ? "Portal" : "Key"}</dd>
           </div>
           <div>
-            <dt>WP remaining</dt>
+            <dt>{translate("ui.parityDialogs.text.wpRemaining")}</dt>
             <dd>{remaining}</dd>
           </div>
           <div>
-            <dt>Entrance</dt>
-            <dd>One at a time</dd>
+            <dt>{translate("ui.parityDialogs.text.entrance")}</dt>
+            <dd>{translate("ui.parityDialogs.text.oneAtATime")}</dd>
           </div>
           <div>
-            <dt>Closed state</dt>
-            <dd>Time stopped</dd>
+            <dt>{translate("ui.parityDialogs.text.closedState")}</dt>
+            <dd>{translate("ui.parityDialogs.text.timeStopped")}</dd>
           </div>
         </dl>
         <button type="button" onClick={() => openPage("warehouse")}>
-          Open full Warehouse
+          {translate("ui.parityDialogs.text.openFullWarehouse")}
         </button>
       </aside>
       <section>
         <div className="warehouse-dialog-heading">
           <div>
-            <p>Configured interior</p>
-            <h5>Floor plan summary</h5>
+            <p>{translate("ui.parityDialogs.text.configuredInterior")}</p>
+            <h5>{translate("ui.parityDialogs.text.floorPlanSummary")}</h5>
           </div>
           <span>
-            {state.selected.length + (state.stasisPods ? 1 : 0)} features
+            {state.selected.length + (state.stasisPods ? 1 : 0)}{" "}
+            {translate("ui.parityDialogs.text.features")}
           </span>
         </div>
         <div className="warehouse-floorplan">
@@ -803,22 +852,24 @@ function WarehouseSummary({ openPage }: Pick<Props, "openPage">) {
             tabIndex={0}
             aria-describedby="warehouse-main-tooltip"
           >
-            <strong>Main storage</strong>
+            <strong>{translate("ui.parityDialogs.text.mainStorage")}</strong>
             <span>
-              {state.selected.includes("Free Space") ? "80,000" : "40,000"} ft²
-              total
+              {state.selected.includes("Free Space") ? "80,000" : "40,000"}{" "}
+              {translate("ui.parityDialogs.text.ft²Total")}
             </span>
             <span
               id="warehouse-main-tooltip"
               className="warehouse-floor-tooltip"
               role="tooltip"
             >
-              The Warehouse’s general-purpose storage floor.
+              {translate(
+                "ui.parityDialogs.text.theWarehouseSGeneralPurposeStorageFloor",
+              )}
             </span>
           </div>
           {structures.map(([name, , copy]) => (
             <div key={name} tabIndex={0}>
-              <strong>{name}</strong>
+              <strong>{warehouseLabel(name)}</strong>
               <span>
                 {name === "Shelving"
                   ? "Storage"
@@ -833,7 +884,10 @@ function WarehouseSummary({ openPage }: Pick<Props, "openPage">) {
           ))}
         </div>
         <h6>
-          Installed features <span>Choose a badge for details</span>
+          {translate("ui.parityDialogs.text.installedFeatures")}
+          <span>
+            {translate("ui.parityDialogs.text.chooseABadgeForDetails")}
+          </span>
         </h6>
         <div className="warehouse-chip-list warehouse-dialog-option-badges">
           {state.selected.map((name) => (
@@ -843,12 +897,13 @@ function WarehouseSummary({ openPage }: Pick<Props, "openPage">) {
               aria-expanded={detail === name}
               onClick={() => setDetail(detail === name ? null : name)}
             >
-              {name}
+              {warehouseLabel(name)}
             </button>
           ))}
           {state.stasisPods > 0 && (
             <button type="button" onClick={() => setDetail("Stasis Pod")}>
-              Stasis Pod ×{state.stasisPods}
+              {translate("ui.parityDialogs.text.stasisPod")}
+              {state.stasisPods}
             </button>
           )}
         </div>
@@ -859,12 +914,13 @@ function WarehouseSummary({ openPage }: Pick<Props, "openPage">) {
           </div>
         )}
         <p className="warehouse-dialog-note">
-          The gateway uses{" "}
+          {translate("ui.parityDialogs.text.theGatewayUses")}{" "}
           {state.selected.includes("Portal")
             ? "Portal instead of the default key-and-door method"
             : "the default key-and-door method"}
-          . Utilities and facilities exist only inside the Warehouse unless
-          stated otherwise.
+          {translate(
+            "ui.parityDialogs.text.utilitiesAndFacilitiesExistOnlyInsideTheWarehouseUnless",
+          )}
         </p>
       </section>
     </div>
@@ -977,29 +1033,34 @@ function RealitySummary({ openPage }: Pick<Props, "openPage">) {
             {realityModes[state.coreMode].slice(0, 2).toUpperCase()}
           </button>
           <span id="reality-mode-tooltip" role="tooltip">
-            {realityModes[state.coreMode]} Core Mode controls starting and
-            progression WP.
+            {realityModes[state.coreMode]}{" "}
+            {translate(
+              "ui.parityDialogs.text.coreModeControlsStartingAndProgressionWP",
+            )}
           </span>
         </div>
-        <h5>{realityModes[state.coreMode]} Mode</h5>
-        <span>Accumulated Reality</span>
+        <h5>
+          {realityModes[state.coreMode]}{" "}
+          {translate("ui.parityDialogs.text.mode")}
+        </h5>
+        <span>{translate("ui.parityDialogs.text.accumulatedReality")}</span>
         <dl>
           <div>
-            <dt>Current WP</dt>
+            <dt>{translate("ui.parityDialogs.text.currentWP")}</dt>
             <dd>{remaining}</dd>
           </div>
           <div>
-            <dt>Volume</dt>
+            <dt>{translate("ui.parityDialogs.text.volume")}</dt>
             <dd>64,000 m³</dd>
           </div>
           <div>
-            <dt>Access</dt>
+            <dt>{translate("ui.parityDialogs.text.access")}</dt>
             <dd>
               {owned("playing-portals") ? "Portals and key" : "Access Key"}
             </dd>
           </div>
           <div>
-            <dt>Upgrades</dt>
+            <dt>{translate("ui.parityDialogs.text.upgrades")}</dt>
             <dd>
               {new Set([
                 ...Object.entries(state.purchases)
@@ -1013,37 +1074,39 @@ function RealitySummary({ openPage }: Pick<Props, "openPage">) {
           </div>
         </dl>
         <button type="button" onClick={() => openPage("personal-reality")}>
-          Open starting Reality
+          {translate("ui.parityDialogs.text.openStartingReality")}
         </button>
       </aside>
       <section>
         <div className="reality-dialog-heading">
           <div>
-            <p>Accumulated configuration</p>
-            <h5>Morgan’s Personal Reality</h5>
+            <p>{translate("ui.parityDialogs.text.accumulatedConfiguration")}</p>
+            <h5>{translate("ui.parityDialogs.text.morganSPersonalReality")}</h5>
           </div>
-          <span>Regular Jump</span>
+          <span>{translate("ui.parityDialogs.text.regularJump")}</span>
         </div>
         <div className="reality-floorplan">
           <button type="button" onClick={() => setDetail("Main Warehouse")}>
-            <strong>Main Warehouse</strong>
+            <strong>{translate("ui.parityDialogs.text.mainWarehouse")}</strong>
             <span>64,000 m³</span>
           </button>
           {owned("lofty-loft") && (
             <button type="button" onClick={() => setDetail("Lofty Loft")}>
-              <strong>Lofty Loft</strong>
-              <span>Housing area</span>
+              <strong>{translate("ui.parityDialogs.text.loftyLoft")}</strong>
+              <span>{translate("ui.parityDialogs.text.housingArea")}</span>
             </button>
           )}
           <button type="button" onClick={() => setDetail("Entrance Hall")}>
-            <strong>Entrance Hall</strong>
-            <span>Primary access</span>
+            <strong>{translate("ui.parityDialogs.text.entranceHall")}</strong>
+            <span>{translate("ui.parityDialogs.text.primaryAccess")}</span>
           </button>
         </div>
         <div
           className="reality-dialog-filters"
           role="group"
-          aria-label="Filter Personal Reality capabilities"
+          aria-label={translate(
+            "ui.parityDialogs.ariaLabel.filterPersonalRealityCapabilities",
+          )}
         >
           {(["space", "facilities", "services"] as const).map((filter) => (
             <button
@@ -1075,7 +1138,9 @@ function RealitySummary({ openPage }: Pick<Props, "openPage">) {
           ))}
           {!shownCapabilities.length && (
             <p className="reality-empty">
-              No accumulated capabilities in this category.
+              {translate(
+                "ui.parityDialogs.text.noAccumulatedCapabilitiesInThisCategory",
+              )}
             </p>
           )}
         </div>
@@ -1130,45 +1195,60 @@ function RealityProgress({ openPage }: Pick<Props, "openPage">) {
   return (
     <div className="reality-progression-body">
       <aside>
-        <p>Net WP change</p>
-        <strong>{award + conversion - spent} WP</strong>
+        <p>{translate("ui.parityDialogs.text.netWPChange")}</p>
+        <strong>
+          {award + conversion - spent} {translate("ui.parityDialogs.text.wp")}
+        </strong>
         <dl>
           <div>
-            <dt>Mode award</dt>
-            <dd>{award} WP</dd>
+            <dt>{translate("ui.parityDialogs.text.modeAward")}</dt>
+            <dd>
+              {award} {translate("ui.parityDialogs.text.wp")}
+            </dd>
           </div>
           <div>
-            <dt>CP conversion</dt>
-            <dd>{conversion} WP</dd>
+            <dt>{translate("ui.parityDialogs.text.cpConversion")}</dt>
+            <dd>
+              {conversion} {translate("ui.parityDialogs.text.wp")}
+            </dd>
           </div>
           <div>
-            <dt>WP spent here</dt>
-            <dd>{spent} WP</dd>
+            <dt>{translate("ui.parityDialogs.text.wpSpentHere")}</dt>
+            <dd>
+              {spent} {translate("ui.parityDialogs.text.wp")}
+            </dd>
           </div>
           <div>
-            <dt>Jump CP spent</dt>
-            <dd>{p.conversionCP} CP</dd>
+            <dt>{translate("ui.parityDialogs.text.jumpCPSpent")}</dt>
+            <dd>
+              {p.conversionCP} {translate("ui.parityDialogs.text.cp")}
+            </dd>
           </div>
           <div>
-            <dt>Current WP</dt>
-            <dd>{balance} WP</dd>
+            <dt>{translate("ui.parityDialogs.text.currentWP")}</dt>
+            <dd>
+              {balance} {translate("ui.parityDialogs.text.wp")}
+            </dd>
           </div>
         </dl>
         <button type="button" onClick={() => openPage("personal-reality")}>
-          Open starting Reality
+          {translate("ui.parityDialogs.text.openStartingReality")}
         </button>
       </aside>
       <section>
         <div className="reality-progress-heading">
           <div>
-            <p>Selected Jump record</p>
-            <h5>WP sources and purchases</h5>
+            <p>{translate("ui.parityDialogs.text.selectedJumpRecord")}</p>
+            <h5>{translate("ui.parityDialogs.text.wpSourcesAndPurchases")}</h5>
           </div>
-          <span>{realityModes[state.coreMode]} Core Mode</span>
+          <span>
+            {realityModes[state.coreMode]}{" "}
+            {translate("ui.parityDialogs.text.coreMode")}
+          </span>
         </div>
         <article className="reality-progress-panel">
           <div>
-            <strong>Core Mode award</strong>
+            <strong>{translate("ui.parityDialogs.text.coreModeAward")}</strong>
             <small>
               {state.coreMode === "incremental"
                 ? "Incremental Mode makes 50 WP available for this Jump record."
@@ -1192,13 +1272,20 @@ function RealityProgress({ openPage }: Pick<Props, "openPage">) {
         </article>
         <div className="reality-progress-section">
           <h6>
-            Convert <CurrentJumpName /> CP to WP
+            {translate("ui.parityDialogs.text.convert")}
+            <CurrentJumpName /> {translate("ui.parityDialogs.text.cpToWP")}
           </h6>
-          <p>Outside Unlimited Mode, every 50 CP converts to 2 WP.</p>
+          <p>
+            {translate(
+              "ui.parityDialogs.text.outsideUnlimitedModeEvery50CPConvertsTo2",
+            )}
+          </p>
           <div
             className="reality-conversion-options"
             role="group"
-            aria-label="CP to WP conversion"
+            aria-label={translate(
+              "ui.parityDialogs.ariaLabel.cpToWPConversion",
+            )}
           >
             {([0, 50, 100] as const).map((cp) => (
               <button
@@ -1214,7 +1301,10 @@ function RealityProgress({ openPage }: Pick<Props, "openPage">) {
               >
                 <strong>{cp ? `${cp} CP` : "None"}</strong>
                 <span>
-                  {cp} CP · +{state.coreMode === "unlimited" ? cp : cp / 25} WP
+                  {cp}{" "}
+                  {translate("ui.parityDialogs.text.cpConversionSeparator")}
+                  {state.coreMode === "unlimited" ? cp : cp / 25}{" "}
+                  {translate("ui.parityDialogs.text.wp")}
                 </span>
               </button>
             ))}
@@ -1223,16 +1313,22 @@ function RealityProgress({ openPage }: Pick<Props, "openPage">) {
         <div className="reality-progress-section reality-spend-section">
           <div>
             <h6>
-              Spend WP in <CurrentJumpName />
+              {translate("ui.parityDialogs.text.spendWPIn")}
+              <CurrentJumpName />
             </h6>
-            <span>{balance} WP available</span>
+            <span>
+              {balance} {translate("ui.parityDialogs.text.wpAvailable")}
+            </span>
           </div>
           <p>
-            Completed purchases remain attributed to <CurrentJumpName />.
+            {translate(
+              "ui.parityDialogs.text.completedPurchasesRemainAttributedTo",
+            )}
+            <CurrentJumpName />.
           </p>
           <div className="reality-spend-tools">
             <label>
-              <span>Category</span>
+              <span>{translate("ui.parityDialogs.text.category")}</span>
               <select
                 value={p.category}
                 onChange={(event) =>
@@ -1248,10 +1344,13 @@ function RealityProgress({ openPage }: Pick<Props, "openPage">) {
               </select>
             </label>
             <label>
-              <span>Find</span>
+              <span>{translate("ui.parityDialogs.text.find")}</span>
               <input
                 type="search"
-                placeholder="Find an upgrade"
+                spellCheck={false}
+                placeholder={translate(
+                  "ui.parityDialogs.placeholder.findAnUpgrade",
+                )}
                 value={p.search}
                 onChange={(event) =>
                   dispatch({
@@ -1420,44 +1519,52 @@ function UdsSummary({ openPage }: Pick<Props, "openPage">) {
   return (
     <div className="uds-dialog-body">
       <aside>
-        <p>Budget adjustment</p>
+        <p>{translate("ui.parityDialogs.text.budgetAdjustment")}</p>
         <strong>
           {chain + jump >= 0 ? "+" : ""}
-          {chain + jump} CP
+          {chain + jump} {translate("ui.parityDialogs.text.cp")}
         </strong>
         <dl>
           <div>
-            <dt>Chain CP</dt>
+            <dt>{translate("ui.parityDialogs.text.chainCP")}</dt>
             <dd>+{chain}</dd>
           </div>
           <div>
-            <dt>Single-Jump CP</dt>
+            <dt>{translate("ui.parityDialogs.text.singleJumpCP")}</dt>
             <dd>+{jump}</dd>
           </div>
           <div>
-            <dt>Restricted CP</dt>
+            <dt>{translate("ui.parityDialogs.text.restrictedCP")}</dt>
             <dd>0</dd>
           </div>
           <div>
-            <dt>Active effects</dt>
+            <dt>{translate("ui.parityDialogs.text.activeEffects")}</dt>
             <dd>{active.length - state.hiatus.length}</dd>
           </div>
         </dl>
         <button type="button" onClick={() => openPage("universal-drawbacks")}>
-          Open chain setup
+          {translate("ui.parityDialogs.text.openChainSetup")}
         </button>
       </aside>
       <section>
         <div className="uds-dialog-heading">
           <div>
-            <p>Calculated for Jump {currentJump.number}</p>
-            <h5>Active rules and budget</h5>
+            <p>
+              {translate("ui.parityDialogs.text.calculatedForJump")}
+              {currentJump.number}
+            </p>
+            <h5>{translate("ui.parityDialogs.text.activeRulesAndBudget")}</h5>
           </div>
-          <span>No conflicts</span>
+          <span>{translate("ui.parityDialogs.text.noConflicts")}</span>
         </div>
         <div className="uds-budget-equation">
-          Base <strong>{base}</strong> + Chain <strong>{chain}</strong> + Single{" "}
-          <strong>{jump}</strong> = <b>{base + chain + jump} CP</b>
+          {translate("ui.parityDialogs.text.base")}
+          <strong>{base}</strong> {translate("ui.parityDialogs.text.chain")}
+          <strong>{chain}</strong> {translate("ui.parityDialogs.text.single")}{" "}
+          <strong>{jump}</strong> ={" "}
+          <b>
+            {base + chain + jump} {translate("ui.parityDialogs.text.cp")}
+          </b>
         </div>
         <div className="uds-dialog-filters">
           {[
@@ -1485,10 +1592,15 @@ function UdsSummary({ openPage }: Pick<Props, "openPage">) {
         {state.dialogFilter === "choose" ? (
           <div className="uds-jump-chooser">
             <label className="uds-jump-search">
-              <span>Find a Single-Jump Drawback</span>
+              <span>
+                {translate("ui.parityDialogs.text.findASingleJumpDrawback")}
+              </span>
               <input
                 type="search"
-                placeholder="Name, effect, or restriction"
+                spellCheck={false}
+                placeholder={translate(
+                  "ui.parityDialogs.placeholder.nameEffectOrRestriction",
+                )}
                 value={state.jumpSearch}
                 onChange={(event) =>
                   dispatch({
@@ -1516,7 +1628,10 @@ function UdsSummary({ openPage }: Pick<Props, "openPage">) {
                     <div>
                       <strong>{entry.name}</strong>
                       <span>{entry.summary}</span>
-                      <small>+{entry.costs[0]} CP</small>
+                      <small>
+                        +{entry.costs[0]}{" "}
+                        {translate("ui.parityDialogs.text.cp")}
+                      </small>
                     </div>
                     <button
                       type="button"
@@ -1542,8 +1657,9 @@ function UdsSummary({ openPage }: Pick<Props, "openPage">) {
           </div>
         ) : state.dialogFilter === "conflict" ? (
           <p className="uds-empty">
-            No native or Universal Drawback conflicts were detected for Arcane
-            Realms.
+            {translate(
+              "ui.parityDialogs.text.noNativeOrUniversalDrawbackConflictsWereDetectedFor",
+            )}
           </p>
         ) : (
           <div className="uds-effect-list">
@@ -1571,7 +1687,7 @@ function UdsSummary({ openPage }: Pick<Props, "openPage">) {
                     </em>
                     <b>
                       {hiatus ? `${-2 * entry.costs[0]}` : `+${entry.costs[0]}`}{" "}
-                      CP
+                      {translate("ui.parityDialogs.text.cp")}
                     </b>
                   </button>
                   {scope === "chain" && (
@@ -1669,56 +1785,62 @@ function QuestSummary({ openPage }: Pick<Props, "openPage">) {
   return (
     <div className="quest-dialog-body">
       <aside>
-        <p>Available this Jump</p>
-        <strong>{earned} CP</strong>
+        <p>{translate("ui.parityDialogs.text.availableThisJump")}</p>
+        <strong>
+          {earned} {translate("ui.parityDialogs.text.cp")}
+        </strong>
         <dl>
           <div>
-            <dt>Starting CP</dt>
+            <dt>{translate("ui.parityDialogs.text.startingCP")}</dt>
             <dd>0</dd>
           </div>
           <div>
-            <dt>Drawback CP</dt>
+            <dt>{translate("ui.parityDialogs.text.drawbackCP")}</dt>
             <dd>{drawbackEarned}</dd>
           </div>
           <div>
-            <dt>Quest CP</dt>
+            <dt>{translate("ui.parityDialogs.text.questCP")}</dt>
             <dd>{questEarned}</dd>
           </div>
         </dl>
         <div
           className="quest-dialog-rule-status"
-          aria-label="Optional rule status"
+          aria-label={translate(
+            "ui.parityDialogs.ariaLabel.optionalRuleStatus",
+          )}
         >
           <span
             className={state.rules.includes("drawback") ? "" : "is-disabled"}
           >
             <i aria-hidden="true" />
-            Drawback Quests{" "}
+            {translate("ui.parityDialogs.text.drawbackQuests")}{" "}
             <b>{state.rules.includes("drawback") ? "On" : "Off"}</b>
           </span>
           <span
             className={state.rules.includes("switching") ? "" : "is-disabled"}
           >
             <i aria-hidden="true" />
-            Switching Out Quests{" "}
+            {translate("ui.parityDialogs.text.switchingOutQuests")}{" "}
             <b>{state.rules.includes("switching") ? "On" : "Off"}</b>
           </span>
         </div>
         <div className="quest-completion-count">
           <span>{completed}</span>
-          <small>quests complete</small>
+          <small>{translate("ui.parityDialogs.text.questsComplete")}</small>
         </div>
         <button type="button" onClick={() => openPage("quest-mode")}>
-          Open full Quest Mode
+          {translate("ui.parityDialogs.text.openFullQuestMode")}
         </button>
       </aside>
       <section>
         <div className="quest-dialog-heading">
           <div>
-            <p>Current-Jump checklist</p>
-            <h5>Choose completed quests</h5>
+            <p>{translate("ui.parityDialogs.text.currentJumpChecklist")}</p>
+            <h5>{translate("ui.parityDialogs.text.chooseCompletedQuests")}</h5>
           </div>
-          <span>Awards update immediately</span>
+          <span>
+            {translate("ui.parityDialogs.text.awardsUpdateImmediately")}
+          </span>
         </div>
         <div className="quest-tier-filters">
           {([0, 100, 200, 400, 600] as const).map((filter) => (
@@ -1752,14 +1874,22 @@ function QuestSummary({ openPage }: Pick<Props, "openPage">) {
                   <strong>{label}</strong>
                   <small>{copy}</small>
                 </span>
-                <b>{value} CP</b>
+                <b>
+                  {value} {translate("ui.parityDialogs.text.cp")}
+                </b>
               </label>
             ))}
           {state.rules.includes("drawback") && (
             <div className="quest-special-section">
               <div>
-                <strong>Selected drawbacks</strong>
-                <small>Work them off to receive their withheld CP.</small>
+                <strong>
+                  {translate("ui.parityDialogs.text.selectedDrawbacks")}
+                </strong>
+                <small>
+                  {translate(
+                    "ui.parityDialogs.text.workThemOffToReceiveTheirWithheldCP",
+                  )}
+                </small>
               </div>
               {drawbackRows
                 .filter(
@@ -1781,7 +1911,9 @@ function QuestSummary({ openPage }: Pick<Props, "openPage">) {
                       <strong>{label}</strong>
                       <small>{copy}</small>
                     </span>
-                    <b>{value} CP</b>
+                    <b>
+                      {value} {translate("ui.parityDialogs.text.cp")}
+                    </b>
                   </label>
                 ))}
             </div>
@@ -1790,24 +1922,36 @@ function QuestSummary({ openPage }: Pick<Props, "openPage">) {
             <div className="quest-special-section">
               <div>
                 <strong>
-                  <CurrentJumpName /> switching-out quests
+                  <CurrentJumpName />{" "}
+                  {translate("ui.parityDialogs.text.switchingOutQuestsSuffix")}
                 </strong>
-                <small>Added only to this Jump’s quest list.</small>
+                <small>
+                  {translate(
+                    "ui.parityDialogs.text.addedOnlyToThisJumpSQuestList",
+                  )}
+                </small>
               </div>
               <form id="quest-custom-form" onSubmit={add}>
                 <label>
-                  <span>Quest</span>
+                  <span>{translate("ui.parityDialogs.text.quest")}</span>
                   <input
-                    aria-label="Switching-out quest name"
-                    placeholder="Describe the objective"
+                    spellCheck
+                    aria-label={translate(
+                      "ui.parityDialogs.ariaLabel.switchingOutQuestName",
+                    )}
+                    placeholder={translate(
+                      "ui.parityDialogs.placeholder.describeTheObjective",
+                    )}
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                   />
                 </label>
                 <label>
-                  <span>Award</span>
+                  <span>{translate("ui.parityDialogs.text.award")}</span>
                   <select
-                    aria-label="Switching-out quest award"
+                    aria-label={translate(
+                      "ui.parityDialogs.ariaLabel.switchingOutQuestAward",
+                    )}
                     value={award}
                     onChange={(event) =>
                       setAward(Number(event.target.value) as typeof award)
@@ -1815,12 +1959,14 @@ function QuestSummary({ openPage }: Pick<Props, "openPage">) {
                   >
                     {[100, 200, 400, 600].map((value) => (
                       <option key={value} value={value}>
-                        {value} CP
+                        {value} {translate("ui.parityDialogs.text.cp")}
                       </option>
                     ))}
                   </select>
                 </label>
-                <button type="submit">Add quest</button>
+                <button type="submit">
+                  {translate("ui.parityDialogs.text.addQuest")}
+                </button>
               </form>
               <div id="quest-custom-list">
                 {state.switching
@@ -1844,10 +1990,14 @@ function QuestSummary({ openPage }: Pick<Props, "openPage">) {
                       <span>
                         <strong>{quest.name}</strong>
                         <small>
-                          Switching-out objective declared for this Jump.
+                          {translate(
+                            "ui.parityDialogs.text.switchingOutObjectiveDeclaredForThisJump",
+                          )}
                         </small>
                       </span>
-                      <b>{quest.award} CP</b>
+                      <b>
+                        {quest.award} {translate("ui.parityDialogs.text.cp")}
+                      </b>
                     </label>
                   ))}
               </div>
@@ -1855,8 +2005,9 @@ function QuestSummary({ openPage }: Pick<Props, "openPage">) {
           )}
         </div>
         <p className="quest-dialog-note">
-          Checking a quest records the user’s declaration of completion.
-          Purchases may help, but never check it automatically.
+          {translate(
+            "ui.parityDialogs.text.checkingAQuestRecordsTheUserSDeclarationOf",
+          )}
         </p>
       </section>
     </div>
@@ -2231,30 +2382,33 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
   return (
     <div className="story-dialog-body">
       <aside>
-        <p>Current story</p>
-        <strong>Jump {currentJump.number}</strong>
+        <p>{translate("ui.parityDialogs.text.currentStory")}</p>
+        <strong>
+          {translate("ui.parityDialogs.text.jump")}
+          {currentJump.number}
+        </strong>
         <span>
           <CurrentJumpName />
         </span>
         <dl>
           <div>
-            <dt>Words</dt>
+            <dt>{translate("ui.parityDialogs.text.words")}</dt>
             <dd>{storyWordCount(state, jump.id)}</dd>
           </div>
           <div>
-            <dt>Chapters</dt>
+            <dt>{translate("ui.parityDialogs.text.chapters")}</dt>
             <dd>{jump.chapters.length}</dd>
           </div>
         </dl>
         <button type="button" onClick={() => openPage("story")}>
-          Open full Story
+          {translate("ui.parityDialogs.text.openFullStory")}
         </button>
       </aside>
       <section className="story-writer" ref={writerRef}>
         <div
           className="story-toolbar"
           role="toolbar"
-          aria-label="Story formatting"
+          aria-label={translate("ui.parityDialogs.ariaLabel.storyFormatting")}
           onBlur={() =>
             window.setTimeout(() => {
               if (
@@ -2292,10 +2446,10 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
             </button>
           ))}
           <label>
-            <span>Color</span>
+            <span>{translate("ui.parityDialogs.text.color")}</span>
             <input
               type="color"
-              aria-label="Text color"
+              aria-label={translate("ui.parityDialogs.ariaLabel.textColor")}
               defaultValue="#74d8a1"
               onChange={(event) =>
                 formatSelection("color", event.currentTarget.value)
@@ -2305,7 +2459,7 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
         </div>
         <div
           className="story-editor-chapters"
-          aria-label="Jump story chapters"
+          aria-label={translate("ui.parityDialogs.ariaLabel.jumpStoryChapters")}
           onDragLeave={(event) => {
             const bounds = event.currentTarget.getBoundingClientRect();
             if (
@@ -2396,7 +2550,7 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
               <div className="story-chapter-edge">
                 <span
                   className="story-chapter-handle"
-                  title="Drag to reorder"
+                  title={translate("ui.parityDialogs.title.dragToReorder")}
                   aria-hidden="true"
                 >
                   ⠿
@@ -2412,8 +2566,11 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
               </div>
               <header>
                 <input
+                  spellCheck
                   aria-label={`Chapter ${index + 1} title`}
-                  placeholder="Untitled chapter"
+                  placeholder={translate(
+                    "ui.parityDialogs.placeholder.untitledChapter",
+                  )}
                   value={chapter.title}
                   onChange={(event) =>
                     update(index, { title: event.target.value })
@@ -2442,17 +2599,17 @@ function StoryEditor({ openPage }: Pick<Props, "openPage">) {
             {state.saved}
           </span>
           <button type="button" onClick={add}>
-            + Add chapter
+            {translate("ui.parityDialogs.text.addChapter")}
           </button>
         </footer>
         {deleteChapter && (
           <ConfirmationDialog
-            title="Remove chapter?"
+            title={translate("ui.parityDialogs.title.removeChapter")}
             confirmLabel="Remove chapter"
             onCancel={() => setDeleteChapter(null)}
             onConfirm={removeConfirmedChapter}
           >
-            Are you sure you want to remove “
+            {translate("ui.parityDialogs.text.areYouSureYouWantToRemove")}
             {deleteChapter.title || "Untitled chapter"}”?
           </ConfirmationDialog>
         )}
@@ -2466,7 +2623,7 @@ function ParityDialogContent({ tool, close, openPage, embedded }: Props) {
   if (tool === "essential")
     return (
       <Modal
-        title="Essential Body Mod at a glance"
+        title={translate("ui.parityDialogs.title.essentialBodyModAtAGlance")}
         kicker={`${jumpName} · Current-Jump projection`}
         className="essential-dialog-mock"
         onClose={close}
@@ -2478,7 +2635,7 @@ function ParityDialogContent({ tool, close, openPage, embedded }: Props) {
   if (tool === "essential-progress")
     return (
       <Modal
-        title="Essential Body Mod progression"
+        title={translate("ui.parityDialogs.title.essentialBodyModProgression")}
         kicker={`${jumpName} · Morgan`}
         className="essential-progression-mock"
         onClose={close}
@@ -2490,7 +2647,7 @@ function ParityDialogContent({ tool, close, openPage, embedded }: Props) {
   if (tool === "warehouse")
     return (
       <Modal
-        title="Warehouse at a glance"
+        title={translate("ui.parityDialogs.title.warehouseAtAGlance")}
         kicker={`${jumpName} · Persistent space`}
         className="warehouse-dialog-mock"
         onClose={close}
@@ -2502,7 +2659,7 @@ function ParityDialogContent({ tool, close, openPage, embedded }: Props) {
   if (tool === "reality")
     return (
       <Modal
-        title="Personal Reality at a glance"
+        title={translate("ui.parityDialogs.title.personalRealityAtAGlance")}
         kicker={`${jumpName} · Persistent space`}
         className="reality-dialog-mock"
         onClose={close}
@@ -2514,7 +2671,7 @@ function ParityDialogContent({ tool, close, openPage, embedded }: Props) {
   if (tool === "reality-progress")
     return (
       <Modal
-        title="Personal Reality progression"
+        title={translate("ui.parityDialogs.title.personalRealityProgression")}
         kicker={`${jumpName} · Morgan`}
         className="reality-progression-mock"
         onClose={close}
@@ -2526,7 +2683,7 @@ function ParityDialogContent({ tool, close, openPage, embedded }: Props) {
   if (tool === "drawbacks")
     return (
       <Modal
-        title="Universal Drawbacks this Jump"
+        title={translate("ui.parityDialogs.title.universalDrawbacksThisJump")}
         kicker={`${jumpName} · Morgan`}
         className="uds-dialog-mock"
         onClose={close}
@@ -2538,7 +2695,7 @@ function ParityDialogContent({ tool, close, openPage, embedded }: Props) {
   if (tool === "quests")
     return (
       <Modal
-        title="Quest progress"
+        title={translate("ui.parityDialogs.title.questProgress")}
         kicker={`${jumpName} · Morgan`}
         className="quest-dialog-mock"
         onClose={close}

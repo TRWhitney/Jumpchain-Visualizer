@@ -1,3 +1,5 @@
+import { translate } from "../localization";
+
 export const bodyModStats = [
   "Strength",
   "Endurance",
@@ -234,3 +236,35 @@ export const bestialPresentation = (state: BodyModState) =>
     `${state.animal || "Animal"} Demi-Human`,
     `${state.animal || "Animal"} Anthro`,
   ][state.bestialTier] ?? `${state.animal || "Animal"} Demi-Human`;
+
+export const bodyModStatLabel = (name: BodyModStat) =>
+  translate(`supplements.bodyMod.stats.${name}.label`);
+export const bodyModPerkLabel = (name: BodyModPerk) =>
+  translate(`supplements.bodyMod.perks.${name}.label`);
+export const bodyModTypeLabel = (name: BodyModType) =>
+  translate(`supplements.bodyMod.types.${name}.label`);
+
+for (const name of bodyModStats)
+  statDescriptions[name].forEach((_, index) =>
+    Object.defineProperty(statDescriptions[name], index, {
+      configurable: true,
+      enumerable: true,
+      get: () =>
+        translate(`supplements.bodyMod.stats.${name}.descriptions.${index}`),
+    }),
+  );
+for (const [name] of bodyModPerks)
+  perkDescriptions[name].forEach((_, index) =>
+    Object.defineProperty(perkDescriptions[name], index, {
+      configurable: true,
+      enumerable: true,
+      get: () =>
+        translate(`supplements.bodyMod.perks.${name}.descriptions.${index}`),
+    }),
+  );
+for (const [name, type] of Object.entries(bodyTypes))
+  Object.defineProperty(type, "included", {
+    configurable: true,
+    enumerable: true,
+    get: () => translate(`supplements.bodyMod.types.${name}.included`),
+  });

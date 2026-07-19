@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Localization architecture and translation workflow for Jumpchain Visualizer.">
+  <title>Localization | Jumpchain Visualizer</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="decision-document.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html"><span class="site-mark" aria-hidden="true">JV</span><span>Jumpchain Visualizer <small>Documentation</small></span></a>
+    <nav class="site-nav" aria-label="Documentation"><a href="index.html">Overview</a><a href="architecture.html">Architecture</a><a href="settings-design.html">Settings</a><a href="localization.html" aria-current="page">Localization</a></nav>
+  </header>
+  <main id="content" class="decision-document" tabindex="-1">
+    <header class="documentation-hero">
+      <p class="eyebrow">ADR · accepted</p>
+      <h1>Bundled external localization resources</h1>
+      <p class="lede">Application-owned text is separated from behavior, while authored Jump and chain content keeps its original language and identity.</p>
+    </header>
+
+    <section>
+      <h2>Decision</h2>
+      <p>Use i18next with react-i18next. Vite eagerly discovers one folder per release-bundled language from <code>src/localization/languages</code>. Each folder contains a metadata manifest and feature-oriented message files. Browser and Tauri therefore use the same immutable resources; adding a language requires a rebuild. English is always present, starts first, is the default after reset, and is the per-key fallback for valid partial translations. Runtime user-installed packs are deferred.</p>
+      <pre><code>languages/
+  English/
+    manifest.json
+    application.json
+    common.json
+    editor.json
+    settings.json
+    supplements.json
+    tags.json
+    tracker.json
+
+// manifest.json
+{
+  "schemaVersion": 1,
+  "languageTag": "en",
+  "direction": "ltr"
+}
+
+// settings.json
+{
+  "settings": {
+    "language": {
+      "heading": "Language"
+    }
+  }
+}</code></pre>
+      <p>The folder name is the language's self-name. Tags must be canonical BCP 47 values and direction is either <code>ltr</code> or <code>rtl</code>. Folder names and tags must be unique. Message files are merged at build time and may be organized by feature, but no two files in one language may define the same leaf.</p>
+    </section>
+
+    <section>
+      <h2>Language setting</h2>
+      <p>Language is a native dropdown in the General Settings category. English appears first, followed by locale-sorted folder self-names whose options carry their own <code>lang</code> and <code>dir</code>. Selection rerenders immediately, persists as <code>language.tag</code> in settings schema 2, and updates the root document's language and direction. Invalid or unavailable persisted tags recover to English.</p>
+    </section>
+
+    <section>
+      <h2>Translation boundary</h2>
+      <p>Translate visible application chrome, accessible names, placeholders, tooltips, document and route titles, settings search terms, notifications, diagnostics, recovery copy, editor commands, Earth setup, supplement presentation, and built-in tag presentation. Keep stable IDs, persisted enum values, Format 1 keywords, file extensions, hashes, event/error codes, and canonical built-in matching terms invariant.</p>
+      <p>Do not translate imported or built-in Jump package prose, Editor-authored Jump content, user-supplied chain names and descriptions, story chapters, custom or acquired tag text, or test/review fixture prose. Supplement purchases and tag relationships remain keyed by stable IDs; a localized label must never change chain meaning.</p>
+      <p>Built-in tag IDs, canonical English names, and canonical aliases remain invariant. The active language supplies presentation labels and equivalent matching aliases at runtime. User-added aliases are layered beside those localized aliases and are never translated. If a user removes a built-in alias, its localized equivalent is also absent; switching language cannot restore it.</p>
+    </section>
+
+    <section>
+      <h2>Validation and security</h2>
+      <p>Catalogue validation is fail-closed: English must exist; schema, canonical tag, direction, size, depth, leaf count, file-name length, known keys, and interpolation/component tokens are checked. Translation strings are text, not trusted markup. Packs cannot provide arbitrary HTML, URLs, handlers, React props, or <code>dangerouslySetInnerHTML</code>. Rich messages may use only explicitly allowlisted Trans components. The AST audit rejects newly embedded production JSX, accessibility, placeholder, and notification display copy without interface-literal exceptions.</p>
+    </section>
+
+    <section>
+      <h2>Contributor workflow</h2>
+      <ol>
+        <li>Create a folder beside <code>src/localization/languages/English</code> and name it with the language's self-name.</li>
+        <li>Copy <code>manifest.json</code>, set its metadata, then copy only the feature files and message leaves being translated. Missing files and leaves fall back to English.</li>
+        <li>Keep the semantic English keys unchanged. Choose keys by feature and meaning, such as <code>settingsSearch.language_tag.label</code>, rather than source line, component position, or translated wording.</li>
+        <li>Preserve every <code>{{interpolation}}</code>, plural suffix, and allowlisted component token exactly.</li>
+        <li>Run formatter, unit and browser tests, Playwright, Rust checks, and a production build. Exercise the General language dropdown in both LTR and RTL directions.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Formatting, direction, and spell-check</h2>
+      <p>Numbers, dates, lists, plural selection, case folding, and collation use the active BCP 47 tag. Layout uses document direction and logical CSS where direction matters. Natural-language authoring fields explicitly enable <code>spellcheck</code>; search, JSON, paths, handles, and CodeMirror source disable it. The root <code>lang</code> is the dictionary signal, but the browser/webview and operating system decide whether a matching dictionary is installed. The application bundles no dictionary and cannot guarantee spell-check availability.</p>
+    </section>
+
+    <section>
+      <h2>Consequences and rejected alternatives</h2>
+      <p>Bundling gives deterministic, offline behavior and one security model in browser and desktop, at the cost of requiring a release rebuild for a new language. Operating-system auto-selection was rejected so first launch remains predictable and English recovery is always available. Runtime pack installation was deferred because it would require signature, storage, update, and trust decisions beyond this foundation.</p>
+    </section>
+  </main>
+</body>
+</html>

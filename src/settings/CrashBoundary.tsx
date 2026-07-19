@@ -8,6 +8,7 @@ import {
 import { useSettings } from "./SettingsContext";
 import type { EventPipeline } from "./logging";
 import type { ReportExporter } from "./repository";
+import { translate } from "../localization";
 
 type Props = {
   children: ReactNode;
@@ -109,30 +110,32 @@ function CrashSurface({
   return (
     <main className="app-crash-surface" aria-labelledby="app-crash-heading">
       <section role="alertdialog" aria-modal="true">
-        <p>Application recovery</p>
+        <p>{translate("ui.crashBoundary.text.applicationRecovery")}</p>
         <h1 id="app-crash-heading">
-          Jumpchain Visualizer encountered an error
+          {translate(
+            "ui.crashBoundary.text.jumpchainVisualizerEncounteredAnError",
+          )}
         </h1>
         <p>
-          The current diagnostic session is still memory-only. Review the report
-          before copying or saving it; imported content, credentials, and user
-          paths are excluded.
+          {translate(
+            "ui.crashBoundary.text.theCurrentDiagnosticSessionIsStillMemoryOnlyReview",
+          )}
         </p>
         <dl>
           <div>
-            <dt>Application</dt>
-            <dd>Jumpchain Visualizer 0.1.0</dd>
+            <dt>{translate("ui.crashBoundary.text.application")}</dt>
+            <dd>{translate("ui.crashBoundary.text.applicationVersion")}</dd>
           </div>
           <div>
-            <dt>Route</dt>
+            <dt>{translate("ui.crashBoundary.text.route")}</dt>
             <dd>{window.location.pathname}</dd>
           </div>
           <div>
-            <dt>Runtime</dt>
+            <dt>{translate("ui.crashBoundary.text.runtime")}</dt>
             <dd>{navigator.platform || "Browser runtime"}</dd>
           </div>
           <div>
-            <dt>Error</dt>
+            <dt>{translate("ui.crashBoundary.text.error")}</dt>
             <dd>
               {error.name}: {error.message}
             </dd>
@@ -151,7 +154,7 @@ function CrashSurface({
               }
             }}
           >
-            Copy report
+            {translate("ui.crashBoundary.text.copyReport")}
           </button>
           <button
             type="button"
@@ -167,13 +170,13 @@ function CrashSurface({
               );
             }}
           >
-            Save report…
+            {translate("ui.crashBoundary.text.saveReport")}
           </button>
           <button type="button" onClick={() => window.location.assign("/")}>
-            Return Home
+            {translate("ui.crashBoundary.text.returnHome")}
           </button>
           <button type="button" onClick={() => window.location.reload()}>
-            Reload
+            {translate("ui.crashBoundary.text.reload")}
           </button>
         </div>
         <p role="status">{message}</p>

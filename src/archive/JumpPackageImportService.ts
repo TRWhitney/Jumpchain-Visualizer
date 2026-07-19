@@ -45,9 +45,9 @@ export type PackageImportReview = {
 export class PackageSecurityError extends Error {
   constructor(
     readonly code: string,
-    message: string,
+    readonly parameters: Record<string, string | number> = {},
   ) {
-    super(message);
+    super(code);
     this.name = "PackageSecurityError";
   }
 }
@@ -62,16 +62,16 @@ type CentralEntry = {
   localOffset: number;
 };
 
-const fail = (code: string, message: string): never => {
-  throw new PackageSecurityError(code, message);
+const fail = (
+  code: string,
+  parameters: Record<string, string | number>,
+): never => {
+  throw new PackageSecurityError(code, parameters);
 };
 
 const checkedSlice = (bytes: Uint8Array, from: number, length: number) => {
   if (from < 0 || length < 0 || from + length > bytes.length)
-    fail(
-      "archive.truncated",
-      "The archive is truncated or has invalid offsets.",
-    );
+    fail("archive.truncated", {});
   return bytes.subarray(from, from + length);
 };
 
@@ -79,10 +79,7 @@ const decodeName = (bytes: Uint8Array) => {
   try {
     return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
-    return fail(
-      "archive.filename_encoding",
-      "An entry name is not valid UTF-8.",
-    );
+    return fail("archive.filename_encoding", {});
   }
 };
 
@@ -95,7 +92,7 @@ function validatedPath(name: string) {
     /^[a-z]:/i.test(name) ||
     name.endsWith("/")
   )
-    fail("archive.path", "The archive contains an unsafe or non-file path.");
+    fail("archive.path", {});
   const segments = name.split("/");
   if (
     segments.some(
@@ -106,7 +103,7 @@ function validatedPath(name: string) {
         segment !== segment.normalize("NFC"),
     )
   )
-    fail("archive.path", "The archive contains a non-canonical path.");
+    fail("archive.path", {});
   const definition =
     segments.length === 1 && /^[a-z0-9._-]+\.jdef$/i.test(name);
   const extension = name.split(".").at(-1)?.toLocaleLowerCase() ?? "";
@@ -114,17 +111,12 @@ function validatedPath(name: string) {
     segments.length >= 2 &&
     segments[0] === "assets" &&
     allowedAssetExtensions.has(extension);
-  if (!definition && !asset)
-    fail(
-      "archive.entry_type",
-      `Unexpected package entry “${name}”. Only .jdef files and supported raster assets are allowed.`,
-    );
+  if (!definition && !asset) fail("archive.entry_type", { value0: name });
   return definition ? "definition" : "asset";
 }
 
 function parseCentralDirectory(bytes: Uint8Array): CentralEntry[] {
-  if (bytes.length < 22)
-    fail("archive.malformed", "The file is not a complete ZIP archive.");
+  if (bytes.length < 22) fail("archive.malformed", {});
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const minimum = Math.max(0, bytes.length - 65_557);
   let end = -1;
@@ -134,31 +126,23 @@ function parseCentralDirectory(bytes: Uint8Array): CentralEntry[] {
       break;
     }
   }
-  if (end < 0) fail("archive.malformed", "The ZIP end record is missing.");
+  if (end < 0) fail("archive.malformed", {});
   const commentLength = view.getUint16(end + 20, true);
   if (end + 22 + commentLength !== bytes.length)
-    fail(
-      "archive.trailing_data",
-      "The archive contains trailing or polyglot data.",
-    );
+    fail("archive.trailing_data", {});
   if (
     view.getUint16(end + 4, true) !== 0 ||
     view.getUint16(end + 6, true) !== 0 ||
     view.getUint16(end + 8, true) !== view.getUint16(end + 10, true)
   )
-    fail("archive.multi_disk", "Multi-disk ZIP archives are not supported.");
+    fail("archive.multi_disk", {});
   const entryCount = view.getUint16(end + 10, true);
-  if (entryCount === 0xffff)
-    fail("archive.zip64", "ZIP64 packages are not supported.");
+  if (entryCount === 0xffff) fail("archive.zip64", {});
   if (entryCount < 1 || entryCount > MAX_ENTRIES)
-    fail(
-      "archive.entry_count",
-      `Packages must contain between 1 and ${MAX_ENTRIES} entries.`,
-    );
+    fail("archive.entry_count", { value0: MAX_ENTRIES });
   const directorySize = view.getUint32(end + 12, true);
   const directoryOffset = view.getUint32(end + 16, true);
-  if (directoryOffset + directorySize !== end)
-    fail("archive.directory", "The central directory bounds are inconsistent.");
+  if (directoryOffset + directorySize !== end) fail("archive.directory", {});
 
   const result: CentralEntry[] = [];
   const normalizedNames = new Set<string>();
@@ -167,7 +151,7 @@ function parseCentralDirectory(bytes: Uint8Array): CentralEntry[] {
   for (let index = 0; index < entryCount; index += 1) {
     checkedSlice(bytes, cursor, 46);
     if (view.getUint32(cursor, true) !== 0x02014b50)
-      fail("archive.directory", "A central-directory header is malformed.");
+      fail("archive.directory", {});
     const versionMadeBy = view.getUint16(cursor + 4, true);
     const platform = versionMadeBy >>> 8;
     const flags = view.getUint16(cursor + 8, true);
@@ -181,47 +165,27 @@ function parseCentralDirectory(bytes: Uint8Array): CentralEntry[] {
     const disk = view.getUint16(cursor + 34, true);
     const externalAttributes = view.getUint32(cursor + 38, true);
     const localOffset = view.getUint32(cursor + 42, true);
-    if (disk !== 0)
-      fail("archive.multi_disk", "An entry points to another ZIP disk.");
-    if (flags & 0x0001 || flags & 0x0040)
-      fail("archive.encrypted", "Encrypted package entries are not allowed.");
-    if (method !== 0 && method !== 8)
-      fail(
-        "archive.compression",
-        "An unsupported compression method was used.",
-      );
+    if (disk !== 0) fail("archive.multi_disk", {});
+    if (flags & 0x0001 || flags & 0x0040) fail("archive.encrypted", {});
+    if (method !== 0 && method !== 8) fail("archive.compression", {});
     const mode = platform === 3 ? externalAttributes >>> 16 : 0;
     const fileType = mode & 0xf000;
     if (
       (fileType !== 0 && fileType !== 0x8000) ||
       (externalAttributes & 0x10) !== 0
     )
-      fail(
-        "archive.special_entry",
-        "Links, directories, devices, and other special entries are not allowed.",
-      );
+      fail("archive.special_entry", {});
     const name = decodeName(checkedSlice(bytes, cursor + 46, nameLength));
     validatedPath(name);
     const normalized = name.normalize("NFC").toLocaleLowerCase();
-    if (normalizedNames.has(normalized))
-      fail(
-        "archive.path_collision",
-        "The archive contains duplicate or case-folded path collisions.",
-      );
+    if (normalizedNames.has(normalized)) fail("archive.path_collision", {});
     normalizedNames.add(normalized);
-    if (compressedSize === 0 && expandedSize > 0)
-      fail(
-        "archive.ratio",
-        "An entry declares an impossible compression ratio.",
-      );
+    if (compressedSize === 0 && expandedSize > 0) fail("archive.ratio", {});
     if (
       compressedSize > 0 &&
       expandedSize / compressedSize > MAX_COMPRESSION_RATIO
     )
-      fail(
-        "archive.ratio",
-        `An entry exceeds the mandatory ${MAX_COMPRESSION_RATIO}:1 compression-ratio limit.`,
-      );
+      fail("archive.ratio", { value0: MAX_COMPRESSION_RATIO });
     const extra = checkedSlice(bytes, cursor + 46 + nameLength, extraLength);
     for (let extraOffset = 0; extraOffset + 4 <= extra.length;) {
       const extraView = new DataView(
@@ -232,18 +196,14 @@ function parseCentralDirectory(bytes: Uint8Array): CentralEntry[] {
       const kind = extraView.getUint16(0, true);
       const size = extraView.getUint16(2, true);
       if (extraOffset + 4 + size > extra.length)
-        fail("archive.extra_field", "An entry has a malformed extra field.");
-      if (kind === 0x0001 || kind === 0x000d)
-        fail(
-          "archive.extra_field",
-          "ZIP64 and link-capable Unix extra fields are not allowed.",
-        );
+        fail("archive.extra_field", {});
+      if (kind === 0x0001 || kind === 0x000d) fail("archive.extra_field", {});
       extraOffset += 4 + size;
     }
     const local = localOffset;
     checkedSlice(bytes, local, 30);
     if (view.getUint32(local, true) !== 0x04034b50)
-      fail("archive.local_header", "A local file header is malformed.");
+      fail("archive.local_header", {});
     const localFlags = view.getUint16(local + 6, true);
     const localMethod = view.getUint16(local + 8, true);
     const localNameLength = view.getUint16(local + 26, true);
@@ -252,10 +212,7 @@ function parseCentralDirectory(bytes: Uint8Array): CentralEntry[] {
       checkedSlice(bytes, local + 30, localNameLength),
     );
     if (localName !== name || localFlags !== flags || localMethod !== method)
-      fail(
-        "archive.header_mismatch",
-        "Local and central entry headers do not agree.",
-      );
+      fail("archive.header_mismatch", {});
     if (!(flags & 0x0008)) {
       const localCrc = view.getUint32(local + 14, true);
       const localCompressedSize = view.getUint32(local + 18, true);
@@ -265,10 +222,7 @@ function parseCentralDirectory(bytes: Uint8Array): CentralEntry[] {
         localCompressedSize !== compressedSize ||
         localExpandedSize !== expandedSize
       )
-        fail(
-          "archive.header_mismatch",
-          "Local and central entry integrity fields do not agree.",
-        );
+        fail("archive.header_mismatch", {});
     }
     const localData = local + 30 + localNameLength + localExtraLength;
     checkedSlice(bytes, localData, compressedSize);
@@ -278,7 +232,7 @@ function parseCentralDirectory(bytes: Uint8Array): CentralEntry[] {
         ([start, endOffset]) => local < endOffset && localEnd > start,
       )
     )
-      fail("archive.overlap", "Archive entries overlap in storage.");
+      fail("archive.overlap", {});
     localRanges.push([local, localEnd]);
     result.push({
       name,
@@ -291,8 +245,7 @@ function parseCentralDirectory(bytes: Uint8Array): CentralEntry[] {
     });
     cursor += 46 + nameLength + extraLength + entryCommentLength;
   }
-  if (cursor !== end)
-    fail("archive.directory", "The central directory has unexpected bytes.");
+  if (cursor !== end) fail("archive.directory", {});
   return result;
 }
 
@@ -330,13 +283,9 @@ function expandArchive(
   let fatal: unknown;
   const unzipper = new Unzip((file) => {
     try {
-      if (signal?.aborted) fail("archive.cancelled", "Import was cancelled.");
+      if (signal?.aborted) fail("archive.cancelled", {});
       const selectedEntry = metadata.get(file.name);
-      if (!selectedEntry)
-        fail(
-          "archive.entry_mismatch",
-          "The ZIP stream exposed an unknown entry.",
-        );
+      if (!selectedEntry) fail("archive.entry_mismatch", {});
       const entry = selectedEntry as CentralEntry;
       compressedTotal += entry.compressedSize;
       const kind = validatedPath(file.name);
@@ -351,29 +300,24 @@ function expandArchive(
         if (fatal) return;
         try {
           if (error) throw error;
-          if (signal?.aborted)
-            fail("archive.cancelled", "Import was cancelled.");
+          if (signal?.aborted) fail("archive.cancelled", {});
           fileBytes += chunk.length;
           expandedTotal += chunk.length;
           if (fileBytes > byteLimit)
-            fail(
-              "archive.file_limit",
-              `An expanded ${kind} exceeds the effective ${byteLimit / MiB} MiB limit.`,
-            );
+            fail("archive.file_limit", {
+              value0: kind,
+              value1: byteLimit / MiB,
+            });
           if (expandedTotal > limits.maxExpandedPackageMiB * MiB)
-            fail(
-              "archive.expanded_limit",
-              `Expanded package data exceeds the effective ${limits.maxExpandedPackageMiB} MiB limit.`,
-            );
+            fail("archive.expanded_limit", {
+              value0: limits.maxExpandedPackageMiB,
+            });
           if (
             entry.compressedSize === 0
               ? fileBytes > 0
               : fileBytes / entry.compressedSize > MAX_COMPRESSION_RATIO
           )
-            fail(
-              "archive.ratio",
-              `An entry exceeds the mandatory ${MAX_COMPRESSION_RATIO}:1 compression-ratio limit while streaming.`,
-            );
+            fail("archive.ratio", { value0: MAX_COMPRESSION_RATIO });
           if (chunk.length) chunks.push(chunk.slice());
           if (!final) return;
           const complete = new Uint8Array(fileBytes);
@@ -383,12 +327,8 @@ function expandArchive(
             cursor += item.length;
           }
           if (fileBytes !== entry.expandedSize)
-            fail(
-              "archive.size_mismatch",
-              "An entry's actual expanded size does not match its ZIP header.",
-            );
-          if (crc32(complete) !== entry.crc)
-            fail("archive.crc", "An entry failed its CRC integrity check.");
+            fail("archive.size_mismatch", {});
+          if (crc32(complete) !== entry.crc) fail("archive.crc", {});
           output.set(file.name, complete);
           running.delete(file);
         } catch (caught) {
@@ -410,16 +350,13 @@ function expandArchive(
     );
   if (fatal) throw fatal;
   if (running.size || output.size !== entries.length)
-    fail("archive.truncated", "Not every archive entry completed extraction.");
+    fail("archive.truncated", {});
   if (
     compressedTotal === 0
       ? expandedTotal > 0
       : expandedTotal / compressedTotal > MAX_COMPRESSION_RATIO
   )
-    fail(
-      "archive.ratio",
-      `The package exceeds the mandatory ${MAX_COMPRESSION_RATIO}:1 overall compression-ratio limit.`,
-    );
+    fail("archive.ratio", { value0: MAX_COMPRESSION_RATIO });
   return { output, expandedTotal };
 }
 
@@ -435,7 +372,7 @@ function imageGeometry(path: string, bytes: Uint8Array) {
       !startsWith(bytes, [137, 80, 78, 71, 13, 10, 26, 10]) ||
       new TextDecoder().decode(bytes.subarray(12, 16)) !== "IHDR"
     )
-      fail("asset.signature", `${path} is not a well-formed PNG image.`);
+      fail("asset.signature", { value0: path });
     let offset = 8;
     let width = 0;
     let height = 0;
@@ -443,8 +380,7 @@ function imageGeometry(path: string, bytes: Uint8Array) {
     while (offset + 12 <= bytes.length) {
       const length = view.getUint32(offset);
       const end = offset + 12 + length;
-      if (end > bytes.length)
-        fail("asset.decode", `${path} has a truncated PNG chunk.`);
+      if (end > bytes.length) fail("asset.decode", { value0: path });
       const type = new TextDecoder().decode(
         bytes.subarray(offset + 4, offset + 8),
       );
@@ -452,38 +388,35 @@ function imageGeometry(path: string, bytes: Uint8Array) {
       if (
         crc32(bytes.subarray(offset + 4, offset + 8 + length)) !== expectedCrc
       )
-        fail("asset.crc", `${path} has an invalid PNG chunk CRC.`);
+        fail("asset.crc", { value0: path });
       if (offset === 8 && (type !== "IHDR" || length !== 13))
-        fail("asset.decode", `${path} does not begin with one PNG IHDR chunk.`);
+        fail("asset.decode", { value0: path });
       if (type === "IHDR") {
-        if (width || height)
-          fail("asset.decode", `${path} repeats its PNG IHDR chunk.`);
+        if (width || height) fail("asset.decode", { value0: path });
         width = view.getUint32(offset + 8);
         height = view.getUint32(offset + 12);
       }
       if (type === "IEND") {
         if (length !== 0 || end !== bytes.length)
-          fail("asset.polyglot", `${path} contains data after PNG IEND.`);
+          fail("asset.polyglot", { value0: path });
         ended = true;
       }
       offset = end;
       if (ended) break;
     }
-    if (!ended || !width || !height)
-      fail("asset.decode", `${path} is not a complete PNG image.`);
+    if (!ended || !width || !height) fail("asset.decode", { value0: path });
     return [width, height] as const;
   }
   if (extension === "gif") {
     const header = new TextDecoder().decode(bytes.subarray(0, 6));
     if (bytes.length < 14 || !["GIF87a", "GIF89a"].includes(header))
-      fail("asset.signature", `${path} is not a well-formed GIF image.`);
-    if (bytes.at(-1) !== 0x3b)
-      fail("asset.polyglot", `${path} has no terminal GIF trailer.`);
+      fail("asset.signature", { value0: path });
+    if (bytes.at(-1) !== 0x3b) fail("asset.polyglot", { value0: path });
     return [view.getUint16(6, true), view.getUint16(8, true)] as const;
   }
   if (extension === "jpg" || extension === "jpeg") {
     if (bytes.length < 4 || !startsWith(bytes, [0xff, 0xd8]))
-      fail("asset.signature", `${path} is not a JPEG image.`);
+      fail("asset.signature", { value0: path });
     let offset = 2;
     while (offset + 4 <= bytes.length) {
       if (bytes[offset] !== 0xff) {
@@ -495,12 +428,12 @@ function imageGeometry(path: string, bytes: Uint8Array) {
       if (marker === 0xda) {
         const end = bytes.lastIndexOf(0xff);
         if (end !== bytes.length - 2 || bytes[end + 1] !== 0xd9)
-          fail("asset.decode", `${path} has no complete JPEG end marker.`);
+          fail("asset.decode", { value0: path });
         break;
       }
       const length = view.getUint16(offset + 2);
       if (length < 2 || offset + 2 + length > bytes.length)
-        fail("asset.decode", `${path} has malformed JPEG segments.`);
+        fail("asset.decode", { value0: path });
       if (
         [
           0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd,
@@ -513,7 +446,7 @@ function imageGeometry(path: string, bytes: Uint8Array) {
         ] as const;
       offset += 2 + length;
     }
-    fail("asset.decode", `${path} has no supported JPEG frame header.`);
+    fail("asset.decode", { value0: path });
   }
   if (extension === "webp") {
     if (
@@ -523,10 +456,7 @@ function imageGeometry(path: string, bytes: Uint8Array) {
       new TextDecoder().decode(bytes.subarray(12, 16)) !== "VP8X" ||
       view.getUint32(4, true) + 8 !== bytes.length
     )
-      fail(
-        "asset.decode",
-        `${path} must be a well-formed extended WebP image.`,
-      );
+      fail("asset.decode", { value0: path });
     const width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16);
     const height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16);
     return [width, height] as const;
@@ -537,7 +467,7 @@ function imageGeometry(path: string, bytes: Uint8Array) {
       new TextDecoder().decode(bytes.subarray(4, 8)) !== "ftyp" ||
       !new TextDecoder().decode(bytes.subarray(8, 32)).includes("avif")
     )
-      fail("asset.signature", `${path} is not an AVIF image.`);
+      fail("asset.signature", { value0: path });
     for (let offset = 4; offset + 16 <= bytes.length; offset += 1)
       if (
         new TextDecoder().decode(bytes.subarray(offset, offset + 4)) === "ispe"
@@ -546,9 +476,9 @@ function imageGeometry(path: string, bytes: Uint8Array) {
           view.getUint32(offset + 8),
           view.getUint32(offset + 12),
         ] as const;
-    fail("asset.decode", `${path} has no AVIF spatial dimensions.`);
+    fail("asset.decode", { value0: path });
   }
-  return fail("asset.extension", `${path} has an unsupported image extension.`);
+  return fail("asset.extension", { value0: path });
 }
 
 async function validateImages(assets: Readonly<Record<string, Uint8Array>>) {
@@ -563,16 +493,9 @@ async function validateImages(assets: Readonly<Record<string, Uint8Array>>) {
       height > MAX_IMAGE_DIMENSION ||
       pixels > MAX_IMAGE_PIXELS
     )
-      fail(
-        "asset.dimensions",
-        `${path} exceeds the mandatory decoded-image dimensions or pixel budget.`,
-      );
+      fail("asset.dimensions", { value0: path });
     totalPixels += pixels;
-    if (totalPixels > MAX_TOTAL_IMAGE_PIXELS)
-      fail(
-        "asset.total_pixels",
-        "Package images exceed the mandatory total decoded-pixel budget.",
-      );
+    if (totalPixels > MAX_TOTAL_IMAGE_PIXELS) fail("asset.total_pixels", {});
     if (typeof globalThis.createImageBitmap === "function") {
       try {
         const copy = bytes.slice();
@@ -583,13 +506,10 @@ async function validateImages(assets: Readonly<Record<string, Uint8Array>>) {
         const decodedHeight = image.height;
         image.close();
         if (decodedWidth !== width || decodedHeight !== height)
-          fail(
-            "asset.size_mismatch",
-            `${path} reports inconsistent decoded dimensions.`,
-          );
+          fail("asset.size_mismatch", { value0: path });
       } catch (error) {
         if (error instanceof PackageSecurityError) throw error;
-        fail("asset.decode", `${path} could not be decoded safely.`);
+        fail("asset.decode", { value0: path });
       }
     }
   }
@@ -629,7 +549,7 @@ function decodePackage(
       try {
         definitions[path] = decoder.decode(bytes);
       } catch {
-        fail("definition.encoding", `${path} is not valid UTF-8 source.`);
+        fail("definition.encoding", { value0: path });
       }
     } else assets[path] = bytes;
   }
@@ -643,11 +563,9 @@ function decodePackage(
   const errors = packageItem.diagnostics.filter(
     (diagnostic) => diagnostic.severity === "error",
   );
-  if (errors.length)
-    fail("package.invalid", `The package is malformed: ${errors[0].message}`);
+  if (errors.length) fail("package.invalid", { value0: errors[0].message });
   for (const path of referencedAssets(packageItem))
-    if (!assets[path])
-      fail("package.missing_asset", `Required asset “${path}” is missing.`);
+    if (!assets[path]) fail("package.missing_asset", { value0: path });
   return { packageItem, definitions, assets };
 }
 
@@ -658,10 +576,7 @@ export class JumpPackageImportService {
     signal?: AbortSignal,
   ): Promise<PackageImportReview> {
     if (archive.byteLength > limits.maxArchiveMiB * MiB)
-      fail(
-        "archive.size_limit",
-        `The .jmp archive exceeds the effective ${limits.maxArchiveMiB} MiB limit.`,
-      );
+      fail("archive.size_limit", { value0: limits.maxArchiveMiB });
     const entries = parseCentralDirectory(archive);
     const { output, expandedTotal } = expandArchive(
       archive,
@@ -696,34 +611,25 @@ export class JumpPackageImportService {
     let expanded = 0;
     for (const [path, source] of Object.entries(files.definitions)) {
       if (validatedPath(path) !== "definition")
-        fail("export.path", `Invalid definition path “${path}”.`);
+        fail("export.path", { value0: path });
       const bytes = new TextEncoder().encode(source);
       if (bytes.length > limits.maxDefinitionFileMiB * MiB)
-        fail(
-          "export.file_limit",
-          `${path} exceeds the effective definition-file limit.`,
-        );
+        fail("export.file_limit", { value0: path });
       expanded += bytes.length;
       entries[path] = bytes;
     }
     for (const [path, bytes] of Object.entries(files.assets)) {
       if (validatedPath(path) !== "asset")
-        fail("export.path", `Invalid asset path “${path}”.`);
+        fail("export.path", { value0: path });
       if (bytes.length > limits.maxAssetFileMiB * MiB)
-        fail("export.file_limit", `${path} exceeds the effective asset limit.`);
+        fail("export.file_limit", { value0: path });
       expanded += bytes.length;
       entries[path] = bytes;
     }
     if (Object.keys(entries).length > MAX_ENTRIES)
-      fail(
-        "export.entry_count",
-        `Packages may contain at most ${MAX_ENTRIES} entries.`,
-      );
+      fail("export.entry_count", { value0: MAX_ENTRIES });
     if (expanded > limits.maxExpandedPackageMiB * MiB)
-      fail(
-        "export.expanded_limit",
-        "The package exceeds the expanded-data limit.",
-      );
+      fail("export.expanded_limit", {});
     const staged = new Map<string, Uint8Array>([
       ...Object.entries(files.definitions).map(
         ([path, source]) => [path, new TextEncoder().encode(source)] as const,
@@ -742,10 +648,7 @@ export class JumpPackageImportService {
     await validateImages(files.assets);
     const archive = zipSync(entries, { level: 6 });
     if (archive.length > limits.maxArchiveMiB * MiB)
-      fail(
-        "export.archive_limit",
-        "The compressed archive exceeds the archive limit.",
-      );
+      fail("export.archive_limit", {});
     parseCentralDirectory(archive);
     return archive;
   }

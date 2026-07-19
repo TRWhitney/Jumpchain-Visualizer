@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSessionEvents, useSettings } from "./SettingsContext";
 import type { LogEvent, LogSeverity } from "./logging";
+import { translate } from "../localization";
 
 const levels: LogSeverity[] = ["debug", "info", "warn", "error"];
 
@@ -50,12 +51,12 @@ export function LoggingViewer() {
     <div className="logging-viewer" data-toc-ignore>
       <header>
         <div>
-          <p>Session diagnostics</p>
-          <h3>Recent events</h3>
+          <p>{translate("ui.loggingViewer.text.sessionDiagnostics")}</p>
+          <h3>{translate("ui.loggingViewer.text.recentEvents")}</h3>
         </div>
         <div>
           <button type="button" onClick={() => setExportOpen(true)}>
-            Export…
+            {translate("ui.loggingViewer.text.export")}
           </button>
           <button
             type="button"
@@ -64,17 +65,22 @@ export function LoggingViewer() {
               setMessage("Session log cleared.");
             }}
           >
-            Clear session
+            {translate("ui.loggingViewer.text.clearSession")}
           </button>
         </div>
       </header>
       <div className="logging-viewer-toolbar">
         <label>
-          <span className="sr-only">Search logged events</span>
+          <span className="sr-only">
+            {translate("ui.loggingViewer.text.searchLoggedEvents")}
+          </span>
           <input
             type="search"
+            spellCheck={false}
             value={query}
-            placeholder="Find event or category"
+            placeholder={translate(
+              "ui.loggingViewer.placeholder.findEventOrCategory",
+            )}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Escape" && query) {
@@ -84,7 +90,10 @@ export function LoggingViewer() {
             }}
           />
         </label>
-        <div role="group" aria-label="Minimum severity">
+        <div
+          role="group"
+          aria-label={translate("ui.loggingViewer.ariaLabel.minimumSeverity")}
+        >
           {levels.map((level) => (
             <button
               key={level}
@@ -100,7 +109,9 @@ export function LoggingViewer() {
       <div className="logging-event-layout">
         <div
           className="logging-event-list"
-          aria-label="Filtered session diagnostic events"
+          aria-label={translate(
+            "ui.loggingViewer.ariaLabel.filteredSessionDiagnosticEvents",
+          )}
         >
           {visible.map((event) => (
             <button
@@ -173,10 +184,14 @@ export function LoggingViewer() {
               }
             }}
           >
-            <p>Redaction preview</p>
-            <h4 id="logging-export-heading">Export session events</h4>
+            <p>{translate("ui.loggingViewer.text.redactionPreview")}</p>
+            <h4 id="logging-export-heading">
+              {translate("ui.loggingViewer.text.exportSessionEvents")}
+            </h4>
             <fieldset>
-              <legend>Events to include</legend>
+              <legend>
+                {translate("ui.loggingViewer.text.eventsToInclude")}
+              </legend>
               <label>
                 <input
                   type="radio"
@@ -184,7 +199,7 @@ export function LoggingViewer() {
                   checked={exportScope === "filtered"}
                   onChange={() => setExportScope("filtered")}
                 />{" "}
-                Current filtered events
+                {translate("ui.loggingViewer.text.currentFilteredEvents")}
               </label>
               <label>
                 <input
@@ -193,7 +208,7 @@ export function LoggingViewer() {
                   checked={exportScope === "complete"}
                   onChange={() => setExportScope("complete")}
                 />{" "}
-                Complete session
+                {translate("ui.loggingViewer.text.completeSession")}
               </label>
             </fieldset>
             <dl>
@@ -205,9 +220,9 @@ export function LoggingViewer() {
               ))}
             </dl>
             <p>
-              Imported content, filesystem names, credentials, and URL secrets
-              are excluded. Attributes come only from the registered event
-              catalog.
+              {translate(
+                "ui.loggingViewer.text.importedContentFilesystemNamesCredentialsAndURLSecretsAre",
+              )}
             </p>
             <div>
               <button
@@ -226,10 +241,10 @@ export function LoggingViewer() {
                   setExportOpen(false);
                 }}
               >
-                Save JSON Lines
+                {translate("ui.loggingViewer.text.saveJSONLines")}
               </button>
               <button type="button" onClick={() => setExportOpen(false)}>
-                Cancel
+                {translate("ui.loggingViewer.text.cancel")}
               </button>
             </div>
           </section>
@@ -253,13 +268,15 @@ function LogDetail({
   return (
     <section
       className="logging-event-detail"
-      aria-label="Selected log event details"
+      aria-label={translate(
+        "ui.loggingViewer.ariaLabel.selectedLogEventDetails",
+      )}
     >
-      <p>Selected event</p>
+      <p>{translate("ui.loggingViewer.text.selectedEvent")}</p>
       <h4>{event?.eventName ?? "No event selected"}</h4>
       <dl>
         <div>
-          <dt>Severity</dt>
+          <dt>{translate("ui.loggingViewer.text.severity")}</dt>
           <dd>
             {event
               ? event.severity[0].toUpperCase() + event.severity.slice(1)
@@ -267,15 +284,15 @@ function LogDetail({
           </dd>
         </div>
         <div>
-          <dt>Category</dt>
+          <dt>{translate("ui.loggingViewer.text.category")}</dt>
           <dd>{event?.category ?? "—"}</dd>
         </div>
         <div>
-          <dt>Correlation</dt>
+          <dt>{translate("ui.loggingViewer.text.correlation")}</dt>
           <dd>{event?.correlationId ?? "—"}</dd>
         </div>
         <div>
-          <dt>Safe attributes</dt>
+          <dt>{translate("ui.loggingViewer.text.safeAttributes")}</dt>
           <dd data-logging-detail-attributes>
             {event && Object.entries(event.attributes).length ? (
               Object.entries(event.attributes).map(([key, value]) => (
@@ -290,17 +307,17 @@ function LogDetail({
         </div>
       </dl>
       <div className="logging-stack">
-        <strong>Stack trace</strong>
+        <strong>{translate("ui.loggingViewer.text.stackTrace")}</strong>
         <pre>
           {event?.error?.stack ?? "No stack trace: expected application event."}
         </pre>
       </div>
       <div className="logging-report-actions">
         <button type="button" disabled={!event} onClick={onCopy}>
-          Copy report
+          {translate("ui.loggingViewer.text.copyReport")}
         </button>
         <button type="button" disabled={!event} onClick={onSave}>
-          Save report…
+          {translate("ui.loggingViewer.text.saveReport")}
         </button>
       </div>
       <p className="logging-viewer-message" role="status">

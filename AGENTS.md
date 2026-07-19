@@ -47,6 +47,7 @@
 
 # Documentation
 - AGENTS.md and README.md should all be markdown at the top level of the repo.
+- NEVER add a README.md unless explicitly directed to do so.
 - Otherwise keep documentation in a separate folder structure and make all docuemntation HTML, CSS, and Javascript (as necessary).
 - HTML documentation should include mockups and where necessary several options with sliders and tweaks to allow the developer to select a way forward.
 - When a design choice is not clear, and the choice isn't necessary solvable by asking the user a simple question, use the above method to ask the developer to select an option; an export feature so they can tell you what they chose is also helpful.

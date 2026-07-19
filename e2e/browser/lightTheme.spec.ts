@@ -54,6 +54,8 @@ async function setAppearance(
       input.dispatchEvent(new Event("input", { bubbles: true }));
     }, accent);
   }
+  await page.getByRole("tab", { name: "Developer" }).click();
+  await page.getByLabel("Show mock fixtures").check();
   await expect(page.locator("html")).toHaveAttribute("data-app-theme", theme);
   await page.waitForTimeout(400);
   await page.getByRole("button", { name: "Close Settings" }).click();

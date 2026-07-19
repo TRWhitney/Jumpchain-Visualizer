@@ -206,7 +206,7 @@ export type CanonicalJumpPackage = {
   authors: readonly string[];
   version: string;
   description: string;
-  source: "builtin" | "imported";
+  source: "builtin" | "imported" | "mock";
   nativeGauntlet: boolean;
   startingPoints: number;
   pointsName: Renderable;
@@ -226,7 +226,7 @@ export type CanonicalJumpPackage = {
 export type PackageSources = {
   id: string;
   logicalId?: string;
-  source?: "builtin" | "imported";
+  source?: "builtin" | "imported" | "mock";
   exactHash: string;
   files: Readonly<Record<string, string>>;
 };

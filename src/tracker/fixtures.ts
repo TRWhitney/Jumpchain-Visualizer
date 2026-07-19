@@ -1,5 +1,9 @@
 import { emptyActorEntryState, emptyJumpEntryState } from "../domain";
-import { validGeneratedJumpPackages } from "../fixtures/generatedPackages";
+import {
+  MOCK_CHAIN_ID,
+  mockInstalledPackages,
+  mockPackageIds,
+} from "../fixtures/mockData";
 import { builtinTagDefinitions } from "../settings/builtinTags";
 import { initialBodyModState } from "../supplements/bodyMod";
 import { initialEnabled } from "../supplements/model";
@@ -16,41 +20,10 @@ import {
 } from "./model";
 
 export const trackerTags = builtinTagDefinitions;
-export const DEMONSTRATION_CHAIN_ID = "ch-92b1";
+export const DEMONSTRATION_CHAIN_ID = MOCK_CHAIN_ID;
 
-const packageOrder = [
-  "threshold-roads",
-  "confluence-engine",
-  "last-trial",
-] as const;
-
-const packageList: InstalledPackage[] = validGeneratedJumpPackages
-  .map((document) => ({
-    id: document.id,
-    logicalId: document.logicalId,
-    name: document.name.base ?? document.id,
-    version: document.version,
-    source: document.source,
-    description: document.description,
-    tags: [
-      ...new Set([
-        ...document.tags,
-        ...document.choices.flatMap((choice) => [
-          ...choice.tags,
-          ...choice.grants.flatMap((grant) => grant.tags),
-        ]),
-      ]),
-    ],
-    exactHash: document.exactHash,
-    authors: document.authors,
-    nativeGauntlet: document.nativeGauntlet,
-    document,
-  }))
-  .sort(
-    (left, right) =>
-      packageOrder.indexOf(left.id as (typeof packageOrder)[number]) -
-      packageOrder.indexOf(right.id as (typeof packageOrder)[number]),
-  );
+const packageOrder = mockPackageIds;
+const packageList: InstalledPackage[] = [...mockInstalledPackages];
 
 export const installedPackages = packageList;
 
@@ -257,6 +230,7 @@ const defaultPreferences: TrackerPreferences = {
   includeItemTagsInRadar: false,
   aggregateSimilarInventory: true,
   showAdditionalJumpInformation: false,
+  showMockData: true,
 };
 
 const demonstrationEnabledSupplements = {
@@ -264,17 +238,19 @@ const demonstrationEnabledSupplements = {
   "quest-mode": false,
 };
 
-const supplementEntryState = (entryId: string) => ({
-  quest: {
-    ...initialSupplementState.quest,
-    checked: entryId === "entry-2" ? initialSupplementState.quest.checked : [],
-  },
-  uds: {
-    ...initialSupplementState.uds,
-    chain: entryId === "entry-2" ? initialSupplementState.uds.chain : [],
-    jump: entryId === "entry-2" ? initialSupplementState.uds.jump : [],
-  },
-});
+const supplementEntryState = (entryId: string) =>
+  structuredClone({
+    quest: {
+      ...initialSupplementState.quest,
+      checked:
+        entryId === "entry-2" ? initialSupplementState.quest.checked : [],
+    },
+    uds: {
+      ...initialSupplementState.uds,
+      chain: entryId === "entry-2" ? initialSupplementState.uds.chain : [],
+      jump: entryId === "entry-2" ? initialSupplementState.uds.jump : [],
+    },
+  });
 
 export function createDenseTrackerFixture(
   preferences: Partial<TrackerPreferences> = {},
@@ -299,12 +275,12 @@ export function createDenseTrackerFixture(
     jumpState: createCuratedJumpState(),
     enabledSupplements: demonstrationEnabledSupplements,
     supplementPage: "manage",
-    bodyMod: initialBodyModState,
-    supplements: initialSupplementState,
+    bodyMod: structuredClone(initialBodyModState),
+    supplements: structuredClone(initialSupplementState),
     entrySupplements: Object.fromEntries(
       order.map((entryId) => [entryId, supplementEntryState(entryId)]),
     ),
-    actors: { jumper },
+    actors: { jumper: structuredClone(jumper) },
     records: [],
     forms: [],
     companions: [],
@@ -357,7 +333,7 @@ export function createBlankTrackerFixture(name = "New Chain"): TrackerState {
     entrySupplements: {
       [EARTH_ENTRY_ID]: base.entrySupplements[EARTH_ENTRY_ID],
     },
-    actors: { jumper },
+    actors: { jumper: structuredClone(jumper) },
     records: [],
     forms: [],
     companions: [],

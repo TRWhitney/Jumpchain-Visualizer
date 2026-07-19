@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   chainRegistryReducer,
+  chainsVisibleWithMockSetting,
   createChainRegistryFixture,
   filterSavedChains,
   orderedChains,
@@ -12,6 +13,10 @@ describe("saved chain registry", () => {
     const state = createChainRegistryFixture();
     expect(orderedChains(state)).toHaveLength(1);
     expect(orderedChains(state).map((chain) => chain.name)).toEqual(["Morgan"]);
+    expect(orderedChains(state)[0].provenance).toBe("mock");
+    expect(chainsVisibleWithMockSetting(orderedChains(state), false)).toEqual(
+      [],
+    );
   });
 
   it("advances new-chain identity past hydrated durable chains", () => {
@@ -35,6 +40,7 @@ describe("saved chain registry", () => {
     });
     expect(state.chains["ch-new-1"]).toMatchObject({
       name: "A New Path",
+      provenance: "user",
       jumpCount: 0,
     });
     expect(orderedChains(state)[0].id).toBe("ch-new-1");
@@ -52,6 +58,24 @@ describe("saved chain registry", () => {
 
     state = chainRegistryReducer(state, { type: "open", id: "ch-92b1" });
     expect(orderedChains(state)[0].id).toBe("ch-92b1");
+  });
+
+  it("hides only mock chains when the developer setting is off", () => {
+    const state = chainRegistryReducer(createChainRegistryFixture(), {
+      type: "create",
+      id: "ch-new-1",
+      name: "User Journey",
+    });
+    expect(
+      chainsVisibleWithMockSetting(orderedChains(state), false).map(
+        (chain) => chain.name,
+      ),
+    ).toEqual(["User Journey"]);
+    expect(
+      chainsVisibleWithMockSetting(orderedChains(state), true).map(
+        (chain) => chain.name,
+      ),
+    ).toContain("Morgan");
   });
 
   it("sorts starred chains first and preserves recency within both groups", () => {

@@ -278,7 +278,10 @@ export function SettingsProvider({
     replace,
     logger,
     reportExporter: actualExporter,
-    installedPackages,
+    installedPackages: installedPackages.filter(
+      (packageItem) =>
+        packageItem.source !== "mock" || settings.developer.showMockData,
+    ),
   };
 
   if (!loaded)

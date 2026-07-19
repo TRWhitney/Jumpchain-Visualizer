@@ -115,6 +115,11 @@
   cursor: pointer;
 }
 
+.setting-reset:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .developer-package-limits {
   grid-template-columns: minmax(12rem, 0.8fr) minmax(18rem, 1.2fr);
   align-items: start;

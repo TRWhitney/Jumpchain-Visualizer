@@ -72,6 +72,11 @@ async function expectStoredChain(page: Page, id: string) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Developer" }).click();
+  await page.getByLabel("Show mock fixtures").check();
+  await page.getByRole("tab", { name: "General" }).click();
+  await page.getByRole("button", { name: "Close Settings" }).click();
 });
 
 test("Home matches the shell proposal and exposes explicit workspace choices and recents", async ({

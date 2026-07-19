@@ -57,7 +57,7 @@ export type InstalledPackage = {
   logicalId: string;
   name: string;
   version: string;
-  source: "builtin" | "imported";
+  source: "builtin" | "imported" | "mock";
   description: string;
   tags: readonly string[];
   availability?: "library" | "foundation";
@@ -146,6 +146,7 @@ export type TrackerPreferences = {
   includeItemTagsInRadar: boolean;
   aggregateSimilarInventory: boolean;
   showAdditionalJumpInformation: boolean;
+  showMockData: boolean;
 };
 
 export type DependencyImpact = {
@@ -225,7 +226,7 @@ export type TrackerState = {
   inventoryKind: "all" | "perk" | "item";
   inventoryTag: string;
   inventorySearch: string;
-  librarySource: "all" | "builtin" | "imported";
+  librarySource: "all" | "builtin" | "imported" | "mock";
   librarySearch: string;
   radarSort: "count" | "tag";
   radarCategory: TagCategory | null;

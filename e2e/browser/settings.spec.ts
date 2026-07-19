@@ -1,4 +1,33 @@
-import { expect, test } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from "@playwright/test";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
+const mockArtifactDirectory = join(process.cwd(), "artifacts", "mock-data");
+
+async function retainMockScreenshot(
+  testInfo: TestInfo,
+  name: string,
+  target: Page | Locator,
+) {
+  if (testInfo.project.name !== "chromium") return;
+  const body = await target.screenshot({ animations: "disabled" });
+  await testInfo.attach(name, { body, contentType: "image/png" });
+  await mkdir(mockArtifactDirectory, { recursive: true });
+  await writeFile(join(mockArtifactDirectory, `${name}.png`), body);
+}
+
+async function enableMockData(page: Page) {
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Developer" }).click();
+  await page.getByLabel("Show mock fixtures").check();
+  await page.getByRole("button", { name: "Close Settings" }).click();
+}
 
 test("contextual Settings preserves its inert workspace, history, focus, and category", async ({
   page,
@@ -149,6 +178,133 @@ test("direct Settings is a full destination and preferences persist through Inde
 
   await page.getByRole("button", { name: "Close Settings" }).click();
   await expect(page).toHaveURL(/\/$/);
+});
+
+test("See Mock Data gates Morgan and the explicit Mock Library source", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/");
+  await expect(page.getByRole("region", { name: "Chains" })).not.toContainText(
+    "Morgan",
+  );
+
+  await page
+    .getByRole("button", { name: "Chain Tracker", exact: true })
+    .click();
+  await page.getByPlaceholder("Chain name").fill("User Journey");
+  await page.getByRole("button", { name: "Start Chain" }).click();
+  const tracker = page.getByLabel("Interactive Chain Tracker workspace");
+  await tracker.getByRole("tab", { name: "Library" }).click();
+  await expect(tracker.getByRole("button", { name: "Mock" })).toHaveCount(0);
+  await expect(tracker.locator(".chain-library-card")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Developer" }).click();
+  const visibility = page.getByLabel("Show mock fixtures");
+  const reset = page.getByRole("button", { name: "Reset Mock Data" });
+  await expect(visibility).not.toBeChecked();
+  await expect(reset).toBeDisabled();
+  await retainMockScreenshot(
+    testInfo,
+    "mock-data-disabled-settings",
+    page.getByLabel("Application Settings", { exact: true }),
+  );
+  await visibility.check();
+  await expect(reset).toBeEnabled();
+  await retainMockScreenshot(
+    testInfo,
+    "mock-data-enabled-settings",
+    page.getByLabel("Application Settings", { exact: true }),
+  );
+  await page.getByRole("button", { name: "Close Settings" }).click();
+
+  await tracker.getByRole("button", { name: "Mock" }).click();
+  await expect(tracker.locator(".chain-library-card")).toHaveCount(3);
+  await expect(tracker.locator(".chain-library-list")).toContainText(
+    "Threshold of a Thousand Roads",
+  );
+  await expect(tracker.locator(".chain-library-list")).toContainText(
+    "The Confluence Engine",
+  );
+  await expect(tracker.locator(".chain-library-list")).toContainText(
+    "The Last Trial",
+  );
+  await expect(tracker.locator(".chain-library-card small")).toHaveText([
+    /Mock ·/,
+    /Mock ·/,
+    /Mock ·/,
+  ]);
+  await retainMockScreenshot(
+    testInfo,
+    "mock-data-library",
+    tracker.locator(".chain-rail"),
+  );
+
+  await page
+    .getByRole("button", { name: "Chain Tracker", exact: true })
+    .click();
+  await expect(page.getByRole("heading", { name: "Morgan" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "User Journey" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await visibility.uncheck();
+  await page.getByRole("button", { name: "Close Settings" }).click();
+  await expect(page.getByRole("heading", { name: "Morgan" })).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "User Journey" }),
+  ).toBeVisible();
+
+  await page.goto("/chain/ch-92b1");
+  await expect(
+    page.getByLabel("Interactive Chain Tracker workspace"),
+  ).toBeVisible();
+});
+
+test("Reset Mock Data restores modified and deleted Morgan state durably", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/chain/ch-92b1");
+  await enableMockData(page);
+  const tracker = page.getByLabel("Interactive Chain Tracker workspace");
+  const trialName = tracker.getByRole("textbox", { name: "Trial Name" });
+  await expect(trialName).toHaveValue("Wayfinder's End");
+  await trialName.fill("Changed mock choice");
+
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Developer" }).click();
+  await page.getByRole("button", { name: "Reset Mock Data" }).click();
+  await expect(page.getByText("Mock data reset.")).toBeVisible();
+  await page.getByRole("button", { name: "Close Settings" }).click();
+  await expect(trialName).toHaveValue("Wayfinder's End");
+  await page.reload();
+  await expect(trialName).toHaveValue("Wayfinder's End");
+  await retainMockScreenshot(testInfo, "mock-data-restored-morgan", tracker);
+
+  await page
+    .getByRole("button", { name: "Chain Tracker", exact: true })
+    .click();
+  const card = page.locator(".app-chain-card").filter({ hasText: "Morgan" });
+  await card.getByRole("button", { name: "Delete Morgan" }).click();
+  await page
+    .getByRole("alertdialog", { name: "Delete Morgan?" })
+    .getByRole("button", { name: "Delete chain" })
+    .click();
+  await expect(card).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Developer" }).click();
+  await page.getByRole("button", { name: "Reset Mock Data" }).click();
+  await expect(page.getByText("Mock data reset.")).toBeVisible();
+  await page.getByRole("button", { name: "Close Settings" }).click();
+  await expect(
+    page.locator(".app-chain-card").filter({ hasText: "Morgan" }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.locator(".app-chain-card").filter({ hasText: "Morgan" }),
+  ).toBeVisible();
 });
 
 test("similar inventory aggregation updates the open chain immediately", async ({
@@ -437,6 +593,8 @@ test("continuous accent changes stay bounded and project through the complete ap
   await expect(page.locator(".app-crash-surface")).toHaveCount(0);
   expect(pageErrors).toEqual([]);
   await page.waitForTimeout(350);
+  await page.getByRole("tab", { name: "Developer" }).click();
+  await page.getByLabel("Show mock fixtures").check();
   await page.getByRole("button", { name: "Close Settings" }).click();
   await expect(page).toHaveURL("/");
   expect(
@@ -537,6 +695,8 @@ test("the Settings preview and tracker use one canonical badge renderer with vis
       });
 
   await page.goto("/settings");
+  await page.getByRole("tab", { name: "Developer" }).click();
+  await page.getByLabel("Show mock fixtures").check();
   await page.getByRole("tab", { name: "Tags" }).click();
   const previewStyle = await badgeStyle(
     ".tag-profile-preview-surface.is-dark .tag-profile-badge",
@@ -726,6 +886,7 @@ test("Chain Tracker policies apply immediately without deferred renderer control
   page,
 }) => {
   await page.goto("/chain/ch-92b1");
+  await enableMockData(page);
   const tracker = page.getByLabel("Interactive Chain Tracker workspace");
   await tracker.getByRole("tab", { name: "Library" }).click();
   await tracker.getByPlaceholder("Find a jump").fill("The Last Trial");
@@ -884,6 +1045,8 @@ test("tag catalog separates collapsible presets and refreshes installed Jump tag
   page,
 }, testInfo) => {
   await page.goto("/settings");
+  await page.getByRole("tab", { name: "Developer" }).click();
+  await page.getByLabel("Show mock fixtures").check();
   await page.getByRole("tab", { name: "Tags" }).click();
   const primary = page.locator('[data-tag-group="primary"]');
   const builtin = page.locator('[data-tag-group="builtin"]');

@@ -95,6 +95,10 @@
       "label": "Session logs",
       "aliases": "developer logs logging viewer stack trace crash report debug session export clear"
     },
+    "developer_showMockData": {
+      "label": "See Mock Data",
+      "aliases": "developer mock fixture demonstration Morgan reset sample data"
+    },
     "developer_showAdditionalJumpInformation": {
       "label": "Show additional Jump information",
       "aliases": "developer jump format additional information diagnostics format 1"
@@ -312,6 +316,11 @@
         "overview": "Overview",
         "logs": "Logs",
         "developer": "Developer",
+        "showMockFixtures": "Show mock fixtures",
+        "resetMockData": "Reset Mock Data",
+        "resettingMockData": "Resetting Mock Data…",
+        "mockDataReset": "Mock data reset.",
+        "mockDataResetFailed": "Mock data could not be reset. Nothing was changed.",
         "enableExtraInformation": "Enable extra information",
         "showFolderAction": "Show folder action",
         "packageSizeLimits": "Package size limits",
@@ -356,6 +365,7 @@
         "upstreamChangeWarnings": "Upstream change warnings",
         "colorChainNamesByPrimaryTag": "Color chain names by primary tag",
         "motion": "Motion",
+        "seeMockData": "See Mock Data",
         "showAdditionalJumpInformation": "Show additional Jump information",
         "showOpenProjectFolder": "Show Open Project Folder",
         "toastNotifications": "Toast notifications",
@@ -377,6 +387,8 @@
         "reviewReorderOrDeletionOnlyWhenAnExplicitActive": "Review reorder or deletion only when an explicit active downstream dependency would become invalid.",
         "colorSavedChainNamesFromTheCategoryWithThe": "Color saved-chain names from the category with the greatest eligible radar count.",
         "controlNonessentialInterfaceAnimation": "Control nonessential interface animation.",
+        "showApplicationOwnedMockJumpsAndChains": "Show application-owned mock Jumps in the Library and the Morgan mock chain in saved-chain lists.",
+        "restoreMorganAndDefaultMockChoices": "Restore Morgan if it was deleted and replace its current state with the canonical filled-in mock choices.",
         "showTheEvaluatedPackageFormatAboveOrdinaryRenderedJumps": "Show the evaluated package format above ordinary rendered Jumps.",
         "showTheDesktopOnlyExternalFolderWorkflowOnThe": "Show the desktop-only external-folder workflow on the Editor hub.",
         "showUserFacingProjectionsOfSelectedSessionLogEvents": "Show user-facing projections of selected session log events.",

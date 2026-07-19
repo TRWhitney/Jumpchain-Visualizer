@@ -9,16 +9,16 @@ const rawFiles = import.meta.glob<string>("./jumps/*/*.jdef", {
 });
 
 const metadata: Readonly<
-  Record<string, { source: "builtin" | "imported"; logicalId?: string }>
+  Record<string, { source: "mock"; logicalId?: string }>
 > = {
   "threshold-roads": {
-    source: "builtin",
+    source: "mock",
   },
   "confluence-engine": {
-    source: "imported",
+    source: "mock",
   },
   "last-trial": {
-    source: "builtin",
+    source: "mock",
   },
 };
 

@@ -63,13 +63,18 @@ function PersistenceHarness() {
   );
 }
 
-function SettingsSurfaceHarness() {
+function SettingsSurfaceHarness({
+  onResetMockData = async () => true,
+}: {
+  onResetMockData?: () => Promise<boolean>;
+} = {}) {
   const [category, setCategory] = useState<SettingsCategory>("general");
   return (
     <SettingsSurface
       category={category}
       onCategoryChange={setCategory}
       onClose={() => undefined}
+      onResetMockData={onResetMockData}
     />
   );
 }
@@ -180,6 +185,53 @@ test("custom package limits require risk consent and invalid values never become
   await page.getByRole("button", { name: "Reset package limits" }).click();
   await expect.element(toggle).not.toBeChecked();
   await expect.element(expanded).toHaveValue(96);
+});
+
+test("mock data reset follows the persisted visibility setting and reports completion", async () => {
+  render(
+    <SettingsProvider
+      repository={new MemorySettingsRepository()}
+      reportExporter={exporter}
+    >
+      <SettingsSurfaceHarness />
+    </SettingsProvider>,
+  );
+  await page.getByRole("tab", { name: "Developer" }).click();
+  const visibility = page.getByLabelText("Show mock fixtures");
+  const reset = page.getByRole("button", { name: "Reset Mock Data" });
+  await expect.element(visibility).not.toBeChecked();
+  await expect.element(reset).toBeDisabled();
+  await visibility.click();
+  await expect.element(reset).toBeEnabled();
+  await reset.click();
+  await expect.element(page.getByText("Mock data reset.")).toBeVisible();
+});
+
+test("mock data reset reports repository failure without claiming success", async () => {
+  render(
+    <SettingsProvider
+      repository={
+        new MemorySettingsRepository({
+          ...defaultSettings(createDefaultTagProfile()),
+          developer: {
+            ...defaultSettings(createDefaultTagProfile()).developer,
+            showMockData: true,
+          },
+        })
+      }
+      reportExporter={exporter}
+    >
+      <SettingsSurfaceHarness onResetMockData={async () => false} />
+    </SettingsProvider>,
+  );
+  await page.getByRole("tab", { name: "Developer" }).click();
+  await page.getByRole("button", { name: "Reset Mock Data" }).click();
+  await expect
+    .element(page.getByRole("alert"))
+    .toHaveTextContent("Mock data could not be reset. Nothing was changed.");
+  await expect
+    .element(page.getByText("Mock data reset."))
+    .not.toBeInTheDocument();
 });
 
 test("an unavailable stored language recovers to English before Settings renders", async () => {

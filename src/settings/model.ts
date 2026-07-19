@@ -52,6 +52,7 @@ export type ApplicationSettings = {
   };
   accessibility: { motion: MotionPreference };
   developer: {
+    showMockData: boolean;
     showAdditionalJumpInformation: boolean;
     showOpenProjectFolder: boolean;
     useCustomPackageSizeLimits: boolean;
@@ -133,6 +134,7 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
     appearance: { theme: "system", accentColor: "#d4af37" },
     accessibility: { motion: "system" },
     developer: {
+      showMockData: false,
       showAdditionalJumpInformation: false,
       showOpenProjectFolder: false,
       useCustomPackageSizeLimits: false,
@@ -312,6 +314,10 @@ export function hydrateSettings(
       ),
     },
     developer: {
+      showMockData: bool(
+        developer.showMockData,
+        fallback.developer.showMockData,
+      ),
       showAdditionalJumpInformation: bool(
         developer.showAdditionalJumpInformation,
         fallback.developer.showAdditionalJumpInformation,

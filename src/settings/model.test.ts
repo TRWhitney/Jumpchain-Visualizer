@@ -45,6 +45,7 @@ describe("application settings", () => {
     expect(result.chain.aggregateSimilarInventory).toBe(false);
     expect(result.developer.showAdditionalJumpInformation).toBe(true);
     expect(result.developer.showOpenProjectFolder).toBe(true);
+    expect(result.developer.showMockData).toBe(false);
     expect(result.notifications.maxVisible).toBe(5);
     expect(result.notifications.durationMs).toBe(5000);
     expect(result.schemaVersion).toBe(2);
@@ -80,8 +81,27 @@ describe("application settings", () => {
       hydrateTagProfile,
     );
     expect(result.chain.aggregateSimilarInventory).toBe(true);
+    expect(result.developer.showMockData).toBe(false);
     expect(result.developer.showOpenProjectFolder).toBe(false);
     expect(malformed.developer.showOpenProjectFolder).toBe(false);
+  });
+
+  it("hydrates only boolean mock-data visibility and defaults it off", () => {
+    const profile = createDefaultTagProfile();
+    expect(
+      hydrateSettings(
+        { developer: { showMockData: true } },
+        profile,
+        hydrateTagProfile,
+      ).developer.showMockData,
+    ).toBe(true);
+    expect(
+      hydrateSettings(
+        { developer: { showMockData: "yes" } },
+        profile,
+        hydrateTagProfile,
+      ).developer.showMockData,
+    ).toBe(false);
   });
 
   it("hydrates only bounded internally consistent package size overrides", () => {

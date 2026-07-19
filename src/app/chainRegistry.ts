@@ -1,7 +1,9 @@
 import { tagCategories, type TagCategory } from "../tracker/model";
+import { isMockChainId, mockChainDefinition } from "../fixtures/mockData";
 
 export type SavedChain = {
   id: string;
+  provenance: "mock" | "user";
   name: string;
   jumpCount: number;
   lastOpenedSequence: number;
@@ -41,14 +43,9 @@ const tagCounts = (values: readonly number[]): Record<TagCategory, number> =>
 
 const fixtureChains: readonly SavedChain[] = [
   {
-    id: "ch-92b1",
-    name: "Morgan",
+    ...mockChainDefinition,
+    provenance: "mock",
     jumpCount: 3,
-    lastOpenedSequence: 80,
-    lastOpenedLabel: "Opened yesterday",
-    starred: false,
-    description:
-      "A three-Jump demonstration chain spanning every Format 1 capability.",
     tagCounts: tagCounts([4, 5, 3, 6, 5, 2, 4, 7, 5, 5, 6, 4]),
   },
 ];
@@ -68,6 +65,15 @@ export function orderedChains(state: ChainRegistryState) {
       right.lastOpenedSequence - left.lastOpenedSequence ||
       left.name.localeCompare(right.name),
   );
+}
+
+export function chainsVisibleWithMockSetting(
+  chains: readonly SavedChain[],
+  showMockData: boolean,
+) {
+  return showMockData
+    ? chains
+    : chains.filter((chain) => chain.provenance !== "mock");
 }
 
 export function normalizeChainName(name: string) {
@@ -116,6 +122,7 @@ export function chainRegistryReducer(
         ...state.chains,
         [action.id]: {
           id: action.id,
+          provenance: isMockChainId(action.id) ? "mock" : "user",
           name: normalizeChainName(action.name) || "Untitled Chain",
           description: action.description.trim(),
           lastOpenedSequence: sequence,
@@ -185,6 +192,7 @@ export function chainRegistryReducer(
       ...state.chains,
       [action.id]: {
         id: action.id,
+        provenance: "user",
         name,
         jumpCount: 0,
         lastOpenedSequence: state.nextSequence,

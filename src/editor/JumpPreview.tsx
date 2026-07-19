@@ -90,6 +90,7 @@ export function JumpPreview({
       includeItemTagsInRadar: false,
       aggregateSimilarInventory: true,
       showAdditionalJumpInformation: false,
+      showMockData: false,
     },
     tags: {},
     companions: [],

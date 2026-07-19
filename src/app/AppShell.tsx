@@ -40,6 +40,7 @@ import {
 import { routeFromPath, titleForRoute, workspaceForRoute } from "./routes";
 import {
   chainRegistryReducer,
+  chainsVisibleWithMockSetting,
   createChainRegistryFixture,
   filterSavedChains,
   normalizeChainName,
@@ -67,6 +68,7 @@ import {
 } from "../editor";
 import { JumpPackageImportService, type PackageImportReview } from "../archive";
 import { ConfirmationDialog } from "../ui/ConfirmationDialog";
+import { mockChainDefinition } from "../fixtures/mockData";
 import "../../documentation/styles.css";
 import "../../documentation/application-design.css";
 import "../../documentation/chain-tracker-design.css";
@@ -203,7 +205,7 @@ function AppShellContent() {
       ? editorWorkspaces[backgroundRoute.workspaceId]
       : undefined;
   const workspace = workspaceForRoute(backgroundRoute);
-  const savedChains = useMemo(
+  const allSavedChains = useMemo(
     () =>
       orderedChains(chainRegistry).map((chain) => {
         const value = chainStates[chain.id];
@@ -233,6 +235,14 @@ function AppShellContent() {
       }),
     [chainRegistry, chainStates, settings.chain.includeItemTagsInRadar],
   );
+  const savedChains = useMemo(
+    () =>
+      chainsVisibleWithMockSetting(
+        allSavedChains,
+        settings.developer.showMockData,
+      ),
+    [allSavedChains, settings.developer.showMockData],
+  );
   const savedEditorWorkspaces = useMemo(
     () => orderedEditorWorkspaces(Object.values(editorWorkspaces)),
     [editorWorkspaces],
@@ -261,8 +271,13 @@ function AppShellContent() {
       aggregateSimilarInventory: settings.chain.aggregateSimilarInventory,
       showAdditionalJumpInformation:
         settings.developer.showAdditionalJumpInformation,
+      showMockData: settings.developer.showMockData,
     }),
-    [settings.chain, settings.developer.showAdditionalJumpInformation],
+    [
+      settings.chain,
+      settings.developer.showAdditionalJumpInformation,
+      settings.developer.showMockData,
+    ],
   );
   const effectiveTrackerState = useMemo(
     () => ({
@@ -942,6 +957,40 @@ function AppShellContent() {
     chainStatesRef.current = chainStates;
   }, [chainStates]);
 
+  const resetMockData = useCallback(async () => {
+    const restored = createDenseTrackerFixture();
+    const aggregate = aggregateFromTracker(
+      mockChainDefinition.id,
+      restored,
+      mockChainDefinition,
+    );
+    try {
+      await chainInitializationRef.current;
+      await chainRepository.save(aggregate);
+      chainRegistryDispatch({
+        type: "hydrate",
+        id: mockChainDefinition.id,
+        name: mockChainDefinition.name,
+        description: mockChainDefinition.description,
+        lastOpenedSequence: mockChainDefinition.lastOpenedSequence,
+        lastOpenedLabel: mockChainDefinition.lastOpenedLabel,
+        starred: mockChainDefinition.starred,
+      });
+      const next = {
+        ...chainStatesRef.current,
+        [mockChainDefinition.id]: restored,
+      };
+      chainStatesRef.current = next;
+      setChainStates(next);
+      setChainSaveError(null);
+      logger.emit("mock_data.reset");
+      return true;
+    } catch {
+      logger.emit("mock_data.reset_failed");
+      return false;
+    }
+  }, [chainRepository, logger]);
+
   return (
     <SupplementProviders
       bodyMod={effectiveTrackerState.bodyMod}
@@ -1420,6 +1469,7 @@ function AppShellContent() {
           >
             <SettingsSurface
               onClose={closeSettings}
+              onResetMockData={resetMockData}
               direct={!settingsBackgroundPath}
               category={settingsCategory}
               onCategoryChange={setSettingsCategory}

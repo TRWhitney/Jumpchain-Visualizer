@@ -63,12 +63,16 @@ import {
   type FormRecord,
   type InventoryRecord,
   type InventoryTagNode,
+  type InstalledPackage,
   type TrackerAction,
   type TrackerPage,
   type TrackerState,
   type EvaluatedJumpRuntime,
   supplementStateForEntry,
 } from "./model";
+
+const packageSourceLabel = (source: InstalledPackage["source"]) =>
+  source === "builtin" ? "Built-in" : source === "mock" ? "Mock" : "Imported";
 import { translate } from "../localization";
 
 const PROFILE_RECORDS_BEFORE_SCROLL = 5;
@@ -339,8 +343,12 @@ function ChainRail({
   ).filter((resource) => resource.handle !== "jump_points");
   const filteredPackages = Object.values(state.packages).filter((item) => {
     if (item.availability === "foundation") return false;
-    const source =
-      state.librarySource === "all" || item.source === state.librarySource;
+    if (item.source === "mock" && !state.preferences.showMockData) return false;
+    const selectedSource =
+      state.librarySource === "mock" && !state.preferences.showMockData
+        ? "all"
+        : state.librarySource;
+    const source = selectedSource === "all" || item.source === selectedSource;
     const query = `${item.name} ${item.version} ${item.description}`
       .toLocaleLowerCase()
       .includes(state.librarySearch.toLocaleLowerCase());
@@ -494,7 +502,7 @@ function ChainRail({
               );
               const metadata = earth
                 ? EARTH_ENTRY_STATUS
-                : `${item.source === "builtin" ? "Built-in" : "Imported"} · ${entry.status}${runtime[id]?.gauntlet.active ? " · Gauntlet" : ""}`;
+                : `${packageSourceLabel(item.source)} · ${entry.status}${runtime[id]?.gauntlet.active ? " · Gauntlet" : ""}`;
               return (
                 <article
                   key={id}
@@ -721,11 +729,19 @@ function ChainRail({
             role="group"
             aria-label={translate("ui.chainTracker.ariaLabel.jumpSourceFilter")}
           >
-            {(["all", "builtin", "imported"] as const).map((source) => (
+            {(state.preferences.showMockData
+              ? (["all", "builtin", "imported", "mock"] as const)
+              : (["all", "builtin", "imported"] as const)
+            ).map((source) => (
               <button
                 key={source}
                 type="button"
-                aria-pressed={state.librarySource === source}
+                aria-pressed={
+                  (state.librarySource === "mock" &&
+                  !state.preferences.showMockData
+                    ? "all"
+                    : state.librarySource) === source
+                }
                 onClick={() =>
                   dispatch({ type: "set-library-source", value: source })
                 }
@@ -752,8 +768,7 @@ function ChainRail({
                       {item.name} · v{item.version}
                     </strong>
                     <small>
-                      {item.source === "builtin" ? "Built-in" : "Imported"} ·{" "}
-                      {item.description}
+                      {packageSourceLabel(item.source)} · {item.description}
                       {item.nativeGauntlet && " · Native Gauntlet"}
                     </small>
                   </div>
@@ -1047,7 +1062,7 @@ function JumpWorkspace({
           <h3>{item.name}</h3>
           <span>
             {number
-              ? `Version ${item.version} · ${item.source === "builtin" ? "Built-in" : "Imported"} package${selected.status === "Negative balance" ? "" : ` · ${selected.status}`}`
+              ? `Version ${item.version} · ${packageSourceLabel(item.source)} package${selected.status === "Negative balance" ? "" : ` · ${selected.status}`}`
               : EARTH_ENTRY_STATUS}
           </span>
           {negativeActors.length > 0 && (

@@ -183,6 +183,13 @@ const searchEntries = [
     "settingsSearch.Developer_Logs.aliases",
   ],
   [
+    "settingsSearch.developer_showMockData.label",
+    "developer.showMockData",
+    "developer",
+    "see-mock-data",
+    "settingsSearch.developer_showMockData.aliases",
+  ],
+  [
     "settingsSearch.developer_showAdditionalJumpInformation.label",
     "developer.showAdditionalJumpInformation",
     "developer",
@@ -250,6 +257,8 @@ const searchValue = (
       return settings.accessibility.motion;
     case "Developer → Logs":
       return "session only";
+    case "developer.showMockData":
+      return String(settings.developer.showMockData);
     case "developer.showAdditionalJumpInformation":
       return String(settings.developer.showAdditionalJumpInformation);
     case "developer.showOpenProjectFolder":
@@ -267,11 +276,13 @@ const searchValue = (
 
 export function SettingsSurface({
   onClose,
+  onResetMockData,
   direct = false,
   category,
   onCategoryChange,
 }: {
   onClose: () => void;
+  onResetMockData: () => Promise<boolean>;
   direct?: boolean;
   category: SettingsCategory;
   onCategoryChange: (category: SettingsCategory) => void;
@@ -533,6 +544,7 @@ export function SettingsSurface({
             settings={settings}
             defaults={defaults}
             onRequestPackageLimitOverride={() => setPackageRiskConfirm(true)}
+            onResetMockData={onResetMockData}
           />
         )}
       </div>
@@ -644,11 +656,13 @@ function CategoryPanel({
   settings,
   defaults,
   onRequestPackageLimitOverride,
+  onResetMockData,
 }: {
   category: SettingsCategory;
   settings: ApplicationSettings;
   defaults: ApplicationSettings;
   onRequestPackageLimitOverride: () => void;
+  onResetMockData: () => Promise<boolean>;
 }) {
   const { update, logger } = useSettings();
   const [developerPage, setDeveloperPage] = useState<"overview" | "logs">(
@@ -657,6 +671,9 @@ function CategoryPanel({
   const [debugCapture, setDebugCapture] = useState(
     logger.isDebugCaptureEnabled(),
   );
+  const [mockResetState, setMockResetState] = useState<
+    "idle" | "resetting" | "success" | "error"
+  >("idle");
   const patch = (next: ApplicationSettings, key: string, continuous = false) =>
     update(() => next, key, continuous);
   const packageLimitError = validatePackageSizeLimits(settings.developer);
@@ -1279,6 +1296,84 @@ function CategoryPanel({
       {developerPage === "overview" ? (
         <section className="developer-subpanel">
           <h4>{translate("ui.settingsSurface.text.developer")}</h4>
+          <CheckRow
+            id="see-mock-data"
+            label={translate("ui.settingsSurface.label.seeMockData")}
+            description={translate(
+              "ui.settingsSurface.description.showApplicationOwnedMockJumpsAndChains",
+            )}
+            checked={settings.developer.showMockData}
+            text={translate("ui.settingsSurface.text.showMockFixtures")}
+            onChange={(value) => {
+              setMockResetState("idle");
+              patch(
+                {
+                  ...settings,
+                  developer: {
+                    ...settings.developer,
+                    showMockData: value,
+                  },
+                },
+                "developer.showMockData",
+              );
+            }}
+            reset={() => {
+              setMockResetState("idle");
+              patch(
+                {
+                  ...settings,
+                  developer: {
+                    ...settings.developer,
+                    showMockData: defaults.developer.showMockData,
+                  },
+                },
+                "developer.showMockData",
+              );
+            }}
+          />
+          <div className="setting-row" id="reset-mock-data">
+            <div>
+              <label htmlFor="reset-mock-data-button">
+                {translate("ui.settingsSurface.text.resetMockData")}
+              </label>
+              <p>
+                {translate(
+                  "ui.settingsSurface.description.restoreMorganAndDefaultMockChoices",
+                )}
+              </p>
+            </div>
+            <div>
+              <button
+                id="reset-mock-data-button"
+                className="setting-reset"
+                type="button"
+                disabled={
+                  !settings.developer.showMockData ||
+                  mockResetState === "resetting"
+                }
+                onClick={() => {
+                  setMockResetState("resetting");
+                  void onResetMockData().then((reset) =>
+                    setMockResetState(reset ? "success" : "error"),
+                  );
+                }}
+              >
+                {mockResetState === "resetting"
+                  ? translate("ui.settingsSurface.text.resettingMockData")
+                  : translate("ui.settingsSurface.text.resetMockData")}
+              </button>
+              {mockResetState === "success" && (
+                <p role="status">
+                  {translate("ui.settingsSurface.text.mockDataReset")}
+                </p>
+              )}
+              {mockResetState === "error" && (
+                <p className="developer-limit-error" role="alert">
+                  {translate("ui.settingsSurface.text.mockDataResetFailed")}
+                </p>
+              )}
+            </div>
+          </div>
           <CheckRow
             id="additional-jump-information"
             label={translate(

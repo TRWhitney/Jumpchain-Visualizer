@@ -222,6 +222,8 @@ test("leaving the Chain hub cancels open Edit details drafts", async ({
 test("Chain cards delete only after the shared confirmation", async ({
   page,
 }, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(page.locator("html")).toHaveAttribute("data-app-theme", "dark");
   await page
     .getByRole("button", { name: "Chain Tracker", exact: true })
     .click();

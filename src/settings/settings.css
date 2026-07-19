@@ -14,6 +14,14 @@
   --app-danger-focus: #c97878;
 }
 
+[data-app-theme="light"] .tag-profile-badge {
+  --tag-adaptive-text: var(--tag-text-on-light);
+}
+
+[data-app-theme="dark"] .tag-profile-badge {
+  --tag-adaptive-text: var(--tag-text-on-dark);
+}
+
 .app-settings-loading {
   display: grid;
   min-height: 100vh;
@@ -808,6 +816,73 @@
   :is(.settings-reset-all, .setting-reset, .keybinding-list button) {
   color: var(--app-accent-text) !important;
   border-color: var(--app-accent-border) !important;
+}
+
+[data-app-theme="light"]
+  .app-settings-surface
+  :is(
+    .tag-profile-toolbar button,
+    .tag-profile-form-actions button:last-child
+  ) {
+  color: #343430;
+  background: #f3f1eb;
+  border-color: #aaa79e;
+}
+
+[data-app-theme="light"]
+  .app-settings-surface
+  :is(
+    .tag-profile-toolbar button,
+    .tag-profile-form-actions button:last-child
+  ):is(:hover, :focus-visible) {
+  color: #171717;
+  background: #e8e5dd;
+  border-color: var(--app-accent-border);
+}
+
+[data-app-theme="light"]
+  .app-settings-surface
+  .notification-class-settings
+  label:is(:hover, :focus-within) {
+  color: #343430;
+  background: #f3f1eb;
+}
+
+[data-app-theme="light"]
+  .app-settings-surface
+  .settings-search-list
+  > button:hover,
+[data-app-theme="light"]
+  .app-settings-surface
+  .tag-profile-item:is(:hover, [aria-selected="true"]),
+[data-app-theme="light"]
+  .app-settings-surface
+  .tag-tree
+  button:is(:hover, [aria-selected="true"]) {
+  color: #171717;
+  background: #f3f1eb;
+}
+
+[data-app-theme="light"] .app-settings-surface .tag-animation-menu {
+  color: #343430;
+  background: #fff;
+  border-color: #aaa79e;
+  box-shadow: 0 0.75rem 2rem rgb(23 23 23 / 18%);
+}
+
+[data-app-theme="light"]
+  .app-settings-surface
+  .tag-animation-menu
+  [role="option"] {
+  color: #343430;
+}
+
+[data-app-theme="light"]
+  .app-settings-surface
+  .tag-animation-menu
+  [role="option"]:is(:hover, :focus-visible, [aria-selected="true"]) {
+  color: #171717;
+  background: #f3f1eb;
 }
 
 @media (max-width: 48rem) {

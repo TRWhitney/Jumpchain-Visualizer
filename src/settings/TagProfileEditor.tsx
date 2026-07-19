@@ -1062,14 +1062,14 @@ export function TagProfileEditor() {
             <BadgePreview
               tag={tag}
               label={displayName(tag)}
-              surface="#171717"
+              surface="#20201e"
             />
           </div>
           <div className="tag-profile-preview-surface is-light">
             <BadgePreview
               tag={tag}
               label={displayName(tag)}
-              surface="#f6f5f1"
+              surface="#f5f1e6"
             />
           </div>
           <dl>

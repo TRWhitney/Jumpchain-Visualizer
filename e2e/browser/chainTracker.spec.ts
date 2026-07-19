@@ -9,6 +9,7 @@ import {
 test.describe.configure({ timeout: 60_000 });
 
 test.beforeEach(async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/review/chain-tracker");
 });
 

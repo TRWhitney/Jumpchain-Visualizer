@@ -126,6 +126,28 @@
       </section>
 
       <section>
+        <h2>Light-theme Editor presentation</h2>
+        <p>
+          Light mode keeps the Editor canvas warm and neutral while giving Source a
+          distinct <code>#eceae4</code> background and <code>#dedbd2</code> gutter.
+          Declaration, field, condition, string, literal, and comment colors are
+          independently darkened for readable syntax contrast. Native Editor
+          scrollbars use the light color scheme. Completion menus, lint tooltips,
+          diagnostic popovers, severity hover states, and the canonical-source
+          Properties note use light surfaces and readable semantic colors.
+          The Add menu, secondary Import action, and saved-project metric rows
+          also remain on neutral light surfaces without dark framing.
+        </p>
+        <p>
+          These rules are scoped to explicit Light mode. The existing dark Source
+          palette, diagnostics, tooltips, selection geometry, and syntax colors are
+          unchanged. Visual acceptance requires the exact Source, Properties,
+          collapsed/expanded Diagnostics, and error/warning/info hover paths rather
+          than a DOM-only assertion.
+        </p>
+      </section>
+
+      <section>
         <h2>Event capture required for every field matrix</h2>
         <p>
           Character input, deletion from each edge and middle, select-all,

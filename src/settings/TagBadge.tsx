@@ -1,13 +1,17 @@
 import type { CSSProperties } from "react";
 import type { TagDefinition } from "../tracker/model";
-import { presentationForTagDefinition, readableTagText } from "./tagProfile";
+import {
+  adaptTagTextToSurfaces,
+  presentationForTagDefinition,
+  readableTagText,
+} from "./tagProfile";
 
 type CanonicalPresentation = NonNullable<TagDefinition["presentation"]>;
 
 export function CanonicalTagBadge({
   label,
   presentation,
-  surface = "#20201e",
+  surface,
   title,
 }: {
   label: string;
@@ -15,12 +19,23 @@ export function CanonicalTagBadge({
   surface?: string;
   title?: string;
 }) {
-  const background =
-    presentation.background === "transparent"
-      ? "transparent"
-      : presentation.background === "gradient"
-        ? `linear-gradient(${presentation.angle}deg, ${presentation.colors.map((color, index) => `${color} ${presentation.positions[index]}%`).join(", ")})`
-        : presentation.colors[0];
+  const transparent = presentation.background === "transparent";
+  const background = transparent
+    ? "transparent"
+    : presentation.background === "gradient"
+      ? `linear-gradient(${presentation.angle}deg, ${presentation.colors.map((color, index) => `${color} ${presentation.positions[index]}%`).join(", ")})`
+      : presentation.colors[0];
+  const textForSurfaces = (surfaces: readonly string[]) =>
+    presentation.textMode === "custom"
+      ? adaptTagTextToSurfaces(presentation.textColor, surfaces)
+      : readableTagText(surfaces);
+  const renderedText = transparent
+    ? surface
+      ? textForSurfaces([surface])
+      : "var(--tag-adaptive-text, var(--tag-text-on-dark))"
+    : presentation.textMode === "custom"
+      ? presentation.textColor
+      : readableTagText(presentation.colors);
   return (
     <span
       className={`tag-profile-badge effect-${presentation.textEffect} animation-${presentation.animation}`}
@@ -28,14 +43,21 @@ export function CanonicalTagBadge({
       style={
         {
           background,
-          color:
-            presentation.textMode === "custom"
-              ? presentation.textColor
-              : readableTagText(
-                  presentation.background === "transparent"
-                    ? [surface]
-                    : presentation.colors,
-                ),
+          color: renderedText,
+          ...(transparent && !surface
+            ? {
+                "--tag-text-on-light": textForSurfaces([
+                  "#ffffff",
+                  "#f6f5f1",
+                  "#f3f1eb",
+                ]),
+                "--tag-text-on-dark": textForSurfaces([
+                  "#171717",
+                  "#20201e",
+                  "#292927",
+                ]),
+              }
+            : {}),
           borderColor: presentation.borderColor,
           borderWidth:
             presentation.borderWidth === "none"

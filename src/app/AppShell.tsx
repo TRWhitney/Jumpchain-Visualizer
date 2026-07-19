@@ -83,6 +83,7 @@ import "../supplements/review.css";
 import "../tracker/review.css";
 import "./shell.css";
 import "../editor/editor.css";
+import "./light-theme.css";
 import {
   isStructuredCommandError,
   translate,

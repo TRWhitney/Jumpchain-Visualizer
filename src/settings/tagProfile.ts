@@ -129,6 +129,40 @@ export const readableTagText = (backgrounds: readonly string[]) =>
     }))
     .sort((first, second) => second.minimum - first.minimum)[0].color;
 
+export const adaptTagTextToSurfaces = (
+  preferred: string,
+  backgrounds: readonly string[],
+  minimumContrast = 4.5,
+) => {
+  const normalized = preferred.toLowerCase();
+  if (
+    backgrounds.every(
+      (background) =>
+        tagTextContrast(normalized, background) >= minimumContrast,
+    )
+  )
+    return normalized;
+
+  const fallback = readableTagText(backgrounds);
+  let inaccessibleWeight = 0;
+  let accessibleWeight = 1;
+  let closestAccessible = fallback;
+  for (let iteration = 0; iteration < 20; iteration += 1) {
+    const weight = (inaccessibleWeight + accessibleWeight) / 2;
+    const candidate = mixHex(normalized, fallback, weight);
+    if (
+      backgrounds.every(
+        (background) =>
+          tagTextContrast(candidate, background) >= minimumContrast,
+      )
+    ) {
+      accessibleWeight = weight;
+      closestAccessible = candidate;
+    } else inaccessibleWeight = weight;
+  }
+  return closestAccessible;
+};
+
 export function presentationForTagDefinition(
   color: string,
   to: string,

@@ -331,6 +331,10 @@
           <li>Negative balance state is communicated by signed point text, warning language, and an icon in addition to red styling.</li>
         </ul>
 
+        <h2>Light-theme Tracker Presentation</h2>
+        <p>In explicit Light mode, the primary tabs, Chain/Library rail, Library package cards, jump entries, route controls, Inventory Search and Stats, Forms, Companions, Supplements Manage, module pages, inputs, buttons, scroll areas, profile/detail dialogs, inline dialogs, and hover/focus states use the shared warm-neutral light palette. The intentional document styling inside the Jump renderer remains authored content rather than tracker chrome. Muted text must remain readable at 4.5:1 and meaningful control or focus boundaries at 3:1.</p>
+        <p>Tracker light rules never alter the established dark presentation. The sole both-theme exception is scoped to <code>.tracker-supp-context</code>: “Current-Jump Supplements” and “Selected Jump · …” use the accessible active-accent text token, while the selected supplement’s left rail uses the raw active accent. Main Supplements pages and every non-contextual supplement dialog retain their module palettes.</p>
+
         <h2>Current Design Status</h2>
         <div class="chain-status" role="note">
           <strong>Implementation available.</strong> The real <code>/chain/:chainId</code> route and deterministic review harness use the reusable tracker workspace, Format 1 parser, pure chain evaluator, and shared Jump renderer. Choice state, rolls, balances, identity, Inventory, tags, radar values, Companions, Forms, dependency warnings, Gauntlet state, and supplement projections are evaluated from exact package references. The mock above remains the visual and behavioral authority.

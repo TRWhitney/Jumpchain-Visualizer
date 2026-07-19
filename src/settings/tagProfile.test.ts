@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addTag,
+  adaptTagTextToSurfaces,
   createDefaultTagProfile,
   deleteTag,
   exportTagProfile,
@@ -267,5 +268,16 @@ describe("tag profiles", () => {
     const text = readableTagText(["#f4e9bd", "#ffffff"]);
     expect(text).toBe("#111111");
     expect(tagTextContrast(text, "#f4e9bd")).toBeGreaterThan(4.5);
+  });
+
+  it("adapts transparent custom text only as far as its rendered surface requires", () => {
+    const darkened = adaptTagTextToSurfaces("#ffffff", ["#f6f5f1"]);
+    const lightened = adaptTagTextToSurfaces("#000000", ["#20201e"]);
+
+    expect(darkened).not.toBe("#ffffff");
+    expect(lightened).not.toBe("#000000");
+    expect(tagTextContrast(darkened, "#f6f5f1")).toBeGreaterThanOrEqual(4.5);
+    expect(tagTextContrast(lightened, "#20201e")).toBeGreaterThanOrEqual(4.5);
+    expect(adaptTagTextToSurfaces("#761923", ["#f6f5f1"])).toBe("#761923");
   });
 });

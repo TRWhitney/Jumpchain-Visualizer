@@ -4,6 +4,10 @@ import { render } from "vitest-browser-react";
 import { AppShell } from "./AppShell";
 import { IndexedDbChainRepository } from "../tracker/repository";
 import { APPLICATION_DATABASE_NAME } from "../platform/indexedDb";
+import { SettingsProvider } from "../settings/SettingsProvider";
+import { MemorySettingsRepository } from "../settings/repository";
+import { defaultSettings } from "../settings/model";
+import { createDefaultTagProfile } from "../settings/tagProfile";
 
 beforeEach(async () => {
   await new Promise<void>((resolve, reject) => {
@@ -48,8 +52,18 @@ const nextRouteFocus = () =>
     ),
   );
 
+function renderShellWithMockData() {
+  const settings = defaultSettings(createDefaultTagProfile());
+  settings.developer.showMockData = true;
+  render(
+    <SettingsProvider repository={new MemorySettingsRepository(settings)}>
+      <AppShell />
+    </SettingsProvider>,
+  );
+}
+
 test("the real Chain Tracker mounts without duplicate application chrome and retains state", async () => {
-  render(<AppShell />);
+  renderShellWithMockData();
   const chainRecent = page.getByRole("region", { name: "Chains" });
   await chainRecent.getByRole("button", { name: "Resume" }).first().click();
   await expect
@@ -74,7 +88,7 @@ test("the real Chain Tracker mounts without duplicate application chrome and ret
 });
 
 test("the chain hub creates and renames records from the single demo chain", async () => {
-  render(<AppShell />);
+  renderShellWithMockData();
   const homeChains = page.getByRole("region", { name: "Chains" });
   await expect.element(homeChains).toBeVisible();
   expect(
@@ -117,7 +131,7 @@ test("the chain hub creates and renames records from the single demo chain", asy
 });
 
 test("primary-tag name colors are opt-in while summaries remain available", async () => {
-  render(<AppShell />);
+  renderShellWithMockData();
   await page.getByRole("button", { name: "Settings" }).click();
   await page.getByRole("tab", { name: "Chain Tracker" }).click();
   await page.getByLabelText("Color chain names").click();
@@ -141,7 +155,7 @@ test("primary-tag name colors are opt-in while summaries remain available", asyn
 });
 
 test("tag presentation changes project into canonical Inventory badges", async () => {
-  render(<AppShell />);
+  renderShellWithMockData();
   await page.getByRole("button", { name: "Settings" }).click();
   await page.getByRole("tab", { name: "Tags" }).click();
   await page.getByRole("button", { name: /^Primary Tags/ }).click();

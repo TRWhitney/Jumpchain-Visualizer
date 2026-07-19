@@ -94,7 +94,7 @@ test("Home matches the shell proposal and exposes explicit workspace choices and
   ).toBeVisible();
   await expect(
     shell.getByRole("region", { name: "Editor workspaces" }),
-  ).toContainText("No recent Editor projects");
+  ).toContainText("No Editor workspaces here.");
   await expect(shell.getByRole("region", { name: "Chains" })).toContainText(
     "Morgan",
   );

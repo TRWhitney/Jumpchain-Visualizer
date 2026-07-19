@@ -1211,6 +1211,18 @@ function AppShellContent() {
                       onOpen={() => openChain(chain)}
                     />
                   ))}
+                  {!savedChains.length && (
+                    <div className="app-recent-work is-empty">
+                      <span>
+                        <strong>
+                          {translate("ui.appShell.text.noRecentChains")}
+                        </strong>
+                        <small>
+                          {translate("ui.appShell.text.startAChainToBegin")}
+                        </small>
+                      </span>
+                    </div>
+                  )}
                   {savedChains.length > 5 && (
                     <button
                       className="app-view-all"

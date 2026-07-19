@@ -636,7 +636,11 @@ test("Story renders all chapters and synchronizes formatted editor changes", asy
   await dialog.getByRole("button", { name: "+ Add chapter" }).click();
   await expect(dialog.getByRole("status")).toHaveText("Saved");
   await page.keyboard.press("Escape");
-  await workspace.getByRole("tab", { name: "Story" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(jump.getByRole("button", { name: "Supp" })).toBeFocused();
+  const storyTab = workspace.getByRole("tab", { name: "Story" });
+  await storyTab.click();
+  await expect(storyTab).toHaveAttribute("aria-selected", "true");
   await expect(workspace.locator(".story-full-chapter")).toHaveCount(3);
   await expect(
     workspace.getByText("Violet Gate", { exact: true }),

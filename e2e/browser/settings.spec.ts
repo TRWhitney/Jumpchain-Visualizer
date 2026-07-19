@@ -1012,7 +1012,10 @@ test("window failures open the recoverable, reviewable crash report surface", as
   page,
 }, testInfo) => {
   await page.goto("/");
-  await page.waitForTimeout(100);
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-crash-monitor-ready",
+    "true",
+  );
   await page.evaluate(() => {
     setTimeout(() => {
       throw new Error("Fixture window failure");

@@ -50,6 +50,7 @@ export function CrashBoundary({ children }: { children: ReactNode }) {
   const [error, setError] = useState<Error | null>(null);
   useEffect(() => {
     const onError = (event: ErrorEvent) => {
+      event.preventDefault();
       const next =
         event.error instanceof Error
           ? event.error
@@ -64,6 +65,7 @@ export function CrashBoundary({ children }: { children: ReactNode }) {
       setError(next);
     };
     const onRejection = (event: PromiseRejectionEvent) => {
+      event.preventDefault();
       const next =
         event.reason instanceof Error
           ? event.reason
@@ -79,9 +81,11 @@ export function CrashBoundary({ children }: { children: ReactNode }) {
     };
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onRejection);
+    document.documentElement.dataset.crashMonitorReady = "true";
     return () => {
       window.removeEventListener("error", onError);
       window.removeEventListener("unhandledrejection", onRejection);
+      delete document.documentElement.dataset.crashMonitorReady;
     };
   }, [logger]);
   if (error)

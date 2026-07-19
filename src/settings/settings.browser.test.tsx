@@ -100,6 +100,23 @@ test("recoverable React failures render the private diagnostic surface", async (
     .toBeVisible();
 });
 
+test("window monitoring signals readiness before failures can be dispatched", async () => {
+  render(
+    <SettingsProvider
+      repository={new MemorySettingsRepository()}
+      reportExporter={exporter}
+    >
+      <CrashBoundary>
+        <p>Healthy surface</p>
+      </CrashBoundary>
+    </SettingsProvider>,
+  );
+  await expect.element(page.getByText("Healthy surface")).toBeVisible();
+  await expect
+    .poll(() => document.documentElement.dataset.crashMonitorReady)
+    .toBe("true");
+});
+
 test("a failed coalesced write rolls back to the last durable aggregate", async () => {
   const repository = {
     load: async () => null,

@@ -166,7 +166,7 @@
           <li>The session ring retains at most 2,000 events or 10 MiB, whichever limit is reached first, and evicts the oldest low-severity events first.</li>
           <li>Clear Session immediately discards the in-memory diagnostic buffer but not domain activity history.</li>
           <li>Export creates versioned JSON Lines containing the current filtered or complete session after showing severity counts and redaction rules.</li>
-          <li>A caught unhandled exception opens a crash surface containing application/runtime/OS versions, architecture, route kind, relevant settings, the correlated session-event tail, the complete application stack and cause chain, and redaction notes.</li>
+          <li>The application installs its global error and rejection monitors before declaring crash capture ready. A caught unhandled exception is marked handled and opens a crash surface containing application/runtime/OS versions, architecture, route kind, relevant settings, the correlated session-event tail, the complete application stack and cause chain, and redaction notes.</li>
           <li>The crash surface provides Copy Report and Save Report actions. Nothing is posted or transmitted automatically.</li>
           <li>A hard native termination that prevents the crash surface from running may only reach the launcher or runtime standard-error output. The application documents this limitation rather than claiming guaranteed crash capture.</li>
           <li>No background upload, beacon, remote crash report, protected security ring, or stable installation identifier exists.</li>

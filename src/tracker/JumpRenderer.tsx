@@ -25,6 +25,7 @@ import { CanonicalTrackerTagBadge } from "../settings/TagBadge";
 import type { TagDefinition, TrackerAction, TrackerPreferences } from "./model";
 import { NumberStepper } from "./NumberStepper";
 import { resolveJumpImageSource, type JumpAssetResolver } from "./jumpImages";
+import { sourceOptionGroupName } from "./sourceOptionGroup";
 import { translate } from "../localization";
 
 const label = (value: Renderable | undefined, fallback = "") =>
@@ -746,7 +747,7 @@ function SourceOptionControl({
       <label className="check-control">
         <input
           type={source.mode === "single" ? "radio" : "checkbox"}
-          name={`${props.entryId}-${source.handle}`}
+          name={sourceOptionGroupName(props.entryId, props.actorId, source)}
           checked={checked}
           disabled={
             source.resolution === "random" &&

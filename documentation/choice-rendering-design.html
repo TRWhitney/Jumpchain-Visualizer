@@ -43,7 +43,7 @@
           <li>Rendered Jump controls use neutral renderer defaults. Application accent colors never leak into selection state.</li>
           <li>Control structure and geometry come from this catalogue, while an unstyled control inherits the owning Jump surface palette. A Jump may change that palette only through authored Format 1 presentation.</li>
           <li>A <code>tags</code> slot renders the application's canonical tag-badge component. Choice-layout and container CSS may arrange badge children, but must never restyle the badge or any of its internal spans.</li>
-          <li>Single select uses radio buttons so mutual exclusion is visible. Multi select uses checkboxes so independent selection is visible.</li>
+          <li>Single select uses radio buttons so mutual exclusion is visible. Each native radio group is scoped by chain entry, actor, and semantic choice group, so sources may safely reuse handles without hiding another source's selected state. Multi select uses checkboxes so independent selection is visible.</li>
           <li>Selection does not recolor or outline an entire choice. The native control, its label, and accessible state communicate selection.</li>
           <li>Normal costs show resolved amounts. Discounts strike the old cost beside the new cost in restrained green. Free costs read <strong>Free</strong> in the same green.</li>
           <li>Ranked costs show the price per rank, selected rank count, and cumulative total in one badge.</li>

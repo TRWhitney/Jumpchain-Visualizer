@@ -197,7 +197,6 @@ export type LayoutNode = {
     | "rule"
     | "choice"
     | "expand";
-  handle?: string;
   target?: string;
   source?: string;
   using?: string;
@@ -208,7 +207,6 @@ export type LayoutNode = {
 export type JumpLayout = {
   kind: "section-layout" | "choice-layout" | "trait-layout";
   handle: string;
-  name?: Renderable;
   root: LayoutNode;
 };
 

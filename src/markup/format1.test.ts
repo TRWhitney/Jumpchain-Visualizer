@@ -401,6 +401,75 @@ ${jumpField ? "" : authored}
     },
   );
 
+  it("reports a removed layout name through the generic unknown-field rule", () => {
+    const source = `jump
+  format: 1
+  name: "Diagnostics"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+
+section-layout
+  handle: card
+  name: "No longer valid"
+
+  stack
+`;
+    const packageItem = canonicalizePackage({
+      id: "layout-name-diagnostic",
+      exactHash: "0".repeat(64),
+      files: { "jump.jdef": source },
+    });
+    const diagnostic = packageItem.diagnostics.find(
+      (item) =>
+        item.code === "schema.field.unknown" &&
+        item.parameters?.declaration === "section-layout" &&
+        item.target?.field === "name",
+    );
+
+    expect(diagnostic).toBeDefined();
+    expect(source.slice(diagnostic!.range!.from, diagnostic!.range!.to)).toBe(
+      '"No longer valid"',
+    );
+  });
+
+  it.each(["stack", "inline", "wrap", "grid"])(
+    "reports a removed %s handle through the generic unknown-field rule",
+    (container) => {
+      const source = `jump
+  format: 1
+  name: "Diagnostics"
+  author: "Tester"
+  version: "1"
+
+section-layout
+  handle: card
+
+  ${container}
+    handle: obsolete_container_id
+${container === "grid" ? "    columns: 2\n" : ""}`;
+      const packageItem = canonicalizePackage({
+        id: `${container}-handle-diagnostic`,
+        exactHash: "0".repeat(64),
+        files: { "jump.jdef": source },
+      });
+      const diagnostic = packageItem.diagnostics.find(
+        (item) =>
+          item.code === "schema.field.unknown" &&
+          item.parameters?.declaration === container &&
+          item.target?.field === "handle",
+      );
+
+      expect(diagnostic).toBeDefined();
+      expect(source.slice(diagnostic!.range!.from, diagnostic!.range!.to)).toBe(
+        "obsolete_container_id",
+      );
+    },
+  );
+
   it.each([
     ["quoted string", "jump", "  description: unquoted", "description"],
     ["renderable string", "jump", "  points-name: unquoted", "points-name"],
@@ -465,8 +534,8 @@ choice
 ${scope === "choice" ? authored : ""}
 ${scope === "choiceChild" ? authored : ""}
 
-${scope === "layout" ? `section-layout\n  handle: invalid_layout\n  stack\n    handle: root\n${authored}` : ""}
-${scope === "grid" ? `section-layout\n  handle: invalid_layout\n  grid\n    handle: root\n${authored}` : ""}
+${scope === "layout" ? `section-layout\n  handle: invalid_layout\n  stack\n${authored}` : ""}
+${scope === "grid" ? `section-layout\n  handle: invalid_layout\n  grid\n${authored}` : ""}
 ${scope === "top" ? authored : ""}
 `;
     const packageItem = canonicalizePackage({
@@ -575,7 +644,6 @@ section
 section-layout
   handle: detailed
   stack
-    handle: root
     text: absent_text
 `;
     const sources = {

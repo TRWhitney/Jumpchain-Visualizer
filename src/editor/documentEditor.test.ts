@@ -468,7 +468,7 @@ describe("Format 1 structured document edits", () => {
   it("resolves layout-node presentation fields without treating content declarations as nodes", () => {
     const files = {
       "jump.jdef": `${source}\ntext\n  handle: outside\n  content: "Text"\n`,
-      "layout.jdef": `section-layout\n  handle: layout\n\n  grid\n    handle: root\n    columns: 2\n`,
+      "layout.jdef": `section-layout\n  handle: layout\n\n  grid\n    columns: 2\n`,
     };
     const symbols = service.analyze(files).symbols;
     const text = symbols.find(
@@ -480,6 +480,9 @@ describe("Format 1 structured document edits", () => {
       "content",
     ]);
     expect(structuredContext(files, grid)?.visibleFields).toContain("columns");
+    expect(structuredContext(files, grid)?.visibleFields).not.toContain(
+      "handle",
+    );
     expect(structuredContext(files, grid)?.childKinds).toContain("expand");
   });
 });

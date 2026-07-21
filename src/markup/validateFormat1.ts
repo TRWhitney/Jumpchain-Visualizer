@@ -1773,31 +1773,6 @@ function validatePackageStructure(
           { child: child.kind, layout: node.kind },
           child,
         );
-
-    const containerHandles = new Set<string>();
-    for (const { node: container } of walk(node.children).filter(({ node }) =>
-      ["stack", "inline", "wrap", "grid"].includes(node.kind),
-    )) {
-      const handle = container.fields.find(
-        (candidate) => candidate.name === "handle",
-      );
-      if (!handle) continue;
-      const identity = unquote(handle.value);
-      if (containerHandles.has(identity))
-        add(
-          diagnostics,
-          "layout.container.handle.unique",
-          {
-            layout:
-              node.fields.find((field) => field.name === "handle")?.value ??
-              node.kind,
-            handle: identity,
-          },
-          container,
-          handle,
-        );
-      containerHandles.add(identity);
-    }
   }
 }
 

@@ -452,7 +452,7 @@ test("Editor follows the mock across structured, source, layout, and diagnostic 
     Math.round(bounds!.height),
   );
 
-  await editor.getByRole("button", { name: "Introduction" }).click();
+  await editor.getByRole("button", { name: "introduction" }).click();
   await mock.locator('[data-mock-view="origins"]').click();
   await attachComparison(testInfo, "editor-structured-section", mock, editor);
   await editor.getByPlaceholder("Search content").fill("welcome");
@@ -499,7 +499,7 @@ test("Editor follows the mock across structured, source, layout, and diagnostic 
   await editor.getByRole("button", { name: "Add", exact: true }).click();
   await editor.getByRole("button", { name: "Choice layout" }).click();
   await editor.getByRole("tab", { name: "Structured" }).click();
-  await editor.getByRole("button", { name: "New Choice Layout" }).click();
+  await editor.getByRole("button", { name: "new_choice_layout" }).click();
   await editor.getByLabel("Show bounds").check();
   await mock.getByLabel("Close Quick add").click();
   await mock.getByRole("tab", { name: "Structured" }).click();
@@ -510,8 +510,19 @@ test("Editor follows the mock across structured, source, layout, and diagnostic 
   await mock.locator('[data-mock-view="origin-section-layout"]').click();
   await mock.getByLabel("Show bounds").check();
   await mock.locator("[data-preview-bound]").first().hover();
-  await editor.locator("[data-layout-bound]").first().hover();
+  const firstBound = editor.locator("[data-layout-bound]").first();
+  const firstBoundPath = await firstBound.getAttribute("data-layout-bound");
+  expect(firstBoundPath).toMatch(/^[a-z]+\[1\](?:\/[a-z]+\[\d+\])*$/);
+  await firstBound.hover();
+  await expect(editor.locator(".editor-bound-readout")).toContainText(
+    firstBoundPath!,
+  );
   await attachComparison(testInfo, "editor-layout-bounds-hover", mock, editor);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-structural-path-bounds-production",
+    editor,
+  );
 
   await editor.getByRole("tab", { name: "Source" }).click();
   const source = editor.getByLabel(/source$/);
@@ -993,7 +1004,7 @@ test("Structured fields show localized omission defaults from first render and a
   );
 
   await editor
-    .getByRole("button", { name: "Introduction", exact: true })
+    .getByRole("button", { name: "introduction", exact: true })
     .click();
   await expect(editor.getByLabel("layout", { exact: true })).toHaveAttribute(
     "placeholder",
@@ -1033,7 +1044,7 @@ test("Structured fields show localized omission defaults from first render and a
   await contentSearch.fill("New grant");
   await editor
     .locator(".editor-outline-scroll")
-    .getByRole("button", { name: "New grant grant", exact: true })
+    .getByRole("button", { name: "grant grant", exact: true })
     .click();
   await editor.getByLabel("kind", { exact: true }).selectOption("trait");
   await expect(editor.getByLabel("layout", { exact: true })).toHaveAttribute(
@@ -1054,7 +1065,7 @@ test("Structured fields show localized omission defaults from first render and a
   await contentSearch.fill("New Choice");
   await editor
     .locator(".editor-outline-scroll")
-    .getByRole("button", { name: "New Choice", exact: true })
+    .getByRole("button", { name: "new_choice", exact: true })
     .click();
   await editor.getByRole("button", { name: "+ Input", exact: true }).click();
   await contentSearch.fill("new_input");
@@ -1085,7 +1096,7 @@ test("Structured section references and handles show live localized diagnostics"
   await page.setViewportSize({ width: 1440, height: 1000 });
   const editor = await openCreatedEditor(page);
   await editor
-    .getByRole("button", { name: "Introduction", exact: true })
+    .getByRole("button", { name: "introduction", exact: true })
     .click();
 
   const layout = editor.getByLabel("layout", { exact: true });
@@ -1152,7 +1163,7 @@ test("Structured section references and handles show live localized diagnostics"
 
   await editor.getByRole("tab", { name: "Content" }).click();
   await editor
-    .getByRole("button", { name: "Introduction", exact: true })
+    .getByRole("button", { name: "Not A Handle!", exact: true })
     .click();
   await editor.getByRole("tab", { name: "Structured" }).click();
   await handle.fill("introduction");
@@ -1179,7 +1190,7 @@ test("Structured choice-source groups distinguish missing, unmatched, and illega
   await page.setViewportSize({ width: 1440, height: 1000 });
   const editor = await openCreatedEditor(page);
   await editor
-    .getByRole("button", { name: "Introduction", exact: true })
+    .getByRole("button", { name: "introduction", exact: true })
     .click();
   await editor
     .getByRole("button", { name: "+ Choice source", exact: true })
@@ -1272,7 +1283,7 @@ test("Structured field edits never consume adjacent fields", async ({
   page,
 }) => {
   const editor = await openCreatedEditor(page);
-  await editor.getByRole("button", { name: "Introduction" }).click();
+  await editor.getByRole("button", { name: "introduction" }).click();
   const layout = editor.getByLabel("layout", { exact: true });
 
   await layout.pressSequentially("nonsense_layout");
@@ -1658,7 +1669,7 @@ test("Structured authors representative Format 1 fields, children, repeats, and 
   await editor.getByRole("button", { name: "+ Add tag" }).click();
   await editor.getByRole("textbox", { name: "tag 1" }).fill("audit-tag");
 
-  await editor.getByRole("button", { name: "Introduction" }).click();
+  await editor.getByRole("button", { name: "introduction" }).click();
   await editor.getByRole("button", { name: "+ Text" }).click();
   await editor.getByPlaceholder("Search content").fill("new_text");
   await editor.getByRole("button", { name: /new_text text/ }).click();
@@ -1706,7 +1717,7 @@ test("Structured contextual additions open editable fields without redesigning t
   const editor = await openCreatedEditor(page);
 
   await editor
-    .getByRole("button", { name: "Introduction", exact: true })
+    .getByRole("button", { name: "introduction", exact: true })
     .click();
   await editor.getByRole("button", { name: "+ Text", exact: true }).click();
   const content = editor.getByLabel("content", { exact: true });
@@ -1807,7 +1818,7 @@ test("Structured contextual additions open editable fields without redesigning t
   );
   await editor
     .locator(".editor-outline-scroll")
-    .getByRole("button", { name: "New Choice", exact: true })
+    .getByRole("button", { name: "new_choice", exact: true })
     .click();
   await editor.getByRole("button", { name: "+ Grant", exact: true }).click();
   await editor.getByLabel("kind", { exact: true }).selectOption("resource");
@@ -1827,19 +1838,734 @@ test("Structured contextual additions open editable fields without redesigning t
   await editor.getByRole("button", { name: "Add", exact: true }).click();
   await editor.getByRole("button", { name: "Section layout" }).click();
   await expect(
-    editor.getByRole("heading", { name: "New Section Layout", exact: true }),
+    editor.getByRole("heading", { name: "new_section_layout", exact: true }),
   ).toBeVisible();
-  await editor.getByRole("button", { name: "stack", exact: true }).click();
+  await expect(editor.getByLabel("name", { exact: true })).toHaveCount(0);
+  const outline = editor.locator(".editor-outline-scroll");
   await expect(
-    editor.getByText("Edit stack node", { exact: true }),
+    outline.getByRole("button", { name: "introduction", exact: true }),
   ).toBeVisible();
+  await expect(
+    outline.getByRole("button", { name: "new_choice", exact: true }),
+  ).toBeVisible();
+  await expect(
+    outline.getByRole("button", {
+      name: "new_section_layout section",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(editor.getByLabel("Flow")).toHaveValue("stack");
+  const containerPresentationButton = editor.getByRole("button", {
+    name: "Edit Stack presentation fields",
+    exact: true,
+  });
+  const slotPresentationButton = editor.getByRole("button", {
+    name: "Edit Slot presentation fields",
+    exact: true,
+  });
+  const [containerButtonBox, slotButtonBox] = await Promise.all([
+    containerPresentationButton.boundingBox(),
+    slotPresentationButton.boundingBox(),
+  ]);
+  expect(containerButtonBox?.width).toBe(slotButtonBox?.width);
+  expect(containerButtonBox?.height).toBe(slotButtonBox?.height);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-container-presentation-button-production",
+    editor,
+  );
+  await containerPresentationButton.click();
   await expect(editor.getByLabel("padding", { exact: true })).toContainText(
     "Default: none",
   );
+  await expect(
+    editor.locator(".editor-layout-node-fields").getByLabel("handle"),
+  ).toHaveCount(0);
   await expect(editor.getByLabel(/layout node$/)).toHaveCount(0);
+  await expect(editor.locator(".editor-preview-toolbar small")).toHaveText(
+    "Layout preview",
+  );
+  await expect(editor.locator(".editor-real-preview")).toContainText(
+    "Example section",
+  );
+  await expect(
+    editor.locator(".editor-real-preview .format-one-jump-renderer"),
+  ).toHaveCount(0);
   await attachProductionState(
     testInfo,
     "editor-layout-node-fields-production",
+    editor,
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-sidebar-handle-labels-production",
+    editor,
+  );
+  await containerPresentationButton.click();
+  await expect(editor.getByLabel("padding", { exact: true })).toHaveCount(0);
+  await expect(containerPresentationButton).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-layout-container-presentation-collapsed-production",
+    editor,
+  );
+
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const layoutSource = editor.getByLabel("layout.jdef source");
+  await layoutSource.press(
+    process.platform === "darwin" ? "Meta+a" : "Control+a",
+  );
+  await page.keyboard.insertText(`section-layout
+  handle: new_section_layout
+  name: "Invalid layout label"
+
+  stack
+`);
+  await editor.getByRole("button", { name: "Diagnostics" }).click();
+  await expect(editor.locator(".editor-diagnostics-details")).toContainText(
+    "Unknown field “name” on section-layout.",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-layout-name-generic-diagnostic-production",
+    editor,
+  );
+
+  await layoutSource.press(
+    process.platform === "darwin" ? "Meta+a" : "Control+a",
+  );
+  await page.keyboard.insertText(`section-layout
+  handle: new_section_layout
+
+  stack
+    handle: obsolete_container_id
+`);
+  await expect(editor.locator(".editor-diagnostics-details")).toContainText(
+    "Unknown field “handle” on stack.",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-container-handle-generic-diagnostic-production",
+    editor,
+  );
+});
+
+test("Structured layout tree safely edits hierarchy through the mock-aligned container workflow", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Section layout" }).click();
+
+  const builder = editor.locator(".editor-layout-builder");
+  const addRow = builder.locator(".editor-layout-add-row");
+  const editingContainer = builder.getByLabel("Editing container");
+  const chooseNewNode = async (kind: string) => {
+    await addRow.getByLabel("New node type").selectOption(kind);
+  };
+  const sourceText = async () => {
+    await editor.getByRole("tab", { name: "Source" }).click();
+    const text = await editor.getByLabel("layout.jdef source").innerText();
+    await editor.getByRole("tab", { name: "Structured" }).click();
+    return text;
+  };
+
+  await expect(
+    builder.getByText("Children of stack[1]", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    builder.getByRole("button", { name: "Move Slot up" }),
+  ).toBeDisabled();
+  await expect(
+    builder.getByRole("button", { name: "Move Slot down" }),
+  ).toBeDisabled();
+
+  await chooseNewNode("grid");
+  await addRow.getByRole("button", { name: "Add child" }).click();
+  await expect(editingContainer).toHaveValue(/node:/);
+  await expect(
+    builder.getByText(/Children of stack\[1\]\/grid\[2\]/),
+  ).toBeVisible();
+  expect(await sourceText()).toContain("grid\n      columns: 2");
+  await attachProductionState(
+    testInfo,
+    "editor-layout-mock-aligned-nested-grid-production",
+    editor,
+  );
+
+  await editingContainer.selectOption({ label: "stack[1]" });
+  await chooseNewNode("inline");
+  await addRow.getByRole("button", { name: "Add child" }).click();
+  await expect(
+    builder.getByText(/Children of stack\[1\]\/inline\[3\]/),
+  ).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-layout-mock-aligned-nested-container-production",
+    editor,
+  );
+
+  await editingContainer.selectOption({ label: "stack[1]" });
+  const inlineRow = builder.locator('[data-layout-node-kind="inline"]');
+  const slotRow = builder.locator('[data-layout-node-kind="slot"]');
+  await inlineRow.dragTo(slotRow, { targetPosition: { x: 20, y: 60 } });
+  const dragReorderedSource = await sourceText();
+  expect(dragReorderedSource.indexOf("inline")).toBeLessThan(
+    dragReorderedSource.indexOf("grid"),
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-layout-sibling-drag-reorder-production",
+    editor,
+  );
+
+  const gridRow = builder.locator('[data-layout-node-kind="grid"]');
+  const slotDragHandle = slotRow.locator(".editor-layout-drag-handle");
+  await gridRow.scrollIntoViewIfNeeded();
+  const gridBounds = await gridRow.boundingBox();
+  expect(gridBounds).not.toBeNull();
+  const dragData = await page.evaluateHandle(() => new DataTransfer());
+  await slotDragHandle.dispatchEvent("dragstart", { dataTransfer: dragData });
+  await gridRow.dispatchEvent("dragover", {
+    clientX: gridBounds!.x + gridBounds!.width / 2,
+    clientY: gridBounds!.y + gridBounds!.height / 2,
+    dataTransfer: dragData,
+  });
+  await expect(gridRow).toHaveClass(/drop-inside/);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-drag-reparent-target-production",
+    editor,
+  );
+  await gridRow.dispatchEvent("drop", { dataTransfer: dragData });
+  await expect(builder.locator('[data-layout-node-kind="slot"]')).toHaveCount(
+    0,
+  );
+  const dragReparentedSource = await sourceText();
+  expect(dragReparentedSource).toContain(
+    "    grid\n      columns: 2\n      slot: name",
+  );
+  await gridRow
+    .getByRole("button", { name: /Open .*grid.* container/ })
+    .click();
+  await expect(builder.locator('[data-layout-node-kind="slot"]')).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-layout-drag-reparented-production",
+    editor,
+  );
+
+  const nestedSlotRow = builder.locator('[data-layout-node-kind="slot"]');
+  const moveSlotButton = nestedSlotRow.getByRole("button", {
+    name: "Move Slot to another container",
+  });
+  await moveSlotButton.click();
+  await expect(moveSlotButton).toHaveAttribute("aria-expanded", "true");
+  await expect(
+    nestedSlotRow.locator(".editor-layout-move-panel"),
+  ).toBeVisible();
+  await expect(
+    nestedSlotRow.getByRole("button", { name: "Cancel", exact: true }),
+  ).toHaveCount(0);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-move-expansion-production",
+    editor,
+  );
+  await moveSlotButton.click();
+  await expect(moveSlotButton).toHaveAttribute("aria-expanded", "false");
+  await expect(nestedSlotRow.locator(".editor-layout-move-panel")).toHaveCount(
+    0,
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-layout-move-collapsed-production",
+    editor,
+  );
+  await moveSlotButton.click();
+  const returnDestination = await nestedSlotRow
+    .getByLabel("Move to container")
+    .getByRole("option", { name: "stack[1]", exact: true })
+    .getAttribute("value");
+  await nestedSlotRow
+    .getByLabel("Move to container")
+    .selectOption(returnDestination!);
+  await nestedSlotRow
+    .getByRole("button", { name: "Move", exact: true })
+    .click();
+  await builder.getByRole("button", { name: "stack[1]", exact: true }).click();
+  const returnedSlotRow = builder.locator('[data-layout-node-kind="slot"]');
+  await returnedSlotRow.getByRole("button", { name: "Move Slot up" }).click();
+
+  await chooseNewNode("text");
+  await addRow.getByLabel("Target").fill("introduction");
+  await addRow.getByRole("button", { name: "Add child" }).click();
+  const textRow = builder.locator('[data-layout-node-kind="text"]');
+  await expect(textRow).toBeVisible();
+  const textPresentationButton = textRow.getByRole("button", {
+    name: "Edit Text presentation fields",
+  });
+  await textPresentationButton.click();
+  await expect(textRow.locator(".editor-layout-row-node-fields")).toBeVisible();
+  await expect(textPresentationButton).toHaveAttribute("aria-expanded", "true");
+  await expect(
+    textRow.getByRole("button", { name: "Use compact form" }),
+  ).toHaveCount(0);
+  const childTable = builder.locator(".editor-layout-table");
+  await expect(childTable).toHaveCSS("overflow-y", "visible");
+  const childTableDimensions = await childTable.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+  }));
+  expect(childTableDimensions.scrollHeight).toBe(
+    childTableDimensions.clientHeight,
+  );
+  const structuredScroll = editor.locator(".editor-structured-scroll");
+  await expect(structuredScroll).toHaveCSS("overflow-y", "auto");
+  const structuredDimensions = await structuredScroll.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+  }));
+  expect(structuredDimensions.scrollHeight).toBeGreaterThan(
+    structuredDimensions.clientHeight,
+  );
+  await textRow.scrollIntoViewIfNeeded();
+  await attachProductionState(
+    testInfo,
+    "editor-layout-child-presentation-expanded-production",
+    editor,
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-layout-child-presentation-expanded-full-production",
+    textRow,
+  );
+  await textPresentationButton.click();
+  await expect(textRow.locator(".editor-layout-row-node-fields")).toHaveCount(
+    0,
+  );
+  await expect(textPresentationButton).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await textRow.scrollIntoViewIfNeeded();
+  await attachProductionState(
+    testInfo,
+    "editor-layout-child-presentation-collapsed-production",
+    editor,
+  );
+  await textRow.getByRole("button", { name: "Move Text up" }).click();
+  const reorderedSource = await sourceText();
+  expect(reorderedSource.indexOf("text: introduction")).toBeLessThan(
+    reorderedSource.indexOf("grid"),
+  );
+
+  await textRow
+    .getByRole("button", { name: "Move Text to another container" })
+    .click();
+  const moveSelect = textRow.getByLabel("Move to container");
+  const gridDestination = await moveSelect
+    .locator("option")
+    .filter({ hasText: "grid" })
+    .getAttribute("value");
+  await moveSelect.selectOption(gridDestination!);
+  await textRow.getByRole("button", { name: "Move", exact: true }).click();
+  await expect(builder.locator('[data-layout-node-kind="text"]')).toHaveCount(
+    0,
+  );
+  await builder
+    .locator('[data-layout-node-kind="grid"]')
+    .getByRole("button", { name: /Open .*grid.* container/ })
+    .click();
+  await expect(builder.locator('[data-layout-node-kind="text"]')).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-layout-cross-container-move-production",
+    editor,
+  );
+
+  await builder.getByRole("button", { name: "stack[1]", exact: true }).click();
+  await builder
+    .locator('[data-layout-node-kind="grid"]')
+    .getByRole("button", { name: "Remove Grid" })
+    .click();
+  await expect(builder.locator('[data-layout-node-kind="grid"]')).toHaveCount(
+    0,
+  );
+  await expect(builder.locator('[data-layout-node-kind="text"]')).toBeVisible();
+  const promotedSource = await sourceText();
+  expect(promotedSource).not.toContain("grid\n");
+  expect(promotedSource).toContain("    text: introduction");
+  await attachProductionState(
+    testInfo,
+    "editor-layout-container-removal-promotes-children-production",
+    editor,
+  );
+
+  const promotedTextTarget = builder
+    .locator('[data-layout-node-kind="text"]')
+    .getByLabel("Text target");
+  await promotedTextTarget.fill("Not A Handle!");
+  await promotedTextTarget.press("Tab");
+  await expect(promotedTextTarget).toHaveAttribute("aria-invalid", "true");
+  await expect(builder.locator('[data-layout-node-kind="text"]')).toContainText(
+    "legal handle reference",
+  );
+  await builder
+    .locator('[data-layout-node-kind="text"]')
+    .evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await attachProductionState(
+    testInfo,
+    "editor-layout-invalid-target-inline-diagnostic-production",
+    editor,
+  );
+  await promotedTextTarget.fill("introduction");
+  await promotedTextTarget.press("Tab");
+  await expect(editor.getByRole("button", { name: "0 errors" })).toBeVisible();
+
+  await chooseNewNode("choice");
+  await addRow.getByLabel("Target").fill("new_choice");
+  await addRow.getByRole("button", { name: "Add child" }).click();
+  await chooseNewNode("expand");
+  await addRow.getByRole("button", { name: "Add child" }).click();
+  await expect(
+    builder.locator('[data-layout-node-kind="choice"]'),
+  ).toBeVisible();
+  await expect(
+    builder.locator('[data-layout-node-kind="expand"]'),
+  ).toBeVisible();
+  await expect(
+    builder.locator(".editor-field-diagnostics .is-error"),
+  ).toHaveCount(0);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-complete-section-capabilities-production",
+    editor,
+  );
+});
+
+test("Source-authored choice and trait layouts remain completely editable in Structured", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const editor = await openCreatedEditor(page);
+  const replaceSelectedSource = async (source: string, handle: string) => {
+    await editor.getByRole("tab", { name: "Source" }).click();
+    const sourceEditor = editor.getByLabel("layout.jdef source");
+    await sourceEditor.press(
+      process.platform === "darwin" ? "Meta+a" : "Control+a",
+    );
+    await page.keyboard.insertText(source);
+    await editor.getByRole("tab", { name: "Structured" }).click();
+    await editor
+      .locator(".editor-outline-scroll")
+      .getByRole("button", { name: new RegExp(`^${handle}`) })
+      .click();
+  };
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice layout" }).click();
+  await replaceSelectedSource(
+    `choice-layout
+  handle: complete_choice_card
+
+  grid
+    columns: 3
+    gap: sm
+    slot: name
+    slot: cost
+    slot: control
+    slot: roll
+    slot: tags
+    input: quantity
+    text: description
+
+    image
+      target: portrait
+      width: xl
+      height: lg
+      fit: cover
+
+    rule
+`,
+    "complete_choice_card",
+  );
+
+  const builder = editor.locator(".editor-layout-builder");
+  const newNodeType = builder.getByLabel("New node type");
+  await expect(newNodeType.locator('option[value="input"]')).toHaveCount(1);
+  await expect(newNodeType.locator('option[value="choice"]')).toHaveCount(0);
+  await expect(newNodeType.locator('option[value="expand"]')).toHaveCount(0);
+  await expect(builder.locator('[data-layout-node-kind="slot"]')).toHaveCount(
+    5,
+  );
+  await expect(builder.locator('[data-layout-node-kind="input"]')).toHaveCount(
+    1,
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-layout-complete-choice-production",
+    editor,
+  );
+  const imageRow = builder.locator('[data-layout-node-kind="image"]');
+  await imageRow
+    .getByRole("button", { name: "Edit Image presentation fields" })
+    .click();
+  await expect(imageRow.getByLabel("width", { exact: true })).toHaveValue("xl");
+  await expect(imageRow.getByLabel("height", { exact: true })).toHaveValue(
+    "lg",
+  );
+  await imageRow.getByLabel("size", { exact: true }).selectOption("md");
+  await expect(imageRow.getByLabel("width", { exact: true })).toHaveValue("");
+  await expect(imageRow.getByLabel("height", { exact: true })).toHaveValue("");
+  await attachProductionState(
+    testInfo,
+    "editor-layout-choice-image-presentation-production",
+    editor,
+  );
+  const imagePresentationButton = imageRow.getByRole("button", {
+    name: "Edit Image presentation fields",
+  });
+  await imagePresentationButton.click();
+  await expect(imageRow.locator(".editor-layout-row-node-fields")).toHaveCount(
+    0,
+  );
+  await expect(imagePresentationButton).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await expect(
+    imageRow.getByRole("button", { name: "Use compact form" }),
+  ).toHaveCount(0);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-choice-image-presentation-collapsed-production",
+    editor,
+  );
+  await imagePresentationButton.click();
+  await expect(imageRow.getByLabel("size", { exact: true })).toHaveValue("md");
+  await imagePresentationButton.click();
+  await expect(imageRow.locator(".editor-layout-row-node-fields")).toHaveCount(
+    0,
+  );
+
+  await builder.getByLabel("Flow").selectOption("stack");
+  await expect(builder.getByLabel("columns", { exact: true })).toHaveCount(0);
+  await expect(editor.getByRole("button", { name: "0 errors" })).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-layout-source-authored-edited-structured-production",
+    editor,
+  );
+
+  await replaceSelectedSource(
+    `choice-layout
+  handle: complete_choice_card
+
+  stack
+    handle: obsolete_container_id
+    slot: name
+`,
+    "complete_choice_card",
+  );
+  await expect(builder.locator(".editor-layout-invalid-fields")).toContainText(
+    "Unknown field “handle” on stack.",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-layout-needs-attention-production",
+    editor,
+  );
+  await builder
+    .locator(".editor-layout-invalid-fields")
+    .getByRole("button", { name: "Remove invalid field" })
+    .click();
+  await expect(builder.locator(".editor-layout-invalid-fields")).toHaveCount(0);
+  await expect(editor.getByRole("button", { name: "0 errors" })).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-layout-needs-attention-repaired-production",
+    editor,
+  );
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Trait layout" }).click();
+  await replaceSelectedSource(
+    `trait-layout
+  handle: complete_trait_card
+
+  wrap
+    gap: sm
+    slot: name
+    text: description
+    image: portrait
+    rule
+`,
+    "complete_trait_card",
+  );
+  await expect(newNodeType.locator('option[value="input"]')).toHaveCount(0);
+  await expect(newNodeType.locator('option[value="choice"]')).toHaveCount(0);
+  await expect(newNodeType.locator('option[value="expand"]')).toHaveCount(0);
+  await expect(builder.locator('[data-layout-node-kind="slot"]')).toHaveCount(
+    1,
+  );
+  await expect(builder.locator('[data-layout-node-kind="text"]')).toHaveCount(
+    1,
+  );
+  await expect(builder.locator('[data-layout-node-kind="image"]')).toHaveCount(
+    1,
+  );
+  await expect(builder.locator('[data-layout-node-kind="rule"]')).toHaveCount(
+    1,
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-layout-complete-trait-production",
+    editor,
+  );
+});
+
+test("layout declarations preview representative content without a valid package fallback", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const editor = await openCreatedEditor(page);
+  const preview = editor.locator(".editor-real-preview");
+  const replaceSelectedSource = async (source: string) => {
+    await editor.getByRole("tab", { name: "Source" }).click();
+    const sourceEditor = editor.getByLabel(/source$/);
+    await sourceEditor.press(
+      process.platform === "darwin" ? "Meta+a" : "Control+a",
+    );
+    await page.keyboard.insertText(source);
+    await expect(editor.locator(".editor-preview-toolbar small")).toHaveText(
+      "Layout preview",
+    );
+    await expect(editor.locator(".editor-source-status")).toContainText(
+      "Layout preview uses representative content",
+    );
+    await expect(preview.locator(".format-one-jump-renderer")).toHaveCount(0);
+  };
+  const addLayout = async (name: string) => {
+    await editor.getByRole("button", { name: "Add", exact: true }).click();
+    await editor.getByRole("button", { name, exact: true }).click();
+  };
+
+  await addLayout("Choice layout");
+  await replaceSelectedSource(`choice-layout
+  handle: new_choice_layout
+
+  stack
+    gap: sm
+    slot: name
+    slot: cost
+    slot: tags
+    text: description
+    image
+      target: hero
+      size: sm
+      fit: cover
+    input: notes
+    slot: control
+    slot: roll
+`);
+  await expect(preview).toContainText("Example choice 1");
+  await expect(preview).toContainText("100 CP");
+  await expect(preview).toContainText("example");
+  await expect(preview).toContainText("Example content for “description”.");
+  await expect(preview.getByAltText("Example image for hero")).toBeVisible();
+  await expect(preview.getByRole("textbox")).toBeVisible();
+  await expect(preview.getByRole("button", { name: "Roll" })).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-choice-layout-dummy-preview-production",
+    editor,
+  );
+
+  await addLayout("Section layout");
+  await replaceSelectedSource(`choice-layout
+  handle: new_choice_layout
+
+  stack
+    gap: sm
+    slot: name
+    slot: cost
+    text: description
+    image
+      target: hero
+      size: sm
+    slot: control
+
+section-layout
+  handle: new_section_layout
+
+  stack
+    gap: md
+    slot: name
+    slot: roll
+    text: introduction
+    image
+      target: banner
+      size: md
+      fit: cover
+    expand
+      source: main
+      using: new_choice_layout
+    choice: featured
+`);
+  await expect(preview).toContainText("Example section");
+  await expect(preview).toContainText("Example content for “introduction”.");
+  await expect(preview.getByAltText("Example image for banner")).toBeVisible();
+  await expect(preview).toContainText("Example choice 1");
+  await expect(preview).toContainText("Example choice 2");
+  await expect(preview).toContainText("Example direct choice 1");
+  await expect(
+    preview.locator(".source-roll-controls").getByRole("button", {
+      name: "Roll",
+    }),
+  ).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-section-layout-dummy-preview-production",
+    editor,
+  );
+  await preview
+    .getByText("Example direct choice 1", { exact: true })
+    .scrollIntoViewIfNeeded();
+  await attachProductionState(
+    testInfo,
+    "editor-section-layout-direct-choice-preview-production",
+    editor,
+  );
+
+  await addLayout("Trait layout");
+  await replaceSelectedSource(`trait-layout
+  handle: new_trait_layout
+
+  stack
+    gap: sm
+    slot: name
+    text: details
+    image
+      target: icon
+      size: sm
+`);
+  await expect(preview).toContainText("Example trait");
+  await expect(preview).toContainText("Example content for “details”.");
+  const traitImage = preview.getByAltText("Example image for icon");
+  await expect(traitImage).toBeVisible();
+  await expect(traitImage).toHaveCSS("width", "48px");
+  await expect(traitImage).toHaveCSS("height", "48px");
+  await attachProductionState(
+    testInfo,
+    "editor-trait-layout-dummy-preview-production",
     editor,
   );
 });

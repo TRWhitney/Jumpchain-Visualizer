@@ -1,9 +1,10 @@
 section-layout
   handle: choice_section
 
-  stack
-    handle: root
+  grid
+    columns: 2
     gap: md
+    padding: sm
     slot: name
     text: description
     choice: gender_field
@@ -17,11 +18,10 @@ choice-layout
   handle: choice_card
 
   stack
-    handle: root
     gap: sm
+    padding: xs
 
     inline
-      handle: heading
       justify: between
       slot: name
       slot: cost

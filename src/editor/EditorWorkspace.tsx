@@ -43,6 +43,25 @@ import {
   structuredContext,
 } from "./documentEditor";
 import {
+  collapseLayoutLeaf,
+  convertLayoutNode,
+  createLayoutEditorTree,
+  expandLayoutLeaf,
+  insertLayoutChild,
+  insertLayoutRoot,
+  layoutAllowedNodeKinds,
+  layoutNodeIsContainer,
+  layoutRootKinds,
+  layoutSlotTargets,
+  moveLayoutNode,
+  removeLayoutNode,
+  reorderLayoutNode,
+  setLayoutNodeTarget,
+  type LayoutEditResult,
+  type LayoutEditorNode,
+  type LayoutNodeRef,
+} from "./layoutEditor";
+import {
   SourceCodeEditor,
   type SourceCodeEditorHandle,
   type SourceSearchStatus,
@@ -90,6 +109,10 @@ function symbolLabel(symbol: FormatSymbol) {
   return symbol.name || symbol.handle || symbol.kind.replaceAll("-", " ");
 }
 
+function explorerSymbolLabel(symbol: FormatSymbol) {
+  return symbol.handle || symbol.kind.replaceAll("-", " ");
+}
+
 function sourceLine(source: string, offset: number) {
   return source.slice(0, offset).split("\n").length;
 }
@@ -105,88 +128,13 @@ function editableSnippetSelection(snippet: string) {
     : { from: valueFrom, to: valueFrom + rawValue.length };
 }
 
-type LayoutMove = "up" | "down" | "in" | "out" | "remove";
-
-function mutateLayoutNode(source: string, lineIndex: number, move: LayoutMove) {
-  const lines = source.split("\n");
-  const line = lines[lineIndex];
-  if (line === undefined) return source;
-  const indent = line.search(/\S/);
-  let blockEnd = lineIndex + 1;
-  while (
-    blockEnd < lines.length &&
-    (!lines[blockEnd].trim() || lines[blockEnd].search(/\S/) > indent)
-  )
-    blockEnd += 1;
-  const block = lines.slice(lineIndex, blockEnd);
-  if (move === "remove") lines.splice(lineIndex, block.length);
-  else if (move === "in" || move === "out") {
-    if (move === "out" && indent < 2) return source;
-    const prefix = move === "in" ? "  " : "";
-    const adjusted = block.map((item) =>
-      move === "in"
-        ? prefix + item
-        : item.startsWith("  ")
-          ? item.slice(2)
-          : item,
-    );
-    lines.splice(lineIndex, block.length, ...adjusted);
-  } else {
-    const direction = move === "up" ? -1 : 1;
-    let siblingStart = move === "up" ? lineIndex - 1 : blockEnd;
-    while (
-      siblingStart >= 0 &&
-      siblingStart < lines.length &&
-      (!lines[siblingStart].trim() || lines[siblingStart].search(/\S/) > indent)
-    )
-      siblingStart += direction;
-    if (
-      siblingStart < 0 ||
-      siblingStart >= lines.length ||
-      lines[siblingStart].search(/\S/) !== indent
-    )
-      return source;
-    if (move === "up") {
-      let previousStart = siblingStart;
-      while (
-        previousStart > 0 &&
-        (!lines[previousStart - 1].trim() ||
-          lines[previousStart - 1].search(/\S/) > indent)
-      )
-        previousStart -= 1;
-      const previous = lines.slice(previousStart, lineIndex);
-      lines.splice(
-        previousStart,
-        block.length + previous.length,
-        ...block,
-        ...previous,
-      );
-    } else {
-      let siblingEnd = siblingStart + 1;
-      while (
-        siblingEnd < lines.length &&
-        (!lines[siblingEnd].trim() || lines[siblingEnd].search(/\S/) > indent)
-      )
-        siblingEnd += 1;
-      const sibling = lines.slice(siblingStart, siblingEnd);
-      lines.splice(
-        lineIndex,
-        block.length + sibling.length,
-        ...sibling,
-        ...block,
-      );
-    }
-  }
-  return lines.join("\n");
-}
-
 const addTemplates = {
   resource: `\nresource\n  handle: new_resource\n  name: "New Resource"\n  abbreviation: "NR"\n  initial: 0\n`,
   section: `\nsection\n  handle: new_section\n  name: "New Section"\n`,
   choice: `\nchoice\n  handle: new_choice\n  name: "New Choice"\n  selection: toggle\n`,
-  "section layout": `\nsection-layout\n  handle: new_section_layout\n  name: "New Section Layout"\n\n  stack\n    handle: root\n    gap: md\n\n    slot: name\n`,
-  "choice layout": `\nchoice-layout\n  handle: new_choice_layout\n  name: "New Choice Layout"\n\n  stack\n    handle: root\n    gap: sm\n\n    slot: name\n    slot: control\n`,
-  "trait layout": `\ntrait-layout\n  handle: new_trait_layout\n  name: "New Trait Layout"\n\n  stack\n    handle: root\n    gap: sm\n\n    slot: name\n`,
+  "section layout": `\nsection-layout\n  handle: new_section_layout\n\n  stack\n    gap: md\n\n    slot: name\n`,
+  "choice layout": `\nchoice-layout\n  handle: new_choice_layout\n\n  stack\n    gap: sm\n\n    slot: name\n    slot: control\n`,
+  "trait layout": `\ntrait-layout\n  handle: new_trait_layout\n\n  stack\n    gap: sm\n\n    slot: name\n`,
   theme: `\ntheme\n  handle: new_theme\n  name: "New Theme"\n  color: "#68707c"\n`,
 } as const;
 
@@ -382,11 +330,29 @@ export function EditorWorkspace({
     : recoveredValid
       ? recoveredAnalysis.packageItem
       : lastValid;
-  const previewStatus = currentValid
-    ? "Current source"
-    : recoveredValid
-      ? "Safely recovered preview"
-      : "Last valid preview";
+  const layoutPackageItem =
+    selected.kind === "layout"
+      ? [analysis.packageItem, recoveredAnalysis.packageItem, lastValid].find(
+          (packageItem) =>
+            packageItem.layouts.some(
+              (layout) => layout.handle === selected.handle,
+            ),
+        )
+      : undefined;
+  const previewStatus = layoutPackageItem
+    ? translate("ui.editorWorkspace.previewStatus.layoutPreview")
+    : currentValid
+      ? translate("ui.editorWorkspace.previewStatus.currentSource")
+      : recoveredValid
+        ? translate("ui.editorWorkspace.previewStatus.safelyRecovered")
+        : translate("ui.editorWorkspace.previewStatus.lastValid");
+  const sourceStatus = layoutPackageItem
+    ? translate("ui.editorWorkspace.previewStatus.layoutUsesRepresentativeData")
+    : currentValid
+      ? translate("ui.editorWorkspace.previewStatus.sourceValid")
+      : recoveredValid
+        ? translate("ui.editorWorkspace.previewStatus.sourceRecovered")
+        : translate("ui.editorWorkspace.previewStatus.sourceLastValid");
   const summary = summarizeWorkspace(workspace);
   const filteredDiagnostics = analysis.diagnostics.filter(
     (diagnostic) => diagnosticFilters[diagnostic.severity],
@@ -876,10 +842,10 @@ export function EditorWorkspace({
                         }
                         type="button"
                         key={`${symbol.file}:${symbol.from}`}
-                        title={symbolLabel(symbol)}
+                        title={explorerSymbolLabel(symbol)}
                         onClick={() => openSymbol(symbol)}
                       >
-                        <span>{symbolLabel(symbol)}</span>
+                        <span>{explorerSymbolLabel(symbol)}</span>
                         {symbol.kind.includes("layout") && (
                           <small>{symbol.kind.replace("-layout", "")}</small>
                         )}
@@ -927,7 +893,7 @@ export function EditorWorkspace({
                           key={`nested:${symbol.file}:${symbol.from}`}
                           onClick={() => openSymbol(symbol)}
                         >
-                          <span>{symbolLabel(symbol)}</span>
+                          <span>{explorerSymbolLabel(symbol)}</span>
                           <small>{symbol.kind}</small>
                         </button>
                       ))}
@@ -1082,21 +1048,15 @@ export function EditorWorkspace({
                     ) ?? symbol,
                 );
               }}
-              onUpdateNested={(symbol, field, value, occurrence = 0) => {
-                const result = setDocumentField(
-                  workspace.files,
-                  symbol,
-                  field,
-                  value,
-                  occurrence,
-                );
+              onLayoutEdit={(result, announcement, continuous = false) => {
                 if (!result.changed) return;
                 commitFiles(
                   result.files,
-                  true,
+                  continuous,
                   false,
-                  `field:${symbol.file}:${symbol.from}:${field}:${occurrence}`,
+                  continuous ? "layout-field" : "continuous",
                 );
+                if (announcement) setStructuredAnnouncement(announcement);
               }}
               onAddField={(symbol, field) => {
                 const result = addDocumentField(workspace.files, symbol, field);
@@ -1489,7 +1449,11 @@ export function EditorWorkspace({
                             ? "handle: new_placement\ntarget: choice_handle"
                             : kind === "choice-source"
                               ? "handle: new_source\nmode: multi"
-                              : `handle: new_${kind.replaceAll("-", "_")}`;
+                              : ["stack", "inline", "wrap"].includes(kind)
+                                ? "gap: md"
+                                : kind === "grid"
+                                  ? "columns: 2"
+                                  : `handle: new_${kind.replaceAll("-", "_")}`;
                     const snippet = `\n${indentation}${kind}\n${childBody
                       .split("\n")
                       .map((line) => `${indentation}  ${line}`)
@@ -1595,16 +1559,11 @@ export function EditorWorkspace({
             <div
               className={`editor-source-status ${currentValid ? "is-valid" : "is-recovered"}`}
             >
-              <span>
-                {currentValid
-                  ? "Source parses without errors."
-                  : recoveredValid
-                    ? "Preview recovered a deterministic incomplete field. Source is unchanged."
-                    : "Preview retains the last valid package."}
-              </span>
+              <span>{sourceStatus}</span>
               <strong>
-                {translate("ui.editorWorkspace.text.preview")}
-                {previewStatus.toLocaleLowerCase()}
+                {translate("ui.editorWorkspace.previewStatus.label", {
+                  status: previewStatus,
+                })}
               </strong>
             </div>
           </div>
@@ -1668,6 +1627,7 @@ export function EditorWorkspace({
             <div className="editor-preview-scroll">
               <JumpPreview
                 packageItem={previewPackage}
+                layoutPackageItem={layoutPackageItem}
                 assets={workspace.assets}
                 selection={selected}
                 showBounds={showBounds}
@@ -1860,6 +1820,8 @@ function LayoutNodeFields({
   symbol,
   onEndFieldEdit,
   onUpdate,
+  fields,
+  showHeading = true,
 }: {
   assets: readonly string[];
   diagnostics: readonly PackageDiagnostic[];
@@ -1872,18 +1834,25 @@ function LayoutNodeFields({
     value: string,
     occurrence?: number,
   ) => void;
+  fields?: readonly string[];
+  showHeading?: boolean;
 }) {
   const context = structuredContext(files, symbol);
   if (!context) return null;
   const symbols = service.analyze(files).symbols;
+  const visibleFields = fields
+    ? context.visibleFields.filter((field) => fields.includes(field))
+    : context.visibleFields;
   return (
     <div className="editor-form-grid editor-layout-node-fields">
-      <strong>
-        {translate("ui.editorWorkspace.text.editLayoutNode", {
-          node: symbol.kind,
-        })}
-      </strong>
-      {context.visibleFields.map((fieldName) => {
+      {showHeading && (
+        <strong>
+          {translate("ui.editorWorkspace.text.editLayoutNode", {
+            node: symbol.kind,
+          })}
+        </strong>
+      )}
+      {visibleFields.map((fieldName) => {
         const definition = context.fields[fieldName];
         const value = readSourceField(files[symbol.file], symbol, fieldName);
         const options = fieldValues(definition);
@@ -1902,7 +1871,7 @@ function LayoutNodeFields({
             ? symbols
                 .filter((candidate) => {
                   if (referenceKind === "owner-local-content")
-                    return ["text", "image", "input"].includes(candidate.kind);
+                    return candidate.kind === symbol.kind;
                   if (referenceKind === "choice-placement")
                     return candidate.kind === "choice" && candidate.depth > 0;
                   return candidate.kind === referenceKind;
@@ -1927,6 +1896,9 @@ function LayoutNodeFields({
             diagnostic.target.field === fieldName,
         );
         const listId = `layout-${symbol.from}-${fieldName}`;
+        const fieldLabel = translate(
+          `ui.editorWorkspace.layoutField.${fieldName}`,
+        );
         const common = {
           "aria-invalid": matchingDiagnostics.length ? true : undefined,
           "aria-describedby": matchingDiagnostics.length
@@ -1937,7 +1909,7 @@ function LayoutNodeFields({
           <div className="editor-schema-field" key={fieldName}>
             <div className="editor-field-occurrence">
               <span>
-                {fieldName.replaceAll("-", " ")}
+                {fieldLabel}
                 {definition.required && (
                   <small>{translate("ui.editorWorkspace.text.required")}</small>
                 )}
@@ -1952,7 +1924,7 @@ function LayoutNodeFields({
                 "textAlign",
               ].includes(definition.type ?? "") ? (
                 <select
-                  aria-label={fieldName}
+                  aria-label={fieldLabel}
                   value={value}
                   {...common}
                   onChange={(event) =>
@@ -1974,7 +1946,7 @@ function LayoutNodeFields({
                 </select>
               ) : (
                 <input
-                  aria-label={fieldName}
+                  aria-label={fieldLabel}
                   type={definition.type === "integer" ? "number" : "text"}
                   min={definition.minimum}
                   max={definition.maximum}
@@ -2014,6 +1986,1167 @@ function LayoutNodeFields({
         );
       })}
     </div>
+  );
+}
+
+function LayoutInvalidFields({
+  diagnostics,
+  files,
+  symbol,
+  onRemove,
+}: {
+  diagnostics: readonly PackageDiagnostic[];
+  files: Readonly<Record<string, string>>;
+  symbol: FormatSymbol;
+  onRemove: (field: string) => void;
+}) {
+  const context = structuredContext(files, symbol);
+  const invalidFields = context?.invalidAuthoredFields.filter(
+    (field) => !context.childKinds.includes(field),
+  );
+  if (!invalidFields?.length) return null;
+  return (
+    <section className="editor-layout-invalid-fields">
+      <strong>{translate("ui.editorWorkspace.text.needsAttention")}</strong>
+      <p>{translate("ui.editorWorkspace.text.fieldsInvalidInContext")}</p>
+      {invalidFields.map((field) => {
+        const matchingDiagnostics = diagnostics.filter(
+          (diagnostic) =>
+            diagnostic.target?.file === symbol.file &&
+            diagnostic.target.declarationFrom === symbol.from &&
+            diagnostic.target.field === field,
+        );
+        return (
+          <div key={field}>
+            <label>
+              <span>{field.replaceAll("-", " ")}</span>
+              <input
+                aria-invalid="true"
+                readOnly
+                value={readSourceField(files[symbol.file], symbol, field)}
+              />
+            </label>
+            {matchingDiagnostics.map((diagnostic, index) => (
+              <small
+                className={`is-${diagnostic.severity}`}
+                key={`${diagnostic.code}:${index}`}
+              >
+                {translateDiagnostic(diagnostic)}
+              </small>
+            ))}
+            <button type="button" onClick={() => onRemove(field)}>
+              {translate("ui.editorWorkspace.text.removeInvalidField")}
+            </button>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function diagnosticsForLayoutNode(
+  diagnostics: readonly PackageDiagnostic[],
+  node: LayoutEditorNode,
+) {
+  return diagnostics.filter((diagnostic) => {
+    if (diagnostic.range?.file !== node.file) return false;
+    if (!node.compact) return diagnostic.target?.declarationFrom === node.from;
+    const valueRange = node.sourceField?.valueRange;
+    return Boolean(
+      valueRange &&
+      diagnostic.range &&
+      diagnostic.range.from >= valueRange.from &&
+      diagnostic.range.to <= valueRange.to,
+    );
+  });
+}
+
+function LayoutNodeDiagnostics({
+  diagnostics,
+  id,
+}: {
+  diagnostics: readonly PackageDiagnostic[];
+  id: string;
+}) {
+  if (!diagnostics.length) return null;
+  return (
+    <span className="editor-layout-inline-diagnostics" id={id}>
+      {diagnostics.map((diagnostic, index) => (
+        <small
+          className={`is-${diagnostic.severity}`}
+          key={`${diagnostic.code}:${index}`}
+        >
+          {translateDiagnostic(diagnostic)}
+        </small>
+      ))}
+    </span>
+  );
+}
+
+function layoutNodeReference(node: LayoutEditorNode): LayoutNodeRef {
+  return {
+    file: node.file,
+    from: node.from,
+    kind: node.kind,
+    compact: node.compact,
+  };
+}
+
+function layoutNodeSymbol(
+  layout: FormatSymbol,
+  node: LayoutEditorNode,
+): FormatSymbol {
+  return {
+    kind: node.kind,
+    file: node.file,
+    from: node.from,
+    to: node.to,
+    depth: layout.depth + node.depth + 1,
+  };
+}
+
+type LayoutDropTarget = {
+  id: string;
+  placement: "before" | "inside" | "after";
+};
+
+function LayoutTreeEditor({
+  assets,
+  diagnostics,
+  files,
+  layout,
+  symbols,
+  onApply,
+  onEndFieldEdit,
+}: {
+  assets: readonly string[];
+  diagnostics: readonly PackageDiagnostic[];
+  files: Readonly<Record<string, string>>;
+  layout: FormatSymbol;
+  symbols: readonly FormatSymbol[];
+  onApply: (
+    result: LayoutEditResult,
+    announcement?: string,
+    continuous?: boolean,
+  ) => void;
+  onEndFieldEdit: () => void;
+}) {
+  const tree = createLayoutEditorTree(files, layout);
+  const [selectedContainer, setSelectedContainer] =
+    useState<LayoutNodeRef | null>(null);
+  const [editingNode, setEditingNode] = useState<LayoutNodeRef | null>(null);
+  const [movingNode, setMovingNode] = useState<LayoutNodeRef | null>(null);
+  const [moveDestination, setMoveDestination] = useState("");
+  const [newKind, setNewKind] = useState("slot");
+  const [newTarget, setNewTarget] = useState("");
+  const [newSource, setNewSource] = useState("");
+  const [newUsing, setNewUsing] = useState("");
+  const [draggedNode, setDraggedNode] = useState<LayoutNodeRef | null>(null);
+  const draggedNodeRef = useRef<LayoutNodeRef | null>(null);
+  const [dropTarget, setDropTarget] = useState<LayoutDropTarget | null>(null);
+  const dropTargetRef = useRef<LayoutDropTarget | null>(null);
+  const [containerPresentationOpen, setContainerPresentationOpen] =
+    useState(false);
+
+  if (!tree) return null;
+
+  const resolve = (reference: LayoutNodeRef | null) =>
+    reference
+      ? Object.values(tree.nodes).find(
+          (node) =>
+            node.file === reference.file &&
+            node.from === reference.from &&
+            node.kind === reference.kind &&
+            node.compact === reference.compact,
+        )
+      : undefined;
+  const root = tree.rootId ? tree.nodes[tree.rootId] : undefined;
+  const selected = resolve(selectedContainer) ?? root;
+  const selectedRef = selected ? layoutNodeReference(selected) : null;
+  const edited = resolve(editingNode);
+  const selectedDiagnostics = selected
+    ? diagnosticsForLayoutNode(diagnostics, selected).filter(
+        (diagnostic) => !diagnostic.target?.field,
+      )
+    : [];
+  const children = selected
+    ? selected.childIds.map((id) => tree.nodes[id]).filter(Boolean)
+    : [];
+  const allowedKinds = layoutAllowedNodeKinds(tree.layoutKind);
+  const leafKinds = allowedKinds.filter((kind) => !layoutNodeIsContainer(kind));
+  const rootKinds = layoutRootKinds(tree.layoutKind);
+  const slots = layoutSlotTargets(tree.layoutKind);
+  const referenceValues = (kind: string) =>
+    symbols
+      .filter((candidate) => {
+        if (kind === "choice")
+          return candidate.kind === "choice" && candidate.depth > 0;
+        return candidate.kind === kind;
+      })
+      .flatMap((candidate) => candidate.handle ?? []);
+  const targetValues = newKind === "slot" ? slots : referenceValues(newKind);
+  const targetRequired = ["slot", "text", "image", "input", "choice"].includes(
+    newKind,
+  );
+  const legalTarget =
+    !targetRequired ||
+    (newKind === "slot"
+      ? slots.includes(newTarget || slots[0])
+      : /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(newTarget));
+  const displayKind = (kind: string) =>
+    translate(`ui.editorWorkspace.declaration.${kind}`);
+  const announce = (key: string, node: string) =>
+    translate(`ui.editorWorkspace.announcement.${key}`, {
+      node: displayKind(node),
+    });
+  const apply = (
+    result: LayoutEditResult,
+    announcement: string,
+    select?: "container" | "node",
+  ) => {
+    if (!result.changed) return;
+    onApply(result, announcement);
+    if (result.target && select === "container")
+      setSelectedContainer(result.target);
+    if (result.target && select === "node") setEditingNode(result.target);
+  };
+  const updateLayoutField = (
+    nodeSymbol: FormatSymbol,
+    field: string,
+    value: string,
+    occurrence?: number,
+  ) => {
+    let result = setDocumentField(files, nodeSymbol, field, value, occurrence);
+    if (!result.changed) return;
+    const definition = structuredContext(files, nodeSymbol)?.fields[field];
+    if (value && definition?.exclusiveWith) {
+      for (const exclusiveField of definition.exclusiveWith) {
+        const removal = removeDocumentFields(
+          result.files,
+          nodeSymbol,
+          exclusiveField,
+        );
+        if (removal.changed) result = removal;
+      }
+    }
+    onApply(
+      { changed: true, files: result.files },
+      announce("layoutNodeUpdated", nodeSymbol.kind),
+      true,
+    );
+  };
+  const removeInvalidLayoutField = (
+    nodeSymbol: FormatSymbol,
+    field: string,
+  ) => {
+    const result = removeDocumentFields(files, nodeSymbol, field);
+    if (!result.changed) return;
+    onApply(
+      { changed: true, files: result.files },
+      translate("ui.editorWorkspace.announcement.invalidLayoutFieldRemoved", {
+        field,
+      }),
+    );
+  };
+  const ancestors: LayoutEditorNode[] = [];
+  let ancestor = selected;
+  while (ancestor) {
+    ancestors.unshift(ancestor);
+    ancestor = ancestor.parentId ? tree.nodes[ancestor.parentId] : undefined;
+  }
+  const destinationsForNode = (node: LayoutEditorNode) =>
+    tree.containerIds
+      .map((id) => tree.nodes[id])
+      .filter((candidate) => {
+        if (candidate.id === node.id || candidate.id === node.parentId)
+          return false;
+        let parent = candidate;
+        while (parent.parentId) {
+          if (parent.parentId === node.id) return false;
+          parent = tree.nodes[parent.parentId];
+        }
+        return true;
+      });
+  const moving = resolve(movingNode);
+  const moveDestinations = moving ? destinationsForNode(moving) : [];
+  const updateDraggedNode = (node: LayoutNodeRef | null) => {
+    draggedNodeRef.current = node;
+    setDraggedNode(node);
+  };
+  const updateDropTarget = (target: LayoutDropTarget | null) => {
+    dropTargetRef.current = target;
+    setDropTarget(target);
+  };
+
+  const reorderToDrop = (target: LayoutEditorNode, after: boolean) => {
+    const dragged = resolve(draggedNodeRef.current);
+    if (
+      !dragged ||
+      dragged.parentId !== target.parentId ||
+      dragged.id === target.id
+    )
+      return;
+    const withoutDragged = children.filter((node) => node.id !== dragged.id);
+    const targetIndex = withoutDragged.findIndex(
+      (node) => node.id === target.id,
+    );
+    const desiredIndex = targetIndex + (after ? 1 : 0);
+    let currentIndex = children.findIndex((node) => node.id === dragged.id);
+    let workingFiles: Readonly<Record<string, string>> = files;
+    let workingRef = layoutNodeReference(dragged);
+    let lastResult: LayoutEditResult | null = null;
+    while (currentIndex !== desiredIndex) {
+      const direction = currentIndex < desiredIndex ? "down" : "up";
+      lastResult = reorderLayoutNode(
+        workingFiles,
+        layout,
+        workingRef,
+        direction,
+      );
+      if (!lastResult.changed || !lastResult.target) break;
+      workingFiles = lastResult.files;
+      workingRef = lastResult.target;
+      currentIndex += direction === "down" ? 1 : -1;
+    }
+    if (lastResult?.changed)
+      onApply(lastResult, announce("layoutNodeReordered", dragged.kind));
+    updateDraggedNode(null);
+    updateDropTarget(null);
+  };
+  const moveToDropContainer = (destination: LayoutEditorNode) => {
+    const dragged = resolve(draggedNodeRef.current);
+    if (
+      !dragged ||
+      !destinationsForNode(dragged).some(
+        (candidate) => candidate.id === destination.id,
+      )
+    )
+      return;
+    apply(
+      moveLayoutNode(
+        files,
+        layout,
+        layoutNodeReference(dragged),
+        layoutNodeReference(destination),
+      ),
+      announce("layoutNodeMoved", dragged.kind),
+      dragged.container ? "container" : "node",
+    );
+    updateDraggedNode(null);
+    updateDropTarget(null);
+  };
+
+  return (
+    <section className="editor-form-card editor-layout-builder">
+      <div className="editor-layout-heading">
+        <strong>{translate("ui.editorWorkspace.text.layoutEditor")}</strong>
+        <span>
+          {translate("ui.editorWorkspace.text.layoutNodeCount", {
+            count: Object.keys(tree.nodes).length,
+          })}
+        </span>
+      </div>
+      {!root ? (
+        <div className="editor-layout-root-create">
+          <p>{translate("ui.editorWorkspace.text.layoutNeedsRoot")}</p>
+          <label>
+            <span>{translate("ui.editorWorkspace.text.containerFlow")}</span>
+            <select
+              value={rootKinds.includes(newKind) ? newKind : rootKinds[0]}
+              onChange={(event) => setNewKind(event.target.value)}
+            >
+              {rootKinds.map((kind) => (
+                <option key={kind} value={kind}>
+                  {displayKind(kind)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() =>
+              apply(
+                insertLayoutRoot(
+                  files,
+                  layout,
+                  rootKinds.includes(newKind) ? newKind : rootKinds[0],
+                ),
+                announce(
+                  "layoutNodeAdded",
+                  rootKinds.includes(newKind) ? newKind : rootKinds[0],
+                ),
+                "container",
+              )
+            }
+          >
+            {translate("ui.editorWorkspace.text.createRootContainer")}
+          </button>
+        </div>
+      ) : (
+        <>
+          {!tree.structurallySafe && (
+            <p className="editor-layout-unsafe" role="alert">
+              {translate("ui.editorWorkspace.text.layoutStructureUnsafe")}
+            </p>
+          )}
+          <div className="editor-layout-level-navigation">
+            <label>
+              <span>
+                {translate("ui.editorWorkspace.text.editingContainer")}
+              </span>
+              <select
+                value={selected?.id}
+                onChange={(event) => {
+                  const next = tree.nodes[event.target.value];
+                  if (next) setSelectedContainer(layoutNodeReference(next));
+                }}
+              >
+                {tree.containerIds.map((id) => (
+                  <option key={id} value={id}>
+                    {tree.nodes[id].path}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <nav
+              className="editor-layout-breadcrumb"
+              aria-label={translate(
+                "ui.editorWorkspace.ariaLabel.layoutContainerBreadcrumbs",
+              )}
+            >
+              {ancestors.map((node, index) => (
+                <span key={node.id}>
+                  {index > 0 && <i aria-hidden="true">›</i>}
+                  <button
+                    type="button"
+                    aria-current={node.id === selected?.id ? "page" : undefined}
+                    onClick={() =>
+                      setSelectedContainer(layoutNodeReference(node))
+                    }
+                  >
+                    {node.kind}[{node.path.match(/\[(\d+)\]$/)?.[1] ?? "1"}]
+                  </button>
+                </span>
+              ))}
+            </nav>
+          </div>
+          {selected && (
+            <div className="editor-layout-selected-editor">
+              <label>
+                <span>{translate("ui.editorWorkspace.text.path")}</span>
+                <span className="editor-layout-static-control">
+                  {selected.path}
+                </span>
+              </label>
+              <label>
+                <span>
+                  {translate("ui.editorWorkspace.text.containerFlow")}
+                </span>
+                <select
+                  value={selected.kind}
+                  disabled={!tree.structurallySafe}
+                  onChange={(event) =>
+                    apply(
+                      convertLayoutNode(
+                        files,
+                        layout,
+                        layoutNodeReference(selected),
+                        event.target.value,
+                      ),
+                      announce("layoutNodeConverted", event.target.value),
+                      "container",
+                    )
+                  }
+                >
+                  {allowedKinds.filter(layoutNodeIsContainer).map((kind) => (
+                    <option key={kind} value={kind}>
+                      {displayKind(kind)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <LayoutNodeFields
+                assets={assets}
+                diagnostics={diagnostics}
+                files={files}
+                symbol={layoutNodeSymbol(layout, selected)}
+                onEndFieldEdit={onEndFieldEdit}
+                onUpdate={updateLayoutField}
+                fields={["columns", "gap"]}
+                showHeading={false}
+              />
+              <button
+                type="button"
+                className="editor-layout-presentation-button"
+                aria-expanded={containerPresentationOpen}
+                aria-label={translate(
+                  "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
+                  { node: displayKind(selected.kind) },
+                )}
+                title={translate(
+                  "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
+                  { node: displayKind(selected.kind) },
+                )}
+                onClick={() =>
+                  setContainerPresentationOpen((current) => !current)
+                }
+              >
+                ◫
+              </button>
+              {containerPresentationOpen && (
+                <div className="editor-layout-container-presentation">
+                  <LayoutNodeFields
+                    assets={assets}
+                    diagnostics={diagnostics}
+                    files={files}
+                    symbol={layoutNodeSymbol(layout, selected)}
+                    onEndFieldEdit={onEndFieldEdit}
+                    onUpdate={updateLayoutField}
+                    fields={[
+                      "padding",
+                      "background",
+                      "align",
+                      "justify",
+                      "text-align",
+                      "text-size",
+                      "text-color",
+                    ]}
+                    showHeading={false}
+                  />
+                </div>
+              )}
+              <LayoutInvalidFields
+                diagnostics={diagnostics}
+                files={files}
+                symbol={layoutNodeSymbol(layout, selected)}
+                onRemove={(field) =>
+                  removeInvalidLayoutField(
+                    layoutNodeSymbol(layout, selected),
+                    field,
+                  )
+                }
+              />
+              <LayoutNodeDiagnostics
+                diagnostics={selectedDiagnostics}
+                id={`layout-container-${selected.from}-diagnostics`}
+              />
+            </div>
+          )}
+          <div className="editor-layout-children-heading">
+            <strong>
+              {translate("ui.editorWorkspace.text.childrenOf", {
+                path: selected?.path ?? "",
+              })}
+            </strong>
+            <span>
+              {translate("ui.editorWorkspace.text.layoutItemCount", {
+                count: children.length,
+              })}
+            </span>
+          </div>
+          <div className="editor-layout-table">
+            {children.map((node, index) => {
+              const isMoving = moving?.id === node.id;
+              const movePanelId = `layout-move-${node.id.replaceAll(":", "-")}`;
+              const targetListId = `layout-target-${node.id.replaceAll(":", "-")}`;
+              const nodeReferenceValues = referenceValues(node.kind);
+              const nodeDiagnostics = diagnosticsForLayoutNode(
+                diagnostics,
+                node,
+              );
+              const nodeDiagnosticId = `layout-node-${node.from}-diagnostics`;
+              const diagnosticAttributes = nodeDiagnostics.length
+                ? {
+                    "aria-invalid": true as const,
+                    "aria-describedby": nodeDiagnosticId,
+                  }
+                : {};
+              const canCompact =
+                !node.compact &&
+                node.fieldNames.length === 1 &&
+                node.fieldNames[0] === "target";
+              return (
+                <div
+                  className={`editor-layout-row${
+                    draggedNode && resolve(draggedNode)?.id === node.id
+                      ? " dragging"
+                      : ""
+                  }${
+                    dropTarget?.id === node.id
+                      ? ` drop-${dropTarget.placement}`
+                      : ""
+                  }`}
+                  draggable={tree.structurallySafe}
+                  data-layout-node-kind={node.kind}
+                  data-layout-node-path={node.path}
+                  key={node.id}
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = "move";
+                    updateDraggedNode(layoutNodeReference(node));
+                  }}
+                  onDragEnd={() => {
+                    updateDraggedNode(null);
+                    updateDropTarget(null);
+                  }}
+                  onDragOver={(event) => {
+                    const dragged = resolve(draggedNodeRef.current);
+                    if (!dragged || dragged.id === node.id) {
+                      updateDropTarget(null);
+                      return;
+                    }
+                    const bounds = event.currentTarget.getBoundingClientRect();
+                    const position =
+                      (event.clientY - bounds.top) / bounds.height;
+                    const canMoveInside =
+                      node.container &&
+                      destinationsForNode(dragged).some(
+                        (candidate) => candidate.id === node.id,
+                      );
+                    const placement =
+                      canMoveInside && position >= 1 / 3 && position <= 2 / 3
+                        ? "inside"
+                        : dragged.parentId === node.parentId
+                          ? position > 0.5
+                            ? "after"
+                            : "before"
+                          : null;
+                    if (!placement) {
+                      updateDropTarget(null);
+                      return;
+                    }
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                    updateDropTarget({
+                      id: node.id,
+                      placement,
+                    });
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const currentDropTarget = dropTargetRef.current;
+                    if (
+                      currentDropTarget?.id === node.id &&
+                      currentDropTarget.placement === "inside"
+                    )
+                      moveToDropContainer(node);
+                    else
+                      reorderToDrop(
+                        node,
+                        currentDropTarget?.id === node.id &&
+                          currentDropTarget.placement === "after",
+                      );
+                  }}
+                >
+                  <span
+                    className="editor-layout-drag-handle"
+                    draggable={tree.structurallySafe}
+                    title={translate("ui.editorWorkspace.title.dragLayoutNode")}
+                    aria-hidden="true"
+                  >
+                    ⋮⋮
+                  </span>
+                  <label>
+                    <span>{translate("ui.editorWorkspace.text.nodeType")}</span>
+                    {node.container ? (
+                      <span className="editor-layout-static-control">
+                        {displayKind(node.kind)}
+                      </span>
+                    ) : (
+                      <select
+                        value={node.kind}
+                        disabled={!tree.structurallySafe}
+                        {...diagnosticAttributes}
+                        onChange={(event) =>
+                          apply(
+                            convertLayoutNode(
+                              files,
+                              layout,
+                              layoutNodeReference(node),
+                              event.target.value,
+                            ),
+                            announce("layoutNodeConverted", event.target.value),
+                          )
+                        }
+                      >
+                        {leafKinds.map((kind) => (
+                          <option key={kind} value={kind}>
+                            {displayKind(kind)}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </label>
+                  <label>
+                    <span>
+                      {node.kind === "expand"
+                        ? translate("ui.editorWorkspace.text.reference")
+                        : translate("ui.editorWorkspace.text.target")}
+                    </span>
+                    {node.container ? (
+                      <span className="editor-layout-static-control">
+                        {node.path}
+                      </span>
+                    ) : node.kind === "rule" ? (
+                      <span className="editor-layout-static-control">
+                        {translate("ui.editorWorkspace.text.notApplicable")}
+                      </span>
+                    ) : node.kind === "slot" ? (
+                      <select
+                        value={node.target ?? ""}
+                        disabled={!tree.structurallySafe}
+                        {...diagnosticAttributes}
+                        onChange={(event) =>
+                          apply(
+                            setLayoutNodeTarget(
+                              files,
+                              layout,
+                              layoutNodeReference(node),
+                              event.target.value,
+                            ),
+                            announce("layoutNodeUpdated", node.kind),
+                          )
+                        }
+                      >
+                        {slots.map((slot) => (
+                          <option key={slot} value={slot}>
+                            {slot}
+                          </option>
+                        ))}
+                      </select>
+                    ) : node.kind === "expand" ? (
+                      <div className="editor-layout-expand-controls">
+                        <input
+                          aria-label={translate(
+                            "ui.editorWorkspace.text.source",
+                          )}
+                          defaultValue={node.source ?? ""}
+                          list="layout-choice-sources"
+                          {...diagnosticAttributes}
+                          onBlur={(event) => {
+                            updateLayoutField(
+                              layoutNodeSymbol(layout, node),
+                              "source",
+                              event.target.value,
+                            );
+                            onEndFieldEdit();
+                          }}
+                        />
+                        <input
+                          aria-label={translate(
+                            "ui.editorWorkspace.text.using",
+                          )}
+                          defaultValue={node.using ?? ""}
+                          list="layout-choice-layouts"
+                          {...diagnosticAttributes}
+                          onBlur={(event) => {
+                            updateLayoutField(
+                              layoutNodeSymbol(layout, node),
+                              "using",
+                              event.target.value,
+                            );
+                            onEndFieldEdit();
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <input
+                        key={`${node.id}:${node.target}`}
+                        aria-label={translate(
+                          "ui.editorWorkspace.ariaLabel.layoutNodeTarget",
+                          { node: displayKind(node.kind) },
+                        )}
+                        defaultValue={node.target ?? ""}
+                        list={targetListId}
+                        {...diagnosticAttributes}
+                        onBlur={(event) =>
+                          apply(
+                            setLayoutNodeTarget(
+                              files,
+                              layout,
+                              layoutNodeReference(node),
+                              event.target.value,
+                            ),
+                            announce("layoutNodeUpdated", node.kind),
+                          )
+                        }
+                      />
+                    )}
+                    {nodeReferenceValues.length > 0 && (
+                      <datalist id={targetListId}>
+                        {nodeReferenceValues.map((value) => (
+                          <option key={value} value={value} />
+                        ))}
+                      </datalist>
+                    )}
+                  </label>
+                  <label>
+                    <span>
+                      {translate("ui.editorWorkspace.text.container")}
+                    </span>
+                    {node.container ? (
+                      <button
+                        type="button"
+                        className="editor-layout-open"
+                        aria-label={translate(
+                          "ui.editorWorkspace.ariaLabel.openLayoutContainer",
+                          { container: node.path },
+                        )}
+                        title={translate(
+                          "ui.editorWorkspace.ariaLabel.openLayoutContainer",
+                          { container: node.path },
+                        )}
+                        onClick={() =>
+                          setSelectedContainer(layoutNodeReference(node))
+                        }
+                      >
+                        {translate("ui.editorWorkspace.text.open")}
+                      </button>
+                    ) : (
+                      <span className="editor-layout-static-control">
+                        {selected?.path}
+                      </span>
+                    )}
+                  </label>
+                  <div className="editor-layout-row-actions">
+                    <button
+                      type="button"
+                      title={translate(
+                        "ui.editorWorkspace.ariaLabel.moveLayoutNodeToContainer",
+                        { node: displayKind(node.kind) },
+                      )}
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.moveLayoutNodeToContainer",
+                        { node: displayKind(node.kind) },
+                      )}
+                      aria-controls={movePanelId}
+                      aria-expanded={isMoving}
+                      disabled={
+                        !tree.structurallySafe ||
+                        destinationsForNode(node).length === 0
+                      }
+                      onClick={() => {
+                        if (isMoving) {
+                          setMovingNode(null);
+                          return;
+                        }
+                        setMovingNode(layoutNodeReference(node));
+                        const destination = destinationsForNode(node)[0];
+                        setMoveDestination(destination?.id ?? "");
+                      }}
+                    >
+                      {translate("ui.editorWorkspace.text.moveEllipsis")}
+                    </button>
+                    {!node.container && node.kind !== "rule" && (
+                      <button
+                        type="button"
+                        aria-label={translate(
+                          "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
+                          { node: displayKind(node.kind) },
+                        )}
+                        title={translate(
+                          "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
+                          { node: displayKind(node.kind) },
+                        )}
+                        aria-expanded={edited?.id === node.id && !node.compact}
+                        disabled={!tree.structurallySafe}
+                        onClick={() => {
+                          if (node.compact) {
+                            apply(
+                              expandLayoutLeaf(
+                                files,
+                                layout,
+                                layoutNodeReference(node),
+                              ),
+                              announce("layoutNodeExpanded", node.kind),
+                              "node",
+                            );
+                          } else if (edited?.id === node.id) {
+                            if (canCompact)
+                              apply(
+                                collapseLayoutLeaf(
+                                  files,
+                                  layout,
+                                  layoutNodeReference(node),
+                                ),
+                                announce("layoutNodeCollapsed", node.kind),
+                              );
+                            setEditingNode(null);
+                          } else {
+                            setEditingNode(layoutNodeReference(node));
+                          }
+                        }}
+                      >
+                        ◫
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.moveLayoutNodeUp",
+                        { node: displayKind(node.kind) },
+                      )}
+                      title={translate(
+                        "ui.editorWorkspace.ariaLabel.moveLayoutNodeUp",
+                        { node: displayKind(node.kind) },
+                      )}
+                      disabled={!tree.structurallySafe || index === 0}
+                      onClick={() =>
+                        apply(
+                          reorderLayoutNode(
+                            files,
+                            layout,
+                            layoutNodeReference(node),
+                            "up",
+                          ),
+                          announce("layoutNodeReordered", node.kind),
+                        )
+                      }
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.moveLayoutNodeDown",
+                        { node: displayKind(node.kind) },
+                      )}
+                      title={translate(
+                        "ui.editorWorkspace.ariaLabel.moveLayoutNodeDown",
+                        { node: displayKind(node.kind) },
+                      )}
+                      disabled={
+                        !tree.structurallySafe || index === children.length - 1
+                      }
+                      onClick={() =>
+                        apply(
+                          reorderLayoutNode(
+                            files,
+                            layout,
+                            layoutNodeReference(node),
+                            "down",
+                          ),
+                          announce("layoutNodeReordered", node.kind),
+                        )
+                      }
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.removeLayoutNode",
+                        { node: displayKind(node.kind) },
+                      )}
+                      title={translate(
+                        "ui.editorWorkspace.ariaLabel.removeLayoutNode",
+                        { node: displayKind(node.kind) },
+                      )}
+                      disabled={!tree.structurallySafe}
+                      onClick={() => {
+                        apply(
+                          removeLayoutNode(
+                            files,
+                            layout,
+                            layoutNodeReference(node),
+                          ),
+                          announce("layoutNodeRemoved", node.kind),
+                        );
+                        setEditingNode(null);
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <LayoutNodeDiagnostics
+                    diagnostics={nodeDiagnostics}
+                    id={nodeDiagnosticId}
+                  />
+                  {isMoving && (
+                    <div className="editor-layout-move-panel" id={movePanelId}>
+                      <label>
+                        <span>
+                          {translate("ui.editorWorkspace.text.moveToContainer")}
+                        </span>
+                        <select
+                          value={moveDestination}
+                          onChange={(event) =>
+                            setMoveDestination(event.target.value)
+                          }
+                        >
+                          {moveDestinations.map((destination) => (
+                            <option key={destination.id} value={destination.id}>
+                              {destination.path}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <button
+                        type="button"
+                        disabled={!moveDestination}
+                        onClick={() => {
+                          const destination = tree.nodes[moveDestination];
+                          if (destination)
+                            apply(
+                              moveLayoutNode(
+                                files,
+                                layout,
+                                layoutNodeReference(node),
+                                layoutNodeReference(destination),
+                              ),
+                              announce("layoutNodeMoved", node.kind),
+                              node.container ? "container" : "node",
+                            );
+                          setMovingNode(null);
+                        }}
+                      >
+                        {translate("ui.editorWorkspace.text.move")}
+                      </button>
+                    </div>
+                  )}
+                  {edited?.id === node.id && !node.compact && (
+                    <div className="editor-layout-row-node-fields">
+                      <LayoutNodeFields
+                        assets={assets}
+                        diagnostics={diagnostics}
+                        files={files}
+                        symbol={layoutNodeSymbol(layout, node)}
+                        onEndFieldEdit={onEndFieldEdit}
+                        onUpdate={updateLayoutField}
+                      />
+                      <LayoutInvalidFields
+                        diagnostics={diagnostics}
+                        files={files}
+                        symbol={layoutNodeSymbol(layout, node)}
+                        onRemove={(field) =>
+                          removeInvalidLayoutField(
+                            layoutNodeSymbol(layout, node),
+                            field,
+                          )
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {selectedRef && (
+            <div className="editor-layout-add-row">
+              <label>
+                <span>{translate("ui.editorWorkspace.text.newNodeType")}</span>
+                <select
+                  value={
+                    allowedKinds.includes(newKind) ? newKind : allowedKinds[0]
+                  }
+                  onChange={(event) => {
+                    setNewKind(event.target.value);
+                    setNewTarget(
+                      event.target.value === "slot" ? (slots[0] ?? "") : "",
+                    );
+                  }}
+                >
+                  {allowedKinds.map((kind) => (
+                    <option key={kind} value={kind}>
+                      {displayKind(kind)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {targetRequired && (
+                <label>
+                  <span>{translate("ui.editorWorkspace.text.target")}</span>
+                  {newKind === "slot" ? (
+                    <select
+                      value={newTarget || slots[0]}
+                      onChange={(event) => setNewTarget(event.target.value)}
+                    >
+                      {slots.map((slot) => (
+                        <option key={slot} value={slot}>
+                          {slot}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      value={newTarget}
+                      list="layout-new-targets"
+                      onChange={(event) => setNewTarget(event.target.value)}
+                    />
+                  )}
+                </label>
+              )}
+              {newKind === "expand" && (
+                <>
+                  <label>
+                    <span>{translate("ui.editorWorkspace.text.source")}</span>
+                    <input
+                      value={newSource}
+                      list="layout-choice-sources"
+                      onChange={(event) => setNewSource(event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span>{translate("ui.editorWorkspace.text.using")}</span>
+                    <input
+                      value={newUsing}
+                      list="layout-choice-layouts"
+                      onChange={(event) => setNewUsing(event.target.value)}
+                    />
+                  </label>
+                </>
+              )}
+              <button
+                type="button"
+                className="editor-layout-add"
+                disabled={!tree.structurallySafe || !legalTarget}
+                onClick={() => {
+                  const effectiveTarget =
+                    newKind === "slot" ? newTarget || slots[0] : newTarget;
+                  const result = insertLayoutChild(
+                    files,
+                    layout,
+                    selectedRef,
+                    newKind,
+                    {
+                      target: effectiveTarget,
+                      source: newSource || undefined,
+                      using: newUsing || undefined,
+                    },
+                  );
+                  apply(
+                    result,
+                    announce("layoutNodeAdded", newKind),
+                    layoutNodeIsContainer(newKind) ? "container" : undefined,
+                  );
+                  if (result.changed) {
+                    setNewTarget(newKind === "slot" ? (slots[0] ?? "") : "");
+                    setNewSource("");
+                    setNewUsing("");
+                  }
+                }}
+              >
+                {translate("ui.editorWorkspace.text.addChild")}
+              </button>
+              <datalist id="layout-new-targets">
+                {targetValues.map((value) => (
+                  <option key={value} value={value} />
+                ))}
+              </datalist>
+              <datalist id="layout-choice-sources">
+                {referenceValues("choice-source").map((value) => (
+                  <option key={value} value={value} />
+                ))}
+              </datalist>
+              <datalist id="layout-choice-layouts">
+                {referenceValues("choice-layout").map((value) => (
+                  <option key={value} value={value} />
+                ))}
+              </datalist>
+            </div>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 
@@ -2122,7 +3255,7 @@ function StructuredPanel({
   focusField,
   returnTarget,
   onUpdate,
-  onUpdateNested,
+  onLayoutEdit,
   onReplace,
   onOpenPackage,
   onOpenSymbol,
@@ -2148,11 +3281,10 @@ function StructuredPanel({
     value: string,
     occurrence?: number,
   ) => void;
-  onUpdateNested: (
-    symbol: FormatSymbol,
-    field: string,
-    value: string,
-    occurrence?: number,
+  onLayoutEdit: (
+    result: LayoutEditResult,
+    announcement?: string,
+    continuous?: boolean,
   ) => void;
   onReplace: (
     symbol: FormatSymbol,
@@ -2181,9 +3313,6 @@ function StructuredPanel({
     baseOccurrence?: number,
   ) => void;
 }) {
-  const [selectedLayoutLine, setSelectedLayoutLine] = useState<number | null>(
-    null,
-  );
   const source = symbol ? files[symbol.file].slice(symbol.from, symbol.to) : "";
   const field = (name: string) =>
     symbol ? readSourceField(files[symbol.file], symbol, name) : "";
@@ -2696,23 +3825,6 @@ function StructuredPanel({
       </div>
     );
   };
-  const layoutLines = source.split("\n");
-  const layoutLineOffsets = layoutLines.map((_, index) =>
-    layoutLines
-      .slice(0, index)
-      .reduce((total, line) => total + line.length + 1, 0),
-  );
-  const layoutNodeSymbolAt = (index: number) => {
-    const line = layoutLines[index] ?? "";
-    const from = symbol.from + layoutLineOffsets[index] + line.search(/\S/);
-    return symbols.find(
-      (candidate) => candidate.file === symbol.file && candidate.from === from,
-    );
-  };
-  const selectedLayoutNode =
-    selectedLayoutLine === null
-      ? undefined
-      : layoutNodeSymbolAt(selectedLayoutLine);
   const authoredFieldNames = resolvedContext?.node.fields.map(
     (candidate) => candidate.name,
   );
@@ -2815,205 +3927,15 @@ function StructuredPanel({
         </section>
       )}
       {isLayout ? (
-        <section className="editor-form-card editor-layout-structure">
-          <h3>{translate("ui.editorWorkspace.text.layoutTree")}</h3>
-          <p>
-            {translate(
-              "ui.editorWorkspace.text.navigateContainersSlotsControlsAndReferencesReorderButtonsCommit",
-            )}
-          </p>
-          {layoutLines.map((line, index) =>
-            /^\s{2,}(stack|inline|wrap|grid|slot|text|image|input|rule|choice|expand)/.test(
-              line,
-            ) ? (
-              <div
-                key={`${line}:${index}`}
-                style={{
-                  paddingInlineStart: `${Math.max(0, line.search(/\S/) - 2) * 0.45}rem`,
-                }}
-              >
-                <button
-                  type="button"
-                  aria-label={translate(
-                    "ui.editorWorkspace.ariaLabel.moveLayoutNodeUp",
-                    { node: line.trim() },
-                  )}
-                  disabled={mutateLayoutNode(source, index, "up") === source}
-                  onClick={() =>
-                    onReplace(symbol, mutateLayoutNode(source, index, "up"))
-                  }
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  aria-label={translate(
-                    "ui.editorWorkspace.ariaLabel.moveLayoutNodeDown",
-                    { node: line.trim() },
-                  )}
-                  disabled={mutateLayoutNode(source, index, "down") === source}
-                  onClick={() =>
-                    onReplace(symbol, mutateLayoutNode(source, index, "down"))
-                  }
-                >
-                  ↓
-                </button>
-                <button
-                  type="button"
-                  aria-label={translate(
-                    "ui.editorWorkspace.ariaLabel.moveLayoutNodeIn",
-                    { node: line.trim() },
-                  )}
-                  disabled={mutateLayoutNode(source, index, "in") === source}
-                  onClick={() =>
-                    onReplace(symbol, mutateLayoutNode(source, index, "in"))
-                  }
-                >
-                  →
-                </button>
-                <button
-                  type="button"
-                  aria-label={translate(
-                    "ui.editorWorkspace.ariaLabel.moveLayoutNodeOut",
-                    { node: line.trim() },
-                  )}
-                  disabled={mutateLayoutNode(source, index, "out") === source}
-                  onClick={() =>
-                    onReplace(symbol, mutateLayoutNode(source, index, "out"))
-                  }
-                >
-                  ←
-                </button>
-                {line.includes(":") ? (
-                  <label className="editor-layout-target">
-                    <span>{line.trim().split(":", 1)[0]}</span>
-                    <input
-                      autoFocus={selectedLayoutLine === index}
-                      spellCheck={false}
-                      aria-label={translate(
-                        "ui.editorWorkspace.ariaLabel.layoutNodeTarget",
-                        { node: line.trim().split(":", 1)[0] },
-                      )}
-                      value={line
-                        .trim()
-                        .slice(line.trim().indexOf(":") + 1)
-                        .trim()}
-                      onFocus={() => setSelectedLayoutLine(index)}
-                      onChange={(event) => {
-                        const lines = source.split("\n");
-                        const kind = line.trim().split(":", 1)[0];
-                        lines[index] =
-                          " ".repeat(Math.max(0, line.search(/\S/))) +
-                          `${kind}: ${event.target.value}`;
-                        onReplace(symbol, lines.join("\n"), true);
-                      }}
-                      onBlur={onEndFieldEdit}
-                    />
-                  </label>
-                ) : (
-                  <button
-                    type="button"
-                    className={
-                      selectedLayoutLine === index ? "is-selected" : undefined
-                    }
-                    onClick={() => setSelectedLayoutLine(index)}
-                  >
-                    {line.trim()}
-                  </button>
-                )}
-                {line.includes(":") &&
-                  ["slot", "text", "image", "input"].includes(
-                    line.trim().split(":", 1)[0],
-                  ) && (
-                    <button
-                      type="button"
-                      aria-label={translate(
-                        "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
-                        { node: line.trim().split(":", 1)[0] },
-                      )}
-                      onClick={() => {
-                        const lines = source.split("\n");
-                        const indentation = " ".repeat(
-                          Math.max(0, line.search(/\S/)),
-                        );
-                        const kind = line.trim().split(":", 1)[0];
-                        const target = line
-                          .trim()
-                          .slice(line.trim().indexOf(":") + 1)
-                          .trim();
-                        lines.splice(
-                          index,
-                          1,
-                          `${indentation}${kind}`,
-                          `${indentation}  target: ${target}`,
-                        );
-                        setSelectedLayoutLine(index);
-                        onReplace(symbol, lines.join("\n"));
-                      }}
-                    >
-                      …
-                    </button>
-                  )}
-                <button
-                  type="button"
-                  aria-label={translate(
-                    "ui.editorWorkspace.ariaLabel.removeLayoutNode",
-                    { node: line.trim() },
-                  )}
-                  onClick={() =>
-                    onReplace(symbol, mutateLayoutNode(source, index, "remove"))
-                  }
-                >
-                  ×
-                </button>
-              </div>
-            ) : null,
-          )}
-          {selectedLayoutNode && (
-            <LayoutNodeFields
-              assets={assets}
-              diagnostics={diagnostics}
-              files={files}
-              symbol={selectedLayoutNode}
-              onEndFieldEdit={onEndFieldEdit}
-              onUpdate={onUpdateNested}
-            />
-          )}
-          <div className="editor-layout-insertions">
-            {[
-              ["stack", "stack\n    handle: new_container\n    gap: md"],
-              ["grid", "grid\n    handle: new_grid\n    columns: 2"],
-              ["slot", "slot: name"],
-              ["text", "text: description"],
-              ["image", "image: hero"],
-              ["input", "input: value"],
-              ["rule", "rule"],
-              ["choice", "choice: placement"],
-              ["expand", "expand\n    source: source_handle"],
-            ]
-              .filter(([kind]) => {
-                if (kind === "choice" || kind === "expand")
-                  return symbol.kind === "section-layout";
-                if (kind === "input") return symbol.kind === "choice-layout";
-                return true;
-              })
-              .map(([kind, node]) => (
-                <button
-                  type="button"
-                  key={kind}
-                  onClick={() => {
-                    setSelectedLayoutLine(layoutLines.length + 1);
-                    onReplace(
-                      symbol,
-                      `${source.trimEnd()}\n\n  ${node.replaceAll("\n", "\n  ")}\n`,
-                    );
-                  }}
-                >
-                  + {translate(`ui.editorWorkspace.declaration.${kind}`)}
-                </button>
-              ))}
-          </div>
-        </section>
+        <LayoutTreeEditor
+          assets={assets}
+          diagnostics={diagnostics}
+          files={files}
+          layout={symbol}
+          symbols={symbols}
+          onApply={onLayoutEdit}
+          onEndFieldEdit={onEndFieldEdit}
+        />
       ) : (
         detailFields.length > 0 &&
         !scalarForm && (

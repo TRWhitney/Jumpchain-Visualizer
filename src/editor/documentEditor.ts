@@ -16,6 +16,7 @@ export type FieldDefinition = {
   defaultForIntegerVisibleGrant?: string;
   conditionalVariants?: boolean;
   appliesWhen?: Readonly<Record<string, readonly string[]>>;
+  exclusiveWith?: readonly string[];
 };
 
 export type FieldDefault =

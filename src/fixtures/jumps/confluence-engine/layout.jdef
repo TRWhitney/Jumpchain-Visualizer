@@ -1,23 +1,18 @@
 section-layout
   handle: engine_section
-  name: "Engine Default Section"
 
   stack
-    handle: root
     gap: md
     slot: name
     expand
 
 choice-layout
   handle: engine_card
-  name: "Engine Card"
 
   stack
-    handle: root
     gap: sm
 
     inline
-      handle: heading
       justify: between
       slot: name
       slot: cost
@@ -32,7 +27,6 @@ trait-layout
   handle: engine_trait
 
   inline
-    handle: root
     gap: sm
     slot: name
     text: description
@@ -41,7 +35,6 @@ trait-layout
   handle: signal_trait
 
   stack
-    handle: root
     gap: xs
     padding: sm
     background: engine_ink
@@ -53,7 +46,6 @@ section-layout
   handle: token_gallery
 
   stack
-    handle: root
     gap: none
     padding: xs
     background: engine_ink
@@ -65,7 +57,6 @@ section-layout
     slot: name
 
     wrap
-      handle: colors
       gap: sm
       padding: md
       align: center
@@ -76,14 +67,12 @@ section-layout
       text-color: white
 
       stack
-        handle: black_swatch
         gap: xs
         padding: sm
         background: black
         text: overview
 
       stack
-        handle: white_swatch
         gap: xs
         padding: sm
         background: white
@@ -91,14 +80,12 @@ section-layout
         text: overview
 
       stack
-        handle: red_swatch
         gap: xs
         padding: sm
         background: red
         text: overview
 
       stack
-        handle: orange_swatch
         gap: xs
         padding: sm
         background: orange
@@ -106,7 +93,6 @@ section-layout
         text: overview
 
       stack
-        handle: yellow_swatch
         gap: xs
         padding: sm
         background: yellow
@@ -114,35 +100,30 @@ section-layout
         text: overview
 
       stack
-        handle: green_swatch
         gap: xs
         padding: sm
         background: green
         text: overview
 
       stack
-        handle: blue_swatch
         gap: xs
         padding: sm
         background: blue
         text: overview
 
       stack
-        handle: purple_swatch
         gap: xs
         padding: sm
         background: purple
         text: overview
 
       stack
-        handle: brown_swatch
         gap: xs
         padding: sm
         background: brown
         text: overview
 
       stack
-        handle: pink_swatch
         gap: xs
         padding: sm
         background: pink
@@ -150,21 +131,18 @@ section-layout
         text: overview
 
       stack
-        handle: themed_swatch
         gap: xs
         padding: sm
         background: engine_gold
         text: overview
 
       stack
-        handle: hex_swatch
         gap: xs
         padding: sm
         background: "#315B66"
         text: overview
 
     inline
-      handle: alignments
       gap: lg
       padding: xl
       align: end
@@ -174,7 +152,6 @@ section-layout
       text: overview
 
     grid
-      handle: sizes
       columns: 3
       gap: 2xl
       padding: 2xl
@@ -230,13 +207,11 @@ section-layout
   handle: calibration_layout
 
   stack
-    handle: root
     gap: md
     slot: name
     text: calibration_note
 
     grid
-      handle: controls
       columns: 2
       gap: md
       choice: tier_field
@@ -248,7 +223,6 @@ section-layout
   handle: measures_layout
 
   stack
-    handle: root
     gap: md
     slot: name
 
@@ -260,7 +234,6 @@ section-layout
   handle: mixed_sources_layout
 
   stack
-    handle: root
     gap: md
     slot: name
 
@@ -277,7 +250,6 @@ section-layout
   handle: single_source_layout
 
   stack
-    handle: root
     gap: md
     slot: name
     expand
@@ -286,7 +258,6 @@ choice-layout
   handle: input_measure_card
 
   stack
-    handle: root
     gap: sm
     slot: name
     slot: cost

@@ -761,7 +761,6 @@ function layoutNode(
   const target = value(node, "target") ?? node.scalar;
   return {
     kind: node.kind as LayoutNode["kind"],
-    handle: value(node, "handle"),
     target,
     source: value(node, "source"),
     using: value(node, "using"),
@@ -803,10 +802,9 @@ function layout(
       node,
       diagnostics,
     ),
-    name: fields(node, "name").length ? renderable(node, "name") : undefined,
     root: roots[0]
       ? layoutNode(roots[0], diagnostics)
-      : { kind: "stack", handle: "root", presentation: {}, children: [] },
+      : { kind: "stack", presentation: {}, children: [] },
   };
 }
 
@@ -1105,19 +1103,7 @@ function validateRelations(
   for (const layoutItem of result.layouts) {
     const nodes = walk(layoutItem.root);
     const containers = nodes.filter((item) => containerKinds.has(item.kind));
-    const containerHandles = containers.flatMap((item) =>
-      item.handle ? [item.handle] : [],
-    );
     for (const container of containers) {
-      if (!container.handle)
-        diagnostic(
-          diagnostics,
-          "layout.container.handle.required",
-          `Layout ${layoutItem.handle} contains a container without a handle.`,
-          undefined,
-          "error",
-          { layout: layoutItem.handle },
-        );
       if (
         container.kind === "grid" &&
         (container.presentation.columns === undefined ||
@@ -1133,15 +1119,6 @@ function validateRelations(
           { layout: layoutItem.handle },
         );
     }
-    for (const duplicate of duplicates(containerHandles))
-      diagnostic(
-        diagnostics,
-        "layout.container.handle.unique",
-        `Layout ${layoutItem.handle} repeats container handle “${duplicate}”.`,
-        undefined,
-        "error",
-        { layout: layoutItem.handle, handle: duplicate },
-      );
     if (
       layoutItem.kind !== "section-layout" &&
       nodes.some((item) => item.kind === "expand" || item.kind === "choice")

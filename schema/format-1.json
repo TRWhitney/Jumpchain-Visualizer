@@ -254,11 +254,9 @@
   },
   "fieldSets": {
     "layoutDeclaration": {
-      "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
-      "name": { "type": "renderableScalar", "min": 0, "max": 1 }
+      "handle": { "type": "handle", "min": 1, "max": 1, "required": true }
     },
     "containerPresentation": {
-      "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
       "gap": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
       "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
       "background": { "type": "color", "min": 0, "max": 1 },
@@ -358,7 +356,6 @@
     { "code": "grant.companion_import.inline_budget", "rule": "companion-import does not own currency fields; a separate resource grant targets its handle" },
     { "code": "grant.companion_import.funding", "rule": "every companion-import handle requires at least one positive targeted resource grant so imported companions can participate" },
     { "code": "grant.visible.fields", "rule": "name, tag, text, and image are valid only for perk, item, form, companion, and trait; layout is trait-layout and valid only for trait; form is valid only on perk; companion is valid only on perk and resource; measure is valid only on perk, item, and trait" },
-    { "code": "layout.container_handles", "rule": "container handles are unique within one layout" },
     { "code": "layout.typed_target", "rule": "typed leaves resolve only in the matching owner-local namespace; absent targets warn and collapse" },
     { "code": "layout.choice.target", "rule": "a compact choice leaf resolves one choice-placement owned by the rendered section and each placement may appear at most once" },
     { "code": "layout.expand.source", "rule": "expand source resolves in the rendered section and each source may be expanded at most once" },

@@ -94,7 +94,6 @@
       field("handle", "Handle", handle, { sourceKey: "handle" }),
     ],
     layoutTree: {
-      handle: "root",
       container: "stack",
       gap,
       selected: "root",
@@ -103,11 +102,11 @@
             { id: "node-1", parent: "root", type: "slot", value: "name" },
             { id: "node-2", parent: "root", type: "text", value: "description" },
             { id: "node-rule", parent: "root", type: "rule" },
-            { id: "container-1", parent: "root", type: "grid", handle: "choice_grid", gap: "sm" },
+            { id: "container-1", parent: "root", type: "grid", gap: "sm" },
             { id: "node-3", parent: "container-1", type: "expand", source: "main", using: "origin_card" },
           ]
         : [
-            { id: "container-1", parent: "root", type: "stack", handle: "details", gap: "xs" },
+            { id: "container-1", parent: "root", type: "stack", gap: "xs" },
             { id: "node-1", parent: "container-1", type: "slot", value: "name" },
             { id: "node-2", parent: "container-1", type: "text", value: "description" },
             { id: "node-3", parent: "container-1", type: "slot", value: "cost" },
@@ -127,7 +126,7 @@
             .filter((candidate) => candidate.parent === node.id)
             .map((child) => renderNode(child, depth + 1))
             .join("\n");
-          return `${indent}${node.type}\n${indent}  handle: ${node.handle}\n${indent}  gap: ${node.gap || "md"}${children ? `\n${children}` : ""}`;
+          return `${indent}${node.type}\n${indent}  gap: ${node.gap || "md"}${children ? `\n${children}` : ""}`;
         }
         return `${indent}${node.type}: ${node.value}`;
       };
@@ -139,7 +138,6 @@
   handle: ${valueOf(view, "handle")}
 
   ${view.layoutTree.container}
-    handle: ${view.layoutTree.handle}
     gap: ${view.layoutTree.gap}
 ${body}`;
     },
@@ -148,7 +146,6 @@ ${body}`;
         ["Declaration", keyword],
         ["Stored in", view.file],
         ["Handle", valueOf(view, "handle")],
-        ["Root handle", view.layoutTree.handle],
         ["Root node", view.layoutTree.container],
       ];
     },
@@ -336,17 +333,36 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
     { value: "slot", label: "Slot" },
     { value: "text", label: "Text" },
     { value: "image", label: "Image" },
-    { value: "input", label: "Input" },
+    ...(view.kind === "Choice layout" ? [{ value: "input", label: "Input" }] : []),
     { value: "rule", label: "Horizontal rule" },
-    ...(view.kind === "Section layout" ? [{ value: "expand", label: "Choice list" }] : []),
+    ...(view.kind === "Section layout"
+      ? [
+          { value: "choice", label: "Direct choice" },
+          { value: "expand", label: "Choice list" },
+        ]
+      : []),
     ...flowOptions.map(({ value, label }) => ({ value, label: `${label} container` })),
   ];
+  const slotOptionsFor = (view) =>
+    (view.kind === "Section layout"
+      ? ["name", "roll"]
+      : ["name", "cost", "control", "roll", "tags"]
+    ).map((value) => ({ value, label: value[0].toUpperCase() + value.slice(1) }));
   const isContainer = (node) => node && ["stack", "inline", "wrap", "grid"].includes(node.type);
+
+  const layoutNodePath = (view, node) => {
+    if (node.id === "root") return `${view.layoutTree.container}[1]`;
+    const siblings = view.layoutTree.nodes.filter((candidate) => candidate.parent === node.parent);
+    const position = siblings.findIndex((candidate) => candidate.id === node.id) + 1;
+    const parent = node.parent === "root"
+      ? { id: "root" }
+      : view.layoutTree.nodes.find((candidate) => candidate.id === node.parent);
+    return `${layoutNodePath(view, parent)}/${node.type}[${position}]`;
+  };
 
   const layoutContainers = (view) => [
     {
       id: "root",
-      handle: view.layoutTree.handle,
       type: view.layoutTree.container,
       gap: view.layoutTree.gap,
       parent: null,
@@ -368,7 +384,10 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
       : "root";
     view.layoutTree.selected = selectedId;
     const selected = containers.find((container) => container.id === selectedId);
-    const containerOptions = containers.map((container) => ({ value: container.id, label: container.handle }));
+    const containerOptions = containers.map((container) => ({
+      value: container.id,
+      label: layoutNodePath(view, container),
+    }));
     const typeOptions = typeOptionsFor(view);
 
     const heading = element("div", "mock-layout-heading");
@@ -389,7 +408,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
     }
     path.forEach((container, index) => {
       if (index > 0) breadcrumb.append(element("span", "", "/"));
-      const crumb = element("button", "", container.handle);
+      const crumb = element("button", "", layoutNodePath(view, container).split("/").at(-1));
       crumb.type = "button";
       crumb.dataset.layoutOpen = container.id;
       if (container.id === selectedId) crumb.setAttribute("aria-current", "page");
@@ -398,11 +417,8 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
     levelNavigation.append(breadcrumb);
 
     const selectedEditor = element("div", "mock-layout-selected-editor");
-    const handleInput = document.createElement("input");
-    handleInput.value = selected.handle;
-    handleInput.dataset.layoutSelectedProperty = "handle";
     selectedEditor.append(
-      labeledControl("Handle", handleInput),
+      labeledControl("Path", element("div", "mock-layout-static-control", layoutNodePath(view, selected))),
       labeledControl("Flow", makeSelect(flowOptions, selected.type, { layoutSelectedProperty: "type" })),
       labeledControl("Spacing", makeSelect(spacingOptions, selected.gap, { layoutSelectedProperty: "gap" })),
     );
@@ -410,7 +426,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
     const childrenHeading = element("div", "mock-layout-children-heading");
     const children = view.layoutTree.nodes.filter((node) => node.parent === selectedId);
     childrenHeading.append(
-      element("strong", "", `Children of ${selected.handle}`),
+      element("strong", "", `Children of ${layoutNodePath(view, selected)}`),
       element("span", "", `${children.length} items`),
     );
 
@@ -444,7 +460,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
 
       if (isContainer(node)) {
         const typeSummary = element("div", "mock-layout-static-control", `${flowOptions.find((option) => option.value === node.type)?.label || node.type} container`);
-        const handleSummary = element("div", "mock-layout-static-control", node.handle);
+        const pathSummary = element("div", "mock-layout-static-control", layoutNodePath(view, node));
         const open = element("button", "mock-layout-open", "Open");
         open.type = "button";
         open.dataset.layoutOpen = node.id;
@@ -452,7 +468,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
         row.append(
           dragHandle,
           labeledControl("Node type", typeSummary),
-          labeledControl("Handle", handleSummary),
+          labeledControl("Path", pathSummary),
           labeledControl("Container", open),
           actions,
         );
@@ -463,7 +479,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
         if (node.type === "slot") {
           valueLabel = "Slot";
           valueControl = makeSelect(
-            ["name", "cost", "control", "roll", "tags"].map((value) => ({ value, label: value[0].toUpperCase() + value.slice(1) })),
+            slotOptionsFor(view),
             node.value,
             { layoutNode: node.id, layoutProperty: "value" },
           );
@@ -476,6 +492,13 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
               : ["quantity", "companions"];
           valueControl = makeSelect(
             targets.map((value) => ({ value, label: value.replace("_", " ") })),
+            node.value,
+            { layoutNode: node.id, layoutProperty: "value" },
+          );
+        } else if (node.type === "choice") {
+          valueLabel = "Direct choice target";
+          valueControl = makeSelect(
+            [{ value: "featured", label: "Featured" }],
             node.value,
             { layoutNode: node.id, layoutProperty: "value" },
           );
@@ -496,7 +519,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
           dragHandle,
           labeledControl("Node type", type),
           labeledControl(valueLabel, valueControl),
-          labeledControl("Container", element("div", "mock-layout-static-control", selected.handle)),
+          labeledControl("Container", element("div", "mock-layout-static-control", layoutNodePath(view, selected))),
           actions,
         );
       }
@@ -781,7 +804,6 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
   const fallbackSectionLayout = {
     kind: "Section layout",
     layoutTree: {
-      handle: "root",
       container: "stack",
       gap: "md",
       nodes: [
@@ -795,7 +817,6 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
   const fallbackChoiceLayout = {
     kind: "Choice layout",
     layoutTree: {
-      handle: "root",
       container: "stack",
       gap: "sm",
       nodes: [
@@ -824,18 +845,22 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
     return node;
   };
 
-  const renderDummyLayout = (view, contentView = null, parent = "root", containerType = view.layoutTree.container, gap = view.layoutTree.gap) => {
+  const renderDummyLayout = (
+    view,
+    contentView = null,
+    parent = "root",
+    containerType = view.layoutTree.container,
+    gap = view.layoutTree.gap,
+    path = `${view.layoutTree.container}[1]`,
+  ) => {
     const container = element("div", `mock-dummy-layout ${containerType}`);
     container.style.gap = layoutGap(gap);
-    const containerNode = parent === "root"
-      ? view.layoutTree
-      : view.layoutTree.nodes.find((node) => node.id === parent);
-    const containerHandle = containerNode?.handle || "root";
-    markPreviewBound(container, "container", `Container · ${containerHandle} · ${containerType}`);
+    markPreviewBound(container, "container", `Container · ${path} · ${containerType}`);
 
-    view.layoutTree.nodes.filter((node) => node.parent === parent).forEach((node) => {
+    view.layoutTree.nodes.filter((node) => node.parent === parent).forEach((node, index) => {
+      const nodePath = `${path}/${node.type}[${index + 1}]`;
       if (["stack", "inline", "wrap", "grid"].includes(node.type)) {
-        container.append(renderDummyLayout(view, contentView, node.id, node.type, node.gap));
+        container.append(renderDummyLayout(view, contentView, node.id, node.type, node.gap, nodePath));
       } else if (node.type === "slot") {
         const contentName = contentView ? displayTitle(contentView) : view.kind === "Section layout" ? "Origins" : "Flight";
         const contentCost = contentView && valueOf(contentView, "cost") ? `${valueOf(contentView, "cost")} JP` : "100 JP";
@@ -1137,7 +1162,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
       }
       else if (layoutControl.value === "expand") Object.assign(preserved, { source: "main", using: "origin_card" });
       else {
-        Object.assign(preserved, { handle: "untitled", gap: "md" });
+        Object.assign(preserved, { gap: "md" });
         view.layoutTree.selected = node.id;
       }
       Object.keys(node).forEach((key) => delete node[key]);
@@ -1151,11 +1176,6 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
     renderSource(view);
     renderPreview(view);
     renderProperties(view);
-  });
-
-  structuredPanel.addEventListener("change", (event) => {
-    if (!event.target.matches('[data-layout-selected-property="handle"]')) return;
-    renderStructured(views[currentKey]);
   });
 
   let draggedLayoutNode = null;
@@ -1222,10 +1242,8 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
   const syncFieldsFromSource = (view, source) => {
     if (view.layoutTree) {
       const container = source.match(/^\s{2}(stack|inline|wrap|grid)\s*$/m);
-      const rootHandle = source.match(/^\s{4}handle:\s*(\S+)\s*$/m);
       const gap = source.match(/^\s{4}gap:\s*(\S+)\s*$/m);
       if (container) view.layoutTree.container = container[1];
-      if (rootHandle) view.layoutTree.handle = rootHandle[1];
       if (gap) view.layoutTree.gap = gap[1];
 
       const lines = source.split("\n");
@@ -1234,7 +1252,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
       let nodeNumber = 0;
       for (let index = 0; index < lines.length; index += 1) {
         const indent = lines[index].match(/^\s*/)[0].length;
-        if (indent < 4 || /^\s*(gap|handle):/.test(lines[index])) continue;
+        if (indent < 4 || /^\s*gap:/.test(lines[index])) continue;
         while (containers.length > 1 && containers.at(-1).indent >= indent) containers.pop();
         const parent = containers.at(-1).id;
         const id = `node-${++nodeNumber}`;
@@ -1246,9 +1264,8 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
 
         const nestedContainer = lines[index].match(/^\s*(stack|inline|wrap|grid)\s*$/);
         if (nestedContainer) {
-          const nestedHandle = lines[index + 1]?.match(/^\s*handle:\s*(\S+)\s*$/);
-          const nestedGap = lines[index + 2]?.match(/^\s*gap:\s*(\S+)\s*$/);
-          parsedNodes.push({ id, parent, type: nestedContainer[1], handle: nestedHandle?.[1] || "untitled_container", gap: nestedGap?.[1] || "md" });
+          const nestedGap = lines[index + 1]?.match(/^\s*gap:\s*(\S+)\s*$/);
+          parsedNodes.push({ id, parent, type: nestedContainer[1], gap: nestedGap?.[1] || "md" });
           containers.push({ id, indent });
         }
 
@@ -1518,7 +1535,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
       }
       else if (type === "expand") Object.assign(node, { source: "main", using: "origin_card" });
       else {
-        Object.assign(node, { handle: "untitled", gap: "md" });
+        Object.assign(node, { gap: "md" });
         view.layoutTree.selected = node.id;
       }
       view.layoutTree?.nodes.push(node);

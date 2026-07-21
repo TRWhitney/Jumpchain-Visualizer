@@ -402,7 +402,6 @@ section-layout
   handle: introduction_layout
 
   stack
-    handle: root
     gap: md
     slot: name
     image: threshold_mark
@@ -412,7 +411,6 @@ section-layout
   handle: identity_layout
 
   grid
-    handle: root
     columns: 2
     gap: md
     choice: origin_field
@@ -425,7 +423,6 @@ section-layout
   handle: customization_layout
 
   stack
-    handle: root
     gap: md
     slot: name
     choice: custom_door_field
@@ -434,7 +431,6 @@ choice-layout
   handle: custom_door_layout
 
   stack
-    handle: root
     gap: sm
     slot: name
     slot: cost

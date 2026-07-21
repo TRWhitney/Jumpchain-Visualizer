@@ -209,7 +209,7 @@ children, retain source order</li>
 <li>top-level handles occupy separate namespaces by declaration kind</li>
 <li>owned <code>text</code>, <code>image</code>, and <code>input</code> handles are scoped to their owner and declaration kind; the same handle may be reused across those kinds</li>
 <li><code>choice-source</code> handles are scoped to their section</li>
-<li>layout container handles are scoped to their layout</li>
+<li>layout containers have structural identity from their nested source position rather than authored handles</li>
 <li>forward references and references across package files are allowed</li>
 <li>references are resolved and validated after all package files have been
 merged</li>
@@ -381,7 +381,7 @@ shape depending on location.</p>
 <li>every <code>choice-source</code> and owned <code>text</code>, <code>image</code>, and <code>input</code> block requires a stable <code>handle</code></li>
 <li>every top-level <code>theme</code>, <code>section-layout</code>, <code>choice-layout</code>, and <code>trait-layout</code> declaration requires a stable <code>handle</code></li>
 <li>if <code>handle</code> exists, <code>name</code> may be omitted where that makes sense</li>
-<li>presentation declarations may rely on their required handle alone; a user-facing <code>name</code> is optional</li>
+<li>layout declarations use their required handle as their author-facing identity and do not have a <code>name</code> field</li>
 </ul>
 <h3>Derived Handles</h3>
 <p>Tooling may generate required handles for author convenience, but generated handles are materialized into source and remain stable afterward.</p>
@@ -487,10 +487,12 @@ typed handled-content leaves, just as prose and visuals are handled in
 <p>Built-in layouts render only their supported built-in slots and, for sections, declared choice sources and direct choice associations. They do not discover or automatically place arbitrary owned <code>text</code>, <code>image</code>, or <code>input</code> blocks. Those blocks render only when an authored layout references them explicitly, avoiding nonstandard discovery rules and unintentional hodgepodge presentation.</p>
 <p>The selected default section presentation is a vertical <code>stack</code> with standard spacing: the section <code>name</code> slot appears first, followed by every choice source and direct choice association in declaration order. Each source receives a compact source wrapper containing its contextual <code>roll</code> slot and one <code>expand</code>; a direct choice renders once with its normal contextual/default choice layout.</p>
 <p>The selected default choice presentation is a compact vertical <code>stack</code>. An <code>inline</code> header places <code>name</code> and <code>cost</code> apart, followed by <code>tags</code>, then an <code>inline</code> action row containing <code>control</code> and choice-level <code>roll</code>. This includes every built-in choice slot without discovering arbitrary owned blocks.</p>
-<p>Built-in layout containers are implementation-owned and do not expose author-facing handles. Equivalent authored layouts use ordinary handled containers.</p>
+<p>Neither built-in nor authored layout containers expose handles. Authoring and debugging tools derive transient structural paths from each container’s nested source position.</p>
 <p>At runtime, empty or inapplicable slots reserve no space. A container whose children all collapse for that reason also collapses. The structured layout editor still shows those nodes as authoring placeholders so their positions remain understandable.</p>
+<p>When a layout declaration itself is selected, the Editor previews it through the canonical renderer with isolated representative section, choice, or trait data. Matching dummy text, images, inputs, costs, tags, expanded source choices, and direct choices make authored targets visible without changing source or requiring the surrounding package to be distributable.</p>
 <p>Authored layouts replace presentation only; they do not change semantic membership or state.</p>
 <p>The current agreed direction for layout trees is:</p>
+<p>The Structured editor presents this language through a selected-container tree rather than source-line indentation controls. It shows the selected container’s structural path, flow, spacing, optional presentation fields, and source-ordered direct children. Up/down and drops at a sibling row’s top or bottom edge reorder within the current container. Dropping in the highlighted center of a valid container row reparents and appends the node through the same exact-range command as <em>Move…</em>; the dragged node and all its descendants are excluded as destinations. <em>Move…</em> remains the explicit accessible path to the root or any other non-descendant container and toggles its destination controls when pressed again; there is no separate Cancel action in that expansion. Removing a non-root container promotes its children at that source position. <em>Add child</em> is schema-filtered for the owning layout kind and gathers required targets before it writes source. One consistent presentation icon beside the selected container controls and on each eligible child toggles that node’s presentation fields. Expanded child fields take their full natural height within the Structured pane instead of creating a nested scroll region. Closing a compact-capable leaf converts it back to compact source only when no block-only semantics would be lost; there is no separate compaction action. Invalid but parseable Source-authored fields remain visible as localized Needs attention controls so Structured can remove them without guessing at unsafe ancestry.</p>
 <ul>
 <li>exactly one root node per <code>section-layout</code>, <code>choice-layout</code>, or
 <code>trait-layout</code></li>
@@ -517,7 +519,7 @@ typed handled-content leaves, just as prose and visuals are handled in
 </li>
 </ul>
 <h3>Node Shape</h3>
-<p>Container nodes are nested declaration blocks with author-defined handles.</p>
+<p>Container nodes are nested declaration blocks. Their nesting and source order define their structure; they do not declare handles.</p>
 <p>Simple leaf references use a compact scalar form.</p>
 <p>Typed <code>text</code>, <code>image</code>, and <code>input</code> references, as well as <code>slot</code>, support equivalent compact and block forms. Compact leaves use forms such as <code>text: description</code>, <code>image: visual</code>, <code>input: quantity</code>, or <code>slot: cost</code>. A block leaf requires <code>target</code> and may add presentation fields:</p>
 <pre><code class="language-text">text
@@ -533,14 +535,12 @@ slot
 <p><code>rule</code> renders a theme-aware horizontal line across its available layout width. It has no target, handle, child nodes, or v1 presentation fields; surrounding containers control its spacing. Other leaf nodes likewise do not have handles or children. A typed leaf’s block form does not create a different semantic node; it only provides room for presentation fields.</p>
 <p>The same typed content target or <code>slot</code> target may appear more than once in one layout. Each occurrence is an independent presentation node over the same underlying content or control. The generic <code>ref</code> form is not supported because declaration-kind namespaces allow matching handles.</p>
 <p>A typed content leaf whose target is not present on a particular section or choice is valid and collapses without reserving runtime space. This permits one authored layout to be reused across content with different optional fields. The Editor warns about an absent target by default and shows the leaf as a structured-authoring placeholder; users may suppress that diagnostic with <code>editor.warnMissingLayoutTargets</code>. A missing target does not make a distributable package invalid.</p>
-<p>Current container-handle rules:</p>
+<p>Current container-identity rules:</p>
 <ul>
-<li>every <code>stack</code>, <code>inline</code>, <code>wrap</code>, and <code>grid</code> node must declare a <code>handle</code></li>
-<li>container handles must be unique within their owning <code>section-layout</code>, <code>choice-layout</code>, or <code>trait-layout</code></li>
-<li>container handles use the same normalization rules as other authored handles</li>
-<li>container handles identify levels for authoring, navigation, diagnostics, and refactoring</li>
-<li>the nested source structure remains authoritative for parent/child relationships; a handle identifies a container but does not define its parent</li>
-<li>when a layout is created, tooling should give its root container the explicit handle <code>root</code>; authors may rename it</li>
+<li><code>stack</code>, <code>inline</code>, <code>wrap</code>, and <code>grid</code> do not accept a <code>handle</code> field</li>
+<li>the nested source structure and source order are authoritative for parent/child relationships and container identity</li>
+<li>tools may derive transient, one-based structural paths such as <code>stack[1]/inline[2]</code> for navigation, diagnostics, and Show Bounds labels</li>
+<li>structural paths are not authored references and may change when nodes are inserted, removed, moved, or reordered</li>
 <li>containers may temporarily have no children; this produces a warning, shows an authoring placeholder in the Editor, and contributes no runtime content</li>
 </ul>
 <p>Example direction:</p>
@@ -548,14 +548,12 @@ slot
   handle: origin_card
 
   inline
-    handle: card
     gap: md
     align: start
 
     image: visual
 
     stack
-      handle: details
       gap: sm
       slot: name
       text: description
@@ -567,7 +565,6 @@ slot
   handle: origin_section
 
   stack
-    handle: root
     gap: md
     text: intro_text
 
@@ -610,7 +607,6 @@ slot
   handle: identity_section
 
   grid
-    handle: root
     columns: 2
     choice: gender_field
     choice: age_field
@@ -2007,7 +2003,7 @@ an implementation detail.</p>
 <tr><td><code>image</code></td><td><code>handle</code>; <code>src</code> for export</td><td>conditional <code>alt</code> variants</td><td><code>src</code> during WIP and <code>alt</code> with diagnostics</td></tr>
 <tr><td><code>input</code></td><td><code>handle</code>, <code>selection</code></td><td><code>option</code>, <code>grant</code></td><td>selection-dependent <code>min</code>/<code>max</code></td></tr>
 <tr><td><code>theme</code></td><td><code>handle</code>, one <code>color</code></td><td>none</td><td><code>name</code></td></tr>
-<tr><td>layout declarations</td><td><code>handle</code>, exactly one container root</td><td>nested layout nodes</td><td><code>name</code></td></tr>
+<tr><td>layout declarations</td><td><code>handle</code>, exactly one container root</td><td>nested layout nodes</td><td>none</td></tr>
 </tbody>
 </table>
 <h3>Finalized Association Rules</h3>
@@ -2017,7 +2013,7 @@ an implementation detail.</p>
 <li>Conditional variants of singular fields belong to that field on the current owner. Because <code>option</code> is repeatable, an <code>option when ...</code> variant belongs to the immediately preceding base <code>option</code> at the same indentation. A new base option starts a new variant group. This preserves scalar options and avoids option blocks.</li>
 <li><code>section</code> owns text, images, choice sources, and handled associations to top-level choices. Interactive <code>input</code> blocks remain choice-owned because their values activate choice mechanics and grants.</li>
 <li>Grant fields are kind-checked. Resource and property mechanics cannot accidentally accept visible-content fields, and companion imports remain valid only directly under a companion-selection input.</li>
-<li>Every authored layout has exactly one handled container root. Grid requires <code>columns</code> from 1 through 12; typed leaves use their matching owner-local namespace; <code>expand</code> and compact direct <code>choice</code> placement remain section-layout-only.</li>
+<li>Every authored layout has exactly one container root, identified structurally rather than by a handle. Grid requires <code>columns</code> from 1 through 12; typed leaves use their matching owner-local namespace; <code>expand</code> and compact direct <code>choice</code> placement remain section-layout-only.</li>
 </ul>
 <h3>Schema Change Policy</h3>
 <h3>Secure <code>.jmp</code> transport</h3>

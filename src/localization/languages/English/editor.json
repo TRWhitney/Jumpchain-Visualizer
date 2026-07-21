@@ -150,11 +150,7 @@
         "unreachable": "Direct choice {{section}}.{{choice}} is omitted by its explicit layout."
       },
       "container": {
-        "empty": "This layout container is empty and renders nothing.",
-        "handle": {
-          "required": "Layout {{layout}} contains a container without a handle.",
-          "unique": "Layout {{layout}} repeats container handle “{{handle}}”."
-        }
+        "empty": "This layout container is empty and renders nothing."
       },
       "grid": {
         "columns": "Grid in {{layout}} requires columns from 1 through 12."
@@ -374,6 +370,30 @@
         "builtInChoiceLayout": "built-in choice layout",
         "builtInTraitLayout": "built-in trait layout"
       },
+      "previewStatus": {
+        "label": "Preview: {{status}}",
+        "currentSource": "Current source",
+        "safelyRecovered": "Safely recovered preview",
+        "lastValid": "Last valid preview",
+        "layoutPreview": "Layout preview",
+        "sourceValid": "Source parses without errors.",
+        "sourceRecovered": "Preview recovered a deterministic incomplete field. Source is unchanged.",
+        "sourceLastValid": "Preview retains the last valid package.",
+        "layoutUsesRepresentativeData": "Layout preview uses representative content while source diagnostics remain active."
+      },
+      "layoutPreview": {
+        "packageName": "Layout preview",
+        "packageDescription": "Representative content for layout authoring.",
+        "sectionName": "Example section",
+        "choiceName": "Example choice {{number}}",
+        "directChoiceName": "Example direct choice {{number}}",
+        "traitName": "Example trait",
+        "traitDescription": "Representative trait content.",
+        "textContent": "Example content for “{{target}}”.",
+        "imageAlt": "Example image for {{target}}",
+        "tag": "example",
+        "option": "Example option"
+      },
       "ariaLabel": {
         "undo": "Undo",
         "redo": "Redo",
@@ -405,19 +425,49 @@
         "removeLayoutNode": "Remove {{node}}",
         "layoutNodeTarget": "{{node}} target",
         "editLayoutNodePresentation": "Edit {{node}} presentation fields",
+        "layoutContainerBreadcrumbs": "Layout container breadcrumbs",
+        "openLayoutContainer": "Open {{container}} container",
+        "moveLayoutNodeToContainer": "Move {{node}} to another container",
         "removeConditionalVariant": "Remove {{field}} conditional variant {{occurrence}}"
       },
       "announcement": {
         "declarationAdded": "{{declaration}} added and opened for editing.",
         "declarationRemoved": "{{declaration}} removed.",
         "declarationMoved": "{{declaration}} moved.",
-        "resourceCreated": "{{resource}} was created, assigned, and opened for editing."
+        "resourceCreated": "{{resource}} was created, assigned, and opened for editing.",
+        "layoutNodeAdded": "{{node}} added.",
+        "layoutNodeConverted": "Layout node changed to {{node}}.",
+        "layoutNodeUpdated": "{{node}} updated.",
+        "layoutNodeReordered": "{{node}} reordered within its container.",
+        "layoutNodeMoved": "{{node}} moved to another container.",
+        "layoutNodeRemoved": "{{node}} removed.",
+        "layoutNodeExpanded": "{{node}} presentation fields opened.",
+        "layoutNodeCollapsed": "{{node}} changed to compact form.",
+        "invalidLayoutFieldRemoved": "Invalid layout field {{field}} removed."
       },
       "field": {
         "handle": "Handle",
         "name": "Name",
         "abbreviation": "Abbreviation",
         "initial": "Initial balance"
+      },
+      "layoutField": {
+        "target": "target",
+        "columns": "columns",
+        "gap": "gap",
+        "padding": "padding",
+        "background": "background",
+        "align": "align",
+        "justify": "justify",
+        "text-align": "text align",
+        "text-size": "text size",
+        "text-color": "text color",
+        "size": "size",
+        "width": "width",
+        "height": "height",
+        "fit": "fit",
+        "source": "source",
+        "using": "using"
       },
       "declaration": {
         "resource": "Resource",
@@ -462,7 +512,6 @@
         "replaceAll": "Replace all",
         "completions": "Completions",
         "format1": "Format 1 ",
-        "preview": "Preview: ",
         "livePreview": "Live preview",
         "showBounds": " Show bounds",
         "container": "Container",
@@ -522,7 +571,30 @@
         "cancel": "Cancel",
         "createAndUseResource": "Create and use resource",
         "backToDeclaration": "Back to {{declaration}}",
-        "editLayoutNode": "Edit {{node}} node"
+        "editLayoutNode": "Edit {{node}} node",
+        "layoutEditor": "Layout",
+        "layoutNodeCount_one": "{{count}} node",
+        "layoutNodeCount_other": "{{count}} nodes",
+        "layoutItemCount_one": "{{count}} item",
+        "layoutItemCount_other": "{{count}} items",
+        "layoutNeedsRoot": "This layout needs one root container.",
+        "createRootContainer": "Create root container",
+        "layoutStructureUnsafe": "The authored layout structure needs repair in Source before tree operations can be performed safely.",
+        "editingContainer": "Editing container",
+        "path": "Path",
+        "containerFlow": "Flow",
+        "childrenOf": "Children of {{path}}",
+        "nodeType": "Node type",
+        "target": "Target",
+        "notApplicable": "Not applicable",
+        "open": "Open",
+        "moveEllipsis": "Move…",
+        "moveToContainer": "Move to container",
+        "move": "Move",
+        "newNodeType": "New node type",
+        "source": "Source",
+        "using": "Using",
+        "addChild": "Add child"
       },
       "placeholder": {
         "searchContent": "Search content",
@@ -532,7 +604,8 @@
       "title": {
         "matchCase": "Match case",
         "matchWholeWord": "Match whole word",
-        "useRegularExpression": "Use regular expression"
+        "useRegularExpression": "Use regular expression",
+        "dragLayoutNode": "Drag to reorder or move into a container"
       }
     }
   }

@@ -968,72 +968,66 @@ function containsSlot(node: LayoutNode, target: string): boolean {
   );
 }
 
-function Layout({
-  node,
-  sectionHandle,
-  choice,
-  source,
-  sourceRoll,
-  props,
-}: {
-  node: LayoutNode;
-  sectionHandle: string;
-  choice?: JumpChoice;
-  source?: ChoiceSource;
-  sourceRoll?: { result: string | number; sequence: number };
-  props: Props;
-}): ReactNode {
-  const spacing: Record<string, string> = {
-    none: "0",
-    xs: ".25rem",
-    sm: ".5rem",
-    md: ".75rem",
-    lg: "1rem",
-    xl: "1.5rem",
-    "2xl": "2rem",
-  };
-  const sizes: Record<string, string> = {
-    xs: "2rem",
-    sm: "3rem",
-    md: "5rem",
-    lg: "8rem",
-    xl: "12rem",
-    "2xl": "16rem",
-  };
-  const textSizes: Record<string, string> = {
-    xs: ".58rem",
-    sm: ".66rem",
-    md: ".75rem",
-    lg: ".9rem",
-    xl: "1.1rem",
-    "2xl": "1.35rem",
-  };
-  const builtInColors: Record<string, string> = {
-    black: "#111111",
-    white: "#ffffff",
-    gray: "#7d7b75",
-    red: "#b84a4f",
-    orange: "#bd7333",
-    yellow: "#c8aa4b",
-    green: "#568e63",
-    blue: "#587ea8",
-    purple: "#8065a8",
-    brown: "#85694e",
-    pink: "#aa6687",
-  };
-  const color = (token: string | undefined) => {
-    if (!token) return undefined;
-    const candidate = props.packageItem.themes[token] ?? token;
-    return /^#[0-9a-f]{6}$/i.test(candidate)
-      ? candidate
-      : builtInColors[candidate];
-  };
-  const style: CSSProperties = {
+const layoutSpacing: Record<string, string> = {
+  none: "0",
+  xs: ".25rem",
+  sm: ".5rem",
+  md: ".75rem",
+  lg: "1rem",
+  xl: "1.5rem",
+  "2xl": "2rem",
+};
+const layoutSizes: Record<string, string> = {
+  xs: "2rem",
+  sm: "3rem",
+  md: "5rem",
+  lg: "8rem",
+  xl: "12rem",
+  "2xl": "16rem",
+};
+const layoutTextSizes: Record<string, string> = {
+  xs: ".58rem",
+  sm: ".66rem",
+  md: ".75rem",
+  lg: ".9rem",
+  xl: "1.1rem",
+  "2xl": "1.35rem",
+};
+const builtInLayoutColors: Record<string, string> = {
+  black: "#111111",
+  white: "#ffffff",
+  gray: "#7d7b75",
+  red: "#b84a4f",
+  orange: "#bd7333",
+  yellow: "#c8aa4b",
+  green: "#568e63",
+  blue: "#587ea8",
+  purple: "#8065a8",
+  brown: "#85694e",
+  pink: "#aa6687",
+};
+
+function layoutColor(
+  token: string | undefined,
+  packageItem: CanonicalJumpPackage,
+) {
+  if (!token) return undefined;
+  const candidate = packageItem.themes[token] ?? token;
+  return /^#[0-9a-f]{6}$/i.test(candidate)
+    ? candidate
+    : builtInLayoutColors[candidate];
+}
+
+function layoutPresentationStyle(
+  node: LayoutNode,
+  packageItem: CanonicalJumpPackage,
+): CSSProperties {
+  return {
     gap: node.presentation.gap
-      ? (spacing[node.presentation.gap] ?? node.presentation.gap)
+      ? (layoutSpacing[node.presentation.gap] ?? node.presentation.gap)
       : undefined,
     padding: node.presentation.padding
-      ? (spacing[node.presentation.padding] ?? node.presentation.padding)
+      ? (layoutSpacing[node.presentation.padding] ?? node.presentation.padding)
       : undefined,
     alignItems: node.presentation.align as CSSProperties["alignItems"],
     justifyContent:
@@ -1041,15 +1035,47 @@ function Layout({
         ? "space-between"
         : (node.presentation.justify as CSSProperties["justifyContent"]),
     textAlign: node.presentation.textAlign as CSSProperties["textAlign"],
-    backgroundColor: color(node.presentation.background),
-    color: color(node.presentation.textColor),
+    backgroundColor: layoutColor(node.presentation.background, packageItem),
+    color: layoutColor(node.presentation.textColor, packageItem),
     fontSize: node.presentation.textSize
-      ? textSizes[node.presentation.textSize]
+      ? layoutTextSizes[node.presentation.textSize]
       : undefined,
     gridTemplateColumns: node.presentation.columns
       ? `repeat(${node.presentation.columns}, minmax(0, 1fr))`
       : undefined,
   };
+}
+
+function layoutImageStyle(node: LayoutNode): CSSProperties {
+  const shorthand = node.presentation.size
+    ? layoutSizes[node.presentation.size]
+    : undefined;
+  return {
+    width: shorthand ?? layoutSizes[node.presentation.width ?? ""],
+    height: shorthand ?? layoutSizes[node.presentation.height ?? ""],
+    objectFit: node.presentation.fit as CSSProperties["objectFit"],
+  };
+}
+
+function Layout({
+  node,
+  path,
+  sectionHandle,
+  choice,
+  source,
+  sourceRoll,
+  props,
+}: {
+  node: LayoutNode;
+  path?: string;
+  sectionHandle: string;
+  choice?: JumpChoice;
+  source?: ChoiceSource;
+  sourceRoll?: { result: string | number; sequence: number };
+  props: Props;
+}): ReactNode {
+  const structuralPath = path ?? `${node.kind}[1]`;
+  const style = layoutPresentationStyle(node, props.packageItem);
   if (node.kind === "slot" && choice) {
     if (node.target === "name") return <strong>{label(choice.name)}</strong>;
     if (node.target === "cost")
@@ -1125,21 +1151,10 @@ function Layout({
       )?.images ??
       [];
     const item = owner.find((image) => image.handle === node.target);
-    const shorthand = node.presentation.size
-      ? sizes[node.presentation.size]
-      : undefined;
     if (!item) return null;
     const source = resolveJumpImageSource(item.src, props.resolveAsset);
     return source ? (
-      <img
-        src={source}
-        alt={label(item.alt)}
-        style={{
-          width: shorthand ?? sizes[node.presentation.width ?? ""],
-          height: shorthand ?? sizes[node.presentation.height ?? ""],
-          objectFit: node.presentation.fit as CSSProperties["objectFit"],
-        }}
-      />
+      <img src={source} alt={label(item.alt)} style={layoutImageStyle(node)} />
     ) : null;
   }
   if (node.kind === "choice") {
@@ -1155,7 +1170,11 @@ function Layout({
     const section = props.packageItem.sections.find(
       (item) => item.handle === sectionHandle,
     );
-    const source = section?.sources.find((item) => item.handle === node.source);
+    const source = node.source
+      ? section?.sources.find((item) => item.handle === node.source)
+      : section?.sources.length === 1
+        ? section.sources[0]
+        : undefined;
     const sectionLayout = props.packageItem.layouts.find(
       (item) =>
         item.kind === "section-layout" &&
@@ -1184,8 +1203,16 @@ function Layout({
       : node.kind === "grid"
         ? "div"
         : "div";
-  const children = node.children.map((child) =>
-    Layout({ node: child, sectionHandle, choice, source, sourceRoll, props }),
+  const children = node.children.map((child, index) =>
+    Layout({
+      node: child,
+      path: `${structuralPath}/${child.kind}[${index + 1}]`,
+      sectionHandle,
+      choice,
+      source,
+      sourceRoll,
+      props,
+    }),
   );
   if (!children.some((child) => child !== null && child !== undefined))
     return null;
@@ -1193,12 +1220,12 @@ function Layout({
     <Tag
       className={`jump-layout-${node.kind}`}
       style={style}
-      data-layout-bound={`${node.kind}:${node.handle ?? node.target ?? "anonymous"}`}
+      data-layout-bound={structuralPath}
       data-layout-kind={node.kind}
     >
       {children.map((child, index) => (
         <Fragment
-          key={`${node.children[index].kind}-${node.children[index].handle ?? node.children[index].target ?? index}`}
+          key={`${structuralPath}/${node.children[index].kind}[${index + 1}]`}
         >
           {child}
         </Fragment>
@@ -1313,35 +1340,55 @@ function JumpSectionView({
 
 function TraitLayoutNode({
   node,
+  path,
   trait,
   props,
 }: {
   node: LayoutNode;
+  path?: string;
   trait: EvaluatedGrantRecord;
   props: Props;
 }): ReactNode {
+  const structuralPath = path ?? `${node.kind}[1]`;
   if (node.kind === "slot" && node.target === "name")
     return <strong>{trait.name}</strong>;
   if (node.kind === "text") {
     const content = trait.text?.find(
       (item) => item.handle === node.target,
     )?.content;
-    return content ? <RichText source={resolved(content, props)} /> : null;
+    return content ? (
+      <RichText
+        source={resolved(content, props)}
+        style={layoutPresentationStyle(node, props.packageItem)}
+      />
+    ) : null;
   }
   if (node.kind === "image") {
     const item = trait.images?.find((image) => image.handle === node.target);
     if (!item) return null;
     const source = resolveJumpImageSource(item.src, props.resolveAsset);
-    return source ? <img src={source} alt={resolved(item.alt, props)} /> : null;
+    return source ? (
+      <img
+        src={source}
+        alt={resolved(item.alt, props)}
+        style={layoutImageStyle(node)}
+      />
+    ) : null;
   }
   if (node.kind === "rule") return <hr />;
   if (!["stack", "inline", "wrap", "grid"].includes(node.kind)) return null;
   return (
-    <div className={`jump-layout-${node.kind}`}>
+    <div
+      className={`jump-layout-${node.kind}`}
+      style={layoutPresentationStyle(node, props.packageItem)}
+      data-layout-bound={structuralPath}
+      data-layout-kind={node.kind}
+    >
       {node.children.map((child, index) => (
         <TraitLayoutNode
-          key={`${child.kind}-${child.target ?? index}`}
+          key={`${structuralPath}/${child.kind}[${index + 1}]`}
           node={child}
+          path={`${structuralPath}/${child.kind}[${index + 1}]`}
           trait={trait}
           props={props}
         />
@@ -1372,6 +1419,17 @@ function TraitView({
       <span>{trait.description}</span>
     </article>
   );
+}
+
+/** Canonical trait-layout rendering scope shared by the Tracker and Editor preview. */
+export function JumpTraitRendererScope({
+  trait,
+  rendererProps,
+}: {
+  trait: EvaluatedGrantRecord;
+  rendererProps: JumpRendererProps;
+}) {
+  return <TraitView trait={trait} props={rendererProps} />;
 }
 
 /** Canonical section rendering scope shared by the Tracker and Editor preview. */

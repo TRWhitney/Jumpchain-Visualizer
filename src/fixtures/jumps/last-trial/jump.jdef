@@ -648,7 +648,6 @@ section-layout
   handle: trial_introduction
 
   stack
-    handle: root
     gap: md
     slot: name
     image: trial_mark
@@ -658,7 +657,6 @@ section-layout
   handle: control_grid
 
   grid
-    handle: root
     columns: 2
     gap: md
     choice: oath_field
@@ -680,11 +678,9 @@ choice-layout
   handle: trial_card
 
   stack
-    handle: root
     gap: sm
 
     inline
-      handle: heading
       justify: between
       slot: name
       slot: cost
@@ -700,7 +696,6 @@ choice-layout
   handle: company_card
 
   stack
-    handle: root
     gap: sm
     slot: name
     slot: cost

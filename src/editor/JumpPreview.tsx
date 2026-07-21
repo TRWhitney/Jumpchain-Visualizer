@@ -5,8 +5,17 @@ import {
   JumpChoiceRendererScope,
   JumpRenderer,
   JumpSectionRendererScope,
+  JumpTraitRendererScope,
   type JumpRendererProps,
 } from "../tracker/JumpRenderer";
+import {
+  createLayoutPreviewFixture,
+  layoutPreviewImagePath,
+} from "./layoutPreview";
+
+const layoutPreviewImageUrl = `data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180"><rect width="320" height="180" fill="#d8d3c6"/><path d="M24 142l72-72 48 48 42-42 110 66" fill="none" stroke="#6f766f" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><circle cx="246" cy="48" r="22" fill="#b58b37"/></svg>',
+)}`;
 
 const emptyActorState = (): ActorEntryState => ({
   choices: {},
@@ -22,6 +31,7 @@ export type PreviewSelection = {
 
 export function JumpPreview({
   packageItem,
+  layoutPackageItem,
   assets,
   selection,
   showBounds,
@@ -29,19 +39,39 @@ export function JumpPreview({
   onHoveredBoundChange,
 }: {
   packageItem: CanonicalJumpPackage;
+  layoutPackageItem?: CanonicalJumpPackage;
   assets: Readonly<Record<string, Uint8Array>>;
   selection: PreviewSelection;
   showBounds: boolean;
   hoveredBound: string | null;
   onHoveredBoundChange: (value: string | null) => void;
 }) {
-  const actorState = useMemo(() => emptyActorState(), []);
+  const authoredLayout = (layoutPackageItem ?? packageItem).layouts.find(
+    (item) => item.handle === selection.handle,
+  );
+  const layoutPreview = useMemo(
+    () =>
+      selection.kind === "layout" && authoredLayout
+        ? createLayoutPreviewFixture(
+            layoutPackageItem ?? packageItem,
+            authoredLayout,
+          )
+        : null,
+    [authoredLayout, layoutPackageItem, packageItem, selection.kind],
+  );
+  const renderedPackage = layoutPreview?.packageItem ?? packageItem;
+  const actorState = useMemo(() => {
+    const state = emptyActorState();
+    for (const handle of layoutPreview?.activeChoiceHandles ?? [])
+      state.choices[handle] = true;
+    return state;
+  }, [layoutPreview]);
   const evaluation = useMemo(
     () =>
       evaluateChain({
         order: ["preview-entry"],
-        packageIdByEntry: { "preview-entry": packageItem.id },
-        packages: { [packageItem.id]: packageItem },
+        packageIdByEntry: { "preview-entry": renderedPackage.id },
+        packages: { [renderedPackage.id]: renderedPackage },
         jumpState: {
           "preview-entry": {
             actors: { jumper: actorState },
@@ -50,7 +80,7 @@ export function JumpPreview({
         },
         jumperName: "Preview Jumper",
       }),
-    [actorState, packageItem],
+    [actorState, renderedPackage],
   );
   const assetUrls = useMemo(
     () =>
@@ -69,12 +99,12 @@ export function JumpPreview({
     [assetUrls],
   );
   const rendererProps: JumpRendererProps = {
-    packageItem,
+    packageItem: renderedPackage,
     entryId: "preview-entry",
     actorId: "jumper",
     state: actorState,
     evaluation: evaluation.runtime["preview-entry"]?.actors.jumper ?? {
-      balance: packageItem.startingPoints,
+      balance: renderedPackage.startingPoints,
       resources: {},
       properties: {},
       choices: {},
@@ -94,39 +124,40 @@ export function JumpPreview({
     },
     tags: {},
     companions: [],
-    gauntletActive: packageItem.nativeGauntlet,
-    resolveAsset: (path) => assetUrls[path],
+    gauntletActive: renderedPackage.nativeGauntlet,
+    resolveAsset: (path) =>
+      path === layoutPreviewImagePath ? layoutPreviewImageUrl : assetUrls[path],
     dispatch: () => undefined,
   };
-  const section = packageItem.sections.find(
+  const section = renderedPackage.sections.find(
     (item) => item.handle === selection.handle,
   );
-  const choice = packageItem.choices.find(
+  const choice = renderedPackage.choices.find(
     (item) => item.handle === selection.handle,
   );
-  const layout = packageItem.layouts.find(
+  const layout = renderedPackage.layouts.find(
     (item) => item.handle === selection.handle,
   );
   const layoutSection = layout
-    ? (packageItem.sections.find(
+    ? (renderedPackage.sections.find(
         (item) =>
           item.layout === layout.handle ||
           (layout.kind === "section-layout" &&
-            packageItem.defaultSectionLayout === layout.handle),
-      ) ?? packageItem.sections[0])
+            renderedPackage.defaultSectionLayout === layout.handle),
+      ) ?? renderedPackage.sections[0])
     : undefined;
   const layoutChoice = layout
-    ? (packageItem.choices.find(
+    ? (renderedPackage.choices.find(
         (item) =>
           item.layout === layout.handle ||
           (layout.kind === "choice-layout" &&
-            packageItem.defaultChoiceLayout === layout.handle),
-      ) ?? packageItem.choices[0])
+            renderedPackage.defaultChoiceLayout === layout.handle),
+      ) ?? renderedPackage.choices[0])
     : undefined;
 
   return (
     <div
-      className={`editor-real-preview${showBounds ? " show-layout-bounds" : ""}`}
+      className={`editor-real-preview${layoutPreview ? " format-one-jump-renderer" : ""}${showBounds ? " show-layout-bounds" : ""}`}
       data-hovered-bound={hoveredBound ?? undefined}
       onMouseOver={(event) => {
         if (!showBounds) return;
@@ -137,7 +168,22 @@ export function JumpPreview({
       }}
       onMouseLeave={() => onHoveredBoundChange(null)}
     >
-      {selection.kind === "section" && section ? (
+      {layoutPreview?.kind === "section-layout" ? (
+        <JumpSectionRendererScope
+          section={layoutPreview.section}
+          rendererProps={rendererProps}
+        />
+      ) : layoutPreview?.kind === "choice-layout" ? (
+        <JumpChoiceRendererScope
+          choice={layoutPreview.choice}
+          rendererProps={rendererProps}
+        />
+      ) : layoutPreview?.kind === "trait-layout" ? (
+        <JumpTraitRendererScope
+          trait={layoutPreview.trait}
+          rendererProps={rendererProps}
+        />
+      ) : selection.kind === "section" && section ? (
         <JumpSectionRendererScope
           section={section}
           rendererProps={rendererProps}

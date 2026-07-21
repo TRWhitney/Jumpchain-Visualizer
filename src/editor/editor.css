@@ -942,6 +942,190 @@
   align-items: start;
   gap: 0.25rem;
 }
+.editor-color-control {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+}
+.editor-color-combobox {
+  display: grid;
+  grid-template-columns: 2rem minmax(4rem, 1fr);
+  min-width: 0;
+  min-height: 2.25rem;
+  overflow: hidden;
+  background: #20201e;
+  border: 1px solid #52524c;
+  border-radius: 0.2rem;
+}
+.editor-color-combobox.has-choices {
+  grid-template-columns: 2rem minmax(4rem, 1fr) 2rem;
+}
+.editor-color-combobox:focus-within {
+  border-color: var(--app-accent-focus);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--app-accent-focus) 28%, transparent);
+}
+.editor-field-occurrence.is-error .editor-color-combobox {
+  border-color: #d96b6b;
+  box-shadow: 0 0 0 1px rgb(217 107 107 / 20%);
+}
+.editor-field-occurrence.is-warning .editor-color-combobox {
+  border-color: #c99b50;
+  box-shadow: 0 0 0 1px rgb(201 155 80 / 16%);
+}
+.editor-field-occurrence.is-info .editor-color-combobox {
+  border-color: #6c91c9;
+}
+.editor-color-combobox .editor-color-picker {
+  width: 2rem;
+  min-width: 2rem;
+  min-height: 100%;
+  padding: 0.38rem 0.3rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+.editor-color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.editor-color-picker::-webkit-color-swatch,
+.editor-color-picker::-moz-color-swatch {
+  border: 1px solid rgb(255 255 255 / 34%);
+  border-radius: 0.18rem;
+}
+.editor-color-combobox .editor-color-value {
+  min-width: 0;
+  min-height: 100%;
+  padding: 0.38rem 0.45rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+}
+.editor-color-combobox .editor-color-choice-trigger {
+  display: grid;
+  min-width: 2rem;
+  min-height: 100%;
+  place-items: center;
+  padding: 0;
+  color: #9c9c96;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+.editor-color-combobox .editor-color-choice-trigger:hover,
+.editor-color-combobox .editor-color-choice-trigger[aria-expanded="true"] {
+  color: #eee;
+  background: #30302d;
+}
+.editor-color-choice-trigger .editor-diagnostics-chevron {
+  transform: rotate(90deg);
+}
+.editor-color-choice-trigger[aria-expanded="true"] .editor-diagnostics-chevron {
+  transform: rotate(-90deg);
+}
+.editor-color-choice-popover {
+  position: absolute;
+  z-index: 8;
+  bottom: calc(100% + 0.3rem);
+  left: 0;
+  display: grid;
+  width: min(11rem, calc(100vw - 2rem));
+  max-height: 9rem;
+  gap: 0.4rem;
+  padding: 0.4rem;
+  overflow-y: auto;
+  background: #242422;
+  border: 1px solid #44443f;
+  border-radius: 0.2rem;
+  box-shadow: 0 0.65rem 1.3rem rgb(0 0 0 / 30%);
+}
+.editor-color-choice-popover section {
+  display: grid;
+  gap: 0.2rem;
+}
+.editor-color-choice-popover section > strong {
+  color: #92928c;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+}
+.editor-color-choice-popover section > div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.2rem;
+}
+.editor-color-choice-popover section.is-built-in > div {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.editor-color-choice-popover section.is-theme > div {
+  grid-template-columns: minmax(0, 1fr);
+}
+.editor-color-choice-popover .editor-color-choice {
+  display: grid;
+  min-width: 0;
+  min-height: 2rem;
+  grid-template-rows: 0.85rem auto;
+  align-items: center;
+  justify-items: center;
+  gap: 0.1rem;
+  padding: 0.18rem 0.12rem;
+  color: #c8c8c2;
+  background: #20201e;
+  border: 1px solid #484843;
+  border-radius: 0.2rem;
+  cursor: pointer;
+}
+.editor-color-choice-popover .editor-color-choice:hover,
+.editor-color-choice-popover .editor-color-choice.is-selected {
+  color: #fff;
+  border-color: var(--app-accent-border);
+}
+.editor-color-choice-popover .editor-color-choice i {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex: 0 0 auto;
+  background: var(--editor-color-token);
+  border: 1px solid rgb(255 255 255 / 34%);
+  border-radius: 0.16rem;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 32%);
+}
+.editor-color-choice-popover .editor-color-choice span {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.58rem;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.editor-color-choice-popover section.is-built-in .editor-color-choice {
+  min-height: 1.7rem;
+  grid-template-rows: 1fr;
+  padding: 0.18rem;
+}
+.editor-color-choice-popover section.is-built-in .editor-color-choice i {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+.editor-color-choice-popover section.is-built-in .editor-color-choice span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.editor-color-choice-popover section.is-theme .editor-color-choice {
+  min-height: 1.8rem;
+  grid-template-columns: 0.85rem minmax(0, 1fr);
+  grid-template-rows: 1fr;
+  justify-items: start;
+  gap: 0.35rem;
+  padding: 0.2rem 0.35rem;
+}
 .editor-schema-field-control input[type="checkbox"] {
   width: 1rem;
   min-height: 1rem;
@@ -953,8 +1137,7 @@
   font-size: 0.78rem;
   font-weight: 400;
 }
-.editor-schema-field-control :is(input, textarea)::placeholder,
-.editor-schema-field-control select.has-default-shadowtext {
+.editor-schema-field-control :is(input, textarea)::placeholder {
   color: #92928d;
   opacity: 1;
 }
@@ -1847,7 +2030,22 @@
 .editor-preview-panel {
   display: grid;
   min-height: 0;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "toolbar"
+    "bounds"
+    "preview";
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+.editor-preview-toolbar {
+  grid-area: toolbar;
+}
+.editor-bounds-tools {
+  grid-area: bounds;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid #383834;
+}
+.editor-preview-scroll {
+  grid-area: preview;
 }
 .editor-preview-toolbar span {
   display: grid;
@@ -1865,29 +2063,36 @@
 }
 .editor-bounds-legend {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.65rem;
   padding: 0.35rem 0.55rem;
   color: #aaa9a3;
   background: #20201e;
-  border-bottom: 1px solid #383834;
   font-size: 0.66rem;
 }
 .editor-bounds-legend span::before {
   display: inline-block;
-  width: 0.55rem;
-  height: 0.55rem;
+  width: 0.65rem;
+  height: 0.65rem;
   margin-right: 0.25rem;
-  border: 1px solid currentColor;
+  border: 2px dashed currentColor;
+  border-radius: 0.1rem;
   content: "";
 }
 .editor-bounds-legend .is-container {
-  color: #5d9ed6;
+  color: #087eaa;
 }
 .editor-bounds-legend .is-slot {
-  color: #d78857;
+  color: #207b46;
+}
+.editor-bounds-legend .is-slot::before {
+  border-style: solid;
 }
 .editor-bounds-legend .is-reference {
-  color: #8f76c5;
+  color: #8e3db0;
+}
+.editor-bounds-legend .is-reference::before {
+  border-style: dotted;
 }
 
 .editor-preview-scroll {
@@ -1914,30 +2119,69 @@
   min-width: 0;
 }
 .editor-real-preview.show-layout-bounds [data-layout-bound] {
-  outline: 1px solid #5d9ed6;
+  --layout-bound-color: rgb(8 126 170 / 72%);
+  --layout-bound-glow: rgb(8 126 170 / 12%);
+  position: relative;
+  outline: 1px dashed var(--layout-bound-color);
+  outline-offset: 1px;
+  transition:
+    outline-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.editor-real-preview.show-layout-bounds [data-layout-bound-kind="slot"] {
+  --layout-bound-color: rgb(32 123 70 / 78%);
+  --layout-bound-glow: rgb(32 123 70 / 12%);
+  outline-style: solid;
+}
+.editor-real-preview.show-layout-bounds [data-layout-bound-kind="reference"] {
+  --layout-bound-color: rgb(142 61 176 / 78%);
+  --layout-bound-glow: rgb(142 61 176 / 12%);
+  outline-style: dotted;
+}
+.editor-real-preview.show-layout-bounds
+  [data-layout-bound].is-layout-bound-active {
+  z-index: 1;
+  outline: 2px solid var(--layout-bound-color);
   outline-offset: 2px;
-}
-.editor-real-preview.show-layout-bounds [data-layout-kind="slot"] {
-  outline-color: #d78857;
-}
-.editor-real-preview.show-layout-bounds [data-layout-kind="text"],
-.editor-real-preview.show-layout-bounds [data-layout-kind="image"],
-.editor-real-preview.show-layout-bounds [data-layout-kind="choice"] {
-  outline-color: #8f76c5;
-}
-.editor-real-preview.show-layout-bounds [data-layout-bound]:hover {
-  outline-width: 2px;
-  background-image: linear-gradient(rgb(93 158 214 / 7%), rgb(93 158 214 / 7%));
+  box-shadow: 0 0 0 0.22rem var(--layout-bound-glow);
 }
 .editor-bound-readout {
-  min-height: 1.7rem;
-  padding: 0.35rem 0.55rem;
-  color: #aaa9a3;
-  background: #20201e;
-  border-top: 1px solid #383834;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  min-height: 1.8rem;
+  margin: 0.1rem 0.55rem 0;
+  padding: 0.35rem 0.45rem;
+  overflow: hidden;
+  color: #deded8;
+  background: #1d1d1b;
+  border: 1px solid #454540;
+  border-radius: 0.28rem;
   font:
-    0.65rem ui-monospace,
+    600 0.62rem/1.3 ui-monospace,
     monospace;
+}
+.editor-bound-readout i {
+  flex: 0 0 auto;
+  width: 0.55rem;
+  height: 0.55rem;
+  background: #777771;
+  border-radius: 50%;
+}
+.editor-bound-readout span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.editor-bound-readout[data-layout-bound-kind="container"] i {
+  background: #087eaa;
+}
+.editor-bound-readout[data-layout-bound-kind="slot"] i {
+  background: #207b46;
+}
+.editor-bound-readout[data-layout-bound-kind="reference"] i {
+  background: #8e3db0;
 }
 
 .editor-properties-panel {
@@ -2226,6 +2470,42 @@
   color: #252522;
   background: #fff;
   border-color: #aaa79e;
+}
+[data-app-theme="light"] .editor-color-combobox {
+  background: #fff;
+  border-color: #aaa79e;
+}
+[data-app-theme="light"] .editor-color-combobox .editor-color-choice-trigger {
+  color: #686861;
+}
+[data-app-theme="light"]
+  .editor-color-combobox
+  .editor-color-choice-trigger:hover,
+[data-app-theme="light"]
+  .editor-color-combobox
+  .editor-color-choice-trigger[aria-expanded="true"] {
+  color: #171717;
+  background: #e4e1d9;
+}
+[data-app-theme="light"] .editor-color-choice-popover {
+  background: #eeece6;
+  border-color: #aaa79e;
+}
+[data-app-theme="light"] .editor-color-choice-popover section > strong {
+  color: #686861;
+}
+[data-app-theme="light"] .editor-color-choice-popover .editor-color-choice {
+  color: #343430;
+  background: #fff;
+  border-color: #aaa79e;
+}
+[data-app-theme="light"]
+  .editor-color-choice-popover
+  .editor-color-choice:hover,
+[data-app-theme="light"]
+  .editor-color-choice-popover
+  .editor-color-choice.is-selected {
+  color: #171717;
 }
 [data-app-theme="light"] .editor-find-field-shell,
 [data-app-theme="light"] .editor-replace-field-shell {

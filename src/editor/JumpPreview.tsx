@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { evaluateChain, type ActorEntryState } from "../domain";
 import type { CanonicalJumpPackage } from "../markup";
 import {
@@ -29,6 +29,11 @@ export type PreviewSelection = {
   handle?: string;
 };
 
+export type LayoutBoundHover = {
+  path: string;
+  kind: "container" | "slot" | "reference";
+};
+
 export function JumpPreview({
   packageItem,
   layoutPackageItem,
@@ -43,9 +48,10 @@ export function JumpPreview({
   assets: Readonly<Record<string, Uint8Array>>;
   selection: PreviewSelection;
   showBounds: boolean;
-  hoveredBound: string | null;
-  onHoveredBoundChange: (value: string | null) => void;
+  hoveredBound: LayoutBoundHover | null;
+  onHoveredBoundChange: (value: LayoutBoundHover | null) => void;
 }) {
+  const activeBoundRef = useRef<HTMLElement | null>(null);
   const authoredLayout = (layoutPackageItem ?? packageItem).layouts.find(
     (item) => item.handle === selection.handle,
   );
@@ -98,6 +104,12 @@ export function JumpPreview({
     },
     [assetUrls],
   );
+  useEffect(() => {
+    if (showBounds) return;
+    activeBoundRef.current?.classList.remove("is-layout-bound-active");
+    activeBoundRef.current = null;
+    onHoveredBoundChange(null);
+  }, [onHoveredBoundChange, showBounds]);
   const rendererProps: JumpRendererProps = {
     packageItem: renderedPackage,
     entryId: "preview-entry",
@@ -158,15 +170,29 @@ export function JumpPreview({
   return (
     <div
       className={`editor-real-preview${layoutPreview ? " format-one-jump-renderer" : ""}${showBounds ? " show-layout-bounds" : ""}`}
-      data-hovered-bound={hoveredBound ?? undefined}
-      onMouseOver={(event) => {
+      data-hovered-bound={hoveredBound?.path ?? undefined}
+      onPointerOver={(event) => {
         if (!showBounds) return;
         const target = (event.target as HTMLElement).closest<HTMLElement>(
           "[data-layout-bound]",
         );
-        onHoveredBoundChange(target?.dataset.layoutBound ?? null);
+        if (target === activeBoundRef.current) return;
+        activeBoundRef.current?.classList.remove("is-layout-bound-active");
+        activeBoundRef.current = target;
+        target?.classList.add("is-layout-bound-active");
+        const kind = target?.dataset.layoutBoundKind;
+        onHoveredBoundChange(
+          target?.dataset.layoutBound &&
+            (kind === "container" || kind === "slot" || kind === "reference")
+            ? { path: target.dataset.layoutBound, kind }
+            : null,
+        );
       }}
-      onMouseLeave={() => onHoveredBoundChange(null)}
+      onPointerLeave={() => {
+        activeBoundRef.current?.classList.remove("is-layout-bound-active");
+        activeBoundRef.current = null;
+        onHoveredBoundChange(null);
+      }}
     >
       {layoutPreview?.kind === "section-layout" ? (
         <JumpSectionRendererScope

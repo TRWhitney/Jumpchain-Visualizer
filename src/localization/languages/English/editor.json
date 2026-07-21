@@ -370,6 +370,16 @@
         "builtInChoiceLayout": "built-in choice layout",
         "builtInTraitLayout": "built-in trait layout"
       },
+      "color": {
+        "hexPlaceholder": "#RRGGBB",
+        "hexOrTokenPlaceholder": "#RRGGBB or color token",
+        "chooseWithPicker": "Choose {{field}} with color picker",
+        "showChoicesForField": "Show color choices for {{field}}",
+        "availableTokens": "Available color tokens",
+        "builtInTokens": "Built-in colors",
+        "themeTokens": "Theme colors",
+        "useToken": "Use {{token}} color token"
+      },
       "previewStatus": {
         "label": "Preview: {{status}}",
         "currentSource": "Current source",
@@ -410,6 +420,7 @@
         "closeCompletions": "Close completions",
         "contextView": "Context view",
         "layoutBoundsLegend": "Layout bounds legend",
+        "layoutBoundReadout": "Layout bound details",
         "documentDiagnostics": "Document diagnostics",
         "filterDiagnosticsBySeverity": "Filter diagnostics by severity",
         "declarationBreadcrumbs": "Declaration breadcrumbs",
@@ -517,6 +528,8 @@
         "container": "Container",
         "slot": "Slot",
         "reference": "Reference",
+        "layoutBoundReadout": "{{kind}} · {{path}}",
+        "layoutBoundReadoutIdle": "Hover a bound to inspect",
         "diagnostics": "Diagnostics",
         "noDiagnosticClassesAreIncluded": "No diagnostic classes are included.",
         "noDeclarationSelected": "No declaration selected",

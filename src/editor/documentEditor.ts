@@ -737,7 +737,8 @@ function renderValue(
     type === "quotedString" ||
     type.startsWith("quotedString:") ||
     type === "renderableScalar" ||
-    type === "richText"
+    type === "richText" ||
+    ((type === "color" || type === "hexColor") && value.startsWith("#"))
   )
     return `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
   return value;

@@ -19,9 +19,14 @@ import {
   type KeybindingAction,
   type KeybindingChord,
 } from "../settings/model";
-import { JumpPreview, type PreviewSelection } from "./JumpPreview";
+import {
+  JumpPreview,
+  type LayoutBoundHover,
+  type PreviewSelection,
+} from "./JumpPreview";
 import { Format1LanguageService, type FormatSymbol } from "./languageService";
 import { summarizeWorkspace, type EditorWorkspaceSnapshot } from "./model";
+import { createSelectControlModel } from "./selectControl";
 import {
   addDocumentField,
   createAndAssignDocumentResource,
@@ -68,6 +73,11 @@ import {
 } from "./SourceCodeEditor";
 import { assignQuickAddMnemonics } from "./quickAdd";
 import { translate, translateDiagnostic } from "../localization";
+import {
+  format1BuiltInColors,
+  normalizeFormat1HexColor,
+} from "../markup/format1Colors";
+import { ColorFieldControl, type EditorColorChoice } from "./ColorFieldControl";
 
 type SaveState = "Saved" | "Saving" | "Unsaved" | "Save failed";
 type NavigationTab = "content" | "files";
@@ -77,6 +87,25 @@ type Severity = PackageDiagnostic["severity"];
 type WorkspaceHistoryState = Pick<EditorWorkspaceSnapshot, "files" | "assets">;
 
 const service = new Format1LanguageService();
+
+function editorColorChoices(
+  files: Readonly<Record<string, string>>,
+  symbols: readonly FormatSymbol[],
+): EditorColorChoice[] {
+  const choices: EditorColorChoice[] = Object.entries(format1BuiltInColors).map(
+    ([value, color]) => ({ value, color, source: "built-in" }),
+  );
+  for (const symbol of symbols) {
+    if (symbol.kind !== "theme" || !symbol.handle) continue;
+    const color = normalizeFormat1HexColor(
+      readSourceField(files[symbol.file], symbol, "color"),
+    );
+    if (!color || choices.some((choice) => choice.value === symbol.handle))
+      continue;
+    choices.push({ value: symbol.handle, color, source: "theme" });
+  }
+  return choices;
+}
 
 const declarationGroups = [
   ["Resources", ["resource"]],
@@ -217,7 +246,9 @@ export function EditorWorkspace({
     Record<Severity, boolean>
   >({ error: true, warning: true, info: true });
   const [showBounds, setShowBounds] = useState(false);
-  const [hoveredBound, setHoveredBound] = useState<string | null>(null);
+  const [hoveredBound, setHoveredBound] = useState<LayoutBoundHover | null>(
+    null,
+  );
   const [history, setHistory] = useState<WorkspaceHistoryState[]>(() => [
     { files: workspace.files, assets: workspace.assets },
   ]);
@@ -1606,7 +1637,7 @@ export function EditorWorkspace({
                 {translate("ui.editorWorkspace.text.showBounds")}
               </label>
             </div>
-            {showBounds && (
+            <div className="editor-bounds-tools" hidden={!showBounds}>
               <div
                 className="editor-bounds-legend"
                 aria-label={translate(
@@ -1623,7 +1654,29 @@ export function EditorWorkspace({
                   {translate("ui.editorWorkspace.text.reference")}
                 </span>
               </div>
-            )}
+              <output
+                className="editor-bound-readout"
+                data-layout-bound-kind={hoveredBound?.kind}
+                aria-label={translate(
+                  "ui.editorWorkspace.ariaLabel.layoutBoundReadout",
+                )}
+                aria-live="polite"
+              >
+                <i aria-hidden="true" />
+                <span>
+                  {hoveredBound
+                    ? translate("ui.editorWorkspace.text.layoutBoundReadout", {
+                        kind: translate(
+                          `ui.editorWorkspace.text.${hoveredBound.kind}`,
+                        ),
+                        path: hoveredBound.path,
+                      })
+                    : translate(
+                        "ui.editorWorkspace.text.layoutBoundReadoutIdle",
+                      )}
+                </span>
+              </output>
+            </div>
             <div className="editor-preview-scroll">
               <JumpPreview
                 packageItem={previewPackage}
@@ -1635,13 +1688,6 @@ export function EditorWorkspace({
                 onHoveredBoundChange={setHoveredBound}
               />
             </div>
-            {showBounds && (
-              <output className="editor-bound-readout">
-                {hoveredBound
-                  ? `Hovered: ${hoveredBound}`
-                  : "Hover a bound to inspect it"}
-              </output>
-            )}
           </div>
         ) : (
           <PropertiesPanel
@@ -1860,6 +1906,11 @@ function LayoutNodeFields({
           definition.default === undefined
             ? null
             : { kind: "value", value: definition.default };
+        const selectControl = createSelectControlModel(
+          value,
+          omissionDefault,
+          options,
+        );
         const referenceKind = definition.type?.startsWith("handleReference:")
           ? definition.type.slice("handleReference:".length)
           : null;
@@ -1880,20 +1931,20 @@ function LayoutNodeFields({
                   candidate.handle ? [candidate.handle] : [],
                 )
             : []),
-          ...(definition.type === "color"
-            ? [
-                ...options,
-                ...symbols
-                  .filter((candidate) => candidate.kind === "theme")
-                  .flatMap((candidate) => candidate.handle ?? []),
-              ]
-            : []),
         ];
+        const colorChoices =
+          definition.type === "color" ? editorColorChoices(files, symbols) : [];
         const matchingDiagnostics = diagnostics.filter(
           (diagnostic) =>
             diagnostic.target?.file === symbol.file &&
             diagnostic.target.declarationFrom === symbol.from &&
             diagnostic.target.field === fieldName,
+        );
+        const fieldSeverity = (["error", "warning", "info"] as const).find(
+          (severity) =>
+            matchingDiagnostics.some(
+              (diagnostic) => diagnostic.severity === severity,
+            ),
         );
         const listId = `layout-${symbol.from}-${fieldName}`;
         const fieldLabel = translate(
@@ -1907,38 +1958,60 @@ function LayoutNodeFields({
         } as const;
         return (
           <div className="editor-schema-field" key={fieldName}>
-            <div className="editor-field-occurrence">
+            <div
+              className={`editor-field-occurrence${fieldSeverity ? ` is-${fieldSeverity}` : ""}`}
+            >
               <span>
                 {fieldLabel}
                 {definition.required && (
                   <small>{translate("ui.editorWorkspace.text.required")}</small>
                 )}
               </span>
-              {options.length &&
-              [
-                "enum",
-                "spacing",
-                "size",
-                "align",
-                "justify",
-                "textAlign",
-              ].includes(definition.type ?? "") ? (
+              {["color", "hexColor"].includes(definition.type ?? "") ? (
+                <ColorFieldControl
+                  label={fieldLabel}
+                  value={value}
+                  choices={colorChoices}
+                  allowTokens={definition.type === "color"}
+                  ariaInvalid={matchingDiagnostics.length > 0}
+                  ariaDescribedBy={
+                    matchingDiagnostics.length
+                      ? `${listId}-diagnostics`
+                      : undefined
+                  }
+                  onChange={(nextValue) =>
+                    onUpdate(symbol, fieldName, nextValue)
+                  }
+                  onBlur={onEndFieldEdit}
+                />
+              ) : options.length &&
+                [
+                  "enum",
+                  "spacing",
+                  "size",
+                  "align",
+                  "justify",
+                  "textAlign",
+                ].includes(definition.type ?? "") ? (
                 <select
                   aria-label={fieldLabel}
-                  value={value}
+                  value={selectControl.value}
                   {...common}
                   onChange={(event) =>
-                    onUpdate(symbol, fieldName, event.target.value)
+                    onUpdate(
+                      symbol,
+                      fieldName,
+                      selectControl.authoredValue(event.target.value),
+                    )
                   }
                   onBlur={onEndFieldEdit}
                 >
-                  {!definition.required && (
+                  {!definition.required && selectControl.showNotSet && (
                     <option value="">
-                      {defaultShadowText(omissionDefault) ??
-                        translate("ui.editorWorkspace.text.notSet")}
+                      {translate("ui.editorWorkspace.text.notSet")}
                     </option>
                   )}
-                  {options.map((option) => (
+                  {selectControl.options.map((option) => (
                     <option key={option} value={option}>
                       {option}
                     </option>
@@ -2143,6 +2216,9 @@ function LayoutTreeEditor({
   const [newUsing, setNewUsing] = useState("");
   const [draggedNode, setDraggedNode] = useState<LayoutNodeRef | null>(null);
   const draggedNodeRef = useRef<LayoutNodeRef | null>(null);
+  const [layoutDragBoundaryActive, setLayoutDragBoundaryActive] =
+    useState(false);
+  const layoutDragBoundaryActiveRef = useRef(false);
   const [dropTarget, setDropTarget] = useState<LayoutDropTarget | null>(null);
   const dropTargetRef = useRef<LayoutDropTarget | null>(null);
   const [containerPresentationOpen, setContainerPresentationOpen] =
@@ -2276,6 +2352,32 @@ function LayoutTreeEditor({
   const updateDropTarget = (target: LayoutDropTarget | null) => {
     dropTargetRef.current = target;
     setDropTarget(target);
+  };
+  const beginLayoutControlGesture = (
+    row: HTMLDivElement,
+    target: EventTarget | null,
+  ) => {
+    const blocksRowDrag =
+      target instanceof Element &&
+      Boolean(target.closest("[data-editor-drag-boundary]"));
+    if (blocksRowDrag && layoutDragBoundaryActiveRef.current) {
+      row.draggable = false;
+      return;
+    }
+    layoutDragBoundaryActiveRef.current = blocksRowDrag;
+    setLayoutDragBoundaryActive(blocksRowDrag);
+    if (!blocksRowDrag) return;
+    row.draggable = false;
+    const restoreRowDrag = () => {
+      window.removeEventListener("pointerup", restoreRowDrag);
+      window.removeEventListener("mouseup", restoreRowDrag);
+      window.setTimeout(() => {
+        layoutDragBoundaryActiveRef.current = false;
+        setLayoutDragBoundaryActive(false);
+      });
+    };
+    window.addEventListener("pointerup", restoreRowDrag);
+    window.addEventListener("mouseup", restoreRowDrag);
   };
 
   const reorderToDrop = (target: LayoutEditorNode, after: boolean) => {
@@ -2576,11 +2678,22 @@ function LayoutTreeEditor({
                       ? ` drop-${dropTarget.placement}`
                       : ""
                   }`}
-                  draggable={tree.structurallySafe}
+                  draggable={tree.structurallySafe && !layoutDragBoundaryActive}
                   data-layout-node-kind={node.kind}
                   data-layout-node-path={node.path}
                   key={node.id}
+                  onPointerDownCapture={(event) =>
+                    beginLayoutControlGesture(event.currentTarget, event.target)
+                  }
+                  onMouseDownCapture={(event) =>
+                    beginLayoutControlGesture(event.currentTarget, event.target)
+                  }
+                  onDragStartCapture={(event) => {
+                    if (layoutDragBoundaryActiveRef.current)
+                      event.preventDefault();
+                  }}
                   onDragStart={(event) => {
+                    if (event.defaultPrevented) return;
                     event.dataTransfer.effectAllowed = "move";
                     updateDraggedNode(layoutNodeReference(node));
                   }}
@@ -3426,18 +3539,13 @@ function StructuredPanel({
       ...(definition?.type === "quotedString:packageRelativeAssetPath"
         ? assets
         : []),
-      ...(["costAmount", "grantAmount", "color"].includes(
-        definition?.type ?? "",
-      )
+      ...(["costAmount", "grantAmount"].includes(definition?.type ?? "")
         ? fieldValues(definition)
-        : []),
-      ...(definition?.type === "color"
-        ? symbols
-            .filter((candidate) => candidate.kind === "theme")
-            .flatMap((candidate) => candidate.handle ?? [])
         : []),
     ].filter((option, index, options) => options.indexOf(option) === index);
     const enumValues = fieldValues(definition);
+    const colorChoices =
+      definition?.type === "color" ? editorColorChoices(files, symbols) : [];
     const listId =
       `editor-${symbol.file}-${symbol.from}-${fieldName}`.replaceAll(
         /[^a-zA-Z0-9_-]/g,
@@ -3457,6 +3565,11 @@ function StructuredPanel({
       >
         {displayed.map((value, occurrence) =>
           (() => {
+            const selectControl = createSelectControlModel(
+              value,
+              defaultValue,
+              enumValues,
+            );
             const matchingDiagnostics = diagnostics.filter(
               (diagnostic) =>
                 diagnostic.target?.file === symbol.file &&
@@ -3519,6 +3632,20 @@ function StructuredPanel({
                         </small>
                       )}
                     </>
+                  ) : ["color", "hexColor"].includes(definition?.type ?? "") ? (
+                    <ColorFieldControl
+                      label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      value={value}
+                      choices={colorChoices}
+                      allowTokens={definition?.type === "color"}
+                      autoFocus={fieldName === focusField && occurrence === 0}
+                      ariaInvalid={matchingDiagnostics.length > 0}
+                      ariaDescribedBy={diagnosticId}
+                      onChange={(nextValue) =>
+                        onUpdate(symbol, fieldName, nextValue, occurrence)
+                      }
+                      onBlur={onEndFieldEdit}
+                    />
                   ) : enumValues.length > 0 &&
                     [
                       "enum",
@@ -3531,30 +3658,25 @@ function StructuredPanel({
                     <select
                       autoFocus={fieldName === focusField && occurrence === 0}
                       aria-label={`${fieldName}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
-                      className={
-                        value === "" && shadowText
-                          ? "has-default-shadowtext"
-                          : undefined
-                      }
-                      value={value}
+                      value={selectControl.value}
                       {...accessibility}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const nextValue = event.target.value;
                         onUpdate(
                           symbol,
                           fieldName,
-                          event.target.value,
+                          selectControl.authoredValue(nextValue),
                           occurrence,
-                        )
-                      }
+                        );
+                      }}
                       onBlur={onEndFieldEdit}
                     >
-                      {!definition?.required && (
+                      {!definition?.required && selectControl.showNotSet && (
                         <option value="">
-                          {shadowText ??
-                            translate("ui.editorWorkspace.text.notSet")}
+                          {translate("ui.editorWorkspace.text.notSet")}
                         </option>
                       )}
-                      {enumValues.map((option) => (
+                      {selectControl.options.map((option) => (
                         <option key={option} value={option}>
                           {option}
                         </option>

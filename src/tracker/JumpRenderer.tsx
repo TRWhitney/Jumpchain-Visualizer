@@ -27,6 +27,13 @@ import { NumberStepper } from "./NumberStepper";
 import { resolveJumpImageSource, type JumpAssetResolver } from "./jumpImages";
 import { sourceOptionGroupName } from "./sourceOptionGroup";
 import { translate } from "../localization";
+import {
+  layoutContainerPresentationStyle,
+  layoutImageBoundaryStyle,
+  layoutImageStyle,
+  layoutInlineChildAreaStyle,
+  layoutLeafPresentationStyle,
+} from "./layoutPresentation";
 
 const label = (value: Renderable | undefined, fallback = "") =>
   value?.base ?? value?.variants[0]?.value ?? fallback;
@@ -968,98 +975,62 @@ function containsSlot(node: LayoutNode, target: string): boolean {
   );
 }
 
-const layoutSpacing: Record<string, string> = {
-  none: "0",
-  xs: ".25rem",
-  sm: ".5rem",
-  md: ".75rem",
-  lg: "1rem",
-  xl: "1.5rem",
-  "2xl": "2rem",
-};
-const layoutSizes: Record<string, string> = {
-  xs: "2rem",
-  sm: "3rem",
-  md: "5rem",
-  lg: "8rem",
-  xl: "12rem",
-  "2xl": "16rem",
-};
-const layoutTextSizes: Record<string, string> = {
-  xs: ".58rem",
-  sm: ".66rem",
-  md: ".75rem",
-  lg: ".9rem",
-  xl: "1.1rem",
-  "2xl": "1.35rem",
-};
-const builtInLayoutColors: Record<string, string> = {
-  black: "#111111",
-  white: "#ffffff",
-  gray: "#7d7b75",
-  red: "#b84a4f",
-  orange: "#bd7333",
-  yellow: "#c8aa4b",
-  green: "#568e63",
-  blue: "#587ea8",
-  purple: "#8065a8",
-  brown: "#85694e",
-  pink: "#aa6687",
-};
-
-function layoutColor(
-  token: string | undefined,
-  packageItem: CanonicalJumpPackage,
-) {
-  if (!token) return undefined;
-  const candidate = packageItem.themes[token] ?? token;
-  return /^#[0-9a-f]{6}$/i.test(candidate)
-    ? candidate
-    : builtInLayoutColors[candidate];
+function LayoutLeafBoundary({
+  node,
+  path,
+  parentKind,
+  packageItem,
+  children,
+}: {
+  node: LayoutNode;
+  path: string;
+  parentKind?: LayoutNode["kind"];
+  packageItem: CanonicalJumpPackage;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="jump-layout-leaf-boundary"
+      data-layout-bound={path}
+      data-layout-kind={node.kind}
+      data-layout-bound-kind={node.kind === "slot" ? "slot" : "reference"}
+      data-layout-align={node.presentation.align}
+      data-layout-text-align={node.presentation.textAlign}
+      style={{
+        ...layoutLeafPresentationStyle(node, packageItem, parentKind),
+        ...(node.kind === "image" ? layoutImageBoundaryStyle(node) : {}),
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
-function layoutPresentationStyle(
-  node: LayoutNode,
-  packageItem: CanonicalJumpPackage,
-): CSSProperties {
-  return {
-    gap: node.presentation.gap
-      ? (layoutSpacing[node.presentation.gap] ?? node.presentation.gap)
-      : undefined,
-    padding: node.presentation.padding
-      ? (layoutSpacing[node.presentation.padding] ?? node.presentation.padding)
-      : undefined,
-    alignItems: node.presentation.align as CSSProperties["alignItems"],
-    justifyContent:
-      node.presentation.justify === "between"
-        ? "space-between"
-        : (node.presentation.justify as CSSProperties["justifyContent"]),
-    textAlign: node.presentation.textAlign as CSSProperties["textAlign"],
-    backgroundColor: layoutColor(node.presentation.background, packageItem),
-    color: layoutColor(node.presentation.textColor, packageItem),
-    fontSize: node.presentation.textSize
-      ? layoutTextSizes[node.presentation.textSize]
-      : undefined,
-    gridTemplateColumns: node.presentation.columns
-      ? `repeat(${node.presentation.columns}, minmax(0, 1fr))`
-      : undefined,
-  };
-}
-
-function layoutImageStyle(node: LayoutNode): CSSProperties {
-  const shorthand = node.presentation.size
-    ? layoutSizes[node.presentation.size]
-    : undefined;
-  return {
-    width: shorthand ?? layoutSizes[node.presentation.width ?? ""],
-    height: shorthand ?? layoutSizes[node.presentation.height ?? ""],
-    objectFit: node.presentation.fit as CSSProperties["objectFit"],
-  };
+function LayoutInlineChildArea({
+  node,
+  children,
+}: {
+  node: LayoutNode;
+  children: ReactNode;
+}) {
+  if (children === null || children === undefined) return null;
+  const isContainer = ["stack", "inline", "wrap", "grid"].includes(node.kind);
+  const align = isContainer ? "stretch" : node.presentation.align;
+  return (
+    <div
+      className="jump-layout-inline-child-area"
+      data-layout-child-align={align ?? "unset"}
+      style={layoutInlineChildAreaStyle(node)}
+    >
+      {children}
+    </div>
+  );
 }
 
 function Layout({
   node,
   path,
+  parentKind,
   sectionHandle,
   choice,
   source,
@@ -1068,6 +1039,7 @@ function Layout({
 }: {
   node: LayoutNode;
   path?: string;
+  parentKind?: LayoutNode["kind"];
   sectionHandle: string;
   choice?: JumpChoice;
   source?: ChoiceSource;
@@ -1075,58 +1047,76 @@ function Layout({
   props: Props;
 }): ReactNode {
   const structuralPath = path ?? `${node.kind}[1]`;
-  const style = layoutPresentationStyle(node, props.packageItem);
+  const bound = (children: ReactNode) => (
+    <LayoutLeafBoundary
+      node={node}
+      path={structuralPath}
+      parentKind={parentKind}
+      packageItem={props.packageItem}
+    >
+      {children}
+    </LayoutLeafBoundary>
+  );
   if (node.kind === "slot" && choice) {
-    if (node.target === "name") return <strong>{label(choice.name)}</strong>;
+    if (node.target === "name")
+      return bound(<strong>{label(choice.name)}</strong>);
     if (node.target === "cost")
-      return (
+      return bound(
         <CostBadges
           choice={choice}
           evaluation={props.evaluation}
           source={source}
-        />
+        />,
       );
     if (node.target === "tags")
-      return <ChoiceTags choice={choice} props={props} />;
+      return bound(<ChoiceTags choice={choice} props={props} />);
     if (node.target === "control")
-      return source && !sourceUsesChoiceControl(choice, source) ? (
-        <SourceOptionControl
-          choice={choice}
-          source={source}
-          sourceRoll={sourceRoll}
-          props={props}
-        />
-      ) : (
-        <ChoiceControl choice={choice} props={props} part="control" />
+      return bound(
+        source && !sourceUsesChoiceControl(choice, source) ? (
+          <SourceOptionControl
+            choice={choice}
+            source={source}
+            sourceRoll={sourceRoll}
+            props={props}
+          />
+        ) : (
+          <ChoiceControl choice={choice} props={props} part="control" />
+        ),
       );
     if (node.target === "roll")
-      return source ? null : (
-        <div className="authored-choice-roll-slot">
-          <ChoiceControl choice={choice} props={props} part="roll" />
-        </div>
-      );
+      return source
+        ? null
+        : bound(
+            <div className="authored-choice-roll-slot">
+              <ChoiceControl choice={choice} props={props} part="roll" />
+            </div>,
+          );
   }
   if (node.kind === "slot" && node.target === "name") {
     const section = props.packageItem.sections.find(
       (item) => item.handle === sectionHandle,
     );
-    return section ? (
-      <h5 className="jump-section-layout-name">
-        {label(section.name, section.handle)}
-      </h5>
-    ) : null;
+    return section
+      ? bound(
+          <h5 className="jump-section-layout-name">
+            {label(section.name, section.handle)}
+          </h5>,
+        )
+      : null;
   }
   if (node.kind === "slot" && node.target === "roll") {
     const section = props.packageItem.sections.find(
       (item) => item.handle === sectionHandle,
     );
-    return section?.sources.length === 1 ? (
-      <SourceRollControls
-        source={section.sources[0]}
-        sectionHandle={sectionHandle}
-        props={props}
-      />
-    ) : null;
+    return section?.sources.length === 1
+      ? bound(
+          <SourceRollControls
+            source={section.sources[0]}
+            sectionHandle={sectionHandle}
+            props={props}
+          />,
+        )
+      : null;
   }
   if (node.kind === "text") {
     const owner =
@@ -1136,13 +1126,15 @@ function Layout({
       )?.text ??
       [];
     const content = owner.find((item) => item.handle === node.target)?.content;
-    return content ? (
-      <RichText source={resolved(content, props)} style={style} />
-    ) : null;
+    return content
+      ? bound(<RichText source={resolved(content, props)} />)
+      : null;
   }
-  if (node.kind === "rule") return <hr />;
+  if (node.kind === "rule") return bound(<hr />);
   if (node.kind === "input" && choice)
-    return <InputControls choice={choice} props={props} target={node.target} />;
+    return bound(
+      <InputControls choice={choice} props={props} target={node.target} />,
+    );
   if (node.kind === "image") {
     const owner =
       choice?.images ??
@@ -1153,9 +1145,15 @@ function Layout({
     const item = owner.find((image) => image.handle === node.target);
     if (!item) return null;
     const source = resolveJumpImageSource(item.src, props.resolveAsset);
-    return source ? (
-      <img src={source} alt={label(item.alt)} style={layoutImageStyle(node)} />
-    ) : null;
+    return source
+      ? bound(
+          <img
+            src={source}
+            alt={label(item.alt)}
+            style={layoutImageStyle(node)}
+          />,
+        )
+      : null;
   }
   if (node.kind === "choice") {
     const target = props.packageItem.sections
@@ -1164,7 +1162,9 @@ function Layout({
     const direct = props.packageItem.choices.find(
       (item) => item.handle === target,
     );
-    return direct ? <ChoiceWithLayout choice={direct} props={props} /> : null;
+    return direct
+      ? bound(<ChoiceWithLayout choice={direct} props={props} />)
+      : null;
   }
   if (node.kind === "expand") {
     const section = props.packageItem.sections.find(
@@ -1181,21 +1181,23 @@ function Layout({
         item.handle ===
           (section?.layout ?? props.packageItem.defaultSectionLayout),
     );
-    return source ? (
-      <SourceChoices
-        source={source}
-        sectionHandle={sectionHandle}
-        using={node.using}
-        showControls={
-          !(
-            section?.sources.length === 1 &&
-            sectionLayout &&
-            containsSlot(sectionLayout.root, "roll")
-          )
-        }
-        props={props}
-      />
-    ) : null;
+    return source
+      ? bound(
+          <SourceChoices
+            source={source}
+            sectionHandle={sectionHandle}
+            using={node.using}
+            showControls={
+              !(
+                section?.sources.length === 1 &&
+                sectionLayout &&
+                containsSlot(sectionLayout.root, "roll")
+              )
+            }
+            props={props}
+          />,
+        )
+      : null;
   }
   const Tag =
     node.kind === "inline" || node.kind === "wrap"
@@ -1207,6 +1209,7 @@ function Layout({
     Layout({
       node: child,
       path: `${structuralPath}/${child.kind}[${index + 1}]`,
+      parentKind: node.kind,
       sectionHandle,
       choice,
       source,
@@ -1219,15 +1222,22 @@ function Layout({
   return (
     <Tag
       className={`jump-layout-${node.kind}`}
-      style={style}
+      style={layoutContainerPresentationStyle(node, props.packageItem)}
       data-layout-bound={structuralPath}
       data-layout-kind={node.kind}
+      data-layout-bound-kind="container"
     >
       {children.map((child, index) => (
         <Fragment
           key={`${structuralPath}/${node.children[index].kind}[${index + 1}]`}
         >
-          {child}
+          {node.kind === "inline" || node.kind === "wrap" ? (
+            <LayoutInlineChildArea node={node.children[index]}>
+              {child}
+            </LayoutInlineChildArea>
+          ) : (
+            child
+          )}
         </Fragment>
       ))}
     </Tag>
@@ -1341,58 +1351,83 @@ function JumpSectionView({
 function TraitLayoutNode({
   node,
   path,
+  parentKind,
   trait,
   props,
 }: {
   node: LayoutNode;
   path?: string;
+  parentKind?: LayoutNode["kind"];
   trait: EvaluatedGrantRecord;
   props: Props;
 }): ReactNode {
   const structuralPath = path ?? `${node.kind}[1]`;
+  const bound = (children: ReactNode) => (
+    <LayoutLeafBoundary
+      node={node}
+      path={structuralPath}
+      parentKind={parentKind}
+      packageItem={props.packageItem}
+    >
+      {children}
+    </LayoutLeafBoundary>
+  );
   if (node.kind === "slot" && node.target === "name")
-    return <strong>{trait.name}</strong>;
+    return bound(<strong>{trait.name}</strong>);
   if (node.kind === "text") {
     const content = trait.text?.find(
       (item) => item.handle === node.target,
     )?.content;
-    return content ? (
-      <RichText
-        source={resolved(content, props)}
-        style={layoutPresentationStyle(node, props.packageItem)}
-      />
-    ) : null;
+    return content
+      ? bound(<RichText source={resolved(content, props)} />)
+      : null;
   }
   if (node.kind === "image") {
     const item = trait.images?.find((image) => image.handle === node.target);
     if (!item) return null;
     const source = resolveJumpImageSource(item.src, props.resolveAsset);
-    return source ? (
-      <img
-        src={source}
-        alt={resolved(item.alt, props)}
-        style={layoutImageStyle(node)}
-      />
-    ) : null;
+    return source
+      ? bound(
+          <img
+            src={source}
+            alt={resolved(item.alt, props)}
+            style={layoutImageStyle(node)}
+          />,
+        )
+      : null;
   }
-  if (node.kind === "rule") return <hr />;
+  if (node.kind === "rule") return bound(<hr />);
   if (!["stack", "inline", "wrap", "grid"].includes(node.kind)) return null;
   return (
     <div
       className={`jump-layout-${node.kind}`}
-      style={layoutPresentationStyle(node, props.packageItem)}
+      style={layoutContainerPresentationStyle(node, props.packageItem)}
       data-layout-bound={structuralPath}
       data-layout-kind={node.kind}
+      data-layout-bound-kind="container"
     >
-      {node.children.map((child, index) => (
-        <TraitLayoutNode
-          key={`${structuralPath}/${child.kind}[${index + 1}]`}
-          node={child}
-          path={`${structuralPath}/${child.kind}[${index + 1}]`}
-          trait={trait}
-          props={props}
-        />
-      ))}
+      {node.children.map((child, index) => {
+        const childNode = (
+          <TraitLayoutNode
+            node={child}
+            path={`${structuralPath}/${child.kind}[${index + 1}]`}
+            parentKind={node.kind}
+            trait={trait}
+            props={props}
+          />
+        );
+        return (
+          <Fragment key={`${structuralPath}/${child.kind}[${index + 1}]`}>
+            {node.kind === "inline" || node.kind === "wrap" ? (
+              <LayoutInlineChildArea node={child}>
+                {childNode}
+              </LayoutInlineChildArea>
+            ) : (
+              childNode
+            )}
+          </Fragment>
+        );
+      })}
     </div>
   );
 }

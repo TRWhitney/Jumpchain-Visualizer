@@ -324,6 +324,58 @@ describe("Format 1 structured document edits", () => {
     expect(changed.files["jump.jdef"]).toContain("    Replaced second");
   });
 
+  it("quotes Structured hex colors while leaving color tokens bare", () => {
+    const files = {
+      "layout.jdef": `theme
+  handle: accent
+  color: "#123456"
+
+section-layout
+  handle: main
+
+  stack
+    gap: md
+`,
+    };
+    const symbols = service.analyze(files).symbols;
+    const theme = symbols.find((symbol) => symbol.kind === "theme")!;
+    const themeChanged = setDocumentField(files, theme, "color", "#A1B2C3");
+    expect(themeChanged.files["layout.jdef"]).toContain('color: "#A1B2C3"');
+    expect(
+      readSourceField(
+        themeChanged.files["layout.jdef"],
+        service
+          .analyze(themeChanged.files)
+          .symbols.find((symbol) => symbol.kind === "theme")!,
+        "color",
+      ),
+    ).toBe("#A1B2C3");
+
+    const stack = service
+      .analyze(themeChanged.files)
+      .symbols.find((symbol) => symbol.kind === "stack")!;
+    const hexChanged = setDocumentField(
+      themeChanged.files,
+      stack,
+      "background",
+      "#445566",
+    );
+    expect(hexChanged.files["layout.jdef"]).toContain('background: "#445566"');
+    const currentStack = service
+      .analyze(hexChanged.files)
+      .symbols.find((symbol) => symbol.kind === "stack")!;
+    const tokenChanged = setDocumentField(
+      hexChanged.files,
+      currentStack,
+      "background",
+      "blue",
+    );
+    expect(tokenChanged.files["layout.jdef"]).toContain("background: blue");
+    expect(tokenChanged.files["layout.jdef"]).not.toContain(
+      'background: "blue"',
+    );
+  });
+
   it("keeps sentinels byte-identical across every exposed declaration field", () => {
     const declarations = [
       "jump",

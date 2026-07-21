@@ -1512,6 +1512,8 @@ semantic <code>image</code> declaration</li>
 <li>these controls belong on an <code>image</code> leaf, and would only belong on <code>slot</code> if a future
 built-in slot actually renders visual content</li>
 <li>they do not belong on the semantic <code>image</code> declaration</li>
+<li>an image with no size fields keeps its intrinsic aspect ratio, shrinks to the available width when necessary, and remains visible in every container flow</li>
+<li>when only one dimension is present, the omitted dimension follows the image aspect ratio; when both are present, <code>fit</code> controls how the image occupies that box</li>
 </ul>
 <p>Current agreed image size tokens:</p>
 <ul>
@@ -1571,6 +1573,32 @@ built-in slot actually renders visual content</li>
 </ul>
 </li>
 </ul>
+<p>Alignment has separate container, leaf, and text meanings. A container’s
+<code>align</code> controls its flow’s cross-axis: horizontally for the vertical
+<code>stack</code> flow, vertically for <code>inline</code> and <code>wrap</code>, and
+vertically inside each shared <code>grid</code> row. Container <code>justify</code>
+controls the main axis, so it is vertical for <code>stack</code> and horizontal for
+<code>inline</code> and <code>wrap</code>. A leaf’s <code>align</code> is independent of
+the container cross-axis control. In <code>inline</code> and <code>wrap</code>,
+<code>start</code>, <code>center</code>, and <code>end</code> position the intrinsic
+leaf among the available main-axis space. <code>stretch</code> grows the leaf into
+the remaining space; multiple stretched siblings divide that remainder equally
+after unstretched siblings retain their authored content area.</p>
+<p><code>text-align</code> positions text inside the space of the node to which it
+applies. Container text alignment is inherited by descendant slot, text, input,
+and image boundaries; a leaf value overrides that inheritance. An omitted leaf
+value continues to inherit. The leaf boundary owns its padding, background,
+alignment, text alignment, text size, and text color, so rich text containing
+multiple paragraphs, lists, or tables receives one coherent presentation box.</p>
+<p>Direct <code>inline</code> and <code>wrap</code> children participate in one
+source-ordered flex row. Unstretched leaves retain a bounded content area so
+<code>text-align</code> remains independently observable. A stretched leaf grows
+into the row’s remaining space; two or more stretched leaves have equal growth
+and therefore split that remainder after unstretched content. Positioned
+intrinsic images retain a bounded intrinsic area. Stack and Grid apply the same
+start/center/end boundary-placement principle in their available horizontal
+area. These sizing rules are canonical renderer behavior shared by Editor
+preview and runtime; the preview does not fake a separate alignment result.</p>
 <p>Current agreed built-in color tokens:</p>
 <ul>
 <li><code>black</code></li>
@@ -1588,6 +1616,7 @@ built-in slot actually renders visual content</li>
 <p>These are intentionally simple shorthand colors. Authors who want semantic
 meaning should prefer <code>theme</code> declarations, and authors who want precision may
 use hex values directly.</p>
+<p>The Structured editor exposes each color-capable field as one uninterrupted bordered compound control: a leading live swatch opens the platform picker, the central value accepts a six-digit hex value or legal token, and the editor’s standard chevron disclosure opens a small bounded swatch grid for built-in and package-defined theme tokens. Opening either chooser closes the other. Theme declaration colors remain hex-only. Each grid entry displays the resolved token color, and invalid authored values remain editable with the same localized inline and global diagnostic.</p>
 <h3>Cost Scale Direction</h3>
 <p>Cost shorthand should support both literal numbers and a framework-default
 symbolic cost scale.</p>

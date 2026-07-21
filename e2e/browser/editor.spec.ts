@@ -576,6 +576,532 @@ test("Show bounds does not extend the authored preview surface", async ({
   );
 });
 
+test("Show bounds matches the mock boundary language and exact hover behavior", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice layout" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel(/source$/);
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`choice-layout
+  handle: bounds_debugger
+
+  stack
+    slot: name
+    text: description
+    slot: control
+`);
+  await editor.getByRole("button", { name: "bounds_debugger" }).click();
+
+  await editor.getByLabel("Show bounds").check();
+  const legend = editor.locator(".editor-bounds-legend");
+  const readout = editor.locator(".editor-bound-readout");
+  const preview = editor.locator(".editor-preview-scroll");
+  const [legendBox, readoutBox, previewBox] = await Promise.all([
+    legend.boundingBox(),
+    readout.boundingBox(),
+    preview.boundingBox(),
+  ]);
+  expect(legendBox).not.toBeNull();
+  expect(readoutBox).not.toBeNull();
+  expect(previewBox).not.toBeNull();
+  expect(readoutBox!.y).toBeGreaterThanOrEqual(
+    legendBox!.y + legendBox!.height,
+  );
+  expect(readoutBox!.y + readoutBox!.height).toBeLessThanOrEqual(previewBox!.y);
+  expect(readoutBox!.height).toBeLessThanOrEqual(32);
+
+  const legendStyles = await legend.evaluate((element) =>
+    ["container", "slot", "reference"].map((kind) => {
+      const item = element.querySelector(`.is-${kind}`)!;
+      const marker = getComputedStyle(item, "::before");
+      return {
+        color: getComputedStyle(item).color,
+        style: marker.borderStyle,
+      };
+    }),
+  );
+  expect(legendStyles).toEqual([
+    { color: "rgb(8, 126, 170)", style: "dashed" },
+    { color: "rgb(32, 123, 70)", style: "solid" },
+    { color: "rgb(142, 61, 176)", style: "dotted" },
+  ]);
+
+  const containerBound = editor.locator(
+    '[data-layout-bound-kind="container"][data-layout-bound="stack[1]"]',
+  );
+  const slotBound = editor.locator(
+    '[data-layout-bound-kind="slot"][data-layout-bound="stack[1]/slot[1]"]',
+  );
+  const referenceBound = editor.locator(
+    '[data-layout-bound-kind="reference"][data-layout-bound="stack[1]/text[2]"]',
+  );
+  await expect(containerBound).toHaveCSS("outline-style", "dashed");
+  await expect(containerBound).toHaveCSS(
+    "outline-color",
+    "rgba(8, 126, 170, 0.72)",
+  );
+  await expect(slotBound).toHaveCSS("outline-style", "solid");
+  await expect(slotBound).toHaveCSS("outline-color", "rgba(32, 123, 70, 0.78)");
+  await expect(referenceBound).toHaveCSS("outline-style", "dotted");
+  await expect(referenceBound).toHaveCSS(
+    "outline-color",
+    "rgba(142, 61, 176, 0.78)",
+  );
+
+  await referenceBound.hover();
+  await expect(referenceBound).toHaveClass(/is-layout-bound-active/);
+  await expect(referenceBound).toHaveCSS("outline-style", "solid");
+  await expect(referenceBound).toHaveCSS("outline-width", "2px");
+  await expect(containerBound).not.toHaveClass(/is-layout-bound-active/);
+  await expect(slotBound).not.toHaveClass(/is-layout-bound-active/);
+  await expect(
+    editor.locator("[data-layout-bound].is-layout-bound-active"),
+  ).toHaveCount(1);
+  await expect(readout).toContainText("Reference · stack[1]/text[2]");
+  await expect(readout.locator("i")).toHaveCSS(
+    "background-color",
+    "rgb(142, 61, 176)",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-layout-bounds-mock-parity-production",
+    editor.locator(".editor-context-pane"),
+  );
+});
+
+test("layout presentation controls render complete leaf and flow alignment semantics", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice layout" }).click();
+
+  const replaceLayout = async (sourceText: string, handle: string) => {
+    await editor.getByRole("tab", { name: "Source" }).click();
+    const source = editor.getByLabel(/source$/);
+    await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+    await page.keyboard.insertText(sourceText);
+    await editor.getByRole("button", { name: handle }).click();
+    await editor.getByRole("tab", { name: "Structured" }).click();
+  };
+
+  await replaceLayout(
+    `choice-layout
+  handle: text_alignment
+
+  stack
+    gap: sm
+
+    text
+      target: description
+`,
+    "text_alignment",
+  );
+  const preview = editor.locator(".editor-real-preview");
+  const textRow = editor.locator('[data-layout-node-kind="text"]');
+  await textRow
+    .getByRole("button", { name: "Edit Text presentation fields" })
+    .click();
+  const textBoundary = preview.locator('[data-layout-kind="text"]');
+  const renderedText = textBoundary.locator(".jump-layout-text");
+  const stretchedTextBox = await textBoundary.boundingBox();
+  expect(stretchedTextBox).not.toBeNull();
+
+  await textRow.getByLabel("align", { exact: true }).selectOption("center");
+  const centeredTextBox = await textBoundary.boundingBox();
+  expect(centeredTextBox).not.toBeNull();
+  expect(centeredTextBox!.width).toBeLessThan(stretchedTextBox!.width);
+  expect(centeredTextBox!.x).toBeGreaterThan(stretchedTextBox!.x);
+
+  await textRow.getByLabel("align", { exact: true }).selectOption("end");
+  const endedTextBox = await textBoundary.boundingBox();
+  expect(endedTextBox).not.toBeNull();
+  expect(endedTextBox!.x).toBeGreaterThan(centeredTextBox!.x);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-text-leaf-align-end-production",
+    editor.locator(".editor-context-pane"),
+  );
+
+  await textRow.getByLabel("align", { exact: true }).selectOption("center");
+  await textRow
+    .getByLabel("text align", { exact: true })
+    .selectOption("center");
+  await expect(renderedText).toHaveCSS("text-align", "center");
+  const centeredTextContentBox = await renderedText.boundingBox();
+  expect(centeredTextContentBox).not.toBeNull();
+  expect(centeredTextContentBox!.width).toBeCloseTo(centeredTextBox!.width, 0);
+
+  const containerPresentationButton = editor.getByRole("button", {
+    name: "Edit Stack presentation fields",
+  });
+  await containerPresentationButton.click();
+  const containerEditor = editor.locator(".editor-layout-selected-editor");
+  await containerEditor
+    .getByLabel("text align", { exact: true })
+    .selectOption("end");
+  await expect(renderedText).toHaveCSS("text-align", "center");
+  await textRow
+    .getByRole("button", { name: "Edit Text presentation fields" })
+    .click();
+  await textRow
+    .getByLabel("text align", { exact: true })
+    .selectOption({ label: "Not set" });
+  await expect(renderedText).toHaveCSS("text-align", "end");
+  await attachProductionState(
+    testInfo,
+    "editor-layout-text-align-inheritance-production",
+    editor.locator(".editor-context-pane"),
+  );
+
+  for (const flow of ["stack", "inline", "wrap", "grid"] as const) {
+    const image =
+      flow === "wrap"
+        ? `    image
+      target: portrait
+      size: lg`
+        : "    image: portrait";
+    await replaceLayout(
+      `choice-layout
+  handle: flow_alignment
+
+  ${flow}
+${flow === "grid" ? "    columns: 2\n" : ""}    gap: sm
+    text: description
+${image}
+`,
+      "flow_alignment",
+    );
+    await editor
+      .getByRole("button", {
+        name: `Edit ${flow[0].toLocaleUpperCase() + flow.slice(1)} presentation fields`,
+      })
+      .click();
+    const flowEditor = editor.locator(".editor-layout-selected-editor");
+    const flowContainer = preview.locator(
+      '[data-layout-bound-kind="container"]',
+    );
+    const flowText = preview.locator('[data-layout-kind="text"]');
+    const flowImage = preview.locator('[data-layout-kind="image"]');
+    const imageElement = flowImage.locator("img");
+    await expect(imageElement).toBeVisible();
+    const [containerBox, imageBefore] = await Promise.all([
+      flowContainer.boundingBox(),
+      flowImage.boundingBox(),
+    ]);
+    expect(containerBox).not.toBeNull();
+    expect(imageBefore).not.toBeNull();
+    expect(imageBefore!.width).toBeGreaterThan(0);
+    expect(imageBefore!.height).toBeGreaterThan(0);
+
+    await flowEditor.getByLabel("align", { exact: true }).selectOption("start");
+    const textAtStart = await flowText.boundingBox();
+    await flowEditor
+      .getByLabel("align", { exact: true })
+      .selectOption("center");
+    const textAtCenter = await flowText.boundingBox();
+    await flowEditor.getByLabel("align", { exact: true }).selectOption("end");
+    const textAtEnd = await flowText.boundingBox();
+    expect(textAtStart).not.toBeNull();
+    expect(textAtCenter).not.toBeNull();
+    expect(textAtEnd).not.toBeNull();
+    if (flow === "stack") {
+      expect(textAtStart!.x).toBeCloseTo(containerBox!.x, 0);
+      expect(textAtCenter!.x).toBeGreaterThan(textAtStart!.x);
+      expect(textAtEnd!.x).toBeGreaterThan(textAtCenter!.x);
+    } else {
+      expect(textAtStart!.y).toBeCloseTo(containerBox!.y, 0);
+      expect(textAtCenter!.y).toBeGreaterThan(textAtStart!.y);
+      expect(textAtEnd!.y).toBeGreaterThan(textAtCenter!.y);
+    }
+    await attachProductionState(
+      testInfo,
+      `editor-layout-${flow}-alignment-production`,
+      editor.locator(".editor-context-pane"),
+    );
+
+    await flowEditor
+      .getByLabel("align", { exact: true })
+      .selectOption("stretch");
+    const textAtStretch = await flowText.boundingBox();
+    expect(textAtStretch).not.toBeNull();
+    if (flow === "stack") {
+      expect(textAtStretch!.width).toBeCloseTo(containerBox!.width, 0);
+    } else {
+      expect(textAtStretch!.height).toBeGreaterThan(textAtEnd!.height);
+    }
+  }
+
+  const sharedPresentation = `
+      padding: sm
+      background: "#123456"
+      align: end
+      text-align: center
+      text-size: lg
+      text-color: white`;
+  await replaceLayout(
+    `choice-layout
+  handle: complete_leaf_presentation
+
+  grid
+    columns: 2
+    gap: sm
+
+    slot
+      target: name${sharedPresentation}
+
+    text
+      target: description${sharedPresentation}
+
+    input
+      target: quantity${sharedPresentation}
+
+    image
+      target: portrait${sharedPresentation}
+      size: md
+      fit: cover
+`,
+    "complete_leaf_presentation",
+  );
+  for (const kind of ["slot", "text", "input", "image"]) {
+    const leaf = preview.locator(`[data-layout-kind="${kind}"]`);
+    await expect(leaf).toHaveCSS("padding", "8px");
+    await expect(leaf).toHaveCSS("background-color", "rgb(18, 52, 86)");
+    await expect(leaf).toHaveCSS("justify-self", "end");
+    await expect(leaf).toHaveCSS("text-align", "center");
+    await expect(leaf).toHaveCSS("font-size", "14.4px");
+    await expect(leaf).toHaveCSS("color", "rgb(255, 255, 255)");
+  }
+  const presentedImage = preview.locator('[data-layout-kind="image"]');
+  await expect(presentedImage).toHaveCSS("width", "80px");
+  await expect(presentedImage).toHaveCSS("height", "80px");
+  await expect(presentedImage.locator("img")).toHaveCSS("object-fit", "cover");
+  await editor.getByLabel("Show bounds").check();
+  await presentedImage.hover();
+  await expect(
+    preview.locator("[data-layout-bound].is-layout-bound-active"),
+  ).toHaveCount(1);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-complete-leaf-presentation-production",
+    editor.locator(".editor-context-pane"),
+  );
+});
+
+test("Inline Text alignment uses the row's visible available space", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 2048, height: 1024 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Section layout" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("layout.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`section-layout
+  handle: introduction_layout
+
+  stack
+    gap: md
+
+    inline
+      gap: md
+      text: welcome
+
+      text
+        target: blah
+        align: end
+        text-align: center
+
+    text: asdf
+
+    inline
+      gap: md
+      text: asdfdf
+      text: sadfdd
+`);
+  await editor.getByRole("button", { name: "introduction_layout" }).click();
+  await editor.getByRole("tab", { name: "Structured" }).click();
+
+  const builder = editor.locator(".editor-layout-builder");
+  await builder
+    .getByLabel("Editing container")
+    .selectOption({ label: "stack[1]/inline[1]" });
+  const textRow = builder.locator('[data-layout-node-kind="text"]').nth(1);
+  await textRow
+    .getByRole("button", { name: "Edit Text presentation fields" })
+    .click();
+  const preview = editor.locator(".editor-real-preview");
+  const inline = preview.locator('[data-layout-kind="inline"]').first();
+  const textBoundary = inline.locator('[data-layout-kind="text"]').nth(1);
+  const renderedText = textBoundary.locator(".jump-layout-text");
+  const glyphBox = () =>
+    renderedText.evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const bounds = range.getBoundingClientRect();
+      return { x: bounds.x, y: bounds.y, width: bounds.width };
+    });
+
+  await textRow
+    .getByLabel("text align", { exact: true })
+    .selectOption({ label: "Not set" });
+  await textRow.getByLabel("align", { exact: true }).selectOption("start");
+  const atStart = await textBoundary.boundingBox();
+  await attachProductionState(
+    testInfo,
+    "editor-layout-inline-leaf-align-start-corrected",
+    editor,
+  );
+  await textRow.getByLabel("align", { exact: true }).selectOption("center");
+  const atCenter = await textBoundary.boundingBox();
+  await textRow.getByLabel("align", { exact: true }).selectOption("end");
+  const atEnd = await textBoundary.boundingBox();
+  await attachProductionState(
+    testInfo,
+    "editor-layout-inline-leaf-align-end-corrected",
+    editor,
+  );
+  expect(atStart).not.toBeNull();
+  expect(atCenter).not.toBeNull();
+  expect(atEnd).not.toBeNull();
+  expect(atCenter!.x).toBeGreaterThan(atStart!.x);
+  expect(atEnd!.x).toBeGreaterThan(atCenter!.x);
+
+  await textRow.getByLabel("align", { exact: true }).selectOption("center");
+  await textRow.getByLabel("text align", { exact: true }).selectOption("start");
+  const glyphAtStart = await glyphBox();
+  await attachProductionState(
+    testInfo,
+    "editor-layout-inline-text-align-start-corrected",
+    editor,
+  );
+  await textRow
+    .getByLabel("text align", { exact: true })
+    .selectOption("center");
+  const glyphAtCenter = await glyphBox();
+  await textRow.getByLabel("text align", { exact: true }).selectOption("end");
+  const glyphAtEnd = await glyphBox();
+  await attachProductionState(
+    testInfo,
+    "editor-layout-inline-text-align-end-corrected",
+    editor,
+  );
+  expect(glyphAtCenter.x).toBeGreaterThan(glyphAtStart.x);
+  expect(glyphAtEnd.x).toBeGreaterThan(glyphAtCenter.x);
+
+  const textArea = textBoundary.locator("..");
+  const firstTextBoundary = inline.locator('[data-layout-kind="text"]').first();
+  const firstTextArea = firstTextBoundary.locator("..");
+  await textRow.getByLabel("align", { exact: true }).selectOption("stretch");
+  const [singleStretchArea, singleStretchBoundary, intrinsicArea] =
+    await Promise.all([
+      textArea.boundingBox(),
+      textBoundary.boundingBox(),
+      firstTextArea.boundingBox(),
+    ]);
+  expect(singleStretchArea).not.toBeNull();
+  expect(singleStretchBoundary).not.toBeNull();
+  expect(intrinsicArea).not.toBeNull();
+  expect(singleStretchBoundary!.width).toBeCloseTo(singleStretchArea!.width, 0);
+  expect(singleStretchArea!.width).toBeGreaterThan(intrinsicArea!.width);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-inline-leaf-align-stretch-corrected",
+    editor,
+  );
+
+  const firstTextRow = builder
+    .locator('[data-layout-node-kind="text"]')
+    .first();
+  await firstTextRow
+    .getByRole("button", { name: "Edit Text presentation fields" })
+    .click();
+  const firstRenderedText = firstTextBoundary.locator(".jump-layout-text");
+  const firstGlyphBox = () =>
+    firstRenderedText.evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const bounds = range.getBoundingClientRect();
+      return { x: bounds.x, width: bounds.width };
+    });
+  await firstTextRow
+    .getByLabel("align", { exact: true })
+    .selectOption("center");
+  await firstTextRow
+    .getByLabel("text align", { exact: true })
+    .selectOption("start");
+  const firstGlyphAtStart = await firstGlyphBox();
+  await attachProductionState(
+    testInfo,
+    "editor-layout-inline-first-text-align-start-corrected",
+    editor,
+  );
+  await firstTextRow
+    .getByLabel("text align", { exact: true })
+    .selectOption("end");
+  const firstGlyphAtEnd = await firstGlyphBox();
+  expect(firstGlyphAtEnd.x).toBeGreaterThan(firstGlyphAtStart.x);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-inline-first-text-align-end-corrected",
+    editor,
+  );
+  await firstTextRow
+    .getByLabel("align", { exact: true })
+    .selectOption("stretch");
+  const [firstStretchArea, secondStretchArea] = await Promise.all([
+    firstTextArea.boundingBox(),
+    textArea.boundingBox(),
+  ]);
+  expect(firstStretchArea).not.toBeNull();
+  expect(secondStretchArea).not.toBeNull();
+  expect(firstStretchArea!.width).toBeCloseTo(secondStretchArea!.width, 0);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-inline-two-stretched-leaves-corrected",
+    editor,
+  );
+
+  await firstTextRow.getByLabel("align", { exact: true }).selectOption("start");
+  await textRow
+    .getByRole("button", { name: "Edit Text presentation fields" })
+    .click();
+  await textRow.getByLabel("align", { exact: true }).selectOption("end");
+  await textRow
+    .getByLabel("text align", { exact: true })
+    .selectOption("center");
+  const [areaBox, finalBoundary] = await Promise.all([
+    textArea.boundingBox(),
+    textBoundary.boundingBox(),
+  ]);
+  expect(areaBox).not.toBeNull();
+  expect(finalBoundary).not.toBeNull();
+  expect(finalBoundary!.x + finalBoundary!.width).toBeCloseTo(
+    areaBox!.x + areaBox!.width,
+    0,
+  );
+  expect(
+    await textArea.evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).marginLeft),
+    ),
+  ).toBeGreaterThan(0);
+  await expect(renderedText).toHaveCSS("text-align", "center");
+  await attachProductionState(
+    testInfo,
+    "editor-layout-inline-text-alignment-corrected",
+    editor,
+  );
+});
+
 test("Editor retains mock proportions at desktop, two-pane, and single-column viewports", async ({
   page,
 }, testInfo) => {
@@ -1015,21 +1541,31 @@ test("Structured fields show localized omission defaults from first render and a
   await editor.getByRole("button", { name: "Choice", exact: true }).click();
   const choiceLayout = editor.getByLabel("layout", { exact: true });
   const selection = editor.getByLabel("selection", { exact: true });
-  await selection.selectOption("");
+  await expect(selection).toHaveValue("toggle");
   await expect(editor.getByLabel("resolution", { exact: true })).toHaveCount(0);
-  await expect(selection.locator("option:checked")).toHaveText(
-    "Default: toggle",
+  await expect(selection.locator("option:checked")).toHaveText("toggle");
+  await expect(selection.getByRole("option", { name: /Default:/ })).toHaveCount(
+    0,
   );
   await selection.selectOption("integer");
   const resolution = editor.getByLabel("resolution", { exact: true });
-  await resolution.selectOption("");
+  await expect(resolution).toHaveValue("manual");
+  await expect(resolution.locator("option:checked")).toHaveText("manual");
+  await expect(
+    resolution.getByRole("option", { name: /Default:/ }),
+  ).toHaveCount(0);
+  await resolution.selectOption("random");
+  await resolution.selectOption("manual");
+  await editor.getByRole("tab", { name: "Source" }).click();
+  await expect(editor.getByLabel("choices.jdef source")).not.toContainText(
+    "resolution:",
+  );
+  await editor.getByRole("tab", { name: "Structured" }).click();
   await expect(choiceLayout).toHaveAttribute(
     "placeholder",
     "Default: built-in choice layout",
   );
-  await expect(resolution.locator("option:checked")).toHaveText(
-    "Default: manual",
-  );
+  await expect(resolution.locator("option:checked")).toHaveText("manual");
   await attachProductionState(
     testInfo,
     "editor-default-shadowtext-choice-fields-production",
@@ -1053,7 +1589,7 @@ test("Structured fields show localized omission defaults from first render and a
   );
   await expect(
     editor.getByLabel("measure", { exact: true }).locator("option:checked"),
-  ).toHaveText("Default: rank");
+  ).toHaveText("rank");
   await attachProductionState(
     testInfo,
     "editor-default-shadowtext-trait-grant-fields-production",
@@ -1709,6 +2245,132 @@ test("Structured authors representative Format 1 fields, children, repeats, and 
   );
 });
 
+test("Structured color fields accept precise hex colors, picker colors, and visual tokens", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const editor = await openCreatedEditor(page);
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Theme", exact: true }).click();
+  const themeColor = editor.getByLabel("color", { exact: true });
+  const themePicker = editor.getByLabel("Choose color with color picker");
+  await expect(themeColor).toHaveValue("#68707c");
+  await expect(themePicker).toHaveValue("#68707c");
+  await themeColor.fill("#1A2B3C");
+  await expect(themeColor).toHaveValue("#1A2B3C");
+  await themePicker.fill("#123456");
+  await expect(themeColor).toHaveValue("#123456");
+  await attachProductionState(
+    testInfo,
+    "editor-color-unified-theme-production",
+    editor,
+  );
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Section layout" }).click();
+  const builder = editor.locator(".editor-layout-builder");
+  await builder
+    .getByRole("button", { name: "Edit Stack presentation fields" })
+    .click();
+  const background = builder.getByLabel("background", { exact: true });
+  const backgroundPicker = builder.getByLabel(
+    "Choose background with color picker",
+  );
+  await background.fill("#A1B2C3");
+  await expect(background).toHaveValue("#A1B2C3");
+  await backgroundPicker.fill("#2468ac");
+  await expect(background).toHaveValue("#2468AC");
+
+  const backgroundField = background.locator(
+    "xpath=ancestor::div[contains(@class, 'editor-schema-field')]",
+  );
+  const choiceTrigger = backgroundField.getByRole("button", {
+    name: "Show color choices for background",
+  });
+  const colorShell = backgroundField.locator(".editor-color-combobox");
+  await expect(colorShell).toBeVisible();
+  await expect(backgroundPicker).toHaveCSS("border-right-style", "none");
+  await expect(choiceTrigger).toHaveCSS("border-left-style", "none");
+  await expect(
+    backgroundField.getByRole("button", { name: "Tokens", exact: true }),
+  ).toHaveCount(0);
+  const builderHeightBeforeChoices = (await builder.boundingBox())!.height;
+  await choiceTrigger.click();
+  await expect(choiceTrigger).toHaveAttribute("aria-expanded", "true");
+  await backgroundPicker.click();
+  await expect(choiceTrigger).toHaveAttribute("aria-expanded", "false");
+  await expect(backgroundPicker).toBeFocused();
+  await choiceTrigger.click();
+  await expect(backgroundPicker).not.toBeFocused();
+  await expect(choiceTrigger).toHaveAttribute("aria-expanded", "true");
+  const choicePopover = backgroundField.getByRole("group", {
+    name: "Available color tokens",
+  });
+  const choicePopoverBox = await choicePopover.boundingBox();
+  expect(choicePopoverBox).not.toBeNull();
+  expect(choicePopoverBox!.width).toBeLessThanOrEqual(180);
+  expect(choicePopoverBox!.height).toBeLessThanOrEqual(144);
+  expect((await builder.boundingBox())!.height).toBe(
+    builderHeightBeforeChoices,
+  );
+  const redToken = backgroundField.getByRole("button", {
+    name: "Use red color token",
+  });
+  await expect(redToken.locator("i")).toHaveCSS(
+    "background-color",
+    "rgb(184, 74, 79)",
+  );
+  await redToken.click();
+  await expect(background).toHaveValue("red");
+  await expect(backgroundPicker).toHaveValue("#b84a4f");
+
+  await background.fill("Not A Color!");
+  await expect(background).toHaveAttribute("aria-invalid", "true");
+  await expect(
+    backgroundField.locator(".editor-field-diagnostics"),
+  ).toContainText("not a valid color value");
+  await expect(
+    editor.locator(".editor-diagnostics-summary-text"),
+  ).toContainText("not a valid color value");
+  await attachProductionState(
+    testInfo,
+    "editor-color-unified-invalid-diagnostic-production",
+    editor,
+  );
+
+  await choiceTrigger.click();
+  const themeToken = backgroundField.getByRole("button", {
+    name: "Use new_theme color token",
+  });
+  await expect(themeToken.locator("i")).toHaveCSS(
+    "background-color",
+    "rgb(18, 52, 86)",
+  );
+  await themeToken.click();
+  await expect(background).toHaveValue("new_theme");
+  await expect(backgroundPicker).toHaveValue("#123456");
+  await expect(background).not.toHaveAttribute("aria-invalid", "true");
+  await choiceTrigger.click();
+  await expect(choiceTrigger).toHaveAttribute("aria-expanded", "true");
+  await attachProductionState(
+    testInfo,
+    "editor-color-unified-compact-popover-production",
+    editor,
+  );
+  await choiceTrigger.press("Escape");
+  await expect(choiceTrigger).toHaveAttribute("aria-expanded", "false");
+  await expect(
+    backgroundField.getByRole("group", { name: "Available color tokens" }),
+  ).toHaveCount(0);
+
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = await editor.getByLabel("layout.jdef source").innerText();
+  expect(source).toContain('color: "#123456"');
+  expect(source).toContain("background: new_theme");
+});
+
 test("Structured contextual additions open editable fields without redesigning the workspace", async ({
   page,
 }, testInfo) => {
@@ -1875,8 +2537,18 @@ test("Structured contextual additions open editable fields without redesigning t
     editor,
   );
   await containerPresentationButton.click();
-  await expect(editor.getByLabel("padding", { exact: true })).toContainText(
-    "Default: none",
+  const padding = editor.getByLabel("padding", { exact: true });
+  await expect(padding).toHaveValue("none");
+  await expect(
+    padding.getByRole("option", { name: "none", exact: true }),
+  ).toHaveCount(1);
+  await expect(padding.getByRole("option", { name: /Default:/ })).toHaveCount(
+    0,
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-layout-enum-default-value-production",
+    editor.locator(".editor-layout-selected-editor"),
   );
   await expect(
     editor.locator(".editor-layout-node-fields").getByLabel("handle"),
@@ -2134,6 +2806,48 @@ test("Structured layout tree safely edits hierarchy through the mock-aligned con
   expect(structuredDimensions.scrollHeight).toBeGreaterThan(
     structuredDimensions.clientHeight,
   );
+  const textBackground = textRow.getByLabel("background", { exact: true });
+  await textBackground.fill("#123456");
+  await textBackground.press("Tab");
+  await expect(textBackground).toHaveValue("#123456");
+  await textRow.evaluate((element) => {
+    element.addEventListener(
+      "dragstart",
+      (event) =>
+        element.setAttribute(
+          "data-observed-dragstart-cancelled",
+          String(event.defaultPrevented),
+        ),
+      { once: true },
+    );
+  });
+  const textBackgroundBounds = await textBackground.boundingBox();
+  expect(textBackgroundBounds).not.toBeNull();
+  await page.mouse.move(
+    textBackgroundBounds!.x + 10,
+    textBackgroundBounds!.y + textBackgroundBounds!.height / 2,
+  );
+  await page.mouse.down();
+  await expect(textRow).toHaveAttribute("draggable", "false");
+  await page.mouse.move(
+    textBackgroundBounds!.x + 85,
+    textBackgroundBounds!.y + textBackgroundBounds!.height / 2,
+    { steps: 6 },
+  );
+  expect(
+    await textRow.getAttribute("data-observed-dragstart-cancelled"),
+  ).not.toBe("false");
+  await expect(textRow).not.toHaveClass(/dragging/);
+  await page.mouse.up();
+  await expect(textRow).toHaveAttribute("draggable", "true");
+  await attachProductionState(
+    testInfo,
+    "editor-layout-color-text-selection-production",
+    textRow,
+  );
+  await textBackground.fill("");
+  await textBackground.press("Tab");
+  await expect(textBackground).toHaveValue("");
   await textRow.scrollIntoViewIfNeeded();
   await attachProductionState(
     testInfo,

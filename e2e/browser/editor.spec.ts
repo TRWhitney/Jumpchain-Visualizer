@@ -592,6 +592,236 @@ test("sidebar entry hover text appears only for visually truncated labels", asyn
   await expect(shortEntry).not.toHaveAttribute("title");
 });
 
+test("sidebar context menus move declarations and assets through Trash", async ({
+  page,
+}, testInfo) => {
+  const editor = await openCreatedEditor(page);
+  const section = editor.getByRole("button", {
+    name: "introduction",
+    exact: true,
+  });
+  await section.click({ button: "right" });
+  const liveMenu = editor.getByRole("menu", { name: "Sidebar item actions" });
+  await expect(liveMenu).toBeVisible();
+  await expect(liveMenu.getByRole("menuitem")).toHaveText(["Open", "Delete"]);
+  await attachProductionState(
+    testInfo,
+    "editor-sidebar-trash-context-corrected",
+    editor,
+  );
+  await liveMenu.getByRole("menuitem", { name: "Open" }).click();
+  await expect(section).toHaveClass(/is-selected/);
+
+  await section.click({ button: "right" });
+  await editor
+    .getByRole("menu", { name: "Sidebar item actions" })
+    .getByRole("menuitem", { name: "Delete" })
+    .click();
+  await expect(section).toHaveCount(0);
+  await expect(editor.locator(".editor-trash-group > summary")).toContainText(
+    "Trash1",
+  );
+  const trashedSection = editor
+    .locator(".editor-trash-group")
+    .getByRole("button", { name: "introduction Section", exact: true });
+  await expect(trashedSection).toHaveClass(/is-selected/);
+  await expect(editor.getByRole("tab", { name: "Structured" })).toHaveCount(0);
+  await expect(editor.getByRole("tab", { name: "Source" })).toBeVisible();
+  await expect(editor.locator(".editor-trash-source-panel pre")).toContainText(
+    "section\n  handle: introduction",
+  );
+  await expect(
+    editor.locator(".editor-trash-source-panel pre"),
+  ).not.toContainText("jump\n");
+  await attachProductionState(
+    testInfo,
+    "editor-trash-declaration-source-corrected",
+    editor,
+  );
+
+  await editor.getByRole("button", { name: "Undo" }).click();
+  await expect(
+    editor.getByRole("button", { name: "introduction", exact: true }),
+  ).toBeVisible();
+  await expect(editor.locator(".editor-trash-group > summary")).toContainText(
+    "Trash0",
+  );
+  await editor.getByRole("button", { name: "Redo" }).click();
+  const redoneTrashSection = editor
+    .locator(".editor-trash-group")
+    .getByRole("button", { name: "introduction Section", exact: true });
+  await expect(redoneTrashSection).toBeVisible();
+
+  await redoneTrashSection.click({ button: "right" });
+  const trashMenu = editor.getByRole("menu", { name: "Sidebar item actions" });
+  await expect(trashMenu.getByRole("menuitem")).toHaveText([
+    "Open",
+    "Restore",
+    "Delete",
+  ]);
+  await trashMenu.getByRole("menuitem", { name: "Restore" }).click();
+  await expect(
+    editor.getByRole("button", { name: "introduction", exact: true }),
+  ).toBeVisible();
+  await expect(editor.locator(".editor-trash-group > summary")).toContainText(
+    "Trash0",
+  );
+
+  const restored = editor.getByRole("button", {
+    name: "introduction",
+    exact: true,
+  });
+  await restored.click({ button: "right" });
+  await editor
+    .getByRole("menu", { name: "Sidebar item actions" })
+    .getByRole("menuitem", { name: "Delete" })
+    .click();
+  const trashedAgain = editor
+    .locator(".editor-trash-group")
+    .getByRole("button", { name: "introduction Section", exact: true });
+  await trashedAgain.click({ button: "right" });
+  await editor
+    .getByRole("menu", { name: "Sidebar item actions" })
+    .getByRole("menuitem", { name: "Delete" })
+    .click();
+  const permanentDialog = editor.getByRole("alertdialog", {
+    name: "Permanently delete introduction?",
+  });
+  await expect(permanentDialog.locator("..")).toHaveClass(
+    /is-application-confirmation/,
+  );
+  await expect(
+    permanentDialog.getByRole("button", { name: "Cancel" }),
+  ).toBeFocused();
+  await expect(permanentDialog).toContainText("cannot be undone");
+  await expect(permanentDialog).toContainText("undo and redo history");
+  await attachProductionState(
+    testInfo,
+    "editor-trash-permanent-delete-dialog-shared",
+    editor,
+  );
+  await permanentDialog.getByRole("button", { name: "Delete forever" }).click();
+  await expect(editor.locator(".editor-trash-group > summary")).toContainText(
+    "Trash0",
+  );
+  await expect(editor.getByRole("button", { name: "Undo" })).toBeDisabled();
+});
+
+test("sidebar group context menus add and toggle their disclosures", async ({
+  page,
+}, testInfo) => {
+  const editor = await openCreatedEditor(page);
+  const groupMenu = editor.getByRole("menu", {
+    name: "Sidebar group actions",
+  });
+  const sections = editor.locator(
+    'details[data-explorer-group="content:sections"]',
+  );
+  const sectionsHeader = sections.locator(":scope > summary");
+
+  await sectionsHeader.click({ button: "right" });
+  await expect(groupMenu.getByRole("menuitem")).toHaveText([
+    "Add Section",
+    "Collapse",
+  ]);
+  await expect(
+    groupMenu.getByRole("menuitem", { name: "Add Section" }),
+  ).toBeFocused();
+  await attachProductionState(
+    testInfo,
+    "editor-sidebar-section-header-context-menu-corrected",
+    editor,
+  );
+  await groupMenu.getByRole("menuitem", { name: "Collapse" }).click();
+  await expect(sections).not.toHaveAttribute("open");
+
+  await sectionsHeader.click({ button: "right" });
+  await expect(groupMenu.getByRole("menuitem")).toHaveText([
+    "Add Section",
+    "Expand",
+  ]);
+  await groupMenu.getByRole("menuitem", { name: "Expand" }).click();
+  await expect(sections).toHaveAttribute("open", "");
+
+  await sectionsHeader.click({ button: "right" });
+  await groupMenu.getByRole("menuitem", { name: "Add Section" }).click();
+  await expect(
+    editor.getByRole("button", { name: "new_section", exact: true }),
+  ).toHaveClass(/is-selected/);
+  await expect(
+    editor
+      .locator(".editor-authoring-pane")
+      .getByRole("heading", { name: "New Section" }),
+  ).toBeVisible();
+  await expect(
+    editor.getByRole("button", { name: "Add", exact: true }),
+  ).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-sidebar-section-header-add-corrected",
+    editor,
+  );
+
+  const layoutsHeader = editor
+    .locator('details[data-explorer-group="content:layouts"]')
+    .locator(":scope > summary");
+  await layoutsHeader.click({ button: "right" });
+  await expect(groupMenu.getByRole("menuitem")).toHaveText([
+    "Add Section layout",
+    "Add Choice layout",
+    "Add Trait layout",
+    "Collapse",
+  ]);
+  await page.keyboard.press("Escape");
+
+  for (const [groupId, item] of [
+    ["resources", "Resource"],
+    ["choices", "Choice"],
+    ["themes", "Theme"],
+  ] as const) {
+    await editor
+      .locator(`details[data-explorer-group="content:${groupId}"]`)
+      .locator(":scope > summary")
+      .click({ button: "right" });
+    await expect(groupMenu.getByRole("menuitem")).toHaveText([
+      `Add ${item}`,
+      "Collapse",
+    ]);
+    await page.keyboard.press("Escape");
+  }
+
+  const assetsHeader = editor
+    .locator('details[data-explorer-group="content:assets"]')
+    .locator(":scope > summary");
+  await assetsHeader.click({ button: "right" });
+  await expect(groupMenu.getByRole("menuitem")).toHaveText([
+    "Add Asset…",
+    "Collapse",
+  ]);
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await groupMenu.getByRole("menuitem", { name: "Add Asset…" }).click();
+  const fileChooser = await fileChooserPromise;
+  expect(fileChooser.isMultiple()).toBe(false);
+  await fileChooser.setFiles([]);
+
+  const trashHeader = editor
+    .locator('details[data-explorer-group="content:trash"]')
+    .locator(":scope > summary");
+  await trashHeader.click({ button: "right" });
+  await expect(groupMenu.getByRole("menuitem")).toHaveText(["Collapse"]);
+  await page.keyboard.press("Escape");
+
+  await editor.getByRole("tab", { name: "Files" }).click();
+  const fileAssetsHeader = editor
+    .locator('details[data-explorer-group="files:assets"]')
+    .locator(":scope > summary");
+  await fileAssetsHeader.click({ button: "right" });
+  await expect(groupMenu.getByRole("menuitem")).toHaveText([
+    "Add Asset…",
+    "Collapse",
+  ]);
+});
+
 test("Structured handle editing preserves declaration identity through temporary collisions", async ({
   page,
 }) => {
@@ -2335,7 +2565,7 @@ section
   );
 });
 
-test("Asset add, validation, removal, and package history use the secure boundary", async ({
+test("Asset add, validation, Trash, and package history use the secure boundary", async ({
   page,
 }, testInfo) => {
   const editor = await openCreatedEditor(page);
@@ -2507,21 +2737,57 @@ section-layout
   );
 
   await editor.getByRole("tab", { name: "Content" }).click();
-  await editor.getByRole("button", { name: "Remove asset" }).click();
-  const removal = editor.getByRole("dialog", {
-    name: "Remove art/icons/hero.png?",
+  await attachProductionState(
+    testInfo,
+    "editor-asset-no-delete-button-corrected",
+    editor,
+  );
+  const heroAsset = editor.getByRole("button", {
+    name: /^hero\.png/,
   });
-  await expect(removal).toContainText("referenced by 1 image block");
-  await removal.getByRole("button", { name: "Cancel" }).click();
-  await expect(editor.getByRole("button", { name: "hero.png" })).toBeVisible();
-  await editor.getByRole("button", { name: "Remove asset" }).click();
+  await heroAsset.click({ button: "right" });
   await editor
-    .getByRole("dialog", { name: "Remove art/icons/hero.png?" })
-    .getByRole("button", { name: "Remove asset" })
+    .getByRole("menu", { name: "Sidebar item actions" })
+    .getByRole("menuitem", { name: "Delete" })
     .click();
-  await expect(editor.getByRole("button", { name: "hero.png" })).toHaveCount(0);
-  await editor.getByRole("button", { name: "Undo" }).click();
-  await expect(editor.getByRole("button", { name: "hero.png" })).toBeVisible();
+  await expect(
+    editor.locator("summary").filter({ hasText: /^Assets\s*0$/ }),
+  ).toBeVisible();
+  const trashedAsset = editor
+    .locator(".editor-trash-group")
+    .getByRole("button", { name: "hero.png asset", exact: true });
+  await expect(trashedAsset).toHaveClass(/is-selected/);
+  const trashedImage = editor.locator(".editor-asset-source-panel img");
+  await expect(trashedImage).toBeVisible();
+  await expect
+    .poll(() => trashedImage.evaluate((node) => node.naturalWidth))
+    .toBe(80);
+  await attachProductionState(
+    testInfo,
+    "editor-trash-asset-source-corrected",
+    editor,
+  );
+  await trashedAsset.click({ button: "right" });
+  await editor
+    .getByRole("menu", { name: "Sidebar item actions" })
+    .getByRole("menuitem", { name: "Restore" })
+    .click();
+  await expect(
+    editor.getByRole("button", { name: /^hero\.png/ }),
+  ).toBeVisible();
+  await editor.getByRole("tab", { name: "Files" }).click();
+  await editor.getByRole("button", { name: /^hero\.png/ }).click({
+    button: "right",
+  });
+  await expect(
+    editor.getByRole("menu", { name: "Sidebar item actions" }),
+  ).toBeVisible();
+  await editor
+    .getByRole("menu", { name: "Sidebar item actions" })
+    .getByRole("menuitem", { name: "Open" })
+    .click();
+  await expect(editor.locator(".editor-asset-source-panel img")).toBeVisible();
+  await editor.getByRole("tab", { name: "Content" }).click();
 
   await editor.getByRole("button", { name: "Add", exact: true }).click();
   const forgedChooserPromise = page.waitForEvent("filechooser");
@@ -2727,6 +2993,40 @@ test("Structured color fields accept precise hex colors, picker colors, and visu
   await expect(themeColor).toHaveValue("#1A2B3C");
   await themePicker.fill("#123456");
   await expect(themeColor).toHaveValue("#123456");
+  const themeSidebarEntry = editor.getByRole("button", {
+    name: "new_theme",
+    exact: true,
+  });
+  const themeSidebarPreview = themeSidebarEntry.locator(
+    ".editor-theme-color-preview",
+  );
+  await expect(themeSidebarPreview).toBeVisible();
+  await expect(themeSidebarPreview).toHaveAttribute(
+    "title",
+    "Theme color #123456",
+  );
+  await expect(themeSidebarEntry).toHaveAccessibleName("new_theme");
+  await expect(themeSidebarPreview).toHaveCSS(
+    "background-color",
+    "rgb(18, 52, 86)",
+  );
+  await expect(themeSidebarPreview).not.toHaveAttribute("tabindex");
+  await expect(themeSidebarPreview.locator("input, button")).toHaveCount(0);
+  await attachProductionState(
+    testInfo,
+    "editor-theme-sidebar-color-preview-corrected",
+    editor.locator(".editor-explorer"),
+  );
+  await themeColor.fill("not-a-color");
+  await themeColor.blur();
+  await expect(
+    themeSidebarEntry.locator(".editor-theme-color-preview"),
+  ).toHaveCount(0);
+  await themeColor.fill("#123456");
+  await themeColor.blur();
+  await expect(
+    themeSidebarEntry.locator(".editor-theme-color-preview"),
+  ).toHaveAttribute("title", "Theme color #123456");
   await attachProductionState(
     testInfo,
     "editor-color-unified-theme-production",

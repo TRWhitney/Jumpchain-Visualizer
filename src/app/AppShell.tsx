@@ -709,6 +709,7 @@ function AppShellContent() {
         location: "imported",
         files: { ...review.files.definitions },
         assets: { ...review.files.assets },
+        trash: [],
         starred: false,
         createdAt: now,
         updatedAt: now,

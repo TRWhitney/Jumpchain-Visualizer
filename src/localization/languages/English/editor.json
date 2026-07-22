@@ -441,7 +441,11 @@
         "layoutContainerBreadcrumbs": "Layout container breadcrumbs",
         "openLayoutContainer": "Open {{container}} container",
         "moveLayoutNodeToContainer": "Move {{node}} to another container",
-        "removeConditionalVariant": "Remove {{field}} conditional variant {{occurrence}}"
+        "removeConditionalVariant": "Remove {{field}} conditional variant {{occurrence}}",
+        "sidebarItemMenu": "Sidebar item actions",
+        "sidebarGroupMenu": "Sidebar group actions",
+        "themeColorPreview": "Theme color {{color}}",
+        "deletedSource": "Deleted declaration source"
       },
       "announcement": {
         "declarationAdded": "{{declaration}} added and opened for editing.",
@@ -457,7 +461,12 @@
         "layoutNodeRemoved": "{{node}} removed.",
         "layoutNodeExpanded": "{{node}} presentation fields opened.",
         "layoutNodeCollapsed": "{{node}} changed to compact form.",
-        "invalidLayoutFieldRemoved": "Invalid layout field {{field}} removed."
+        "invalidLayoutFieldRemoved": "Invalid layout field {{field}} removed.",
+        "movedToTrash": "{{item}} moved to Trash.",
+        "restoredFromTrash": "{{item}} restored.",
+        "trashRestoreCollision": "{{item}} cannot be restored because that asset location is already in use.",
+        "trashRestoreMissingFile": "The original file {{file}} no longer exists, so this item cannot be restored.",
+        "permanentlyDeleted": "{{item}} was permanently deleted."
       },
       "asset": {
         "assetFile": "Asset file",
@@ -473,9 +482,6 @@
         "selectedAssetAlt": "Selected asset {{asset}}",
         "loadingImage": "Loading image…",
         "missingOption": "{{asset}} (missing)",
-        "removeHeading": "Remove {{asset}}?",
-        "removeDescription_one": "The asset is referenced by {{count}} image block. Its source reference will remain and report a missing-asset diagnostic.",
-        "removeDescription_other": "The asset is referenced by {{count}} image blocks. Their source references will remain and report missing-asset diagnostics.",
         "definitionFile": "Definition file",
         "format": "Format",
         "dimensions": "Dimensions",
@@ -494,6 +500,17 @@
           "collision": "Another asset already uses this location.",
           "signature": "The filename extension must match the validated image format."
         }
+      },
+      "trash": {
+        "assetKind": "asset",
+        "kind": "Kind",
+        "originalFile": "Originally in {{file}}",
+        "originalLocation": "Original location",
+        "deletedAt": "Moved to Trash",
+        "readOnly": "Items in Trash are read-only. Restore this item to edit it.",
+        "permanentDeleteHeading": "Permanently delete {{item}}?",
+        "permanentDeleteDescription": "This cannot be undone. The editor’s undo and redo history will be cleared so the deleted item cannot be recovered.",
+        "deleteForever": "Delete forever"
       },
       "field": {
         "handle": "Handle",
@@ -556,11 +573,18 @@
         "save": "Save",
         "exportJmp": "Export .jmp",
         "add": "Add",
+        "addItem": "Add {{item}}",
         "asset": "Asset…",
+        "expand": "Expand",
+        "collapse": "Collapse",
         "searchPackageContent": "Search package content",
         "jumpDetails": "Jump details",
         "nestedResults": "Nested results",
         "assets": "Assets ",
+        "trash": "Trash",
+        "open": "Open",
+        "restore": "Restore",
+        "delete": "Delete",
         "packageFiles": "Package files",
         "find": "Find",
         "quickAdd": "Quick Add",
@@ -621,7 +645,6 @@
         "sections": "Sections",
         "choices": "Choices",
         "gauntlet": "Gauntlet",
-        "removeAsset": "Remove asset",
         "propertiesAreDerivedFromCanonicalSourceEditThemIn": "Properties are derived from canonical source. Edit them in Structured or Source.",
         "needsAttention": "Needs attention",
         "fieldsInvalidInContext": "These authored fields are not valid in the current context. Correct or remove them to resolve their diagnostics.",

@@ -74,4 +74,48 @@ describe("Editor workspaces", () => {
       137, 80, 78, 71,
     ]);
   });
+
+  it("hydrates recoverable Trash entries without exposing malformed paths", () => {
+    const workspace = createStarterWorkspace("native-trash");
+    const hydrated = hydrateEditorWorkspace({
+      ...workspace,
+      trash: [
+        {
+          id: "deleted-section",
+          kind: "declaration",
+          declarationKind: "section",
+          label: "introduction",
+          source: "section\n  handle: introduction",
+          originalFile: "jump.jdef",
+          deletedAt: "2026-07-22T00:00:00.000Z",
+        },
+        {
+          id: "deleted-image",
+          kind: "asset",
+          label: "pixel.png",
+          originalPath: "assets/images/pixel.png",
+          bytes: [1, 2, 3],
+          deletedAt: "2026-07-22T00:00:00.000Z",
+        },
+        {
+          id: "unsafe-image",
+          kind: "asset",
+          label: "unsafe.png",
+          originalPath: "../unsafe.png",
+          bytes: [1],
+          deletedAt: "2026-07-22T00:00:00.000Z",
+        },
+      ],
+    });
+    expect(hydrated?.trash).toHaveLength(2);
+    expect(hydrated?.trash[1]).toMatchObject({
+      kind: "asset",
+      originalPath: "assets/images/pixel.png",
+    });
+    expect(
+      hydrated?.trash[1]?.kind === "asset"
+        ? [...hydrated.trash[1].bytes]
+        : null,
+    ).toEqual([1, 2, 3]);
+  });
 });

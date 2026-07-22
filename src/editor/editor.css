@@ -723,6 +723,13 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+.editor-theme-color-preview {
+  align-self: center;
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 1px solid rgb(255 255 255 / 34%);
+  border-radius: 0.18rem;
+}
 
 .editor-outline-scroll button > span {
   min-width: 0;
@@ -739,6 +746,40 @@
 
 .editor-outline-scroll button.is-selected {
   box-shadow: inset 2px 0 var(--app-accent-border);
+}
+
+.editor-explorer-context-menu {
+  position: fixed;
+  z-index: 140;
+  display: grid;
+  width: 11rem;
+  padding: 0.25rem;
+  color: #ddd;
+  background: #292927;
+  border: 1px solid #5b5b55;
+  border-radius: 0.25rem;
+  box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 45%);
+}
+.editor-explorer-context-menu button {
+  padding: 0.45rem 0.55rem;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 0.18rem;
+  text-align: left;
+  cursor: pointer;
+}
+.editor-explorer-context-menu button:hover,
+.editor-explorer-context-menu button:focus-visible {
+  background: var(--app-accent-soft);
+  outline: none;
+}
+.editor-explorer-context-menu button.is-danger {
+  color: #efb0b0;
+}
+.editor-explorer-context-menu button:disabled {
+  color: #777;
+  cursor: not-allowed;
 }
 
 .editor-file-list > p {
@@ -788,8 +829,7 @@
   gap: 0.65rem;
 }
 .editor-asset-path-error,
-.editor-asset-reference-count,
-.editor-asset-actions {
+.editor-asset-reference-count {
   grid-column: 1 / -1;
 }
 .editor-asset-form .editor-field-occurrence {
@@ -801,24 +841,28 @@
 .editor-asset-path-error {
   color: #dfb66f !important;
 }
-.editor-asset-actions {
-  display: flex;
-  gap: 0.45rem;
-}
-.editor-asset-actions button {
-  min-height: 2.2rem;
-  padding: 0.35rem 0.6rem;
-  color: #ddd;
-  background: #292927;
-  border: 1px solid #51514c;
-  border-radius: 0.2rem;
-  cursor: pointer;
-}
-.editor-asset-actions .is-danger,
 .editor-dialog-actions .is-danger {
   color: #efb0b0;
   background: #322323;
   border-color: #8f4e4e;
+}
+
+.editor-trash-source-panel > pre {
+  min-height: 0;
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  color: #d8d8d2;
+  background: #1c1c1b;
+  font:
+    0.78rem/1.55 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+  white-space: pre-wrap;
+}
+.editor-trash-properties > p:last-child {
+  color: #aaa69c;
 }
 
 .editor-breadcrumbs {
@@ -1743,7 +1787,11 @@
 .editor-asset-source-panel .editor-source-toolbar > span {
   display: grid;
 }
-.editor-asset-source-panel .editor-source-toolbar small {
+.editor-trash-source-panel .editor-source-toolbar > span {
+  display: grid;
+}
+.editor-asset-source-panel .editor-source-toolbar small,
+.editor-trash-source-panel .editor-source-toolbar small {
   color: #85857f;
   font-size: 0.65rem;
 }

@@ -5,10 +5,32 @@ import {
   type PackageDiagnostic,
 } from "../markup";
 import { translateDiagnostic } from "../localization";
+import { assetRelativePath, validateAssetRelativePath } from "./assetPaths";
 
 export const EDITOR_WORKSPACE_SCHEMA_VERSION = 1;
 
 export type EditorProjectLocation = "browser" | "desktop" | "imported";
+
+export type EditorTrashDeclaration = {
+  id: string;
+  kind: "declaration";
+  declarationKind: string;
+  label: string;
+  source: string;
+  originalFile: string;
+  deletedAt: string;
+};
+
+export type EditorTrashAsset = {
+  id: string;
+  kind: "asset";
+  label: string;
+  originalPath: string;
+  bytes: Uint8Array;
+  deletedAt: string;
+};
+
+export type EditorTrashEntry = EditorTrashDeclaration | EditorTrashAsset;
 
 export type EditorWorkspaceSnapshot = {
   schemaVersion: 1;
@@ -17,6 +39,7 @@ export type EditorWorkspaceSnapshot = {
   externalFolder?: string;
   files: Record<string, string>;
   assets: Record<string, Uint8Array>;
+  trash: EditorTrashEntry[];
   starred: boolean;
   createdAt: string;
   updatedAt: string;
@@ -174,6 +197,7 @@ section
       "layout.jdef": "# Layouts and themes are placed here by the Editor.\n",
     },
     assets: {},
+    trash: [],
     starred: false,
     createdAt: now,
     updatedAt: now,
@@ -196,6 +220,76 @@ export function hydrateEditorWorkspace(
   )
     return null;
   const now = new Date().toISOString();
+  const hydrateBytes = (value: unknown) => {
+    if (value instanceof Uint8Array) return value;
+    if (
+      Array.isArray(value) &&
+      value.every(
+        (byte: unknown) =>
+          typeof byte === "number" &&
+          Number.isInteger(byte) &&
+          byte >= 0 &&
+          byte <= 255,
+      )
+    )
+      return Uint8Array.from(value);
+    return null;
+  };
+  const trash = Array.isArray(candidate.trash)
+    ? candidate.trash.flatMap((value): EditorTrashEntry[] => {
+        if (!value || typeof value !== "object") return [];
+        const entry = value as Partial<EditorTrashEntry>;
+        if (
+          typeof entry.id !== "string" ||
+          typeof entry.label !== "string" ||
+          typeof entry.deletedAt !== "string"
+        )
+          return [];
+        if (
+          entry.kind === "declaration" &&
+          typeof entry.declarationKind === "string" &&
+          typeof entry.source === "string" &&
+          typeof entry.originalFile === "string" &&
+          !entry.originalFile.includes("/") &&
+          !entry.originalFile.includes("\\") &&
+          entry.originalFile.toLocaleLowerCase().endsWith(".jdef")
+        )
+          return [
+            {
+              id: entry.id,
+              kind: "declaration",
+              declarationKind: entry.declarationKind,
+              label: entry.label,
+              source: entry.source,
+              originalFile: entry.originalFile,
+              deletedAt: entry.deletedAt,
+            },
+          ];
+        if (
+          entry.kind === "asset" &&
+          typeof entry.originalPath === "string" &&
+          entry.originalPath.startsWith("assets/") &&
+          validateAssetRelativePath(
+            assetRelativePath(entry.originalPath),
+            [],
+          ) === null
+        ) {
+          const bytes = hydrateBytes(entry.bytes);
+          if (bytes)
+            return [
+              {
+                id: entry.id,
+                kind: "asset",
+                label: entry.label,
+                originalPath: entry.originalPath,
+                bytes,
+                deletedAt: entry.deletedAt,
+              },
+            ];
+        }
+        return [];
+      })
+    : [];
   return {
     schemaVersion: EDITOR_WORKSPACE_SCHEMA_VERSION,
     id: candidate.id,
@@ -215,22 +309,12 @@ export function hydrateEditorWorkspace(
             Object.entries(
               candidate.assets as unknown as Record<string, unknown>,
             ).flatMap(([path, value]) => {
-              if (value instanceof Uint8Array) return [[path, value]];
-              if (
-                Array.isArray(value) &&
-                value.every(
-                  (byte: unknown) =>
-                    typeof byte === "number" &&
-                    Number.isInteger(byte) &&
-                    byte >= 0 &&
-                    byte <= 255,
-                )
-              )
-                return [[path, Uint8Array.from(value)]];
-              return [];
+              const bytes = hydrateBytes(value);
+              return bytes ? [[path, bytes]] : [];
             }),
           )
         : {},
+    trash,
     starred: Boolean(candidate.starred),
     createdAt:
       typeof candidate.createdAt === "string" ? candidate.createdAt : now,

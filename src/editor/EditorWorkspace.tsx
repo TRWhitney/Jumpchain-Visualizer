@@ -8,6 +8,7 @@ import {
   useState,
   type ButtonHTMLAttributes,
   type KeyboardEventHandler,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type Ref,
 } from "react";
@@ -36,7 +37,11 @@ import {
   type PreviewSelection,
 } from "./previewSelection";
 import { Format1LanguageService, type FormatSymbol } from "./languageService";
-import { summarizeWorkspace, type EditorWorkspaceSnapshot } from "./model";
+import {
+  summarizeWorkspace,
+  type EditorTrashEntry,
+  type EditorWorkspaceSnapshot,
+} from "./model";
 import { createSelectControlModel } from "./selectControl";
 import {
   addDocumentField,
@@ -93,6 +98,7 @@ import {
 } from "../markup/format1Colors";
 import { ColorFieldControl, type EditorColorChoice } from "./ColorFieldControl";
 import { useAssetObjectUrl } from "../tracker/useAssetObjectUrls";
+import { ConfirmationDialog } from "../ui";
 import {
   assetArchivePath,
   assetBasename,
@@ -105,16 +111,51 @@ import {
   type AssetPathValidationCode,
   type AssetTreeEntry,
 } from "./assetPaths";
+import {
+  restoreAsset,
+  restoreDeclaration,
+  trashAsset,
+  trashDeclaration,
+} from "./trash";
 
 type SaveState = "Saved" | "Saving" | "Unsaved" | "Save failed";
 type NavigationTab = "content" | "files";
 type EditingTab = "structured" | "source";
 type ContextTab = "preview" | "properties";
 type Severity = PackageDiagnostic["severity"];
-type WorkspaceHistoryState = Pick<EditorWorkspaceSnapshot, "files" | "assets">;
+type WorkspaceHistoryState = Pick<
+  EditorWorkspaceSnapshot,
+  "files" | "assets" | "trash"
+>;
 type LayoutInspectionHandle = { inspect: (path: string) => void };
+type ExplorerAddKind =
+  | "resource"
+  | "section"
+  | "choice"
+  | "section layout"
+  | "choice layout"
+  | "trait layout"
+  | "theme"
+  | "asset";
+type ExplorerContextTarget =
+  | { kind: "symbol"; symbol: FormatSymbol }
+  | { kind: "asset"; path: string }
+  | { kind: "trash"; entry: EditorTrashEntry }
+  | {
+      kind: "group";
+      groupId: string;
+      expanded: boolean;
+      additions: readonly ExplorerAddKind[];
+    };
+type ExplorerContextMenuState = ExplorerContextTarget & {
+  x: number;
+  y: number;
+};
 
 const service = new Format1LanguageService();
+let fallbackTrashId = 0;
+const createTrashEntryId = () =>
+  globalThis.crypto?.randomUUID?.() ?? `trash-${fallbackTrashId++}`;
 
 type ExplorerEntryButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
@@ -159,6 +200,56 @@ function ExplorerEntryButton({
   );
 }
 
+function ThemeColorPreview({ value }: { value: string }) {
+  const color = normalizeFormat1HexColor(value);
+  if (!color) return null;
+  return (
+    <span
+      className="editor-theme-color-preview"
+      aria-hidden="true"
+      title={translate("ui.editorWorkspace.ariaLabel.themeColorPreview", {
+        color,
+      })}
+      style={{ backgroundColor: color }}
+    />
+  );
+}
+
+function ExplorerDisclosure({
+  groupId,
+  label,
+  count,
+  expanded,
+  className,
+  onToggle,
+  onContextMenu,
+  children,
+}: {
+  groupId: string;
+  label: ReactNode;
+  count: number;
+  expanded: boolean;
+  className?: string;
+  onToggle: (expanded: boolean) => void;
+  onContextMenu: (event: ReactMouseEvent) => void;
+  children: ReactNode;
+}) {
+  return (
+    <details
+      className={className}
+      data-explorer-group={groupId}
+      open={expanded}
+      onToggle={(event) => onToggle(event.currentTarget.open)}
+    >
+      <summary onContextMenu={onContextMenu}>
+        {label}
+        <span>{count}</span>
+      </summary>
+      {children}
+    </details>
+  );
+}
+
 function assetTreeFileCount(entry: AssetTreeEntry): number {
   return entry.kind === "file"
     ? 1
@@ -173,11 +264,13 @@ function AssetExplorerEntries({
   canonicalExtensions,
   selectedAsset,
   onOpenAsset,
+  onContextAsset,
 }: {
   entries: readonly AssetTreeEntry[];
   canonicalExtensions: Readonly<Record<string, string>>;
   selectedAsset: string | null;
   onOpenAsset: (path: string) => void;
+  onContextAsset: (path: string, event: ReactMouseEvent) => void;
 }) {
   return entries.map((entry) =>
     entry.kind === "folder" ? (
@@ -191,6 +284,7 @@ function AssetExplorerEntries({
           canonicalExtensions={canonicalExtensions}
           selectedAsset={selectedAsset}
           onOpenAsset={onOpenAsset}
+          onContextAsset={onContextAsset}
         />
       </details>
     ) : (
@@ -206,8 +300,60 @@ function AssetExplorerEntries({
           ) : undefined
         }
         onClick={() => onOpenAsset(entry.archivePath)}
+        onContextMenu={(event) => onContextAsset(entry.archivePath, event)}
       />
     ),
+  );
+}
+
+function TrashExplorerEntries({
+  entries,
+  selectedTrashId,
+  groupId,
+  expanded,
+  onToggle,
+  onContextGroup,
+  onOpen,
+  onContext,
+}: {
+  entries: readonly EditorTrashEntry[];
+  selectedTrashId: string | null;
+  groupId: string;
+  expanded: boolean;
+  onToggle: (expanded: boolean) => void;
+  onContextGroup: (event: ReactMouseEvent) => void;
+  onOpen: (entry: EditorTrashEntry) => void;
+  onContext: (entry: EditorTrashEntry, event: ReactMouseEvent) => void;
+}) {
+  return (
+    <ExplorerDisclosure
+      className="editor-trash-group"
+      groupId={groupId}
+      label={translate("ui.editorWorkspace.text.trash")}
+      count={entries.length}
+      expanded={expanded}
+      onToggle={onToggle}
+      onContextMenu={onContextGroup}
+    >
+      {entries.map((entry) => (
+        <ExplorerEntryButton
+          className={selectedTrashId === entry.id ? "is-selected" : undefined}
+          key={entry.id}
+          label={entry.label}
+          after={
+            <small>
+              {entry.kind === "asset"
+                ? translate("ui.editorWorkspace.trash.assetKind")
+                : translate(
+                    `ui.editorWorkspace.declaration.${entry.declarationKind}`,
+                  )}
+            </small>
+          }
+          onClick={() => onOpen(entry)}
+          onContextMenu={(event) => onContext(entry, event)}
+        />
+      ))}
+    </ExplorerDisclosure>
   );
 }
 
@@ -264,11 +410,36 @@ function editorColorChoices(
 }
 
 const declarationGroups = [
-  ["Resources", ["resource"]],
-  ["Sections", ["section"]],
-  ["Choices", ["choice"]],
-  ["Layouts", ["section-layout", "choice-layout", "trait-layout"]],
-  ["Themes", ["theme"]],
+  {
+    id: "resources",
+    heading: "Resources",
+    kinds: ["resource"],
+    additions: ["resource"],
+  },
+  {
+    id: "sections",
+    heading: "Sections",
+    kinds: ["section"],
+    additions: ["section"],
+  },
+  {
+    id: "choices",
+    heading: "Choices",
+    kinds: ["choice"],
+    additions: ["choice"],
+  },
+  {
+    id: "layouts",
+    heading: "Layouts",
+    kinds: ["section-layout", "choice-layout", "trait-layout"],
+    additions: ["section layout", "choice layout", "trait layout"],
+  },
+  {
+    id: "themes",
+    heading: "Themes",
+    kinds: ["theme"],
+    additions: ["theme"],
+  },
 ] as const;
 
 function defaultShadowText(defaultValue: FieldDefault | null) {
@@ -386,7 +557,15 @@ export function EditorWorkspace({
     null,
   );
   const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
-  const [assetRemoval, setAssetRemoval] = useState<string | null>(null);
+  const [selectedTrashId, setSelectedTrashId] = useState<string | null>(null);
+  const [explorerContextMenu, setExplorerContextMenu] =
+    useState<ExplorerContextMenuState | null>(null);
+  const [expandedExplorerGroups, setExpandedExplorerGroups] = useState<
+    Record<string, boolean>
+  >({});
+  const [permanentTrashRemoval, setPermanentTrashRemoval] = useState<
+    string | null
+  >(null);
   const [file, setFile] = useState(
     Object.keys(workspace.files).includes("jump.jdef")
       ? "jump.jdef"
@@ -426,7 +605,11 @@ export function EditorWorkspace({
   );
   const layoutInspectionRef = useRef<LayoutInspectionHandle>(null);
   const [history, setHistory] = useState<WorkspaceHistoryState[]>(() => [
-    { files: workspace.files, assets: workspace.assets },
+    {
+      files: workspace.files,
+      assets: workspace.assets,
+      trash: workspace.trash,
+    },
   ]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const historyRef = useRef(history);
@@ -434,11 +617,20 @@ export function EditorWorkspace({
   const historyGroupRef = useRef<string | null>(null);
   const historyGroupTimer = useRef<number | null>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
+  const explorerContextMenuRef = useRef<HTMLDivElement>(null);
   const assetInputRef = useRef<HTMLInputElement>(null);
   const [lastValid, setLastValid] = useState(
     () => service.analyze(workspace.files).packageItem,
   );
   const sourceRef = useRef<SourceCodeEditorHandle>(null);
+  const isExplorerGroupExpanded = (groupId: string) =>
+    expandedExplorerGroups[groupId] ?? true;
+  const setExplorerGroupExpanded = (groupId: string, expanded: boolean) =>
+    setExpandedExplorerGroups((current) =>
+      current[groupId] === expanded
+        ? current
+        : { ...current, [groupId]: expanded },
+    );
   const handleSearchInputKeyDown = (
     event: Parameters<KeyboardEventHandler<HTMLInputElement>>[0],
     enterAction: "navigate" | "replace",
@@ -480,6 +672,30 @@ export function EditorWorkspace({
     return () =>
       document.removeEventListener("pointerdown", closeOnOutsidePointer);
   }, [addOpen]);
+  useEffect(() => {
+    if (!explorerContextMenu) return;
+    const close = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !explorerContextMenuRef.current?.contains(event.target)
+      )
+        setExplorerContextMenu(null);
+    };
+    const closeMenu = () => setExplorerContextMenu(null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMenu();
+    };
+    document.addEventListener("pointerdown", close);
+    window.addEventListener("blur", closeMenu);
+    window.addEventListener("resize", closeMenu);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      window.removeEventListener("blur", closeMenu);
+      window.removeEventListener("resize", closeMenu);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [explorerContextMenu]);
   const sourceShortcutLabels = useMemo(
     () =>
       Object.fromEntries(
@@ -584,6 +800,9 @@ export function EditorWorkspace({
     selectedAsset && selectedAssetBytes
       ? assetMetadata(selectedAsset, selectedAssetBytes)
       : undefined;
+  const selectedTrash = selectedTrashId
+    ? (workspace.trash.find((entry) => entry.id === selectedTrashId) ?? null)
+    : null;
   const filteredDiagnostics = analysis.diagnostics.filter(
     (diagnostic) => diagnosticFilters[diagnostic.severity],
   );
@@ -654,6 +873,7 @@ export function EditorWorkspace({
     continuous = false,
     preserveRedo = false,
     historyGroup = "continuous",
+    nextTrash = workspace.trash,
   ) => {
     if (
       Object.keys(nextFiles).length === Object.keys(workspace.files).length &&
@@ -663,13 +883,15 @@ export function EditorWorkspace({
       Object.keys(nextAssets).length === Object.keys(workspace.assets).length &&
       Object.entries(nextAssets).every(
         ([path, bytes]) => workspace.assets[path] === bytes,
-      )
+      ) &&
+      nextTrash.length === workspace.trash.length &&
+      nextTrash.every((entry, index) => workspace.trash[index] === entry)
     )
       return false;
     if (!preserveRedo) {
       let nextHistory: WorkspaceHistoryState[];
       let nextIndex: number;
-      const entry = { files: nextFiles, assets: nextAssets };
+      const entry = { files: nextFiles, assets: nextAssets, trash: nextTrash };
       if (
         continuous &&
         historyGroupRef.current === historyGroup &&
@@ -703,6 +925,7 @@ export function EditorWorkspace({
         ...workspace,
         files: nextFiles,
         assets: nextAssets,
+        trash: nextTrash,
         updatedAt: new Date().toISOString(),
         revision: workspace.revision + 1,
       },
@@ -747,7 +970,14 @@ export function EditorWorkspace({
         )?.[0] ?? null,
       );
     }
-    commitWorkspace(entry.files, entry.assets, false, true);
+    commitWorkspace(
+      entry.files,
+      entry.assets,
+      false,
+      true,
+      "continuous",
+      entry.trash,
+    );
   };
   const redo = () => {
     if (historyIndexRef.current >= historyRef.current.length - 1) return;
@@ -764,11 +994,19 @@ export function EditorWorkspace({
         )?.[0] ?? null,
       );
     }
-    commitWorkspace(entry.files, entry.assets, false, true);
+    commitWorkspace(
+      entry.files,
+      entry.assets,
+      false,
+      true,
+      "continuous",
+      entry.trash,
+    );
   };
 
   const openSymbol = (symbol: FormatSymbol) => {
     setStructuredReturnTarget(null);
+    setSelectedTrashId(null);
     setSelectedAsset(null);
     setSelectedSymbol(symbol);
     setSelected(previewSelectionForSymbol(workspace.files, symbol));
@@ -777,6 +1015,7 @@ export function EditorWorkspace({
   };
 
   const openFile = (nextFile: string) => {
+    setSelectedTrashId(null);
     setSelectedAsset(null);
     setSelectedSymbol(null);
     setSelected({ kind: "package" });
@@ -787,6 +1026,7 @@ export function EditorWorkspace({
   };
 
   const openContentAsset = (path: string) => {
+    setSelectedTrashId(null);
     setSelectedAsset(path);
     setSelectedSymbol(null);
     setSelected({ kind: "package" });
@@ -796,6 +1036,7 @@ export function EditorWorkspace({
   };
 
   const openFileAsset = (path: string) => {
+    setSelectedTrashId(null);
     setSelectedAsset(path);
     setSelectedSymbol(null);
     setSelected({ kind: "package" });
@@ -841,14 +1082,183 @@ export function EditorWorkspace({
     return null;
   };
 
-  const removeAsset = (path: string) => {
-    const nextAssets = { ...workspace.assets };
-    delete nextAssets[path];
-    if (!commitWorkspace(workspace.files, nextAssets)) return;
+  const openTrash = (entry: EditorTrashEntry) => {
+    setSelectedTrashId(entry.id);
     setSelectedAsset(null);
-    setAssetRemoval(null);
+    setSelectedSymbol(null);
     setSelected({ kind: "package" });
-    onFeedback("editor.asset.removed");
+    setEditingTab("source");
+    setExplorerContextMenu(null);
+    setContextTab("properties");
+  };
+
+  const openExplorerContextMenu = (
+    event: ReactMouseEvent,
+    target: ExplorerContextTarget,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const estimatedHeight =
+      target.kind === "group" ? 42 * (target.additions.length + 1) + 8 : 150;
+    setExplorerContextMenu({
+      ...target,
+      x: Math.min(event.clientX, window.innerWidth - 190),
+      y: Math.min(event.clientY, window.innerHeight - estimatedHeight),
+    });
+  };
+
+  const moveSymbolToTrash = (symbol: FormatSymbol) => {
+    const result = trashDeclaration(
+      workspace.files,
+      symbol,
+      createTrashEntryId(),
+      new Date().toISOString(),
+    );
+    if (!result.changed) return;
+    const nextTrash = [...workspace.trash, result.value.entry];
+    if (
+      !commitWorkspace(
+        result.value.files,
+        workspace.assets,
+        false,
+        false,
+        "continuous",
+        nextTrash,
+      )
+    )
+      return;
+    openTrash(result.value.entry);
+    setStructuredAnnouncement(
+      translate("ui.editorWorkspace.announcement.movedToTrash", {
+        item: result.value.entry.label,
+      }),
+    );
+  };
+
+  const moveAssetToTrash = (path: string) => {
+    const result = trashAsset(
+      workspace.assets,
+      path,
+      createTrashEntryId(),
+      new Date().toISOString(),
+    );
+    if (!result.changed) return;
+    const nextTrash = [...workspace.trash, result.value.entry];
+    if (
+      !commitWorkspace(
+        workspace.files,
+        result.value.assets,
+        false,
+        false,
+        "continuous",
+        nextTrash,
+      )
+    )
+      return;
+    openTrash(result.value.entry);
+    setStructuredAnnouncement(
+      translate("ui.editorWorkspace.announcement.movedToTrash", {
+        item: result.value.entry.label,
+      }),
+    );
+  };
+
+  const restoreTrashEntry = (entry: EditorTrashEntry) => {
+    const nextTrash = workspace.trash.filter(
+      (candidate) => candidate.id !== entry.id,
+    );
+    if (entry.kind === "asset") {
+      const result = restoreAsset(workspace.assets, entry);
+      if (!result.changed) {
+        setStructuredAnnouncement(
+          translate("ui.editorWorkspace.announcement.trashRestoreCollision", {
+            item: entry.label,
+          }),
+        );
+        return;
+      }
+      commitWorkspace(
+        workspace.files,
+        result.value,
+        false,
+        false,
+        "continuous",
+        nextTrash,
+      );
+      if (navigationTab === "content") openContentAsset(entry.originalPath);
+      else openFileAsset(entry.originalPath);
+    } else {
+      const result = restoreDeclaration(workspace.files, entry);
+      if (!result.changed) {
+        setStructuredAnnouncement(
+          translate("ui.editorWorkspace.announcement.trashRestoreMissingFile", {
+            file: entry.originalFile,
+          }),
+        );
+        return;
+      }
+      commitWorkspace(
+        result.value,
+        workspace.assets,
+        false,
+        false,
+        "continuous",
+        nextTrash,
+      );
+      const restored = [...service.analyze(result.value).symbols]
+        .reverse()
+        .find(
+          (symbol) =>
+            symbol.file === entry.originalFile &&
+            symbol.depth === 0 &&
+            symbol.kind === entry.declarationKind &&
+            explorerSymbolLabel(symbol) === entry.label,
+        );
+      setSelectedTrashId(null);
+      setSelectedAsset(null);
+      setSelectedSymbol(restored ?? null);
+      setSelected(
+        restored
+          ? previewSelectionForSymbol(result.value, restored)
+          : { kind: "package" },
+      );
+      setFile(entry.originalFile);
+      setNavigationTab("content");
+      setEditingTab(contentEditingTab);
+    }
+    setExplorerContextMenu(null);
+    setStructuredAnnouncement(
+      translate("ui.editorWorkspace.announcement.restoredFromTrash", {
+        item: entry.label,
+      }),
+    );
+  };
+
+  const permanentlyDeleteTrashEntry = (entry: EditorTrashEntry) => {
+    const nextTrash = workspace.trash.filter(
+      (candidate) => candidate.id !== entry.id,
+    );
+    const nextHistory = [
+      { files: workspace.files, assets: workspace.assets, trash: nextTrash },
+    ];
+    historyRef.current = nextHistory;
+    historyIndexRef.current = 0;
+    setHistory(nextHistory);
+    setHistoryIndex(0);
+    setSelectedTrashId(null);
+    setPermanentTrashRemoval(null);
+    setExplorerContextMenu(null);
+    onChange({
+      ...workspace,
+      trash: nextTrash,
+      updatedAt: new Date().toISOString(),
+      revision: workspace.revision + 1,
+    });
+    setStructuredAnnouncement(
+      translate("ui.editorWorkspace.announcement.permanentlyDeleted", {
+        item: entry.label,
+      }),
+    );
   };
 
   const inspectLayoutBound = (bound: LayoutBoundHover) => {
@@ -955,6 +1365,60 @@ export function EditorWorkspace({
     }
   };
 
+  const addTopLevelDeclaration = (kind: keyof typeof addTemplates) => {
+    const target =
+      kind.includes("layout") || kind === "theme"
+        ? "layout.jdef"
+        : kind === "choice"
+          ? "choices.jdef"
+          : "jump.jdef";
+    const template = uniqueTopLevelTemplate(
+      addTemplates[kind],
+      analysis.symbols,
+    );
+    const nextFiles = {
+      ...workspace.files,
+      [target]: (workspace.files[target] ?? "") + template,
+    };
+    commitFiles(nextFiles);
+    setFile(target);
+    const declarationKind = kind.replace(" ", "-");
+    const added = service
+      .analyze(nextFiles)
+      .symbols.filter(
+        (symbol) => symbol.file === target && symbol.kind === declarationKind,
+      )
+      .at(-1);
+    if (added) {
+      setStructuredFocus(
+        ["resource", "section", "choice", "theme"].includes(declarationKind)
+          ? "handle"
+          : "name",
+      );
+      openSymbol(added);
+      setStructuredAnnouncement(
+        translate("ui.editorWorkspace.announcement.declarationAdded", {
+          declaration: translate(
+            `ui.editorWorkspace.declaration.${declarationKind}`,
+          ),
+        }),
+      );
+    }
+    setAddOpen(false);
+    setExplorerContextMenu(null);
+  };
+
+  const requestAssetAddition = () => {
+    setAddOpen(false);
+    setExplorerContextMenu(null);
+    assetInputRef.current?.click();
+  };
+
+  const runExplorerAddAction = (kind: ExplorerAddKind) => {
+    if (kind === "asset") requestAssetAddition();
+    else addTopLevelDeclaration(kind);
+  };
+
   const symbolQuery = search.trim().toLocaleLowerCase();
   const visibleSymbols = analysis.symbols.filter(
     (symbol) =>
@@ -1023,67 +1487,16 @@ export function EditorWorkspace({
                 <button
                   type="button"
                   key={kind}
-                  onClick={() => {
-                    const target =
-                      kind.includes("layout") || kind === "theme"
-                        ? "layout.jdef"
-                        : kind === "choice"
-                          ? "choices.jdef"
-                          : "jump.jdef";
-                    const template = uniqueTopLevelTemplate(
-                      addTemplates[kind as keyof typeof addTemplates],
-                      analysis.symbols,
-                    );
-                    const nextFiles = {
-                      ...workspace.files,
-                      [target]: (workspace.files[target] ?? "") + template,
-                    };
-                    commitFiles(nextFiles);
-                    setFile(target);
-                    const declarationKind = kind.replace(" ", "-");
-                    const added = service
-                      .analyze(nextFiles)
-                      .symbols.filter(
-                        (symbol) =>
-                          symbol.file === target &&
-                          symbol.kind === declarationKind,
-                      )
-                      .at(-1);
-                    if (added) {
-                      setStructuredFocus(
-                        ["resource", "section", "choice", "theme"].includes(
-                          declarationKind,
-                        )
-                          ? "handle"
-                          : "name",
-                      );
-                      openSymbol(added);
-                      setStructuredAnnouncement(
-                        translate(
-                          "ui.editorWorkspace.announcement.declarationAdded",
-                          {
-                            declaration: translate(
-                              `ui.editorWorkspace.declaration.${declarationKind}`,
-                            ),
-                          },
-                        ),
-                      );
-                    }
-                    setAddOpen(false);
-                  }}
+                  onClick={() =>
+                    addTopLevelDeclaration(kind as keyof typeof addTemplates)
+                  }
                 >
                   {translate(
                     `ui.editorWorkspace.declaration.${kind.replaceAll(" ", "-")}`,
                   )}
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setAddOpen(false);
-                  assetInputRef.current?.click();
-                }}
-              >
+              <button type="button" onClick={requestAssetAddition}>
                 {translate("ui.editorWorkspace.text.asset")}
               </button>
             </div>
@@ -1115,6 +1528,11 @@ export function EditorWorkspace({
               role="tab"
               aria-selected={navigationTab === tab}
               onClick={() => {
+                if (selectedTrash) {
+                  setNavigationTab(tab);
+                  setEditingTab("source");
+                  return;
+                }
                 if (selectedAsset) {
                   if (tab === "content") openContentAsset(selectedAsset);
                   else openFileAsset(selectedAsset);
@@ -1147,7 +1565,9 @@ export function EditorWorkspace({
             <div className="editor-outline-scroll">
               <ExplorerEntryButton
                 className={
-                  selected.kind === "package" && !selectedAsset
+                  selected.kind === "package" &&
+                  !selectedAsset &&
+                  !selectedTrash
                     ? "is-selected"
                     : ""
                 }
@@ -1159,22 +1579,39 @@ export function EditorWorkspace({
                       null,
                   );
                   setSelectedAsset(null);
+                  setSelectedTrashId(null);
                   setFile("jump.jdef");
                   setEditingTab(contentEditingTab);
                 }}
               />
-              {declarationGroups.map(([heading, kinds]) => {
+              {declarationGroups.map(({ id, heading, kinds, additions }) => {
                 const symbols = visibleSymbols.filter(
                   (symbol) =>
                     (kinds as readonly string[]).includes(symbol.kind) &&
                     (symbol.depth === 0 || Boolean(symbolQuery)),
                 );
                 if (!symbols.length && symbolQuery) return null;
+                const groupId = `content:${id}`;
+                const expanded = isExplorerGroupExpanded(groupId);
                 return (
-                  <details key={heading} open>
-                    <summary>
-                      {heading} <span>{symbols.length}</span>
-                    </summary>
+                  <ExplorerDisclosure
+                    groupId={groupId}
+                    key={heading}
+                    label={heading}
+                    count={symbols.length}
+                    expanded={expanded}
+                    onToggle={(nextExpanded) =>
+                      setExplorerGroupExpanded(groupId, nextExpanded)
+                    }
+                    onContextMenu={(event) =>
+                      openExplorerContextMenu(event, {
+                        kind: "group",
+                        groupId,
+                        expanded,
+                        additions,
+                      })
+                    }
+                  >
                     {symbols.map((symbol) => (
                       <ExplorerEntryButton
                         className={
@@ -1188,19 +1625,33 @@ export function EditorWorkspace({
                         after={
                           symbol.kind.includes("layout") ? (
                             <small>{symbol.kind.replace("-layout", "")}</small>
+                          ) : symbol.kind === "theme" ? (
+                            <ThemeColorPreview
+                              value={readSourceField(
+                                workspace.files[symbol.file],
+                                symbol,
+                                "color",
+                              )}
+                            />
                           ) : undefined
                         }
                         onClick={() => openSymbol(symbol)}
+                        onContextMenu={(event) =>
+                          openExplorerContextMenu(event, {
+                            kind: "symbol",
+                            symbol,
+                          })
+                        }
                       />
                     ))}
-                  </details>
+                  </ExplorerDisclosure>
                 );
               })}
               {symbolQuery &&
                 visibleSymbols.some(
                   (symbol) =>
                     symbol.depth > 0 &&
-                    !declarationGroups.some(([, kinds]) =>
+                    !declarationGroups.some(({ kinds }) =>
                       (kinds as readonly string[]).includes(symbol.kind),
                     ),
                 ) && (
@@ -1212,7 +1663,7 @@ export function EditorWorkspace({
                           visibleSymbols.filter(
                             (symbol) =>
                               symbol.depth > 0 &&
-                              !declarationGroups.some(([, kinds]) =>
+                              !declarationGroups.some(({ kinds }) =>
                                 (kinds as readonly string[]).includes(
                                   symbol.kind,
                                 ),
@@ -1225,7 +1676,7 @@ export function EditorWorkspace({
                       .filter(
                         (symbol) =>
                           symbol.depth > 0 &&
-                          !declarationGroups.some(([, kinds]) =>
+                          !declarationGroups.some(({ kinds }) =>
                             (kinds as readonly string[]).includes(symbol.kind),
                           ),
                       )
@@ -1248,21 +1699,59 @@ export function EditorWorkspace({
                       .includes(symbolQuery),
                 );
                 if (!assets.length && symbolQuery) return null;
+                const groupId = "content:assets";
+                const expanded = isExplorerGroupExpanded(groupId);
                 return (
-                  <details open>
-                    <summary>
-                      {translate("ui.editorWorkspace.text.assets")}
-                      <span>{assets.length}</span>
-                    </summary>
+                  <ExplorerDisclosure
+                    groupId={groupId}
+                    label={translate("ui.editorWorkspace.text.assets")}
+                    count={assets.length}
+                    expanded={expanded}
+                    onToggle={(nextExpanded) =>
+                      setExplorerGroupExpanded(groupId, nextExpanded)
+                    }
+                    onContextMenu={(event) =>
+                      openExplorerContextMenu(event, {
+                        kind: "group",
+                        groupId,
+                        expanded,
+                        additions: ["asset"],
+                      })
+                    }
+                  >
                     <AssetExplorerEntries
                       entries={buildAssetTree(assets)}
                       canonicalExtensions={assetCanonicalExtensions}
                       selectedAsset={selectedAsset}
                       onOpenAsset={openContentAsset}
+                      onContextAsset={(path, event) =>
+                        openExplorerContextMenu(event, { kind: "asset", path })
+                      }
                     />
-                  </details>
+                  </ExplorerDisclosure>
                 );
               })()}
+              <TrashExplorerEntries
+                entries={workspace.trash}
+                selectedTrashId={selectedTrashId}
+                groupId="content:trash"
+                expanded={isExplorerGroupExpanded("content:trash")}
+                onToggle={(expanded) =>
+                  setExplorerGroupExpanded("content:trash", expanded)
+                }
+                onContextGroup={(event) =>
+                  openExplorerContextMenu(event, {
+                    kind: "group",
+                    groupId: "content:trash",
+                    expanded: isExplorerGroupExpanded("content:trash"),
+                    additions: [],
+                  })
+                }
+                onOpen={openTrash}
+                onContext={(entry, event) =>
+                  openExplorerContextMenu(event, { kind: "trash", entry })
+                }
+              />
             </div>
           </div>
         ) : (
@@ -1274,7 +1763,9 @@ export function EditorWorkspace({
                 .map((path) => (
                   <ExplorerEntryButton
                     className={
-                      file === path && !selectedAsset ? "is-selected" : ""
+                      file === path && !selectedAsset && !selectedTrash
+                        ? "is-selected"
+                        : ""
                     }
                     key={path}
                     label={path}
@@ -1282,18 +1773,54 @@ export function EditorWorkspace({
                     onClick={() => openFile(path)}
                   />
                 ))}
-              <details open>
-                <summary>
-                  {translate("ui.editorWorkspace.text.assets")}
-                  <span>{Object.keys(workspace.assets).length}</span>
-                </summary>
+              <ExplorerDisclosure
+                groupId="files:assets"
+                label={translate("ui.editorWorkspace.text.assets")}
+                count={Object.keys(workspace.assets).length}
+                expanded={isExplorerGroupExpanded("files:assets")}
+                onToggle={(expanded) =>
+                  setExplorerGroupExpanded("files:assets", expanded)
+                }
+                onContextMenu={(event) =>
+                  openExplorerContextMenu(event, {
+                    kind: "group",
+                    groupId: "files:assets",
+                    expanded: isExplorerGroupExpanded("files:assets"),
+                    additions: ["asset"],
+                  })
+                }
+              >
                 <AssetExplorerEntries
                   entries={buildAssetTree(Object.keys(workspace.assets))}
                   canonicalExtensions={assetCanonicalExtensions}
                   selectedAsset={selectedAsset}
                   onOpenAsset={openFileAsset}
+                  onContextAsset={(path, event) =>
+                    openExplorerContextMenu(event, { kind: "asset", path })
+                  }
                 />
-              </details>
+              </ExplorerDisclosure>
+              <TrashExplorerEntries
+                entries={workspace.trash}
+                selectedTrashId={selectedTrashId}
+                groupId="files:trash"
+                expanded={isExplorerGroupExpanded("files:trash")}
+                onToggle={(expanded) =>
+                  setExplorerGroupExpanded("files:trash", expanded)
+                }
+                onContextGroup={(event) =>
+                  openExplorerContextMenu(event, {
+                    kind: "group",
+                    groupId: "files:trash",
+                    expanded: isExplorerGroupExpanded("files:trash"),
+                    additions: [],
+                  })
+                }
+                onOpen={openTrash}
+                onContext={(entry, event) =>
+                  openExplorerContextMenu(event, { kind: "trash", entry })
+                }
+              />
             </div>
           </div>
         )}
@@ -1308,13 +1835,15 @@ export function EditorWorkspace({
           role="tablist"
           aria-label={translate("ui.editorWorkspace.ariaLabel.editingView")}
         >
-          {(selectedAsset
-            ? navigationTab === "files"
-              ? (["source"] as const)
-              : (["structured"] as const)
-            : navigationTab === "files"
-              ? (["source"] as const)
-              : (["structured", "source"] as const)
+          {(selectedTrash
+            ? (["source"] as const)
+            : selectedAsset
+              ? navigationTab === "files"
+                ? (["source"] as const)
+                : (["structured"] as const)
+              : navigationTab === "files"
+                ? (["source"] as const)
+                : (["structured", "source"] as const)
           ).map((tab) => (
             <button
               key={tab}
@@ -1342,7 +1871,6 @@ export function EditorWorkspace({
                 allPaths={archiveAssetPaths}
                 referenceCount={selectedAssetReferences.length}
                 onRename={renameOrMoveAsset}
-                onRemove={() => setAssetRemoval(selectedAsset)}
               />
             ) : (
               <StructuredPanel
@@ -1512,6 +2040,8 @@ export function EditorWorkspace({
               />
             )}
           </>
+        ) : selectedTrash ? (
+          <TrashSourcePanel entry={selectedTrash} />
         ) : selectedAsset && selectedAssetBytes ? (
           <AssetBinarySourcePanel
             path={selectedAsset}
@@ -1943,10 +2473,12 @@ export function EditorWorkspace({
             </button>
           ))}
         </div>
-        {contextTab === "preview" &&
-        navigationTab === "content" &&
-        selectedAsset &&
-        selectedAssetBytes ? (
+        {selectedTrash ? (
+          <TrashContextPanel entry={selectedTrash} tab={contextTab} />
+        ) : contextTab === "preview" &&
+          navigationTab === "content" &&
+          selectedAsset &&
+          selectedAssetBytes ? (
           <AssetContextPreview
             path={selectedAsset}
             bytes={selectedAssetBytes}
@@ -2185,6 +2717,113 @@ export function EditorWorkspace({
           </div>
         )}
       </section>
+      {explorerContextMenu && (
+        <div
+          ref={explorerContextMenuRef}
+          className="editor-explorer-context-menu"
+          role="menu"
+          aria-label={translate(
+            explorerContextMenu.kind === "group"
+              ? "ui.editorWorkspace.ariaLabel.sidebarGroupMenu"
+              : "ui.editorWorkspace.ariaLabel.sidebarItemMenu",
+          )}
+          style={{ left: explorerContextMenu.x, top: explorerContextMenu.y }}
+        >
+          {explorerContextMenu.kind === "group" ? (
+            <>
+              {explorerContextMenu.additions.map((addition, index) => {
+                const item =
+                  addition === "asset"
+                    ? translate("ui.editorWorkspace.text.asset")
+                    : translate(
+                        `ui.editorWorkspace.declaration.${addition.replaceAll(" ", "-")}`,
+                      );
+                return (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    autoFocus={index === 0}
+                    key={addition}
+                    onClick={() => runExplorerAddAction(addition)}
+                  >
+                    {translate("ui.editorWorkspace.text.addItem", { item })}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                role="menuitem"
+                autoFocus={!explorerContextMenu.additions.length}
+                onClick={() => {
+                  setExplorerGroupExpanded(
+                    explorerContextMenu.groupId,
+                    !explorerContextMenu.expanded,
+                  );
+                  setExplorerContextMenu(null);
+                }}
+              >
+                {translate(
+                  explorerContextMenu.expanded
+                    ? "ui.editorWorkspace.text.collapse"
+                    : "ui.editorWorkspace.text.expand",
+                )}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                autoFocus
+                onClick={() => {
+                  if (explorerContextMenu.kind === "symbol")
+                    openSymbol(explorerContextMenu.symbol);
+                  else if (explorerContextMenu.kind === "asset") {
+                    if (navigationTab === "content")
+                      openContentAsset(explorerContextMenu.path);
+                    else openFileAsset(explorerContextMenu.path);
+                  } else openTrash(explorerContextMenu.entry);
+                  setExplorerContextMenu(null);
+                }}
+              >
+                {translate("ui.editorWorkspace.text.open")}
+              </button>
+              {explorerContextMenu.kind === "trash" && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={
+                    explorerContextMenu.entry.kind === "asset" &&
+                    Boolean(
+                      workspace.assets[explorerContextMenu.entry.originalPath],
+                    )
+                  }
+                  onClick={() => restoreTrashEntry(explorerContextMenu.entry)}
+                >
+                  {translate("ui.editorWorkspace.text.restore")}
+                </button>
+              )}
+              <button
+                type="button"
+                role="menuitem"
+                className="is-danger"
+                onClick={() => {
+                  if (explorerContextMenu.kind === "symbol")
+                    moveSymbolToTrash(explorerContextMenu.symbol);
+                  else if (explorerContextMenu.kind === "asset")
+                    moveAssetToTrash(explorerContextMenu.path);
+                  else {
+                    setPermanentTrashRemoval(explorerContextMenu.entry.id);
+                    setExplorerContextMenu(null);
+                  }
+                }}
+              >
+                {translate("ui.editorWorkspace.text.delete")}
+              </button>
+            </>
+          )}
+        </div>
+      )}
       {resourceCreation && (
         <ResourceCreationDialog
           onCancel={() => setResourceCreation(null)}
@@ -2209,17 +2848,27 @@ export function EditorWorkspace({
           }}
         />
       )}
-      {assetRemoval && workspace.assets[assetRemoval] && (
-        <AssetRemovalDialog
-          path={assetRemoval}
-          referenceCount={
-            assetReferences(workspace.files, assetRelativePath(assetRemoval))
-              .length
-          }
-          onCancel={() => setAssetRemoval(null)}
-          onConfirm={() => removeAsset(assetRemoval)}
-        />
-      )}
+      {permanentTrashRemoval &&
+        (() => {
+          const entry = workspace.trash.find(
+            (candidate) => candidate.id === permanentTrashRemoval,
+          );
+          return entry ? (
+            <ConfirmationDialog
+              application
+              title={translate(
+                "ui.editorWorkspace.trash.permanentDeleteHeading",
+                { item: entry.label },
+              )}
+              confirmLabel={translate("ui.editorWorkspace.trash.deleteForever")}
+              cancelLabel={translate("ui.editorWorkspace.text.cancel")}
+              onCancel={() => setPermanentTrashRemoval(null)}
+              onConfirm={() => permanentlyDeleteTrashEntry(entry)}
+            >
+              {translate("ui.editorWorkspace.trash.permanentDeleteDescription")}
+            </ConfirmationDialog>
+          ) : null;
+        })()}
     </div>
   );
 }
@@ -4942,7 +5591,6 @@ function AssetStructuredPanel({
   allPaths,
   referenceCount,
   onRename,
-  onRemove,
 }: {
   path: string;
   allPaths: readonly string[];
@@ -4951,7 +5599,6 @@ function AssetStructuredPanel({
     currentPath: string,
     nextRelativePath: string,
   ) => Promise<AssetPathValidationCode | "signature" | null>;
-  onRemove: () => void;
 }) {
   const [filename, setFilename] = useState(() => assetBasename(path));
   const [folder, setFolder] = useState(() => assetFolder(path));
@@ -5001,6 +5648,7 @@ function AssetStructuredPanel({
       </header>
       <form
         className="editor-form-card editor-asset-form"
+        aria-busy={saving || undefined}
         onSubmit={(event) => {
           event.preventDefault();
         }}
@@ -5044,12 +5692,34 @@ function AssetStructuredPanel({
             count: referenceCount,
           })}
         </p>
-        <div className="editor-asset-actions" aria-busy={saving || undefined}>
-          <button type="button" className="is-danger" onClick={onRemove}>
-            {translate("ui.editorWorkspace.text.removeAsset")}
-          </button>
-        </div>
       </form>
+    </div>
+  );
+}
+
+function TrashSourcePanel({ entry }: { entry: EditorTrashEntry }) {
+  if (entry.kind === "asset")
+    return (
+      <AssetBinarySourcePanel path={entry.originalPath} bytes={entry.bytes} />
+    );
+  return (
+    <div className="editor-source-panel editor-trash-source-panel">
+      <div className="editor-source-toolbar">
+        <span>
+          <strong>{entry.label}</strong>
+          <small>
+            {translate("ui.editorWorkspace.trash.originalFile", {
+              file: entry.originalFile,
+            })}
+          </small>
+        </span>
+      </div>
+      <pre aria-label={translate("ui.editorWorkspace.ariaLabel.deletedSource")}>
+        <code>{entry.source}</code>
+      </pre>
+      <div className="editor-source-status is-recovered">
+        <span>{translate("ui.editorWorkspace.trash.readOnly")}</span>
+      </div>
     </div>
   );
 }
@@ -5101,44 +5771,46 @@ function AssetContextPreview({
   );
 }
 
-function AssetRemovalDialog({
-  path,
-  referenceCount,
-  onCancel,
-  onConfirm,
+function TrashContextPanel({
+  entry,
+  tab,
 }: {
-  path: string;
-  referenceCount: number;
-  onCancel: () => void;
-  onConfirm: () => void;
+  entry: EditorTrashEntry;
+  tab: ContextTab;
 }) {
+  if (tab === "preview" && entry.kind === "asset")
+    return (
+      <AssetContextPreview path={entry.originalPath} bytes={entry.bytes} />
+    );
   return (
-    <div className="editor-departure-backdrop">
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="editor-remove-asset-heading"
-      >
-        <p>{translate("ui.editorWorkspace.asset.assetFile")}</p>
-        <h2 id="editor-remove-asset-heading">
-          {translate("ui.editorWorkspace.asset.removeHeading", {
-            asset: assetRelativePath(path),
-          })}
-        </h2>
-        <p>
-          {translate("ui.editorWorkspace.asset.removeDescription", {
-            count: referenceCount,
-          })}
-        </p>
-        <div className="editor-dialog-actions">
-          <button type="button" onClick={onCancel}>
-            {translate("ui.editorWorkspace.text.cancel")}
-          </button>
-          <button type="button" className="is-danger" onClick={onConfirm}>
-            {translate("ui.editorWorkspace.text.removeAsset")}
-          </button>
+    <div className="editor-properties-panel editor-trash-properties">
+      <p>{translate("ui.editorWorkspace.text.trash")}</p>
+      <h2>{entry.label}</h2>
+      <dl>
+        <div>
+          <dt>{translate("ui.editorWorkspace.trash.kind")}</dt>
+          <dd>
+            {entry.kind === "asset"
+              ? translate("ui.editorWorkspace.trash.assetKind")
+              : translate(
+                  `ui.editorWorkspace.declaration.${entry.declarationKind}`,
+                )}
+          </dd>
         </div>
-      </section>
+        <div>
+          <dt>{translate("ui.editorWorkspace.trash.originalLocation")}</dt>
+          <dd>
+            <code>
+              {entry.kind === "asset" ? entry.originalPath : entry.originalFile}
+            </code>
+          </dd>
+        </div>
+        <div>
+          <dt>{translate("ui.editorWorkspace.trash.deletedAt")}</dt>
+          <dd>{new Date(entry.deletedAt).toLocaleString()}</dd>
+        </div>
+      </dl>
+      <p>{translate("ui.editorWorkspace.trash.readOnly")}</p>
     </div>
   );
 }

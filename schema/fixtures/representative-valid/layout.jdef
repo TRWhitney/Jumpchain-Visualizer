@@ -10,7 +10,7 @@ section-layout
     rule
       color: purple
       thickness: 2
-      style: dash
+      style: rounded
     choice: gender_field
     choice: age_field
 

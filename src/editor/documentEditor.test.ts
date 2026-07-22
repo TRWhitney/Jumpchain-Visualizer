@@ -15,6 +15,7 @@ import {
   setConditionalDocumentField,
   setDocumentField,
   removeDocumentDeclaration,
+  resolveDocumentSymbol,
   structuredContext,
 } from "./documentEditor";
 
@@ -31,6 +32,25 @@ section
 
 describe("Format 1 structured document edits", () => {
   const service = new Format1LanguageService();
+
+  it("keeps source identity ahead of a temporarily duplicated handle", () => {
+    const analysis = service.analyze({
+      "jump.jdef": `${source}\nsection\n  handle: abc\n  name: "Existing ABC"\n\nsection\n  handle: abc\n  name: "New Section"\n`,
+    });
+    const duplicates = analysis.symbols.filter(
+      (symbol) => symbol.kind === "section" && symbol.handle === "abc",
+    );
+    expect(duplicates).toHaveLength(2);
+    expect(resolveDocumentSymbol(analysis.symbols, duplicates[1])).toBe(
+      duplicates[1],
+    );
+    expect(
+      resolveDocumentSymbol(analysis.symbols, {
+        ...duplicates[1],
+        from: Number.MAX_SAFE_INTEGER,
+      }),
+    ).toBe(duplicates[0]);
+  });
 
   it("identifies every static omission default without treating format as defaulted", () => {
     expect(
@@ -469,6 +489,13 @@ section-layout
       .analyze(first.files)
       .symbols.find((symbol) => symbol.kind === "section")!;
     const second = insertDocumentChild(first.files, currentSection, "image");
+    expect(second.changed).toBe(true);
+    expect(second.target).toMatchObject({ kind: "image", handle: "new_image" });
+    expect(second.focusField).toBe("src");
+    expect(second.files["jump.jdef"]).not.toContain('src: "image.png"');
+    expect(second.files["jump.jdef"]).toContain(
+      'image\n    handle: new_image\n    alt: ""',
+    );
     const nextSection = service
       .analyze(second.files)
       .symbols.find((symbol) => symbol.kind === "section")!;
@@ -541,6 +568,11 @@ section-layout
       "color",
       "thickness",
       "style",
+    ]);
+    expect(structuredContext(files, rule)?.fields.style.values).toEqual([
+      "solid",
+      "dash",
+      "rounded",
     ]);
   });
 });

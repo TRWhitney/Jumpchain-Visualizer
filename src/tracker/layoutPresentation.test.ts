@@ -211,6 +211,24 @@ describe("layout presentation styles", () => {
     expect(
       layoutRuleStyle(
         node("rule", {
+          color: "surface",
+          thickness: 6,
+          style: "rounded",
+        }),
+        packageThemes,
+      ),
+    ).toMatchObject({
+      width: "100%",
+      height: "6px",
+      margin: 0,
+      backgroundColor: "#123456",
+      border: 0,
+      borderStyle: "none",
+      borderRadius: "9999px",
+    });
+    expect(
+      layoutRuleStyle(
+        node("rule", {
           color: "unsafe",
           thickness: 99,
           style: "double",

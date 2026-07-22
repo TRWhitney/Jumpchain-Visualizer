@@ -8,6 +8,10 @@ import {
 } from "react";
 import { translate } from "../localization";
 import { normalizeFormat1HexColor } from "../markup/format1Colors";
+import {
+  platformScreenColorSampler,
+  type ScreenColorSampler,
+} from "./screenColorSampler";
 
 export type EditorColorChoice = {
   value: string;
@@ -25,6 +29,7 @@ export function ColorFieldControl({
   ariaDescribedBy,
   onChange,
   onBlur,
+  screenColorSampler = platformScreenColorSampler,
 }: {
   label: string;
   value: string;
@@ -35,9 +40,13 @@ export function ColorFieldControl({
   ariaDescribedBy?: string;
   onChange: (value: string) => void;
   onBlur: () => void;
+  screenColorSampler?: ScreenColorSampler;
 }) {
   const [choicesOpen, setChoicesOpen] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
+  const [screenSamplerAvailable, setScreenSamplerAvailable] = useState(false);
+  const [screenSampling, setScreenSampling] = useState(false);
+  const [screenSamplingFailed, setScreenSamplingFailed] = useState(false);
   const draftRef = useRef<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const picker = useRef<HTMLInputElement>(null);
@@ -81,6 +90,17 @@ export function ColorFieldControl({
     return () => document.removeEventListener("pointerdown", closeWhenOutside);
   }, [choicesOpen]);
 
+  useEffect(() => {
+    if (allowTokens) return;
+    let active = true;
+    void screenColorSampler.isAvailable().then((available) => {
+      if (active) setScreenSamplerAvailable(available);
+    });
+    return () => {
+      active = false;
+    };
+  }, [allowTokens, screenColorSampler]);
+
   const groups = [
     {
       source: "built-in" as const,
@@ -105,7 +125,7 @@ export function ColorFieldControl({
       }}
     >
       <div
-        className={`editor-color-combobox${allowTokens ? " has-choices" : ""}`}
+        className={`editor-color-combobox${allowTokens ? " has-choices" : ""}${!allowTokens && screenSamplerAvailable ? " has-screen-sampler" : ""}`}
       >
         <input
           className="editor-color-picker"
@@ -171,7 +191,53 @@ export function ColorFieldControl({
             </span>
           </button>
         )}
+        {!allowTokens && screenSamplerAvailable && (
+          <button
+            className="editor-color-screen-sampler"
+            type="button"
+            aria-label={translate(
+              "ui.editorWorkspace.color.sampleFromScreenForField",
+              { field: label },
+            )}
+            title={translate(
+              "ui.editorWorkspace.color.sampleFromScreenForField",
+              { field: label },
+            )}
+            aria-busy={screenSampling || undefined}
+            disabled={screenSampling}
+            onClick={async () => {
+              setScreenSampling(true);
+              setScreenSamplingFailed(false);
+              const result = await screenColorSampler.sample().catch(() => ({
+                status: "unavailable" as const,
+              }));
+              setScreenSampling(false);
+              if (result.status === "selected") {
+                const nextColor = normalizeFormat1HexColor(result.color);
+                if (nextColor) {
+                  updateDraft(null);
+                  onChange(nextColor);
+                  onBlur();
+                }
+                return;
+              }
+              if (result.status === "unavailable") {
+                setScreenSamplerAvailable(false);
+                setScreenSamplingFailed(true);
+              }
+            }}
+          >
+            <svg aria-hidden="true" viewBox="0 0 16 16">
+              <path d="m9.4 2 4.6 4.6-2 2-.9-.9-5.3 5.3-3 .8.8-3 5.3-5.3-.9-.9 2-2Zm.6 3.4-5 5-.3 1.1 1.1-.3 5-5Z" />
+            </svg>
+          </button>
+        )}
       </div>
+      <span className="sr-only" aria-live="polite">
+        {screenSamplingFailed
+          ? translate("ui.editorWorkspace.color.screenSamplingUnavailable")
+          : ""}
+      </span>
       {allowTokens && choicesOpen && (
         <div
           className="editor-color-choice-popover"

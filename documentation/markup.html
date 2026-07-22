@@ -302,6 +302,8 @@ them out</li>
 <p>Responsibilities:</p>
 <ul>
 <li>hold referenced images and similar external files</li>
+<li>act as the implicit root for authored asset references; source writes <code>icons/banner.png</code>, never the redundant archive path <code>assets/icons/banner.png</code></li>
+<li>allow nested folders while keeping every authored path relative to this root</li>
 </ul>
 <h3>Merge Rules</h3>
 <p>The loader should merge the package into one canonical jump document.</p>
@@ -536,8 +538,8 @@ slot
 <pre><code class="language-text">rule
   color: purple
   thickness: 2
-  style: dash</code></pre>
-<p><code>style</code> accepts <code>solid</code> or <code>dash</code>; omission defaults to <code>solid</code>. The vocabulary is intentionally extensible so future rule styles can be added without changing the node shape. A rule spans its available layout width and has no target, handle, or child nodes; surrounding containers control its spacing. Other leaf nodes likewise do not have handles or children. A typed leaf’s block form does not create a different semantic node; it only provides room for presentation fields.</p>
+  style: rounded</code></pre>
+<p><code>style</code> accepts <code>solid</code>, <code>dash</code>, or <code>rounded</code>; omission defaults to <code>solid</code>. <code>rounded</code> renders a solid rule with rounded end caps and uses <code>thickness</code> as the bar height. The vocabulary is intentionally extensible so future rule styles can be added without changing the node shape. A rule spans its available layout width and has no target, handle, or child nodes; surrounding containers control its spacing. Other leaf nodes likewise do not have handles or children. A typed leaf’s block form does not create a different semantic node; it only provides room for presentation fields.</p>
 <p>The same typed content target or <code>slot</code> target may appear more than once in one layout. Each occurrence is an independent presentation node over the same underlying content or control. The generic <code>ref</code> form is not supported because declaration-kind namespaces allow matching handles.</p>
 <p>A typed content leaf whose target is not present on a particular section or choice is valid and collapses without reserving runtime space. This permits one authored layout to be reused across content with different optional fields. The Editor warns about an absent target by default and shows the leaf as a structured-authoring placeholder; users may suppress that diagnostic with <code>editor.warnMissingLayoutTargets</code>. A missing target does not make a distributable package invalid.</p>
 <p>Current container-identity rules:</p>
@@ -910,9 +912,9 @@ derivation</li>
 <ul>
 <li>an image may temporarily omit <code>src</code>; it produces a warning and renders a compact authoring placeholder identified by its handle</li>
 <li>an image without <code>src</code> is incomplete for package export even though the Editor can preserve and preview the WIP block</li>
-<li><code>src</code> is local/project-relative only in v1</li>
+<li><code>src</code> is relative to the package&#39;s implicit <code>assets/</code> root in v1; <code>src: &quot;banner.png&quot;</code> resolves to the archive entry <code>assets/banner.png</code></li>
 <li>remote image URLs are not part of the format</li>
-<li>asset paths use portable forward slashes and must resolve inside the package directory</li>
+<li>nested asset paths use portable forward slashes, such as <code>src: &quot;illustrations/banner.png&quot;</code>, and must remain inside the implicit asset root</li>
 <li>absolute paths, URI schemes, parent traversal with <code>..</code>, and any normalized path that escapes the package are errors</li>
 <li>a safe path whose referenced file is missing produces an Editor warning and a missing-image placeholder during authoring</li>
 <li>a missing referenced asset is an error when exporting or importing a distributable package</li>

@@ -488,7 +488,7 @@ section-layout
     rule
       color: "#C85A71"
       thickness: 3
-      style: dash
+      style: rounded
 `;
     const packageItem = canonicalizePackage({
       id: "rule-presentation",
@@ -500,7 +500,7 @@ section-layout
       presentation: {
         color: "#C85A71",
         thickness: 3,
-        style: "dash",
+        style: "rounded",
       },
     });
     expect(
@@ -514,7 +514,7 @@ section-layout
 
     const invalid = valid
       .replace("thickness: 3", "thickness: 0")
-      .replace("style: dash", "style: dotted");
+      .replace("style: rounded", "style: dotted");
     const diagnostics = canonicalizePackage({
       id: "invalid-rule-presentation",
       exactHash: "0".repeat(64),

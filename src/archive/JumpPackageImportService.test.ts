@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createStarterWorkspace } from "../editor";
 import { SAFE_PACKAGE_SIZE_LIMITS } from "../settings/model";
 import {
+  canonicalAssetExtension,
   JumpPackageImportService,
   PackageSecurityError,
 } from "./JumpPackageImportService";
@@ -20,6 +21,23 @@ const signatureOffset = (archive: Uint8Array, signature: number) => {
 };
 
 describe("secure Jump package boundary", () => {
+  it.each([
+    ["PNG", [137, 80, 78, 71, 13, 10, 26, 10], "png"],
+    ["JPEG", [0xff, 0xd8, 0xff], "jpg"],
+    ["GIF", [...bytes("GIF89a")], "gif"],
+    ["WebP", [...bytes("RIFF0000WEBP")], "webp"],
+    ["AVIF", [...bytes("0000ftypavif")], "avif"],
+  ])(
+    "derives the canonical %s extension from bytes",
+    (_format, value, extension) => {
+      expect(canonicalAssetExtension(Uint8Array.from(value))).toBe(extension);
+    },
+  );
+
+  it("does not infer a canonical asset extension from unknown bytes", () => {
+    expect(canonicalAssetExtension(bytes("not an image"))).toBeNull();
+  });
+
   it("round-trips a valid package through export and streamed import", async () => {
     const service = new JumpPackageImportService();
     const workspace = createStarterWorkspace("secure-round-trip");
@@ -94,7 +112,7 @@ describe("secure Jump package boundary", () => {
   it("rejects a malformed image before exposing package bytes", async () => {
     const source = createStarterWorkspace().files["jump.jdef"].replace(
       "section\n  handle: introduction",
-      'section\n  handle: introduction\n  name: "Introduction"\n\n  image\n    handle: bad\n    src: "assets/bad.png"\n    alt: "Bad"\n\nsection\n  handle: second',
+      'section\n  handle: introduction\n  name: "Introduction"\n\n  image\n    handle: bad\n    src: "bad.png"\n    alt: "Bad"\n\nsection\n  handle: second',
     );
     const archive = zipSync({
       "jump.jdef": bytes(source),

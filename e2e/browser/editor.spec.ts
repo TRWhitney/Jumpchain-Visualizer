@@ -592,6 +592,45 @@ test("sidebar entry hover text appears only for visually truncated labels", asyn
   await expect(shortEntry).not.toHaveAttribute("title");
 });
 
+test("Structured handle editing preserves declaration identity through temporary collisions", async ({
+  page,
+}) => {
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Section", exact: true }).click();
+  await editor.getByLabel("handle", { exact: true }).fill("abc");
+  await editor.getByLabel("handle", { exact: true }).press("Tab");
+  await editor.getByLabel("name", { exact: true }).fill("Existing ABC");
+  await editor.getByLabel("name", { exact: true }).press("Tab");
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Section", exact: true }).click();
+  const handle = editor.getByLabel("handle", { exact: true });
+  await handle.fill("");
+  for (const character of "abc") {
+    await handle.pressSequentially(character);
+    await expect(editor.getByLabel("name", { exact: true })).toHaveValue(
+      "New Section",
+    );
+  }
+  await editor.screenshot({
+    path: "artifacts/editor-visual/editor-structured-handle-collision-corrected.png",
+  });
+  await handle.pressSequentially("2");
+  await expect(handle).toHaveValue("abc2");
+  await expect(editor.getByLabel("name", { exact: true })).toHaveValue(
+    "New Section",
+  );
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const sourceEditor = editor.getByLabel("jump.jdef source");
+  await expect
+    .poll(() => sourceEditor.textContent())
+    .toMatch(/handle:\s*abc\s+name:\s*"Existing ABC"/);
+  await expect
+    .poll(() => sourceEditor.textContent())
+    .toMatch(/handle:\s*abc2\s+name:\s*"New Section"/);
+});
+
 test("Show bounds does not extend the authored preview surface", async ({
   page,
 }, testInfo) => {
@@ -1363,8 +1402,14 @@ test("all six workspace tabs and source keyboard functions are operable", async 
   await editor.getByRole("tab", { name: "Preview" }).click();
   await editor.getByRole("tab", { name: "Properties" }).click();
   await expect(
-    editor.getByText("Properties are derived from canonical source."),
+    editor.getByText(
+      "Properties describe the current selection and are read-only.",
+    ),
   ).toBeVisible();
+  await expect(
+    editor.getByText("Definition file", { exact: true }),
+  ).toBeVisible();
+  await expect(editor.getByText("Authors", { exact: true })).toHaveCount(0);
 });
 
 test("Files exposes only Source while Content retains Structured and Source", async ({
@@ -1964,9 +2009,7 @@ section
   await page.keyboard.insertText("1.0");
   await expect(source).toContainText('version: "1.0"');
   expect((await source.textContent())?.match(/version:/g)).toHaveLength(1);
-  await expect(editor.locator(".editor-diagnostics-summary")).toContainText(
-    "No included diagnostics.",
-  );
+  await expect(editor.locator(".cm-lintRange-error")).toHaveCount(0);
   await editor.getByRole("button", { name: "Quick Add" }).click();
   await expect(
     editor
@@ -2294,9 +2337,16 @@ section
 
 test("Asset add, validation, removal, and package history use the secure boundary", async ({
   page,
-}) => {
+}, testInfo) => {
   const editor = await openCreatedEditor(page);
-  const png = PNG.sync.write(new PNG({ width: 1, height: 1 }));
+  const image = new PNG({ width: 80, height: 50 });
+  for (let offset = 0; offset < image.data.length; offset += 4) {
+    image.data[offset] = 40;
+    image.data[offset + 1] = 112;
+    image.data[offset + 2] = 190;
+    image.data[offset + 3] = 255;
+  }
+  const png = PNG.sync.write(image);
   await editor.getByRole("button", { name: "Add", exact: true }).click();
   const chooserPromise = page.waitForEvent("filechooser");
   await editor.getByRole("button", { name: "Asset…" }).click();
@@ -2307,21 +2357,171 @@ test("Asset add, validation, removal, and package history use the secure boundar
     mimeType: "image/png",
     buffer: png,
   });
+  await expect(editor.getByRole("button", { name: "pixel.png" })).toBeVisible();
+  await expect(editor.getByRole("tab", { name: "Structured" })).toBeVisible();
+  await expect(editor.getByRole("tab", { name: "Source" })).toHaveCount(0);
   await expect(
-    editor.getByRole("button", { name: "assets/pixel.png" }),
-  ).toBeVisible();
-  await editor.getByRole("button", { name: "assets/pixel.png" }).click();
+    editor.locator(".editor-outline-scroll .is-selected"),
+  ).toHaveCount(1);
   await expect(
-    editor.getByRole("heading", { name: "assets/pixel.png" }),
-  ).toBeVisible();
-  await editor.getByRole("button", { name: "Remove asset" }).click();
+    editor.locator(".editor-outline-scroll .is-selected"),
+  ).toContainText("pixel.png");
+  await expect(editor.getByLabel("Filename")).toHaveValue("pixel.png");
+  await expect(editor.getByLabel("Folder")).toHaveValue("");
+  const assetPreview = editor.locator(".editor-asset-preview-panel img");
+  await expect(assetPreview).toBeVisible();
+  await expect
+    .poll(() => assetPreview.evaluate((node) => node.naturalWidth))
+    .toBe(80);
+  await attachProductionState(
+    testInfo,
+    "editor-asset-content-structured-corrected",
+    editor,
+  );
+
+  await editor.getByRole("tab", { name: "Properties" }).click();
+  const properties = editor.locator(".editor-properties-panel");
+  await expect(properties).toContainText("80 × 50");
+  await expect(properties).toContainText("PNG");
+  await expect(properties).toContainText("References");
+  await expect(properties).not.toContainText("Authors");
+  await expect(properties.getByRole("button")).toHaveCount(0);
+  await editor.getByRole("tab", { name: "Preview" }).click();
+
+  await editor.getByLabel("Folder").fill("art/icons");
   await expect(
-    editor.getByRole("button", { name: "assets/pixel.png" }),
+    editor.getByRole("button", { name: "Move", exact: true }),
   ).toHaveCount(0);
-  await editor.getByRole("button", { name: "Undo" }).click();
   await expect(
-    editor.getByRole("button", { name: "assets/pixel.png" }),
+    editor.locator("summary").filter({ hasText: /^art1$/ }),
   ).toBeVisible();
+  await expect(
+    editor.locator("summary").filter({ hasText: /^icons1$/ }),
+  ).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-asset-folder-move-corrected",
+    editor,
+  );
+  await expect(editor.getByRole("button", { name: "pixel.png" })).toBeVisible();
+  await expect(editor.getByLabel("Folder")).toHaveValue("art/icons");
+  await editor.getByLabel("Folder").fill("../escape");
+  await expect(editor.getByRole("alert")).toHaveText(
+    "Asset folders cannot be empty, current-directory, parent-directory, or non-canonical segments.",
+  );
+  await expect(
+    editor.locator("summary").filter({ hasText: /^icons1$/ }),
+  ).toBeVisible();
+  await expect(editor.getByRole("button", { name: "pixel.png" })).toBeVisible();
+  await editor.getByLabel("Folder").fill("art/icons");
+  await expect(editor.getByRole("alert")).toHaveCount(0);
+
+  await editor.getByRole("button", { name: "Jump details" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.locator(".cm-content");
+  await source.click();
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Asset workflow"
+  description: "Asset workflow"
+  author: "Tester"
+  version: "1"
+  section-layout: image_layout
+
+section
+  handle: introduction
+  name: "Introduction"
+
+  image
+    handle: visual
+    src: "art/icons/pixel.png"
+    alt: "A blue rectangle"
+
+section-layout
+  handle: image_layout
+
+  stack
+    image: visual
+`);
+  await expect(editor.locator(".cm-lintRange-error")).toHaveCount(0);
+
+  await editor.getByRole("button", { name: "pixel.png" }).click();
+  await expect(editor.getByText("Referenced by 1 image block.")).toBeVisible();
+  await expect(editor.getByRole("button", { name: "Rename" })).toHaveCount(0);
+  await editor.getByLabel("Filename").fill("hero.png");
+  await expect(editor.getByRole("button", { name: "hero.png" })).toBeVisible();
+  await expect(editor.getByLabel("Filename")).toHaveValue("hero.png");
+  await editor.getByRole("button", { name: "Undo" }).click();
+  await expect(editor.getByRole("button", { name: "pixel.png" })).toBeVisible();
+  await expect(editor.getByLabel("Filename")).toHaveValue("pixel.png");
+  await editor.getByRole("button", { name: "Redo" }).click();
+  await expect(editor.getByRole("button", { name: "hero.png" })).toBeVisible();
+  await expect(editor.getByLabel("Filename")).toHaveValue("hero.png");
+
+  await editor.getByRole("button", { name: "Jump details" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  await expect(editor.locator(".cm-content")).toContainText(
+    'src: "art/icons/hero.png"',
+  );
+  await editor.getByRole("button", { name: "introduction" }).click();
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor.getByRole("button", { name: "visual image" }).click();
+  const srcSelect = editor.getByRole("combobox", { name: "src" });
+  await expect(srcSelect).toHaveValue("art/icons/hero.png");
+  await expect(editor.getByRole("textbox", { name: "src" })).toHaveCount(0);
+  const renderedImage = editor.locator(
+    '.editor-real-preview img[alt="A blue rectangle"]',
+  );
+  await expect(renderedImage).toBeVisible();
+  await expect
+    .poll(() => renderedImage.evaluate((node) => node.naturalWidth))
+    .toBe(80);
+  await attachProductionState(
+    testInfo,
+    "editor-image-src-asset-dropdown-corrected",
+    editor,
+  );
+
+  await editor.getByRole("tab", { name: "Files" }).click();
+  await editor.getByRole("button", { name: "hero.png" }).click();
+  await expect(editor.getByRole("tab", { name: "Source" })).toBeVisible();
+  await expect(editor.getByRole("tab", { name: "Structured" })).toHaveCount(0);
+  await expect(
+    editor.locator(".editor-outline-scroll .is-selected"),
+  ).toHaveCount(1);
+  await expect(
+    editor.locator(".editor-outline-scroll .is-selected"),
+  ).toContainText("hero.png");
+  const binaryImage = editor.locator(".editor-asset-source-panel img");
+  await expect(binaryImage).toBeVisible();
+  await expect
+    .poll(() => binaryImage.evaluate((node) => node.naturalWidth))
+    .toBe(80);
+  await expect(editor.locator(".editor-real-preview")).toBeVisible();
+  await expect(editor.locator(".editor-asset-preview-panel")).toHaveCount(0);
+  await attachProductionState(
+    testInfo,
+    "editor-asset-files-binary-source-corrected",
+    editor,
+  );
+
+  await editor.getByRole("tab", { name: "Content" }).click();
+  await editor.getByRole("button", { name: "Remove asset" }).click();
+  const removal = editor.getByRole("dialog", {
+    name: "Remove art/icons/hero.png?",
+  });
+  await expect(removal).toContainText("referenced by 1 image block");
+  await removal.getByRole("button", { name: "Cancel" }).click();
+  await expect(editor.getByRole("button", { name: "hero.png" })).toBeVisible();
+  await editor.getByRole("button", { name: "Remove asset" }).click();
+  await editor
+    .getByRole("dialog", { name: "Remove art/icons/hero.png?" })
+    .getByRole("button", { name: "Remove asset" })
+    .click();
+  await expect(editor.getByRole("button", { name: "hero.png" })).toHaveCount(0);
+  await editor.getByRole("button", { name: "Undo" }).click();
+  await expect(editor.getByRole("button", { name: "hero.png" })).toBeVisible();
 
   await editor.getByRole("button", { name: "Add", exact: true }).click();
   const forgedChooserPromise = page.waitForEvent("filechooser");
@@ -2333,14 +2533,74 @@ test("Asset add, validation, removal, and package history use the secure boundar
     mimeType: "image/png",
     buffer: Buffer.from("not an image"),
   });
-  await expect(
-    editor.getByRole("button", { name: "assets/forged.png" }),
-  ).toHaveCount(0);
+  await expect(editor.getByRole("button", { name: "forged.png" })).toHaveCount(
+    0,
+  );
   await expect(
     page.getByText(
       "That asset is unsafe, unsupported, or over the effective limit.",
     ),
   ).toBeVisible();
+});
+
+test("asset explorers show the byte-derived canonical file extension", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const editor = await openCreatedEditor(page);
+  const jpeg = Buffer.from(
+    await page.evaluate(async () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 96;
+      canvas.height = 54;
+      const context = canvas.getContext("2d")!;
+      context.fillStyle = "#2870be";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      const blob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob(
+          (result) =>
+            result ? resolve(result) : reject(new Error("JPEG unavailable")),
+          "image/jpeg",
+          0.9,
+        ),
+      );
+      return [...new Uint8Array(await blob.arrayBuffer())];
+    }),
+  );
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  const chooserPromise = page.waitForEvent("filechooser");
+  await editor.getByRole("button", { name: "Asset…" }).click();
+  await (
+    await chooserPromise
+  ).setFiles({
+    name: "portrait.jpeg",
+    mimeType: "image/jpeg",
+    buffer: jpeg,
+  });
+
+  const contentAsset = editor
+    .locator(".editor-outline-scroll button")
+    .filter({ hasText: "portrait.jpeg" });
+  await expect(contentAsset).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-asset-canonical-extension-content-corrected",
+    editor,
+  );
+  await expect(contentAsset.locator("small")).toHaveText("jpg");
+
+  await editor.getByRole("tab", { name: "Files" }).click();
+  const fileAsset = editor
+    .locator(".editor-outline-scroll button")
+    .filter({ hasText: "portrait.jpeg" });
+  await expect(fileAsset.locator("small")).toHaveText("jpg");
+  await attachProductionState(
+    testInfo,
+    "editor-asset-canonical-extension-files-corrected",
+    editor,
+  );
 });
 
 test("Structured authors representative Format 1 fields, children, repeats, and variants", async ({
@@ -2410,6 +2670,16 @@ test("Structured color fields accept precise hex colors, picker colors, and visu
 }, testInfo) => {
   await page.emulateMedia({ colorScheme: "dark" });
   await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "EyeDropper", {
+      configurable: true,
+      value: class {
+        async open() {
+          return { sRGBHex: "#0a5bcd" };
+        }
+      },
+    });
+  });
   const editor = await openCreatedEditor(page);
 
   await editor.getByRole("button", { name: "Add", exact: true }).click();
@@ -2420,8 +2690,39 @@ test("Structured color fields accept precise hex colors, picker colors, and visu
   await expect(editor.getByLabel("name", { exact: true })).toHaveCount(0);
   const themeColor = editor.getByLabel("color", { exact: true });
   const themePicker = editor.getByLabel("Choose color with color picker");
+  const themeScreenSampler = editor.getByRole("button", {
+    name: "Sample a screen color for color",
+  });
   await expect(themeColor).toHaveValue("#68707c");
   await expect(themePicker).toHaveValue("#68707c");
+  await expect(themeScreenSampler).toBeVisible();
+  await themeScreenSampler.click();
+  await expect(themeColor).toHaveValue("#0A5BCD");
+  await attachProductionState(
+    testInfo,
+    "editor-theme-screen-color-sampler-corrected",
+    editor.locator(".editor-color-control"),
+  );
+  await editor.getByRole("button", { name: "Undo" }).click();
+  await expect(themeColor).toHaveValue("#68707c");
+  await editor.getByRole("button", { name: "Redo" }).click();
+  await expect(themeColor).toHaveValue("#0A5BCD");
+  await page.evaluate(() => {
+    Object.defineProperty(window, "EyeDropper", {
+      configurable: true,
+      value: class {
+        async open(): Promise<{ sRGBHex: string }> {
+          throw new DOMException("cancelled", "AbortError");
+        }
+      },
+    });
+  });
+  await themeScreenSampler.click();
+  await expect(themeColor).toHaveValue("#0A5BCD");
+  await editor.getByRole("button", { name: "Undo" }).click();
+  await expect(themeColor).toHaveValue("#68707c");
+  await editor.getByRole("button", { name: "Redo" }).click();
+  await expect(themeColor).toHaveValue("#0A5BCD");
   await themeColor.fill("#1A2B3C");
   await expect(themeColor).toHaveValue("#1A2B3C");
   await themePicker.fill("#123456");
@@ -2487,6 +2788,11 @@ test("Structured color fields accept precise hex colors, picker colors, and visu
   const choiceTrigger = backgroundField.getByRole("button", {
     name: "Show color choices for background",
   });
+  await expect(
+    backgroundField.getByRole("button", {
+      name: "Sample a screen color for background",
+    }),
+  ).toHaveCount(0);
   const colorShell = backgroundField.locator(".editor-color-combobox");
   await expect(colorShell).toBeVisible();
   await expect(backgroundPicker).toHaveCSS("border-right-style", "none");
@@ -2617,6 +2923,16 @@ test("Structured contextual additions open editable fields without redesigning t
   await editor
     .getByRole("button", { name: "introduction", exact: true })
     .click();
+  const breadcrumbs = editor.locator(".editor-breadcrumbs");
+  const expectSectionHandleBreadcrumb = async () => {
+    await expect(
+      breadcrumbs.getByText("introduction", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      breadcrumbs.getByText("Introduction", { exact: true }),
+    ).toHaveCount(0);
+  };
+  await expectSectionHandleBreadcrumb();
   await editor.getByRole("button", { name: "+ Text", exact: true }).click();
   const content = editor.getByLabel("content", { exact: true });
   await expect(
@@ -2630,6 +2946,12 @@ test("Structured contextual additions open editable fields without redesigning t
   await expect(
     editor.locator(".editor-diagnostics-summary-text"),
   ).toContainText("This text block has no content and renders nothing.");
+  await expectSectionHandleBreadcrumb();
+  await attachProductionState(
+    testInfo,
+    "editor-structured-handle-breadcrumb-corrected",
+    editor,
+  );
   await attachProductionState(
     testInfo,
     "editor-structured-child-text-feedback-production",
@@ -2638,7 +2960,7 @@ test("Structured contextual additions open editable fields without redesigning t
 
   await editor
     .locator(".editor-breadcrumbs")
-    .getByRole("button", { name: "Introduction" })
+    .getByRole("button", { name: "introduction", exact: true })
     .click();
   const childList = editor.locator(".editor-child-list");
   await expect(childList).toContainText("new_text");
@@ -2648,6 +2970,7 @@ test("Structured contextual additions open editable fields without redesigning t
   await editor
     .getByRole("button", { name: "+ Choice source", exact: true })
     .click();
+  await expectSectionHandleBreadcrumb();
   await expect(editor.getByLabel("group", { exact: true })).toBeFocused();
   await expect(editor.locator(".editor-field-diagnostics")).toContainText(
     "has no group and cannot match choices",
@@ -2660,20 +2983,30 @@ test("Structured contextual additions open editable fields without redesigning t
 
   await editor
     .locator(".editor-breadcrumbs")
-    .getByRole("button", { name: "Introduction" })
+    .getByRole("button", { name: "introduction", exact: true })
     .click();
   await editor.getByRole("button", { name: "+ Image", exact: true }).click();
-  await expect(editor.getByLabel("src", { exact: true })).toBeFocused();
+  await expectSectionHandleBreadcrumb();
+  const imageSource = editor.getByLabel("src", { exact: true });
+  await expect(imageSource).toBeFocused();
+  await expect(imageSource).toHaveValue("");
+  await expect(imageSource.locator("option")).toHaveText(["Not set"]);
+  await attachProductionState(
+    testInfo,
+    "editor-structured-image-src-unset-corrected",
+    editor,
+  );
   await expect(
-    editor.locator(".editor-field-diagnostics").first(),
-  ).toContainText("does not exist in the package");
+    editor.locator(".editor-field-diagnostics").filter({ hasText: "source" }),
+  ).toContainText("This image has no source and is incomplete for export.");
   await editor
     .locator(".editor-breadcrumbs")
-    .getByRole("button", { name: "Introduction" })
+    .getByRole("button", { name: "introduction", exact: true })
     .click();
   await editor
     .getByRole("button", { name: "+ Direct choice", exact: true })
     .click();
+  await expectSectionHandleBreadcrumb();
   await expect(editor.getByLabel("target", { exact: true })).toBeFocused();
   await expect(editor.locator(".editor-field-diagnostics")).toContainText(
     "does not resolve to a choice declaration",
@@ -2869,6 +3202,167 @@ test("Structured contextual additions open editable fields without redesigning t
     "editor-container-handle-generic-diagnostic-production",
     editor,
   );
+});
+
+test("Structured section child rails use the application accent", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const editor = await openCreatedEditor(page);
+
+  await editor
+    .getByRole("button", { name: "introduction", exact: true })
+    .click();
+  await editor.getByRole("button", { name: "+ Text", exact: true }).click();
+  await editor
+    .locator(".editor-breadcrumbs")
+    .getByRole("button", { name: "introduction", exact: true })
+    .click();
+
+  const childRow = editor
+    .locator(".editor-child-list > div")
+    .filter({ hasText: "new_text" });
+  await expect(childRow).toContainText("new_text");
+  await attachProductionState(
+    testInfo,
+    "editor-section-content-rail-corrected",
+    editor,
+  );
+  await expect(childRow).toHaveCSS(
+    "border-left-color",
+    await resolveColorToken(page, "--app-accent-raw"),
+  );
+});
+
+test("Structured section content keeps a directly relevant preview scope", async ({
+  page,
+}) => {
+  const editor = await openCreatedEditor(page);
+  const image = new PNG({ width: 64, height: 40 });
+  for (let offset = 0; offset < image.data.length; offset += 4) {
+    image.data[offset] = 40;
+    image.data[offset + 1] = 112;
+    image.data[offset + 2] = 190;
+    image.data[offset + 3] = 255;
+  }
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  const chooserPromise = page.waitForEvent("filechooser");
+  await editor.getByRole("button", { name: "Asset…" }).click();
+  await (
+    await chooserPromise
+  ).setFiles({
+    name: "relevant.png",
+    mimeType: "image/png",
+    buffer: PNG.sync.write(image),
+  });
+
+  await editor.getByRole("button", { name: "Jump details" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("jump.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Relevant previews"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: introduction
+  name: "Introduction"
+
+  text
+    handle: body
+    content: "Section body"
+
+  image
+    handle: visual
+    src: "relevant.png"
+    alt: "Relevant blue asset"
+
+  choice-source
+    handle: available
+    group: options
+    mode: multi
+
+  choice
+    handle: featured
+    target: alpha
+
+choice
+  handle: alpha
+  name: "Alpha Choice"
+  group: options
+  selection: toggle
+
+choice
+  handle: beta
+  name: "Beta Choice"
+  group: options
+  selection: toggle
+`);
+  await expect(editor.locator(".cm-lintRange-error")).toHaveCount(0);
+  await editor
+    .getByRole("button", { name: "introduction", exact: true })
+    .click();
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor.getByRole("button", { name: "body text", exact: true }).click();
+  await editor.screenshot({
+    path: "artifacts/editor-visual/editor-section-text-preview-corrected.png",
+  });
+  await expect(
+    editor.locator(".editor-real-preview > .rendered-jump-section"),
+  ).toBeVisible();
+  await expect(
+    editor.locator(".editor-real-preview .shared-jump-renderer"),
+  ).toHaveCount(0);
+
+  const openSection = () =>
+    editor
+      .locator(".editor-breadcrumbs")
+      .getByRole("button", { name: "introduction", exact: true })
+      .click();
+  await openSection();
+  await editor
+    .getByRole("button", { name: "visual image", exact: true })
+    .click();
+  const imagePreview = editor.locator(
+    '.editor-real-preview > .jump-image-preview img[alt="Relevant blue asset"]',
+  );
+  await expect(imagePreview).toBeVisible();
+  await expect
+    .poll(() => imagePreview.evaluate((image) => image.naturalWidth))
+    .toBe(64);
+  await editor.screenshot({
+    path: "artifacts/editor-visual/editor-section-image-preview-corrected.png",
+  });
+
+  await openSection();
+  await editor
+    .getByRole("button", { name: "featured choice", exact: true })
+    .click();
+  const preview = editor.locator(".editor-real-preview");
+  await expect(
+    preview.getByText("Alpha Choice", { exact: true }),
+  ).toBeVisible();
+  await expect(preview.getByText("Beta Choice", { exact: true })).toHaveCount(
+    0,
+  );
+  await editor.screenshot({
+    path: "artifacts/editor-visual/editor-section-direct-choice-preview-corrected.png",
+  });
+
+  await openSection();
+  await editor
+    .getByRole("button", { name: "available choice source", exact: true })
+    .click();
+  await expect(
+    preview.getByText("Alpha Choice", { exact: true }),
+  ).toBeVisible();
+  await expect(preview.getByText("Beta Choice", { exact: true })).toBeVisible();
+  await editor.screenshot({
+    path: "artifacts/editor-visual/editor-section-choice-source-preview-corrected.png",
+  });
 });
 
 test("Structured layout tree safely edits hierarchy through the mock-aligned container workflow", async ({
@@ -3689,6 +4183,20 @@ test("container children and rules expose inline presentation editors", async ({
     "editor-layout-container-rule-presentation-corrected",
     editor,
   );
+
+  await expect(style.locator('option[value="rounded"]')).toHaveText("rounded");
+  await thickness.fill("10");
+  await thickness.press("Tab");
+  await style.selectOption("rounded");
+  await expect(previewRule).toHaveCSS("height", "10px");
+  await expect(previewRule).toHaveCSS("background-color", "rgb(200, 90, 113)");
+  await expect(previewRule).toHaveCSS("border-radius", "9999px");
+  await expect(previewRule).toHaveCSS("border-top-style", "none");
+  await attachProductionState(
+    testInfo,
+    "editor-layout-rule-rounded-production",
+    editor,
+  );
   await rulePresentation.click();
   await expect(ruleRow.locator(".editor-layout-row-node-fields")).toHaveCount(
     0,
@@ -3696,8 +4204,8 @@ test("container children and rules expose inline presentation editors", async ({
 
   await editor.getByRole("tab", { name: "Source" }).click();
   await expect(source).toContainText('color: "#C85A71"');
-  await expect(source).toContainText("thickness: 3");
-  await expect(source).toContainText("style: dash");
+  await expect(source).toContainText("thickness: 10");
+  await expect(source).toContainText("style: rounded");
 });
 
 test("layout declarations preview representative content without a valid package fallback", async ({
@@ -4054,7 +4562,7 @@ section
 
   image
     handle: large
-    src: "assets/large.png"
+    src: "large.png"
     alt: "A one-pixel validation image"
 `);
   const archive = zipSync(

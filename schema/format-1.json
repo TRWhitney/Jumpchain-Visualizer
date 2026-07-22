@@ -183,7 +183,7 @@
       "contexts": ["section", "choice", "grant:perk", "grant:item", "grant:form", "grant:companion", "grant:trait"],
       "fields": {
         "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
-        "src": { "type": "quotedString:packageRelativeAssetPath", "min": 0, "max": 1, "exportRequired": true },
+        "src": { "type": "quotedString:assetRelativePath", "min": 0, "max": 1, "exportRequired": true },
         "alt": { "type": "renderableScalar", "min": 0, "max": 1, "conditionalVariants": true, "omission": "accessibility warning" }
       },
       "children": {}
@@ -305,7 +305,7 @@
       "fields": {
         "color": { "type": "color", "min": 0, "max": 1 },
         "thickness": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 16, "default": 1 },
-        "style": { "type": "enum", "values": ["solid", "dash"], "min": 0, "max": 1, "default": "solid" }
+        "style": { "type": "enum", "values": ["solid", "dash", "rounded"], "min": 0, "max": 1, "default": "solid" }
       },
       "children": false
     },
@@ -366,6 +366,6 @@
     { "code": "layout.typed_target", "rule": "typed leaves resolve only in the matching owner-local namespace; absent targets warn and collapse" },
     { "code": "layout.choice.target", "rule": "a compact choice leaf resolves one choice-placement owned by the rendered section and each placement may appear at most once" },
     { "code": "layout.expand.source", "rule": "expand source resolves in the rendered section and each source may be expanded at most once" },
-    { "code": "package.asset_path", "rule": "asset paths are relative, remain within assets, and resolve to supported graphical files" }
+    { "code": "package.asset_path", "rule": "authored asset paths are relative to the implicit assets root, use portable forward slashes, remain within that root, and resolve to supported graphical files" }
   ]
 }

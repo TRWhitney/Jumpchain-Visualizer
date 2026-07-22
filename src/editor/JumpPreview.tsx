@@ -3,6 +3,8 @@ import { evaluateChain, type ActorEntryState } from "../domain";
 import type { CanonicalJumpPackage } from "../markup";
 import {
   JumpChoiceRendererScope,
+  JumpChoiceSourceRendererScope,
+  JumpImageRendererScope,
   JumpRenderer,
   JumpSectionRendererScope,
   JumpTraitRendererScope,
@@ -12,6 +14,8 @@ import {
   createLayoutPreviewFixture,
   layoutPreviewImagePath,
 } from "./layoutPreview";
+import { useAssetObjectUrls } from "../tracker/useAssetObjectUrls";
+import type { PreviewSelection } from "./previewSelection";
 
 const layoutPreviewImageUrl = `data:image/svg+xml,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180"><rect width="320" height="180" fill="#d8d3c6"/><path d="M24 142l72-72 48 48 42-42 110 66" fill="none" stroke="#6f766f" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><circle cx="246" cy="48" r="22" fill="#b58b37"/></svg>',
@@ -23,11 +27,6 @@ const emptyActorState = (): ActorEntryState => ({
   choiceRolls: {},
   sourceRolls: {},
 });
-
-export type PreviewSelection = {
-  kind: "package" | "section" | "choice" | "layout";
-  handle?: string;
-};
 
 export type LayoutBoundHover = {
   path: string;
@@ -54,8 +53,9 @@ export function JumpPreview({
   onBoundActivate?: (value: LayoutBoundHover) => void;
 }) {
   const activeBoundRef = useRef<HTMLElement | null>(null);
+  const selectionHandle = "handle" in selection ? selection.handle : undefined;
   const authoredLayout = (layoutPackageItem ?? packageItem).layouts.find(
-    (item) => item.handle === selection.handle,
+    (item) => item.handle === selectionHandle,
   );
   const layoutPreview = useMemo(
     () =>
@@ -90,22 +90,7 @@ export function JumpPreview({
       }),
     [actorState, renderedPackage],
   );
-  const assetUrls = useMemo(
-    () =>
-      Object.fromEntries(
-        Object.entries(assets).map(([path, bytes]) => [
-          path,
-          URL.createObjectURL(new Blob([bytes.slice().buffer])),
-        ]),
-      ),
-    [assets],
-  );
-  useEffect(
-    () => () => {
-      for (const url of Object.values(assetUrls)) URL.revokeObjectURL(url);
-    },
-    [assetUrls],
-  );
+  const assetUrls = useAssetObjectUrls(assets, true);
   useEffect(() => {
     if (showBounds) return;
     activeBoundRef.current?.classList.remove("is-layout-bound-active");
@@ -144,13 +129,22 @@ export function JumpPreview({
     dispatch: () => undefined,
   };
   const section = renderedPackage.sections.find(
-    (item) => item.handle === selection.handle,
+    (item) => item.handle === selectionHandle,
   );
   const choice = renderedPackage.choices.find(
-    (item) => item.handle === selection.handle,
+    (item) => item.handle === selectionHandle,
+  );
+  const sourceSection =
+    selection.kind === "choice-source"
+      ? renderedPackage.sections.find(
+          (item) => item.handle === selection.sectionHandle,
+        )
+      : undefined;
+  const choiceSource = sourceSection?.sources.find(
+    (item) => item.handle === selectionHandle,
   );
   const layout = renderedPackage.layouts.find(
-    (item) => item.handle === selection.handle,
+    (item) => item.handle === selectionHandle,
   );
   const layoutSection = layout
     ? (renderedPackage.sections.find(
@@ -236,6 +230,21 @@ export function JumpPreview({
       ) : selection.kind === "choice" && choice ? (
         <JumpChoiceRendererScope
           choice={choice}
+          rendererProps={rendererProps}
+        />
+      ) : selection.kind === "choice-source" && choiceSource ? (
+        <JumpChoiceSourceRendererScope
+          source={choiceSource}
+          sectionHandle={selection.sectionHandle}
+          rendererProps={rendererProps}
+        />
+      ) : selection.kind === "image" ? (
+        <JumpImageRendererScope
+          image={{
+            handle: selection.handle,
+            src: selection.src,
+            alt: { base: selection.alt, variants: [] },
+          }}
           rendererProps={rendererProps}
         />
       ) : selection.kind === "layout" &&

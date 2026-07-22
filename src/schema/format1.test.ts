@@ -67,7 +67,7 @@ describe("unreleased Format 1 identity amendment", () => {
         },
         style: {
           type: "enum",
-          values: ["solid", "dash"],
+          values: ["solid", "dash", "rounded"],
           default: "solid",
         },
       },

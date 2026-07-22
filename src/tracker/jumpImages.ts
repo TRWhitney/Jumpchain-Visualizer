@@ -1,13 +1,15 @@
 import type { CanonicalJumpPackage, ImageBlock, JumpGrant } from "../markup";
 
-export type JumpAssetResolver = (packageRelativePath: string) => string;
+export type JumpAssetResolver = (
+  assetRelativePath: string,
+) => string | null | undefined;
 
 export function resolveJumpImageSource(
   source: string | undefined,
   resolveAsset?: JumpAssetResolver,
 ) {
   if (!source || /^(?:[a-z]+:|\/)/i.test(source)) return null;
-  return resolveAsset?.(source) ?? `/${source}`;
+  return resolveAsset ? (resolveAsset(source) ?? null) : `/assets/${source}`;
 }
 
 const grantImages = (grants: readonly JumpGrant[]) =>
@@ -74,8 +76,21 @@ export function preloadJumpImages(
   ).then(() => undefined);
 }
 
-export function waitForRenderedJumpImages(root: ParentNode) {
+function waitForPackagedAssetUrls(root: ParentNode) {
+  if (!root.querySelector("[data-jump-assets-pending]"))
+    return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    const observer = new MutationObserver(() => {
+      if (root.querySelector("[data-jump-assets-pending]")) return;
+      observer.disconnect();
+      resolve();
+    });
+    observer.observe(root, { childList: true, subtree: true });
+  });
+}
+
+export async function waitForRenderedJumpImages(root: ParentNode) {
+  await waitForPackagedAssetUrls(root);
   const images = [...root.querySelectorAll<HTMLImageElement>("img")];
-  if (!images.length) return Promise.resolve();
-  return Promise.all(images.map(waitForImage)).then(() => undefined);
+  await Promise.all(images.map(waitForImage));
 }

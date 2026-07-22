@@ -13,7 +13,11 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 import { packageIsValid, type PackageDiagnostic } from "../markup";
-import { validatePackageAsset } from "../archive";
+import {
+  inspectPackageAsset,
+  validatePackageAsset,
+  type PackageAssetMetadata,
+} from "../archive";
 import { NumberStepperButtons } from "../tracker/NumberStepper";
 import { integerFieldControl } from "./integerField";
 import {
@@ -26,11 +30,11 @@ import {
   type KeybindingAction,
   type KeybindingChord,
 } from "../settings/model";
+import { JumpPreview, type LayoutBoundHover } from "./JumpPreview";
 import {
-  JumpPreview,
-  type LayoutBoundHover,
+  previewSelectionForSymbol,
   type PreviewSelection,
-} from "./JumpPreview";
+} from "./previewSelection";
 import { Format1LanguageService, type FormatSymbol } from "./languageService";
 import { summarizeWorkspace, type EditorWorkspaceSnapshot } from "./model";
 import { createSelectControlModel } from "./selectControl";
@@ -45,6 +49,7 @@ import {
   moveDocumentChild,
   removeDocumentDeclaration,
   removeDocumentFields,
+  resolveDocumentSymbol,
   type FieldDefault,
   quickAddFieldMode,
   readConditionalSourceFieldGroups,
@@ -87,6 +92,19 @@ import {
   normalizeFormat1HexColor,
 } from "../markup/format1Colors";
 import { ColorFieldControl, type EditorColorChoice } from "./ColorFieldControl";
+import { useAssetObjectUrl } from "../tracker/useAssetObjectUrls";
+import {
+  assetArchivePath,
+  assetBasename,
+  assetFolder,
+  assetReferences,
+  assetRelativePath,
+  buildAssetTree,
+  renameAssetReferences,
+  validateAssetRelativePath,
+  type AssetPathValidationCode,
+  type AssetTreeEntry,
+} from "./assetPaths";
 
 type SaveState = "Saved" | "Saving" | "Unsaved" | "Save failed";
 type NavigationTab = "content" | "files";
@@ -139,6 +157,91 @@ function ExplorerEntryButton({
       {after}
     </button>
   );
+}
+
+function assetTreeFileCount(entry: AssetTreeEntry): number {
+  return entry.kind === "file"
+    ? 1
+    : entry.children.reduce(
+        (count, child) => count + assetTreeFileCount(child),
+        0,
+      );
+}
+
+function AssetExplorerEntries({
+  entries,
+  canonicalExtensions,
+  selectedAsset,
+  onOpenAsset,
+}: {
+  entries: readonly AssetTreeEntry[];
+  canonicalExtensions: Readonly<Record<string, string>>;
+  selectedAsset: string | null;
+  onOpenAsset: (path: string) => void;
+}) {
+  return entries.map((entry) =>
+    entry.kind === "folder" ? (
+      <details className="editor-asset-folder" key={entry.path} open>
+        <summary>
+          {entry.name}
+          <span>{assetTreeFileCount(entry)}</span>
+        </summary>
+        <AssetExplorerEntries
+          entries={entry.children}
+          canonicalExtensions={canonicalExtensions}
+          selectedAsset={selectedAsset}
+          onOpenAsset={onOpenAsset}
+        />
+      </details>
+    ) : (
+      <ExplorerEntryButton
+        className={
+          selectedAsset === entry.archivePath ? "is-selected" : undefined
+        }
+        key={entry.archivePath}
+        label={entry.name}
+        after={
+          canonicalExtensions[entry.archivePath] ? (
+            <small>{canonicalExtensions[entry.archivePath]}</small>
+          ) : undefined
+        }
+        onClick={() => onOpenAsset(entry.archivePath)}
+      />
+    ),
+  );
+}
+
+function AssetImage({
+  path,
+  bytes,
+  className,
+}: {
+  path: string;
+  bytes: Uint8Array;
+  className: string;
+}) {
+  const source = useAssetObjectUrl(path, bytes);
+  return source ? (
+    <img
+      className={className}
+      src={source}
+      alt={translate("ui.editorWorkspace.asset.selectedAssetAlt", {
+        asset: assetRelativePath(path),
+      })}
+    />
+  ) : (
+    <span className="editor-asset-image-loading" aria-live="polite">
+      {translate("ui.editorWorkspace.asset.loadingImage")}
+    </span>
+  );
+}
+
+function assetMetadata(path: string, bytes: Uint8Array) {
+  try {
+    return inspectPackageAsset(path, bytes);
+  } catch {
+    return undefined;
+  }
 }
 
 function editorColorChoices(
@@ -283,6 +386,7 @@ export function EditorWorkspace({
     null,
   );
   const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
+  const [assetRemoval, setAssetRemoval] = useState<string | null>(null);
   const [file, setFile] = useState(
     Object.keys(workspace.files).includes("jump.jdef")
       ? "jump.jdef"
@@ -389,7 +493,7 @@ export function EditorWorkspace({
   const analysis = useMemo(
     () =>
       service.analyze(workspace.files, {
-        assetPaths: Object.keys(workspace.assets),
+        assetPaths: Object.keys(workspace.assets).map(assetRelativePath),
         warnings: {
           missingImageAlt: settings.editor.warnMissingImageAlt,
           missingLayoutTargets: settings.editor.warnMissingLayoutTargets,
@@ -403,17 +507,16 @@ export function EditorWorkspace({
     ],
   );
   const resolvedSelectedSymbol = selectedSymbol
-    ? (analysis.symbols.find(
-        (symbol) =>
-          symbol.file === selectedSymbol.file &&
-          symbol.kind === selectedSymbol.kind &&
-          symbol.handle === selectedSymbol.handle,
-      ) ?? selectedSymbol)
+    ? resolveDocumentSymbol(analysis.symbols, selectedSymbol)
     : null;
+  const previewSelection =
+    navigationTab === "content" && resolvedSelectedSymbol && !selectedAsset
+      ? previewSelectionForSymbol(workspace.files, resolvedSelectedSymbol)
+      : selected;
   const recoveredAnalysis = useMemo(
     () =>
       service.analyze(service.recover(workspace.files), {
-        assetPaths: Object.keys(workspace.assets),
+        assetPaths: Object.keys(workspace.assets).map(assetRelativePath),
         warnings: {
           missingImageAlt: settings.editor.warnMissingImageAlt,
           missingLayoutTargets: settings.editor.warnMissingLayoutTargets,
@@ -434,11 +537,11 @@ export function EditorWorkspace({
       ? recoveredAnalysis.packageItem
       : lastValid;
   const layoutPackageItem =
-    selected.kind === "layout"
+    previewSelection.kind === "layout"
       ? [analysis.packageItem, recoveredAnalysis.packageItem, lastValid].find(
           (packageItem) =>
             packageItem.layouts.some(
-              (layout) => layout.handle === selected.handle,
+              (layout) => layout.handle === previewSelection.handle,
             ),
         )
       : undefined;
@@ -457,6 +560,30 @@ export function EditorWorkspace({
         ? translate("ui.editorWorkspace.previewStatus.sourceRecovered")
         : translate("ui.editorWorkspace.previewStatus.sourceLastValid");
   const summary = summarizeWorkspace(workspace);
+  const archiveAssetPaths = useMemo(
+    () => Object.keys(workspace.assets),
+    [workspace.assets],
+  );
+  const assetCanonicalExtensions = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(workspace.assets).flatMap(([path, bytes]) => {
+          const extension = assetMetadata(path, bytes)?.canonicalExtension;
+          return extension ? [[path, extension]] : [];
+        }),
+      ),
+    [workspace.assets],
+  );
+  const selectedAssetBytes = selectedAsset
+    ? workspace.assets[selectedAsset]
+    : undefined;
+  const selectedAssetReferences = selectedAsset
+    ? assetReferences(workspace.files, assetRelativePath(selectedAsset))
+    : [];
+  const selectedAssetMetadata =
+    selectedAsset && selectedAssetBytes
+      ? assetMetadata(selectedAsset, selectedAssetBytes)
+      : undefined;
   const filteredDiagnostics = analysis.diagnostics.filter(
     (diagnostic) => diagnosticFilters[diagnostic.severity],
   );
@@ -612,6 +739,14 @@ export function EditorWorkspace({
     historyIndexRef.current = nextIndex;
     setHistoryIndex(nextIndex);
     const entry = historyRef.current[nextIndex];
+    if (selectedAsset) {
+      const selectedBytes = workspace.assets[selectedAsset];
+      setSelectedAsset(
+        Object.entries(entry.assets).find(
+          ([, bytes]) => bytes === selectedBytes,
+        )?.[0] ?? null,
+      );
+    }
     commitWorkspace(entry.files, entry.assets, false, true);
   };
   const redo = () => {
@@ -621,6 +756,14 @@ export function EditorWorkspace({
     historyIndexRef.current = nextIndex;
     setHistoryIndex(nextIndex);
     const entry = historyRef.current[nextIndex];
+    if (selectedAsset) {
+      const selectedBytes = workspace.assets[selectedAsset];
+      setSelectedAsset(
+        Object.entries(entry.assets).find(
+          ([, bytes]) => bytes === selectedBytes,
+        )?.[0] ?? null,
+      );
+    }
     commitWorkspace(entry.files, entry.assets, false, true);
   };
 
@@ -628,27 +771,84 @@ export function EditorWorkspace({
     setStructuredReturnTarget(null);
     setSelectedAsset(null);
     setSelectedSymbol(symbol);
-    setSelected({
-      kind: ["section-layout", "choice-layout", "trait-layout"].includes(
-        symbol.kind,
-      )
-        ? "layout"
-        : symbol.kind === "section"
-          ? "section"
-          : symbol.kind === "choice"
-            ? "choice"
-            : "package",
-      handle: symbol.handle,
-    });
+    setSelected(previewSelectionForSymbol(workspace.files, symbol));
     setFile(symbol.file);
     setEditingTab(contentEditingTab);
   };
 
   const openFile = (nextFile: string) => {
+    setSelectedAsset(null);
+    setSelectedSymbol(null);
+    setSelected({ kind: "package" });
     setFile(nextFile);
     setNavigationTab("files");
     setEditingTab("source");
     requestAnimationFrame(() => sourceRef.current?.focus());
+  };
+
+  const openContentAsset = (path: string) => {
+    setSelectedAsset(path);
+    setSelectedSymbol(null);
+    setSelected({ kind: "package" });
+    setNavigationTab("content");
+    setEditingTab("structured");
+    setContextTab("preview");
+  };
+
+  const openFileAsset = (path: string) => {
+    setSelectedAsset(path);
+    setSelectedSymbol(null);
+    setSelected({ kind: "package" });
+    setNavigationTab("files");
+    setEditingTab("source");
+    setContextTab("preview");
+  };
+
+  const renameOrMoveAsset = async (
+    currentPath: string,
+    nextRelativePath: string,
+  ): Promise<AssetPathValidationCode | "signature" | null> => {
+    const validation = validateAssetRelativePath(
+      nextRelativePath,
+      Object.keys(workspace.assets),
+      currentPath,
+    );
+    if (validation) return validation;
+    const nextPath = assetArchivePath(nextRelativePath);
+    if (nextPath === currentPath) return null;
+    const bytes = workspace.assets[currentPath];
+    if (!bytes) return "empty";
+    try {
+      await validatePackageAsset(nextPath, bytes);
+    } catch {
+      return "signature";
+    }
+    const nextAssets = { ...workspace.assets };
+    delete nextAssets[currentPath];
+    nextAssets[nextPath] = bytes;
+    const nextFiles = renameAssetReferences(
+      workspace.files,
+      assetRelativePath(currentPath),
+      nextRelativePath,
+    );
+    commitWorkspace(nextFiles, nextAssets);
+    setSelectedAsset(nextPath);
+    setStructuredAnnouncement(
+      translate("ui.editorWorkspace.announcement.assetMoved", {
+        asset: nextRelativePath,
+      }),
+    );
+    return null;
+  };
+
+  const removeAsset = (path: string) => {
+    const nextAssets = { ...workspace.assets };
+    delete nextAssets[path];
+    if (!commitWorkspace(workspace.files, nextAssets)) return;
+    setSelectedAsset(null);
+    setAssetRemoval(null);
+    setSelected({ kind: "package" });
+    onFeedback("editor.asset.removed");
   };
 
   const inspectLayoutBound = (bound: LayoutBoundHover) => {
@@ -738,11 +938,17 @@ export function EditorWorkspace({
     try {
       const bytes = new Uint8Array(await candidate.arrayBuffer());
       const safeName = candidate.name.replaceAll(/[^a-zA-Z0-9._-]/g, "_");
-      await validatePackageAsset(`assets/${safeName}`, bytes);
-      commitWorkspace(workspace.files, {
+      if (validateAssetRelativePath(safeName, Object.keys(workspace.assets))) {
+        onFeedback("editor.asset.rejected");
+        return;
+      }
+      const path = assetArchivePath(safeName);
+      await validatePackageAsset(path, bytes);
+      const changed = commitWorkspace(workspace.files, {
         ...workspace.assets,
-        [`assets/${safeName}`]: bytes,
+        [path]: bytes,
       });
+      if (changed) openContentAsset(path);
       onFeedback("editor.asset.added");
     } catch {
       onFeedback("editor.asset.rejected");
@@ -909,6 +1115,11 @@ export function EditorWorkspace({
               role="tab"
               aria-selected={navigationTab === tab}
               onClick={() => {
+                if (selectedAsset) {
+                  if (tab === "content") openContentAsset(selectedAsset);
+                  else openFileAsset(selectedAsset);
+                  return;
+                }
                 setNavigationTab(tab);
                 setEditingTab(tab === "files" ? "source" : contentEditingTab);
               }}
@@ -935,7 +1146,11 @@ export function EditorWorkspace({
             </label>
             <div className="editor-outline-scroll">
               <ExplorerEntryButton
-                className={selected.kind === "package" ? "is-selected" : ""}
+                className={
+                  selected.kind === "package" && !selectedAsset
+                    ? "is-selected"
+                    : ""
+                }
                 label={translate("ui.editorWorkspace.text.jumpDetails")}
                 onClick={() => {
                   setSelected({ kind: "package" });
@@ -1028,7 +1243,9 @@ export function EditorWorkspace({
                 const assets = Object.keys(workspace.assets).filter(
                   (asset) =>
                     !symbolQuery ||
-                    asset.toLocaleLowerCase().includes(symbolQuery),
+                    assetRelativePath(asset)
+                      .toLocaleLowerCase()
+                      .includes(symbolQuery),
                 );
                 if (!assets.length && symbolQuery) return null;
                 return (
@@ -1037,17 +1254,12 @@ export function EditorWorkspace({
                       {translate("ui.editorWorkspace.text.assets")}
                       <span>{assets.length}</span>
                     </summary>
-                    {assets.map((asset) => (
-                      <ExplorerEntryButton
-                        key={asset}
-                        label={asset}
-                        onClick={() => {
-                          setSelectedAsset(asset);
-                          setSelectedSymbol(null);
-                          setContextTab("properties");
-                        }}
-                      />
-                    ))}
+                    <AssetExplorerEntries
+                      entries={buildAssetTree(assets)}
+                      canonicalExtensions={assetCanonicalExtensions}
+                      selectedAsset={selectedAsset}
+                      onOpenAsset={openContentAsset}
+                    />
                   </details>
                 );
               })()}
@@ -1061,25 +1273,27 @@ export function EditorWorkspace({
                 .sort()
                 .map((path) => (
                   <ExplorerEntryButton
-                    className={file === path ? "is-selected" : ""}
+                    className={
+                      file === path && !selectedAsset ? "is-selected" : ""
+                    }
                     key={path}
                     label={path}
                     before={<span aria-hidden="true">▤</span>}
                     onClick={() => openFile(path)}
                   />
                 ))}
-              {Object.keys(workspace.assets).map((path) => (
-                <ExplorerEntryButton
-                  key={path}
-                  label={path}
-                  before={<span aria-hidden="true">▧</span>}
-                  onClick={() => {
-                    setSelectedAsset(path);
-                    setSelectedSymbol(null);
-                    setContextTab("properties");
-                  }}
+              <details open>
+                <summary>
+                  {translate("ui.editorWorkspace.text.assets")}
+                  <span>{Object.keys(workspace.assets).length}</span>
+                </summary>
+                <AssetExplorerEntries
+                  entries={buildAssetTree(Object.keys(workspace.assets))}
+                  canonicalExtensions={assetCanonicalExtensions}
+                  selectedAsset={selectedAsset}
+                  onOpenAsset={openFileAsset}
                 />
-              ))}
+              </details>
             </div>
           </div>
         )}
@@ -1094,9 +1308,13 @@ export function EditorWorkspace({
           role="tablist"
           aria-label={translate("ui.editorWorkspace.ariaLabel.editingView")}
         >
-          {(navigationTab === "files"
-            ? (["source"] as const)
-            : (["structured", "source"] as const)
+          {(selectedAsset
+            ? navigationTab === "files"
+              ? (["source"] as const)
+              : (["structured"] as const)
+            : navigationTab === "files"
+              ? (["source"] as const)
+              : (["structured", "source"] as const)
           ).map((tab) => (
             <button
               key={tab}
@@ -1117,168 +1335,188 @@ export function EditorWorkspace({
             <span className="sr-only" aria-live="polite">
               {structuredAnnouncement}
             </span>
-            <StructuredPanel
-              key={`${resolvedSelectedSymbol?.file ?? "jump.jdef"}:${resolvedSelectedSymbol?.from ?? 0}`}
-              packageName={summary.name}
-              diagnostics={analysis.diagnostics}
-              symbol={
-                resolvedSelectedSymbol ??
-                analysis.symbols.find((item) => item.kind === "jump") ??
-                null
-              }
-              files={workspace.files}
-              assets={Object.keys(workspace.assets)}
-              focusField={structuredFocus}
-              layoutInspectionRef={layoutInspectionRef}
-              returnTarget={structuredReturnTarget}
-              onOpenSymbol={openSymbol}
-              onOpenPackage={() => {
-                const jump = analysis.symbols.find(
-                  (item) => item.kind === "jump",
-                );
-                if (jump) openSymbol(jump);
-              }}
-              onEndFieldEdit={endHistoryGroup}
-              onUpdate={(symbol, field, value, occurrence = 0) => {
-                const result = setDocumentField(
-                  workspace.files,
-                  symbol,
-                  field,
-                  value,
-                  occurrence,
-                );
-                if (!result.changed) return;
-                commitFiles(
-                  result.files,
-                  true,
-                  false,
-                  `field:${symbol.file}:${symbol.from}:${field}:${occurrence}`,
-                );
-                setSelectedSymbol(
-                  service
-                    .analyze(result.files)
-                    .symbols.find(
-                      (candidate) =>
-                        candidate.file === symbol.file &&
-                        candidate.kind === symbol.kind &&
-                        candidate.from === symbol.from,
-                    ) ?? symbol,
-                );
-              }}
-              onLayoutEdit={(result, announcement, continuous = false) => {
-                if (!result.changed) return;
-                commitFiles(
-                  result.files,
-                  continuous,
-                  false,
-                  continuous ? "layout-field" : "continuous",
-                );
-                if (announcement) setStructuredAnnouncement(announcement);
-              }}
-              onAddField={(symbol, field) => {
-                const result = addDocumentField(workspace.files, symbol, field);
-                if (result.changed) commitFiles(result.files);
-              }}
-              onInsertChild={(owner, kind) => {
-                const result = insertDocumentChild(
-                  workspace.files,
-                  owner,
-                  kind,
-                );
-                if (!result.changed || !result.target) return;
-                commitFiles(result.files);
-                setStructuredFocus(result.focusField ?? null);
-                openSymbol(result.target);
-                setStructuredAnnouncement(
-                  translate(
-                    "ui.editorWorkspace.announcement.declarationAdded",
-                    {
-                      declaration: kind.replaceAll("-", " "),
-                    },
-                  ),
-                );
-              }}
-              onCreateResource={(owner) => setResourceCreation({ owner })}
-              onRemoveChild={(owner, child) => {
-                const result = removeDocumentDeclaration(
-                  workspace.files,
-                  child,
-                );
-                if (!result.changed) return;
-                commitFiles(result.files);
-                setStructuredFocus(null);
-                openSymbol(result.target ?? owner);
-                setStructuredAnnouncement(
-                  translate(
-                    "ui.editorWorkspace.announcement.declarationRemoved",
-                    {
-                      declaration: child.kind.replaceAll("-", " "),
-                    },
-                  ),
-                );
-              }}
-              onRemoveInvalidField={(symbol, field) => {
-                const result = removeDocumentFields(
-                  workspace.files,
-                  symbol,
-                  field,
-                );
-                if (result.changed) commitFiles(result.files);
-              }}
-              onMoveChild={(owner, child, direction) => {
-                const result = moveDocumentChild(
-                  workspace.files,
-                  owner,
-                  child,
-                  direction,
-                );
-                if (!result.changed) return;
-                commitFiles(result.files);
-                if (result.target) openSymbol(result.target);
-                setStructuredAnnouncement(
-                  translate(
-                    "ui.editorWorkspace.announcement.declarationMoved",
-                    {
-                      declaration: child.kind.replaceAll("-", " "),
-                    },
-                  ),
-                );
-              }}
-              onUpdateVariant={(
-                symbol,
-                field,
-                occurrence,
-                condition,
-                value,
-                baseOccurrence,
-              ) => {
-                const result = setConditionalDocumentField(
-                  workspace.files,
+            {selectedAsset && selectedAssetBytes ? (
+              <AssetStructuredPanel
+                key={selectedAsset}
+                path={selectedAsset}
+                allPaths={archiveAssetPaths}
+                referenceCount={selectedAssetReferences.length}
+                onRename={renameOrMoveAsset}
+                onRemove={() => setAssetRemoval(selectedAsset)}
+              />
+            ) : (
+              <StructuredPanel
+                key={`${resolvedSelectedSymbol?.file ?? "jump.jdef"}:${resolvedSelectedSymbol?.from ?? 0}`}
+                packageName={summary.name}
+                diagnostics={analysis.diagnostics}
+                symbol={
+                  resolvedSelectedSymbol ??
+                  analysis.symbols.find((item) => item.kind === "jump") ??
+                  null
+                }
+                files={workspace.files}
+                assets={archiveAssetPaths.map(assetRelativePath)}
+                focusField={structuredFocus}
+                layoutInspectionRef={layoutInspectionRef}
+                returnTarget={structuredReturnTarget}
+                onOpenSymbol={openSymbol}
+                onOpenPackage={() => {
+                  const jump = analysis.symbols.find(
+                    (item) => item.kind === "jump",
+                  );
+                  if (jump) openSymbol(jump);
+                }}
+                onEndFieldEdit={endHistoryGroup}
+                onUpdate={(symbol, field, value, occurrence = 0) => {
+                  const result = setDocumentField(
+                    workspace.files,
+                    symbol,
+                    field,
+                    value,
+                    occurrence,
+                  );
+                  if (!result.changed) return;
+                  commitFiles(
+                    result.files,
+                    true,
+                    false,
+                    `field:${symbol.file}:${symbol.from}:${field}:${occurrence}`,
+                  );
+                  setSelectedSymbol(
+                    service
+                      .analyze(result.files)
+                      .symbols.find(
+                        (candidate) =>
+                          candidate.file === symbol.file &&
+                          candidate.kind === symbol.kind &&
+                          candidate.from === symbol.from,
+                      ) ?? symbol,
+                  );
+                }}
+                onLayoutEdit={(result, announcement, continuous = false) => {
+                  if (!result.changed) return;
+                  commitFiles(
+                    result.files,
+                    continuous,
+                    false,
+                    continuous ? "layout-field" : "continuous",
+                  );
+                  if (announcement) setStructuredAnnouncement(announcement);
+                }}
+                onAddField={(symbol, field) => {
+                  const result = addDocumentField(
+                    workspace.files,
+                    symbol,
+                    field,
+                  );
+                  if (result.changed) commitFiles(result.files);
+                }}
+                onInsertChild={(owner, kind) => {
+                  const result = insertDocumentChild(
+                    workspace.files,
+                    owner,
+                    kind,
+                  );
+                  if (!result.changed || !result.target) return;
+                  commitFiles(result.files);
+                  setStructuredFocus(result.focusField ?? null);
+                  openSymbol(result.target);
+                  setStructuredAnnouncement(
+                    translate(
+                      "ui.editorWorkspace.announcement.declarationAdded",
+                      {
+                        declaration: kind.replaceAll("-", " "),
+                      },
+                    ),
+                  );
+                }}
+                onCreateResource={(owner) => setResourceCreation({ owner })}
+                onRemoveChild={(owner, child) => {
+                  const result = removeDocumentDeclaration(
+                    workspace.files,
+                    child,
+                  );
+                  if (!result.changed) return;
+                  commitFiles(result.files);
+                  setStructuredFocus(null);
+                  openSymbol(result.target ?? owner);
+                  setStructuredAnnouncement(
+                    translate(
+                      "ui.editorWorkspace.announcement.declarationRemoved",
+                      {
+                        declaration: child.kind.replaceAll("-", " "),
+                      },
+                    ),
+                  );
+                }}
+                onRemoveInvalidField={(symbol, field) => {
+                  const result = removeDocumentFields(
+                    workspace.files,
+                    symbol,
+                    field,
+                  );
+                  if (result.changed) commitFiles(result.files);
+                }}
+                onMoveChild={(owner, child, direction) => {
+                  const result = moveDocumentChild(
+                    workspace.files,
+                    owner,
+                    child,
+                    direction,
+                  );
+                  if (!result.changed) return;
+                  commitFiles(result.files);
+                  if (result.target) openSymbol(result.target);
+                  setStructuredAnnouncement(
+                    translate(
+                      "ui.editorWorkspace.announcement.declarationMoved",
+                      {
+                        declaration: child.kind.replaceAll("-", " "),
+                      },
+                    ),
+                  );
+                }}
+                onUpdateVariant={(
                   symbol,
                   field,
                   occurrence,
                   condition,
                   value,
                   baseOccurrence,
-                );
-                if (result.changed) commitFiles(result.files);
-              }}
-              onReplace={(symbol, declaration, continuous = false) =>
-                commitFiles(
-                  {
-                    ...workspace.files,
-                    [symbol.file]:
-                      workspace.files[symbol.file].slice(0, symbol.from) +
-                      declaration +
-                      workspace.files[symbol.file].slice(symbol.to),
-                  },
-                  continuous,
-                  false,
-                  `field:${symbol.file}:${symbol.from}:layout-tree`,
-                )
-              }
-            />
+                ) => {
+                  const result = setConditionalDocumentField(
+                    workspace.files,
+                    symbol,
+                    field,
+                    occurrence,
+                    condition,
+                    value,
+                    baseOccurrence,
+                  );
+                  if (result.changed) commitFiles(result.files);
+                }}
+                onReplace={(symbol, declaration, continuous = false) =>
+                  commitFiles(
+                    {
+                      ...workspace.files,
+                      [symbol.file]:
+                        workspace.files[symbol.file].slice(0, symbol.from) +
+                        declaration +
+                        workspace.files[symbol.file].slice(symbol.to),
+                    },
+                    continuous,
+                    false,
+                    `field:${symbol.file}:${symbol.from}:layout-tree`,
+                  )
+                }
+              />
+            )}
           </>
+        ) : selectedAsset && selectedAssetBytes ? (
+          <AssetBinarySourcePanel
+            path={selectedAsset}
+            bytes={selectedAssetBytes}
+          />
         ) : (
           <div className={`editor-source-panel${findOpen ? " has-find" : ""}`}>
             <div className="editor-source-toolbar">
@@ -1705,7 +1943,15 @@ export function EditorWorkspace({
             </button>
           ))}
         </div>
-        {contextTab === "preview" ? (
+        {contextTab === "preview" &&
+        navigationTab === "content" &&
+        selectedAsset &&
+        selectedAssetBytes ? (
+          <AssetContextPreview
+            path={selectedAsset}
+            bytes={selectedAssetBytes}
+          />
+        ) : contextTab === "preview" ? (
           <div className="editor-preview-panel">
             <div className="editor-preview-toolbar">
               <span>
@@ -1768,7 +2014,7 @@ export function EditorWorkspace({
                 packageItem={previewPackage}
                 layoutPackageItem={layoutPackageItem}
                 assets={workspace.assets}
-                selection={selected}
+                selection={previewSelection}
                 showBounds={showBounds}
                 hoveredBound={hoveredBound}
                 onHoveredBoundChange={setHoveredBound}
@@ -1779,19 +2025,40 @@ export function EditorWorkspace({
         ) : (
           <PropertiesPanel
             summary={summary}
-            symbol={selectedSymbol}
-            asset={selectedAsset}
-            assetBytes={
-              selectedAsset ? workspace.assets[selectedAsset] : undefined
+            symbol={resolvedSelectedSymbol}
+            symbolLine={
+              resolvedSelectedSymbol
+                ? sourceLine(
+                    workspace.files[resolvedSelectedSymbol.file] ?? "",
+                    resolvedSelectedSymbol.from,
+                  )
+                : undefined
             }
-            onRemoveAsset={() => {
-              if (!selectedAsset) return;
-              const nextAssets = { ...workspace.assets };
-              delete nextAssets[selectedAsset];
-              commitWorkspace(workspace.files, nextAssets);
-              setSelectedAsset(null);
-              onFeedback("editor.asset.removed");
-            }}
+            asset={selectedAsset}
+            assetMetadata={selectedAssetMetadata}
+            assetReferenceCount={selectedAssetReferences.length}
+            selectedFile={
+              navigationTab === "files" && !selectedAsset ? file : null
+            }
+            selectedFileBytes={
+              navigationTab === "files" && !selectedAsset
+                ? new TextEncoder().encode(workspace.files[file] ?? "")
+                    .byteLength
+                : undefined
+            }
+            selectedFileDiagnosticCount={
+              navigationTab === "files" && !selectedAsset
+                ? analysis.diagnostics.filter(
+                    (diagnostic) => diagnostic.range?.file === file,
+                  ).length
+                : undefined
+            }
+            symbolOwner={
+              resolvedSelectedSymbol
+                ? structuredContext(workspace.files, resolvedSelectedSymbol)
+                    ?.parent
+                : undefined
+            }
           />
         )}
       </aside>
@@ -1942,6 +2209,17 @@ export function EditorWorkspace({
           }}
         />
       )}
+      {assetRemoval && workspace.assets[assetRemoval] && (
+        <AssetRemovalDialog
+          path={assetRemoval}
+          referenceCount={
+            assetReferences(workspace.files, assetRelativePath(assetRemoval))
+              .length
+          }
+          onCancel={() => setAssetRemoval(null)}
+          onConfirm={() => removeAsset(assetRemoval)}
+        />
+      )}
     </div>
   );
 }
@@ -2002,7 +2280,7 @@ function LayoutNodeFields({
           ? definition.type.slice("handleReference:".length)
           : null;
         const references = [
-          ...(definition.type === "quotedString:packageRelativeAssetPath"
+          ...(definition.type === "quotedString:assetRelativePath"
             ? assets
             : []),
           ...(referenceKind
@@ -2079,6 +2357,32 @@ function LayoutNodeFields({
                   }
                   onBlur={onEndFieldEdit}
                 />
+              ) : definition.type === "quotedString:assetRelativePath" ? (
+                <select
+                  aria-label={fieldLabel}
+                  value={value}
+                  {...common}
+                  onChange={(event) =>
+                    onUpdate(symbol, fieldName, event.target.value)
+                  }
+                  onBlur={onEndFieldEdit}
+                >
+                  <option value="">
+                    {translate("ui.editorWorkspace.text.notSet")}
+                  </option>
+                  {value && !references.includes(value) && (
+                    <option value={value}>
+                      {translate("ui.editorWorkspace.asset.missingOption", {
+                        asset: value,
+                      })}
+                    </option>
+                  )}
+                  {references.map((reference) => (
+                    <option value={reference} key={reference}>
+                      {reference}
+                    </option>
+                  ))}
+                </select>
               ) : options.length &&
                 [
                   "enum",
@@ -2108,7 +2412,11 @@ function LayoutNodeFields({
                   )}
                   {selectControl.options.map((option) => (
                     <option key={option} value={option}>
-                      {option}
+                      {symbol.kind === "rule" && fieldName === "style"
+                        ? translate(
+                            `ui.editorWorkspace.layoutOption.ruleStyle.${option}`,
+                          )
+                        : option}
                     </option>
                   ))}
                 </select>
@@ -3755,9 +4063,7 @@ function StructuredPanel({
               candidate.handle ? [candidate.handle] : [],
             )
         : []),
-      ...(definition?.type === "quotedString:packageRelativeAssetPath"
-        ? assets
-        : []),
+      ...(definition?.type === "quotedString:assetRelativePath" ? assets : []),
       ...(["costAmount", "grantAmount"].includes(definition?.type ?? "")
         ? fieldValues(definition)
         : []),
@@ -3865,6 +4171,38 @@ function StructuredPanel({
                       }
                       onBlur={onEndFieldEdit}
                     />
+                  ) : definition?.type === "quotedString:assetRelativePath" ? (
+                    <select
+                      autoFocus={fieldName === focusField && occurrence === 0}
+                      aria-label={`${fieldName}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      value={value}
+                      {...accessibility}
+                      onChange={(event) =>
+                        onUpdate(
+                          symbol,
+                          fieldName,
+                          event.target.value,
+                          occurrence,
+                        )
+                      }
+                      onBlur={onEndFieldEdit}
+                    >
+                      <option value="">
+                        {translate("ui.editorWorkspace.text.notSet")}
+                      </option>
+                      {value && !referenceOptions.includes(value) && (
+                        <option value={value}>
+                          {translate("ui.editorWorkspace.asset.missingOption", {
+                            asset: value,
+                          })}
+                        </option>
+                      )}
+                      {referenceOptions.map((option) => (
+                        <option value={option} key={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
                   ) : enumValues.length > 0 &&
                     [
                       "enum",
@@ -4204,7 +4542,7 @@ function StructuredPanel({
           <>
             <button type="button" onClick={() => onOpenSymbol(returnTarget)}>
               {translate("ui.editorWorkspace.text.backToDeclaration", {
-                declaration: symbolLabel(returnTarget),
+                declaration: explorerSymbolLabel(returnTarget),
               })}
             </button>
             <span>›</span>
@@ -4219,7 +4557,7 @@ function StructuredPanel({
             <span key={`${ancestor.file}:${ancestor.from}`}>
               <span>›</span>
               <button type="button" onClick={() => onOpenSymbol(ancestor)}>
-                {symbolLabel(ancestor)}
+                {explorerSymbolLabel(ancestor)}
               </button>
             </span>
           ))}
@@ -4599,73 +4937,361 @@ function SourcePalette({
   );
 }
 
+function AssetStructuredPanel({
+  path,
+  allPaths,
+  referenceCount,
+  onRename,
+  onRemove,
+}: {
+  path: string;
+  allPaths: readonly string[];
+  referenceCount: number;
+  onRename: (
+    currentPath: string,
+    nextRelativePath: string,
+  ) => Promise<AssetPathValidationCode | "signature" | null>;
+  onRemove: () => void;
+}) {
+  const [filename, setFilename] = useState(() => assetBasename(path));
+  const [folder, setFolder] = useState(() => assetFolder(path));
+  const [error, setError] = useState<
+    AssetPathValidationCode | "signature" | null
+  >(null);
+  const [saving, setSaving] = useState(false);
+  const onRenameRef = useRef(onRename);
+  useEffect(() => {
+    onRenameRef.current = onRename;
+  }, [onRename]);
+  useEffect(() => {
+    const currentFilename = assetBasename(path);
+    const currentFolder = assetFolder(path);
+    if (filename === currentFilename && folder === currentFolder) return;
+    let active = true;
+    const nextRelativePath = folder ? `${folder}/${filename}` : filename;
+    const timer = window.setTimeout(() => {
+      const validation = validateAssetRelativePath(
+        nextRelativePath,
+        allPaths,
+        path,
+      );
+      if (validation) {
+        setError(validation);
+        return;
+      }
+      setSaving(true);
+      void onRenameRef.current(path, nextRelativePath).then((nextError) => {
+        if (!active) return;
+        setSaving(false);
+        setError(nextError);
+      });
+    }, 550);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [allPaths, filename, folder, path]);
+  const errorId = error ? "editor-asset-path-error" : undefined;
+  return (
+    <div className="editor-structured-scroll editor-asset-structured">
+      <header className="editor-structured-heading">
+        <p>{translate("ui.editorWorkspace.asset.assetFile")}</p>
+        <h2>{assetBasename(path)}</h2>
+        <code>{assetRelativePath(path)}</code>
+      </header>
+      <form
+        className="editor-form-card editor-asset-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+        }}
+      >
+        <h3>{translate("ui.editorWorkspace.asset.manageAsset")}</h3>
+        <label className="editor-field-occurrence">
+          <span>{translate("ui.editorWorkspace.asset.filename")}</span>
+          <input
+            required
+            type="text"
+            value={filename}
+            aria-invalid={Boolean(error)}
+            aria-describedby={errorId}
+            onChange={(event) => {
+              setFilename(event.target.value);
+              setError(null);
+            }}
+          />
+        </label>
+        <label className="editor-field-occurrence">
+          <span>{translate("ui.editorWorkspace.asset.folder")}</span>
+          <input
+            type="text"
+            value={folder}
+            placeholder={translate("ui.editorWorkspace.asset.rootFolder")}
+            aria-invalid={Boolean(error)}
+            aria-describedby={errorId}
+            onChange={(event) => {
+              setFolder(event.target.value);
+              setError(null);
+            }}
+          />
+        </label>
+        {error && (
+          <p className="editor-asset-path-error" id={errorId} role="alert">
+            {translate(`ui.editorWorkspace.asset.pathError.${error}`)}
+          </p>
+        )}
+        <p className="editor-asset-reference-count">
+          {translate("ui.editorWorkspace.asset.referenceCount", {
+            count: referenceCount,
+          })}
+        </p>
+        <div className="editor-asset-actions" aria-busy={saving || undefined}>
+          <button type="button" className="is-danger" onClick={onRemove}>
+            {translate("ui.editorWorkspace.text.removeAsset")}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function AssetBinarySourcePanel({
+  path,
+  bytes,
+}: {
+  path: string;
+  bytes: Uint8Array;
+}) {
+  return (
+    <div className="editor-source-panel editor-asset-source-panel">
+      <div className="editor-source-toolbar">
+        <span>
+          <strong>{assetRelativePath(path)}</strong>
+          <small>{translate("ui.editorWorkspace.asset.binaryFile")}</small>
+        </span>
+      </div>
+      <div className="editor-asset-image-stage">
+        <AssetImage path={path} bytes={bytes} className="editor-asset-image" />
+      </div>
+      <div className="editor-source-status is-valid">
+        <span>{translate("ui.editorWorkspace.asset.readOnlyBinary")}</span>
+      </div>
+    </div>
+  );
+}
+
+function AssetContextPreview({
+  path,
+  bytes,
+}: {
+  path: string;
+  bytes: Uint8Array;
+}) {
+  return (
+    <div className="editor-preview-panel editor-asset-preview-panel">
+      <div className="editor-preview-toolbar">
+        <span>
+          <strong>{translate("ui.editorWorkspace.asset.assetPreview")}</strong>
+          <small>{assetRelativePath(path)}</small>
+        </span>
+      </div>
+      <div className="editor-preview-scroll editor-asset-image-stage">
+        <AssetImage path={path} bytes={bytes} className="editor-asset-image" />
+      </div>
+    </div>
+  );
+}
+
+function AssetRemovalDialog({
+  path,
+  referenceCount,
+  onCancel,
+  onConfirm,
+}: {
+  path: string;
+  referenceCount: number;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="editor-departure-backdrop">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="editor-remove-asset-heading"
+      >
+        <p>{translate("ui.editorWorkspace.asset.assetFile")}</p>
+        <h2 id="editor-remove-asset-heading">
+          {translate("ui.editorWorkspace.asset.removeHeading", {
+            asset: assetRelativePath(path),
+          })}
+        </h2>
+        <p>
+          {translate("ui.editorWorkspace.asset.removeDescription", {
+            count: referenceCount,
+          })}
+        </p>
+        <div className="editor-dialog-actions">
+          <button type="button" onClick={onCancel}>
+            {translate("ui.editorWorkspace.text.cancel")}
+          </button>
+          <button type="button" className="is-danger" onClick={onConfirm}>
+            {translate("ui.editorWorkspace.text.removeAsset")}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function PropertiesPanel({
   summary,
   symbol,
+  symbolLine,
+  symbolOwner,
   asset,
-  assetBytes,
-  onRemoveAsset,
+  assetMetadata,
+  assetReferenceCount,
+  selectedFile,
+  selectedFileBytes,
+  selectedFileDiagnosticCount,
 }: {
   summary: ReturnType<typeof summarizeWorkspace>;
   symbol: FormatSymbol | null;
+  symbolLine?: number;
+  symbolOwner?: FormatSymbol;
   asset: string | null;
-  assetBytes?: Uint8Array;
-  onRemoveAsset: () => void;
+  assetMetadata?: PackageAssetMetadata;
+  assetReferenceCount: number;
+  selectedFile: string | null;
+  selectedFileBytes?: number;
+  selectedFileDiagnosticCount?: number;
 }) {
+  const title = asset
+    ? assetBasename(asset)
+    : selectedFile
+      ? selectedFile
+      : symbol
+        ? symbolLabel(symbol)
+        : summary.name;
   return (
     <div className="editor-properties-panel">
       <p>{translate("ui.editorWorkspace.text.selection")}</p>
-      <h2>{asset ?? (symbol ? symbolLabel(symbol) : summary.name)}</h2>
+      <h2>{title}</h2>
       <dl>
-        <div>
-          <dt>{translate("ui.editorWorkspace.text.kind")}</dt>
-          <dd>{asset ? "asset" : (symbol?.kind ?? "jump package")}</dd>
-        </div>
-        <div>
-          <dt>{translate("ui.editorWorkspace.text.file")}</dt>
-          <dd>{asset ?? symbol?.file ?? "jump.jdef"}</dd>
-        </div>
-        {asset && (
-          <div>
-            <dt>{translate("ui.editorWorkspace.text.size")}</dt>
-            <dd>
-              {assetBytes?.byteLength ?? 0}{" "}
-              {translate("ui.editorWorkspace.text.bytes")}
-            </dd>
-          </div>
+        {asset ? (
+          <>
+            <div>
+              <dt>{translate("ui.editorWorkspace.text.kind")}</dt>
+              <dd>{translate("ui.editorWorkspace.asset.assetFile")}</dd>
+            </div>
+            <div>
+              <dt>{translate("ui.editorWorkspace.asset.folder")}</dt>
+              <dd>
+                {assetFolder(asset) ||
+                  translate("ui.editorWorkspace.asset.rootFolder")}
+              </dd>
+            </div>
+            {assetMetadata && (
+              <>
+                <div>
+                  <dt>{translate("ui.editorWorkspace.asset.format")}</dt>
+                  <dd>{assetMetadata.format}</dd>
+                </div>
+                <div>
+                  <dt>{translate("ui.editorWorkspace.asset.dimensions")}</dt>
+                  <dd>
+                    {assetMetadata.width} × {assetMetadata.height}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{translate("ui.editorWorkspace.text.size")}</dt>
+                  <dd>
+                    {assetMetadata.bytes}
+                    {translate("ui.editorWorkspace.text.bytes")}
+                  </dd>
+                </div>
+              </>
+            )}
+            <div>
+              <dt>{translate("ui.editorWorkspace.asset.references")}</dt>
+              <dd>{assetReferenceCount}</dd>
+            </div>
+          </>
+        ) : selectedFile ? (
+          <>
+            <div>
+              <dt>{translate("ui.editorWorkspace.text.kind")}</dt>
+              <dd>{translate("ui.editorWorkspace.asset.definitionFile")}</dd>
+            </div>
+            <div>
+              <dt>{translate("ui.editorWorkspace.text.size")}</dt>
+              <dd>
+                {selectedFileBytes ?? 0}
+                {translate("ui.editorWorkspace.text.bytes")}
+              </dd>
+            </div>
+            <div>
+              <dt>{translate("ui.editorWorkspace.text.diagnostics")}</dt>
+              <dd>{selectedFileDiagnosticCount ?? 0}</dd>
+            </div>
+          </>
+        ) : symbol && symbol.kind !== "jump" ? (
+          <>
+            <div>
+              <dt>{translate("ui.editorWorkspace.text.kind")}</dt>
+              <dd>{symbol.kind.replaceAll("-", " ")}</dd>
+            </div>
+            {symbol.handle && (
+              <div>
+                <dt>{translate("ui.editorWorkspace.field.handle")}</dt>
+                <dd>{symbol.handle}</dd>
+              </div>
+            )}
+            {symbolOwner && (
+              <div>
+                <dt>{translate("ui.editorWorkspace.asset.owner")}</dt>
+                <dd>{symbolLabel(symbolOwner)}</dd>
+              </div>
+            )}
+            <div>
+              <dt>{translate("ui.editorWorkspace.asset.sourceLocation")}</dt>
+              <dd>
+                {symbol.file}:{symbolLine ?? 1}
+              </dd>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <dt>{translate("ui.editorWorkspace.text.version")}</dt>
+              <dd>{summary.version}</dd>
+            </div>
+            <div>
+              <dt>{translate("ui.editorWorkspace.text.authors")}</dt>
+              <dd>{summary.authors.join(", ")}</dd>
+            </div>
+            <div>
+              <dt>{translate("ui.editorWorkspace.text.sections")}</dt>
+              <dd>{summary.sectionCount}</dd>
+            </div>
+            <div>
+              <dt>{translate("ui.editorWorkspace.text.choices")}</dt>
+              <dd>{summary.choiceCount}</dd>
+            </div>
+            <div>
+              <dt>{translate("ui.editorWorkspace.text.gauntlet")}</dt>
+              <dd>
+                {summary.nativeGauntlet
+                  ? translate("ui.editorWorkspace.asset.native")
+                  : translate("ui.editorWorkspace.asset.no")}
+              </dd>
+            </div>
+          </>
         )}
-        <div>
-          <dt>{translate("ui.editorWorkspace.text.version")}</dt>
-          <dd>{summary.version}</dd>
-        </div>
-        <div>
-          <dt>{translate("ui.editorWorkspace.text.authors")}</dt>
-          <dd>{summary.authors.join(", ")}</dd>
-        </div>
-        <div>
-          <dt>{translate("ui.editorWorkspace.text.sections")}</dt>
-          <dd>{summary.sectionCount}</dd>
-        </div>
-        <div>
-          <dt>{translate("ui.editorWorkspace.text.choices")}</dt>
-          <dd>{summary.choiceCount}</dd>
-        </div>
-        <div>
-          <dt>{translate("ui.editorWorkspace.text.gauntlet")}</dt>
-          <dd>{summary.nativeGauntlet ? "Native" : "No"}</dd>
-        </div>
       </dl>
-      {asset ? (
-        <button type="button" onClick={onRemoveAsset}>
-          {translate("ui.editorWorkspace.text.removeAsset")}
-        </button>
-      ) : (
-        <p className="editor-property-note">
-          {translate(
-            "ui.editorWorkspace.text.propertiesAreDerivedFromCanonicalSourceEditThemIn",
-          )}
-        </p>
-      )}
+      <p className="editor-property-note">
+        {translate("ui.editorWorkspace.asset.propertiesReadOnly")}
+      </p>
     </div>
   );
 }

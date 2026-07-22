@@ -35,7 +35,7 @@ section
 
   image
     handle: threshold_mark
-    src: "assets/threshold-mark.svg"
+    src: "threshold-mark.svg"
     alt: "A bright doorway at the center of the Threshold"
 
 section
@@ -256,7 +256,7 @@ choice
 
   image
     handle: visual
-    src: "assets/threshold-mark.svg"
+    src: "threshold-mark.svg"
     alt: "A travel pack marked with the Threshold sigil"
 
 choice

@@ -369,7 +369,7 @@ choice
 
   image
     handle: visual
-    src: "assets/confluence-engine.svg"
+    src: "confluence-engine.svg"
     alt: "An inactive Engine signal"
     alt when engine_enabled: "An active Engine signal at tier {{tier}}"
 

@@ -12,7 +12,7 @@ import type {
   TextBlock,
 } from "../markup";
 
-export const layoutPreviewImagePath = "assets/layout-preview-placeholder.svg";
+export const layoutPreviewImagePath = "layout-preview-placeholder.svg";
 
 export type LayoutPreviewFixture =
   | {

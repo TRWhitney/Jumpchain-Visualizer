@@ -52,7 +52,7 @@ section
 
   image
     handle: engine_mark
-    src: "assets/confluence-engine.svg"
+    src: "confluence-engine.svg"
     alt: "The Confluence Engine aligned to {{engine_path}}"
 
 section

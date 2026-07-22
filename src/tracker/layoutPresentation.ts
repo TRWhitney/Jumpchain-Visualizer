@@ -175,15 +175,27 @@ export function layoutRuleStyle(
 ): CSSProperties {
   const thickness = node.presentation.thickness ?? 1;
   const style = node.presentation.style ?? "solid";
+  const lineSize =
+    Number.isInteger(thickness) && thickness >= 1 && thickness <= 16
+      ? `${thickness}px`
+      : undefined;
+  const color = layoutColor(node.presentation.color, packageItem);
+  if (style === "rounded")
+    return {
+      width: "100%",
+      height: lineSize,
+      margin: 0,
+      backgroundColor: color ?? "currentColor",
+      border: 0,
+      borderStyle: "none",
+      borderRadius: "9999px",
+    };
   return {
     width: "100%",
     margin: 0,
     border: 0,
-    borderTopColor: layoutColor(node.presentation.color, packageItem),
-    borderTopWidth:
-      Number.isInteger(thickness) && thickness >= 1 && thickness <= 16
-        ? `${thickness}px`
-        : undefined,
+    borderTopColor: color,
+    borderTopWidth: lineSize,
     borderTopStyle:
       style === "dash" ? "dashed" : style === "solid" ? "solid" : undefined,
   };

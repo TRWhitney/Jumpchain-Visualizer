@@ -14,8 +14,8 @@ describe("Jump image preparation", () => {
 
   it("uses the package resolver without allowing absolute or scheme sources", () => {
     expect(
-      resolveJumpImageSource("assets/mark.png", (path) => `asset://${path}`),
-    ).toBe("asset://assets/mark.png");
+      resolveJumpImageSource("mark.png", (path) => `asset://${path}`),
+    ).toBe("asset://mark.png");
     expect(resolveJumpImageSource("/assets/mark.png")).toBeNull();
     expect(resolveJumpImageSource("https://example.test/mark.png")).toBeNull();
   });

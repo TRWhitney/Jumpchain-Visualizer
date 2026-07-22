@@ -374,6 +374,8 @@
         "hexPlaceholder": "#RRGGBB",
         "hexOrTokenPlaceholder": "#RRGGBB or color token",
         "chooseWithPicker": "Choose {{field}} with color picker",
+        "sampleFromScreenForField": "Sample a screen color for {{field}}",
+        "screenSamplingUnavailable": "Screen color sampling is unavailable.",
         "showChoicesForField": "Show color choices for {{field}}",
         "availableTokens": "Available color tokens",
         "builtInTokens": "Built-in colors",
@@ -446,6 +448,7 @@
         "declarationRemoved": "{{declaration}} removed.",
         "declarationMoved": "{{declaration}} moved.",
         "resourceCreated": "{{resource}} was created, assigned, and opened for editing.",
+        "assetMoved": "Asset moved to {{asset}}.",
         "layoutNodeAdded": "{{node}} added.",
         "layoutNodeConverted": "Layout node changed to {{node}}.",
         "layoutNodeUpdated": "{{node}} updated.",
@@ -455,6 +458,42 @@
         "layoutNodeExpanded": "{{node}} presentation fields opened.",
         "layoutNodeCollapsed": "{{node}} changed to compact form.",
         "invalidLayoutFieldRemoved": "Invalid layout field {{field}} removed."
+      },
+      "asset": {
+        "assetFile": "Asset file",
+        "manageAsset": "Manage asset",
+        "filename": "Filename",
+        "folder": "Folder",
+        "rootFolder": "Asset root",
+        "referenceCount_one": "Referenced by {{count}} image block.",
+        "referenceCount_other": "Referenced by {{count}} image blocks.",
+        "binaryFile": "Binary image file",
+        "readOnlyBinary": "Validated image shown read-only.",
+        "assetPreview": "Asset preview",
+        "selectedAssetAlt": "Selected asset {{asset}}",
+        "loadingImage": "Loading image…",
+        "missingOption": "{{asset}} (missing)",
+        "removeHeading": "Remove {{asset}}?",
+        "removeDescription_one": "The asset is referenced by {{count}} image block. Its source reference will remain and report a missing-asset diagnostic.",
+        "removeDescription_other": "The asset is referenced by {{count}} image blocks. Their source references will remain and report missing-asset diagnostics.",
+        "definitionFile": "Definition file",
+        "format": "Format",
+        "dimensions": "Dimensions",
+        "references": "References",
+        "owner": "Owner",
+        "sourceLocation": "Source location",
+        "native": "Native",
+        "no": "No",
+        "propertiesReadOnly": "Properties describe the current selection and are read-only.",
+        "pathError": {
+          "empty": "Enter a filename.",
+          "absolute": "Asset locations are relative to the asset root.",
+          "separator": "Use forward slashes between asset folders.",
+          "segment": "Asset folders cannot be empty, current-directory, parent-directory, or non-canonical segments.",
+          "extension": "Use a PNG, JPEG, GIF, WebP, or AVIF filename.",
+          "collision": "Another asset already uses this location.",
+          "signature": "The filename extension must match the validated image format."
+        }
       },
       "field": {
         "handle": "Handle",
@@ -482,6 +521,13 @@
         "color": "color",
         "thickness": "thickness",
         "style": "style"
+      },
+      "layoutOption": {
+        "ruleStyle": {
+          "solid": "solid",
+          "dash": "dash",
+          "rounded": "rounded"
+        }
       },
       "declaration": {
         "resource": "Resource",

@@ -1,4 +1,5 @@
 import { Unzip, UnzipInflate, zipSync, type Zippable } from "fflate";
+import { assetArchivePath, assetRelativePath } from "../markup/assetPath";
 import {
   canonicalizePackage,
   sha256,
@@ -364,6 +365,29 @@ function expandArchive(
 const startsWith = (bytes: Uint8Array, signature: readonly number[]) =>
   signature.every((value, index) => bytes[index] === value);
 
+export type CanonicalAssetExtension = "png" | "jpg" | "gif" | "webp" | "avif";
+
+export function canonicalAssetExtension(
+  bytes: Uint8Array,
+): CanonicalAssetExtension | null {
+  if (startsWith(bytes, [137, 80, 78, 71, 13, 10, 26, 10])) return "png";
+  if (startsWith(bytes, [0xff, 0xd8])) return "jpg";
+  const text = new TextDecoder();
+  if (["GIF87a", "GIF89a"].includes(text.decode(bytes.subarray(0, 6))))
+    return "gif";
+  if (
+    text.decode(bytes.subarray(0, 4)) === "RIFF" &&
+    text.decode(bytes.subarray(8, 12)) === "WEBP"
+  )
+    return "webp";
+  if (
+    text.decode(bytes.subarray(4, 8)) === "ftyp" &&
+    text.decode(bytes.subarray(8, 32)).includes("avif")
+  )
+    return "avif";
+  return null;
+}
+
 function imageGeometry(path: string, bytes: Uint8Array) {
   const extension = path.split(".").at(-1)?.toLocaleLowerCase();
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -522,6 +546,33 @@ export async function validatePackageAsset(path: string, bytes: Uint8Array) {
   await validateImages({ [path]: bytes });
 }
 
+export type PackageAssetMetadata = {
+  format: string;
+  canonicalExtension: CanonicalAssetExtension;
+  width: number;
+  height: number;
+  bytes: number;
+};
+
+export function inspectPackageAsset(
+  path: string,
+  bytes: Uint8Array,
+): PackageAssetMetadata {
+  const [width, height] = imageGeometry(path, bytes);
+  const canonicalExtension = canonicalAssetExtension(bytes);
+  if (!canonicalExtension) return fail("asset.signature", { value0: path });
+  return {
+    format:
+      canonicalExtension === "jpg"
+        ? "JPEG"
+        : canonicalExtension.toLocaleUpperCase(),
+    canonicalExtension,
+    width,
+    height,
+    bytes: bytes.byteLength,
+  };
+}
+
 function referencedAssets(packageItem: CanonicalJumpPackage) {
   const fromGrants = packageItem.choices.flatMap((choice) => [
     ...choice.grants.flatMap((grant) => grant.images),
@@ -562,7 +613,10 @@ function decodePackage(
       exactHash: hash,
       files: definitions,
     },
-    { profile: "distribution", assetPaths: Object.keys(assets) },
+    {
+      profile: "distribution",
+      assetPaths: Object.keys(assets).map(assetRelativePath),
+    },
   );
   const errors = packageItem.diagnostics.filter(
     (diagnostic) => diagnostic.severity === "error",
@@ -570,7 +624,8 @@ function decodePackage(
   if (errors.length)
     throw new PackageSecurityError("package.invalid", {}, errors[0]);
   for (const path of referencedAssets(packageItem))
-    if (!assets[path]) fail("package.missing_asset", { value0: path });
+    if (!assets[assetArchivePath(path)])
+      fail("package.missing_asset", { value0: path });
   return { packageItem, definitions, assets };
 }
 

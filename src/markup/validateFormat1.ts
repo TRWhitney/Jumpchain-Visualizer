@@ -308,12 +308,16 @@ function valueIsValid(
     type === "renderableScalar"
   ) {
     if (!raw.startsWith('"') || !raw.endsWith('"')) return false;
-    if (type === "quotedString:packageRelativeAssetPath") {
+    if (type === "quotedString:assetRelativePath") {
       const path = unquote(raw);
+      const segments = path.split("/");
       return (
-        path.startsWith("assets/") &&
+        Boolean(path) &&
         !path.includes("\\") &&
-        !path.split("/").includes("..") &&
+        !path.startsWith("/") &&
+        segments.every(
+          (segment) => Boolean(segment) && segment !== "." && segment !== "..",
+        ) &&
         !/^(?:[a-z]+:|\/)/i.test(path) &&
         /\.(?:avif|gif|jpe?g|png|svg|webp)$/i.test(path)
       );

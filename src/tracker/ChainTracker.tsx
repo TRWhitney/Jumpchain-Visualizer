@@ -47,6 +47,7 @@ import {
   preloadJumpImages,
   waitForRenderedJumpImages,
 } from "./jumpImages";
+import { useAssetObjectUrls } from "./useAssetObjectUrls";
 import {
   aggregateInventoryRecords,
   filteredInventory,
@@ -78,6 +79,7 @@ import { translate, translateDiagnostic } from "../localization";
 const PROFILE_RECORDS_BEFORE_SCROLL = 5;
 const PROFILE_IMPORTS_BEFORE_SCROLL = 9;
 const RECORD_ACQUISITIONS_BEFORE_SCROLL = 3;
+const noInstalledAssets: Readonly<Record<string, readonly number[]>> = {};
 
 const pageLabels: Record<TrackerPage, string> = {
   jump: "Chain & Jump",
@@ -1032,22 +1034,10 @@ function JumpWorkspace({
   );
   const number = jumpNumber(state, entryId);
   const gauntlet = runtime[entryId]?.gauntlet;
-  const assetUrls = useMemo(
-    () =>
-      Object.fromEntries(
-        Object.entries(item.assets ?? {}).map(([path, bytes]) => [
-          path,
-          URL.createObjectURL(new Blob([Uint8Array.from(bytes).buffer])),
-        ]),
-      ),
-    [item.assets],
-  );
-  useEffect(
-    () => () => {
-      for (const url of Object.values(assetUrls)) URL.revokeObjectURL(url);
-    },
-    [assetUrls],
-  );
+  const assetUrls = useAssetObjectUrls(item.assets ?? noInstalledAssets);
+  const packagedAssetsReady =
+    !item.assets ||
+    Object.keys(item.assets).every((path) => Boolean(assetUrls[path]));
   return (
     <div
       ref={workspaceRef}
@@ -1056,6 +1046,9 @@ function JumpWorkspace({
       inert={staged || undefined}
       aria-hidden={staged || undefined}
     >
+      {!packagedAssetsReady && (
+        <span data-jump-assets-pending hidden aria-hidden="true" />
+      )}
       <header className="chain-context-header">
         <div>
           <p>
@@ -1156,7 +1149,9 @@ function JumpWorkspace({
                 )
                 .map((actor) => ({ id: actor.id, name: actor.name }))}
               gauntletActive={Boolean(gauntlet?.active)}
-              resolveAsset={(path) => assetUrls[path]}
+              resolveAsset={
+                item.assets ? (path) => assetUrls[`assets/${path}`] : undefined
+              }
               randomIndex={randomIndex}
               dispatch={dispatch}
             />

@@ -26,6 +26,27 @@ export type FieldDefault =
       layout: "section" | "choice" | "trait";
     };
 
+export function resolveDocumentSymbol(
+  symbols: readonly FormatSymbol[],
+  selected: FormatSymbol,
+) {
+  return (
+    symbols.find(
+      (symbol) =>
+        symbol.file === selected.file &&
+        symbol.kind === selected.kind &&
+        symbol.from === selected.from,
+    ) ??
+    symbols.find(
+      (symbol) =>
+        symbol.file === selected.file &&
+        symbol.kind === selected.kind &&
+        symbol.handle === selected.handle,
+    ) ??
+    selected
+  );
+}
+
 type DeclarationDefinition = {
   contexts?: string[];
   fields?: Record<string, FieldDefinition>;
@@ -344,7 +365,7 @@ const childStarters: Readonly<Record<string, string>> = {
   "choice-source": "choice-source\n  handle: new_source\n  mode: multi",
   choice: "choice\n  handle: new_placement\n  target: choice_handle",
   text: 'text\n  handle: new_text\n  content: ""',
-  image: 'image\n  handle: new_image\n  src: "assets/image.png"\n  alt: ""',
+  image: 'image\n  handle: new_image\n  alt: ""',
   input: "input\n  handle: new_input\n  selection: text",
   cost: "cost\n  resource: jump_points\n  amount: 0",
   grant: 'grant\n  kind: perk\n  name: "New grant"',

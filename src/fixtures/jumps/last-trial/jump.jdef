@@ -25,7 +25,7 @@ section
 
   image
     handle: trial_mark
-    src: "assets/last-trial.svg"
+    src: "last-trial.svg"
     alt: "An open final gate"
     alt when gauntlet: "A sealed final gate marked as a Gauntlet"
 

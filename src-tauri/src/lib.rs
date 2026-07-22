@@ -606,6 +606,68 @@ fn sanitize_suggested_name(suggested_name: &str) -> String {
         .collect()
 }
 
+#[cfg(target_os = "linux")]
+fn portal_color_to_hex(red: f64, green: f64, blue: f64) -> CommandResult<String> {
+    fn channel(value: f64) -> CommandResult<u8> {
+        if !value.is_finite() || !(0.0..=1.0).contains(&value) {
+            return Err(CommandError::from(
+                "screen color sampler returned an invalid channel",
+            ));
+        }
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let byte = (value * 255.0).round() as u8;
+        Ok(byte)
+    }
+
+    Ok(format!(
+        "#{:02X}{:02X}{:02X}",
+        channel(red)?,
+        channel(green)?,
+        channel(blue)?
+    ))
+}
+
+#[tauri::command]
+async fn screen_color_sampler_available() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        ashpd::desktop::screenshot::ScreenshotProxy::new()
+            .await
+            .is_ok()
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    false
+}
+
+#[tauri::command]
+async fn sample_screen_color() -> CommandResult<Option<String>> {
+    #[cfg(target_os = "linux")]
+    {
+        use ashpd::{
+            Error,
+            desktop::{Color, ResponseError},
+        };
+
+        let request = Color::pick()
+            .send()
+            .await
+            .map_err(|_| CommandError::from("screen color sampler could not start"))?;
+        let color = match request.response() {
+            Ok(color) => color,
+            Err(Error::Response(ResponseError::Cancelled)) => return Ok(None),
+            Err(Error::Response(ResponseError::Other)) => {
+                return Err(CommandError::from("screen color sampler failed"));
+            }
+            Err(_) => return Err(CommandError::from("screen color sampler failed")),
+        };
+        portal_color_to_hex(color.red(), color.green(), color.blue()).map(Some)
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    Err(CommandError::from("screen color sampler is unavailable"))
+}
+
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 fn save_diagnostic_report(
@@ -699,6 +761,8 @@ pub fn run() {
             remove_editor_workspace,
             open_editor_project_folder,
             scan_editor_project_folder,
+            screen_color_sampler_available,
+            sample_screen_color,
             save_diagnostic_report,
             save_editor_package
         ])
@@ -718,6 +782,9 @@ mod tests {
         safe_workspace_id, sanitize_suggested_name, validate_chain_payload,
         validate_settings_payload,
     };
+
+    #[cfg(target_os = "linux")]
+    use super::portal_color_to_hex;
 
     fn limits() -> EffectivePackageSizeLimits {
         EffectivePackageSizeLimits {
@@ -777,6 +844,17 @@ mod tests {
         assert!(validate_chain_payload(r#"{"schemaVersion":1,"id":"chain-1"}"#).is_ok());
         assert!(validate_chain_payload(r#"{"schemaVersion":2,"id":"chain-1"}"#).is_err());
         assert!(validate_chain_payload(r#"{"schemaVersion":1,"id":""}"#).is_err());
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn converts_only_bounded_portal_colors_to_canonical_hex() {
+        assert_eq!(
+            portal_color_to_hex(0.0, 0.5, 1.0).expect("valid portal color"),
+            "#0080FF"
+        );
+        assert!(portal_color_to_hex(-0.1, 0.5, 1.0).is_err());
+        assert!(portal_color_to_hex(f64::NAN, 0.5, 1.0).is_err());
     }
 
     #[test]

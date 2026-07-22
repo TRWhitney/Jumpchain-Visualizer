@@ -7,6 +7,7 @@ import {
 import type {
   CanonicalJumpPackage,
   ChoiceSource,
+  ImageBlock,
   JumpChoice,
   JumpLayout,
   LayoutNode,
@@ -1490,6 +1491,41 @@ export function JumpChoiceRendererScope({
   rendererProps: JumpRendererProps;
 }) {
   return <ChoiceWithLayout choice={choice} props={rendererProps} />;
+}
+
+/** Canonical choice-source rendering scope shared by the Tracker and Editor preview. */
+export function JumpChoiceSourceRendererScope({
+  source,
+  sectionHandle,
+  rendererProps,
+}: {
+  source: ChoiceSource;
+  sectionHandle: string;
+  rendererProps: JumpRendererProps;
+}) {
+  return (
+    <SourceChoices
+      source={source}
+      sectionHandle={sectionHandle}
+      props={rendererProps}
+    />
+  );
+}
+
+/** Canonical image rendering scope shared by the Tracker and Editor preview. */
+export function JumpImageRendererScope({
+  image,
+  rendererProps,
+}: {
+  image: ImageBlock;
+  rendererProps: JumpRendererProps;
+}) {
+  const source = resolveJumpImageSource(image.src, rendererProps.resolveAsset);
+  return source ? (
+    <article className="jump-image-preview">
+      <img src={source} alt={label(image.alt)} />
+    </article>
+  ) : null;
 }
 
 export function JumpRenderer(props: Props) {

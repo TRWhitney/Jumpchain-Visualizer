@@ -257,7 +257,7 @@ test("light Editor source, Properties, scrollbars, and diagnostics hover states"
   await editor.getByRole("tab", { name: "Properties" }).click();
   const propertyHint = editor.locator(".editor-property-note");
   await expect(propertyHint).toContainText(
-    "Properties are derived from canonical source.",
+    "Properties describe the current selection and are read-only.",
   );
   await expect(propertyHint).toHaveCSS(
     "background-color",

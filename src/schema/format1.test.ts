@@ -54,6 +54,27 @@ describe("unreleased Format 1 identity amendment", () => {
     ).toBeUndefined();
   });
 
+  it("defines extensible, bounded presentation for horizontal rules", () => {
+    expect(schema.layoutNodes.rule).toMatchObject({
+      kind: "leaf",
+      fields: {
+        color: { type: "color", min: 0, max: 1 },
+        thickness: {
+          type: "integer",
+          minimum: 1,
+          maximum: 16,
+          default: 1,
+        },
+        style: {
+          type: "enum",
+          values: ["solid", "dash"],
+          default: "solid",
+        },
+      },
+      children: false,
+    });
+  });
+
   it("codifies reserved types, copied-control domains, and entry scope", () => {
     const constraints = Object.fromEntries(
       schema.semanticConstraints.map(({ code, rule }) => [code, rule]),

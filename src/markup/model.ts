@@ -182,6 +182,9 @@ export type Presentation = {
   width?: string;
   height?: string;
   fit?: string;
+  color?: string;
+  thickness?: number;
+  style?: string;
 };
 
 export type LayoutNode = {

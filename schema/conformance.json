@@ -12,6 +12,7 @@
     { "name": "ungrouped-wip", "directory": "fixtures/ungrouped-wip", "exportValid": true, "diagnostics": ["warning:choice.unreachable"] },
     { "name": "duplicate-primary-cost", "directory": "fixtures/duplicate-primary-cost", "exportValid": false, "diagnostics": ["error:cost.unique_resource"] },
     { "name": "schema-validation-invalid", "directory": "fixtures/schema-validation-invalid", "exportValid": false, "diagnostics": ["error:schema.value.type", "error:schema.field.unknownSuggested", "error:schema.field.duplicate"] },
+    { "name": "theme-name-invalid", "directory": "fixtures/theme-name-invalid", "exportValid": false, "diagnostics": ["error:schema.field.unknown"] },
     { "name": "unresolved-layout-invalid", "directory": "fixtures/unresolved-layout-invalid", "exportValid": false, "diagnostics": ["error:layout.reference"] }
   ]
 }

@@ -492,7 +492,7 @@ typed handled-content leaves, just as prose and visuals are handled in
 <p>When a layout declaration itself is selected, the Editor previews it through the canonical renderer with isolated representative section, choice, or trait data. Matching dummy text, images, inputs, costs, tags, expanded source choices, and direct choices make authored targets visible without changing source or requiring the surrounding package to be distributable.</p>
 <p>Authored layouts replace presentation only; they do not change semantic membership or state.</p>
 <p>The current agreed direction for layout trees is:</p>
-<p>The Structured editor presents this language through a selected-container tree rather than source-line indentation controls. It shows the selected container’s structural path, flow, spacing, optional presentation fields, and source-ordered direct children. Up/down and drops at a sibling row’s top or bottom edge reorder within the current container. Dropping in the highlighted center of a valid container row reparents and appends the node through the same exact-range command as <em>Move…</em>; the dragged node and all its descendants are excluded as destinations. <em>Move…</em> remains the explicit accessible path to the root or any other non-descendant container and toggles its destination controls when pressed again; there is no separate Cancel action in that expansion. Removing a non-root container promotes its children at that source position. <em>Add child</em> is schema-filtered for the owning layout kind and gathers required targets before it writes source. One consistent presentation icon beside the selected container controls and on each eligible child toggles that node’s presentation fields. Expanded child fields take their full natural height within the Structured pane instead of creating a nested scroll region. Closing a compact-capable leaf converts it back to compact source only when no block-only semantics would be lost; there is no separate compaction action. Invalid but parseable Source-authored fields remain visible as localized Needs attention controls so Structured can remove them without guessing at unsafe ancestry.</p>
+<p>The Structured editor presents this language through a selected-container tree rather than source-line indentation controls. It shows the selected container’s structural path, flow, spacing, optional presentation fields, and source-ordered direct children. Changing the selected container collapses any open child fields; reparenting a child through drag or <em>Move…</em> likewise leaves its fields collapsed at the destination. Up/down and drops at a sibling row’s top or bottom edge reorder within the current container. Dropping in the highlighted center of a valid container row reparents and appends the node through the same exact-range command as <em>Move…</em>; the dragged node and all its descendants are excluded as destinations. <em>Move…</em> remains the explicit accessible path to the root or any other non-descendant container and toggles its destination controls when pressed again; there is no separate Cancel action in that expansion. Removing a non-root container promotes its children at that source position. <em>Add child</em> is schema-filtered for the owning layout kind and gathers required targets before it writes source. One consistent presentation icon beside the selected container controls and on every child row toggles that node’s available fields. A nested container can therefore be edited either from its row in the parent or after opening it as the selected container; rules expose color, thickness, and style through the same action. Expanded child fields take their full natural height within the Structured pane instead of creating a nested scroll region. Closing a compact-capable leaf converts it back to compact source only when no block-only semantics would be lost; there is no separate compaction action. Invalid but parseable Source-authored fields remain visible as localized Needs attention controls so Structured can remove them without guessing at unsafe ancestry.</p>
 <ul>
 <li>exactly one root node per <code>section-layout</code>, <code>choice-layout</code>, or
 <code>trait-layout</code></li>
@@ -530,9 +530,14 @@ slot
   target: cost
   align: end
 </code></pre>
-<p>A horizontal separator is a standalone targetless leaf:</p>
+<p>A horizontal separator is a standalone targetless leaf. Its bare form uses a one-pixel, solid, theme-aware line:</p>
 <pre><code class="language-text">rule</code></pre>
-<p><code>rule</code> renders a theme-aware horizontal line across its available layout width. It has no target, handle, child nodes, or v1 presentation fields; surrounding containers control its spacing. Other leaf nodes likewise do not have handles or children. A typed leaf’s block form does not create a different semantic node; it only provides room for presentation fields.</p>
+<p>A rule may use a block form to set <code>color</code>, integer <code>thickness</code> from 1 through 16 pixels, and <code>style</code>:</p>
+<pre><code class="language-text">rule
+  color: purple
+  thickness: 2
+  style: dash</code></pre>
+<p><code>style</code> accepts <code>solid</code> or <code>dash</code>; omission defaults to <code>solid</code>. The vocabulary is intentionally extensible so future rule styles can be added without changing the node shape. A rule spans its available layout width and has no target, handle, or child nodes; surrounding containers control its spacing. Other leaf nodes likewise do not have handles or children. A typed leaf’s block form does not create a different semantic node; it only provides room for presentation fields.</p>
 <p>The same typed content target or <code>slot</code> target may appear more than once in one layout. Each occurrence is an independent presentation node over the same underlying content or control. The generic <code>ref</code> form is not supported because declaration-kind namespaces allow matching handles.</p>
 <p>A typed content leaf whose target is not present on a particular section or choice is valid and collapses without reserving runtime space. This permits one authored layout to be reused across content with different optional fields. The Editor warns about an absent target by default and shows the leaf as a structured-authoring placeholder; users may suppress that diagnostic with <code>editor.warnMissingLayoutTargets</code>. A missing target does not make a distributable package invalid.</p>
 <p>Current container-identity rules:</p>
@@ -1686,6 +1691,7 @@ beyond hardcoded color names.</p>
 <li>allow <code>theme</code> in <code>layout.jdef</code></li>
 <li>use the same mixed-placement warning model as other split-file declarations</li>
 <li>define one token per declaration rather than a large map/blob structure</li>
+<li>use the required <code>handle</code> as the token’s sole identity; themes do not have a separate <code>name</code> because it is neither rendered nor referenced</li>
 <li>require exactly one <code>color</code> per theme declaration; missing or repeated color fields are errors</li>
 </ul>
 <p>Example direction:</p>
@@ -2031,7 +2037,7 @@ an implementation detail.</p>
 <tr><td><code>text</code></td><td><code>handle</code></td><td>conditional <code>content</code> variants</td><td>base <code>content</code></td></tr>
 <tr><td><code>image</code></td><td><code>handle</code>; <code>src</code> for export</td><td>conditional <code>alt</code> variants</td><td><code>src</code> during WIP and <code>alt</code> with diagnostics</td></tr>
 <tr><td><code>input</code></td><td><code>handle</code>, <code>selection</code></td><td><code>option</code>, <code>grant</code></td><td>selection-dependent <code>min</code>/<code>max</code></td></tr>
-<tr><td><code>theme</code></td><td><code>handle</code>, one <code>color</code></td><td>none</td><td><code>name</code></td></tr>
+<tr><td><code>theme</code></td><td><code>handle</code>, one <code>color</code></td><td>none</td><td>none</td></tr>
 <tr><td>layout declarations</td><td><code>handle</code>, exactly one container root</td><td>nested layout nodes</td><td>none</td></tr>
 </tbody>
 </table>

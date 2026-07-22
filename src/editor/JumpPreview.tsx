@@ -42,6 +42,7 @@ export function JumpPreview({
   showBounds,
   hoveredBound,
   onHoveredBoundChange,
+  onBoundActivate,
 }: {
   packageItem: CanonicalJumpPackage;
   layoutPackageItem?: CanonicalJumpPackage;
@@ -50,6 +51,7 @@ export function JumpPreview({
   showBounds: boolean;
   hoveredBound: LayoutBoundHover | null;
   onHoveredBoundChange: (value: LayoutBoundHover | null) => void;
+  onBoundActivate?: (value: LayoutBoundHover) => void;
 }) {
   const activeBoundRef = useRef<HTMLElement | null>(null);
   const authoredLayout = (layoutPackageItem ?? packageItem).layouts.find(
@@ -192,6 +194,23 @@ export function JumpPreview({
         activeBoundRef.current?.classList.remove("is-layout-bound-active");
         activeBoundRef.current = null;
         onHoveredBoundChange(null);
+      }}
+      onClickCapture={(event) => {
+        if (!showBounds || selection.kind !== "layout" || !onBoundActivate)
+          return;
+        const target = (event.target as HTMLElement).closest<HTMLElement>(
+          "[data-layout-bound]",
+        );
+        const kind = target?.dataset.layoutBoundKind;
+        const path = target?.dataset.layoutBound;
+        if (
+          !path ||
+          (kind !== "container" && kind !== "slot" && kind !== "reference")
+        )
+          return;
+        event.preventDefault();
+        event.stopPropagation();
+        onBoundActivate({ path, kind });
       }}
     >
       {layoutPreview?.kind === "section-layout" ? (

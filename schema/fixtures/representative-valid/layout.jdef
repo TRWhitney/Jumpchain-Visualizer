@@ -7,6 +7,10 @@ section-layout
     padding: sm
     slot: name
     text: description
+    rule
+      color: purple
+      thickness: 2
+      style: dash
     choice: gender_field
     choice: age_field
 

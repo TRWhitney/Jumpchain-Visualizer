@@ -478,7 +478,10 @@
         "height": "height",
         "fit": "fit",
         "source": "source",
-        "using": "using"
+        "using": "using",
+        "color": "color",
+        "thickness": "thickness",
+        "style": "style"
       },
       "declaration": {
         "resource": "Resource",

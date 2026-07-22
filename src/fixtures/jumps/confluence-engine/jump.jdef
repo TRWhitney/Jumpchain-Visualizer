@@ -30,7 +30,6 @@ resource
 
 theme
   handle: engine_gold
-  name: "Engine Gold"
   color: "#8A6418"
 
 theme

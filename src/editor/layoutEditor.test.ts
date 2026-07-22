@@ -9,6 +9,8 @@ import {
   insertLayoutChild,
   insertLayoutRoot,
   layoutAllowedNodeKinds,
+  layoutNodeForPath,
+  layoutNodeSourceSelection,
   layoutSlotTargets,
   moveLayoutNode,
   removeLayoutNode,
@@ -60,6 +62,21 @@ const structuralErrors = (source: string) =>
   );
 
 describe("schema-driven layout editor", () => {
+  it.each([
+    ["stack[1]", "stack"],
+    ["stack[1]/slot[1]", "slot"],
+    ["stack[1]/grid[2]", "grid"],
+    ["stack[1]/grid[2]/text[1]", "text"],
+  ])("maps preview path %s to its exact authored keyword", (path, keyword) => {
+    const tree = treeFor();
+    expect(layoutNodeForPath(tree, path)?.kind).toBe(keyword);
+    const selection = layoutNodeSourceSelection(tree, path);
+    expect(selection).not.toBeNull();
+    expect(files()[selection!.file].slice(selection!.from, selection!.to)).toBe(
+      keyword,
+    );
+  });
+
   it("merges compact fields and block nodes in exact source order", () => {
     const tree = treeFor();
     const root = tree.nodes[tree.rootId!];

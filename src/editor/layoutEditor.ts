@@ -83,6 +83,12 @@ export type LayoutEditResult = {
   target?: LayoutNodeRef;
 };
 
+export type LayoutNodeSourceSelection = {
+  file: string;
+  from: number;
+  to: number;
+};
+
 const unquote = (value: string | undefined) =>
   value?.replace(/^"|"$/g, "") ?? "";
 
@@ -259,6 +265,27 @@ export function createLayoutEditorTree(
       roots.length === 1 &&
       declarationLayoutFields.length === 0 &&
       otherLayoutRoots.length === 0,
+  };
+}
+
+export function layoutNodeForPath(
+  tree: LayoutEditorTree,
+  path: string,
+): LayoutEditorNode | undefined {
+  return Object.values(tree.nodes).find((node) => node.path === path);
+}
+
+export function layoutNodeSourceSelection(
+  tree: LayoutEditorTree,
+  path: string,
+): LayoutNodeSourceSelection | null {
+  const node = layoutNodeForPath(tree, path);
+  if (!node) return null;
+  const nameRange = node.sourceField?.nameRange;
+  return {
+    file: node.file,
+    from: nameRange?.from ?? node.from,
+    to: nameRange?.to ?? node.from + node.kind.length,
   };
 }
 

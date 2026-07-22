@@ -1,4 +1,11 @@
-import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { translate } from "../localization";
 import { normalizeFormat1HexColor } from "../markup/format1Colors";
 
@@ -31,6 +38,7 @@ export function ColorFieldControl({
 }) {
   const [choicesOpen, setChoicesOpen] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
+  const draftRef = useRef<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const picker = useRef<HTMLInputElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -39,21 +47,30 @@ export function ColorFieldControl({
   const selectedChoice = choices.find(
     (choice) => choice.value === displayedValue,
   );
-  const committedDraft =
-    normalizeFormat1HexColor(displayedValue) ?? displayedValue;
   const pickerValue =
     normalizeFormat1HexColor(displayedValue) ??
     selectedChoice?.color ??
     "#000000";
 
+  const updateDraft = useCallback((nextDraft: string | null) => {
+    draftRef.current = nextDraft;
+    setDraft(nextDraft);
+  }, []);
+
+  const commitDraft = useCallback(() => {
+    const pendingDraft = draftRef.current;
+    if (pendingDraft === null) return;
+    const nextValue = normalizeFormat1HexColor(pendingDraft) ?? pendingDraft;
+    draftRef.current = null;
+    setDraft(null);
+    onChange(nextValue);
+  }, [onChange]);
+
   useEffect(() => {
     if (draft === null) return;
-    const update = window.setTimeout(() => {
-      onChange(committedDraft);
-      setDraft(null);
-    }, 120);
+    const update = window.setTimeout(commitDraft, 120);
     return () => window.clearTimeout(update);
-  }, [committedDraft, draft, onChange]);
+  }, [commitDraft, draft]);
 
   useEffect(() => {
     if (!choicesOpen) return;
@@ -107,10 +124,12 @@ export function ColorFieldControl({
           onChange={(event) => {
             const nextValue = normalizeFormat1HexColor(event.target.value);
             if (!nextValue) return;
-            setDraft(null);
-            onChange(nextValue);
+            updateDraft(nextValue);
           }}
-          onBlur={onBlur}
+          onBlur={() => {
+            commitDraft();
+            onBlur();
+          }}
         />
         <input
           className="editor-color-value"
@@ -126,12 +145,9 @@ export function ColorFieldControl({
               ? "ui.editorWorkspace.color.hexOrTokenPlaceholder"
               : "ui.editorWorkspace.color.hexPlaceholder",
           )}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => updateDraft(event.target.value)}
           onBlur={() => {
-            if (draft !== null) {
-              onChange(committedDraft);
-              setDraft(null);
-            }
+            commitDraft();
             onBlur();
           }}
         />
@@ -188,7 +204,7 @@ export function ColorFieldControl({
                       )}
                       key={choice.value}
                       onClick={() => {
-                        setDraft(null);
+                        updateDraft(null);
                         onChange(choice.value);
                         setChoicesOpen(false);
                         trigger.current?.focus();

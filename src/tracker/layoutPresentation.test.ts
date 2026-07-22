@@ -6,6 +6,7 @@ import {
   layoutImageStyle,
   layoutInlineChildAreaStyle,
   layoutLeafPresentationStyle,
+  layoutRuleStyle,
 } from "./layoutPresentation";
 
 const packageThemes = {
@@ -182,5 +183,44 @@ describe("layout presentation styles", () => {
     expect(
       layoutImageStyle(node("image", { fit: "stretch" })).objectFit,
     ).toBeUndefined();
+  });
+
+  it("maps rule defaults and authored presentation without arbitrary CSS", () => {
+    expect(layoutRuleStyle(node("rule"), packageThemes)).toMatchObject({
+      width: "100%",
+      margin: 0,
+      border: 0,
+      borderTopColor: undefined,
+      borderTopWidth: "1px",
+      borderTopStyle: "solid",
+    });
+    expect(
+      layoutRuleStyle(
+        node("rule", {
+          color: "surface",
+          thickness: 3,
+          style: "dash",
+        }),
+        packageThemes,
+      ),
+    ).toMatchObject({
+      borderTopColor: "#123456",
+      borderTopWidth: "3px",
+      borderTopStyle: "dashed",
+    });
+    expect(
+      layoutRuleStyle(
+        node("rule", {
+          color: "unsafe",
+          thickness: 99,
+          style: "double",
+        }),
+        packageThemes,
+      ),
+    ).toMatchObject({
+      borderTopColor: undefined,
+      borderTopWidth: undefined,
+      borderTopStyle: undefined,
+    });
   });
 });

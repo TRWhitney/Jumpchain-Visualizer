@@ -1,0 +1,14 @@
+jump
+  format: 1
+  name: "Theme Name Invalid"
+  author: "Conformance"
+  version: "1"
+
+section
+  handle: intro
+  name: "Introduction"
+
+theme
+  handle: accent
+  name: "Redundant Theme Name"
+  color: "#123456"

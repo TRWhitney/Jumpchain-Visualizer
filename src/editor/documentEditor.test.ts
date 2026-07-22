@@ -520,13 +520,14 @@ section-layout
   it("resolves layout-node presentation fields without treating content declarations as nodes", () => {
     const files = {
       "jump.jdef": `${source}\ntext\n  handle: outside\n  content: "Text"\n`,
-      "layout.jdef": `section-layout\n  handle: layout\n\n  grid\n    columns: 2\n`,
+      "layout.jdef": `section-layout\n  handle: layout\n\n  grid\n    columns: 2\n\n    rule\n`,
     };
     const symbols = service.analyze(files).symbols;
     const text = symbols.find(
       (symbol) => symbol.kind === "text" && symbol.file === "jump.jdef",
     )!;
     const grid = symbols.find((symbol) => symbol.kind === "grid")!;
+    const rule = symbols.find((symbol) => symbol.kind === "rule")!;
     expect(structuredContext(files, text)?.visibleFields).toEqual([
       "handle",
       "content",
@@ -536,5 +537,10 @@ section-layout
       "handle",
     );
     expect(structuredContext(files, grid)?.childKinds).toContain("expand");
+    expect(structuredContext(files, rule)?.visibleFields).toEqual([
+      "color",
+      "thickness",
+      "style",
+    ]);
   });
 });

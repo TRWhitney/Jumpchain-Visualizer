@@ -379,7 +379,8 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.55rem;
 }
-.editor-resource-form label {
+.editor-resource-form label,
+.editor-resource-form-field {
   display: grid;
   gap: 0.25rem;
   color: #c8c8c2;
@@ -395,14 +396,14 @@
   border-radius: 0.2rem;
 }
 .editor-resource-form > p,
-.editor-resource-form > div {
+.editor-resource-form-actions {
   grid-column: 1 / -1;
 }
 .editor-resource-form > p {
   margin: 0;
   color: #ef9292;
 }
-.editor-resource-form > div {
+.editor-resource-form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 0.4rem;
@@ -871,6 +872,7 @@
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 0.55rem;
 }
 .editor-schema-field {
@@ -1350,6 +1352,13 @@
   border-radius: 0.18rem;
   font: inherit;
 }
+.editor-layout-row input[list] {
+  appearance: none;
+  background-image: none;
+}
+.editor-layout-row input[list]::-webkit-calendar-picker-indicator {
+  display: none !important;
+}
 .editor-layout-breadcrumb {
   display: flex;
   min-width: 0;
@@ -1484,6 +1493,28 @@
   background: #30302d;
   border-radius: 0.18rem;
 }
+.editor-layout-selected-editor.is-layout-inspected,
+.editor-layout-row.is-layout-inspected {
+  outline: 2px solid var(--app-accent-border);
+  outline-offset: 2px;
+  animation: editor-layout-inspected 900ms ease-out both;
+}
+@keyframes editor-layout-inspected {
+  0%,
+  30% {
+    outline-color: var(--app-accent-border);
+  }
+  100% {
+    outline-color: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .editor-layout-selected-editor.is-layout-inspected,
+  .editor-layout-row.is-layout-inspected {
+    animation: none;
+    outline-color: transparent;
+  }
+}
 .editor-layout-drag-handle {
   align-self: center;
   color: #777771;
@@ -1522,8 +1553,24 @@
   cursor: pointer;
 }
 .editor-layout-row-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content repeat(4, 1.7rem);
   gap: 0.15rem;
+}
+.editor-layout-action-move {
+  grid-column: 1;
+}
+.editor-layout-action-presentation {
+  grid-column: 2;
+}
+.editor-layout-action-up {
+  grid-column: 3;
+}
+.editor-layout-action-down {
+  grid-column: 4;
+}
+.editor-layout-action-remove {
+  grid-column: 5;
 }
 .editor-layout-presentation-button,
 .editor-layout-row-actions button {

@@ -436,6 +436,106 @@ section-layout
     );
   });
 
+  it("reports a removed theme name through the generic unknown-field rule", () => {
+    const source = `jump
+  format: 1
+  name: "Diagnostics"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+
+theme
+  handle: accent
+  name: "No longer valid"
+  color: "#123456"
+`;
+    const packageItem = canonicalizePackage({
+      id: "theme-name-diagnostic",
+      exactHash: "0".repeat(64),
+      files: { "jump.jdef": source },
+    });
+    const diagnostic = packageItem.diagnostics.find(
+      (item) =>
+        item.code === "schema.field.unknown" &&
+        item.parameters?.declaration === "theme" &&
+        item.target?.field === "name",
+    );
+
+    expect(diagnostic).toBeDefined();
+    expect(source.slice(diagnostic!.range!.from, diagnostic!.range!.to)).toBe(
+      '"No longer valid"',
+    );
+  });
+
+  it("canonicalizes rule presentation and diagnoses invalid values at their fields", () => {
+    const valid = `jump
+  format: 1
+  name: "Rules"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+
+section-layout
+  handle: ruled
+
+  stack
+    rule
+      color: "#C85A71"
+      thickness: 3
+      style: dash
+`;
+    const packageItem = canonicalizePackage({
+      id: "rule-presentation",
+      exactHash: "0".repeat(64),
+      files: { "jump.jdef": valid },
+    });
+    expect(packageItem.layouts[0].root.children[0]).toMatchObject({
+      kind: "rule",
+      presentation: {
+        color: "#C85A71",
+        thickness: 3,
+        style: "dash",
+      },
+    });
+    expect(
+      packageItem.diagnostics.filter(
+        (diagnostic) =>
+          diagnostic.target?.field === "color" ||
+          diagnostic.target?.field === "thickness" ||
+          diagnostic.target?.field === "style",
+      ),
+    ).toEqual([]);
+
+    const invalid = valid
+      .replace("thickness: 3", "thickness: 0")
+      .replace("style: dash", "style: dotted");
+    const diagnostics = canonicalizePackage({
+      id: "invalid-rule-presentation",
+      exactHash: "0".repeat(64),
+      files: { "jump.jdef": invalid },
+    }).diagnostics;
+    expect(
+      diagnostics.find(
+        (diagnostic) =>
+          diagnostic.code === "schema.value.bounds" &&
+          diagnostic.target?.field === "thickness",
+      ),
+    ).toBeDefined();
+    expect(
+      diagnostics.find(
+        (diagnostic) =>
+          diagnostic.code === "schema.value.type" &&
+          diagnostic.target?.field === "style",
+      ),
+    ).toBeDefined();
+  });
+
   it.each(["stack", "inline", "wrap", "grid"])(
     "reports a removed %s handle through the generic unknown-field rule",
     (container) => {

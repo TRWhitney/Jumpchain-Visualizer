@@ -1,14 +1,21 @@
 import {
   useCallback,
   useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  type ButtonHTMLAttributes,
   type KeyboardEventHandler,
+  type ReactNode,
+  type Ref,
 } from "react";
+import { flushSync } from "react-dom";
 import { packageIsValid, type PackageDiagnostic } from "../markup";
 import { validatePackageAsset } from "../archive";
 import { NumberStepperButtons } from "../tracker/NumberStepper";
+import { integerFieldControl } from "./integerField";
 import {
   chordFor,
   effectivePackageSizeLimits,
@@ -55,7 +62,9 @@ import {
   insertLayoutChild,
   insertLayoutRoot,
   layoutAllowedNodeKinds,
+  layoutNodeForPath,
   layoutNodeIsContainer,
+  layoutNodeSourceSelection,
   layoutRootKinds,
   layoutSlotTargets,
   moveLayoutNode,
@@ -85,8 +94,52 @@ type EditingTab = "structured" | "source";
 type ContextTab = "preview" | "properties";
 type Severity = PackageDiagnostic["severity"];
 type WorkspaceHistoryState = Pick<EditorWorkspaceSnapshot, "files" | "assets">;
+type LayoutInspectionHandle = { inspect: (path: string) => void };
 
 const service = new Format1LanguageService();
+
+type ExplorerEntryButtonProps = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "children" | "title"
+> & {
+  label: string;
+  before?: ReactNode;
+  after?: ReactNode;
+};
+
+function ExplorerEntryButton({
+  label,
+  before,
+  after,
+  ...buttonProps
+}: ExplorerEntryButtonProps) {
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const [truncated, setTruncated] = useState(false);
+
+  useLayoutEffect(() => {
+    const element = labelRef.current;
+    if (!element) return;
+    const update = () =>
+      setTruncated(element.scrollWidth > element.clientWidth);
+    update();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [label]);
+
+  return (
+    <button
+      {...buttonProps}
+      type="button"
+      title={truncated ? label : undefined}
+    >
+      {before}
+      <span ref={labelRef}>{label}</span>
+      {after}
+    </button>
+  );
+}
 
 function editorColorChoices(
   files: Readonly<Record<string, string>>,
@@ -134,7 +187,25 @@ function defaultShadowText(defaultValue: FieldDefault | null) {
   return translate("ui.editorWorkspace.defaultValue.template", { value });
 }
 
+const handleIdentityDeclarations = new Set([
+  "theme",
+  "section-layout",
+  "choice-layout",
+  "trait-layout",
+]);
+
+const layoutRowDragBoundarySelector = [
+  "[data-editor-drag-boundary]",
+  "input:not(:disabled)",
+  "select:not(:disabled)",
+  "textarea:not(:disabled)",
+  "button:not(:disabled)",
+  '[contenteditable="true"]',
+].join(", ");
+
 function symbolLabel(symbol: FormatSymbol) {
+  if (handleIdentityDeclarations.has(symbol.kind))
+    return symbol.handle || symbol.kind.replaceAll("-", " ");
   return symbol.name || symbol.handle || symbol.kind.replaceAll("-", " ");
 }
 
@@ -164,7 +235,7 @@ const addTemplates = {
   "section layout": `\nsection-layout\n  handle: new_section_layout\n\n  stack\n    gap: md\n\n    slot: name\n`,
   "choice layout": `\nchoice-layout\n  handle: new_choice_layout\n\n  stack\n    gap: sm\n\n    slot: name\n    slot: control\n`,
   "trait layout": `\ntrait-layout\n  handle: new_trait_layout\n\n  stack\n    gap: sm\n\n    slot: name\n`,
-  theme: `\ntheme\n  handle: new_theme\n  name: "New Theme"\n  color: "#68707c"\n`,
+  theme: `\ntheme\n  handle: new_theme\n  color: "#68707c"\n`,
 } as const;
 
 function uniqueTopLevelTemplate(
@@ -249,6 +320,7 @@ export function EditorWorkspace({
   const [hoveredBound, setHoveredBound] = useState<LayoutBoundHover | null>(
     null,
   );
+  const layoutInspectionRef = useRef<LayoutInspectionHandle>(null);
   const [history, setHistory] = useState<WorkspaceHistoryState[]>(() => [
     { files: workspace.files, assets: workspace.assets },
   ]);
@@ -579,6 +651,34 @@ export function EditorWorkspace({
     requestAnimationFrame(() => sourceRef.current?.focus());
   };
 
+  const inspectLayoutBound = (bound: LayoutBoundHover) => {
+    if (
+      navigationTab !== "content" ||
+      selected.kind !== "layout" ||
+      !resolvedSelectedSymbol ||
+      !["section-layout", "choice-layout", "trait-layout"].includes(
+        resolvedSelectedSymbol.kind,
+      )
+    )
+      return;
+    const tree = createLayoutEditorTree(
+      workspace.files,
+      resolvedSelectedSymbol,
+    );
+    if (!tree) return;
+    if (editingTab === "source") {
+      const selection = layoutNodeSourceSelection(tree, bound.path);
+      if (!selection) return;
+      setFile(selection.file);
+      requestAnimationFrame(() =>
+        sourceRef.current?.setSelectionRange(selection.from, selection.to),
+      );
+      return;
+    }
+    if (!layoutNodeForPath(tree, bound.path)) return;
+    layoutInspectionRef.current?.inspect(bound.path);
+  };
+
   const runFormat = () => {
     try {
       const current = workspace.files[file] ?? "";
@@ -834,10 +934,9 @@ export function EditorWorkspace({
               />
             </label>
             <div className="editor-outline-scroll">
-              <button
+              <ExplorerEntryButton
                 className={selected.kind === "package" ? "is-selected" : ""}
-                type="button"
-                title={summary.name}
+                label={translate("ui.editorWorkspace.text.jumpDetails")}
                 onClick={() => {
                   setSelected({ kind: "package" });
                   setSelectedSymbol(
@@ -848,9 +947,7 @@ export function EditorWorkspace({
                   setFile("jump.jdef");
                   setEditingTab(contentEditingTab);
                 }}
-              >
-                <span>{translate("ui.editorWorkspace.text.jumpDetails")}</span>
-              </button>
+              />
               {declarationGroups.map(([heading, kinds]) => {
                 const symbols = visibleSymbols.filter(
                   (symbol) =>
@@ -864,23 +961,22 @@ export function EditorWorkspace({
                       {heading} <span>{symbols.length}</span>
                     </summary>
                     {symbols.map((symbol) => (
-                      <button
+                      <ExplorerEntryButton
                         className={
                           selectedSymbol?.file === symbol.file &&
                           selectedSymbol.from === symbol.from
                             ? "is-selected"
                             : ""
                         }
-                        type="button"
                         key={`${symbol.file}:${symbol.from}`}
-                        title={explorerSymbolLabel(symbol)}
+                        label={explorerSymbolLabel(symbol)}
+                        after={
+                          symbol.kind.includes("layout") ? (
+                            <small>{symbol.kind.replace("-layout", "")}</small>
+                          ) : undefined
+                        }
                         onClick={() => openSymbol(symbol)}
-                      >
-                        <span>{explorerSymbolLabel(symbol)}</span>
-                        {symbol.kind.includes("layout") && (
-                          <small>{symbol.kind.replace("-layout", "")}</small>
-                        )}
-                      </button>
+                      />
                     ))}
                   </details>
                 );
@@ -919,14 +1015,12 @@ export function EditorWorkspace({
                           ),
                       )
                       .map((symbol) => (
-                        <button
-                          type="button"
+                        <ExplorerEntryButton
                           key={`nested:${symbol.file}:${symbol.from}`}
+                          label={explorerSymbolLabel(symbol)}
+                          after={<small>{symbol.kind}</small>}
                           onClick={() => openSymbol(symbol)}
-                        >
-                          <span>{explorerSymbolLabel(symbol)}</span>
-                          <small>{symbol.kind}</small>
-                        </button>
+                        />
                       ))}
                   </details>
                 )}
@@ -944,18 +1038,15 @@ export function EditorWorkspace({
                       <span>{assets.length}</span>
                     </summary>
                     {assets.map((asset) => (
-                      <button
-                        type="button"
-                        title={asset}
+                      <ExplorerEntryButton
                         key={asset}
+                        label={asset}
                         onClick={() => {
                           setSelectedAsset(asset);
                           setSelectedSymbol(null);
                           setContextTab("properties");
                         }}
-                      >
-                        <span>{asset}</span>
-                      </button>
+                      />
                     ))}
                   </details>
                 );
@@ -969,31 +1060,25 @@ export function EditorWorkspace({
               {Object.keys(workspace.files)
                 .sort()
                 .map((path) => (
-                  <button
-                    type="button"
+                  <ExplorerEntryButton
                     className={file === path ? "is-selected" : ""}
                     key={path}
-                    title={path}
+                    label={path}
+                    before={<span aria-hidden="true">▤</span>}
                     onClick={() => openFile(path)}
-                  >
-                    <span aria-hidden="true">▤</span>
-                    <span>{path}</span>
-                  </button>
+                  />
                 ))}
               {Object.keys(workspace.assets).map((path) => (
-                <button
-                  type="button"
+                <ExplorerEntryButton
                   key={path}
-                  title={path}
+                  label={path}
+                  before={<span aria-hidden="true">▧</span>}
                   onClick={() => {
                     setSelectedAsset(path);
                     setSelectedSymbol(null);
                     setContextTab("properties");
                   }}
-                >
-                  <span aria-hidden="true">▧</span>
-                  <span>{path}</span>
-                </button>
+                />
               ))}
             </div>
           </div>
@@ -1044,6 +1129,7 @@ export function EditorWorkspace({
               files={workspace.files}
               assets={Object.keys(workspace.assets)}
               focusField={structuredFocus}
+              layoutInspectionRef={layoutInspectionRef}
               returnTarget={structuredReturnTarget}
               onOpenSymbol={openSymbol}
               onOpenPackage={() => {
@@ -1686,6 +1772,7 @@ export function EditorWorkspace({
                 showBounds={showBounds}
                 hoveredBound={hoveredBound}
                 onHoveredBoundChange={setHoveredBound}
+                onBoundActivate={inspectLayoutBound}
               />
             </div>
           </div>
@@ -1956,6 +2043,14 @@ function LayoutNodeFields({
             ? `${listId}-diagnostics`
             : undefined,
         } as const;
+        const integerControl = integerFieldControl(value, {
+          minimum: definition.minimum,
+          maximum: definition.maximum,
+          defaultValue:
+            typeof definition.default === "number"
+              ? definition.default
+              : undefined,
+        });
         return (
           <div className="editor-schema-field" key={fieldName}>
             <div
@@ -2017,12 +2112,49 @@ function LayoutNodeFields({
                     </option>
                   ))}
                 </select>
+              ) : definition.type === "integer" ? (
+                <span className="number-stepper editor-number-stepper is-fluid">
+                  <input
+                    aria-label={fieldLabel}
+                    type="number"
+                    min={definition.minimum}
+                    max={definition.maximum}
+                    value={value}
+                    placeholder={
+                      value === ""
+                        ? defaultShadowText(omissionDefault)
+                        : undefined
+                    }
+                    {...common}
+                    onChange={(event) =>
+                      onUpdate(symbol, fieldName, event.target.value)
+                    }
+                    onBlur={onEndFieldEdit}
+                  />
+                  <NumberStepperButtons
+                    label={fieldLabel}
+                    increaseDisabled={integerControl.increaseDisabled}
+                    decreaseDisabled={integerControl.decreaseDisabled}
+                    onIncrease={() =>
+                      onUpdate(
+                        symbol,
+                        fieldName,
+                        String(integerControl.increase()),
+                      )
+                    }
+                    onDecrease={() =>
+                      onUpdate(
+                        symbol,
+                        fieldName,
+                        String(integerControl.decrease()),
+                      )
+                    }
+                  />
+                </span>
               ) : (
                 <input
                   aria-label={fieldLabel}
-                  type={definition.type === "integer" ? "number" : "text"}
-                  min={definition.minimum}
-                  max={definition.maximum}
+                  type="text"
                   value={value}
                   list={references.length ? listId : undefined}
                   {...common}
@@ -2191,6 +2323,7 @@ function LayoutTreeEditor({
   symbols,
   onApply,
   onEndFieldEdit,
+  inspectionRef,
 }: {
   assets: readonly string[];
   diagnostics: readonly PackageDiagnostic[];
@@ -2203,8 +2336,14 @@ function LayoutTreeEditor({
     continuous?: boolean,
   ) => void;
   onEndFieldEdit: () => void;
+  inspectionRef: Ref<LayoutInspectionHandle>;
 }) {
-  const tree = createLayoutEditorTree(files, layout);
+  const tree = useMemo(
+    () => createLayoutEditorTree(files, layout),
+    [files, layout],
+  );
+  const editorRef = useRef<HTMLElement>(null);
+  const [inspectedPath, setInspectedPath] = useState<string | null>(null);
   const [selectedContainer, setSelectedContainer] =
     useState<LayoutNodeRef | null>(null);
   const [editingNode, setEditingNode] = useState<LayoutNodeRef | null>(null);
@@ -2224,6 +2363,49 @@ function LayoutTreeEditor({
   const [containerPresentationOpen, setContainerPresentationOpen] =
     useState(false);
 
+  useImperativeHandle(
+    inspectionRef,
+    () => ({
+      inspect: (path) => {
+        if (!tree) return;
+        const node = layoutNodeForPath(tree, path);
+        if (!node) return;
+        flushSync(() => {
+          if (node.container) {
+            setSelectedContainer(layoutNodeReference(node));
+          } else {
+            const parent = node.parentId
+              ? tree.nodes[node.parentId]
+              : undefined;
+            if (parent) setSelectedContainer(layoutNodeReference(parent));
+          }
+          setEditingNode(null);
+          setContainerPresentationOpen(false);
+          setInspectedPath(path);
+        });
+        window.requestAnimationFrame(() => {
+          const region = Array.from(
+            editorRef.current?.querySelectorAll<HTMLElement>(
+              node.container
+                ? "[data-layout-container-editor-path]"
+                : "[data-layout-node-path]",
+            ) ?? [],
+          ).find((candidate) =>
+            node.container
+              ? candidate.dataset.layoutContainerEditorPath === node.path
+              : candidate.dataset.layoutNodePath === node.path,
+          );
+          if (!region) return;
+          region.classList.remove("is-layout-inspected");
+          void region.offsetWidth;
+          region.classList.add("is-layout-inspected");
+          region.scrollIntoView({ block: "nearest", inline: "nearest" });
+        });
+      },
+    }),
+    [tree],
+  );
+
   if (!tree) return null;
 
   const resolve = (reference: LayoutNodeRef | null) =>
@@ -2240,6 +2422,10 @@ function LayoutTreeEditor({
   const selected = resolve(selectedContainer) ?? root;
   const selectedRef = selected ? layoutNodeReference(selected) : null;
   const edited = resolve(editingNode);
+  const selectActiveContainer = (node: LayoutEditorNode) => {
+    if (node.id !== selected?.id) setEditingNode(null);
+    setSelectedContainer(layoutNodeReference(node));
+  };
   const selectedDiagnostics = selected
     ? diagnosticsForLayoutNode(diagnostics, selected).filter(
         (diagnostic) => !diagnostic.target?.field,
@@ -2282,9 +2468,20 @@ function LayoutTreeEditor({
   ) => {
     if (!result.changed) return;
     onApply(result, announcement);
-    if (result.target && select === "container")
+    if (result.target && select === "container") {
+      setEditingNode(null);
       setSelectedContainer(result.target);
+    }
     if (result.target && select === "node") setEditingNode(result.target);
+  };
+  const applyReparent = (
+    result: LayoutEditResult,
+    announcement: string,
+    movedNode: LayoutEditorNode,
+  ) => {
+    if (!result.changed) return;
+    setEditingNode(null);
+    apply(result, announcement, movedNode.container ? "container" : undefined);
   };
   const updateLayoutField = (
     nodeSymbol: FormatSymbol,
@@ -2359,7 +2556,7 @@ function LayoutTreeEditor({
   ) => {
     const blocksRowDrag =
       target instanceof Element &&
-      Boolean(target.closest("[data-editor-drag-boundary]"));
+      Boolean(target.closest(layoutRowDragBoundarySelector));
     if (blocksRowDrag && layoutDragBoundaryActiveRef.current) {
       row.draggable = false;
       return;
@@ -2424,7 +2621,7 @@ function LayoutTreeEditor({
       )
     )
       return;
-    apply(
+    applyReparent(
       moveLayoutNode(
         files,
         layout,
@@ -2432,14 +2629,14 @@ function LayoutTreeEditor({
         layoutNodeReference(destination),
       ),
       announce("layoutNodeMoved", dragged.kind),
-      dragged.container ? "container" : "node",
+      dragged,
     );
     updateDraggedNode(null);
     updateDropTarget(null);
   };
 
   return (
-    <section className="editor-form-card editor-layout-builder">
+    <section className="editor-form-card editor-layout-builder" ref={editorRef}>
       <div className="editor-layout-heading">
         <strong>{translate("ui.editorWorkspace.text.layoutEditor")}</strong>
         <span>
@@ -2500,7 +2697,7 @@ function LayoutTreeEditor({
                 value={selected?.id}
                 onChange={(event) => {
                   const next = tree.nodes[event.target.value];
-                  if (next) setSelectedContainer(layoutNodeReference(next));
+                  if (next) selectActiveContainer(next);
                 }}
               >
                 {tree.containerIds.map((id) => (
@@ -2522,9 +2719,7 @@ function LayoutTreeEditor({
                   <button
                     type="button"
                     aria-current={node.id === selected?.id ? "page" : undefined}
-                    onClick={() =>
-                      setSelectedContainer(layoutNodeReference(node))
-                    }
+                    onClick={() => selectActiveContainer(node)}
                   >
                     {node.kind}[{node.path.match(/\[(\d+)\]$/)?.[1] ?? "1"}]
                   </button>
@@ -2533,7 +2728,13 @@ function LayoutTreeEditor({
             </nav>
           </div>
           {selected && (
-            <div className="editor-layout-selected-editor">
+            <div
+              className={`editor-layout-selected-editor${
+                inspectedPath === selected.path ? " is-layout-inspected" : ""
+              }`}
+              data-layout-container-editor-path={selected.path}
+              tabIndex={-1}
+            >
               <label>
                 <span>{translate("ui.editorWorkspace.text.path")}</span>
                 <span className="editor-layout-static-control">
@@ -2677,10 +2878,13 @@ function LayoutTreeEditor({
                     dropTarget?.id === node.id
                       ? ` drop-${dropTarget.placement}`
                       : ""
+                  }${
+                    inspectedPath === node.path ? " is-layout-inspected" : ""
                   }`}
                   draggable={tree.structurallySafe && !layoutDragBoundaryActive}
                   data-layout-node-kind={node.kind}
                   data-layout-node-path={node.path}
+                  tabIndex={-1}
                   key={node.id}
                   onPointerDownCapture={(event) =>
                     beginLayoutControlGesture(event.currentTarget, event.target)
@@ -2908,9 +3112,7 @@ function LayoutTreeEditor({
                           "ui.editorWorkspace.ariaLabel.openLayoutContainer",
                           { container: node.path },
                         )}
-                        onClick={() =>
-                          setSelectedContainer(layoutNodeReference(node))
-                        }
+                        onClick={() => selectActiveContainer(node)}
                       >
                         {translate("ui.editorWorkspace.text.open")}
                       </button>
@@ -2923,6 +3125,7 @@ function LayoutTreeEditor({
                   <div className="editor-layout-row-actions">
                     <button
                       type="button"
+                      className="editor-layout-action-move"
                       title={translate(
                         "ui.editorWorkspace.ariaLabel.moveLayoutNodeToContainer",
                         { node: displayKind(node.kind) },
@@ -2949,51 +3152,51 @@ function LayoutTreeEditor({
                     >
                       {translate("ui.editorWorkspace.text.moveEllipsis")}
                     </button>
-                    {!node.container && node.kind !== "rule" && (
-                      <button
-                        type="button"
-                        aria-label={translate(
-                          "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
-                          { node: displayKind(node.kind) },
-                        )}
-                        title={translate(
-                          "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
-                          { node: displayKind(node.kind) },
-                        )}
-                        aria-expanded={edited?.id === node.id && !node.compact}
-                        disabled={!tree.structurallySafe}
-                        onClick={() => {
-                          if (node.compact) {
+                    <button
+                      type="button"
+                      className="editor-layout-action-presentation"
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
+                        { node: displayKind(node.kind) },
+                      )}
+                      title={translate(
+                        "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
+                        { node: displayKind(node.kind) },
+                      )}
+                      aria-expanded={edited?.id === node.id && !node.compact}
+                      disabled={!tree.structurallySafe}
+                      onClick={() => {
+                        if (node.compact) {
+                          apply(
+                            expandLayoutLeaf(
+                              files,
+                              layout,
+                              layoutNodeReference(node),
+                            ),
+                            announce("layoutNodeExpanded", node.kind),
+                            "node",
+                          );
+                        } else if (edited?.id === node.id) {
+                          if (canCompact)
                             apply(
-                              expandLayoutLeaf(
+                              collapseLayoutLeaf(
                                 files,
                                 layout,
                                 layoutNodeReference(node),
                               ),
-                              announce("layoutNodeExpanded", node.kind),
-                              "node",
+                              announce("layoutNodeCollapsed", node.kind),
                             );
-                          } else if (edited?.id === node.id) {
-                            if (canCompact)
-                              apply(
-                                collapseLayoutLeaf(
-                                  files,
-                                  layout,
-                                  layoutNodeReference(node),
-                                ),
-                                announce("layoutNodeCollapsed", node.kind),
-                              );
-                            setEditingNode(null);
-                          } else {
-                            setEditingNode(layoutNodeReference(node));
-                          }
-                        }}
-                      >
-                        ◫
-                      </button>
-                    )}
+                          setEditingNode(null);
+                        } else {
+                          setEditingNode(layoutNodeReference(node));
+                        }
+                      }}
+                    >
+                      ◫
+                    </button>
                     <button
                       type="button"
+                      className="editor-layout-action-up"
                       aria-label={translate(
                         "ui.editorWorkspace.ariaLabel.moveLayoutNodeUp",
                         { node: displayKind(node.kind) },
@@ -3019,6 +3222,7 @@ function LayoutTreeEditor({
                     </button>
                     <button
                       type="button"
+                      className="editor-layout-action-down"
                       aria-label={translate(
                         "ui.editorWorkspace.ariaLabel.moveLayoutNodeDown",
                         { node: displayKind(node.kind) },
@@ -3046,6 +3250,7 @@ function LayoutTreeEditor({
                     </button>
                     <button
                       type="button"
+                      className="editor-layout-action-remove"
                       aria-label={translate(
                         "ui.editorWorkspace.ariaLabel.removeLayoutNode",
                         { node: displayKind(node.kind) },
@@ -3099,7 +3304,7 @@ function LayoutTreeEditor({
                         onClick={() => {
                           const destination = tree.nodes[moveDestination];
                           if (destination)
-                            apply(
+                            applyReparent(
                               moveLayoutNode(
                                 files,
                                 layout,
@@ -3107,7 +3312,7 @@ function LayoutTreeEditor({
                                 layoutNodeReference(destination),
                               ),
                               announce("layoutNodeMoved", node.kind),
-                              node.container ? "container" : "node",
+                              node,
                             );
                           setMovingNode(null);
                         }}
@@ -3280,6 +3485,8 @@ function ResourceCreationDialog({
   const [abbreviation, setAbbreviation] = useState("");
   const [initial, setInitial] = useState("0");
   const [error, setError] = useState("");
+  const initialControl = integerFieldControl(initial, {});
+  const initialLabel = translate("ui.editorWorkspace.field.initial");
   return (
     <div className="editor-departure-backdrop">
       <section
@@ -3335,17 +3542,25 @@ function ResourceCreationDialog({
               onChange={(event) => setAbbreviation(event.target.value)}
             />
           </label>
-          <label>
-            <span>{translate("ui.editorWorkspace.field.initial")}</span>
-            <input
-              required
-              type="number"
-              value={initial}
-              onChange={(event) => setInitial(event.target.value)}
-            />
-          </label>
+          <div className="editor-resource-form-field">
+            <span>{initialLabel}</span>
+            <span className="number-stepper editor-number-stepper is-fluid">
+              <input
+                required
+                aria-label={initialLabel}
+                type="number"
+                value={initial}
+                onChange={(event) => setInitial(event.target.value)}
+              />
+              <NumberStepperButtons
+                label={initialLabel}
+                onIncrease={() => setInitial(String(initialControl.increase()))}
+                onDecrease={() => setInitial(String(initialControl.decrease()))}
+              />
+            </span>
+          </div>
           {error && <p role="alert">{error}</p>}
-          <div>
+          <div className="editor-resource-form-actions">
             <button type="submit">
               {translate("ui.editorWorkspace.text.createAndUseResource")}
             </button>
@@ -3366,6 +3581,7 @@ function StructuredPanel({
   files,
   assets,
   focusField,
+  layoutInspectionRef,
   returnTarget,
   onUpdate,
   onLayoutEdit,
@@ -3387,6 +3603,7 @@ function StructuredPanel({
   files: Readonly<Record<string, string>>;
   assets: readonly string[];
   focusField: string | null;
+  layoutInspectionRef: Ref<LayoutInspectionHandle>;
   returnTarget: FormatSymbol | null;
   onUpdate: (
     symbol: FormatSymbol,
@@ -3443,7 +3660,9 @@ function StructuredPanel({
       </div>
     );
   const handle = field("handle");
-  const name = field("name") || (symbol.kind === "jump" ? packageName : handle);
+  const name = handleIdentityDeclarations.has(symbol.kind)
+    ? handle
+    : field("name") || (symbol.kind === "jump" ? packageName : handle);
   const resolvedContext = structuredContext(files, symbol);
   const isLayout = symbol.kind.includes("layout");
   const scalarForm = new RegExp(
@@ -4057,6 +4276,7 @@ function StructuredPanel({
           symbols={symbols}
           onApply={onLayoutEdit}
           onEndFieldEdit={onEndFieldEdit}
+          inspectionRef={layoutInspectionRef}
         />
       ) : (
         detailFields.length > 0 &&

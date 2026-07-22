@@ -778,6 +778,9 @@ function layoutNode(
       width: value(node, "width"),
       height: value(node, "height"),
       fit: value(node, "fit"),
+      color: value(node, "color"),
+      thickness: integer(node, "thickness"),
+      style: value(node, "style"),
     },
     children,
   };

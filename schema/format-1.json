@@ -243,7 +243,6 @@
       "contexts": ["top-level"],
       "fields": {
         "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
-        "name": { "type": "renderableScalar", "min": 0, "max": 1 },
         "color": { "type": "hexColor", "min": 1, "max": 1, "required": true }
       },
       "children": {}
@@ -301,7 +300,15 @@
         "fit": { "type": "enum", "values": ["contain", "cover"] }
       }
     },
-    "rule": { "kind": "leaf", "fields": {}, "children": false },
+    "rule": {
+      "kind": "leaf",
+      "fields": {
+        "color": { "type": "color", "min": 0, "max": 1 },
+        "thickness": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 16, "default": 1 },
+        "style": { "type": "enum", "values": ["solid", "dash"], "min": 0, "max": 1, "default": "solid" }
+      },
+      "children": false
+    },
     "choice": {
       "kind": "leaf",
       "compact": "choice: <target>",

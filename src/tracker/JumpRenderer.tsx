@@ -33,6 +33,7 @@ import {
   layoutImageStyle,
   layoutInlineChildAreaStyle,
   layoutLeafPresentationStyle,
+  layoutRuleStyle,
 } from "./layoutPresentation";
 
 const label = (value: Renderable | undefined, fallback = "") =>
@@ -1130,7 +1131,8 @@ function Layout({
       ? bound(<RichText source={resolved(content, props)} />)
       : null;
   }
-  if (node.kind === "rule") return bound(<hr />);
+  if (node.kind === "rule")
+    return bound(<hr style={layoutRuleStyle(node, props.packageItem)} />);
   if (node.kind === "input" && choice)
     return bound(
       <InputControls choice={choice} props={props} target={node.target} />,
@@ -1396,7 +1398,8 @@ function TraitLayoutNode({
         )
       : null;
   }
-  if (node.kind === "rule") return bound(<hr />);
+  if (node.kind === "rule")
+    return bound(<hr style={layoutRuleStyle(node, props.packageItem)} />);
   if (!["stack", "inline", "wrap", "grid"].includes(node.kind)) return null;
   return (
     <div

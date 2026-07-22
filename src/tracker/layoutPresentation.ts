@@ -168,3 +168,23 @@ export function layoutImageBoundaryStyle(node: LayoutNode): CSSProperties {
     height,
   };
 }
+
+export function layoutRuleStyle(
+  node: LayoutNode,
+  packageItem: PackageThemes,
+): CSSProperties {
+  const thickness = node.presentation.thickness ?? 1;
+  const style = node.presentation.style ?? "solid";
+  return {
+    width: "100%",
+    margin: 0,
+    border: 0,
+    borderTopColor: layoutColor(node.presentation.color, packageItem),
+    borderTopWidth:
+      Number.isInteger(thickness) && thickness >= 1 && thickness <= 16
+        ? `${thickness}px`
+        : undefined,
+    borderTopStyle:
+      style === "dash" ? "dashed" : style === "solid" ? "solid" : undefined,
+  };
+}

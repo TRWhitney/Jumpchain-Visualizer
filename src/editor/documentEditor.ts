@@ -948,7 +948,7 @@ export function setConditionalDocumentField(
   );
   if (existing?.conditionRange) {
     const replacements = [
-      { range: existing.conditionRange, value: condition || "true" },
+      { range: existing.conditionRange, value: condition },
       { range: existing.valueRange, value: rendered },
     ].sort((left, right) => right.range.from - left.range.from);
     let nextSource = source;
@@ -977,8 +977,60 @@ export function setConditionalDocumentField(
   }
   const nextSource =
     source.slice(0, offset) +
-    `${indentation}${name} when ${condition || "true"}: ${rendered}\n` +
+    `${indentation}${name} when ${condition}: ${rendered}\n` +
     source.slice(offset);
+  return {
+    changed: true,
+    files: { ...files, [symbol.file]: nextSource },
+  };
+}
+
+export function moveConditionalDocumentField(
+  files: Readonly<Record<string, string>>,
+  symbol: FormatSymbol,
+  name: string,
+  occurrence: number,
+  direction: "up" | "down",
+): DocumentEditResult {
+  const source = files[symbol.file];
+  if (source === undefined)
+    return { changed: false, files: { ...files }, reason: "stale-target" };
+  const node = findNode(source, symbol);
+  if (!node)
+    return { changed: false, files: { ...files }, reason: "stale-target" };
+  const variants = node.fields.filter(
+    (field) => field.name === name && field.condition !== undefined,
+  );
+  const groups = readConditionalSourceFieldGroups(source, symbol, name);
+  const currentGroup = groups[occurrence];
+  if (!currentGroup)
+    return { changed: false, files: { ...files }, reason: "stale-target" };
+  const siblingOccurrences = groups
+    .filter((item) => item.baseOccurrence === currentGroup.baseOccurrence)
+    .map((item) => item.occurrence);
+  const siblingIndex = siblingOccurrences.indexOf(occurrence);
+  const adjacentOccurrence =
+    siblingOccurrences[siblingIndex + (direction === "up" ? -1 : 1)];
+  if (adjacentOccurrence === undefined)
+    return { changed: false, files: { ...files }, reason: "no-change" };
+  const current = variants[occurrence];
+  const adjacent = variants[adjacentOccurrence];
+  if (!current || !adjacent)
+    return { changed: false, files: { ...files }, reason: "stale-target" };
+  const currentExtent = lineExtent(source, current);
+  const adjacentExtent = lineExtent(source, adjacent);
+  const first =
+    currentExtent.from < adjacentExtent.from ? currentExtent : adjacentExtent;
+  const second = first === currentExtent ? adjacentExtent : currentExtent;
+  const firstText = source.slice(first.from, first.to);
+  const between = source.slice(first.to, second.from);
+  const secondText = source.slice(second.from, second.to);
+  const nextSource =
+    source.slice(0, first.from) +
+    secondText +
+    between +
+    firstText +
+    source.slice(second.to);
   return {
     changed: true,
     files: { ...files, [symbol.file]: nextSource },

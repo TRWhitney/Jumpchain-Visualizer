@@ -234,6 +234,50 @@ test("mock data reset reports repository failure without claiming success", asyn
     .not.toBeInTheDocument();
 });
 
+test("permanent sidebar deletion is an off-by-default persisted Editor preference", async () => {
+  const repository = new MemorySettingsRepository();
+  render(
+    <SettingsProvider repository={repository} reportExporter={exporter}>
+      <SettingsSurfaceHarness />
+    </SettingsProvider>,
+  );
+  await page.getByRole("tab", { name: "Editor" }).click();
+  const toggle = page.getByLabelText("Permanently delete sidebar items");
+  await expect.element(toggle).not.toBeChecked();
+  await toggle.click();
+  await expect.element(toggle).toBeChecked();
+  await expect
+    .poll(async () => {
+      const stored = (await repository.load()) as ReturnType<
+        typeof defaultSettings
+      > | null;
+      return stored?.editor.permanentlyDeleteSidebarItems;
+    })
+    .toBe(true);
+});
+
+test("image alt text hover is an on-by-default persisted Accessibility preference", async () => {
+  const repository = new MemorySettingsRepository();
+  render(
+    <SettingsProvider repository={repository} reportExporter={exporter}>
+      <SettingsSurfaceHarness />
+    </SettingsProvider>,
+  );
+  await page.getByRole("tab", { name: "Accessibility" }).click();
+  const toggle = page.getByLabelText("Show alt text on hover");
+  await expect.element(toggle).toBeChecked();
+  await toggle.click();
+  await expect.element(toggle).not.toBeChecked();
+  await expect
+    .poll(async () => {
+      const stored = (await repository.load()) as ReturnType<
+        typeof defaultSettings
+      > | null;
+      return stored?.accessibility.imageAltTextHover;
+    })
+    .toBe(false);
+});
+
 test("an unavailable stored language recovers to English before Settings renders", async () => {
   const stored = {
     ...defaultSettings(createDefaultTagProfile()),

@@ -9,6 +9,11 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const mockArtifactDirectory = join(process.cwd(), "artifacts", "mock-data");
+const accessibilityArtifactDirectory = join(
+  process.cwd(),
+  "artifacts",
+  "accessibility",
+);
 
 async function retainMockScreenshot(
   testInfo: TestInfo,
@@ -20,6 +25,18 @@ async function retainMockScreenshot(
   await testInfo.attach(name, { body, contentType: "image/png" });
   await mkdir(mockArtifactDirectory, { recursive: true });
   await writeFile(join(mockArtifactDirectory, `${name}.png`), body);
+}
+
+async function retainAccessibilityScreenshot(
+  testInfo: TestInfo,
+  name: string,
+  target: Page | Locator,
+) {
+  if (testInfo.project.name !== "chromium") return;
+  const body = await target.screenshot({ animations: "disabled" });
+  await testInfo.attach(name, { body, contentType: "image/png" });
+  await mkdir(accessibilityArtifactDirectory, { recursive: true });
+  await writeFile(join(accessibilityArtifactDirectory, `${name}.png`), body);
 }
 
 async function enableMockData(page: Page) {
@@ -248,12 +265,18 @@ test("See Mock Data gates Morgan and the explicit Mock Library source", async ({
     page.getByRole("heading", { name: "User Journey" }),
   ).toBeVisible();
 
-  await page.mouse.move(0, 500);
+  const dismissNotification = page.getByRole("button", {
+    name: "Dismiss notification",
+  });
+  await expect(dismissNotification).toBeVisible();
+  await dismissNotification.click();
   await expect(page.getByText("Chain created.", { exact: true })).toHaveCount(
     0,
-    { timeout: 6_000 },
   );
   await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(
+    page.getByLabel("Application Settings", { exact: true }),
+  ).toBeVisible();
   await visibility.uncheck();
   await page.getByRole("button", { name: "Close Settings" }).click();
   await expect(page.getByRole("heading", { name: "Morgan" })).toHaveCount(0);
@@ -557,6 +580,128 @@ test("appearance, motion, and keybinding validation apply through their real con
   await expect(quickAdd.locator("kbd")).toContainText(/⌘ Shift K/);
   await quickAdd.getByRole("button", { name: "Reset" }).click();
   await expect(quickAdd.locator("kbd")).toContainText(/⌘ Enter/);
+});
+
+test("image alt text hover applies immediately to Editor and Chain Tracker rendering", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(90_000);
+  await page.goto("/chain/ch-92b1");
+  const tracker = page.getByLabel("Interactive Chain Tracker workspace");
+  await tracker
+    .getByRole("button", { name: /2\. The Confluence Engine/ })
+    .click();
+  const activeWorkspace = tracker.locator(
+    ".chain-jump-workspace:not(.is-atomic-stage)",
+  );
+  await expect(activeWorkspace.locator(".chain-context-header h3")).toHaveText(
+    "The Confluence Engine",
+  );
+  const trackerImage = activeWorkspace
+    .locator(
+      '.format-one-jump-renderer img[src="/assets/confluence-engine.svg"]',
+    )
+    .nth(3);
+  await expect(trackerImage).toBeVisible();
+  const trackerAlt = await trackerImage.getAttribute("alt");
+  expect(trackerAlt).toBeTruthy();
+  await trackerImage.hover();
+  await expect(
+    trackerImage.locator("..").locator(".jump-image-alt-tooltip"),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Accessibility" }).click();
+  const hoverSetting = page.getByLabel("Show alt text on hover");
+  await expect(hoverSetting).toBeChecked();
+  await retainAccessibilityScreenshot(
+    testInfo,
+    "alt-text-hover-setting-default-on",
+    page.getByLabel("Application Settings", { exact: true }),
+  );
+  await hoverSetting.uncheck();
+  await page.getByRole("button", { name: "Close Settings" }).click();
+  await trackerImage.hover();
+  await expect(activeWorkspace.locator(".jump-image-alt-tooltip")).toHaveCount(
+    0,
+  );
+  await expect(trackerImage).toHaveAttribute("alt", trackerAlt!);
+  await retainAccessibilityScreenshot(
+    testInfo,
+    "chain-tracker-alt-text-hover-off",
+    activeWorkspace,
+  );
+
+  await page.getByRole("button", { name: "Editor", exact: true }).click();
+  await page.getByRole("button", { name: "Create Project" }).click();
+  const editor = page.locator(".production-editor");
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice layout" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel(/source$/);
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`choice-layout
+  handle: new_choice_layout
+
+  stack
+    image
+      target: hero
+      size: sm
+`);
+  const editorImage = editor
+    .locator(".editor-real-preview")
+    .getByAltText("Example image for hero");
+  await expect(editorImage).toBeVisible();
+  await editorImage.hover();
+  await expect(
+    editor.locator(".editor-real-preview .jump-image-alt-tooltip"),
+  ).toHaveCount(0);
+  await expect(editorImage).toHaveAttribute("alt", "Example image for hero");
+  await retainAccessibilityScreenshot(
+    testInfo,
+    "editor-alt-text-hover-off",
+    editor,
+  );
+
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Accessibility" }).click();
+  await page.getByLabel("Show alt text on hover").check();
+  await page.getByRole("button", { name: "Close Settings" }).click();
+  await editorImage.hover();
+  await expect(
+    editor.locator(".editor-real-preview .jump-image-alt-tooltip"),
+  ).toBeVisible();
+  await retainAccessibilityScreenshot(
+    testInfo,
+    "editor-alt-text-hover-restored",
+    editor,
+  );
+
+  await page.goto("/chain/ch-92b1");
+  const restoredTracker = page.getByLabel(
+    "Interactive Chain Tracker workspace",
+  );
+  await restoredTracker
+    .getByRole("button", { name: /2\. The Confluence Engine/ })
+    .click();
+  const restoredWorkspace = restoredTracker.locator(
+    ".chain-jump-workspace:not(.is-atomic-stage)",
+  );
+  const restoredImage = restoredWorkspace
+    .locator(
+      '.format-one-jump-renderer img[src="/assets/confluence-engine.svg"]',
+    )
+    .nth(3);
+  await expect(restoredImage).toBeVisible();
+  await restoredImage.hover();
+  await expect(
+    restoredImage.locator("..").locator(".jump-image-alt-tooltip"),
+  ).toBeVisible();
+  await retainAccessibilityScreenshot(
+    testInfo,
+    "chain-tracker-alt-text-hover-restored",
+    restoredWorkspace,
+  );
 });
 
 test("continuous accent changes stay bounded and project through the complete application", async ({

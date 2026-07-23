@@ -40,6 +40,10 @@ body:has(.app-primary-shell) #root {
   overflow: auto;
 }
 
+.app-primary-views.is-editor-workspace {
+  overflow: hidden;
+}
+
 .app-primary-views
   > section:not(.app-chain-workspace):not(.app-editor-workspace) {
   width: min(78rem, 100%);

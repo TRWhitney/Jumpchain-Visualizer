@@ -265,6 +265,7 @@
     "condition": {
       "syntax": "Condition “{{condition}}” is not valid Format 1 expression syntax.",
       "type": "Property “{{property}}” is {{propertyType}}, so operator “{{operator}}” cannot compare it with a {{literalType}} value.",
+      "shadowed": "An earlier condition, “{{condition}}”, matches first and makes this variant unreachable.",
       "property": {
         "unresolved": "Condition property “{{property}}” is not defined by this package."
       }
@@ -309,6 +310,9 @@
         }
       }
     }
+  },
+  "diagnosticType": {
+    "imageDimension": "image dimension"
   },
   "ui": {
     "editorHub": {
@@ -382,6 +386,11 @@
         "themeTokens": "Theme colors",
         "useToken": "Use {{token}} color token"
       },
+      "imageDimension": {
+        "tokenOrExactPlaceholder": "Size token or exact length",
+        "showChoicesForField": "Show size choices for {{field}}",
+        "availableTokens": "Available image size tokens"
+      },
       "previewStatus": {
         "label": "Preview: {{status}}",
         "currentSource": "Current source",
@@ -405,6 +414,74 @@
         "imageAlt": "Example image for {{target}}",
         "tag": "example",
         "option": "Example option"
+      },
+      "condition": {
+        "variants": "Conditional variants",
+        "behaviorSummary": "Checked from top to bottom. The first matching condition uses its {{field}} instead; if none match, the {{field}} above is used.",
+        "variantNumber": "Variant {{number}}",
+        "variantValue": "{{field}} conditional value",
+        "builder": "Builder",
+        "expression": "Expression",
+        "editMode": "Condition editing mode",
+        "expressionLabel": "Variant {{number}} condition expression",
+        "repairBeforeBuilder": "Repair this expression before switching to the guided builder.",
+        "property": "Property",
+        "chooseProperty": "Choose a property…",
+        "showProperties": "Show available properties",
+        "showValues": "Show known values",
+        "unresolvedProperty": "Unresolved authored property",
+        "contextValue": "Available in this render context",
+        "engineValue": "Provided by the engine",
+        "fromOwner": "From {{kind}} {{handle}}",
+        "mayBeUnset": "may be unset",
+        "group": {
+          "context": "This content",
+          "engine": "Engine and identity",
+          "package": "Package properties"
+        },
+        "type": {
+          "boolean": "Boolean",
+          "integer": "Integer",
+          "string": "Text",
+          "unknown": "Unknown type"
+        },
+        "operator": "Operator",
+        "operatorLabel": {
+          "active": "is active",
+          "inactive": "is inactive",
+          "equal": "is (=)",
+          "not-equal": "is not (!=)",
+          "less": "is less than (<)",
+          "less-equal": "is at most (<=)",
+          "greater": "is greater than (>)",
+          "greater-equal": "is at least (>=)"
+        },
+        "value": "Condition value",
+        "true": "True",
+        "false": "False",
+        "constant": "Constant condition",
+        "always": "Always",
+        "never": "Never",
+        "match": "Match",
+        "all": "all",
+        "any": "any",
+        "conditionsInGroup": "conditions in this group.",
+        "invert": "Invert group",
+        "groupLabel": "Condition group",
+        "groupOperator": "Condition group operator",
+        "addCondition": "+ Add condition",
+        "addConditionHelp": "Add another property comparison to this group.",
+        "addNestedGroup": "+ Add nested group",
+        "addNestedGroupHelp": "Add a subgroup with its own All or Any matching behavior.",
+        "removeRule": "Remove condition rule",
+        "removeGroup": "Remove condition group",
+        "variantDraft": "New variant draft",
+        "conditionDraft": "New condition draft",
+        "draftNotSaved": "Not saved until the first rule is complete.",
+        "cancelDraft": "Cancel draft",
+        "moveVariantUp": "Move variant {{number}} up",
+        "moveVariantDown": "Move variant {{number}} down",
+        "removeVariant": "Remove variant"
       },
       "ariaLabel": {
         "undo": "Undo",

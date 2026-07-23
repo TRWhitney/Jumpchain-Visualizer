@@ -9,6 +9,21 @@ export type TrashCommandResult<T> =
       reason: "collision" | "missing-file" | "missing-target" | "unsupported";
     };
 
+export function permanentlyDeleteDeclaration(
+  files: Readonly<Record<string, string>>,
+  symbol: FormatSymbol,
+): TrashCommandResult<Record<string, string>> {
+  if (symbol.depth !== 0 || symbol.kind === "jump")
+    return { changed: false, reason: "unsupported" };
+  const source = files[symbol.file];
+  if (source === undefined || symbol.from < 0 || symbol.to > source.length)
+    return { changed: false, reason: "missing-target" };
+  const removed = removeDocumentDeclaration(files, symbol);
+  return removed.changed
+    ? { changed: true, value: removed.files }
+    : { changed: false, reason: "missing-target" };
+}
+
 export function trashDeclaration(
   files: Readonly<Record<string, string>>,
   symbol: FormatSymbol,
@@ -23,12 +38,12 @@ export function trashDeclaration(
   const source = files[symbol.file];
   if (source === undefined || symbol.from < 0 || symbol.to > source.length)
     return { changed: false, reason: "missing-target" };
-  const removed = removeDocumentDeclaration(files, symbol);
+  const removed = permanentlyDeleteDeclaration(files, symbol);
   if (!removed.changed) return { changed: false, reason: "missing-target" };
   return {
     changed: true,
     value: {
-      files: removed.files,
+      files: removed.value,
       entry: {
         id,
         kind: "declaration",
@@ -68,13 +83,13 @@ export function trashAsset(
   entry: EditorTrashAsset;
 }> {
   const bytes = assets[path];
-  if (!bytes) return { changed: false, reason: "missing-target" };
-  const nextAssets = { ...assets };
-  delete nextAssets[path];
+  const removed = permanentlyDeleteAsset(assets, path);
+  if (!bytes || !removed.changed)
+    return { changed: false, reason: "missing-target" };
   return {
     changed: true,
     value: {
-      assets: nextAssets,
+      assets: removed.value,
       entry: {
         id,
         kind: "asset",
@@ -85,6 +100,16 @@ export function trashAsset(
       },
     },
   };
+}
+
+export function permanentlyDeleteAsset(
+  assets: Readonly<Record<string, Uint8Array>>,
+  path: string,
+): TrashCommandResult<Record<string, Uint8Array>> {
+  if (!assets[path]) return { changed: false, reason: "missing-target" };
+  const nextAssets = { ...assets };
+  delete nextAssets[path];
+  return { changed: true, value: nextAssets };
 }
 
 export function restoreAsset(

@@ -92,6 +92,13 @@ const searchEntries = [
     "settingsSearch.editor_warnMissingLayoutTargets.aliases",
   ],
   [
+    "settingsSearch.editor_permanentlyDeleteSidebarItems.label",
+    "editor.permanentlyDeleteSidebarItems",
+    "editor",
+    "permanent-sidebar-delete",
+    "settingsSearch.editor_permanentlyDeleteSidebarItems.aliases",
+  ],
+  [
     "settingsSearch.chain_allowMultiplePackageVersions.label",
     "chain.allowMultiplePackageVersions",
     "chain",
@@ -176,6 +183,13 @@ const searchEntries = [
     "settingsSearch.accessibility_motion.aliases",
   ],
   [
+    "settingsSearch.accessibility_imageAltTextHover.label",
+    "accessibility.imageAltTextHover",
+    "accessibility",
+    "image-alt-text-hover",
+    "settingsSearch.accessibility_imageAltTextHover.aliases",
+  ],
+  [
     "settingsSearch.Developer_Logs.label",
     "Developer → Logs",
     "developer",
@@ -255,6 +269,8 @@ const searchValue = (
       return JSON.stringify(settings.keybindings.overrides);
     case "accessibility.motion":
       return settings.accessibility.motion;
+    case "accessibility.imageAltTextHover":
+      return String(settings.accessibility.imageAltTextHover);
     case "Developer → Logs":
       return "session only";
     case "developer.showMockData":
@@ -927,9 +943,44 @@ function CategoryPanel({
             )
           }
         />
+        <CheckRow
+          id="permanent-sidebar-delete"
+          label={translate("ui.settingsSurface.label.sidebarItemDeletion")}
+          description={translate(
+            "ui.settingsSurface.description.chooseWhetherSidebarDeleteUsesTrashOrPermanentRemoval",
+          )}
+          checked={settings.editor.permanentlyDeleteSidebarItems}
+          text={translate(
+            "ui.settingsSurface.text.permanentlyDeleteSidebarItems",
+          )}
+          onChange={(value) =>
+            patch(
+              {
+                ...settings,
+                editor: {
+                  ...settings.editor,
+                  permanentlyDeleteSidebarItems: value,
+                },
+              },
+              "editor.permanentlyDeleteSidebarItems",
+            )
+          }
+          reset={() =>
+            patch(
+              {
+                ...settings,
+                editor: {
+                  ...settings.editor,
+                  permanentlyDeleteSidebarItems: false,
+                },
+              },
+              "editor.permanentlyDeleteSidebarItems",
+            )
+          }
+        />
         <div className="setting-explanation">
           {translate(
-            "ui.settingsSurface.text.thesePreferencesArePersistedNowEditorBehaviorRemainsInert",
+            "ui.settingsSurface.text.editorPreferencesApplyImmediatelyAndPersist",
           )}
         </div>
       </section>
@@ -1223,7 +1274,13 @@ function CategoryPanel({
           )}
           reset={() =>
             patch(
-              { ...settings, accessibility: defaults.accessibility },
+              {
+                ...settings,
+                accessibility: {
+                  ...settings.accessibility,
+                  motion: defaults.accessibility.motion,
+                },
+              },
               "accessibility.motion",
             )
           }
@@ -1236,6 +1293,7 @@ function CategoryPanel({
                 {
                   ...settings,
                   accessibility: {
+                    ...settings.accessibility,
                     motion: event.target
                       .value as ApplicationSettings["accessibility"]["motion"],
                   },
@@ -1255,6 +1313,39 @@ function CategoryPanel({
             </option>
           </select>
         </SettingRow>
+        <CheckRow
+          id="image-alt-text-hover"
+          label={translate("ui.settingsSurface.label.altTextHoverForImages")}
+          description={translate(
+            "ui.settingsSurface.description.showAuthoredAlternativeTextWhenHoveringImagesInPreviews",
+          )}
+          checked={settings.accessibility.imageAltTextHover}
+          text={translate("ui.settingsSurface.text.showAltTextOnHover")}
+          onChange={(value) =>
+            patch(
+              {
+                ...settings,
+                accessibility: {
+                  ...settings.accessibility,
+                  imageAltTextHover: value,
+                },
+              },
+              "accessibility.imageAltTextHover",
+            )
+          }
+          reset={() =>
+            patch(
+              {
+                ...settings,
+                accessibility: {
+                  ...settings.accessibility,
+                  imageAltTextHover: defaults.accessibility.imageAltTextHover,
+                },
+              },
+              "accessibility.imageAltTextHover",
+            )
+          }
+        />
         <div className="setting-explanation">
           {translate(
             "ui.settingsSurface.text.reducedMotionRemovesNonessentialMovementWithoutHidingStateChanges",

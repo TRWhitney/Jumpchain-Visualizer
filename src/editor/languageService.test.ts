@@ -61,4 +61,33 @@ describe("Format1LanguageService", () => {
     });
     expect(files["jump.jdef"].slice(0, 4)).toBe("jump");
   });
+
+  it("underlines the exact invalid condition token", () => {
+    const source = `jump
+  format: 1
+  name: "Conditions"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+  text
+    handle: body
+    content when rank + 2: "Broken"
+`;
+    const analysis = service.analyze({ "jump.jdef": source });
+    const diagnostic = analysis.diagnostics.find(
+      (item) => item.code === "condition.syntax",
+    );
+    expect(diagnostic).toBeDefined();
+    expect(source.slice(diagnostic!.range!.from, diagnostic!.range!.to)).toBe(
+      "+",
+    );
+    expect(diagnostic?.target).toMatchObject({
+      field: "content",
+      variantOccurrence: 0,
+      part: "condition",
+    });
+  });
 });

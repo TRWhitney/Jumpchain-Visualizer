@@ -96,7 +96,7 @@ describe("layout presentation styles", () => {
       layoutInlineChildAreaStyle(node("text", { textAlign: "end" })).inlineSize,
     ).toBe("min(20rem, 100%)");
     expect(layoutInlineChildAreaStyle(node("image")).inlineSize).toBe(
-      "min(20rem, 100%)",
+      "max-content",
     );
     expect(
       layoutInlineChildAreaStyle(node("stack", { align: "end" }))
@@ -108,38 +108,52 @@ describe("layout presentation styles", () => {
     [
       "size",
       { size: "lg" },
-      { width: "8rem", height: "8rem" },
-      { width: "100%", height: "100%" },
+      {
+        width: "16rem",
+        height: undefined,
+        maxWidth: "100%",
+      },
+      {
+        width: "100%",
+        height: "auto",
+        aspectRatio: "1 / 1",
+        maxWidth: "100%",
+      },
     ],
     [
       "independent dimensions",
       { width: "xl", height: "sm", fit: "cover" },
-      { width: "12rem", height: "3rem" },
-      { width: "100%", height: "100%", objectFit: "cover" },
+      { width: "32rem", height: "4rem", maxWidth: "100%" },
+      {
+        width: "100%",
+        height: "100%",
+        maxWidth: "100%",
+        objectFit: "cover",
+      },
     ],
     [
       "intrinsic",
       {},
-      { width: "100%", height: undefined },
-      { width: "100%", height: "auto" },
+      { width: "fit-content", height: undefined, maxWidth: "100%" },
+      { width: "auto", height: "auto", maxWidth: "100%" },
     ],
     [
       "width-only aspect ratio",
       { width: "md" },
-      { width: "5rem", height: undefined },
-      { width: "100%", height: "auto" },
+      { width: "8rem", height: undefined, maxWidth: "100%" },
+      { width: "100%", height: "auto", maxWidth: "100%" },
     ],
     [
       "height-only aspect ratio",
       { height: "md" },
-      { width: undefined, height: "5rem" },
-      { width: "auto", height: "100%" },
+      { width: undefined, height: "8rem", maxWidth: "100%" },
+      { width: "auto", height: "100%", maxWidth: "100%" },
     ],
     [
       "positioned intrinsic",
       { align: "end" },
-      { width: "min(100%, 20rem)", height: undefined },
-      { width: "100%", height: "auto" },
+      { width: "fit-content", height: undefined, maxWidth: "100%" },
+      { width: "auto", height: "auto", maxWidth: "100%" },
     ],
   ] as const)(
     "maps image %s presentation",
@@ -149,6 +163,80 @@ describe("layout presentation styles", () => {
       expect(layoutImageStyle(image)).toMatchObject(imageExpected);
     },
   );
+
+  it("accepts exact image dimensions without forwarding arbitrary CSS", () => {
+    const exact = node("image", {
+      width: "320px",
+      height: "11.5rem",
+      fit: "contain",
+    });
+    expect(layoutImageBoundaryStyle(exact)).toMatchObject({
+      width: "320px",
+      height: "11.5rem",
+      maxWidth: "100%",
+    });
+    expect(layoutImageStyle(exact)).toMatchObject({
+      width: "100%",
+      height: "100%",
+      maxWidth: "100%",
+      objectFit: "contain",
+    });
+    expect(
+      layoutImageBoundaryStyle(
+        node("image", { width: "calc(100vw)", height: "var(--unsafe)" }),
+      ),
+    ).toMatchObject({
+      width: "fit-content",
+      height: undefined,
+      maxWidth: "100%",
+    });
+  });
+
+  it("stretches an image boundary instead of assigning an artificial intrinsic width", () => {
+    expect(
+      layoutImageBoundaryStyle(node("image", { align: "stretch" })),
+    ).toMatchObject({ width: "100%", maxWidth: "100%" });
+    expect(layoutImageStyle(node("image", { align: "stretch" }))).toMatchObject(
+      { width: "100%", height: "auto", maxWidth: "100%" },
+    );
+    expect(
+      layoutImageBoundaryStyle(node("image", { align: "center" })),
+    ).toMatchObject({ width: "fit-content", maxWidth: "100%" });
+    expect(layoutImageBoundaryStyle(node("image"), "stack")).toMatchObject({
+      width: "100%",
+      maxWidth: "100%",
+    });
+    expect(layoutImageStyle(node("image"), "stack")).toMatchObject({
+      width: "100%",
+      height: "auto",
+      maxWidth: "100%",
+    });
+    expect(layoutImageBoundaryStyle(node("image"), "inline")).toMatchObject({
+      width: undefined,
+      maxWidth: "100%",
+    });
+  });
+
+  it("does not apply text-only presentation to image boundaries", () => {
+    expect(
+      layoutLeafPresentationStyle(
+        node("image", {
+          padding: "sm",
+          background: "surface",
+          textAlign: "end",
+          textSize: "2xl",
+          textColor: "red",
+        }),
+        packageThemes,
+        "stack",
+      ),
+    ).toEqual({
+      padding: ".5rem",
+      backgroundColor: "#123456",
+      alignSelf: undefined,
+      justifySelf: undefined,
+    });
+  });
 
   it("does not forward invalid recovery values into CSS", () => {
     const container = layoutContainerPresentationStyle(

@@ -1,4 +1,6 @@
 export * from "./canonicalize";
+export * from "./conditionExpression";
+export * from "./conditionProperties";
 export * from "./richText";
 export * from "./model";
 export * from "./parseSource";

@@ -43,6 +43,10 @@
       "label": "Missing layout target warning",
       "aliases": "editor layout target reusable warning"
     },
+    "editor_permanentlyDeleteSidebarItems": {
+      "label": "Sidebar item deletion",
+      "aliases": "editor sidebar right click delete permanent confirmation trash remove"
+    },
     "chain_allowMultiplePackageVersions": {
       "label": "Add another package version",
       "aliases": "chain add second package version multiple parallel"
@@ -91,6 +95,10 @@
       "label": "Motion",
       "aliases": "motion animation reduced full system accessibility"
     },
+    "accessibility_imageAltTextHover": {
+      "label": "Alt text hover for images",
+      "aliases": "image alt alternative text hover tooltip preview editor chain tracker accessibility"
+    },
     "Developer_Logs": {
       "label": "Session logs",
       "aliases": "developer logs logging viewer stack trace crash report debug session export clear"
@@ -135,7 +143,18 @@
     "editor_format_failed": "Formatting failed. Source was not changed.",
     "editor_quick_fix_failed": "Quick Fix failed. Source was not changed.",
     "editor_asset_added": "Asset added",
-    "editor_asset_rejected": "That asset is unsafe, unsupported, or over the effective limit.",
+    "editor_asset_rejected_unsupported_type": "Asset rejected: the filename must use PNG, JPEG, GIF, WebP, or AVIF.",
+    "editor_asset_rejected_file_too_large": "Asset rejected: the file exceeds the configured per-asset size limit.",
+    "editor_asset_rejected_invalid_path": "Asset rejected: the filename cannot be represented as a safe package asset path.",
+    "editor_asset_rejected_duplicate_path": "Asset rejected: another asset already uses that filename.",
+    "editor_asset_rejected_signature_mismatch": "Asset rejected: the file contents do not match its image filename extension.",
+    "editor_asset_rejected_decode_failed": "Asset rejected: the image is corrupt or could not be fully decoded.",
+    "editor_asset_rejected_png_integrity": "Asset rejected: the PNG chunk integrity check failed.",
+    "editor_asset_rejected_trailing_data": "Asset rejected: the image termination or trailing-data safety check failed.",
+    "editor_asset_rejected_geometry_limit": "Asset rejected: the decoded image geometry exceeds the safety limit.",
+    "editor_asset_rejected_dimension_mismatch": "Asset rejected: the image reports inconsistent dimensions when decoded.",
+    "editor_asset_rejected_read_failed": "Asset rejected: the selected file could not be read.",
+    "editor_asset_rejected_validation_failed": "Asset rejected: an unexpected image-validation failure occurred.",
     "editor_asset_removed": "Asset removed",
     "package_parse_failed": "A package could not be parsed."
   },
@@ -296,7 +315,8 @@
         "explicitSave": "Explicit save",
         "showAccessibilityWarning": "Show accessibility warning",
         "showMissingTargetWarning": "Show missing-target warning",
-        "thesePreferencesArePersistedNowEditorBehaviorRemainsInert": "These preferences are persisted now; Editor behavior remains inert until the Editor workspace is implemented.",
+        "permanentlyDeleteSidebarItems": "Permanently delete sidebar items",
+        "editorPreferencesApplyImmediatelyAndPersist": "Editor preferences apply immediately to open workspaces and persist across launches.",
         "chainTracker": "Chain Tracker",
         "allowSecondVersion": "Allow second version",
         "allowDuplicateJumps": "Allow duplicate jumps",
@@ -312,6 +332,7 @@
         "accessibility": "Accessibility",
         "reduceMotion": "Reduce motion",
         "fullMotion": "Full motion",
+        "showAltTextOnHover": "Show alt text on hover",
         "reducedMotionRemovesNonessentialMovementWithoutHidingStateChanges": "Reduced motion removes nonessential movement without hiding state changes or progress feedback.",
         "overview": "Overview",
         "logs": "Logs",
@@ -356,6 +377,7 @@
         "saving": "Saving",
         "missingImageAltWarning": "Missing image alt warning",
         "missingLayoutTargetWarning": "Missing layout target warning",
+        "sidebarItemDeletion": "Sidebar item deletion",
         "addAnotherPackageVersion": "Add another package version",
         "allowDuplicateJumps": "Allow duplicate jumps",
         "negativePointBalances": "Negative point balances",
@@ -365,6 +387,7 @@
         "upstreamChangeWarnings": "Upstream change warnings",
         "colorChainNamesByPrimaryTag": "Color chain names by primary tag",
         "motion": "Motion",
+        "altTextHoverForImages": "Alt text hover for images",
         "seeMockData": "See Mock Data",
         "showAdditionalJumpInformation": "Show additional Jump information",
         "showOpenProjectFolder": "Show Open Project Folder",
@@ -378,6 +401,7 @@
         "chooseWhetherEditorChangesSaveAutomatically": "Choose whether Editor changes save automatically.",
         "warnWhenAnImageBlockOmitsAlternativeText": "Warn when an image block omits alternative text.",
         "warnWhenAReusableLayoutTargetIsAbsent": "Warn when a reusable layout target is absent.",
+        "chooseWhetherSidebarDeleteUsesTrashOrPermanentRemoval": "Choose whether right-click Delete moves sidebar items to Trash or permanently removes them after confirmation.",
         "allowAddToPlaceASecondInstalledVersionOf": "Allow Add to place a second installed version of a logical Jump package into the current chain.",
         "allowTheSameExactJumpPackageToBeAdded": "Allow the same exact Jump package to be added to this chain more than once as independent entries.",
         "permitActiveChoiceSelectionsThatWouldMakePrimaryJump": "Permit active choice selections that would make primary Jump points negative. Clearing choices and recalculation are never blocked.",
@@ -387,6 +411,7 @@
         "reviewReorderOrDeletionOnlyWhenAnExplicitActive": "Review reorder or deletion only when an explicit active downstream dependency would become invalid.",
         "colorSavedChainNamesFromTheCategoryWithThe": "Color saved-chain names from the category with the greatest eligible radar count.",
         "controlNonessentialInterfaceAnimation": "Control nonessential interface animation.",
+        "showAuthoredAlternativeTextWhenHoveringImagesInPreviews": "Show authored alternative text when hovering images in Editor previews and Chain Tracker. Images retain their accessibility text when this is off.",
         "showApplicationOwnedMockJumpsAndChains": "Show application-owned mock Jumps in the Library and the Morgan mock chain in saved-chain lists.",
         "restoreMorganAndDefaultMockChoices": "Restore Morgan if it was deleted and replace its current state with the canonical filled-in mock choices.",
         "showTheEvaluatedPackageFormatAboveOrdinaryRenderedJumps": "Show the evaluated package format above ordinary rendered Jumps.",

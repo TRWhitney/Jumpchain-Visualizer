@@ -334,8 +334,16 @@ export function translateError(error: unknown) {
 
 export function translateDiagnostic(diagnostic: PackageDiagnostic) {
   if (!diagnostic.messageKey) return diagnostic.code;
+  const expected = diagnostic.parameters?.expected;
   return translate(diagnostic.messageKey, {
     ...diagnostic.parameters,
+    ...(typeof expected === "string"
+      ? {
+          expected: translate(`diagnosticType.${expected}`, {
+            defaultValue: expected,
+          }),
+        }
+      : {}),
     defaultValue: diagnostic.code,
   });
 }

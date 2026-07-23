@@ -8,6 +8,11 @@ import { createDenseTrackerFixture } from "./fixtures";
 import { evaluateTracker, projectEvaluation } from "./evaluateTracker";
 import { TagRadar } from "./TagRadar";
 import { trackerReducer } from "./model";
+import { RenderedJumpImage } from "./JumpRenderer";
+import { SettingsProvider } from "../settings/SettingsProvider";
+import { MemorySettingsRepository } from "../settings/repository";
+import { defaultSettings } from "../settings/model";
+import { createDefaultTagProfile } from "../settings/tagProfile";
 import "../../documentation/styles.css";
 import "../../documentation/chain-tracker-design.css";
 import "../../documentation/choice-rendering-design.css";
@@ -52,6 +57,53 @@ function TrackerHarness() {
     </SupplementProviders>
   );
 }
+
+test("rendered images disclose authored alternative text on hover", async () => {
+  render(
+    <article className="jump-image-preview">
+      <span className="jump-image-preview-content">
+        <RenderedJumpImage
+          source="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='24'/%3E"
+          alternativeText="A blue route marker"
+        />
+        <RenderedJumpImage
+          source="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='24'/%3E"
+          alternativeText=""
+        />
+      </span>
+    </article>,
+  );
+
+  await page.getByAltText("A blue route marker").hover();
+  await expect
+    .element(page.getByRole("tooltip"))
+    .toHaveTextContent("A blue route marker");
+  await expect.element(page.getByRole("tooltip")).toBeVisible();
+  expect(document.querySelectorAll(".jump-image-alt-tooltip")).toHaveLength(1);
+});
+
+test("the accessibility preference suppresses only the visual image alt tooltip", async () => {
+  const settings = defaultSettings(createDefaultTagProfile());
+  settings.accessibility.imageAltTextHover = false;
+  render(
+    <SettingsProvider repository={new MemorySettingsRepository(settings)}>
+      <article className="jump-image-preview">
+        <span className="jump-image-preview-content">
+          <RenderedJumpImage
+            source="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='24'/%3E"
+            alternativeText="A blue route marker"
+          />
+        </span>
+      </article>
+    </SettingsProvider>,
+  );
+
+  const image = page.getByAltText("A blue route marker");
+  await expect.element(image).toBeVisible();
+  await image.hover();
+  await expect.element(page.getByRole("tooltip")).not.toBeInTheDocument();
+  expect(image.element().getAttribute("alt")).toBe("A blue route marker");
+});
 
 test("category radar supports selection and breakdown", async () => {
   render(<RadarHarness />);

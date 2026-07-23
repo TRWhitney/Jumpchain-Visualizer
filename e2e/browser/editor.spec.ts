@@ -707,6 +707,128 @@ test("sidebar context menus move declarations and assets through Trash", async (
   await expect(editor.getByRole("button", { name: "Undo" })).toBeDisabled();
 });
 
+test("the Editor preference confirms permanent sidebar deletion and hides only empty Trash", async ({
+  page,
+}, testInfo) => {
+  const editor = await openCreatedEditor(page);
+  const section = editor.getByRole("button", {
+    name: "introduction",
+    exact: true,
+  });
+  await expect(editor.locator(".editor-trash-group > summary")).toContainText(
+    "Trash0",
+  );
+
+  await section.click({ button: "right" });
+  await editor
+    .getByRole("menu", { name: "Sidebar item actions" })
+    .getByRole("menuitem", { name: "Delete" })
+    .click();
+  await expect(editor.locator(".editor-trash-group > summary")).toContainText(
+    "Trash1",
+  );
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Editor" }).click();
+  const permanentDelete = page.getByLabel("Permanently delete sidebar items");
+  await expect(permanentDelete).not.toBeChecked();
+  await permanentDelete.check();
+  await attachProductionState(
+    testInfo,
+    "settings-editor-permanent-sidebar-delete-enabled",
+    page.getByLabel("Application Settings", { exact: true }),
+  );
+  await page.getByRole("button", { name: "Close Settings" }).click();
+
+  const trashedSection = editor
+    .locator(".editor-trash-group")
+    .getByRole("button", { name: "introduction Section", exact: true });
+  await expect(trashedSection).toBeVisible();
+  await trashedSection.click({ button: "right" });
+  await editor
+    .getByRole("menu", { name: "Sidebar item actions" })
+    .getByRole("menuitem", { name: "Restore" })
+    .click();
+  await expect(section).toBeVisible();
+  await expect(editor.locator(".editor-trash-group")).toHaveCount(0);
+  await editor.getByRole("tab", { name: "Files" }).click();
+  await expect(editor.locator(".editor-trash-group")).toHaveCount(0);
+  await editor.getByRole("tab", { name: "Content" }).click();
+
+  await section.click({ button: "right" });
+  await editor
+    .getByRole("menu", { name: "Sidebar item actions" })
+    .getByRole("menuitem", { name: "Delete" })
+    .click();
+  const confirmation = editor.getByRole("alertdialog", {
+    name: "Permanently delete introduction?",
+  });
+  await expect(confirmation).toBeVisible();
+  await expect(
+    confirmation.getByRole("button", { name: "Cancel" }),
+  ).toBeFocused();
+  await attachProductionState(
+    testInfo,
+    "editor-sidebar-permanent-delete-confirmation",
+    page.locator("body"),
+  );
+  await confirmation.getByRole("button", { name: "Cancel" }).click();
+  await expect(section).toBeVisible();
+  await expect(editor.locator(".editor-trash-group")).toHaveCount(0);
+
+  await section.click({ button: "right" });
+  await editor
+    .getByRole("menu", { name: "Sidebar item actions" })
+    .getByRole("menuitem", { name: "Delete" })
+    .click();
+  await editor
+    .getByRole("alertdialog", { name: "Permanently delete introduction?" })
+    .getByRole("button", { name: "Delete forever" })
+    .click();
+  await expect(section).toHaveCount(0);
+  await expect(editor.locator(".editor-trash-group")).toHaveCount(0);
+  await expect(editor.getByRole("button", { name: "Undo" })).toBeDisabled();
+
+  const image = new PNG({ width: 1, height: 1 });
+  image.data.set([36, 112, 190, 255]);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  const chooserPromise = page.waitForEvent("filechooser");
+  await editor.getByRole("button", { name: "Asset…" }).click();
+  await (
+    await chooserPromise
+  ).setFiles({
+    name: "direct.png",
+    mimeType: "image/png",
+    buffer: PNG.sync.write(image),
+  });
+  const asset = editor.getByRole("button", { name: /^direct\.png/ });
+  await expect(asset).toBeVisible();
+  const assetAddedToast = page.locator(".app-toast").filter({
+    hasText: "Asset added",
+  });
+  await expect(assetAddedToast).toBeVisible();
+  await assetAddedToast
+    .getByRole("button", { name: "Dismiss notification" })
+    .click();
+  await asset.click({ button: "right" });
+  await editor
+    .getByRole("menu", { name: "Sidebar item actions" })
+    .getByRole("menuitem", { name: "Delete" })
+    .click();
+  await editor
+    .getByRole("alertdialog", { name: "Permanently delete direct.png?" })
+    .getByRole("button", { name: "Delete forever" })
+    .click();
+  await expect(asset).toHaveCount(0);
+  await expect(editor.locator(".editor-trash-group")).toHaveCount(0);
+  await expect(editor.getByRole("button", { name: "Undo" })).toBeDisabled();
+  await attachProductionState(
+    testInfo,
+    "editor-sidebar-permanent-delete-empty-trash-hidden",
+    editor,
+  );
+});
+
 test("sidebar group context menus add and toggle their disclosures", async ({
   page,
 }, testInfo) => {
@@ -1195,7 +1317,7 @@ test("layout presentation controls render complete leaf and flow alignment seman
       flow === "wrap"
         ? `    image
       target: portrait
-      size: lg`
+      size: sm`
         : "    image: portrait";
     await replaceLayout(
       `choice-layout
@@ -1293,13 +1415,16 @@ ${image}
       target: quantity${sharedPresentation}
 
     image
-      target: portrait${sharedPresentation}
+      target: portrait
+      padding: sm
+      background: "#123456"
+      align: end
       size: md
       fit: cover
 `,
     "complete_leaf_presentation",
   );
-  for (const kind of ["slot", "text", "input", "image"]) {
+  for (const kind of ["slot", "text", "input"]) {
     const leaf = preview.locator(`[data-layout-kind="${kind}"]`);
     await expect(leaf).toHaveCSS("padding", "8px");
     await expect(leaf).toHaveCSS("background-color", "rgb(18, 52, 86)");
@@ -1309,8 +1434,13 @@ ${image}
     await expect(leaf).toHaveCSS("color", "rgb(255, 255, 255)");
   }
   const presentedImage = preview.locator('[data-layout-kind="image"]');
-  await expect(presentedImage).toHaveCSS("width", "80px");
-  await expect(presentedImage).toHaveCSS("height", "80px");
+  await expect(presentedImage).toHaveCSS("padding", "8px");
+  await expect(presentedImage).toHaveCSS("background-color", "rgb(18, 52, 86)");
+  await expect(presentedImage).toHaveCSS("justify-self", "end");
+  await expect(presentedImage).toHaveCSS("width", "128px");
+  const presentedImageBox = await presentedImage.boundingBox();
+  expect(presentedImageBox).not.toBeNull();
+  expect(presentedImageBox!.height).toBeCloseTo(presentedImageBox!.width, 0);
   await expect(presentedImage.locator("img")).toHaveCSS("object-fit", "cover");
   await editor.getByLabel("Show bounds").check();
   await presentedImage.hover();
@@ -2789,6 +2919,12 @@ section-layout
   await expect(editor.locator(".editor-asset-source-panel img")).toBeVisible();
   await editor.getByRole("tab", { name: "Content" }).click();
 
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const dismiss = page.getByRole("button", { name: "Dismiss notification" });
+    if ((await dismiss.count()) === 0) break;
+    await dismiss.first().click();
+  }
+
   await editor.getByRole("button", { name: "Add", exact: true }).click();
   const forgedChooserPromise = page.waitForEvent("filechooser");
   await editor.getByRole("button", { name: "Asset…" }).click();
@@ -2802,11 +2938,63 @@ section-layout
   await expect(editor.getByRole("button", { name: "forged.png" })).toHaveCount(
     0,
   );
-  await expect(
-    page.getByText(
-      "That asset is unsafe, unsupported, or over the effective limit.",
-    ),
-  ).toBeVisible();
+  const signatureToast = page.locator(".app-toast").filter({
+    hasText:
+      "Asset rejected: the file contents do not match its image filename extension.",
+  });
+  await expect(signatureToast).toBeVisible();
+  await signatureToast.hover();
+  await attachProductionState(
+    testInfo,
+    "editor-asset-signature-rejection-specific",
+    page.locator("body"),
+    "allow",
+  );
+  await signatureToast
+    .getByRole("button", { name: "Dismiss notification" })
+    .click();
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  const unsupportedChooserPromise = page.waitForEvent("filechooser");
+  await editor.getByRole("button", { name: "Asset…" }).click();
+  await (
+    await unsupportedChooserPromise
+  ).setFiles({
+    name: "notes.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("not an image"),
+  });
+  const unsupportedToast = page.locator(".app-toast").filter({
+    hasText:
+      "Asset rejected: the filename must use PNG, JPEG, GIF, WebP, or AVIF.",
+  });
+  await expect(unsupportedToast).toBeVisible();
+  await unsupportedToast
+    .getByRole("button", { name: "Dismiss notification" })
+    .click();
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  const oversizedChooserPromise = page.waitForEvent("filechooser");
+  await editor.getByRole("button", { name: "Asset…" }).click();
+  await (
+    await oversizedChooserPromise
+  ).setFiles({
+    name: "oversized.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(oversizedValidPng()),
+  });
+  const oversizedToast = page.locator(".app-toast").filter({
+    hasText:
+      "Asset rejected: the file exceeds the configured per-asset size limit.",
+  });
+  await expect(oversizedToast).toBeVisible();
+  await oversizedToast.hover();
+  await attachProductionState(
+    testInfo,
+    "editor-asset-rejection-reasons-specific",
+    page.locator("body"),
+    "allow",
+  );
 });
 
 test("asset explorers show the byte-derived canonical file extension", async ({
@@ -2901,9 +3089,13 @@ test("Structured authors representative Format 1 fields, children, repeats, and 
   await editor
     .getByRole("button", { name: "+ Add conditional variant" })
     .click();
-  const variant = editor.locator(".editor-conditional-variants > div").first();
-  await variant.getByLabel("When").fill("actor.level > 2");
-  await variant.getByLabel("Value").fill("Advanced line");
+  const propertyPicker = editor.getByPlaceholder("Choose a property…");
+  await expect(propertyPicker).toBeFocused();
+  await propertyPicker.fill("gauntlet");
+  await page.getByRole("option", { name: /^gauntlet\b/ }).click();
+  await editor
+    .getByRole("textbox", { name: "content conditional value" })
+    .fill("Advanced line");
 
   await editor.getByRole("tab", { name: "Source" }).click();
   const source = editor.getByLabel("jump.jdef source");
@@ -2912,11 +3104,7 @@ test("Structured authors representative Format 1 fields, children, repeats, and 
   );
   await expect(source).toContainText("initial: 25");
   await editor.getByRole("button", { name: "Find", exact: true }).click();
-  for (const query of [
-    "First line",
-    "Second line",
-    "content when actor.level > 2",
-  ]) {
+  for (const query of ["First line", "Second line", "content when gauntlet"]) {
     await editor.getByPlaceholder("Find").fill(query);
     await expect(editor.locator(".editor-find-count")).toContainText("of 1");
   }
@@ -2929,6 +3117,198 @@ test("Structured authors representative Format 1 fields, children, repeats, and 
   await expect(editor.getByLabel("choices.jdef source")).toContainText(
     "audit-tag",
   );
+});
+
+test("Structured condition builder guides typed rules without writing incomplete drafts", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("button", { name: "Jump details" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("jump.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Guided conditions"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: introduction
+  name: "Introduction"
+
+  choice-source
+    handle: options
+    group: conditions
+    mode: multi
+
+  text
+    handle: body
+    content: "Base content"
+
+choice
+  handle: tier_control
+  name: "Tier"
+  group: conditions
+  selection: integer
+  min: 0
+  max: 5
+  grant
+    kind: property
+    handle: tier
+
+choice
+  handle: enabled_control
+  name: "Enabled"
+  group: conditions
+  selection: toggle
+  grant
+    kind: property
+    handle: enabled
+    value: true
+
+choice
+  handle: path_control
+  name: "Path"
+  group: conditions
+  selection: select
+  option: "North"
+  option: "South"
+  grant
+    kind: property
+    handle: path
+`);
+  await expect(editor.locator(".cm-lintRange-error")).toHaveCount(0);
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor
+    .getByRole("button", { name: "introduction", exact: true })
+    .click();
+  await editor.getByRole("button", { name: "body text", exact: true }).click();
+
+  await editor
+    .getByRole("button", { name: "+ Add conditional variant" })
+    .click();
+  const draftPicker = editor.getByPlaceholder("Choose a property…");
+  await expect(draftPicker).toBeFocused();
+  await expect(
+    editor.getByText("Not saved until the first rule is complete."),
+  ).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-condition-guided-property-picker-production",
+    editor,
+  );
+
+  await editor.getByRole("tab", { name: "Source" }).click();
+  await expect(source).not.toContainText("content when");
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await expect(editor.getByText("New variant draft")).toHaveCount(0);
+
+  await editor
+    .getByRole("button", { name: "+ Add conditional variant" })
+    .click();
+  await editor.getByPlaceholder("Choose a property…").fill("tier");
+  await page.getByRole("option", { name: /^tier\b/ }).click();
+  const variant = editor.locator(".editor-condition-variant-card").first();
+  await variant
+    .locator(".editor-condition-rule-row > select")
+    .selectOption("greater-equal");
+  await variant.getByRole("spinbutton", { name: "Condition value" }).fill("4");
+  await variant
+    .getByRole("textbox", { name: "content conditional value" })
+    .fill("Advanced content");
+  await expect(
+    variant.locator(".editor-condition-rule-row > select"),
+  ).toHaveValue("greater-equal");
+  await attachProductionState(
+    testInfo,
+    "editor-condition-guided-integer-rule-production",
+    editor,
+  );
+
+  await editor
+    .getByRole("button", { name: "+ Add conditional variant" })
+    .click();
+  await expect(editor.getByText("New variant draft")).toBeVisible();
+  const documentGeometry = await page.evaluate(() => ({
+    clientHeight: document.documentElement.clientHeight,
+    scrollHeight: document.documentElement.scrollHeight,
+    scrollTop: document.scrollingElement?.scrollTop ?? 0,
+  }));
+  expect(documentGeometry.scrollHeight).toBe(documentGeometry.clientHeight);
+  expect(documentGeometry.scrollTop).toBe(0);
+  await attachProductionState(
+    testInfo,
+    "editor-condition-second-variant-draft-no-page-scroll-production",
+    editor,
+  );
+  await editor.getByRole("button", { name: "Cancel draft" }).click();
+
+  await variant
+    .getByRole("button", { name: "+ Add condition", exact: true })
+    .click();
+  await variant.getByPlaceholder("Choose a property…").last().fill("enabled");
+  await page
+    .getByRole("option", {
+      name: /^enabled\b/,
+    })
+    .click();
+  await expect(
+    variant.getByRole("group", { name: "Condition group" }),
+  ).toBeVisible();
+  await expect(variant.getByText("Match")).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-condition-guided-all-group-production",
+    editor,
+  );
+
+  await variant
+    .getByRole("button", { name: "+ Add nested group", exact: true })
+    .click();
+  await variant.getByPlaceholder("Choose a property…").last().fill("path");
+  await page.getByRole("option", { name: /^path\b/ }).click();
+  await expect(
+    variant.getByRole("group", { name: "Condition group" }),
+  ).toHaveCount(2);
+  await expect(
+    variant.getByRole("button", { name: "Remove condition group" }),
+  ).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-condition-guided-nested-group-production",
+    editor,
+  );
+
+  await variant.getByRole("button", { name: "Expression" }).click();
+  const expression = variant.locator(
+    ".editor-condition-expression-input .cm-content",
+  );
+  await expect(expression).toContainText("tier >= 4 and enabled");
+  await expression.click();
+  await page.keyboard.press(
+    process.platform === "darwin" ? "Meta+a" : "Control+a",
+  );
+  await page.keyboard.insertText("tier + 4");
+  await expect(
+    variant.getByText("Repair this expression before switching"),
+  ).toBeVisible();
+  await expect(
+    variant.locator(".editor-field-diagnostics .is-error"),
+  ).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-condition-expression-diagnostic-production",
+    editor,
+  );
+  const syntaxDiagnostics = editor.getByText(
+    /not valid Format 1 expression syntax/,
+  );
+  await expect(syntaxDiagnostics).toHaveCount(2);
+  await expect(syntaxDiagnostics.first()).toBeVisible();
+  await expect(syntaxDiagnostics.last()).toBeVisible();
 });
 
 test("Structured color fields accept precise hex colors, picker colors, and visual tokens", async ({
@@ -3211,6 +3591,53 @@ test("Structured color fields accept precise hex colors, picker colors, and visu
     .click();
   await expect(needsAttention).toHaveCount(0);
   await expect(editor.getByLabel("name", { exact: true })).toHaveCount(0);
+});
+
+test("Structured declaration breadcrumbs space hierarchy separators consistently", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const editor = await openCreatedEditor(page);
+
+  await editor
+    .getByRole("button", { name: "introduction", exact: true })
+    .click();
+  await editor
+    .locator(".editor-child-list")
+    .getByRole("button", { name: "welcome text", exact: true })
+    .click();
+
+  const breadcrumbs = editor.locator(".editor-breadcrumbs");
+  await expect(breadcrumbs).toContainText("Package›introduction›text›welcome");
+  await attachProductionState(
+    testInfo,
+    "editor-structured-breadcrumb-separator-spacing-corrected",
+    breadcrumbs,
+  );
+
+  const separators = breadcrumbs.locator(
+    ":scope > .editor-breadcrumb-separator",
+  );
+  await expect(separators).toHaveCount(3);
+  expect(
+    await separators.evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute("aria-hidden")),
+    ),
+  ).toEqual(["true", "true", "true"]);
+  const gaps = await breadcrumbs.evaluate((element) =>
+    Array.from(element.children)
+      .filter((child) =>
+        child.classList.contains("editor-breadcrumb-separator"),
+      )
+      .map((separator) => {
+        const separatorBox = separator.getBoundingClientRect();
+        const nextBox = separator.nextElementSibling?.getBoundingClientRect();
+        return nextBox ? nextBox.left - separatorBox.right : 0;
+      }),
+  );
+  expect(gaps).toHaveLength(3);
+  for (const gap of gaps) expect(gap).toBeGreaterThanOrEqual(4);
 });
 
 test("Structured contextual additions open editable fields without redesigning the workspace", async ({
@@ -3537,7 +3964,7 @@ test("Structured section child rails use the application accent", async ({
 
 test("Structured section content keeps a directly relevant preview scope", async ({
   page,
-}) => {
+}, testInfo) => {
   const editor = await openCreatedEditor(page);
   const image = new PNG({ width: 64, height: 40 });
   for (let offset = 0; offset < image.data.length; offset += 4) {
@@ -3633,9 +4060,21 @@ choice
   await expect
     .poll(() => imagePreview.evaluate((image) => image.naturalWidth))
     .toBe(64);
+  const imageBlockTooltip = editor
+    .locator(".editor-real-preview > .jump-image-preview")
+    .getByRole("tooltip");
+  await expect(imageBlockTooltip).toBeHidden();
+  await imagePreview.hover();
+  await expect(imageBlockTooltip).toHaveText("Relevant blue asset");
+  await expect(imageBlockTooltip).toBeVisible();
   await editor.screenshot({
     path: "artifacts/editor-visual/editor-section-image-preview-corrected.png",
   });
+  await attachProductionState(
+    testInfo,
+    "editor-image-block-alt-tooltip-corrected",
+    editor,
+  );
 
   await openSection();
   await editor
@@ -3663,6 +4102,80 @@ choice
   await editor.screenshot({
     path: "artifacts/editor-visual/editor-section-choice-source-preview-corrected.png",
   });
+});
+
+test("Structured section previews disclose image alternative text on hover", async ({
+  page,
+}, testInfo) => {
+  const editor = await openCreatedEditor(page);
+  const image = new PNG({ width: 64, height: 40 });
+  for (let offset = 0; offset < image.data.length; offset += 4) {
+    image.data[offset] = 40;
+    image.data[offset + 1] = 112;
+    image.data[offset + 2] = 190;
+    image.data[offset + 3] = 255;
+  }
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  const chooserPromise = page.waitForEvent("filechooser");
+  await editor.getByRole("button", { name: "Asset…" }).click();
+  await (
+    await chooserPromise
+  ).setFiles({
+    name: "section-image.png",
+    mimeType: "image/png",
+    buffer: PNG.sync.write(image),
+  });
+
+  await editor.getByRole("button", { name: "Jump details" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("jump.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Section image tooltip"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: introduction
+  name: "Introduction"
+  layout: image_section
+
+  image
+    handle: visual
+    src: "section-image.png"
+    alt: "Relevant blue asset"
+
+section-layout
+  handle: image_section
+
+  stack
+    image: visual
+`);
+  await expect(editor.locator(".cm-lintRange-error")).toHaveCount(0);
+  await editor
+    .getByRole("button", { name: "introduction", exact: true })
+    .click();
+  await editor.getByRole("tab", { name: "Structured" }).click();
+
+  const sectionImage = editor.locator(
+    '.editor-real-preview > .rendered-jump-section img[alt="Relevant blue asset"]',
+  );
+  await expect(sectionImage).toBeVisible();
+  const sectionImageTooltip = editor
+    .locator(
+      '.editor-real-preview > .rendered-jump-section [data-layout-kind="image"]',
+    )
+    .getByRole("tooltip");
+  await expect(sectionImageTooltip).toBeHidden();
+  await sectionImage.hover();
+  await expect(sectionImageTooltip).toHaveText("Relevant blue asset");
+  await expect(sectionImageTooltip).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-section-image-alt-tooltip-corrected",
+    editor,
+  );
 });
 
 test("Structured layout tree safely edits hierarchy through the mock-aligned container workflow", async ({
@@ -4187,9 +4700,78 @@ test("Structured layout tree safely edits hierarchy through the mock-aligned con
   );
 });
 
+test("Structured layouts remember their active container across sidebar work", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const editor = await openCreatedEditor(page);
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Section layout" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("layout.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`section-layout
+  handle: alpha_layout
+
+  stack
+    slot: name
+
+    grid
+      columns: 2
+      slot: roll
+
+section-layout
+  handle: beta_layout
+
+  stack
+    slot: name
+
+    inline
+      slot: roll
+`);
+  await editor.getByRole("tab", { name: "Structured" }).click();
+
+  const outline = editor.locator(".editor-outline-scroll");
+  const editingContainer = editor.getByLabel("Editing container");
+  await outline.getByRole("button", { name: /^alpha_layout/ }).click();
+  await editingContainer.selectOption({ label: "stack[1]/grid[2]" });
+  await expect(
+    editor.getByText("Children of stack[1]/grid[2]", { exact: true }),
+  ).toBeVisible();
+
+  await outline.getByRole("button", { name: /^beta_layout/ }).click();
+  await editingContainer.selectOption({ label: "stack[1]/inline[2]" });
+  await outline
+    .getByRole("button", { name: "Jump details", exact: true })
+    .click();
+  await editor.getByLabel("name", { exact: true }).fill("Sidebar work");
+
+  await outline.getByRole("button", { name: /^alpha_layout/ }).click();
+  await expect(editingContainer).toHaveValue(/node:/);
+  await expect(editingContainer.locator("option:checked")).toHaveText(
+    "stack[1]/grid[2]",
+  );
+  await expect(
+    editor.locator('[data-layout-container-editor-path="stack[1]/grid[2]"]'),
+  ).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-layout-active-container-restored-production",
+    editor,
+  );
+
+  await outline.getByRole("button", { name: /^beta_layout/ }).click();
+  await expect(editingContainer.locator("option:checked")).toHaveText(
+    "stack[1]/inline[2]",
+  );
+});
+
 test("Source-authored choice and trait layouts remain completely editable in Structured", async ({
   page,
 }, testInfo) => {
+  test.slow();
   await page.emulateMedia({ colorScheme: "dark" });
   await page.setViewportSize({ width: 1440, height: 900 });
   const editor = await openCreatedEditor(page);
@@ -4271,12 +4853,54 @@ test("Source-authored choice and trait layouts remain completely editable in Str
   await expect(imageRow.getByLabel("height", { exact: true })).toHaveValue(
     "lg",
   );
-  await imageRow.getByLabel("size", { exact: true }).selectOption("md");
+  await expect(imageRow.getByLabel("text align", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(imageRow.getByLabel("text size", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(imageRow.getByLabel("text color", { exact: true })).toHaveCount(
+    0,
+  );
+  await imageRow.getByLabel("width", { exact: true }).fill("96px");
+  await imageRow.getByLabel("height", { exact: true }).fill("72px");
+  const renderedImage = editor.locator('[data-layout-kind="image"]');
+  await expect(renderedImage).toHaveCSS("width", "96px");
+  await expect(renderedImage).toHaveCSS("height", "72px");
+  await imageRow.getByLabel("size", { exact: true }).fill("112px");
   await expect(imageRow.getByLabel("width", { exact: true })).toHaveValue("");
   await expect(imageRow.getByLabel("height", { exact: true })).toHaveValue("");
+  await expect(renderedImage).toHaveCSS("width", "112px");
+  await expect(renderedImage).toHaveCSS("height", "112px");
+  await imageRow
+    .getByRole("button", { name: "Show size choices for size" })
+    .click();
+  await expect(
+    imageRow.getByRole("listbox", { name: "Available image size tokens" }),
+  ).toBeVisible();
   await attachProductionState(
     testInfo,
     "editor-layout-choice-image-presentation-production",
+    editor,
+  );
+  await imageRow
+    .getByRole("listbox", { name: "Available image size tokens" })
+    .getByRole("option", { name: "md", exact: true })
+    .click();
+  await expect(renderedImage).toHaveCSS("width", "128px");
+  await expect(renderedImage).toHaveCSS("height", "128px");
+  await imageRow.getByLabel("size", { exact: true }).fill("");
+  await builder.getByLabel("columns", { exact: true }).fill("1");
+  await imageRow.getByLabel("align", { exact: true }).selectOption("start");
+  const imageAtStart = await renderedImage.boundingBox();
+  expect(imageAtStart).not.toBeNull();
+  await imageRow.getByLabel("align", { exact: true }).selectOption("stretch");
+  const imageAtStretch = await renderedImage.boundingBox();
+  expect(imageAtStretch).not.toBeNull();
+  expect(imageAtStretch!.width).toBeGreaterThan(imageAtStart!.width);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-image-stretch-corrected",
     editor,
   );
   const imagePresentationButton = imageRow.getByRole("button", {
@@ -4299,7 +4923,7 @@ test("Source-authored choice and trait layouts remain completely editable in Str
     editor,
   );
   await imagePresentationButton.click();
-  await expect(imageRow.getByLabel("size", { exact: true })).toHaveValue("md");
+  await expect(imageRow.getByLabel("size", { exact: true })).toHaveValue("");
   await imagePresentationButton.click();
   await expect(imageRow.locator(".editor-layout-row-node-fields")).toHaveCount(
     0,
@@ -4638,8 +5262,8 @@ section-layout
   await expect(preview).toContainText("Example content for “details”.");
   const traitImage = preview.getByAltText("Example image for icon");
   await expect(traitImage).toBeVisible();
-  await expect(traitImage).toHaveCSS("width", "48px");
-  await expect(traitImage).toHaveCSS("height", "48px");
+  await expect(traitImage).toHaveCSS("width", "64px");
+  await expect(traitImage).toHaveCSS("height", "64px");
   await attachProductionState(
     testInfo,
     "editor-trait-layout-dummy-preview-production",

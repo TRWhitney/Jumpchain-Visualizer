@@ -7,6 +7,7 @@ import type {
   Renderable,
 } from "../markup";
 import { resolveCostAmount } from "../markup";
+import { evaluateConditionExpression } from "../markup";
 
 export type ChoiceValue = boolean | string | number | null;
 export type InputValue = string | number | readonly string[] | null;
@@ -1028,62 +1029,5 @@ export function evaluateCondition(
   expression: string,
   context: Readonly<Record<string, string | number | boolean | undefined>>,
 ): boolean {
-  const tokens =
-    expression.match(
-      /"(?:[^"\\]|\\.)*"|-?\d+|!=|<=|>=|[()!<>=]|[a-z0-9_]+/gi,
-    ) ?? [];
-  let index = 0;
-  const value = (): string | number | boolean | undefined => {
-    const token = tokens[index++];
-    if (token === undefined) return undefined;
-    if (token.startsWith('"')) return token.slice(1, -1).replace(/\\"/g, '"');
-    if (/^-?\d+$/.test(token)) return Number(token);
-    if (token === "true" || token === "false") return token === "true";
-    return context[token];
-  };
-  const comparison = (): boolean => {
-    if (tokens[index] === "(") {
-      index += 1;
-      const result = or();
-      if (tokens[index] === ")") index += 1;
-      return result;
-    }
-    const left = value();
-    const operator = tokens[index];
-    if (!["=", "!=", "<", "<=", ">", ">="].includes(operator))
-      return Boolean(left);
-    index += 1;
-    const right = value();
-    if (operator === "=") return left === right;
-    if (operator === "!=") return left !== right;
-    if (typeof left !== "number" || typeof right !== "number") return false;
-    if (operator === "<") return left < right;
-    if (operator === "<=") return left <= right;
-    if (operator === ">") return left > right;
-    return left >= right;
-  };
-  const not = (): boolean => {
-    if (tokens[index] !== "!") return comparison();
-    index += 1;
-    return !not();
-  };
-  const and = (): boolean => {
-    let result = not();
-    while (tokens[index]?.toLowerCase() === "and") {
-      index += 1;
-      const right = not();
-      result = result && right;
-    }
-    return result;
-  };
-  const or = (): boolean => {
-    let result = and();
-    while (tokens[index]?.toLowerCase() === "or") {
-      index += 1;
-      const right = and();
-      result = result || right;
-    }
-    return result;
-  };
-  return or();
+  return evaluateConditionExpression(expression, context);
 }

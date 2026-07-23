@@ -270,6 +270,11 @@ entire import with a prominent potentially unsafe-package diagnostic. SVG is not
 accepted in v1 because it may contain scripts, external references, and other active
 content. Import never exposes rejected asset bytes to a renderer and never keeps a
 partial package.</p>
+<p>The Editor applies the same checks to a directly selected asset before adding it.
+Its localized rejection feedback names the single failed rule—unsupported extension,
+configured file-size limit, invalid or duplicate path, signature mismatch, decode
+failure, PNG integrity, trailing data, decoded geometry, or decoded-dimension
+mismatch—rather than presenting a list of possible causes.</p>
 <h3>Current File Roles</h3>
 <h4><code>jump.jdef</code></h4>
 <p>Required.</p>
@@ -922,6 +927,9 @@ derivation</li>
 <li>users may suppress the missing-alt warning through <code>editor.warnMissingImageAlt</code>; suppression changes diagnostics only and does not modify package source</li>
 <li><code>alt</code> is a renderable text field and may therefore use placeholders and
 conditional <code>when</code> variants just like other renderable text fields</li>
+<li>a rendered image exposes its active alternative text as a hover tooltip in both
+an isolated image-block preview and any section, choice, or trait layout that contains it;
+an omitted or empty <code>alt</code> produces no tooltip</li>
 <li>image sizing belongs in layout/presentation, not in the semantic <code>image</code>
 declaration</li>
 </ul>
@@ -1490,7 +1498,7 @@ weakening distribution validation.</p>
 <ul>
 <li>an unknown presentation field is an error</li>
 <li>a known field on a node type that does not support it, such as <code>columns</code> on <code>stack</code>, is an error</li>
-<li>a supported field with no practical effect for the referenced content, such as <code>text-color</code> on an <code>image</code> leaf, produces a warning rather than a parse failure</li>
+<li>a presentation field that does not apply to a node type, such as <code>text-color</code> on an <code>image</code> leaf, is an unknown-field error for that node</li>
 <li>mutually exclusive supported fields, such as <code>size</code> together with <code>width</code> or <code>height</code>, are an error</li>
 </ul>
 <p>Information diagnostics explain meaningful valid behavior when no author action is required. They should be contextual and sparse rather than emitted for every ordinary default. Useful examples include noting identical active property writers, explaining why an inapplicable slot collapsed when its node is inspected, and showing the canonical identity or generated label of a normalized tag on demand.</p>
@@ -1500,8 +1508,9 @@ weakening distribution validation.</p>
 <li><code>gap</code>, <code>padding</code>, and <code>text-size</code> use constrained tokens only</li>
 <li><code>background</code> and <code>text-color</code> may use either tokens or explicit hex values</li>
 <li>alignment-related fields use constrained keyword sets</li>
-<li>image sizing controls should exist in layout/presentation rather than in the
-semantic <code>image</code> declaration</li>
+<li>image dimensions accept a named size token or an exact non-negative
+<code>px</code>/<code>rem</code> length and exist in layout presentation rather than
+the semantic <code>image</code> declaration</li>
 </ul>
 <p>The current agreed image-sizing controls are:</p>
 <ul>
@@ -1512,8 +1521,11 @@ semantic <code>image</code> declaration</li>
 </ul>
 <p>Current rules:</p>
 <ul>
-<li><code>size</code> is the simple tokenized shorthand for common visual sizes</li>
-<li><code>width</code> and <code>height</code> are tokenized for non-square cases</li>
+<li><code>size</code> sets one square image box, while <code>width</code> and
+<code>height</code> independently describe non-square boxes</li>
+<li>all three dimension fields accept <code>xs</code> through <code>2xl</code> or
+an exact length such as <code>320px</code> or <code>18rem</code>; arbitrary CSS
+expressions and other units are invalid</li>
 <li><code>fit</code> should remain narrow in v1, using only <code>contain</code> or <code>cover</code></li>
 <li><code>size</code> should be mutually exclusive with <code>width</code>/<code>height</code></li>
 <li>these controls belong on an <code>image</code> leaf, and would only belong on <code>slot</code> if a future
@@ -1524,12 +1536,12 @@ built-in slot actually renders visual content</li>
 </ul>
 <p>Current agreed image size tokens:</p>
 <ul>
-<li><code>xs</code></li>
-<li><code>sm</code></li>
-<li><code>md</code></li>
-<li><code>lg</code></li>
-<li><code>xl</code></li>
-<li><code>2xl</code></li>
+<li><code>xs</code> — <code>2rem</code></li>
+<li><code>sm</code> — <code>4rem</code></li>
+<li><code>md</code> — <code>8rem</code></li>
+<li><code>lg</code> — <code>16rem</code></li>
+<li><code>xl</code> — <code>32rem</code></li>
+<li><code>2xl</code> — <code>64rem</code></li>
 </ul>
 <p>Current agreed <code>fit</code> values:</p>
 <ul>
@@ -1592,17 +1604,21 @@ leaf among the available main-axis space. <code>stretch</code> grows the leaf in
 the remaining space; multiple stretched siblings divide that remainder equally
 after unstretched siblings retain their authored content area.</p>
 <p><code>text-align</code> positions text inside the space of the node to which it
-applies. Container text alignment is inherited by descendant slot, text, input,
-and image boundaries; a leaf value overrides that inheritance. An omitted leaf
-value continues to inherit. The leaf boundary owns its padding, background,
-alignment, text alignment, text size, and text color, so rich text containing
-multiple paragraphs, lists, or tables receives one coherent presentation box.</p>
+applies. Container text alignment is inherited by descendant slot, text, and
+input boundaries; a leaf value overrides that inheritance. An omitted leaf
+value continues to inherit. The text-bearing leaf boundary owns its padding,
+background, alignment, text alignment, text size, and text color, so rich text
+containing multiple paragraphs, lists, or tables receives one coherent
+presentation box. Image leaves are non-text content and therefore expose only
+target, padding, background, align, image dimensions, and fit.</p>
 <p>Direct <code>inline</code> and <code>wrap</code> children participate in one
 source-ordered flex row. Unstretched leaves retain a bounded content area so
 <code>text-align</code> remains independently observable. A stretched leaf grows
 into the row’s remaining space; two or more stretched leaves have equal growth
 and therefore split that remainder after unstretched content. Positioned
-intrinsic images retain a bounded intrinsic area. Stack and Grid apply the same
+intrinsic images use their actual intrinsic area. Stretch grows an unsized image
+boundary into its available area instead of replacing it with a smaller
+synthetic width. Stack and Grid apply the same
 start/center/end boundary-placement principle in their available horizontal
 area. These sizing rules are canonical renderer behavior shared by Editor
 preview and runtime; the preview does not fake a separate alignment result.</p>
@@ -1768,6 +1784,10 @@ content when rank &gt;= 2:
 placing <code>rank &gt;= 2</code> before <code>rank &gt;= 4</code> means the latter can never be
 selected. The validator should warn when it can statically prove this kind of
 shadowing and should identify the earlier variant responsible.</p>
+<h3>Structured Conditional Authoring</h3>
+<p>The Structured editor presents each source-ordered variant as one separately railed card. Its field label remains the authored field name, such as <em>Content</em> or <em>Alt</em>, because a matching variant substitutes that value for the base field. The base field above remains the fallback whenever no variant matches, and a localized summary states both rules beside the variant heading.</p>
+<p><em>Add conditional variant</em> first opens a transient property draft and does not write a catch-all condition to Source. Choosing a property reveals only operators legal for its known type and commits the first complete rule. <em>Add condition</em> adds another comparison to the current All/Any group. <em>Add nested group</em> creates a subgroup with its own All/Any behavior and optional inversion. Existing authored expressions remain editable in a compact Expression mode; invalid expressions are preserved there and diagnosed at their exact tokens rather than being rewritten by the guided builder.</p>
+<p>The property catalog is shared by validation, completion, and Structured controls. It identifies engine and identity values, package property grants, and contextual <code>rank</code> or <code>count</code> only where those values exist. Known Boolean values, integer bounds, and select options produce typed controls and suggestions without preventing compatible custom text values. Reordering variants changes only their exact source lines and retains first-match semantics.</p>
 <h2>Companion Participation</h2>
 <p>Companion acquisition and per-Jump participation are distinct mechanics:</p>
 <ul>

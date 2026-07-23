@@ -11,6 +11,7 @@ import {
   layoutAllowedNodeKinds,
   layoutNodeForPath,
   layoutNodeSourceSelection,
+  layoutSelectionKey,
   layoutSlotTargets,
   moveLayoutNode,
   removeLayoutNode,
@@ -62,6 +63,18 @@ const structuralErrors = (source: string) =>
   );
 
 describe("schema-driven layout editor", () => {
+  it("gives each handled layout a stable container-memory identity", () => {
+    expect(layoutSelectionKey(layout)).toBe(
+      layoutSelectionKey({ ...layout, from: 420 }),
+    );
+    expect(layoutSelectionKey(layout)).not.toBe(
+      layoutSelectionKey({ ...layout, handle: "alternate_page" }),
+    );
+    expect(layoutSelectionKey({ ...layout, handle: undefined, from: 12 })).toBe(
+      "layout.jdef\u0000section-layout\u0000@12",
+    );
+  });
+
   it.each([
     ["stack[1]", "stack"],
     ["stack[1]/slot[1]", "slot"],

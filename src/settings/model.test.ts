@@ -31,6 +31,7 @@ describe("application settings", () => {
           showAdditionalJumpInformation: true,
           showOpenProjectFolder: true,
         },
+        editor: { permanentlyDeleteSidebarItems: true },
         notifications: { maxVisible: 5, durationMs: 1234 },
       },
       profile,
@@ -46,6 +47,7 @@ describe("application settings", () => {
     expect(result.developer.showAdditionalJumpInformation).toBe(true);
     expect(result.developer.showOpenProjectFolder).toBe(true);
     expect(result.developer.showMockData).toBe(false);
+    expect(result.editor.permanentlyDeleteSidebarItems).toBe(true);
     expect(result.notifications.maxVisible).toBe(5);
     expect(result.notifications.durationMs).toBe(5000);
     expect(result.schemaVersion).toBe(2);
@@ -84,6 +86,29 @@ describe("application settings", () => {
     expect(result.developer.showMockData).toBe(false);
     expect(result.developer.showOpenProjectFolder).toBe(false);
     expect(malformed.developer.showOpenProjectFolder).toBe(false);
+    expect(result.editor.permanentlyDeleteSidebarItems).toBe(false);
+    expect(result.accessibility.imageAltTextHover).toBe(true);
+    expect(
+      hydrateSettings(
+        { accessibility: { imageAltTextHover: false } },
+        profile,
+        hydrateTagProfile,
+      ).accessibility.imageAltTextHover,
+    ).toBe(false);
+    expect(
+      hydrateSettings(
+        { accessibility: { imageAltTextHover: "no" } },
+        profile,
+        hydrateTagProfile,
+      ).accessibility.imageAltTextHover,
+    ).toBe(true);
+    expect(
+      hydrateSettings(
+        { editor: { permanentlyDeleteSidebarItems: "yes" } },
+        profile,
+        hydrateTagProfile,
+      ).editor.permanentlyDeleteSidebarItems,
+    ).toBe(false);
   });
 
   it("hydrates only boolean mock-data visibility and defaults it off", () => {

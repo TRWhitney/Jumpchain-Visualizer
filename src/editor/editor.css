@@ -989,11 +989,19 @@
 }
 .editor-conditional-variants {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.55rem;
   margin-top: 0.25rem;
-  padding: 0.45rem;
+  padding: 0.55rem;
   background: #242422;
-  border-left: 2px solid #7a6caf;
+}
+.editor-conditional-variants > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.editor-conditional-variants > header small {
+  color: #92918b;
 }
 .editor-conditional-variant-group {
   display: grid;
@@ -1008,14 +1016,248 @@
   font-size: 0.72rem;
   text-transform: capitalize;
 }
-.editor-conditional-variant-group > div {
+.editor-condition-variant-card {
   display: grid;
-  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr) auto;
-  align-items: end;
+  gap: 0.55rem;
+  padding: 0.65rem;
+  background: #20201e;
+  border: 1px solid #44443f;
+  border-left: 2px solid #7a6caf;
+  border-radius: 0.25rem;
+}
+.editor-condition-variant-card > header,
+.editor-condition-variant-card > footer,
+.editor-condition-group-heading,
+.editor-condition-add-actions,
+.editor-condition-draft > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.editor-condition-variant-card > header {
+  justify-content: space-between;
+}
+.editor-condition-variant-card > footer button:last-child {
+  margin-left: auto;
+}
+.editor-condition-mode {
+  display: inline-flex;
+  padding: 0.12rem;
+  background: #292927;
+  border: 1px solid #484843;
+  border-radius: 0.25rem;
+}
+.editor-condition-mode button {
+  min-height: 1.7rem;
+  padding: 0.16rem 0.45rem;
+  background: transparent;
+  border: 0;
+}
+.editor-condition-mode button.is-active {
+  color: #f1efe8;
+  background: #464158;
+}
+.editor-condition-when-row,
+.editor-condition-value {
+  display: grid;
   gap: 0.3rem;
 }
+.editor-condition-when-row > span,
+.editor-condition-value > span {
+  color: #aaa9a3;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.editor-condition-builder {
+  display: grid;
+  gap: 0.45rem;
+}
+.editor-condition-rule {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.3rem;
+}
+.editor-condition-rule-row {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1.15fr) minmax(8rem, 0.8fr) minmax(
+      8rem,
+      1fr
+    );
+  align-items: start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.editor-condition-rule-row > :last-child:nth-child(2) {
+  grid-column: 2 / -1;
+}
+.editor-condition-combobox {
+  min-width: 0;
+}
+.editor-condition-combobox > [role="group"] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  border: 1px solid #51514c;
+  border-radius: 0.2rem;
+}
+.editor-condition-combobox[data-focus-within] > [role="group"] {
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-accent) 45%, transparent);
+}
+.editor-condition-combobox input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 0.2rem 0 0 0.2rem;
+  box-shadow: none;
+}
+.editor-condition-combobox button {
+  width: 2rem;
+  min-height: 2rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid #454540;
+  border-radius: 0;
+}
+.editor-condition-combobox button .editor-diagnostics-chevron {
+  display: inline-block;
+  transform: rotate(90deg);
+}
+.editor-condition-combobox button[data-pressed] .editor-diagnostics-chevron {
+  transform: rotate(-90deg);
+}
+.editor-condition-popover {
+  z-index: 80;
+  width: var(--trigger-width);
+  min-width: 17rem;
+  max-height: 19rem;
+  overflow: auto;
+  color: #dedcd5;
+  background: #20201e;
+  border: 1px solid #575750;
+  border-radius: 0.25rem;
+  box-shadow: 0 0.65rem 1.8rem rgb(0 0 0 / 38%);
+}
+.editor-condition-popover [role="listbox"] {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.35rem;
+  outline: 0;
+}
+.editor-condition-popover header {
+  padding: 0.45rem 0.45rem 0.2rem;
+  color: #8f8e88;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.editor-condition-popover [role="option"] {
+  display: grid;
+  gap: 0.16rem;
+  padding: 0.42rem 0.5rem;
+  border-radius: 0.2rem;
+  outline: 0;
+  cursor: pointer;
+}
+.editor-condition-popover [role="option"] > span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.editor-condition-popover [role="option"] small {
+  color: #92918b;
+}
+.editor-condition-popover [role="option"][data-focused],
+.editor-condition-popover [role="option"][data-selected] {
+  color: #fff;
+  background: #403b53;
+}
+.editor-condition-popover [role="option"].is-unresolved {
+  color: #e3b952;
+}
+.editor-condition-expression-input {
+  min-height: 2.15rem;
+  overflow: hidden;
+  background: #191918;
+  border: 1px solid #51514c;
+  border-radius: 0.2rem;
+}
+.editor-condition-expression-input:focus-within {
+  border-color: var(--app-accent);
+}
+.editor-condition-expression-input .cm-editor,
+.editor-condition-expression-input .cm-scroller {
+  min-height: 2.05rem;
+  max-height: 2.05rem;
+}
+.editor-condition-expression-input .cm-content {
+  padding: 0.4rem 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.editor-condition-expression-input .cm-focused {
+  outline: 0;
+}
+.editor-condition-group {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.45rem 0.45rem 0.45rem 0.65rem;
+  border: 1px solid #454540;
+  border-left: 2px solid #766aa5;
+  border-radius: 0.2rem;
+}
+.editor-condition-group .editor-condition-group {
+  margin-left: 0.45rem;
+}
+.editor-condition-group-heading > span {
+  color: #aaa9a3;
+  font-size: 0.75rem;
+}
+.editor-condition-group-heading select {
+  width: auto;
+  min-width: 5rem;
+}
+.editor-condition-group-heading button.is-active {
+  color: var(--app-accent-text);
+  border-color: var(--app-accent);
+}
+.editor-condition-add-actions button,
+.editor-condition-variant-card > footer button,
+.editor-condition-draft > button {
+  min-height: 1.9rem;
+  padding: 0.22rem 0.45rem;
+  color: var(--app-accent-text);
+  background: transparent;
+  border: 1px solid #51514c;
+  border-radius: 0.2rem;
+}
+.editor-condition-draft {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.55rem;
+  background: #20201e;
+  border: 1px dashed #766aa5;
+  border-left: 2px solid #7a6caf;
+  border-radius: 0.25rem;
+}
+.editor-condition-draft > div:first-child {
+  justify-content: space-between;
+}
+.editor-condition-draft small,
+.editor-condition-repair-hint {
+  color: #aaa9a3;
+}
+.editor-condition-draft > button {
+  justify-self: start;
+}
 .editor-conditional-variant-group > button,
-.editor-conditional-variant-group > div > button {
+.editor-conditional-variants > button {
   justify-self: start;
   min-height: 2rem;
   padding: 0.25rem 0.4rem;
@@ -1041,6 +1283,102 @@
   display: flex;
   align-items: start;
   gap: 0.25rem;
+}
+.editor-image-dimension-control {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+}
+.editor-image-dimension-combobox {
+  display: grid;
+  min-width: 0;
+  min-height: 2.25rem;
+  overflow: hidden;
+  grid-template-columns: minmax(4rem, 1fr) 2rem;
+  background: #20201e;
+  border: 1px solid #52524c;
+  border-radius: 0.2rem;
+}
+.editor-image-dimension-combobox:focus-within {
+  border-color: var(--app-accent-focus);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--app-accent-focus) 28%, transparent);
+}
+.editor-field-occurrence.is-error .editor-image-dimension-combobox {
+  border-color: #d96b6b;
+  box-shadow: 0 0 0 1px rgb(217 107 107 / 20%);
+}
+.editor-field-occurrence.is-warning .editor-image-dimension-combobox {
+  border-color: #c99b50;
+  box-shadow: 0 0 0 1px rgb(201 155 80 / 16%);
+}
+.editor-field-occurrence.is-info .editor-image-dimension-combobox {
+  border-color: #6c91c9;
+}
+.editor-image-dimension-combobox input {
+  min-width: 0;
+  min-height: 100%;
+  padding: 0.38rem 0.45rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+}
+.editor-image-dimension-combobox button {
+  display: grid;
+  min-width: 2rem;
+  min-height: 100%;
+  place-items: center;
+  padding: 0;
+  color: #9c9c96;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+.editor-image-dimension-combobox button:hover,
+.editor-image-dimension-combobox button[aria-expanded="true"] {
+  color: #eee;
+  background: #30302d;
+}
+.editor-image-dimension-combobox .editor-diagnostics-chevron {
+  transform: rotate(90deg);
+}
+.editor-image-dimension-combobox
+  button[aria-expanded="true"]
+  .editor-diagnostics-chevron {
+  transform: rotate(-90deg);
+}
+.editor-image-dimension-popover {
+  position: absolute;
+  z-index: 8;
+  bottom: calc(100% + 0.3rem);
+  left: 0;
+  display: grid;
+  width: min(9rem, calc(100vw - 2rem));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.25rem;
+  padding: 0.35rem;
+  background: #1d1d1b;
+  border: 1px solid #52524c;
+  border-radius: 0.24rem;
+  box-shadow: 0 0.5rem 1.2rem rgb(0 0 0 / 35%);
+}
+.editor-image-dimension-popover button {
+  min-height: 1.8rem;
+  padding: 0.2rem 0.35rem;
+  color: #c8c8c2;
+  background: #292927;
+  border: 1px solid transparent;
+  border-radius: 0.18rem;
+  cursor: pointer;
+}
+.editor-image-dimension-popover button:hover,
+.editor-image-dimension-popover button.is-selected {
+  color: #fff;
+  background: #353532;
+  border-color: var(--app-accent-focus);
 }
 .editor-color-control {
   position: relative;
@@ -2690,6 +3028,34 @@
 [data-app-theme="light"] .editor-color-combobox {
   background: #fff;
   border-color: #aaa79e;
+}
+[data-app-theme="light"] .editor-image-dimension-combobox {
+  background: #fff;
+  border-color: #aaa79e;
+}
+[data-app-theme="light"] .editor-image-dimension-combobox button {
+  color: #686861;
+}
+[data-app-theme="light"] .editor-image-dimension-combobox button:hover,
+[data-app-theme="light"]
+  .editor-image-dimension-combobox
+  button[aria-expanded="true"] {
+  color: #20201e;
+  background: #e9e7e0;
+}
+[data-app-theme="light"] .editor-image-dimension-popover {
+  background: #fff;
+  border-color: #aaa79e;
+  box-shadow: 0 0.5rem 1.2rem rgb(0 0 0 / 18%);
+}
+[data-app-theme="light"] .editor-image-dimension-popover button {
+  color: #44443f;
+  background: #f3f1eb;
+}
+[data-app-theme="light"] .editor-image-dimension-popover button:hover,
+[data-app-theme="light"] .editor-image-dimension-popover button.is-selected {
+  color: #171717;
+  background: #e9e7e0;
 }
 [data-app-theme="light"]
   .editor-color-combobox

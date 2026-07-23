@@ -609,6 +609,12 @@ ${container === "grid" ? "    columns: 2\n" : ""}`;
     ["hex color", "top", "theme\n  handle: bad_theme\n  color: #12", "color"],
     ["spacing", "layout", "    gap: huge", "gap"],
     ["size", "layout", "    text-size: huge", "text-size"],
+    [
+      "image dimension",
+      "layout",
+      "    image\n      target: hero\n      width: gigantic",
+      "width",
+    ],
     ["alignment", "layout", "    align: sideways", "align"],
     ["justification", "layout", "    justify: sideways", "justify"],
     ["text alignment", "layout", "    text-align: sideways", "text-align"],
@@ -653,6 +659,76 @@ ${scope === "top" ? authored : ""}
     );
   });
 
+  it.each(["xs", "2xl", "320px", "11.5rem", "0px"])(
+    "accepts %s as an image dimension",
+    (dimension) => {
+      const packageItem = canonicalizePackage({
+        id: `image-dimension-${dimension}`,
+        exactHash: "3".repeat(64),
+        files: {
+          "jump.jdef": `jump
+  format: 1
+  name: "Image dimensions"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+  image
+    handle: hero
+    src: "hero.png"
+
+section-layout
+  handle: image_layout
+  stack
+    image
+      target: hero
+      size: ${dimension}
+`,
+        },
+      });
+      expect(
+        packageItem.diagnostics.filter(
+          (diagnostic) => diagnostic.target?.field === "size",
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  it("diagnoses text-only presentation fields on image layout nodes generically", () => {
+    const packageItem = canonicalizePackage({
+      id: "image-text-presentation",
+      exactHash: "3".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Image presentation"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+
+section-layout
+  handle: image_layout
+  stack
+    image
+      target: hero
+      text-align: center
+      text-size: lg
+      text-color: red
+`,
+      },
+    });
+    expect(
+      packageItem.diagnostics
+        .filter((diagnostic) => diagnostic.code === "schema.field.unknown")
+        .map((diagnostic) => diagnostic.target?.field),
+    ).toEqual(["text-align", "text-size", "text-color"]);
+  });
+
   it("uses warning diagnostics in Editor and blocking diagnostics for distribution", () => {
     const source = `jump
   format: 1
@@ -685,6 +761,67 @@ section
       target: { field: "layout", occurrence: 0 },
     });
     expect(distributionDiagnostic?.severity).toBe("error");
+  });
+
+  it("targets condition tokens and promotes unresolved properties for distribution", () => {
+    const source = `jump
+  format: 1
+  name: "Conditions"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+  text
+    handle: body
+    content: "Base"
+    content when missing_property: "Draft"
+    content when tier + 1: "Broken"
+
+choice
+  handle: tier_control
+  name: "Tier"
+  selection: integer
+  grant
+    kind: property
+    handle: tier
+`;
+    const sources = {
+      id: "condition-targets",
+      exactHash: "c".repeat(64),
+      files: { "jump.jdef": source },
+    };
+    const editor = canonicalizePackage(sources, { profile: "editor" });
+    const unresolved = editor.diagnostics.find(
+      (item) => item.code === "condition.property.unresolved",
+    );
+    const syntax = editor.diagnostics.find(
+      (item) => item.code === "condition.syntax",
+    );
+    expect(unresolved).toMatchObject({
+      severity: "warning",
+      parameters: { property: "missing_property" },
+      target: {
+        field: "content",
+        baseOccurrence: 0,
+        variantOccurrence: 0,
+        part: "condition",
+      },
+    });
+    expect(source.slice(unresolved!.range!.from, unresolved!.range!.to)).toBe(
+      "missing_property",
+    );
+    expect(source.slice(syntax!.range!.from, syntax!.range!.to)).toBe("+");
+    expect(translateDiagnostic(unresolved!)).toContain("missing_property");
+    expect(
+      canonicalizePackage(sources, { profile: "distribution" }).diagnostics,
+    ).toContainEqual(
+      expect.objectContaining({
+        code: "condition.property.unresolved",
+        severity: "error",
+      }),
+    );
   });
 
   it("honors image warning preferences without suppressing export requirements", () => {

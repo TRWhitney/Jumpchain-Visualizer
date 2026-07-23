@@ -89,6 +89,12 @@ export type LayoutNodeSourceSelection = {
   to: number;
 };
 
+export function layoutSelectionKey(
+  layout: Pick<FormatSymbol, "file" | "from" | "handle" | "kind">,
+) {
+  return `${layout.file}\u0000${layout.kind}\u0000${layout.handle ?? `@${layout.from}`}`;
+}
+
 const unquote = (value: string | undefined) =>
   value?.replace(/^"|"$/g, "") ?? "";
 

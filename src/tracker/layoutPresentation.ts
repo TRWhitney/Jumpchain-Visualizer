@@ -14,11 +14,11 @@ const layoutSpacing: Readonly<Record<string, string>> = {
 
 const layoutSizes: Readonly<Record<string, string>> = {
   xs: "2rem",
-  sm: "3rem",
-  md: "5rem",
-  lg: "8rem",
-  xl: "12rem",
-  "2xl": "16rem",
+  sm: "4rem",
+  md: "8rem",
+  lg: "16rem",
+  xl: "32rem",
+  "2xl": "64rem",
 };
 
 const layoutTextSizes: Readonly<Record<string, string>> = {
@@ -61,6 +61,16 @@ function sharedPresentationStyle(
       ? layoutTextSizes[presentation.textSize]
       : undefined,
   };
+}
+
+const exactImageDimension =
+  /^(?:0|[1-9][0-9]*(?:\.[0-9]+)?|0\.[0-9]+)(?:px|rem)$/;
+
+function layoutImageDimension(value: string | undefined) {
+  if (!value) return undefined;
+  return (
+    layoutSizes[value] ?? (exactImageDimension.test(value) ? value : undefined)
+  );
 }
 
 export function layoutContainerPresentationStyle(
@@ -106,7 +116,15 @@ export function layoutLeafPresentationStyle(
       ? (align as CSSProperties["alignSelf"])
       : undefined;
   return {
-    ...sharedPresentationStyle(node, packageItem),
+    ...(node.kind === "image"
+      ? {
+          padding: layoutSpacing[node.presentation.padding ?? "none"],
+          backgroundColor: layoutColor(
+            node.presentation.background,
+            packageItem,
+          ),
+        }
+      : sharedPresentationStyle(node, packageItem)),
     alignSelf: parentKind === "stack" ? positionedAlign : undefined,
     justifySelf: parentKind === "grid" ? positionedAlign : undefined,
   };
@@ -125,27 +143,48 @@ export function layoutInlineChildAreaStyle(node: LayoutNode): CSSProperties {
     !node.presentation.size &&
     !node.presentation.width &&
     !node.presentation.height;
-  const reservesInlineArea = reservesTextArea || reservesIntrinsicImageArea;
+  const inlineSize = reservesTextArea
+    ? "min(20rem, 100%)"
+    : reservesIntrinsicImageArea
+      ? "max-content"
+      : undefined;
   return {
     justifyContent: align === "stretch" ? "stretch" : "flex-start",
     marginInlineStart:
       align === "center" || align === "end" ? "auto" : undefined,
     marginInlineEnd: align === "center" ? "auto" : undefined,
-    inlineSize: reservesInlineArea ? "min(20rem, 100%)" : undefined,
-    maxInlineSize: reservesInlineArea ? "100%" : undefined,
+    inlineSize,
+    maxInlineSize: inlineSize ? "100%" : undefined,
   };
 }
 
-export function layoutImageStyle(node: LayoutNode): CSSProperties {
+function imageUsesAvailableWidth(
+  node: LayoutNode,
+  parentKind?: LayoutNode["kind"],
+) {
+  return (
+    node.presentation.align === "stretch" ||
+    (!node.presentation.align &&
+      (parentKind === "stack" || parentKind === "grid"))
+  );
+}
+
+export function layoutImageStyle(
+  node: LayoutNode,
+  parentKind?: LayoutNode["kind"],
+): CSSProperties {
   const presentation = node.presentation;
   const shorthand = presentation.size
-    ? layoutSizes[presentation.size]
+    ? layoutImageDimension(presentation.size)
     : undefined;
-  const width = shorthand ?? layoutSizes[presentation.width ?? ""];
-  const height = shorthand ?? layoutSizes[presentation.height ?? ""];
+  const width = shorthand ?? layoutImageDimension(presentation.width);
+  const height = shorthand ?? layoutImageDimension(presentation.height);
+  const stretches = imageUsesAvailableWidth(node, parentKind);
   return {
-    width: width || !height ? "100%" : "auto",
-    height: height ? "100%" : "auto",
+    width: width || stretches ? "100%" : "auto",
+    height: shorthand ? "auto" : height ? "100%" : "auto",
+    aspectRatio: shorthand ? "1 / 1" : undefined,
+    maxWidth: "100%",
     objectFit:
       presentation.fit && imageFits.has(presentation.fit)
         ? (presentation.fit as CSSProperties["objectFit"])
@@ -153,19 +192,32 @@ export function layoutImageStyle(node: LayoutNode): CSSProperties {
   };
 }
 
-export function layoutImageBoundaryStyle(node: LayoutNode): CSSProperties {
+export function layoutImageBoundaryStyle(
+  node: LayoutNode,
+  parentKind?: LayoutNode["kind"],
+): CSSProperties {
   const presentation = node.presentation;
   const shorthand = presentation.size
-    ? layoutSizes[presentation.size]
+    ? layoutImageDimension(presentation.size)
     : undefined;
-  const width = shorthand ?? layoutSizes[presentation.width ?? ""];
-  const height = shorthand ?? layoutSizes[presentation.height ?? ""];
-  const isPositioned = presentation.align && presentation.align !== "stretch";
+  const width = shorthand ?? layoutImageDimension(presentation.width);
+  const height = shorthand ?? layoutImageDimension(presentation.height);
+  const stretches = imageUsesAvailableWidth(node, parentKind);
+  const inlineIntrinsic = parentKind === "inline" || parentKind === "wrap";
+  const padding = layoutSpacing[presentation.padding ?? "none"] ?? "0";
   return {
     width:
       width ??
-      (height ? undefined : isPositioned ? "min(100%, 20rem)" : "100%"),
-    height,
+      (height
+        ? undefined
+        : stretches
+          ? "100%"
+          : inlineIntrinsic
+            ? undefined
+            : "fit-content"),
+    height: shorthand ? undefined : height,
+    boxSizing: "content-box",
+    maxWidth: padding === "0" ? "100%" : `calc(100% - (${padding} * 2))`,
   };
 }
 

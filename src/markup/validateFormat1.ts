@@ -8,6 +8,17 @@ import type {
   SourceField,
   SourceNode,
 } from "./model";
+import {
+  conditionComparisons,
+  conditionExpressionSubsumes,
+  conditionPropertyOperands,
+  parseConditionExpression,
+  type ConditionOperand,
+} from "./conditionExpression";
+import {
+  collectConditionProperties,
+  conditionContextHandles,
+} from "./conditionProperties";
 
 type FieldRule = {
   type?: string;
@@ -277,6 +288,11 @@ function valueIsValid(
       /^"?#[0-9a-f]{6}"?$/i.test(raw) ||
       (schema.types.color?.builtInTokens ?? []).includes(value) ||
       handlePattern.test(value)
+    );
+  if (type === "imageDimension")
+    return (
+      (schema.types.imageDimension?.enum ?? []).includes(value) ||
+      /^(?:0|[1-9][0-9]*(?:\.[0-9]+)?|0\.[0-9]+)(?:px|rem)$/.test(value)
     );
   const enumValues = schema.types[type]?.enum?.map(String);
   if (enumValues) return enumValues.includes(value);
@@ -1236,143 +1252,168 @@ function validateConditionsAndPlaceholders(
   diagnostics: PackageDiagnostic[],
   options: PackageValidationOptions,
 ) {
-  const properties = new Map<
-    string,
-    "boolean" | "integer" | "string" | "unknown"
-  >([
-    ["gauntlet", "boolean"],
-    ["rank", "integer"],
-    ["count", "integer"],
-    ["gender", "string"],
-    ["age", "integer"],
-  ]);
-  for (const { node, parent } of entries.filter(
-    ({ node }) => node.kind === "grant",
-  )) {
-    const kind = unquote(
-      node.fields.find((field) => field.name === "kind")?.value ?? "",
-    );
-    const handle = node.fields.find((field) => field.name === "handle");
-    if (kind === "property" && handle) {
-      const literal = node.fields.find(
-        (field) => field.name === "value",
-      )?.value;
-      const selection = unquote(
-        parent?.fields.find((field) => field.name === "selection")?.value ?? "",
-      );
-      const propertyType = literal
-        ? literal.startsWith('"')
-          ? "string"
-          : literal === "true" || literal === "false"
-            ? "boolean"
-            : integerPattern.test(literal)
-              ? "integer"
-              : "unknown"
-        : selection === "integer"
-          ? "integer"
-          : selection === "toggle"
-            ? "boolean"
-            : ["text", "select"].includes(selection)
-              ? "string"
-              : "unknown";
-      properties.set(unquote(handle.value), propertyType);
-    }
-  }
+  const propertyCatalog = collectConditionProperties(entries);
+  const globalProperties = new Map(
+    propertyCatalog
+      .filter((property) => property.category !== "context")
+      .map((property) => [property.handle, property.type]),
+  );
   const severity = options.profile === "editor" ? "warning" : "error";
+  const rangeWithinCondition = (
+    sourceField: SourceField,
+    from: number,
+    to: number,
+  ) => {
+    const conditionRange = sourceField.conditionRange ?? sourceField.range;
+    return {
+      ...conditionRange,
+      column: conditionRange.column + from,
+      from: conditionRange.from + from,
+      to: conditionRange.from + Math.max(from + 1, to),
+    };
+  };
+  const operandType = (
+    properties: ReadonlyMap<string, string>,
+    operand: ConditionOperand,
+  ) =>
+    operand.kind === "property"
+      ? properties.get(operand.handle)
+      : operand.valueType;
   for (const { node, parent } of entries) {
+    const properties = new Map(globalProperties);
+    for (const handle of conditionContextHandles(node, parent))
+      properties.set(handle, "integer");
+    const variantOccurrences = new Map<string, number>();
+    const baseOccurrences = new Map<string, number>();
+    const priorConditions = new Map<
+      string,
+      {
+        source: string;
+        expression: NonNullable<
+          ReturnType<typeof parseConditionExpression>["expression"]
+        >;
+      }[]
+    >();
     for (const sourceField of node.fields) {
       if (sourceField.condition) {
-        const withoutStrings = sourceField.condition.replace(
-          /"(?:\\.|[^"\\])*"/g,
-          "",
+        const variantOccurrence = variantOccurrences.get(sourceField.name) ?? 0;
+        variantOccurrences.set(sourceField.name, variantOccurrence + 1);
+        const baseOccurrence = Math.max(
+          0,
+          (baseOccurrences.get(sourceField.name) ?? 0) - 1,
         );
-        let depth = 0;
-        let balanced = true;
-        for (const character of withoutStrings) {
-          if (character === "(") depth += 1;
-          else if (character === ")") depth -= 1;
-          if (depth < 0) balanced = false;
-        }
-        balanced = balanced && depth === 0;
-        if (
-          !balanced ||
-          /[^\s\w()!<>=.-]/.test(withoutStrings) ||
-          /\b(?!and\b|or\b)[a-z_]\w*\s*\(/i.test(withoutStrings)
-        ) {
+        const target = {
+          ...fieldTarget(node, sourceField, variantOccurrence),
+          baseOccurrence,
+          variantOccurrence,
+          part: "condition" as const,
+        };
+        const parsed = parseConditionExpression(sourceField.condition);
+        if (!parsed.expression) {
+          const firstError = parsed.errors[0] ?? {
+            from: 0,
+            to: sourceField.condition.length,
+          };
           diagnostics.push({
             code: "condition.syntax",
             severity: "error",
             messageKey: "diagnostics.condition.syntax",
             parameters: { condition: sourceField.condition },
-            range: sourceField.conditionRange ?? sourceField.range,
-            target: {
-              ...fieldTarget(
-                node,
-                sourceField,
-                node.fields
-                  .filter((field) => field.name === sourceField.name)
-                  .indexOf(sourceField),
-              ),
-              part: "condition",
-            },
+            range: rangeWithinCondition(
+              sourceField,
+              firstError.from,
+              firstError.to,
+            ),
+            target,
           });
-        }
-        const identifiers = withoutStrings.match(/[a-z_][a-z0-9_]*/gi) ?? [];
-        for (const identifier of new Set(identifiers)) {
-          if (["and", "or", "true", "false"].includes(identifier)) continue;
-          if (properties.has(identifier)) continue;
-          diagnostics.push({
-            code: "condition.property.unresolved",
-            severity,
-            messageKey: "diagnostics.condition.property.unresolved",
-            parameters: { property: identifier },
-            range: sourceField.conditionRange ?? sourceField.range,
-            target: {
-              ...fieldTarget(
-                node,
-                sourceField,
-                node.fields
-                  .filter((field) => field.name === sourceField.name)
-                  .indexOf(sourceField),
-              ),
-              part: "condition",
-            },
-          });
-        }
-        for (const comparison of sourceField.condition.matchAll(
-          /\b([a-z_][a-z0-9_]*)\s*(=|!=|<=|>=|<|>)\s*("(?:\\.|[^"\\])*"|-?(?:0|[1-9][0-9]*)|true|false)(?=\s|$|\))/gi,
-        )) {
-          const [, property, operator, literal] = comparison;
-          const propertyType = properties.get(property);
-          if (!propertyType || propertyType === "unknown") continue;
-          const literalType = literal.startsWith('"')
-            ? "string"
-            : literal === "true" || literal === "false"
-              ? "boolean"
-              : "integer";
-          if (
-            propertyType !== literalType ||
-            (["<", "<=", ">", ">="].includes(operator) &&
-              propertyType !== "integer")
-          )
+        } else {
+          for (const operand of conditionPropertyOperands(parsed.expression)) {
+            if (properties.has(operand.handle)) continue;
             diagnostics.push({
-              code: "condition.type",
-              severity: "error",
-              messageKey: "diagnostics.condition.type",
-              parameters: { property, propertyType, literalType, operator },
-              range: sourceField.conditionRange ?? sourceField.range,
-              target: {
-                ...fieldTarget(
-                  node,
-                  sourceField,
-                  node.fields
-                    .filter((field) => field.name === sourceField.name)
-                    .indexOf(sourceField),
-                ),
-                part: "condition",
-              },
+              code: "condition.property.unresolved",
+              severity,
+              messageKey: "diagnostics.condition.property.unresolved",
+              parameters: { property: operand.handle },
+              range: rangeWithinCondition(
+                sourceField,
+                operand.from,
+                operand.to,
+              ),
+              target,
             });
+          }
+          for (const comparison of conditionComparisons(parsed.expression)) {
+            const propertyOperand =
+              comparison.left.kind === "property"
+                ? comparison.left
+                : comparison.right.kind === "property"
+                  ? comparison.right
+                  : undefined;
+            if (!propertyOperand) continue;
+            const propertyType = properties.get(propertyOperand.handle);
+            const comparedType =
+              comparison.left === propertyOperand
+                ? operandType(properties, comparison.right)
+                : operandType(properties, comparison.left);
+            if (
+              !propertyType ||
+              !comparedType ||
+              propertyType === "unknown" ||
+              comparedType === "unknown"
+            )
+              continue;
+            if (
+              propertyType !== comparedType ||
+              (["<", "<=", ">", ">="].includes(comparison.operator) &&
+                propertyType !== "integer")
+            ) {
+              diagnostics.push({
+                code: "condition.type",
+                severity: "error",
+                messageKey: "diagnostics.condition.type",
+                parameters: {
+                  property: propertyOperand.handle,
+                  propertyType,
+                  literalType: comparedType,
+                  operator: comparison.operator,
+                },
+                range: rangeWithinCondition(
+                  sourceField,
+                  comparison.from,
+                  comparison.to,
+                ),
+                target,
+              });
+            }
+          }
+          const conditionGroup = `${sourceField.name}:${baseOccurrence}`;
+          const prior = priorConditions.get(conditionGroup) ?? [];
+          const shadowing = prior.find((candidate) =>
+            conditionExpressionSubsumes(
+              candidate.expression,
+              parsed.expression!,
+            ),
+          );
+          if (shadowing)
+            diagnostics.push({
+              code: "condition.shadowed",
+              severity: "warning",
+              messageKey: "diagnostics.condition.shadowed",
+              parameters: { condition: shadowing.source },
+              range: sourceField.conditionRange ?? sourceField.range,
+              target,
+            });
+          prior.push({
+            source: sourceField.condition,
+            expression: parsed.expression,
+          });
+          priorConditions.set(conditionGroup, prior);
         }
+      } else {
+        baseOccurrences.set(
+          sourceField.name,
+          (baseOccurrences.get(sourceField.name) ?? 0) + 1,
+        );
       }
       const type = fieldRules(node, parent)[sourceField.name]?.type;
       const allowsPlaceholders =

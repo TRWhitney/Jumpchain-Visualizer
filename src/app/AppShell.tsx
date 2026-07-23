@@ -1081,7 +1081,7 @@ function AppShellContent() {
 
         <main
           ref={mainRef}
-          className="app-mock-views app-primary-views"
+          className={`app-mock-views app-primary-views${knownEditor ? " is-editor-workspace" : ""}`}
           hidden={route.kind === "settings" && !settingsBackgroundPath}
           inert={route.kind === "settings" || deletionTarget ? true : undefined}
           aria-hidden={

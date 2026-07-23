@@ -50,7 +50,10 @@ export type ApplicationSettings = {
     theme: ThemePreference;
     accentColor: string;
   };
-  accessibility: { motion: MotionPreference };
+  accessibility: {
+    motion: MotionPreference;
+    imageAltTextHover: boolean;
+  };
   developer: {
     showMockData: boolean;
     showAdditionalJumpInformation: boolean;
@@ -61,6 +64,7 @@ export type ApplicationSettings = {
     saveMode: "autosave" | "explicit";
     warnMissingImageAlt: boolean;
     warnMissingLayoutTargets: boolean;
+    permanentlyDeleteSidebarItems: boolean;
   };
   chain: {
     allowMultiplePackageVersions: boolean;
@@ -132,7 +136,7 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
     language: { tag: "en" },
     appearance: { theme: "system", accentColor: "#d4af37" },
-    accessibility: { motion: "system" },
+    accessibility: { motion: "system", imageAltTextHover: true },
     developer: {
       showMockData: false,
       showAdditionalJumpInformation: false,
@@ -144,6 +148,7 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
       saveMode: "autosave",
       warnMissingImageAlt: true,
       warnMissingLayoutTargets: true,
+      permanentlyDeleteSidebarItems: false,
     },
     chain: {
       allowMultiplePackageVersions: false,
@@ -312,6 +317,10 @@ export function hydrateSettings(
         ["system", "reduced", "full"] as const,
         fallback.accessibility.motion,
       ),
+      imageAltTextHover: bool(
+        accessibility.imageAltTextHover,
+        fallback.accessibility.imageAltTextHover,
+      ),
     },
     developer: {
       showMockData: bool(
@@ -344,6 +353,10 @@ export function hydrateSettings(
       warnMissingLayoutTargets: bool(
         editor.warnMissingLayoutTargets,
         fallback.editor.warnMissingLayoutTargets,
+      ),
+      permanentlyDeleteSidebarItems: bool(
+        editor.permanentlyDeleteSidebarItems,
+        fallback.editor.permanentlyDeleteSidebarItems,
       ),
     },
     chain: {

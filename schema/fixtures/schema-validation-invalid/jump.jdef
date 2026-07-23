@@ -16,3 +16,12 @@ choice
   name: "Example"
   selection: toggle
   selection: integer
+
+section-layout
+  handle: invalid_image
+
+  stack
+    image
+      target: missing_image
+      width: gigantic
+      text-align: center

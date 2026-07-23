@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { Format1LanguageService } from "./languageService";
 import { createStarterWorkspace } from "./model";
 import {
+  permanentlyDeleteAsset,
+  permanentlyDeleteDeclaration,
   restoreAsset,
   restoreDeclaration,
   trashAsset,
@@ -45,6 +47,20 @@ describe("Editor trash commands", () => {
     expect(service.analyze(restored.value).symbols).toContainEqual(
       expect.objectContaining({ kind: "section", handle: "introduction" }),
     );
+  });
+
+  it("permanently removes a top-level declaration without creating recovery data", () => {
+    const workspace = createStarterWorkspace("delete-declaration");
+    const section = service
+      .analyze(workspace.files)
+      .symbols.find((symbol) => symbol.kind === "section")!;
+    const removed = permanentlyDeleteDeclaration(workspace.files, section);
+    expect(removed.changed).toBe(true);
+    if (!removed.changed) return;
+    expect(service.analyze(removed.value).symbols).not.toContainEqual(
+      expect.objectContaining({ kind: "section", handle: "introduction" }),
+    );
+    expect(Object.keys(removed.value)).toEqual(Object.keys(workspace.files));
   });
 
   it("rejects nested declarations and a missing original file", () => {
@@ -98,5 +114,26 @@ describe("Editor trash commands", () => {
         trashed.value.entry,
       ),
     ).toEqual({ changed: false, reason: "collision" });
+  });
+
+  it("permanently removes only the selected asset", () => {
+    const first = Uint8Array.from([1]);
+    const second = Uint8Array.from([2]);
+    expect(
+      permanentlyDeleteAsset(
+        {
+          "assets/first.png": first,
+          "assets/second.png": second,
+        },
+        "assets/first.png",
+      ),
+    ).toEqual({
+      changed: true,
+      value: { "assets/second.png": second },
+    });
+    expect(permanentlyDeleteAsset({}, "assets/missing.png")).toEqual({
+      changed: false,
+      reason: "missing-target",
+    });
   });
 });

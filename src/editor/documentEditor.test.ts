@@ -13,6 +13,7 @@ import {
   readConditionalSourceFields,
   readSourceField,
   setConditionalDocumentField,
+  moveConditionalDocumentField,
   setDocumentField,
   removeDocumentDeclaration,
   resolveDocumentSymbol,
@@ -264,7 +265,7 @@ describe("Format 1 structured document edits", () => {
   });
 
   it("updates one conditional value and condition by their exact ranges", () => {
-    const conditional = `${source}\ntext\n  handle: premise\n  content: "Base"\n  content when actor.level > 2: "Advanced"\n`;
+    const conditional = `${source}\ntext\n  handle: premise\n  content: "Base"\n  content when actor_level > 2: "Advanced"\n`;
     const files = { "jump.jdef": conditional };
     const text = service
       .analyze(files)
@@ -274,19 +275,19 @@ describe("Format 1 structured document edits", () => {
       text,
       "content",
       0,
-      "actor.level > 3",
+      "actor_level > 3",
       "Expert",
     );
 
     expect(changed.files["jump.jdef"]).toBe(
       conditional.replace(
-        'content when actor.level > 2: "Advanced"',
-        'content when actor.level > 3: "Expert"',
+        'content when actor_level > 2: "Advanced"',
+        'content when actor_level > 3: "Expert"',
       ),
     );
     expect(
       readConditionalSourceFields(changed.files["jump.jdef"], text, "content"),
-    ).toEqual([{ condition: "actor.level > 3", value: "Expert" }]);
+    ).toEqual([{ condition: "actor_level > 3", value: "Expert" }]);
   });
 
   it("associates repeated option variants with the selected base occurrence", () => {
@@ -323,6 +324,54 @@ describe("Format 1 structured document edits", () => {
         value: "Conditional first",
       },
     ]);
+  });
+
+  it("appends and reorders conditional variants within their base occurrence", () => {
+    const conditional = `${source}\nchoice\n  handle: select\n  name: "Select"\n  selection: select\n  option: "First"\n  option when tier >= 2: "First two"\n  option when tier >= 4: "First four"\n  option: "Second"\n  option when enabled: "Second enabled"\n`;
+    const files = { "jump.jdef": conditional };
+    const choice = service
+      .analyze(files)
+      .symbols.find(
+        (symbol) => symbol.kind === "choice" && symbol.handle === "select",
+      )!;
+    const added = setConditionalDocumentField(
+      files,
+      choice,
+      "option",
+      3,
+      "tier >= 6",
+      "First six",
+      0,
+    );
+    expect(added.files["jump.jdef"]).toContain(
+      'option when tier >= 4: "First four"\n  option when tier >= 6: "First six"\n  option: "Second"',
+    );
+    const moved = moveConditionalDocumentField(
+      added.files,
+      choice,
+      "option",
+      2,
+      "up",
+    );
+    expect(moved.files["jump.jdef"]).toContain(
+      'option when tier >= 6: "First six"\n  option when tier >= 4: "First four"',
+    );
+    expect(
+      moveConditionalDocumentField(moved.files, choice, "option", 0, "up")
+        .changed,
+    ).toBe(false);
+    const cleared = setConditionalDocumentField(
+      moved.files,
+      choice,
+      "option",
+      0,
+      "",
+      "Needs repair",
+    );
+    expect(cleared.files["jump.jdef"]).toContain(
+      'option when : "Needs repair"',
+    );
+    expect(cleared.files["jump.jdef"]).not.toContain("option when true");
   });
 
   it("replaces a fenced rich-text extent without leaving its old fence", () => {

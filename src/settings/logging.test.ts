@@ -104,6 +104,32 @@ describe("session event pipeline", () => {
     ).toBe(false);
   });
 
+  it.each([
+    "unsupported_type",
+    "file_too_large",
+    "invalid_path",
+    "duplicate_path",
+    "signature_mismatch",
+    "decode_failed",
+    "png_integrity",
+    "trailing_data",
+    "geometry_limit",
+    "dimension_mismatch",
+    "read_failed",
+    "validation_failed",
+  ])("keeps the %s asset rejection notification specific", (reason) => {
+    vi.useFakeTimers();
+    const { pipeline } = createPipeline();
+    pipeline.emit(`editor.asset.rejected.${reason}`);
+    vi.advanceTimersByTime(500);
+    expect(pipeline.toastSnapshot()).toMatchObject([
+      {
+        messageKey: `logging.editor_asset_rejected_${reason}`,
+        dedupeKey: `validation:editor-asset-rejected-${reason}`,
+      },
+    ]);
+  });
+
   it("carries actions through the shared toast lifecycle", () => {
     vi.useFakeTimers();
     const { pipeline } = createPipeline();

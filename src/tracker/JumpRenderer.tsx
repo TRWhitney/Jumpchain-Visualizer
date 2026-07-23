@@ -28,6 +28,7 @@ import { NumberStepper } from "./NumberStepper";
 import { resolveJumpImageSource, type JumpAssetResolver } from "./jumpImages";
 import { sourceOptionGroupName } from "./sourceOptionGroup";
 import { translate } from "../localization";
+import { useOptionalSettings } from "../settings/SettingsContext";
 import {
   layoutContainerPresentationStyle,
   layoutImageBoundaryStyle,
@@ -39,6 +40,30 @@ import {
 
 const label = (value: Renderable | undefined, fallback = "") =>
   value?.base ?? value?.variants[0]?.value ?? fallback;
+
+export function RenderedJumpImage({
+  source,
+  alternativeText,
+  style,
+}: {
+  source: string;
+  alternativeText: string;
+  style?: CSSProperties;
+}) {
+  const settingsContext = useOptionalSettings();
+  const showAltTextOnHover =
+    settingsContext?.settings.accessibility.imageAltTextHover ?? true;
+  return (
+    <>
+      <img src={source} alt={alternativeText} style={style} />
+      {alternativeText && showAltTextOnHover && (
+        <span className="jump-image-alt-tooltip" role="tooltip">
+          {alternativeText}
+        </span>
+      )}
+    </>
+  );
+}
 
 function RichInlines({ values }: { values: readonly RichInline[] }) {
   return values.map((value, index) => {
@@ -1000,7 +1025,9 @@ function LayoutLeafBoundary({
       data-layout-text-align={node.presentation.textAlign}
       style={{
         ...layoutLeafPresentationStyle(node, packageItem, parentKind),
-        ...(node.kind === "image" ? layoutImageBoundaryStyle(node) : {}),
+        ...(node.kind === "image"
+          ? layoutImageBoundaryStyle(node, parentKind)
+          : {}),
       }}
     >
       {children}
@@ -1150,10 +1177,10 @@ function Layout({
     const source = resolveJumpImageSource(item.src, props.resolveAsset);
     return source
       ? bound(
-          <img
-            src={source}
-            alt={label(item.alt)}
-            style={layoutImageStyle(node)}
+          <RenderedJumpImage
+            source={source}
+            alternativeText={resolved(item.alt, props)}
+            style={layoutImageStyle(node, parentKind)}
           />,
         )
       : null;
@@ -1391,10 +1418,10 @@ function TraitLayoutNode({
     const source = resolveJumpImageSource(item.src, props.resolveAsset);
     return source
       ? bound(
-          <img
-            src={source}
-            alt={resolved(item.alt, props)}
-            style={layoutImageStyle(node)}
+          <RenderedJumpImage
+            source={source}
+            alternativeText={resolved(item.alt, props)}
+            style={layoutImageStyle(node, parentKind)}
           />,
         )
       : null;
@@ -1523,7 +1550,12 @@ export function JumpImageRendererScope({
   const source = resolveJumpImageSource(image.src, rendererProps.resolveAsset);
   return source ? (
     <article className="jump-image-preview">
-      <img src={source} alt={label(image.alt)} />
+      <span className="jump-image-preview-content">
+        <RenderedJumpImage
+          source={source}
+          alternativeText={resolved(image.alt, rendererProps)}
+        />
+      </span>
     </article>
   ) : null;
 }

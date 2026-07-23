@@ -52,6 +52,10 @@
     },
     "spacing": { "enum": ["none", "xs", "sm", "md", "lg", "xl", "2xl"] },
     "size": { "enum": ["xs", "sm", "md", "lg", "xl", "2xl"] },
+    "imageDimension": {
+      "enum": ["xs", "sm", "md", "lg", "xl", "2xl"],
+      "syntax": "a named size token, a non-negative pixel length, or a non-negative rem length"
+    },
     "align": { "enum": ["start", "center", "end", "stretch"] },
     "justify": { "enum": ["start", "center", "end", "between"] },
     "textAlign": { "enum": ["start", "center", "end", "justify"] },
@@ -75,6 +79,12 @@
     "expression": {
       "operators": ["!", "=", "!=", "<", "<=", ">", ">=", "and", "or"],
       "precedence": ["parentheses", "!", "comparisons", "and", "or"],
+      "propertyTypes": ["boolean", "integer", "string"],
+      "orderingTypes": ["integer"],
+      "contextProperties": {
+        "rank": "integer choice or input with a rank-measured visible grant",
+        "count": "integer choice or input with a quantity-measured visible grant"
+      },
       "functionCalls": false,
       "arithmetic": false,
       "coercion": false
@@ -273,6 +283,12 @@
       "text-align": { "type": "textAlign", "min": 0, "max": 1 },
       "text-size": { "type": "size", "min": 0, "max": 1 },
       "text-color": { "type": "color", "min": 0, "max": 1 }
+    },
+    "imageLeafPresentation": {
+      "target": { "type": "handleReference:owner-local-content", "min": 1, "max": 1, "required": true },
+      "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
+      "background": { "type": "color", "min": 0, "max": 1 },
+      "align": { "type": "align", "min": 0, "max": 1 }
     }
   },
   "layoutNodes": {
@@ -291,12 +307,12 @@
     "image": {
       "kind": "leaf",
       "compact": "image: <target>",
-      "blockFields": "contentLeafPresentation",
+      "blockFields": "imageLeafPresentation",
       "targetNamespace": "image",
       "additionalFields": {
-        "size": { "type": "size", "exclusiveWith": ["width", "height"] },
-        "width": { "type": "size", "exclusiveWith": ["size"] },
-        "height": { "type": "size", "exclusiveWith": ["size"] },
+        "size": { "type": "imageDimension", "exclusiveWith": ["width", "height"] },
+        "width": { "type": "imageDimension", "exclusiveWith": ["size"] },
+        "height": { "type": "imageDimension", "exclusiveWith": ["size"] },
         "fit": { "type": "enum", "values": ["contain", "cover"] }
       }
     },

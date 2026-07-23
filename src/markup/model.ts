@@ -13,6 +13,8 @@ export type DiagnosticTarget = {
   declarationFrom: number;
   field?: string;
   occurrence?: number;
+  baseOccurrence?: number;
+  variantOccurrence?: number;
   part?: "declaration" | "name" | "value" | "condition";
 };
 

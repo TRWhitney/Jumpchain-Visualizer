@@ -38,6 +38,17 @@ export type EventDefinition = {
   notification?: EventNotification;
 };
 
+const assetRejectionDefinition = (reason: string): EventDefinition => ({
+  severity: "warn",
+  category: "editor",
+  attributes: [],
+  notification: {
+    class: "validation",
+    messageKey: `logging.editor_asset_rejected_${reason}`,
+    dedupeKey: `editor-asset-rejected-${reason}`,
+  },
+});
+
 export const eventCatalog: Record<string, EventDefinition> = {
   "app.started": {
     severity: "info",
@@ -265,16 +276,29 @@ export const eventCatalog: Record<string, EventDefinition> = {
       dedupeKey: "editor-asset-added",
     },
   },
-  "editor.asset.rejected": {
-    severity: "warn",
-    category: "editor",
-    attributes: [],
-    notification: {
-      class: "validation",
-      messageKey: "logging.editor_asset_rejected",
-      dedupeKey: "editor-asset-rejected",
-    },
-  },
+  "editor.asset.rejected.unsupported_type":
+    assetRejectionDefinition("unsupported_type"),
+  "editor.asset.rejected.file_too_large":
+    assetRejectionDefinition("file_too_large"),
+  "editor.asset.rejected.invalid_path":
+    assetRejectionDefinition("invalid_path"),
+  "editor.asset.rejected.duplicate_path":
+    assetRejectionDefinition("duplicate_path"),
+  "editor.asset.rejected.signature_mismatch":
+    assetRejectionDefinition("signature_mismatch"),
+  "editor.asset.rejected.decode_failed":
+    assetRejectionDefinition("decode_failed"),
+  "editor.asset.rejected.png_integrity":
+    assetRejectionDefinition("png_integrity"),
+  "editor.asset.rejected.trailing_data":
+    assetRejectionDefinition("trailing_data"),
+  "editor.asset.rejected.geometry_limit":
+    assetRejectionDefinition("geometry_limit"),
+  "editor.asset.rejected.dimension_mismatch":
+    assetRejectionDefinition("dimension_mismatch"),
+  "editor.asset.rejected.read_failed": assetRejectionDefinition("read_failed"),
+  "editor.asset.rejected.validation_failed":
+    assetRejectionDefinition("validation_failed"),
   "editor.asset.removed": {
     severity: "info",
     category: "editor",

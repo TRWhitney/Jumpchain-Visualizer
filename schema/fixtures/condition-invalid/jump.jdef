@@ -1,0 +1,34 @@
+jump
+  format: 1
+  name: "Invalid Conditions"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: introduction
+  name: "Introduction"
+
+  choice-source
+    handle: conditions
+    group: conditions
+    mode: multi
+
+  text
+    handle: body
+    content: "Base content"
+    content when tier >= 2: "Broad tier"
+    content when tier >= 4: "Shadowed tier"
+    content when gender >= 2: "Wrong type"
+    content when missing_property: "Unknown property"
+    content when tier + 1: "Invalid expression"
+
+choice
+  handle: tier_control
+  name: "Tier"
+  group: conditions
+  selection: integer
+  min: 0
+  max: 5
+  grant
+    kind: property
+    handle: tier

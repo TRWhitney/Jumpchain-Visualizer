@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -13,7 +14,13 @@ import {
   type Ref,
 } from "react";
 import { flushSync } from "react-dom";
-import { packageIsValid, type PackageDiagnostic } from "../markup";
+import {
+  conditionContextHandles,
+  conditionNodeEntries,
+  conditionPropertyCatalog,
+  packageIsValid,
+  type PackageDiagnostic,
+} from "../markup";
 import {
   inspectPackageAsset,
   validatePackageAsset,
@@ -51,6 +58,7 @@ import {
   fieldDefinition,
   fieldValues,
   insertDocumentChild,
+  moveConditionalDocumentField,
   moveDocumentChild,
   removeDocumentDeclaration,
   removeDocumentFields,
@@ -75,6 +83,7 @@ import {
   layoutNodeForPath,
   layoutNodeIsContainer,
   layoutNodeSourceSelection,
+  layoutSelectionKey,
   layoutRootKinds,
   layoutSlotTargets,
   moveLayoutNode,
@@ -97,6 +106,8 @@ import {
   normalizeFormat1HexColor,
 } from "../markup/format1Colors";
 import { ColorFieldControl, type EditorColorChoice } from "./ColorFieldControl";
+import { ImageDimensionFieldControl } from "./ImageDimensionFieldControl";
+import { ConditionalVariants } from "./ConditionalVariants";
 import { useAssetObjectUrl } from "../tracker/useAssetObjectUrls";
 import { ConfirmationDialog } from "../ui";
 import {
@@ -112,11 +123,18 @@ import {
   type AssetTreeEntry,
 } from "./assetPaths";
 import {
+  permanentlyDeleteAsset,
+  permanentlyDeleteDeclaration,
   restoreAsset,
   restoreDeclaration,
   trashAsset,
   trashDeclaration,
 } from "./trash";
+import {
+  assetImportRejectionEvent,
+  assetPathRejectionReason,
+  assetValidationRejectionReason,
+} from "./assetImportFeedback";
 
 type SaveState = "Saved" | "Saving" | "Unsaved" | "Save failed";
 type NavigationTab = "content" | "files";
@@ -151,6 +169,10 @@ type ExplorerContextMenuState = ExplorerContextTarget & {
   x: number;
   y: number;
 };
+type PermanentRemovalTarget =
+  | { kind: "trash"; id: string; label: string }
+  | { kind: "symbol"; symbol: FormatSymbol; label: string }
+  | { kind: "asset"; path: string; label: string };
 
 const service = new Format1LanguageService();
 let fallbackTrashId = 0;
@@ -212,6 +234,14 @@ function ThemeColorPreview({ value }: { value: string }) {
       })}
       style={{ backgroundColor: color }}
     />
+  );
+}
+
+function BreadcrumbSeparator() {
+  return (
+    <span className="editor-breadcrumb-separator" aria-hidden="true">
+      ›
+    </span>
   );
 }
 
@@ -308,6 +338,7 @@ function AssetExplorerEntries({
 
 function TrashExplorerEntries({
   entries,
+  hideWhenEmpty,
   selectedTrashId,
   groupId,
   expanded,
@@ -317,6 +348,7 @@ function TrashExplorerEntries({
   onContext,
 }: {
   entries: readonly EditorTrashEntry[];
+  hideWhenEmpty: boolean;
   selectedTrashId: string | null;
   groupId: string;
   expanded: boolean;
@@ -325,6 +357,7 @@ function TrashExplorerEntries({
   onOpen: (entry: EditorTrashEntry) => void;
   onContext: (entry: EditorTrashEntry, event: ReactMouseEvent) => void;
 }) {
+  if (hideWhenEmpty && entries.length === 0) return null;
   return (
     <ExplorerDisclosure
       className="editor-trash-group"
@@ -563,9 +596,8 @@ export function EditorWorkspace({
   const [expandedExplorerGroups, setExpandedExplorerGroups] = useState<
     Record<string, boolean>
   >({});
-  const [permanentTrashRemoval, setPermanentTrashRemoval] = useState<
-    string | null
-  >(null);
+  const [permanentRemoval, setPermanentRemoval] =
+    useState<PermanentRemovalTarget | null>(null);
   const [file, setFile] = useState(
     Object.keys(workspace.files).includes("jump.jdef")
       ? "jump.jdef"
@@ -590,6 +622,9 @@ export function EditorWorkspace({
   const [sourceCursor, setSourceCursor] = useState(0);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [structuredFocus, setStructuredFocus] = useState<string | null>(null);
+  const [activeLayoutContainers, setActiveLayoutContainers] = useState<
+    Record<string, string>
+  >({});
   const [structuredAnnouncement, setStructuredAnnouncement] = useState("");
   const [resourceCreation, setResourceCreation] = useState<{
     owner: FormatSymbol;
@@ -725,6 +760,23 @@ export function EditorWorkspace({
   const resolvedSelectedSymbol = selectedSymbol
     ? resolveDocumentSymbol(analysis.symbols, selectedSymbol)
     : null;
+  const activeLayoutSelectionKey =
+    resolvedSelectedSymbol &&
+    ["section-layout", "choice-layout", "trait-layout"].includes(
+      resolvedSelectedSymbol.kind,
+    )
+      ? layoutSelectionKey(resolvedSelectedSymbol)
+      : null;
+  const rememberActiveLayoutContainer = useCallback(
+    (selectionKey: string, path: string) => {
+      setActiveLayoutContainers((current) =>
+        current[selectionKey] === path
+          ? current
+          : { ...current, [selectionKey]: path },
+      );
+    },
+    [],
+  );
   const previewSelection =
     navigationTab === "content" && resolvedSelectedSymbol && !selectedAsset
       ? previewSelectionForSymbol(workspace.files, resolvedSelectedSymbol)
@@ -1234,31 +1286,91 @@ export function EditorWorkspace({
     );
   };
 
-  const permanentlyDeleteTrashEntry = (entry: EditorTrashEntry) => {
-    const nextTrash = workspace.trash.filter(
-      (candidate) => candidate.id !== entry.id,
-    );
+  const commitPermanentRemoval = (
+    nextFiles: Record<string, string>,
+    nextAssets: Record<string, Uint8Array>,
+    nextTrash: EditorTrashEntry[],
+    item: string,
+  ) => {
     const nextHistory = [
-      { files: workspace.files, assets: workspace.assets, trash: nextTrash },
+      { files: nextFiles, assets: nextAssets, trash: nextTrash },
     ];
     historyRef.current = nextHistory;
     historyIndexRef.current = 0;
     setHistory(nextHistory);
     setHistoryIndex(0);
     setSelectedTrashId(null);
-    setPermanentTrashRemoval(null);
+    setSelectedAsset(null);
+    setSelectedSymbol(null);
+    setSelected({ kind: "package" });
+    setPermanentRemoval(null);
     setExplorerContextMenu(null);
     onChange({
       ...workspace,
+      files: nextFiles,
+      assets: nextAssets,
       trash: nextTrash,
       updatedAt: new Date().toISOString(),
       revision: workspace.revision + 1,
     });
     setStructuredAnnouncement(
       translate("ui.editorWorkspace.announcement.permanentlyDeleted", {
-        item: entry.label,
+        item,
       }),
     );
+  };
+
+  const permanentlyDeleteTrashEntry = (entry: EditorTrashEntry) => {
+    const nextTrash = workspace.trash.filter(
+      (candidate) => candidate.id !== entry.id,
+    );
+    commitPermanentRemoval(
+      workspace.files,
+      workspace.assets,
+      nextTrash,
+      entry.label,
+    );
+  };
+
+  const permanentlyDeleteLiveSymbol = (symbol: FormatSymbol) => {
+    const removed = permanentlyDeleteDeclaration(workspace.files, symbol);
+    if (!removed.changed) {
+      setPermanentRemoval(null);
+      return;
+    }
+    commitPermanentRemoval(
+      removed.value,
+      workspace.assets,
+      workspace.trash,
+      explorerSymbolLabel(symbol),
+    );
+  };
+
+  const permanentlyDeleteLiveAsset = (path: string) => {
+    const removed = permanentlyDeleteAsset(workspace.assets, path);
+    if (!removed.changed) {
+      setPermanentRemoval(null);
+      return;
+    }
+    commitPermanentRemoval(
+      workspace.files,
+      removed.value,
+      workspace.trash,
+      assetBasename(path),
+    );
+  };
+
+  const confirmPermanentRemoval = () => {
+    if (!permanentRemoval) return;
+    if (permanentRemoval.kind === "trash") {
+      const entry = workspace.trash.find(
+        (candidate) => candidate.id === permanentRemoval.id,
+      );
+      if (entry) permanentlyDeleteTrashEntry(entry);
+      else setPermanentRemoval(null);
+    } else if (permanentRemoval.kind === "symbol")
+      permanentlyDeleteLiveSymbol(permanentRemoval.symbol);
+    else permanentlyDeleteLiveAsset(permanentRemoval.path);
   };
 
   const inspectLayoutBound = (bound: LayoutBoundHover) => {
@@ -1341,18 +1453,34 @@ export function EditorWorkspace({
       effectivePackageSizeLimits(settings.developer).maxAssetFileMiB *
       1024 *
       1024;
-    if (!extension || !allowed.includes(extension) || candidate.size > limit) {
-      onFeedback("editor.asset.rejected");
+    if (!extension || !allowed.includes(extension)) {
+      onFeedback(assetImportRejectionEvent("unsupported_type"));
       return;
     }
+    if (candidate.size > limit) {
+      onFeedback(assetImportRejectionEvent("file_too_large"));
+      return;
+    }
+    let bytes: Uint8Array;
     try {
-      const bytes = new Uint8Array(await candidate.arrayBuffer());
-      const safeName = candidate.name.replaceAll(/[^a-zA-Z0-9._-]/g, "_");
-      if (validateAssetRelativePath(safeName, Object.keys(workspace.assets))) {
-        onFeedback("editor.asset.rejected");
-        return;
-      }
-      const path = assetArchivePath(safeName);
+      bytes = new Uint8Array(await candidate.arrayBuffer());
+    } catch {
+      onFeedback(assetImportRejectionEvent("read_failed"));
+      return;
+    }
+    const safeName = candidate.name.replaceAll(/[^a-zA-Z0-9._-]/g, "_");
+    const pathValidation = validateAssetRelativePath(
+      safeName,
+      Object.keys(workspace.assets),
+    );
+    if (pathValidation) {
+      onFeedback(
+        assetImportRejectionEvent(assetPathRejectionReason(pathValidation)),
+      );
+      return;
+    }
+    const path = assetArchivePath(safeName);
+    try {
       await validatePackageAsset(path, bytes);
       const changed = commitWorkspace(workspace.files, {
         ...workspace.assets,
@@ -1360,8 +1488,10 @@ export function EditorWorkspace({
       });
       if (changed) openContentAsset(path);
       onFeedback("editor.asset.added");
-    } catch {
-      onFeedback("editor.asset.rejected");
+    } catch (error) {
+      onFeedback(
+        assetImportRejectionEvent(assetValidationRejectionReason(error)),
+      );
     }
   };
 
@@ -1733,6 +1863,7 @@ export function EditorWorkspace({
               })()}
               <TrashExplorerEntries
                 entries={workspace.trash}
+                hideWhenEmpty={settings.editor.permanentlyDeleteSidebarItems}
                 selectedTrashId={selectedTrashId}
                 groupId="content:trash"
                 expanded={isExplorerGroupExpanded("content:trash")}
@@ -1802,6 +1933,7 @@ export function EditorWorkspace({
               </ExplorerDisclosure>
               <TrashExplorerEntries
                 entries={workspace.trash}
+                hideWhenEmpty={settings.editor.permanentlyDeleteSidebarItems}
                 selectedTrashId={selectedTrashId}
                 groupId="files:trash"
                 expanded={isExplorerGroupExpanded("files:trash")}
@@ -1886,6 +2018,13 @@ export function EditorWorkspace({
                 assets={archiveAssetPaths.map(assetRelativePath)}
                 focusField={structuredFocus}
                 layoutInspectionRef={layoutInspectionRef}
+                activeLayoutContainerPath={
+                  activeLayoutSelectionKey
+                    ? (activeLayoutContainers[activeLayoutSelectionKey] ?? null)
+                    : null
+                }
+                activeLayoutSelectionKey={activeLayoutSelectionKey}
+                onActiveLayoutContainerChange={rememberActiveLayoutContainer}
                 returnTarget={structuredReturnTarget}
                 onOpenSymbol={openSymbol}
                 onOpenPackage={() => {
@@ -2020,6 +2159,16 @@ export function EditorWorkspace({
                     condition,
                     value,
                     baseOccurrence,
+                  );
+                  if (result.changed) commitFiles(result.files);
+                }}
+                onMoveVariant={(symbol, field, occurrence, direction) => {
+                  const result = moveConditionalDocumentField(
+                    workspace.files,
+                    symbol,
+                    field,
+                    occurrence,
+                    direction,
                   );
                   if (result.changed) commitFiles(result.files);
                 }}
@@ -2808,12 +2957,30 @@ export function EditorWorkspace({
                 role="menuitem"
                 className="is-danger"
                 onClick={() => {
-                  if (explorerContextMenu.kind === "symbol")
-                    moveSymbolToTrash(explorerContextMenu.symbol);
-                  else if (explorerContextMenu.kind === "asset")
-                    moveAssetToTrash(explorerContextMenu.path);
-                  else {
-                    setPermanentTrashRemoval(explorerContextMenu.entry.id);
+                  if (explorerContextMenu.kind === "symbol") {
+                    if (settings.editor.permanentlyDeleteSidebarItems) {
+                      setPermanentRemoval({
+                        kind: "symbol",
+                        symbol: explorerContextMenu.symbol,
+                        label: explorerSymbolLabel(explorerContextMenu.symbol),
+                      });
+                      setExplorerContextMenu(null);
+                    } else moveSymbolToTrash(explorerContextMenu.symbol);
+                  } else if (explorerContextMenu.kind === "asset") {
+                    if (settings.editor.permanentlyDeleteSidebarItems) {
+                      setPermanentRemoval({
+                        kind: "asset",
+                        path: explorerContextMenu.path,
+                        label: assetBasename(explorerContextMenu.path),
+                      });
+                      setExplorerContextMenu(null);
+                    } else moveAssetToTrash(explorerContextMenu.path);
+                  } else {
+                    setPermanentRemoval({
+                      kind: "trash",
+                      id: explorerContextMenu.entry.id,
+                      label: explorerContextMenu.entry.label,
+                    });
                     setExplorerContextMenu(null);
                   }
                 }}
@@ -2848,27 +3015,20 @@ export function EditorWorkspace({
           }}
         />
       )}
-      {permanentTrashRemoval &&
-        (() => {
-          const entry = workspace.trash.find(
-            (candidate) => candidate.id === permanentTrashRemoval,
-          );
-          return entry ? (
-            <ConfirmationDialog
-              application
-              title={translate(
-                "ui.editorWorkspace.trash.permanentDeleteHeading",
-                { item: entry.label },
-              )}
-              confirmLabel={translate("ui.editorWorkspace.trash.deleteForever")}
-              cancelLabel={translate("ui.editorWorkspace.text.cancel")}
-              onCancel={() => setPermanentTrashRemoval(null)}
-              onConfirm={() => permanentlyDeleteTrashEntry(entry)}
-            >
-              {translate("ui.editorWorkspace.trash.permanentDeleteDescription")}
-            </ConfirmationDialog>
-          ) : null;
-        })()}
+      {permanentRemoval && (
+        <ConfirmationDialog
+          application
+          title={translate("ui.editorWorkspace.trash.permanentDeleteHeading", {
+            item: permanentRemoval.label,
+          })}
+          confirmLabel={translate("ui.editorWorkspace.trash.deleteForever")}
+          cancelLabel={translate("ui.editorWorkspace.text.cancel")}
+          onCancel={() => setPermanentRemoval(null)}
+          onConfirm={confirmPermanentRemoval}
+        >
+          {translate("ui.editorWorkspace.trash.permanentDeleteDescription")}
+        </ConfirmationDialog>
+      )}
     </div>
   );
 }
@@ -3032,6 +3192,22 @@ function LayoutNodeFields({
                     </option>
                   ))}
                 </select>
+              ) : definition.type === "imageDimension" ? (
+                <ImageDimensionFieldControl
+                  label={fieldLabel}
+                  value={value}
+                  tokens={options}
+                  ariaInvalid={matchingDiagnostics.length > 0}
+                  ariaDescribedBy={
+                    matchingDiagnostics.length
+                      ? `${listId}-diagnostics`
+                      : undefined
+                  }
+                  onChange={(nextValue) =>
+                    onUpdate(symbol, fieldName, nextValue)
+                  }
+                  onBlur={onEndFieldEdit}
+                />
               ) : options.length &&
                 [
                   "enum",
@@ -3281,6 +3457,9 @@ function LayoutTreeEditor({
   onApply,
   onEndFieldEdit,
   inspectionRef,
+  activeContainerPath,
+  selectionKey,
+  onActiveContainerChange,
 }: {
   assets: readonly string[];
   diagnostics: readonly PackageDiagnostic[];
@@ -3294,6 +3473,9 @@ function LayoutTreeEditor({
   ) => void;
   onEndFieldEdit: () => void;
   inspectionRef: Ref<LayoutInspectionHandle>;
+  activeContainerPath: string | null;
+  selectionKey: string | null;
+  onActiveContainerChange: (selectionKey: string, path: string) => void;
 }) {
   const tree = useMemo(
     () => createLayoutEditorTree(files, layout),
@@ -3363,10 +3545,8 @@ function LayoutTreeEditor({
     [tree],
   );
 
-  if (!tree) return null;
-
   const resolve = (reference: LayoutNodeRef | null) =>
-    reference
+    tree && reference
       ? Object.values(tree.nodes).find(
           (node) =>
             node.file === reference.file &&
@@ -3375,8 +3555,23 @@ function LayoutTreeEditor({
             node.compact === reference.compact,
         )
       : undefined;
-  const root = tree.rootId ? tree.nodes[tree.rootId] : undefined;
-  const selected = resolve(selectedContainer) ?? root;
+  const root = tree?.rootId ? tree.nodes[tree.rootId] : undefined;
+  const rememberedContainer =
+    tree && activeContainerPath
+      ? layoutNodeForPath(tree, activeContainerPath)
+      : undefined;
+  const selected =
+    resolve(selectedContainer) ??
+    (rememberedContainer?.container ? rememberedContainer : undefined) ??
+    root;
+  const selectedPath = selected?.path;
+  useEffect(() => {
+    if (selectionKey && selectedPath)
+      onActiveContainerChange(selectionKey, selectedPath);
+  }, [onActiveContainerChange, selectedPath, selectionKey]);
+
+  if (!tree) return null;
+
   const selectedRef = selected ? layoutNodeReference(selected) : null;
   const edited = resolve(editingNode);
   const selectActiveContainer = (node: LayoutEditorNode) => {
@@ -4539,6 +4734,9 @@ function StructuredPanel({
   assets,
   focusField,
   layoutInspectionRef,
+  activeLayoutContainerPath,
+  activeLayoutSelectionKey,
+  onActiveLayoutContainerChange,
   returnTarget,
   onUpdate,
   onLayoutEdit,
@@ -4552,6 +4750,7 @@ function StructuredPanel({
   onRemoveInvalidField,
   onMoveChild,
   onUpdateVariant,
+  onMoveVariant,
   onEndFieldEdit,
 }: {
   packageName: string;
@@ -4561,6 +4760,9 @@ function StructuredPanel({
   assets: readonly string[];
   focusField: string | null;
   layoutInspectionRef: Ref<LayoutInspectionHandle>;
+  activeLayoutContainerPath: string | null;
+  activeLayoutSelectionKey: string | null;
+  onActiveLayoutContainerChange: (selectionKey: string, path: string) => void;
   returnTarget: FormatSymbol | null;
   onUpdate: (
     symbol: FormatSymbol,
@@ -4599,6 +4801,12 @@ function StructuredPanel({
     value: string,
     baseOccurrence?: number,
   ) => void;
+  onMoveVariant: (
+    symbol: FormatSymbol,
+    field: string,
+    occurrence: number,
+    direction: "up" | "down",
+  ) => void;
 }) {
   const source = symbol ? files[symbol.file].slice(symbol.from, symbol.to) : "";
   const field = (name: string) =>
@@ -4634,7 +4842,11 @@ function StructuredPanel({
     (item) => !identityFields.includes(item),
   );
   const childKinds = resolvedContext?.childKinds ?? [];
-  const symbols = service.analyze(files).symbols;
+  const structuredAnalysis = service.analyze(files);
+  const symbols = structuredAnalysis.symbols;
+  const allConditionProperties = conditionPropertyCatalog(
+    structuredAnalysis.parsed,
+  );
   const jumpSymbol = symbols.find((candidate) => candidate.kind === "jump");
   const jumpField = (name: string) =>
     jumpSymbol ? readSourceField(files[jumpSymbol.file], jumpSymbol, name) : "";
@@ -4662,6 +4874,20 @@ function StructuredPanel({
       field("selection") === "integer" &&
       directGrants.length === 1 &&
       ["perk", "item"].includes(directGrants[0]));
+  const conditionEntry = conditionNodeEntries(structuredAnalysis.parsed).find(
+    ({ node }) =>
+      node.kind === symbol.kind &&
+      node.range.file === symbol.file &&
+      node.range.from === symbol.from,
+  );
+  const contextualConditionHandles = conditionEntry
+    ? conditionContextHandles(conditionEntry.node, conditionEntry.parent)
+    : [];
+  const conditionProperties = allConditionProperties.filter(
+    (property) =>
+      property.category !== "context" ||
+      contextualConditionHandles.some((handle) => handle === property.handle),
+  );
   const renderField = (fieldName: string) => {
     const definition =
       resolvedContext?.fields[fieldName] ??
@@ -4749,6 +4975,7 @@ function StructuredPanel({
                 diagnostic.target?.file === symbol.file &&
                 diagnostic.target.declarationFrom === symbol.from &&
                 diagnostic.target.field === fieldName &&
+                diagnostic.target.part !== "condition" &&
                 (diagnostic.target.occurrence ?? 0) === occurrence,
             );
             const fieldSeverity = (["error", "warning", "info"] as const).find(
@@ -4852,6 +5079,19 @@ function StructuredPanel({
                         </option>
                       ))}
                     </select>
+                  ) : definition?.type === "imageDimension" ? (
+                    <ImageDimensionFieldControl
+                      label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      value={value}
+                      tokens={enumValues}
+                      autoFocus={fieldName === focusField && occurrence === 0}
+                      ariaInvalid={matchingDiagnostics.length > 0}
+                      ariaDescribedBy={diagnosticId}
+                      onChange={(nextValue) =>
+                        onUpdate(symbol, fieldName, nextValue, occurrence)
+                      }
+                      onBlur={onEndFieldEdit}
+                    />
                   ) : enumValues.length > 0 &&
                     [
                       "enum",
@@ -5046,7 +5286,7 @@ function StructuredPanel({
           </button>
         )}
         {definition?.conditionalVariants && (
-          <div className="editor-conditional-variants">
+          <>
             {(definition.repeatable
               ? displayed.map((_, occurrence) => occurrence)
               : [0]
@@ -5066,89 +5306,35 @@ function StructuredPanel({
                     )}
                   </strong>
                 )}
-                {variants
-                  .filter(
-                    (variant) => variant.baseOccurrence === baseOccurrence,
-                  )
-                  .map((variant) => (
-                    <div key={`${fieldName}:variant:${variant.occurrence}`}>
-                      <label>
-                        <span>{translate("ui.editorWorkspace.text.when")}</span>
-                        <input
-                          spellCheck={false}
-                          value={variant.condition}
-                          onChange={(event) =>
-                            onUpdateVariant(
-                              symbol,
-                              fieldName,
-                              variant.occurrence,
-                              event.target.value,
-                              variant.value,
-                            )
-                          }
-                          onBlur={onEndFieldEdit}
-                        />
-                      </label>
-                      <label>
-                        <span>
-                          {translate("ui.editorWorkspace.text.value")}
-                        </span>
-                        <input
-                          spellCheck
-                          value={variant.value}
-                          onChange={(event) =>
-                            onUpdateVariant(
-                              symbol,
-                              fieldName,
-                              variant.occurrence,
-                              variant.condition,
-                              event.target.value,
-                            )
-                          }
-                          onBlur={onEndFieldEdit}
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        aria-label={translate(
-                          "ui.editorWorkspace.ariaLabel.removeConditionalVariant",
-                          {
-                            field: fieldName,
-                            occurrence: variant.occurrence + 1,
-                          },
-                        )}
-                        onClick={() =>
-                          onUpdateVariant(
-                            symbol,
-                            fieldName,
-                            variant.occurrence,
-                            "",
-                            "",
-                          )
-                        }
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                <button
-                  type="button"
-                  onClick={() =>
+                <ConditionalVariants
+                  fieldName={fieldName}
+                  baseOccurrence={baseOccurrence}
+                  variants={variants}
+                  fieldType={definition.type}
+                  properties={conditionProperties}
+                  diagnostics={diagnostics.filter(
+                    (diagnostic) =>
+                      diagnostic.target?.file === symbol.file &&
+                      diagnostic.target.declarationFrom === symbol.from,
+                  )}
+                  onUpdate={(occurrence, condition, value, associatedBase) =>
                     onUpdateVariant(
                       symbol,
                       fieldName,
-                      variants.length,
-                      "true",
-                      "",
-                      baseOccurrence,
+                      occurrence,
+                      condition,
+                      value,
+                      associatedBase,
                     )
                   }
-                >
-                  {translate("ui.editorWorkspace.text.addConditionalVariant")}
-                </button>
+                  onMove={(occurrence, direction) =>
+                    onMoveVariant(symbol, fieldName, occurrence, direction)
+                  }
+                  onEndFieldEdit={onEndFieldEdit}
+                />
               </div>
             ))}
-          </div>
+          </>
         )}
       </div>
     );
@@ -5194,7 +5380,7 @@ function StructuredPanel({
                 declaration: explorerSymbolLabel(returnTarget),
               })}
             </button>
-            <span>›</span>
+            <BreadcrumbSeparator />
           </>
         )}
         <button type="button" onClick={onOpenPackage}>
@@ -5203,18 +5389,18 @@ function StructuredPanel({
         {resolvedContext?.ancestors
           .filter((ancestor) => ancestor.kind !== "jump")
           .map((ancestor) => (
-            <span key={`${ancestor.file}:${ancestor.from}`}>
-              <span>›</span>
+            <Fragment key={`${ancestor.file}:${ancestor.from}`}>
+              <BreadcrumbSeparator />
               <button type="button" onClick={() => onOpenSymbol(ancestor)}>
                 {explorerSymbolLabel(ancestor)}
               </button>
-            </span>
+            </Fragment>
           ))}
-        <span>›</span>
+        <BreadcrumbSeparator />
         <span>{symbol.kind.replaceAll("-", " ")}</span>
         {handle && (
           <>
-            <span>›</span>
+            <BreadcrumbSeparator />
             <strong>{handle}</strong>
           </>
         )}
@@ -5264,6 +5450,9 @@ function StructuredPanel({
           onApply={onLayoutEdit}
           onEndFieldEdit={onEndFieldEdit}
           inspectionRef={layoutInspectionRef}
+          activeContainerPath={activeLayoutContainerPath}
+          selectionKey={activeLayoutSelectionKey}
+          onActiveContainerChange={onActiveLayoutContainerChange}
         />
       ) : (
         detailFields.length > 0 &&

@@ -114,6 +114,13 @@
                 <td>System follows <code>prefers-reduced-motion</code>; Reduced suppresses nonessential motion; Full explicitly enables the normal motion profile.</td>
               </tr>
               <tr>
+                <td><code>accessibility.imageAltTextHover</code></td>
+                <td><code>true</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Editor and Chain Tracker</td>
+                <td>Controls the visual alternative-text overlay shown when rendered images are hovered. Disabling it does not remove authored alternative text or the image's native accessibility semantics.</td>
+              </tr>
+              <tr>
                 <td><code>editor.saveMode</code></td>
                 <td><code>autosave</code></td>
                 <td><code>autosave</code>, <code>explicit</code></td>
@@ -133,6 +140,13 @@
                 <td><code>true</code>, <code>false</code></td>
                 <td>Editor</td>
                 <td>Authors may suppress warnings for typed layout leaves absent from some content; missing targets remain valid and collapse at runtime.</td>
+              </tr>
+              <tr>
+                <td><code>editor.permanentlyDeleteSidebarItems</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Editor</td>
+                <td>When enabled, right-click Delete uses the shared permanent-deletion confirmation instead of moving declarations and assets to Trash. Empty Trash groups are hidden while this preference is enabled; existing trashed items remain recoverable.</td>
               </tr>
               <tr>
                 <td><code>chain.allowMultiplePackageVersions</code></td>
@@ -294,6 +308,7 @@
                 <button type="button" data-settings-search-entry data-settings-search-text="saving save autosave explicit persistence editor" data-settings-category="editor" data-settings-focus="mock-save-mode"><span><strong>Saving</strong><small><code>editor.saveMode</code> · Editor</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="editor image alt alternative text accessibility warning missing suppress" data-settings-category="editor" data-settings-focus="mock-warn-missing-alt"><span><strong>Missing image alt warning</strong><small><code>editor.warnMissingImageAlt</code> · Editor</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="editor layout missing absent target reusable warning suppress text image input" data-settings-category="editor" data-settings-focus="mock-warn-missing-layout-targets"><span><strong>Missing layout target warning</strong><small><code>editor.warnMissingLayoutTargets</code> · Editor</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="editor sidebar right click delete permanent confirmation trash remove" data-settings-category="editor" data-settings-focus="mock-permanent-sidebar-delete"><span><strong>Sidebar item deletion</strong><small><code>editor.permanentlyDeleteSidebarItems</code> · Editor</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="chain add second package version multiple parallel installed jumps" data-settings-category="chain" data-settings-focus="mock-multiple-package-versions"><span><strong>Add another package version</strong><small><code>chain.allowMultiplePackageVersions</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="chain add same exact jump package duplicate repeat again" data-settings-category="chain" data-settings-focus="mock-duplicate-jumps"><span><strong>Allow duplicate jumps</strong><small><code>chain.allowDuplicateJumps</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="chain negative point balance overspend over budget currency companion jumper choices" data-settings-category="chain" data-settings-focus="mock-negative-point-balances"><span><strong>Negative point balances</strong><small><code>chain.allowNegativePointBalances</code> · Chain Tracker</small></span><span aria-hidden="true">→</span></button>
@@ -306,6 +321,7 @@
                 <button type="button" data-settings-search-entry data-settings-search-text="tags tag profile category parent aliases relationships badges colors gradients presentation import export json acquired content" data-settings-category="tags" data-settings-focus="tag-profile-search"><span><strong>Tag profile</strong><small><code>tags.profile</code> · Tags</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="keyboard key bindings shortcuts quick add quick fix find format all completions overrides" data-settings-category="keys"><span><strong>Key bindings</strong><small><code>keybindings.overrides</code> · Key bindings</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="motion animation reduced full system accessibility" data-settings-category="accessibility" data-settings-focus="mock-motion"><span><strong>Motion</strong><small><code>accessibility.motion</code> · Accessibility</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="image alt alternative text hover tooltip preview editor chain tracker accessibility" data-settings-category="accessibility" data-settings-focus="mock-image-alt-text-hover"><span><strong>Alt text hover for images</strong><small><code>accessibility.imageAltTextHover</code> · Accessibility</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="developer logs logging viewer stack trace crash report copy save debug session export clear" data-settings-category="developer" data-settings-focus="developer-logs-tab"><span><strong>Session logs</strong><small>Developer → Logs</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="developer jump package format additional information" data-settings-category="developer" data-settings-focus="mock-additional-jump-information"><span><strong>Show additional Jump information</strong><small><code>developer.showAdditionalJumpInformation</code> · Developer</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="developer editor open project folder desktop filesystem external files" data-settings-category="developer" data-settings-focus="mock-open-project-folder"><span><strong>Show Open Project Folder</strong><small><code>developer.showOpenProjectFolder</code> · Developer</small></span><span aria-hidden="true">→</span></button>
@@ -344,7 +360,11 @@
                 <div><label for="mock-warn-missing-layout-targets">Missing layout target warning</label><p>Warn when reusable layouts name content absent from a particular owner.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-warn-missing-layout-targets"><input id="mock-warn-missing-layout-targets" type="checkbox" checked><span>Show missing-target warning</span></label></div>
               </div>
-              <div class="setting-explanation">Autosave remains the default. Explicit mode exposes Save and requires leave confirmation for unresolved changes. Disabling either warning changes diagnostics only; it does not alter package content or rendering. Missing typed layout targets remain valid and collapse at runtime.</div>
+              <div class="setting-row">
+                <div><label for="mock-permanent-sidebar-delete">Sidebar item deletion</label><p>Choose whether right-click Delete moves sidebar items to Trash or permanently removes them after confirmation.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-permanent-sidebar-delete"><input id="mock-permanent-sidebar-delete" type="checkbox"><span>Permanently delete sidebar items</span></label></div>
+              </div>
+              <div class="setting-explanation">Autosave remains the default. Explicit mode exposes Save and requires leave confirmation for unresolved changes. Warning controls affect diagnostics only. Permanent sidebar deletion is off by default, always confirms, and hides Trash only while it is empty.</div>
             </section>
 
             <section id="settings-chain-panel" role="tabpanel" aria-labelledby="settings-chain-tab" hidden>
@@ -552,6 +572,10 @@
               <div class="setting-row">
                 <div><label for="mock-motion">Motion</label><p>Control nonessential interface animation.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><select id="mock-motion"><option>Use system setting</option><option>Reduce motion</option><option>Full motion</option></select></div>
+              </div>
+              <div class="setting-row">
+                <div><label for="mock-image-alt-text-hover">Alt text hover for images</label><p>Show authored alternative text when hovering images in Editor previews and Chain Tracker. Images retain their accessibility text when this is off.</p></div>
+                <div><label class="setting-check" for="mock-image-alt-text-hover"><input id="mock-image-alt-text-hover" type="checkbox" checked><span>Show alt text on hover</span></label></div>
               </div>
               <div class="setting-explanation">Reduced motion removes or shortens nonessential animation without hiding state changes or progress feedback.</div>
             </section>

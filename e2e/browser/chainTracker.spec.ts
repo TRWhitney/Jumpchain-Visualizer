@@ -4,7 +4,8 @@ import {
   type Locator,
   type Page,
   type TestInfo,
-} from "@playwright/test";
+} from "./support/fixtures";
+import { shouldCaptureReviewArtifacts } from "./support/reviewArtifacts";
 
 test.describe.configure({ timeout: 60_000 });
 
@@ -21,7 +22,7 @@ async function attachScreenshot(
   name: string,
   locator: Locator,
 ) {
-  if (testInfo.project.name !== "chromium") return;
+  if (!shouldCaptureReviewArtifacts(testInfo)) return;
   await testInfo.attach(name, {
     body: await locator.screenshot(),
     contentType: "image/png",
@@ -62,27 +63,31 @@ async function holdAssetAfterFirstResponse(page: Page, url: string) {
   return release;
 }
 
-test("renders one three-Jump Morgan chain and its evaluator-derived totals", async ({
-  page,
-}, testInfo) => {
-  const tracker = trackerFor(page);
-  await expect(tracker.locator(".chain-jump-entry")).toHaveCount(4);
-  await expect(tracker.locator(".chain-rail-panel > header strong")).toHaveText(
-    "3 Jumps",
-  );
-  await expect(tracker.getByRole("button", { name: /^Earth/ })).toContainText(
-    "The Beginning",
-  );
-  await expect(tracker.getByRole("tab", { name: /^Forms/ })).toContainText("1");
-  await expect(tracker.getByRole("tab", { name: /^Companions/ })).toContainText(
-    "4",
-  );
-  const inventoryText = await tracker
-    .getByRole("tab", { name: /^Inventory/ })
-    .textContent();
-  expect(Number(inventoryText?.match(/\d+/)?.[0])).toBe(27);
-  await attachScreenshot(testInfo, "morgan-three-jump-chain", tracker);
-});
+test(
+  "renders one three-Jump Morgan chain and its evaluator-derived totals",
+  { tag: "@smoke" },
+  async ({ page }, testInfo) => {
+    const tracker = trackerFor(page);
+    await expect(tracker.locator(".chain-jump-entry")).toHaveCount(4);
+    await expect(
+      tracker.locator(".chain-rail-panel > header strong"),
+    ).toHaveText("3 Jumps");
+    await expect(tracker.getByRole("button", { name: /^Earth/ })).toContainText(
+      "The Beginning",
+    );
+    await expect(tracker.getByRole("tab", { name: /^Forms/ })).toContainText(
+      "1",
+    );
+    await expect(
+      tracker.getByRole("tab", { name: /^Companions/ }),
+    ).toContainText("4");
+    const inventoryText = await tracker
+      .getByRole("tab", { name: /^Inventory/ })
+      .textContent();
+    expect(Number(inventoryText?.match(/\d+/)?.[0])).toBe(27);
+    await attachScreenshot(testInfo, "morgan-three-jump-chain", tracker);
+  },
+);
 
 test("the Library contains exactly the three canonical packages", async ({
   page,
@@ -140,93 +145,96 @@ test("renders and captures every canonical Format 1 Jump", async ({
   await expect(tracker.getByText(/Gauntlet · Jump 3 of 3/)).toBeVisible();
 });
 
-test("an image Jump switches atomically after its images decode", async ({
-  page,
-}, testInfo) => {
-  const tracker = trackerFor(page);
-  await tracker.getByRole("button", { name: /^Earth/ }).click();
-  await expect(
-    tracker.locator(
-      ".chain-jump-workspace:not(.is-atomic-stage) .chain-context-header h3",
-    ),
-  ).toHaveText("Earth");
-  const releaseImage = await holdAssetResponse(
-    page,
-    "**/assets/confluence-engine.svg",
-  );
-
-  await tracker
-    .getByRole("button", { name: /2\. The Confluence Engine/ })
-    .click();
-  const activeWorkspace = tracker.locator(
-    ".chain-jump-workspace:not(.is-atomic-stage)",
-  );
-  const stagedWorkspace = tracker.locator(
-    ".chain-jump-workspace.is-atomic-stage",
-  );
-  await expect(
-    activeWorkspace.getByRole("heading", { name: "Earth", level: 3 }),
-  ).toBeVisible();
-  await expect(stagedWorkspace.locator("h3")).toHaveText(
-    "The Confluence Engine",
-  );
-  await expect(stagedWorkspace).toHaveAttribute("aria-hidden", "true");
-  const stagedImage = stagedWorkspace
-    .locator(
-      '.format-one-jump-renderer img[src="/assets/confluence-engine.svg"]',
-    )
-    .first();
-  expect(
-    await stagedImage.evaluate((element: HTMLImageElement) => element.complete),
-  ).toBe(false);
-  const stagedImageElement = await stagedImage.elementHandle();
-  expect(stagedImageElement).not.toBeNull();
-  await page.waitForTimeout(150);
-  await attachScreenshot(
-    testInfo,
-    "image-jump-held-until-decode",
-    tracker.locator(".atomic-jump-switcher"),
-  );
-
-  releaseImage();
-  await expect(
-    activeWorkspace.getByRole("heading", {
-      name: "The Confluence Engine",
-      level: 3,
-    }),
-  ).toBeVisible();
-  const image = activeWorkspace
-    .locator(
-      '.format-one-jump-renderer img[src="/assets/confluence-engine.svg"]',
-    )
-    .first();
-  await expect
-    .poll(() =>
-      image.evaluate(
-        (element: HTMLImageElement) =>
-          element.complete && element.naturalWidth > 0,
+test(
+  "an image Jump switches atomically after its images decode",
+  { tag: "@cross-browser" },
+  async ({ page }, testInfo) => {
+    const tracker = trackerFor(page);
+    await tracker.getByRole("button", { name: /^Earth/ }).click();
+    await expect(
+      tracker.locator(
+        ".chain-jump-workspace:not(.is-atomic-stage) .chain-context-header h3",
       ),
-    )
-    .toBe(true);
-  expect(
-    await stagedImageElement!.evaluate(
-      (element: HTMLImageElement) =>
-        element.isConnected &&
-        element.complete &&
-        element.naturalWidth > 0 &&
-        !element
-          .closest(".chain-jump-workspace")
-          ?.classList.contains("is-atomic-stage"),
-    ),
-  ).toBe(true);
-  await expect(stagedWorkspace).toHaveCount(0);
-  await image.scrollIntoViewIfNeeded();
-  await attachScreenshot(
-    testInfo,
-    "image-jump-revealed-after-decode",
-    tracker.locator(".atomic-jump-switcher"),
-  );
-});
+    ).toHaveText("Earth");
+    const releaseImage = await holdAssetResponse(
+      page,
+      "**/assets/confluence-engine.svg",
+    );
+
+    await tracker
+      .getByRole("button", { name: /2\. The Confluence Engine/ })
+      .click();
+    const activeWorkspace = tracker.locator(
+      ".chain-jump-workspace:not(.is-atomic-stage)",
+    );
+    const stagedWorkspace = tracker.locator(
+      ".chain-jump-workspace.is-atomic-stage",
+    );
+    await expect(
+      activeWorkspace.getByRole("heading", { name: "Earth", level: 3 }),
+    ).toBeVisible();
+    await expect(stagedWorkspace.locator("h3")).toHaveText(
+      "The Confluence Engine",
+    );
+    await expect(stagedWorkspace).toHaveAttribute("aria-hidden", "true");
+    const stagedImage = stagedWorkspace
+      .locator(
+        '.format-one-jump-renderer img[src="/assets/confluence-engine.svg"]',
+      )
+      .first();
+    expect(
+      await stagedImage.evaluate(
+        (element: HTMLImageElement) => element.complete,
+      ),
+    ).toBe(false);
+    const stagedImageElement = await stagedImage.elementHandle();
+    expect(stagedImageElement).not.toBeNull();
+    await attachScreenshot(
+      testInfo,
+      "image-jump-held-until-decode",
+      tracker.locator(".atomic-jump-switcher"),
+    );
+
+    releaseImage();
+    await expect(
+      activeWorkspace.getByRole("heading", {
+        name: "The Confluence Engine",
+        level: 3,
+      }),
+    ).toBeVisible();
+    const image = activeWorkspace
+      .locator(
+        '.format-one-jump-renderer img[src="/assets/confluence-engine.svg"]',
+      )
+      .first();
+    await expect
+      .poll(() =>
+        image.evaluate(
+          (element: HTMLImageElement) =>
+            element.complete && element.naturalWidth > 0,
+        ),
+      )
+      .toBe(true);
+    expect(
+      await stagedImageElement!.evaluate(
+        (element: HTMLImageElement) =>
+          element.isConnected &&
+          element.complete &&
+          element.naturalWidth > 0 &&
+          !element
+            .closest(".chain-jump-workspace")
+            ?.classList.contains("is-atomic-stage"),
+      ),
+    ).toBe(true);
+    await expect(stagedWorkspace).toHaveCount(0);
+    await image.scrollIntoViewIfNeeded();
+    await attachScreenshot(
+      testInfo,
+      "image-jump-revealed-after-decode",
+      tracker.locator(".atomic-jump-switcher"),
+    );
+  },
+);
 
 test("a newer Jump selection cancels a stale staged promotion", async ({
   page,
@@ -262,7 +270,6 @@ test("a newer Jump selection cancels a stale staged promotion", async ({
     "Threshold of a Thousand Roads",
   );
   releaseImage();
-  await page.waitForTimeout(100);
   await expect(activeWorkspace.locator(".chain-context-header h3")).toHaveText(
     "Threshold of a Thousand Roads",
   );
@@ -878,53 +885,55 @@ test("the imported companion is selectable only in the funded Last Trial", async
   await attachScreenshot(testInfo, "imported-companion-actor-state", tracker);
 });
 
-test("dragging a Jump exposes the accent insertion line and reorders through the shared undo toast", async ({
-  page,
-}, testInfo) => {
-  const tracker = trackerFor(page);
-  const source = tracker.locator(".chain-jump-entry").filter({
-    hasText: "The Last Trial",
-  });
-  const target = tracker.locator(".chain-jump-entry").filter({
-    hasText: "The Confluence Engine",
-  });
-  const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
-  await source.dispatchEvent("dragstart", { dataTransfer });
-  const targetBox = await target.boundingBox();
-  expect(targetBox).not.toBeNull();
-  await target.dispatchEvent("dragover", {
-    dataTransfer,
-    clientY: targetBox!.y + 2,
-  });
-  await expect(target).toHaveClass(/is-drop-before/);
-  expect(
-    await target.evaluate((element) => {
-      const style = getComputedStyle(element, "::before");
-      return [style.height, style.backgroundColor];
-    }),
-  ).not.toEqual(["0px", "rgba(0, 0, 0, 0)"]);
-  await attachScreenshot(
-    testInfo,
-    "chain-drag-accent-insertion-line",
-    tracker.locator(".chain-rail-panel"),
-  );
-  await source.dispatchEvent("dragend", { dataTransfer });
+test(
+  "dragging a Jump exposes the accent insertion line and reorders through the shared undo toast",
+  { tag: "@cross-browser" },
+  async ({ page }, testInfo) => {
+    const tracker = trackerFor(page);
+    const source = tracker.locator(".chain-jump-entry").filter({
+      hasText: "The Last Trial",
+    });
+    const target = tracker.locator(".chain-jump-entry").filter({
+      hasText: "The Confluence Engine",
+    });
+    const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+    await source.dispatchEvent("dragstart", { dataTransfer });
+    const targetBox = await target.boundingBox();
+    expect(targetBox).not.toBeNull();
+    await target.dispatchEvent("dragover", {
+      dataTransfer,
+      clientY: targetBox!.y + 2,
+    });
+    await expect(target).toHaveClass(/is-drop-before/);
+    expect(
+      await target.evaluate((element) => {
+        const style = getComputedStyle(element, "::before");
+        return [style.height, style.backgroundColor];
+      }),
+    ).not.toEqual(["0px", "rgba(0, 0, 0, 0)"]);
+    await attachScreenshot(
+      testInfo,
+      "chain-drag-accent-insertion-line",
+      tracker.locator(".chain-rail-panel"),
+    );
+    await source.dispatchEvent("dragend", { dataTransfer });
 
-  await tracker
-    .getByRole("button", { name: "Move The Last Trial earlier in the chain" })
-    .click();
-  const toast = page.locator(".app-toast-host .app-toast").filter({
-    hasText: "Reorder complete",
-  });
-  await expect(toast).toBeVisible();
-  await expect(toast.getByRole("button", { name: "Undo" })).toBeVisible();
-  await attachScreenshot(
-    testInfo,
-    "reorder-shared-undo-toast",
-    page.locator("body"),
-  );
-  await toast.getByRole("button", { name: "Undo" }).click();
-});
+    await tracker
+      .getByRole("button", { name: "Move The Last Trial earlier in the chain" })
+      .click();
+    const toast = page.locator(".app-toast-host .app-toast").filter({
+      hasText: "Reorder complete",
+    });
+    await expect(toast).toBeVisible();
+    await expect(toast.getByRole("button", { name: "Undo" })).toBeVisible();
+    await attachScreenshot(
+      testInfo,
+      "reorder-shared-undo-toast",
+      page.locator("body"),
+    );
+    await toast.getByRole("button", { name: "Undo" }).click();
+  },
+);
 
 test("a stale canonical demo hash rebinds without losing selections or reaching recovery UI", async ({
   page,

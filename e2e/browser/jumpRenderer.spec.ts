@@ -4,9 +4,10 @@ import {
   type Locator,
   type Page,
   type TestInfo,
-} from "@playwright/test";
+} from "./support/fixtures";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { shouldCaptureReviewArtifacts } from "./support/reviewArtifacts";
 
 test.describe.configure({ timeout: 60_000 });
 
@@ -34,7 +35,7 @@ async function openFreshLastTrial(
 }
 
 async function attach(testInfo: TestInfo, name: string, locator: Locator) {
-  if (testInfo.project.name !== "chromium") return;
+  if (!shouldCaptureReviewArtifacts(testInfo)) return;
   await testInfo.attach(name, {
     body: await locator.screenshot(),
     contentType: "image/png",
@@ -46,7 +47,7 @@ async function attachFullRenderer(
   name: string,
   locator: Locator,
 ) {
-  if (testInfo.project.name !== "chromium") return;
+  if (!shouldCaptureReviewArtifacts(testInfo)) return;
   const captureId = `jump-renderer-capture-${name}`;
   await locator.evaluate(
     (element, { captureId }) => {
@@ -78,46 +79,48 @@ const sourceSection = (tracker: ReturnType<typeof trackerFor>, name: string) =>
     .getByRole("heading", { name, exact: true })
     .locator("xpath=ancestor::section[1]");
 
-test("the Last Trial keeps independent radio sources visibly selected and hand-selectable", async ({
-  page,
-}, testInfo) => {
-  await page.goto("/review/chain-tracker");
-  const tracker = trackerFor(page);
-  await tracker.getByRole("button", { name: /3\. The Last Trial/ }).click();
-  await expect(
-    tracker.getByRole("heading", { name: "The Last Trial" }).first(),
-  ).toBeVisible();
+test(
+  "the Last Trial keeps independent radio sources visibly selected and hand-selectable",
+  { tag: ["@smoke", "@cross-browser"] },
+  async ({ page }, testInfo) => {
+    await page.goto("/review/chain-tracker");
+    const tracker = trackerFor(page);
+    await tracker.getByRole("button", { name: /3\. The Last Trial/ }).click();
+    await expect(
+      tracker.getByRole("heading", { name: "The Last Trial" }).first(),
+    ).toBeVisible();
 
-  const manual = sourceSection(tracker, "Manual Assignment");
-  const random = sourceSection(tracker, "Random Assignment");
-  const either = sourceSection(tracker, "Chosen or Random Assignment");
-  const manualScholar = manual.getByRole("radio", { name: /Scholar/ });
-  const randomScholar = random.getByRole("radio", { name: /Scholar/ });
-  const eitherScholar = either.getByRole("radio", { name: /Scholar/ });
+    const manual = sourceSection(tracker, "Manual Assignment");
+    const random = sourceSection(tracker, "Random Assignment");
+    const either = sourceSection(tracker, "Chosen or Random Assignment");
+    const manualScholar = manual.getByRole("radio", { name: /Scholar/ });
+    const randomScholar = random.getByRole("radio", { name: /Scholar/ });
+    const eitherScholar = either.getByRole("radio", { name: /Scholar/ });
 
-  await expect(manualScholar).toBeChecked();
-  await expect(randomScholar).toBeChecked();
-  await expect(eitherScholar).toBeChecked();
-  expect(
-    new Set(
-      await Promise.all(
-        [manualScholar, randomScholar, eitherScholar].map((radio) =>
-          radio.getAttribute("name"),
+    await expect(manualScholar).toBeChecked();
+    await expect(randomScholar).toBeChecked();
+    await expect(eitherScholar).toBeChecked();
+    expect(
+      new Set(
+        await Promise.all(
+          [manualScholar, randomScholar, eitherScholar].map((radio) =>
+            radio.getAttribute("name"),
+          ),
         ),
-      ),
-    ).size,
-  ).toBe(3);
+      ).size,
+    ).toBe(3);
 
-  const manualWanderer = manual.getByRole("radio", { name: /Wanderer/ });
-  await manualWanderer.click();
-  await expect(manualWanderer).toBeChecked();
-  await expect(manualScholar).not.toBeChecked();
-  await expect(randomScholar).toBeChecked();
-  await expect(eitherScholar).toBeChecked();
-  await attach(testInfo, "manual-radio-selected-after-click", manual);
-  await attach(testInfo, "rolled-radio-remains-selected", random);
-  await attach(testInfo, "either-radio-remains-selected", either);
-});
+    const manualWanderer = manual.getByRole("radio", { name: /Wanderer/ });
+    await manualWanderer.click();
+    await expect(manualWanderer).toBeChecked();
+    await expect(manualScholar).not.toBeChecked();
+    await expect(randomScholar).toBeChecked();
+    await expect(eitherScholar).toBeChecked();
+    await attach(testInfo, "manual-radio-selected-after-click", manual);
+    await attach(testInfo, "rolled-radio-remains-selected", random);
+    await attach(testInfo, "either-radio-remains-selected", either);
+  },
+);
 
 test("negative-balance rejection uses the danger toast in the shared stack", async ({
   page,

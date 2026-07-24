@@ -4,9 +4,17 @@ import {
   type Locator,
   type Page,
   type TestInfo,
-} from "@playwright/test";
+} from "./support/fixtures";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import {
+  captureReviewScreenshot,
+  shouldCaptureReviewArtifacts,
+} from "./support/reviewArtifacts";
+import {
+  waitForStoredChainValue,
+  waitForStoredSetting,
+} from "./support/storedSettings";
 
 const mockArtifactDirectory = join(process.cwd(), "artifacts", "mock-data");
 const accessibilityArtifactDirectory = join(
@@ -20,8 +28,8 @@ async function retainMockScreenshot(
   name: string,
   target: Page | Locator,
 ) {
-  if (testInfo.project.name !== "chromium") return;
-  const body = await target.screenshot({ animations: "disabled" });
+  if (!shouldCaptureReviewArtifacts(testInfo)) return;
+  const body = await captureReviewScreenshot(target);
   await testInfo.attach(name, { body, contentType: "image/png" });
   await mkdir(mockArtifactDirectory, { recursive: true });
   await writeFile(join(mockArtifactDirectory, `${name}.png`), body);
@@ -32,8 +40,8 @@ async function retainAccessibilityScreenshot(
   name: string,
   target: Page | Locator,
 ) {
-  if (testInfo.project.name !== "chromium") return;
-  const body = await target.screenshot({ animations: "disabled" });
+  if (!shouldCaptureReviewArtifacts(testInfo)) return;
+  const body = await captureReviewScreenshot(target);
   await testInfo.attach(name, { body, contentType: "image/png" });
   await mkdir(accessibilityArtifactDirectory, { recursive: true });
   await writeFile(join(accessibilityArtifactDirectory, `${name}.png`), body);
@@ -43,6 +51,7 @@ async function enableMockData(page: Page) {
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("tab", { name: "Developer" }).click();
   await page.getByLabel("Show mock fixtures").check();
+  await waitForStoredSetting(page, ["developer", "showMockData"], true);
   await page.getByRole("button", { name: "Close Settings" }).click();
 }
 
@@ -75,12 +84,14 @@ test("contextual Settings preserves its inert workspace, history, focus, and cat
     "aria-selected",
     "true",
   );
-  await testInfo.attach("settings-reopens-last-category", {
-    body: await page
-      .getByLabel("Application Settings", { exact: true })
-      .screenshot(),
-    contentType: "image/png",
-  });
+  if (shouldCaptureReviewArtifacts(testInfo)) {
+    await testInfo.attach("settings-reopens-last-category", {
+      body: await page
+        .getByLabel("Application Settings", { exact: true })
+        .screenshot(),
+      contentType: "image/png",
+    });
+  }
 
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/$/);
@@ -110,92 +121,98 @@ for (const location of ["/chain", "/chain/ch-92b1"]) {
   });
 }
 
-test("direct Settings is a full destination and preferences persist through IndexedDB", async ({
-  page,
-}, testInfo) => {
-  await page.goto("/settings");
-  await expect(
-    page.getByLabel("Application Settings", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("dialog", { name: "Application Settings" }),
-  ).toHaveCount(0);
-  await expect(page.locator("main.app-primary-views")).toBeHidden();
+test(
+  "direct Settings is a full destination and preferences persist through IndexedDB",
+  { tag: ["@smoke", "@cross-browser"] },
+  async ({ page }, testInfo) => {
+    await page.goto("/settings");
+    await expect(
+      page.getByLabel("Application Settings", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("dialog", { name: "Application Settings" }),
+    ).toHaveCount(0);
+    await expect(page.locator("main.app-primary-views")).toBeHidden();
 
-  await page.getByRole("tab", { name: "Chain Tracker" }).click();
-  const warning = page.getByLabel("Warn about upstream changes");
-  const duplicates = page.getByLabel("Allow duplicate jumps");
-  const itemTags = page.getByLabel("Count item tags");
-  const aggregateSimilar = page.getByLabel("Aggregate similar records");
-  await expect(warning).not.toBeChecked();
-  await expect(duplicates).not.toBeChecked();
-  await expect(itemTags).not.toBeChecked();
-  await expect(aggregateSimilar).toBeChecked();
-  await warning.check();
-  await duplicates.check();
-  await itemTags.check();
-  await aggregateSimilar.uncheck();
-  await testInfo.attach("duplicate-jump-setting", {
-    body: await page
-      .getByLabel("Application Settings", { exact: true })
-      .screenshot(),
-    contentType: "image/png",
-  });
-  await page.waitForFunction(async () => {
-    const request = indexedDB.open("jumpchain-visualizer");
-    const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+    await page.getByRole("tab", { name: "Chain Tracker" }).click();
+    const warning = page.getByLabel("Warn about upstream changes");
+    const duplicates = page.getByLabel("Allow duplicate jumps");
+    const itemTags = page.getByLabel("Count item tags");
+    const aggregateSimilar = page.getByLabel("Aggregate similar records");
+    await expect(warning).not.toBeChecked();
+    await expect(duplicates).not.toBeChecked();
+    await expect(itemTags).not.toBeChecked();
+    await expect(aggregateSimilar).toBeChecked();
+    await warning.check();
+    await duplicates.check();
+    await itemTags.check();
+    await aggregateSimilar.uncheck();
+    if (shouldCaptureReviewArtifacts(testInfo)) {
+      await testInfo.attach("duplicate-jump-setting", {
+        body: await page
+          .getByLabel("Application Settings", { exact: true })
+          .screenshot(),
+        contentType: "image/png",
+      });
+    }
+    await page.waitForFunction(async () => {
+      const request = indexedDB.open("jumpchain-visualizer");
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const transaction = database.transaction("aggregates", "readonly");
+      const read = transaction.objectStore("aggregates").get("settings");
+      const stored = await new Promise<unknown>((resolve, reject) => {
+        read.onsuccess = () => resolve(read.result);
+        read.onerror = () => reject(read.error);
+      });
+      database.close();
+      return Boolean(
+        (
+          stored as {
+            chain?: {
+              warnUpstreamChanges?: boolean;
+              allowDuplicateJumps?: boolean;
+              includeItemTagsInRadar?: boolean;
+              aggregateSimilarInventory?: boolean;
+            };
+          } | null
+        )?.chain?.warnUpstreamChanges &&
+        (stored as { chain?: { allowDuplicateJumps?: boolean } } | null)?.chain
+          ?.allowDuplicateJumps &&
+        (stored as { chain?: { includeItemTagsInRadar?: boolean } } | null)
+          ?.chain?.includeItemTagsInRadar &&
+        (stored as { chain?: { aggregateSimilarInventory?: boolean } } | null)
+          ?.chain?.aggregateSimilarInventory === false,
+      );
     });
-    const transaction = database.transaction("aggregates", "readonly");
-    const read = transaction.objectStore("aggregates").get("settings");
-    const stored = await new Promise<unknown>((resolve, reject) => {
-      read.onsuccess = () => resolve(read.result);
-      read.onerror = () => reject(read.error);
+    await page.reload();
+    await page.getByRole("tab", { name: "Chain Tracker" }).click();
+    await expect(page.getByLabel("Warn about upstream changes")).toBeChecked();
+    await expect(page.getByLabel("Allow duplicate jumps")).toBeChecked();
+    await expect(page.getByLabel("Count item tags")).toBeChecked();
+    await expect(
+      page.getByLabel("Aggregate similar records"),
+    ).not.toBeChecked();
+    await page.getByRole("button", { name: "Reset category" }).click();
+    await expect(
+      page.getByLabel("Warn about upstream changes"),
+    ).not.toBeChecked();
+    await expect(page.getByLabel("Count item tags")).not.toBeChecked();
+    await expect(page.getByLabel("Aggregate similar records")).toBeChecked();
+    await page.getByRole("button", { name: "Reset all settings" }).click();
+    const reset = page.getByRole("alertdialog", {
+      name: "Reset every application setting?",
     });
-    database.close();
-    return Boolean(
-      (
-        stored as {
-          chain?: {
-            warnUpstreamChanges?: boolean;
-            allowDuplicateJumps?: boolean;
-            includeItemTagsInRadar?: boolean;
-            aggregateSimilarInventory?: boolean;
-          };
-        } | null
-      )?.chain?.warnUpstreamChanges &&
-      (stored as { chain?: { allowDuplicateJumps?: boolean } } | null)?.chain
-        ?.allowDuplicateJumps &&
-      (stored as { chain?: { includeItemTagsInRadar?: boolean } } | null)?.chain
-        ?.includeItemTagsInRadar &&
-      (stored as { chain?: { aggregateSimilarInventory?: boolean } } | null)
-        ?.chain?.aggregateSimilarInventory === false,
-    );
-  });
-  await page.reload();
-  await page.getByRole("tab", { name: "Chain Tracker" }).click();
-  await expect(page.getByLabel("Warn about upstream changes")).toBeChecked();
-  await expect(page.getByLabel("Allow duplicate jumps")).toBeChecked();
-  await expect(page.getByLabel("Count item tags")).toBeChecked();
-  await expect(page.getByLabel("Aggregate similar records")).not.toBeChecked();
-  await page.getByRole("button", { name: "Reset category" }).click();
-  await expect(
-    page.getByLabel("Warn about upstream changes"),
-  ).not.toBeChecked();
-  await expect(page.getByLabel("Count item tags")).not.toBeChecked();
-  await expect(page.getByLabel("Aggregate similar records")).toBeChecked();
-  await page.getByRole("button", { name: "Reset all settings" }).click();
-  const reset = page.getByRole("alertdialog", {
-    name: "Reset every application setting?",
-  });
-  await expect(reset).toBeVisible();
-  await reset.getByRole("button", { name: "Cancel" }).click();
-  await expect(reset).toHaveCount(0);
+    await expect(reset).toBeVisible();
+    await reset.getByRole("button", { name: "Cancel" }).click();
+    await expect(reset).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Close Settings" }).click();
-  await expect(page).toHaveURL(/\/$/);
-});
+    await page.getByRole("button", { name: "Close Settings" }).click();
+    await expect(page).toHaveURL(/\/$/);
+  },
+);
 
 test("See Mock Data gates Morgan and the explicit Mock Library source", async ({
   page,
@@ -265,14 +282,18 @@ test("See Mock Data gates Morgan and the explicit Mock Library source", async ({
     page.getByRole("heading", { name: "User Journey" }),
   ).toBeVisible();
 
-  const dismissNotification = page.getByRole("button", {
-    name: "Dismiss notification",
-  });
+  const dismissNotification = page
+    .getByRole("article")
+    .filter({ hasText: "Chain created." })
+    .getByRole("button", { name: "Dismiss notification" });
   await expect(dismissNotification).toBeVisible();
   await dismissNotification.click();
   await expect(page.getByText("Chain created.", { exact: true })).toHaveCount(
     0,
   );
+  const remainingNotifications = page.locator(".app-toast-dismiss:visible");
+  while ((await remainingNotifications.count()) > 0)
+    await remainingNotifications.first().click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await expect(
     page.getByLabel("Application Settings", { exact: true }),
@@ -295,17 +316,38 @@ test("Reset Mock Data restores modified and deleted Morgan state durably", async
 }, testInfo) => {
   await page.goto("/chain/ch-92b1");
   await enableMockData(page);
+  await page.clock.install();
   const tracker = page.getByLabel("Interactive Chain Tracker workspace");
   const trialName = tracker.getByRole("textbox", { name: "Trial Name" });
   await expect(trialName).toHaveValue("Wayfinder's End");
   await trialName.fill("Changed mock choice");
+  await page.clock.fastForward(300);
+  await waitForStoredChainValue(
+    page,
+    "ch-92b1",
+    ["jumpState", "entry-2", "actors", "jumper", "choices", "trial_name"],
+    "Changed mock choice",
+  );
 
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("tab", { name: "Developer" }).click();
   await page.getByRole("button", { name: "Reset Mock Data" }).click();
   await expect(page.getByText("Mock data reset.")).toBeVisible();
+  await waitForStoredChainValue(
+    page,
+    "ch-92b1",
+    ["jumpState", "entry-2", "actors", "jumper", "choices", "trial_name"],
+    "Wayfinder's End",
+  );
   await page.getByRole("button", { name: "Close Settings" }).click();
   await expect(trialName).toHaveValue("Wayfinder's End");
+  await page.clock.fastForward(300);
+  await waitForStoredChainValue(
+    page,
+    "ch-92b1",
+    ["jumpState", "entry-2", "actors", "jumper", "choices", "trial_name"],
+    "Wayfinder's End",
+  );
   await page.reload();
   await expect(trialName).toHaveValue("Wayfinder's End");
   await retainMockScreenshot(testInfo, "mock-data-restored-morgan", tracker);
@@ -320,12 +362,27 @@ test("Reset Mock Data restores modified and deleted Morgan state durably", async
     .getByRole("button", { name: "Delete chain" })
     .click();
   await expect(card).toHaveCount(0);
+  await page.reload();
+  await expect(card).toHaveCount(0);
 
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("tab", { name: "Developer" }).click();
   await page.getByRole("button", { name: "Reset Mock Data" }).click();
   await expect(page.getByText("Mock data reset.")).toBeVisible();
+  await waitForStoredChainValue(
+    page,
+    "ch-92b1",
+    ["jumpState", "entry-2", "actors", "jumper", "choices", "trial_name"],
+    "Wayfinder's End",
+  );
   await page.getByRole("button", { name: "Close Settings" }).click();
+  await page.clock.fastForward(300);
+  await waitForStoredChainValue(
+    page,
+    "ch-92b1",
+    ["jumpState", "entry-2", "actors", "jumper", "choices", "trial_name"],
+    "Wayfinder's End",
+  );
   await expect(
     page.locator(".app-chain-card").filter({ hasText: "Morgan" }),
   ).toBeVisible();
@@ -350,21 +407,25 @@ test("similar inventory aggregation updates the open chain immediately", async (
   await page.getByRole("tab", { name: "Chain Tracker" }).click();
   const aggregateSimilar = page.getByLabel("Aggregate similar records");
   await expect(aggregateSimilar).toBeChecked();
-  await testInfo.attach("aggregate-similar-setting-on", {
-    body: await page
-      .getByLabel("Application Settings", { exact: true })
-      .screenshot(),
-    contentType: "image/png",
-  });
+  if (shouldCaptureReviewArtifacts(testInfo)) {
+    await testInfo.attach("aggregate-similar-setting-on", {
+      body: await page
+        .getByLabel("Application Settings", { exact: true })
+        .screenshot(),
+      contentType: "image/png",
+    });
+  }
   await aggregateSimilar.uncheck();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
 
   await expect(records).toHaveCount(2);
   await expect(records.locator(".record-measure")).toHaveCount(0);
-  await testInfo.attach("similar-inventory-setting-off", {
-    body: await tracker.locator(".chain-inventory-panel").screenshot(),
-    contentType: "image/png",
-  });
+  if (shouldCaptureReviewArtifacts(testInfo)) {
+    await testInfo.attach("similar-inventory-setting-off", {
+      body: await tracker.locator(".chain-inventory-panel").screenshot(),
+      contentType: "image/png",
+    });
+  }
 });
 
 test("additional Jump information exposes only the package format", async ({
@@ -411,7 +472,7 @@ test("every Settings category preserves the fixed frame and has a fresh visual a
     expect(current).not.toBeNull();
     expect(Math.round(current!.width)).toBe(Math.round(initial!.width));
     expect(Math.round(current!.height)).toBe(Math.round(initial!.height));
-    if (testInfo.project.name === "chromium")
+    if (shouldCaptureReviewArtifacts(testInfo))
       await testInfo.attach(
         `settings-${category.toLocaleLowerCase().replaceAll(" ", "-")}`,
         {
@@ -422,106 +483,118 @@ test("every Settings category preserves the fixed frame and has a fresh visual a
   }
 });
 
-test("Language selection switches, persists, falls back, and supports RTL", async ({
-  page,
-}, testInfo) => {
-  await page.goto("/settings");
-  await expect(
-    page.getByRole("tab", { name: "Language", exact: true }),
-  ).toHaveCount(0);
-  await expect(page.getByLabel("Language", { exact: true })).toHaveValue("en");
-  await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-  await page.getByPlaceholder("Search settings").fill("language");
-  await page
-    .locator(".settings-search-list button")
-    .filter({ hasText: "language.tag" })
-    .click();
-  await expect(
-    page.getByRole("tab", { name: "General", exact: true }),
-  ).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("#language-selection")).toBeFocused();
+test(
+  "Language selection switches, persists, falls back, and supports RTL",
+  { tag: "@cross-browser" },
+  async ({ page }, testInfo) => {
+    await page.goto("/settings");
+    await expect(
+      page.getByRole("tab", { name: "Language", exact: true }),
+    ).toHaveCount(0);
+    await expect(page.getByLabel("Language", { exact: true })).toHaveValue(
+      "en",
+    );
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+    await page.getByPlaceholder("Search settings").fill("language");
+    await page
+      .locator(".settings-search-list button")
+      .filter({ hasText: "language.tag" })
+      .click();
+    await expect(
+      page.getByRole("tab", { name: "General", exact: true }),
+    ).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator("#language-selection")).toBeFocused();
 
-  await page.getByLabel("Language", { exact: true }).selectOption("es");
-  await expect(page.getByLabel("Idioma", { exact: true })).toHaveValue("es");
-  await expect(page.locator("html")).toHaveAttribute("lang", "es");
-  await page.getByPlaceholder("Buscar configuración").fill("zzzz-no-match");
-  await expect(page.getByText("No settings match this search.")).toBeVisible();
-  await testInfo.attach("settings-language-spanish", {
-    body: await page.getByLabel("Configuración de la aplicación").screenshot(),
-    contentType: "image/png",
-  });
+    await page.getByLabel("Language", { exact: true }).selectOption("es");
+    await expect(page.getByLabel("Idioma", { exact: true })).toHaveValue("es");
+    await expect(page.locator("html")).toHaveAttribute("lang", "es");
+    await page.getByPlaceholder("Buscar configuración").fill("zzzz-no-match");
+    await expect(
+      page.getByText("No settings match this search."),
+    ).toBeVisible();
+    if (shouldCaptureReviewArtifacts(testInfo)) {
+      await testInfo.attach("settings-language-spanish", {
+        body: await page
+          .getByLabel("Configuración de la aplicación")
+          .screenshot(),
+        contentType: "image/png",
+      });
+    }
 
-  await page.reload();
-  await expect(page.getByLabel("Idioma", { exact: true })).toHaveValue("es");
+    await page.reload();
+    await expect(page.getByLabel("Idioma", { exact: true })).toHaveValue("es");
 
-  await page.goto("/chain/ch-92b1");
-  const supplementWorkspace = page.getByLabel(
-    "Interactive Chain Tracker workspace",
-  );
-  await supplementWorkspace.getByRole("tab", { name: "Supplements" }).click();
-  const translatedQuest = page
-    .locator(".supplement-manage-list article")
-    .filter({ hasText: "Modo de misiones" });
-  await expect(translatedQuest).toBeVisible();
-  await expect(translatedQuest.getByRole("checkbox")).not.toBeChecked();
-  await supplementWorkspace
-    .getByRole("tab", { name: "Universal Drawbacks" })
-    .click();
-  await expect(
-    supplementWorkspace.getByText("Sin saber por qué"),
-  ).toBeVisible();
+    await page.goto("/chain/ch-92b1");
+    const supplementWorkspace = page.getByLabel(
+      "Interactive Chain Tracker workspace",
+    );
+    await supplementWorkspace.getByRole("tab", { name: "Supplements" }).click();
+    const translatedQuest = page
+      .locator(".supplement-manage-list article")
+      .filter({ hasText: "Modo de misiones" });
+    await expect(translatedQuest).toBeVisible();
+    await expect(translatedQuest.getByRole("checkbox")).not.toBeChecked();
+    await supplementWorkspace
+      .getByRole("tab", { name: "Universal Drawbacks" })
+      .click();
+    await expect(
+      supplementWorkspace.getByText("Sin saber por qué"),
+    ).toBeVisible();
 
-  await page.goto("/settings");
-  await page.getByRole("tab", { name: "Etiquetas" }).click();
-  await page.getByPlaceholder("Find tag").fill("Vehículos");
-  await page
-    .locator(".tag-profile-item")
-    .filter({ hasText: /^Vehículo/ })
-    .click();
-  await expect(page.locator(".tag-alias-chip")).toContainText("Vehículos");
-  await page.getByLabel("Tag to link as an alias").selectOption("perk");
-  await page.getByRole("button", { name: "Link alias", exact: true }).click();
-  await expect(
-    page.locator(".tag-alias-chip").filter({ hasText: /^Perk/ }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Unlink alias Vehículos" }).click();
-  await expect(
-    page.locator(".tag-alias-chip").filter({ hasText: /^Vehículos/ }),
-  ).toHaveCount(0);
-  await expect(
-    page.locator(".tag-alias-chip").filter({ hasText: /^Perk/ }),
-  ).toBeVisible();
+    await page.goto("/settings");
+    await page.getByRole("tab", { name: "Etiquetas" }).click();
+    await page.getByPlaceholder("Find tag").fill("Vehículos");
+    await page
+      .locator(".tag-profile-item")
+      .filter({ hasText: /^Vehículo/ })
+      .click();
+    await expect(page.locator(".tag-alias-chip")).toContainText("Vehículos");
+    await page.getByLabel("Tag to link as an alias").selectOption("perk");
+    await page.getByRole("button", { name: "Link alias", exact: true }).click();
+    await expect(
+      page.locator(".tag-alias-chip").filter({ hasText: /^Perk/ }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Unlink alias Vehículos" }).click();
+    await expect(
+      page.locator(".tag-alias-chip").filter({ hasText: /^Vehículos/ }),
+    ).toHaveCount(0);
+    await expect(
+      page.locator(".tag-alias-chip").filter({ hasText: /^Perk/ }),
+    ).toBeVisible();
 
-  await page.getByRole("tab", { name: "General" }).click();
-  await page.getByLabel("Idioma", { exact: true }).selectOption("en");
-  await page.getByRole("tab", { name: "Tags" }).click();
-  await page.getByPlaceholder("Find tag").fill("Vehicle");
-  await page
-    .locator(".tag-profile-item")
-    .filter({ hasText: /^Vehicle/ })
-    .click();
-  await expect(
-    page.locator(".tag-alias-chip").filter({ hasText: /^Vehicles/ }),
-  ).toHaveCount(0);
-  await expect(
-    page.locator(".tag-alias-chip").filter({ hasText: /^Perk/ }),
-  ).toBeVisible();
+    await page.getByRole("tab", { name: "General" }).click();
+    await page.getByLabel("Idioma", { exact: true }).selectOption("en");
+    await page.getByRole("tab", { name: "Tags" }).click();
+    await page.getByPlaceholder("Find tag").fill("Vehicle");
+    await page
+      .locator(".tag-profile-item")
+      .filter({ hasText: /^Vehicle/ })
+      .click();
+    await expect(
+      page.locator(".tag-alias-chip").filter({ hasText: /^Vehicles/ }),
+    ).toHaveCount(0);
+    await expect(
+      page.locator(".tag-alias-chip").filter({ hasText: /^Perk/ }),
+    ).toBeVisible();
 
-  await page.getByRole("tab", { name: "General" }).click();
-  await page.getByLabel("Language", { exact: true }).selectOption("ar");
-  await expect(page.locator("html")).toHaveAttribute("lang", "ar");
-  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-  const frame = page.getByLabel("إعدادات التطبيق");
-  await expect(frame).toBeVisible();
-  const bounds = await frame.boundingBox();
-  expect(bounds?.width).toBeGreaterThan(700);
-  expect(bounds?.height).toBeGreaterThan(500);
-  await testInfo.attach("settings-language-arabic-rtl", {
-    body: await frame.screenshot(),
-    contentType: "image/png",
-  });
-});
+    await page.getByRole("tab", { name: "General" }).click();
+    await page.getByLabel("Language", { exact: true }).selectOption("ar");
+    await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    const frame = page.getByLabel("إعدادات التطبيق");
+    await expect(frame).toBeVisible();
+    const bounds = await frame.boundingBox();
+    expect(bounds?.width).toBeGreaterThan(700);
+    expect(bounds?.height).toBeGreaterThan(500);
+    if (shouldCaptureReviewArtifacts(testInfo)) {
+      await testInfo.attach("settings-language-arabic-rtl", {
+        body: await frame.screenshot(),
+        contentType: "image/png",
+      });
+    }
+  },
+);
 
 test("appearance, motion, and keybinding validation apply through their real controls", async ({
   page,
@@ -529,13 +602,13 @@ test("appearance, motion, and keybinding validation apply through their real con
   await page.goto("/settings");
   await page.getByLabel("Appearance").selectOption("light");
   await expect(page.locator("html")).toHaveAttribute("data-app-theme", "light");
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("settings-light-theme", {
       body: await page.screenshot(),
       contentType: "image/png",
     });
   await page.getByRole("tab", { name: "Tags" }).click();
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("settings-tags-light-theme", {
       body: await page.screenshot(),
       contentType: "image/png",
@@ -611,65 +684,68 @@ test("appearance, motion, and keybinding validation apply through their real con
   await expect(assetPaint.locator("kbd")).toHaveText("B");
 });
 
-test("image alt text hover applies immediately to Editor and Chain Tracker rendering", async ({
-  page,
-}, testInfo) => {
-  test.setTimeout(90_000);
-  await page.goto("/chain/ch-92b1");
-  const tracker = page.getByLabel("Interactive Chain Tracker workspace");
-  await tracker
-    .getByRole("button", { name: /2\. The Confluence Engine/ })
-    .click();
-  const activeWorkspace = tracker.locator(
-    ".chain-jump-workspace:not(.is-atomic-stage)",
-  );
-  await expect(activeWorkspace.locator(".chain-context-header h3")).toHaveText(
-    "The Confluence Engine",
-  );
-  const trackerImage = activeWorkspace
-    .locator(
-      '.format-one-jump-renderer img[src="/assets/confluence-engine.svg"]',
-    )
-    .nth(3);
-  await expect(trackerImage).toBeVisible();
-  const trackerAlt = await trackerImage.getAttribute("alt");
-  expect(trackerAlt).toBeTruthy();
-  await trackerImage.hover();
-  await expect(
-    trackerImage.locator("..").locator(".jump-image-alt-tooltip"),
-  ).toBeVisible();
+test(
+  "image alt text hover applies immediately to Editor and Chain Tracker rendering",
+  {
+    tag: "@slow",
+  },
+  async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
+    await page.goto("/chain/ch-92b1");
+    const tracker = page.getByLabel("Interactive Chain Tracker workspace");
+    await tracker
+      .getByRole("button", { name: /2\. The Confluence Engine/ })
+      .click();
+    const activeWorkspace = tracker.locator(
+      ".chain-jump-workspace:not(.is-atomic-stage)",
+    );
+    await expect(
+      activeWorkspace.locator(".chain-context-header h3"),
+    ).toHaveText("The Confluence Engine");
+    const trackerImage = activeWorkspace
+      .locator(
+        '.format-one-jump-renderer img[src="/assets/confluence-engine.svg"]',
+      )
+      .nth(3);
+    await expect(trackerImage).toBeVisible();
+    const trackerAlt = await trackerImage.getAttribute("alt");
+    expect(trackerAlt).toBeTruthy();
+    await trackerImage.hover();
+    await expect(
+      trackerImage.locator("..").locator(".jump-image-alt-tooltip"),
+    ).toBeVisible();
 
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await page.getByRole("tab", { name: "Accessibility" }).click();
-  const hoverSetting = page.getByLabel("Show alt text on hover");
-  await expect(hoverSetting).toBeChecked();
-  await retainAccessibilityScreenshot(
-    testInfo,
-    "alt-text-hover-setting-default-on",
-    page.getByLabel("Application Settings", { exact: true }),
-  );
-  await hoverSetting.uncheck();
-  await page.getByRole("button", { name: "Close Settings" }).click();
-  await trackerImage.hover();
-  await expect(activeWorkspace.locator(".jump-image-alt-tooltip")).toHaveCount(
-    0,
-  );
-  await expect(trackerImage).toHaveAttribute("alt", trackerAlt!);
-  await retainAccessibilityScreenshot(
-    testInfo,
-    "chain-tracker-alt-text-hover-off",
-    activeWorkspace,
-  );
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await page.getByRole("tab", { name: "Accessibility" }).click();
+    const hoverSetting = page.getByLabel("Show alt text on hover");
+    await expect(hoverSetting).toBeChecked();
+    await retainAccessibilityScreenshot(
+      testInfo,
+      "alt-text-hover-setting-default-on",
+      page.getByLabel("Application Settings", { exact: true }),
+    );
+    await hoverSetting.uncheck();
+    await page.getByRole("button", { name: "Close Settings" }).click();
+    await trackerImage.hover();
+    await expect(
+      activeWorkspace.locator(".jump-image-alt-tooltip"),
+    ).toHaveCount(0);
+    await expect(trackerImage).toHaveAttribute("alt", trackerAlt!);
+    await retainAccessibilityScreenshot(
+      testInfo,
+      "chain-tracker-alt-text-hover-off",
+      activeWorkspace,
+    );
 
-  await page.getByRole("button", { name: "Editor", exact: true }).click();
-  await page.getByRole("button", { name: "Create Project" }).click();
-  const editor = page.locator(".production-editor");
-  await editor.getByRole("button", { name: "Add", exact: true }).click();
-  await editor.getByRole("button", { name: "Choice layout" }).click();
-  await editor.getByRole("tab", { name: "Source" }).click();
-  const source = editor.getByLabel(/source$/);
-  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
-  await page.keyboard.insertText(`choice-layout
+    await page.getByRole("button", { name: "Editor", exact: true }).click();
+    await page.getByRole("button", { name: "Create Project" }).click();
+    const editor = page.locator(".production-editor");
+    await editor.getByRole("button", { name: "Add", exact: true }).click();
+    await editor.getByRole("button", { name: "Choice layout" }).click();
+    await editor.getByRole("tab", { name: "Source" }).click();
+    const source = editor.getByLabel(/source$/);
+    await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+    await page.keyboard.insertText(`choice-layout
   handle: new_choice_layout
 
   stack
@@ -677,61 +753,62 @@ test("image alt text hover applies immediately to Editor and Chain Tracker rende
       target: hero
       size: sm
 `);
-  const editorImage = editor
-    .locator(".editor-real-preview")
-    .getByAltText("Example image for hero");
-  await expect(editorImage).toBeVisible();
-  await editorImage.hover();
-  await expect(
-    editor.locator(".editor-real-preview .jump-image-alt-tooltip"),
-  ).toHaveCount(0);
-  await expect(editorImage).toHaveAttribute("alt", "Example image for hero");
-  await retainAccessibilityScreenshot(
-    testInfo,
-    "editor-alt-text-hover-off",
-    editor,
-  );
+    const editorImage = editor
+      .locator(".editor-real-preview")
+      .getByAltText("Example image for hero");
+    await expect(editorImage).toBeVisible();
+    await editorImage.hover();
+    await expect(
+      editor.locator(".editor-real-preview .jump-image-alt-tooltip"),
+    ).toHaveCount(0);
+    await expect(editorImage).toHaveAttribute("alt", "Example image for hero");
+    await retainAccessibilityScreenshot(
+      testInfo,
+      "editor-alt-text-hover-off",
+      editor,
+    );
 
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await page.getByRole("tab", { name: "Accessibility" }).click();
-  await page.getByLabel("Show alt text on hover").check();
-  await page.getByRole("button", { name: "Close Settings" }).click();
-  await editorImage.hover();
-  await expect(
-    editor.locator(".editor-real-preview .jump-image-alt-tooltip"),
-  ).toBeVisible();
-  await retainAccessibilityScreenshot(
-    testInfo,
-    "editor-alt-text-hover-restored",
-    editor,
-  );
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await page.getByRole("tab", { name: "Accessibility" }).click();
+    await page.getByLabel("Show alt text on hover").check();
+    await page.getByRole("button", { name: "Close Settings" }).click();
+    await editorImage.hover();
+    await expect(
+      editor.locator(".editor-real-preview .jump-image-alt-tooltip"),
+    ).toBeVisible();
+    await retainAccessibilityScreenshot(
+      testInfo,
+      "editor-alt-text-hover-restored",
+      editor,
+    );
 
-  await page.goto("/chain/ch-92b1");
-  const restoredTracker = page.getByLabel(
-    "Interactive Chain Tracker workspace",
-  );
-  await restoredTracker
-    .getByRole("button", { name: /2\. The Confluence Engine/ })
-    .click();
-  const restoredWorkspace = restoredTracker.locator(
-    ".chain-jump-workspace:not(.is-atomic-stage)",
-  );
-  const restoredImage = restoredWorkspace
-    .locator(
-      '.format-one-jump-renderer img[src="/assets/confluence-engine.svg"]',
-    )
-    .nth(3);
-  await expect(restoredImage).toBeVisible();
-  await restoredImage.hover();
-  await expect(
-    restoredImage.locator("..").locator(".jump-image-alt-tooltip"),
-  ).toBeVisible();
-  await retainAccessibilityScreenshot(
-    testInfo,
-    "chain-tracker-alt-text-hover-restored",
-    restoredWorkspace,
-  );
-});
+    await page.goto("/chain/ch-92b1");
+    const restoredTracker = page.getByLabel(
+      "Interactive Chain Tracker workspace",
+    );
+    await restoredTracker
+      .getByRole("button", { name: /2\. The Confluence Engine/ })
+      .click();
+    const restoredWorkspace = restoredTracker.locator(
+      ".chain-jump-workspace:not(.is-atomic-stage)",
+    );
+    const restoredImage = restoredWorkspace
+      .locator(
+        '.format-one-jump-renderer img[src="/assets/confluence-engine.svg"]',
+      )
+      .nth(3);
+    await expect(restoredImage).toBeVisible();
+    await restoredImage.hover();
+    await expect(
+      restoredImage.locator("..").locator(".jump-image-alt-tooltip"),
+    ).toBeVisible();
+    await retainAccessibilityScreenshot(
+      testInfo,
+      "chain-tracker-alt-text-hover-restored",
+      restoredWorkspace,
+    );
+  },
+);
 
 test("continuous accent changes stay bounded and project through the complete application", async ({
   page,
@@ -771,7 +848,7 @@ test("continuous accent changes stay bounded and project through the complete ap
     .toBe("#15933b");
   await expect(page.locator(".app-crash-surface")).toHaveCount(0);
   expect(pageErrors).toEqual([]);
-  await page.waitForTimeout(350);
+  await waitForStoredSetting(page, ["appearance", "accentColor"], "#15933b");
   await page.getByRole("tab", { name: "Developer" }).click();
   await page.getByLabel("Show mock fixtures").check();
   await page.getByRole("button", { name: "Close Settings" }).click();
@@ -826,7 +903,7 @@ test("continuous accent changes stay bounded and project through the complete ap
       .first()
       .getByRole("button", { name: /Edit/ }),
   ).toHaveCSS("border-color", resolvedAccent.border);
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("application-accent-chain-hub", {
       body: await newChain.screenshot(),
       contentType: "image/png",
@@ -842,102 +919,111 @@ test("continuous accent changes stay bounded and project through the complete ap
     "stroke",
     "rgb(21, 147, 59)",
   );
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("application-accent-projection", {
       body: await page.screenshot(),
       contentType: "image/png",
     });
 });
 
-test("the Settings preview and tracker use one canonical badge renderer with visible rainbow motion", async ({
-  page,
-}, testInfo) => {
-  test.setTimeout(60_000);
-  const badgeStyle = (selector: string) =>
-    page
-      .locator(selector)
-      .first()
-      .evaluate((element) => {
-        const style = getComputedStyle(element);
-        return {
-          backgroundColor: style.backgroundColor,
-          backgroundImage: style.backgroundImage,
-          color: style.color,
-          padding: style.padding,
-          border: style.border,
-          borderRadius: style.borderRadius,
-          fontWeight: style.fontWeight,
-          fontStyle: style.fontStyle,
-          textDecoration: style.textDecoration,
-          textShadow: style.textShadow,
-        };
-      });
+test(
+  "the Settings preview and tracker use one canonical badge renderer with visible rainbow motion",
+  {
+    tag: "@slow",
+  },
+  async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
+    const badgeStyle = (selector: string) =>
+      page
+        .locator(selector)
+        .first()
+        .evaluate((element) => {
+          const style = getComputedStyle(element);
+          return {
+            backgroundColor: style.backgroundColor,
+            backgroundImage: style.backgroundImage,
+            color: style.color,
+            padding: style.padding,
+            border: style.border,
+            borderRadius: style.borderRadius,
+            fontWeight: style.fontWeight,
+            fontStyle: style.fontStyle,
+            textDecoration: style.textDecoration,
+            textShadow: style.textShadow,
+          };
+        });
 
-  await page.goto("/settings");
-  await page.getByRole("tab", { name: "Developer" }).click();
-  await page.getByLabel("Show mock fixtures").check();
-  await page.getByRole("tab", { name: "Tags" }).click();
-  const previewStyle = await badgeStyle(
-    ".tag-profile-preview-surface.is-dark .tag-profile-badge",
-  );
-  await page.getByRole("button", { name: "Close Settings" }).click();
-  await page.goto("/chain/ch-92b1");
-  await page.getByRole("tab", { name: /^Inventory/ }).click();
-  const inventoryPhysical = page
-    .locator(".chain-record-list .tag-profile-badge")
-    .filter({ hasText: /^Physical$/ })
-    .first();
-  await expect(inventoryPhysical).toBeVisible();
-  const inventoryStyle = await inventoryPhysical.evaluate((element) => {
-    const style = getComputedStyle(element);
-    return {
-      backgroundColor: style.backgroundColor,
-      backgroundImage: style.backgroundImage,
-      color: style.color,
-      padding: style.padding,
-      border: style.border,
-      borderRadius: style.borderRadius,
-      fontWeight: style.fontWeight,
-      fontStyle: style.fontStyle,
-      textDecoration: style.textDecoration,
-      textShadow: style.textShadow,
-    };
-  });
-  expect(inventoryStyle).toEqual(previewStyle);
-
-  await page.getByRole("button", { name: "Settings" }).click();
-  await page.getByRole("tab", { name: "Tags" }).click();
-  await page
-    .locator(".tag-profile-form-scroll label")
-    .filter({ hasText: /^Text color mode/ })
-    .locator("select")
-    .selectOption("custom");
-  await page
-    .locator(".tag-profile-form-scroll label")
-    .filter({ hasText: /^Text color/ })
-    .locator('input[type="color"]')
-    .fill("#ffffff");
-  await page.locator(".tag-animation-trigger").click();
-  await page.getByRole("option", { name: "Rainbow" }).click();
-  const rainbow = page.locator(
-    ".tag-profile-preview-surface.is-dark .tag-animated-text.is-rainbow",
-  );
-  await expect(rainbow).toHaveCSS("animation-name", "tag-rainbow");
-  const firstColor = await rainbow.evaluate(
-    (element) => getComputedStyle(element).color,
-  );
-  await page.waitForTimeout(450);
-  const secondColor = await rainbow.evaluate(
-    (element) => getComputedStyle(element).color,
-  );
-  expect(firstColor).not.toBe("rgb(255, 255, 255)");
-  expect(secondColor).not.toBe(firstColor);
-  if (testInfo.project.name === "chromium")
-    await testInfo.attach("canonical-rainbow-tag-badge", {
-      body: await page.screenshot(),
-      contentType: "image/png",
+    await page.goto("/settings");
+    await page.getByRole("tab", { name: "Developer" }).click();
+    await page.getByLabel("Show mock fixtures").check();
+    await page.getByRole("tab", { name: "Tags" }).click();
+    const previewStyle = await badgeStyle(
+      ".tag-profile-preview-surface.is-dark .tag-profile-badge",
+    );
+    await page.getByRole("button", { name: "Close Settings" }).click();
+    await page.goto("/chain/ch-92b1");
+    await page.getByRole("tab", { name: /^Inventory/ }).click();
+    const inventoryPhysical = page
+      .locator(".chain-record-list .tag-profile-badge")
+      .filter({ hasText: /^Physical$/ })
+      .first();
+    await expect(inventoryPhysical).toBeVisible();
+    const inventoryStyle = await inventoryPhysical.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        backgroundColor: style.backgroundColor,
+        backgroundImage: style.backgroundImage,
+        color: style.color,
+        padding: style.padding,
+        border: style.border,
+        borderRadius: style.borderRadius,
+        fontWeight: style.fontWeight,
+        fontStyle: style.fontStyle,
+        textDecoration: style.textDecoration,
+        textShadow: style.textShadow,
+      };
     });
-});
+    expect(inventoryStyle).toEqual(previewStyle);
+
+    await page.getByRole("button", { name: "Settings" }).click();
+    await page.getByRole("tab", { name: "Tags" }).click();
+    await page
+      .locator(".tag-profile-form-scroll label")
+      .filter({ hasText: /^Text color mode/ })
+      .locator("select")
+      .selectOption("custom");
+    await page
+      .locator(".tag-profile-form-scroll label")
+      .filter({ hasText: /^Text color/ })
+      .locator('input[type="color"]')
+      .fill("#ffffff");
+    await page.locator(".tag-animation-trigger").click();
+    await page.getByRole("option", { name: "Rainbow" }).click();
+    const rainbow = page.locator(
+      ".tag-profile-preview-surface.is-dark .tag-animated-text.is-rainbow",
+    );
+    await expect(rainbow).toHaveCSS("animation-name", "tag-rainbow");
+    const firstColor = await rainbow.evaluate(
+      (element) => getComputedStyle(element).color,
+    );
+    let secondColor = firstColor;
+    await expect
+      .poll(async () => {
+        secondColor = await rainbow.evaluate(
+          (element) => getComputedStyle(element).color,
+        );
+        return secondColor;
+      })
+      .not.toBe(firstColor);
+    expect(firstColor).not.toBe("rgb(255, 255, 255)");
+    expect(secondColor).not.toBe(firstColor);
+    if (shouldCaptureReviewArtifacts(testInfo))
+      await testInfo.attach("canonical-rainbow-tag-badge", {
+        body: await page.screenshot(),
+        contentType: "image/png",
+      });
+  },
+);
 
 test("default child badges visibly shift from their parent and siblings in Inventory", async ({
   page,
@@ -979,10 +1065,12 @@ test("default child badges visibly shift from their parent and siblings in Inven
   expect(firstChildColor).not.toBe(parentColor);
   expect(secondChildColor).not.toBe(parentColor);
   expect(firstChildColor).not.toBe(secondChildColor);
-  await testInfo.attach("shifted-parent-and-child-tag-badges", {
-    body: await page.screenshot(),
-    contentType: "image/png",
-  });
+  if (shouldCaptureReviewArtifacts(testInfo)) {
+    await testInfo.attach("shifted-parent-and-child-tag-badges", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+  }
 });
 
 test("global search opens nested Logs and session controls use real events", async ({
@@ -1037,13 +1125,14 @@ test("global search opens nested Logs and session controls use real events", asy
 test("notifications preview, queue controls, and live regions follow preferences", async ({
   page,
 }) => {
+  await page.clock.install();
   await page.goto("/settings");
   await page.getByRole("tab", { name: "Notifications" }).click();
   await page.getByRole("button", { name: "Preview toast" }).click();
   const toast = page.locator(".app-toast");
   await expect(toast).toContainText("Notification preferences updated.");
   await toast.hover();
-  await page.waitForTimeout(600);
+  await page.clock.fastForward(600);
   await expect(toast).toBeVisible();
   await toast.getByRole("button", { name: "Dismiss notification" }).click();
   await expect(toast).toHaveCount(0);
@@ -1107,10 +1196,12 @@ test("item tag radar setting updates eligible counts without changing ownership 
   await expect(
     tracker.getByRole("heading", { name: "Accrued perks by tag category" }),
   ).toBeVisible();
-  await testInfo.attach("perk-only-radar", {
-    body: await tracker.locator(".tracker-radar-page").screenshot(),
-    contentType: "image/png",
-  });
+  if (shouldCaptureReviewArtifacts(testInfo)) {
+    await testInfo.attach("perk-only-radar", {
+      body: await tracker.locator(".tracker-radar-page").screenshot(),
+      contentType: "image/png",
+    });
+  }
 
   await page.getByRole("button", { name: "Settings" }).click();
   await page.getByRole("tab", { name: "Chain Tracker" }).click();
@@ -1126,10 +1217,12 @@ test("item tag radar setting updates eligible counts without changing ownership 
   await expect
     .poll(async () => Number(await magicCount.textContent()))
     .toBeGreaterThan(5);
-  await testInfo.attach("perk-and-item-radar", {
-    body: await tracker.locator(".tracker-radar-page").screenshot(),
-    contentType: "image/png",
-  });
+  if (shouldCaptureReviewArtifacts(testInfo)) {
+    await testInfo.attach("perk-and-item-radar", {
+      body: await tracker.locator(".tracker-radar-page").screenshot(),
+      contentType: "image/png",
+    });
+  }
 });
 
 test("tag profile supports keyboard creation, relationships, presentation, and reviewed import", async ({
@@ -1214,10 +1307,12 @@ test("tag profile supports keyboard creation, relationships, presentation, and r
       .filter({ hasText: /^Weather Working$/ }),
   ).toBeVisible();
 
-  await testInfo.attach("settings-tags-wide", {
-    body: await page.screenshot(),
-    contentType: "image/png",
-  });
+  if (shouldCaptureReviewArtifacts(testInfo)) {
+    await testInfo.attach("settings-tags-wide", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+  }
 });
 
 test("tag catalog separates collapsible presets and refreshes installed Jump tags on demand", async ({
@@ -1315,40 +1410,44 @@ test("tag catalog separates collapsible presets and refreshes installed Jump tag
   await acquiredHeading.click();
   await expect(acquiredHeading).toHaveAttribute("aria-expanded", "false");
   await expect(acquired.locator(".tag-profile-item")).toHaveCount(0);
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("settings-tags-expanded-catalog", {
       body: await page.locator(".tag-profile-list-pane").screenshot(),
       contentType: "image/png",
     });
 });
 
-test("Settings remains internally scrollable and unclipped at the narrow breakpoint", async ({
-  page,
-}, testInfo) => {
-  await page.setViewportSize({ width: 720, height: 760 });
-  await page.goto("/settings");
-  await page.getByRole("tab", { name: "Tags" }).click();
-  const surface = page.getByLabel("Application Settings", { exact: true });
-  const box = await surface.boundingBox();
-  expect(box).not.toBeNull();
-  expect(box!.x).toBeGreaterThanOrEqual(0);
-  expect(box!.x + box!.width).toBeLessThanOrEqual(720);
-  const scroller = page.locator(".tag-profile-form-scroll");
-  await scroller.evaluate((element) => {
-    element.scrollTop = element.scrollHeight;
-  });
-  expect(
-    await scroller.evaluate((element) =>
-      Math.ceil(element.scrollTop + element.clientHeight),
-    ),
-  ).toBeGreaterThanOrEqual(
-    await scroller.evaluate((element) => element.scrollHeight),
-  );
-  await testInfo.attach("settings-tags-narrow-bottom", {
-    body: await page.screenshot(),
-    contentType: "image/png",
-  });
-});
+test(
+  "Settings remains internally scrollable and unclipped at the narrow breakpoint",
+  { tag: "@cross-browser" },
+  async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 720, height: 760 });
+    await page.goto("/settings");
+    await page.getByRole("tab", { name: "Tags" }).click();
+    const surface = page.getByLabel("Application Settings", { exact: true });
+    const box = await surface.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(720);
+    const scroller = page.locator(".tag-profile-form-scroll");
+    await scroller.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    expect(
+      await scroller.evaluate((element) =>
+        Math.ceil(element.scrollTop + element.clientHeight),
+      ),
+    ).toBeGreaterThanOrEqual(
+      await scroller.evaluate((element) => element.scrollHeight),
+    );
+    if (shouldCaptureReviewArtifacts(testInfo)) {
+      await testInfo.attach("settings-tags-narrow-bottom", {
+        body: await page.screenshot(),
+        contentType: "image/png",
+      });
+    }
+  },
+);
 
 test("window failures open the recoverable, reviewable crash report surface", async ({
   page,
@@ -1373,7 +1472,7 @@ test("window failures open the recoverable, reviewable crash report surface", as
   await expect(
     page.getByRole("button", { name: "Save report…" }),
   ).toBeVisible();
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("recoverable-crash-surface", {
       body: await page.screenshot(),
       contentType: "image/png",

@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./support/fixtures";
+import { shouldCaptureReviewArtifacts } from "./support/reviewArtifacts";
 
 test.describe.configure({ timeout: 60_000 });
 
@@ -25,62 +26,68 @@ test("renders both exact Chain Tracker review scenarios", async ({ page }) => {
   ).toHaveCount(7);
 });
 
-test("uses the wider desktop review frame without horizontal workspace scrolling", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  const jump = page.getByLabel("Chain and Jump contextual supplement scenario");
-  const workspace = page.getByLabel(
-    "Chain Tracker Supplements workspace scenario",
-  );
-  const jumpBox = await jump.boundingBox();
-  const workspaceBox = await workspace.boundingBox();
-  expect(jumpBox?.width).toBeGreaterThan(1000);
-  expect(workspaceBox?.width).toBe(jumpBox?.width);
-  await expect
-    .poll(() =>
-      jump
-        .locator(".chain-page-stack")
-        .evaluate((element) => element.scrollWidth <= element.clientWidth),
-    )
-    .toBe(true);
-});
+test(
+  "uses the wider desktop review frame without horizontal workspace scrolling",
+  { tag: "@cross-browser" },
+  async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const jump = page.getByLabel(
+      "Chain and Jump contextual supplement scenario",
+    );
+    const workspace = page.getByLabel(
+      "Chain Tracker Supplements workspace scenario",
+    );
+    const jumpBox = await jump.boundingBox();
+    const workspaceBox = await workspace.boundingBox();
+    expect(jumpBox?.width).toBeGreaterThan(1000);
+    expect(workspaceBox?.width).toBe(jumpBox?.width);
+    await expect
+      .poll(() =>
+        jump
+          .locator(".chain-page-stack")
+          .evaluate((element) => element.scrollWidth <= element.clientWidth),
+      )
+      .toBe(true);
+  },
+);
 
-test("mutual exclusion updates tabs, tools, and preserves the alternative's local state", async ({
-  page,
-}) => {
-  const workspace = page.getByLabel(
-    "Chain Tracker Supplements workspace scenario",
-  );
-  const essentialRow = workspace
-    .locator(".supplement-manage-list article")
-    .filter({ hasText: "Essential Body Modification" });
-  await essentialRow.getByRole("checkbox").check();
-  await expect(
-    workspace.getByRole("tab", { name: "Essential Body Mod" }),
-  ).toBeVisible();
-  await expect(
-    workspace.getByRole("tab", { name: "Body Mod", exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    workspace
+test(
+  "mutual exclusion updates tabs, tools, and preserves the alternative's local state",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const workspace = page.getByLabel(
+      "Chain Tracker Supplements workspace scenario",
+    );
+    const essentialRow = workspace
       .locator(".supplement-manage-list article")
-      .filter({ hasText: "Classic Body Mod" })
-      .getByRole("checkbox"),
-  ).not.toBeChecked();
+      .filter({ hasText: "Essential Body Modification" });
+    await essentialRow.getByRole("checkbox").check();
+    await expect(
+      workspace.getByRole("tab", { name: "Essential Body Mod" }),
+    ).toBeVisible();
+    await expect(
+      workspace.getByRole("tab", { name: "Body Mod", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      workspace
+        .locator(".supplement-manage-list article")
+        .filter({ hasText: "Classic Body Mod" })
+        .getByRole("checkbox"),
+    ).not.toBeChecked();
 
-  await essentialRow.getByRole("button", { name: "Open page" }).click();
-  await workspace.getByRole("button", { name: "Essences" }).click();
-  await workspace.getByRole("button", { name: "Scholar" }).click();
-  await workspace.getByRole("tab", { name: "Manage" }).click();
-  await essentialRow.getByRole("checkbox").uncheck();
-  await essentialRow.getByRole("checkbox").check();
-  await essentialRow.getByRole("button", { name: "Open page" }).click();
-  await workspace.getByRole("button", { name: "Essences" }).click();
-  await expect(
-    workspace.getByRole("button", { name: "Scholar" }),
-  ).toHaveAttribute("aria-pressed", "true");
-});
+    await essentialRow.getByRole("button", { name: "Open page" }).click();
+    await workspace.getByRole("button", { name: "Essences" }).click();
+    await workspace.getByRole("button", { name: "Scholar" }).click();
+    await workspace.getByRole("tab", { name: "Manage" }).click();
+    await essentialRow.getByRole("checkbox").uncheck();
+    await essentialRow.getByRole("checkbox").check();
+    await essentialRow.getByRole("button", { name: "Open page" }).click();
+    await workspace.getByRole("button", { name: "Essences" }).click();
+    await expect(
+      workspace.getByRole("button", { name: "Scholar" }),
+    ).toHaveAttribute("aria-pressed", "true");
+  },
+);
 
 test("hides Supp when every supplement is disabled and restores it when one is enabled", async ({
   page,
@@ -152,27 +159,31 @@ test("context overlay highlights and switches its embedded supplement tool witho
   await expect(supp).toBeFocused();
 });
 
-test("supplement tabs support keyboard navigation and module controls remain live", async ({
-  page,
-}) => {
-  const workspace = page.getByLabel(
-    "Chain Tracker Supplements workspace scenario",
-  );
-  const manage = workspace.getByRole("tab", { name: "Manage" });
-  await manage.focus();
-  await page.keyboard.press("End");
-  await expect(workspace.getByRole("tab", { name: "Story" })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
-  await page.keyboard.press("Home");
-  await expect(manage).toHaveAttribute("aria-selected", "true");
-  await workspace.getByRole("button", { name: "Open page" }).nth(0).click();
-  await workspace.getByRole("tab", { name: "Stats" }).click();
-  const strength = workspace.getByRole("button", { name: "Increase Strength" });
-  await strength.click();
-  await expect(strength.locator("xpath=../output")).toHaveText("2");
-});
+test(
+  "supplement tabs support keyboard navigation and module controls remain live",
+  { tag: "@cross-browser" },
+  async ({ page }) => {
+    const workspace = page.getByLabel(
+      "Chain Tracker Supplements workspace scenario",
+    );
+    const manage = workspace.getByRole("tab", { name: "Manage" });
+    await manage.focus();
+    await page.keyboard.press("End");
+    await expect(workspace.getByRole("tab", { name: "Story" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await page.keyboard.press("Home");
+    await expect(manage).toHaveAttribute("aria-selected", "true");
+    await workspace.getByRole("button", { name: "Open page" }).nth(0).click();
+    await workspace.getByRole("tab", { name: "Stats" }).click();
+    const strength = workspace.getByRole("button", {
+      name: "Increase Strength",
+    });
+    await strength.click();
+    await expect(strength.locator("xpath=../output")).toHaveText("2");
+  },
+);
 
 test("Classic Body Mod Bestial configuration, descriptions, overspend, and dialog stay synchronized", async ({
   page,
@@ -359,10 +370,12 @@ test("Story editor applies formatting and reports a focus-out save", async ({
     clientY: secondChapterBox!.y + secondChapterBox!.height - 2,
   });
   await expect(secondChapter).toHaveClass(/is-drop-after/);
-  await testInfo.attach("story-chapter-accent-insertion-line-and-delete-x", {
-    body: await dialog.screenshot(),
-    contentType: "image/png",
-  });
+  if (shouldCaptureReviewArtifacts(testInfo)) {
+    await testInfo.attach("story-chapter-accent-insertion-line-and-delete-x", {
+      body: await dialog.screenshot(),
+      contentType: "image/png",
+    });
+  }
   await firstChapterHandle.dispatchEvent("dragend", {
     dataTransfer: previewTransfer,
   });
@@ -374,20 +387,24 @@ test("Story editor applies formatting and reports a focus-out save", async ({
     },
   });
   await expect(titles.first()).toHaveValue(secondTitle);
-  await testInfo.attach("story-chapter-reordered-after-indicated-drop", {
-    body: await dialog.screenshot(),
-    contentType: "image/png",
-  });
+  if (shouldCaptureReviewArtifacts(testInfo)) {
+    await testInfo.attach("story-chapter-reordered-after-indicated-drop", {
+      body: await dialog.screenshot(),
+      contentType: "image/png",
+    });
+  }
 
   await dialog.getByRole("button", { name: "Remove chapter 1" }).click();
   const confirmation = dialog.getByRole("alertdialog", {
     name: "Remove chapter?",
   });
   await expect(confirmation).toContainText("Are you sure");
-  await testInfo.attach("story-chapter-reorder-and-remove-confirmation", {
-    body: await dialog.screenshot(),
-    contentType: "image/png",
-  });
+  if (shouldCaptureReviewArtifacts(testInfo)) {
+    await testInfo.attach("story-chapter-reorder-and-remove-confirmation", {
+      body: await dialog.screenshot(),
+      contentType: "image/png",
+    });
+  }
   await confirmation.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog.locator(".story-chapter-editor")).toHaveCount(
     initialChapterCount + 1,
@@ -697,161 +714,172 @@ test("contextual supplement controls use the documented themed layouts", async (
   );
 });
 
-test("audits every non-Classic supplement page and contextual surface", async ({
-  page,
-}, testInfo) => {
-  test.setTimeout(120_000);
-  await page.setViewportSize({ width: 1600, height: 1000 });
-  const workspace = page.getByLabel(
-    "Chain Tracker Supplements workspace scenario",
-  );
-  const scenario = page.getByLabel(
-    "Chain and Jump contextual supplement scenario",
-  );
-  const attach = async (name: string, target = workspace) => {
-    await testInfo.attach(`${testInfo.project.name}-${name}`, {
-      body: await target.screenshot(),
-      contentType: "image/png",
-    });
-    await expect(target).not.toContainText(
-      /pinned v|source-defined capability/i,
+test(
+  "audits every non-Classic supplement page and contextual surface",
+  { tag: ["@visual", "@slow", "@chromium-only"] },
+  async ({ page }, testInfo) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    const workspace = page.getByLabel(
+      "Chain Tracker Supplements workspace scenario",
     );
-  };
-  const open = async (name: string) => {
+    const scenario = page.getByLabel(
+      "Chain and Jump contextual supplement scenario",
+    );
+    const attach = async (name: string, target = workspace) => {
+      if (shouldCaptureReviewArtifacts(testInfo, false)) {
+        await testInfo.attach(`${testInfo.project.name}-${name}`, {
+          body: await target.screenshot(),
+          contentType: "image/png",
+        });
+      }
+      await expect(target).not.toContainText(
+        /pinned v|source-defined capability/i,
+      );
+    };
+    const open = async (name: string) => {
+      await workspace.getByRole("tab", { name: "Manage" }).click();
+      const row = workspace
+        .locator(".supplement-manage-list article")
+        .filter({ hasText: name });
+      if (!(await row.getByRole("checkbox").isChecked()))
+        await row.getByRole("checkbox").check();
+      await row.getByRole("button", { name: "Open page" }).click();
+    };
+    const assertBottomReachable = async (selector: string) => {
+      const scroller = workspace.locator(selector);
+      await scroller.evaluate((element) =>
+        element.scrollTo({ top: element.scrollHeight, behavior: "instant" }),
+      );
+      await expect
+        .poll(() =>
+          scroller.evaluate(
+            (element) =>
+              element.scrollHeight - element.scrollTop - element.clientHeight,
+          ),
+        )
+        .toBe(0);
+    };
+
+    await attach("manage");
+    await open("Essential Body Modification");
+    for (const category of [
+      "Setup",
+      "Essences",
+      "Basic",
+      "Physical",
+      "Mental",
+      "Spiritual",
+      "Skills",
+      "Supernatural",
+      "Items",
+      "Companions",
+      "Drawbacks",
+    ] as const) {
+      await workspace
+        .locator("#essential-category-nav")
+        .getByRole("button", { name: new RegExp(`^${category}\\b`) })
+        .click();
+      await attach(`essential-${category.toLowerCase()}`);
+      await assertBottomReachable(".essential-workspace-content");
+    }
+
+    await open("Cosmic Warehouse");
+    for (const tab of [
+      "Explanation",
+      "Utilities",
+      "Structures",
+      "Miscellaneous",
+      "Review",
+    ]) {
+      await workspace.getByRole("tab", { name: tab }).click();
+      await attach(`warehouse-${tab.toLowerCase()}`);
+      await assertBottomReachable(".warehouse-panel");
+    }
+
+    await open("Personal Reality");
+    const realityCategories = [
+      ["Setup", "setup"],
+      ["Basics", "basics"],
+      ["Utilities", "utilities"],
+      ["Cosmetic", "cosmetic"],
+      ["Facilities", "facilities"],
+      ["Extensions", "extensions"],
+      ["Items & equipment", "items"],
+      ["Companions", "companions"],
+      ["Misc", "misc"],
+      ["Limitations", "limitations"],
+    ] as const;
+    for (const [label, id] of realityCategories) {
+      await workspace
+        .locator("#reality-category-nav")
+        .getByRole("button", { name: new RegExp(`^${label}\\b`) })
+        .click();
+      await attach(`reality-${id}`);
+      await assertBottomReachable(".reality-workspace-content");
+    }
+
+    await open("Universal Drawbacks");
+    const udsButtons = workspace.locator("#uds-category-nav button");
+    for (let index = 0; index < 8; index += 1) {
+      await udsButtons.nth(index).click();
+      await attach(`uds-${index + 1}`);
+      await assertBottomReachable(".uds-catalog");
+    }
+
+    await open("Quest Mode");
+    for (const tab of ["Explanation", "Quest tiers", "Optional rules"]) {
+      await workspace.getByRole("tab", { name: tab }).click();
+      await attach(`quest-${tab.toLowerCase()}`);
+      await assertBottomReachable(".quest-panel-stack");
+    }
+
+    await open("Story");
+    await attach("story-reader-top");
+    await assertBottomReachable(".story-full-reader");
+    await attach("story-reader-bottom");
+
+    await scenario.getByRole("button", { name: "Supp" }).click();
+    const dialog = scenario.getByRole("dialog");
+    for (const tool of [
+      /Essential Body Mod.*At a glance/,
+      /Essential Body Mod.*Progression/,
+      /Personal Reality.*At a glance/,
+      /Personal Reality.*Spend new points/,
+      /Universal Drawbacks/,
+      /Quest Mode/,
+      /Story/,
+    ]) {
+      await dialog.getByRole("button", { name: tool }).click();
+      if (shouldCaptureReviewArtifacts(testInfo, false)) {
+        await testInfo.attach(
+          `${testInfo.project.name}-dialog-${tool.source}`,
+          {
+            body: await page.screenshot(),
+            contentType: "image/png",
+          },
+        );
+      }
+    }
+    await page.keyboard.press("Escape");
     await workspace.getByRole("tab", { name: "Manage" }).click();
-    const row = workspace
+    const warehouseRow = workspace
       .locator(".supplement-manage-list article")
-      .filter({ hasText: name });
-    if (!(await row.getByRole("checkbox").isChecked()))
-      await row.getByRole("checkbox").check();
-    await row.getByRole("button", { name: "Open page" }).click();
-  };
-  const assertBottomReachable = async (selector: string) => {
-    const scroller = workspace.locator(selector);
-    await scroller.evaluate((element) =>
-      element.scrollTo({ top: element.scrollHeight, behavior: "instant" }),
-    );
-    await expect
-      .poll(() =>
-        scroller.evaluate(
-          (element) =>
-            element.scrollHeight - element.scrollTop - element.clientHeight,
-        ),
-      )
-      .toBe(0);
-  };
-
-  await attach("manage");
-  await open("Essential Body Modification");
-  for (const category of [
-    "Setup",
-    "Essences",
-    "Basic",
-    "Physical",
-    "Mental",
-    "Spiritual",
-    "Skills",
-    "Supernatural",
-    "Items",
-    "Companions",
-    "Drawbacks",
-  ] as const) {
-    await workspace
-      .locator("#essential-category-nav")
-      .getByRole("button", { name: new RegExp(`^${category}\\b`) })
+      .filter({ hasText: "Cosmic Warehouse" });
+    await warehouseRow.getByRole("checkbox").check();
+    await scenario.getByRole("button", { name: "Supp" }).click();
+    const warehouseDialog = scenario.getByRole("dialog");
+    await warehouseDialog
+      .getByRole("button", { name: /Cosmic Warehouse/ })
       .click();
-    await attach(`essential-${category.toLowerCase()}`);
-    await assertBottomReachable(".essential-workspace-content");
-  }
-
-  await open("Cosmic Warehouse");
-  for (const tab of [
-    "Explanation",
-    "Utilities",
-    "Structures",
-    "Miscellaneous",
-    "Review",
-  ]) {
-    await workspace.getByRole("tab", { name: tab }).click();
-    await attach(`warehouse-${tab.toLowerCase()}`);
-    await assertBottomReachable(".warehouse-panel");
-  }
-
-  await open("Personal Reality");
-  const realityCategories = [
-    ["Setup", "setup"],
-    ["Basics", "basics"],
-    ["Utilities", "utilities"],
-    ["Cosmetic", "cosmetic"],
-    ["Facilities", "facilities"],
-    ["Extensions", "extensions"],
-    ["Items & equipment", "items"],
-    ["Companions", "companions"],
-    ["Misc", "misc"],
-    ["Limitations", "limitations"],
-  ] as const;
-  for (const [label, id] of realityCategories) {
-    await workspace
-      .locator("#reality-category-nav")
-      .getByRole("button", { name: new RegExp(`^${label}\\b`) })
-      .click();
-    await attach(`reality-${id}`);
-    await assertBottomReachable(".reality-workspace-content");
-  }
-
-  await open("Universal Drawbacks");
-  const udsButtons = workspace.locator("#uds-category-nav button");
-  for (let index = 0; index < 8; index += 1) {
-    await udsButtons.nth(index).click();
-    await attach(`uds-${index + 1}`);
-    await assertBottomReachable(".uds-catalog");
-  }
-
-  await open("Quest Mode");
-  for (const tab of ["Explanation", "Quest tiers", "Optional rules"]) {
-    await workspace.getByRole("tab", { name: tab }).click();
-    await attach(`quest-${tab.toLowerCase()}`);
-    await assertBottomReachable(".quest-panel-stack");
-  }
-
-  await open("Story");
-  await attach("story-reader-top");
-  await assertBottomReachable(".story-full-reader");
-  await attach("story-reader-bottom");
-
-  await scenario.getByRole("button", { name: "Supp" }).click();
-  const dialog = scenario.getByRole("dialog");
-  for (const tool of [
-    /Essential Body Mod.*At a glance/,
-    /Essential Body Mod.*Progression/,
-    /Personal Reality.*At a glance/,
-    /Personal Reality.*Spend new points/,
-    /Universal Drawbacks/,
-    /Quest Mode/,
-    /Story/,
-  ]) {
-    await dialog.getByRole("button", { name: tool }).click();
-    await testInfo.attach(`${testInfo.project.name}-dialog-${tool.source}`, {
-      body: await page.screenshot(),
-      contentType: "image/png",
-    });
-  }
-  await page.keyboard.press("Escape");
-  await workspace.getByRole("tab", { name: "Manage" }).click();
-  const warehouseRow = workspace
-    .locator(".supplement-manage-list article")
-    .filter({ hasText: "Cosmic Warehouse" });
-  await warehouseRow.getByRole("checkbox").check();
-  await scenario.getByRole("button", { name: "Supp" }).click();
-  const warehouseDialog = scenario.getByRole("dialog");
-  await warehouseDialog
-    .getByRole("button", { name: /Cosmic Warehouse/ })
-    .click();
-  await testInfo.attach(`${testInfo.project.name}-dialog-warehouse`, {
-    body: await page.screenshot(),
-    contentType: "image/png",
-  });
-});
+    if (shouldCaptureReviewArtifacts(testInfo, false)) {
+      await testInfo.attach(`${testInfo.project.name}-dialog-warehouse`, {
+        body: await page.screenshot(),
+        contentType: "image/png",
+      });
+    }
+  },
+);
 
 test("progression tiers, requirements, and special quests follow the mock mechanics", async ({
   page,

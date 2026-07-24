@@ -1,6 +1,7 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "./support/fixtures";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { shouldCaptureReviewArtifacts } from "./support/reviewArtifacts";
 
 async function expectModalBelowRouter(page: Page, layer: Locator) {
   const [routerBox, layerBox] = await Promise.all([
@@ -106,69 +107,73 @@ test("Home matches the shell proposal and exposes explicit workspace choices and
   ).toHaveText("/");
 });
 
-test("workspace navigation uses real paths, history, titles, and predictable focus", async ({
-  page,
-}) => {
-  await page.getByRole("button", { name: "Open Editor" }).click();
-  await expect(page).toHaveURL(/\/editor$/);
-  await expect(page).toHaveTitle("Editor · Jumpchain Visualizer");
-  await expect(
-    page.getByRole("heading", { name: "Your Jump projects" }),
-  ).toBeFocused();
+test(
+  "workspace navigation uses real paths, history, titles, and predictable focus",
+  { tag: ["@smoke", "@cross-browser"] },
+  async ({ page }) => {
+    await page.getByRole("button", { name: "Open Editor" }).click();
+    await expect(page).toHaveURL(/\/editor$/);
+    await expect(page).toHaveTitle("Editor · Jumpchain Visualizer");
+    await expect(
+      page.getByRole("heading", { name: "Your Jump projects" }),
+    ).toBeFocused();
 
-  await page.getByRole("button", { name: "Create Project" }).click();
-  await expect(page).toHaveURL(/\/editor\/[0-9a-f-]+$/);
-  await expect(page).toHaveTitle("Untitled Jump · Editor");
-  await expect(
-    page.getByRole("heading", { name: "Untitled Jump", level: 1 }),
-  ).toBeFocused();
-  const editorPath = new URL(page.url()).pathname;
+    await page.getByRole("button", { name: "Create Project" }).click();
+    await expect(page).toHaveURL(/\/editor\/[0-9a-f-]+$/);
+    await expect(page).toHaveTitle("Untitled Jump · Editor");
+    await expect(
+      page.getByRole("heading", { name: "Untitled Jump", level: 1 }),
+    ).toBeFocused();
+    const editorPath = new URL(page.url()).pathname;
 
-  await page
-    .getByRole("button", { name: "Chain Tracker", exact: true })
-    .click();
-  await expect(page).toHaveURL(/\/chain$/);
-  await expect(
-    page.getByRole("heading", { name: "Your chains" }),
-  ).toBeFocused();
+    await page
+      .getByRole("button", { name: "Chain Tracker", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/chain$/);
+    await expect(
+      page.getByRole("heading", { name: "Your chains" }),
+    ).toBeFocused();
 
-  await page.getByRole("button", { name: "Back" }).click();
-  await expect(page).toHaveURL(editorPath);
-  await expect(
-    page.getByRole("heading", { name: "Untitled Jump", level: 1 }),
-  ).toBeFocused();
-  await page.getByRole("button", { name: "Forward" }).click();
-  await expect(page).toHaveURL(/\/chain$/);
-});
+    await page.getByRole("button", { name: "Back" }).click();
+    await expect(page).toHaveURL(editorPath);
+    await expect(
+      page.getByRole("heading", { name: "Untitled Jump", level: 1 }),
+    ).toBeFocused();
+    await page.getByRole("button", { name: "Forward" }).click();
+    await expect(page).toHaveURL(/\/chain$/);
+  },
+);
 
-test("recent work opens addressable Editor and real Chain Tracker workspaces", async ({
-  page,
-}) => {
-  await page.getByRole("button", { name: "Open Editor" }).click();
-  await page.getByRole("button", { name: "Create Project" }).click();
-  await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
-  await page
-    .getByRole("region", { name: "Editor workspaces" })
-    .getByRole("button", { name: "Resume" })
-    .click();
-  await expect(page).toHaveURL(/\/editor\/[0-9a-f-]+$/);
-  await expect(page.getByLabel("Untitled Jump Editor")).toBeVisible();
+test(
+  "recent work opens addressable Editor and real Chain Tracker workspaces",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await page.getByRole("button", { name: "Open Editor" }).click();
+    await page.getByRole("button", { name: "Create Project" }).click();
+    await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
+    await page
+      .getByRole("region", { name: "Editor workspaces" })
+      .getByRole("button", { name: "Resume" })
+      .click();
+    await expect(page).toHaveURL(/\/editor\/[0-9a-f-]+$/);
+    await expect(page.getByLabel("Untitled Jump Editor")).toBeVisible();
 
-  await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
-  await page
-    .getByRole("region", { name: "Chains" })
-    .getByRole("button", { name: "Resume" })
-    .first()
-    .click();
-  await expect(page).toHaveURL(/\/chain\/ch-92b1$/);
-  const tracker = page.getByLabel("Interactive Chain Tracker workspace");
-  await expect(tracker).toBeVisible();
-  await expect(tracker.locator(".chain-mock-header")).toHaveCount(0);
-  await expect(tracker.locator(".chain-jump-entry")).toHaveCount(4);
-  await expect(
-    page.getByRole("button", { name: "Chain Tracker", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
-});
+    await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
+    await page
+      .getByRole("region", { name: "Chains" })
+      .getByRole("button", { name: "Resume" })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/chain\/ch-92b1$/);
+    const tracker = page.getByLabel("Interactive Chain Tracker workspace");
+    await expect(tracker).toBeVisible();
+    await expect(tracker.locator(".chain-mock-header")).toHaveCount(0);
+    await expect(tracker.locator(".chain-jump-entry")).toHaveCount(4);
+    await expect(
+      page.getByRole("button", { name: "Chain Tracker", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+  },
+);
 
 test("returning to the mounted chain restores its internal workspace state", async ({
   page,
@@ -284,7 +289,7 @@ test("Chain cards delete only after the shared confirmation", async ({
     "outline-color",
     await resolveColorToken(page, "--app-danger-focus"),
   );
-  if (testInfo.project.name === "chromium") {
+  if (shouldCaptureReviewArtifacts(testInfo)) {
     const screenshot = await page.screenshot({ animations: "disabled" });
     await testInfo.attach("chain-delete-confirmation", {
       body: screenshot,
@@ -326,7 +331,7 @@ test("tracker dialogs share the application modal boundary and close on route de
   await page.getByRole("button", { name: "Settings" }).click();
   const settingsLayer = page.locator(".app-settings-layer.is-overlay");
   await expectModalBelowRouter(page, settingsLayer);
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("settings-application-modal-boundary", {
       body: await page.screenshot(),
       contentType: "image/png",
@@ -356,7 +361,7 @@ test("tracker dialogs share the application modal boundary and close on route de
     name: "Form details: Prism Form",
   });
   const profileLayer = page.locator(".companion-profile-layer");
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("form-profile-modal-before", {
       body: await page.screenshot(),
       contentType: "image/png",
@@ -374,7 +379,7 @@ test("tracker dialogs share the application modal boundary and close on route de
       border: style.borderColor,
     };
   });
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("form-profile-accent-modal", {
       body: await page.screenshot(),
       contentType: "image/png",
@@ -406,7 +411,7 @@ test("tracker dialogs share the application modal boundary and close on route de
     "border-color",
     "rgb(141, 120, 49)",
   );
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("companion-profile-accent-modal", {
       body: await page.screenshot(),
       contentType: "image/png",
@@ -424,7 +429,7 @@ test("tracker dialogs share the application modal boundary and close on route de
   await expect(recordDialog).toBeVisible();
   await expectModalBelowRouter(page, page.locator(".record-detail-layer"));
   await expect(inventoryTracker).toHaveAttribute("inert", "");
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("record-detail-application-modal", {
       body: await page.screenshot(),
       contentType: "image/png",
@@ -446,7 +451,7 @@ test("tracker dialogs share the application modal boundary and close on route de
   await expect(
     page.getByLabel("Interactive Chain Tracker workspace"),
   ).toHaveAttribute("inert", "");
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("supp-application-modal", {
       body: await page.screenshot(),
       contentType: "image/png",
@@ -456,7 +461,7 @@ test("tracker dialogs share the application modal boundary and close on route de
   await resumeMorgan(page);
   await expect(supplementDialog).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("tracker-dialogs-closed-after-route-return", {
       body: await page.screenshot(),
       contentType: "image/png",
@@ -582,7 +587,7 @@ test("starred chains lead both lists while each group retains recency order", as
   expect(accentColor).toBe(expectedAccentColor);
   expect(accentColor).not.toBe(inactiveColor);
 
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("starred-chain-hub-order", {
       body: await page.screenshot(),
       contentType: "image/png",
@@ -608,7 +613,7 @@ test("starred chains lead both lists while each group retains recency order", as
       .evaluate((element) => getComputedStyle(element).fontSize),
   ).toBe(toggleSize);
 
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("starred-chain-home-order", {
       body: await page.screenshot(),
       contentType: "image/png",
@@ -628,7 +633,7 @@ test("starred chains lead both lists while each group retains recency order", as
     .click();
   await page.getByRole("button", { name: "Unstar Alpha" }).click();
   await expect(cardNames).toHaveText(["Morgan", "Beta", "Alpha"]);
-  if (testInfo.project.name === "chromium")
+  if (shouldCaptureReviewArtifacts(testInfo))
     await testInfo.attach("unstarred-chain-hub-order", {
       body: await page.screenshot(),
       contentType: "image/png",
@@ -747,41 +752,43 @@ test("unknown workspace IDs recover inside their owning hub and unknown routes d
   await expect(page).toHaveURL(/\/settings$/);
 });
 
-test("the narrow shell follows the proposal without clipping navigation or recent actions", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 620, height: 900 });
-  const shell = page.getByLabel("Jumpchain Visualizer application");
-  await expect(
-    shell.getByRole("button", { name: "Editor", exact: true }),
-  ).toBeVisible();
-  await expect(
-    shell.getByRole("button", { name: "Chain Tracker", exact: true }),
-  ).toBeVisible();
-  await expect(
-    shell
-      .getByRole("region", { name: "Chains" })
-      .getByRole("button", {
-        name: "Resume",
-      })
-      .first(),
-  ).toBeVisible();
+test(
+  "the narrow shell follows the proposal without clipping navigation or recent actions",
+  { tag: "@cross-browser" },
+  async ({ page }) => {
+    await page.setViewportSize({ width: 620, height: 900 });
+    const shell = page.getByLabel("Jumpchain Visualizer application");
+    await expect(
+      shell.getByRole("button", { name: "Editor", exact: true }),
+    ).toBeVisible();
+    await expect(
+      shell.getByRole("button", { name: "Chain Tracker", exact: true }),
+    ).toBeVisible();
+    await expect(
+      shell
+        .getByRole("region", { name: "Chains" })
+        .getByRole("button", {
+          name: "Resume",
+        })
+        .first(),
+    ).toBeVisible();
 
-  await shell.getByRole("button", { name: "Open Chain Tracker" }).click();
-  const finalChain = page.locator(".app-chain-card").last();
-  await finalChain.scrollIntoViewIfNeeded();
-  await expect(finalChain).toContainText("Morgan");
-  await expect(
-    finalChain.getByRole("button", { name: "Edit Morgan" }),
-  ).toBeVisible();
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    )
-    .toBe(true);
-});
+    await shell.getByRole("button", { name: "Open Chain Tracker" }).click();
+    const finalChain = page.locator(".app-chain-card").last();
+    await finalChain.scrollIntoViewIfNeeded();
+    await expect(finalChain).toContainText("Morgan");
+    await expect(
+      finalChain.getByRole("button", { name: "Edit Morgan" }),
+    ).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      )
+      .toBe(true);
+  },
+);
 
 test("review fixtures remain direct-only development routes", async ({
   page,

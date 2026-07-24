@@ -13,13 +13,25 @@
 - Security implications are considered.
 - Refactoring is complete to ensure reuse of code, maintainability, and readability.
 - You must verify Code compiles (if applicable) and runs.
-- You must verify all tests pass.
+- You must run the verification tier required by the change and verify its complete test set passes.
 - You must verify type-checkers are clean.
 - You must verify linters are all run and are clean.
 - You must verify via playwright, see below for more details.
 - You must verify that formatters are all run (if applicable).
 - Commit as it makes sense, if the sandbox refuses, elevate to developer.
 - If the issue is rework, then squash commits as necessary.
+
+# Verification tiers
+- Use Node 24.18 or newer within the Node 24 LTS line; `.node-version` is authoritative.
+- `pnpm check` is the required everyday gate. It runs formatting, lint, typechecking, unit tests, a production client build, browser component tests, Rust checks, and the Chromium smoke journeys. Its cold wall-time budget is 90 seconds.
+- Documentation-only changes require no pipeline or test execution.
+- Domain or backend changes require `pnpm check` plus the directly affected unit tests.
+- UI changes require `pnpm check` plus the exact affected Playwright interaction path.
+- Changes involving layout, focus, selection, drag and drop, canvas, image decoding, IndexedDB, RTL, or browser adapters require `pnpm check:full`.
+- Changes to Playwright configuration, browser-specific fixes, and broad browser-runtime changes require `pnpm check:exhaustive`.
+- Release verification requires `pnpm check:release`, which adds the packaged Tauri smoke test.
+- `pnpm test:e2e:artifacts` is the only ordinary workflow allowed to update tracked review screenshots and comparison JSON. Other verification commands must leave `artifacts/` unchanged.
+- Do not hide flaky tests with retries. A retry that recovers is still a failed verification run.
 
 # Playwright
 - Use Playwright to verify issues and features before and after changes, use question tool or prompt the developer for more information if you cannot verify an issue.

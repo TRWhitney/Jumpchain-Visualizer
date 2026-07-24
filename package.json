@@ -5,15 +5,22 @@
   "type": "module",
   "packageManager": "pnpm@11.11.0",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=24.18.0 <25"
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1420",
     "build": "tsc -b && vite build",
+    "build:client": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "test": "vitest run --project unit",
+    "test:verification": "node --test scripts/*.test.mjs",
     "test:browser": "vitest run --project browser",
-    "test:e2e": "playwright test",
+    "test:e2e": "node scripts/run-playwright.mjs chromium",
+    "test:e2e:smoke": "node scripts/run-playwright.mjs smoke",
+    "test:e2e:chromium": "node scripts/run-playwright.mjs chromium",
+    "test:e2e:cross-browser": "node scripts/run-playwright.mjs cross-browser",
+    "test:e2e:exhaustive": "node scripts/run-playwright.mjs exhaustive",
+    "test:e2e:artifacts": "node scripts/run-playwright.mjs artifacts",
     "test:native": "corepack pnpm tauri build --debug --no-bundle && wdio run wdio.conf.ts",
     "typecheck": "tsc -b",
     "lint": "eslint .",
@@ -21,7 +28,11 @@
     "format:check": "prettier --check .",
     "generate:markup": "lezer-generator src/markup/format1.grammar -o src/markup/format1Parser.generated.ts",
     "check:rust": "cargo fmt --all --check && cargo clippy --workspace --all-targets --all-features -- -D warnings && cargo test --workspace --all-features",
-    "check": "corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm test:browser && corepack pnpm test:e2e && corepack pnpm check:rust",
+    "check:core": "node scripts/verify.mjs core",
+    "check": "node scripts/verify.mjs fast",
+    "check:full": "node scripts/verify.mjs full",
+    "check:exhaustive": "node scripts/verify.mjs exhaustive",
+    "check:release": "node scripts/verify.mjs release",
     "tauri": "tauri"
   },
   "dependencies": {

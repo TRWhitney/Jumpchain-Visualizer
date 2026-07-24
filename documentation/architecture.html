@@ -52,7 +52,7 @@
           <tr><td>Desktop persistence</td><td>SQLite behind Rust repositories</td><td>No general SQL capability is exposed to the frontend</td></tr>
           <tr><td>Browser persistence</td><td>IndexedDB adapter</td><td>Secondary persistent runtime using the same repository contracts</td></tr>
           <tr><td>Unit/component tests</td><td>Vitest, including Browser Mode</td><td>Pure TypeScript, component, and repository-contract tests</td></tr>
-          <tr><td>Browser end to end</td><td>Playwright</td><td>Primary UI flows in Chromium, Firefox, and WebKit</td></tr>
+          <tr><td>Browser end to end</td><td>Playwright</td><td>Full functional coverage in Chromium, with a focused engine-risk matrix in Firefox and WebKit and an explicit exhaustive tier</td></tr>
           <tr><td>Packaged smoke tests</td><td>WebdriverIO Tauri service</td><td>Small native-boundary suite using its free embedded provider</td></tr>
         </tbody>
       </table>
@@ -221,7 +221,11 @@ src-tauri/
       <ol>
         <li>Vitest Node tests cover pure parsing transformations, validators, commands, evaluation, supplements, migrations, and serializers.</li>
         <li>Vitest Browser Mode covers components requiring real layout, selection, focus, input, and browser APIs.</li>
-        <li>Playwright runs complete browser-profile workflows in Chromium, Firefox, and WebKit with deterministic adapters and visual artifacts.</li>
+        <li>The everyday <code>pnpm check</code> gate runs bounded parallel static, unit, build, Browser Mode, and Rust checks before eight Chromium smoke journeys. The cold-run budget is 90 seconds.</li>
+        <li>Full Chromium functional coverage remains available through <code>pnpm test:e2e:chromium</code>. Firefox and WebKit run a focused matrix for routing and focus, responsive layout, source selection, canvas pointers, image decoding, drag behavior, IndexedDB, RTL, supplement keyboard navigation, and native controls.</li>
+        <li><code>pnpm check:exhaustive</code> restores the complete three-engine matrix for browser infrastructure work. <code>pnpm check:release</code> adds the packaged Tauri boundary.</li>
+        <li>Review screenshots and pixel comparisons are evidence generation rather than pass/fail side effects. Only <code>pnpm test:e2e:artifacts</code> may update tracked artifacts; ordinary runs retain screenshots only for failures.</li>
+        <li>Playwright tests wait for observable DOM, persistence, image, and animation state. Time-based sleeps are prohibited, flaky retries fail the run, and slow files are reported.</li>
         <li>Cargo tests cover archive attacks, hashing, path containment, SQLite transactions, migrations, and filesystem recovery.</li>
         <li>Repository and archive contract suites execute against every implementation.</li>
         <li>A small WebdriverIO suite exercises the built Tauri application, IPC permissions, native dialogs through controlled adapters, and startup/recovery on each operating system.</li>

@@ -175,6 +175,12 @@ test("custom package limits require risk consent and invalid values never become
   await page.getByRole("button", { name: "I understand, enable" }).click();
   const expanded = page.getByRole("spinbutton", { name: /Expanded package/ });
   await expect.element(expanded).toBeEnabled();
+  await expect
+    .element(page.getByTitle("Increase Expanded package limit"))
+    .toBeVisible();
+  await expect
+    .element(page.getByTitle("Decrease Expanded package limit"))
+    .toBeVisible();
   await expanded.fill("8");
   await expect
     .element(page.getByText(/cannot exceed the expanded package limit/))
@@ -254,6 +260,43 @@ test("permanent sidebar deletion is an off-by-default persisted Editor preferenc
       return stored?.editor.permanentlyDeleteSidebarItems;
     })
     .toBe(true);
+});
+
+test("layout preview placeholder length is unlimited by default and persists a bounded value", async () => {
+  const repository = new MemorySettingsRepository();
+  render(
+    <SettingsProvider repository={repository} reportExporter={exporter}>
+      <SettingsSurfaceHarness />
+    </SettingsProvider>,
+  );
+  await page.getByRole("tab", { name: "Editor" }).click();
+  const limit = page.getByLabelText("Layout preview placeholder length");
+  await expect.element(limit).toHaveValue(null);
+  await expect.element(limit).toHaveAttribute("placeholder", "Unlimited");
+  await page.getByTitle("Increase Layout preview placeholder length").click();
+  await expect.element(limit).toHaveValue(1);
+  await expect
+    .element(page.getByTitle("Decrease Layout preview placeholder length"))
+    .toBeDisabled();
+  await limit.fill("12");
+  await expect.element(limit).toHaveValue(12);
+  await expect
+    .poll(async () => {
+      const stored = (await repository.load()) as ReturnType<
+        typeof defaultSettings
+      > | null;
+      return stored?.editor.layoutPreviewPlaceholderCharacterLimit;
+    })
+    .toBe(12);
+  await limit.fill("");
+  await expect
+    .poll(async () => {
+      const stored = (await repository.load()) as ReturnType<
+        typeof defaultSettings
+      > | null;
+      return stored?.editor.layoutPreviewPlaceholderCharacterLimit;
+    })
+    .toBeNull();
 });
 
 test("image alt text hover is an on-by-default persisted Accessibility preference", async () => {

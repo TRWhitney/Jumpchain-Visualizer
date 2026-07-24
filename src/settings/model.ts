@@ -7,12 +7,28 @@ export type MotionPreference = "system" | "reduced" | "full";
 export type NotificationClass =
   "confirmations" | "editor" | "chain" | "validation" | "errors";
 
-export const keybindingActions = [
+export const sourceKeybindingActions = [
   "find",
   "quickAdd",
   "format",
   "quickFix",
   "completions",
+] as const;
+export const assetToolKeybindingActions = [
+  "assetSelectTool",
+  "assetPanTool",
+  "assetCropTool",
+  "assetPaintTool",
+  "assetEraserTool",
+  "assetTextTool",
+  "assetLineTool",
+  "assetArrowTool",
+  "assetRectangleTool",
+  "assetEllipseTool",
+] as const;
+export const keybindingActions = [
+  ...sourceKeybindingActions,
+  ...assetToolKeybindingActions,
 ] as const;
 export type KeybindingAction = (typeof keybindingActions)[number];
 export type KeybindingChord = {
@@ -65,6 +81,7 @@ export type ApplicationSettings = {
     warnMissingImageAlt: boolean;
     warnMissingLayoutTargets: boolean;
     permanentlyDeleteSidebarItems: boolean;
+    layoutPreviewPlaceholderCharacterLimit: number | null;
   };
   chain: {
     allowMultiplePackageVersions: boolean;
@@ -121,6 +138,16 @@ export const defaultKeybindings: Record<KeybindingAction, KeybindingChord> = {
   format: { key: "f", primary: true, alt: false, shift: true },
   quickFix: { key: ".", primary: true, alt: false, shift: false },
   completions: { key: "Space", primary: true, alt: false, shift: false },
+  assetSelectTool: { key: "v", primary: false, alt: false, shift: false },
+  assetPanTool: { key: "h", primary: false, alt: false, shift: false },
+  assetCropTool: { key: "c", primary: false, alt: false, shift: false },
+  assetPaintTool: { key: "b", primary: false, alt: false, shift: false },
+  assetEraserTool: { key: "e", primary: false, alt: false, shift: false },
+  assetTextTool: { key: "t", primary: false, alt: false, shift: false },
+  assetLineTool: { key: "l", primary: false, alt: false, shift: false },
+  assetArrowTool: { key: "a", primary: false, alt: false, shift: false },
+  assetRectangleTool: { key: "r", primary: false, alt: false, shift: false },
+  assetEllipseTool: { key: "o", primary: false, alt: false, shift: false },
 };
 
 export const keybindingLabels: Record<KeybindingAction, string> = {
@@ -129,6 +156,16 @@ export const keybindingLabels: Record<KeybindingAction, string> = {
   format: "Format",
   quickFix: "Quick Fix",
   completions: "All Completions",
+  assetSelectTool: "Asset editor: Select",
+  assetPanTool: "Asset editor: Pan",
+  assetCropTool: "Asset editor: Crop",
+  assetPaintTool: "Asset editor: Paint",
+  assetEraserTool: "Asset editor: Eraser",
+  assetTextTool: "Asset editor: Text",
+  assetLineTool: "Asset editor: Line",
+  assetArrowTool: "Asset editor: Arrow",
+  assetRectangleTool: "Asset editor: Rectangle",
+  assetEllipseTool: "Asset editor: Ellipse",
 };
 
 export function defaultSettings(profile: TagProfile): ApplicationSettings {
@@ -149,6 +186,7 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
       warnMissingImageAlt: true,
       warnMissingLayoutTargets: true,
       permanentlyDeleteSidebarItems: false,
+      layoutPreviewPlaceholderCharacterLimit: null,
     },
     chain: {
       allowMultiplePackageVersions: false,
@@ -192,6 +230,20 @@ const boundedWholeMiB = (value: unknown, maximum: number, fallback: number) =>
   value <= maximum
     ? value
     : fallback;
+
+const optionalBoundedWhole = (
+  value: unknown,
+  maximum: number,
+  fallback: number | null,
+) =>
+  value === null || value === undefined
+    ? fallback
+    : typeof value === "number" &&
+        Number.isInteger(value) &&
+        value >= 1 &&
+        value <= maximum
+      ? value
+      : fallback;
 
 export function validatePackageSizeLimits(limits: PackageSizeLimits) {
   const entries = (
@@ -358,6 +410,11 @@ export function hydrateSettings(
         editor.permanentlyDeleteSidebarItems,
         fallback.editor.permanentlyDeleteSidebarItems,
       ),
+      layoutPreviewPlaceholderCharacterLimit: optionalBoundedWhole(
+        editor.layoutPreviewPlaceholderCharacterLimit,
+        1_000,
+        fallback.editor.layoutPreviewPlaceholderCharacterLimit,
+      ),
     },
     chain: {
       allowMultiplePackageVersions: bool(
@@ -479,7 +536,14 @@ export function validateKeybinding(
   ]);
   if (reserved.has(normalized))
     return "That shortcut is reserved by the platform.";
-  if (!chord.primary && !chord.alt && !chord.shift)
+  if (
+    !chord.primary &&
+    !chord.alt &&
+    !chord.shift &&
+    !assetToolKeybindingActions.includes(
+      action as (typeof assetToolKeybindingActions)[number],
+    )
+  )
     return "Shortcuts must include a modifier key.";
   for (const candidate of keybindingActions) {
     if (

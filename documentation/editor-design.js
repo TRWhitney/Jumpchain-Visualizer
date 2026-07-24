@@ -283,6 +283,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
   let currentKey = "origins";
   let lastContentEditorTabId = "structured-tab";
   let layoutBoundsVisible = false;
+  let stripPreviewColor = false;
 
   if (!structuredPanel || !sourcePanel || !previewPanel || !propertiesPanel || !feedback || !saveState || !addButton || !addOptions || !contentSearch || !diagnosticsToggle || !diagnosticsDetails || !diagnosticsEmpty || !diagnosticsSummary) return;
 
@@ -907,12 +908,26 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
     const activeLayout = layoutForPreview(view);
     if (activeLayout) {
       const tools = element("div", "mock-preview-layout-tools");
-      const toggle = element("label", "mock-preview-bounds-toggle");
-      const checkbox = element("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = layoutBoundsVisible;
-      checkbox.dataset.previewBoundsToggle = "true";
-      toggle.append(checkbox, element("span", "", "Show bounds"));
+      const toggleRow = element("div", "mock-preview-toggle-row");
+      const boundsToggle = element("label", "mock-preview-bounds-toggle");
+      const boundsCheckbox = element("input");
+      boundsCheckbox.type = "checkbox";
+      boundsCheckbox.checked = layoutBoundsVisible;
+      boundsCheckbox.dataset.previewBoundsToggle = "true";
+      boundsToggle.append(
+        boundsCheckbox,
+        element("span", "", "Show bounds"),
+      );
+      const colorToggle = element("label", "mock-preview-bounds-toggle");
+      const colorCheckbox = element("input");
+      colorCheckbox.type = "checkbox";
+      colorCheckbox.checked = stripPreviewColor;
+      colorCheckbox.dataset.previewColorToggle = "true";
+      colorToggle.append(
+        colorCheckbox,
+        element("span", "", "Strip color"),
+      );
+      toggleRow.append(boundsToggle, colorToggle);
       const legend = element("div", "mock-preview-bounds-legend");
       legend.hidden = !layoutBoundsVisible;
       [["container", "Container"], ["slot", "Slot"], ["reference", "Reference"]].forEach(([kind, label]) => {
@@ -926,9 +941,10 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
       readout.setAttribute("role", "status");
       readout.setAttribute("aria-live", "polite");
       readout.append(element("i", ""), element("span", "", "Hover a bound to inspect"));
-      tools.append(toggle, legend, readout);
+      tools.append(toggleRow, legend, readout);
       previewShell.append(tools);
       preview.classList.toggle("show-layout-bounds", layoutBoundsVisible);
+      preview.classList.toggle("strip-layout-color", stripPreviewColor);
     }
     preview.append(element("p", "preview-kicker", `${view.kind} preview`));
 
@@ -980,14 +996,22 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
   };
 
   previewPanel.addEventListener("change", (event) => {
-    if (!event.target.matches("[data-preview-bounds-toggle]")) return;
-    layoutBoundsVisible = event.target.checked;
-    previewPanel.querySelector(".mock-preview-section")?.classList.toggle("show-layout-bounds", layoutBoundsVisible);
-    const legend = previewPanel.querySelector(".mock-preview-bounds-legend");
-    if (legend) legend.hidden = !layoutBoundsVisible;
-    const readout = previewPanel.querySelector(".mock-preview-bounds-readout");
-    if (readout) readout.hidden = !layoutBoundsVisible;
-    if (!layoutBoundsVisible) previewPanel.querySelectorAll(".is-preview-bound-active").forEach((node) => node.classList.remove("is-preview-bound-active"));
+    if (event.target.matches("[data-preview-color-toggle]")) {
+      stripPreviewColor = event.target.checked;
+      previewPanel
+        .querySelector(".mock-preview-section")
+        ?.classList.toggle("strip-layout-color", stripPreviewColor);
+      return;
+    }
+    if (event.target.matches("[data-preview-bounds-toggle]")) {
+      layoutBoundsVisible = event.target.checked;
+      previewPanel.querySelector(".mock-preview-section")?.classList.toggle("show-layout-bounds", layoutBoundsVisible);
+      const legend = previewPanel.querySelector(".mock-preview-bounds-legend");
+      if (legend) legend.hidden = !layoutBoundsVisible;
+      const readout = previewPanel.querySelector(".mock-preview-bounds-readout");
+      if (readout) readout.hidden = !layoutBoundsVisible;
+      if (!layoutBoundsVisible) previewPanel.querySelectorAll(".is-preview-bound-active").forEach((node) => node.classList.remove("is-preview-bound-active"));
+    }
   });
 
   const resetPreviewBoundReadout = () => {
@@ -1832,4 +1856,43 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
   updateSourceFind();
 
   renderView("origins");
+})();
+
+(() => {
+  const workspace = document.querySelector(".asset-editor-design");
+  const mode = document.querySelector("#asset-design-mode");
+  const state = document.querySelector("#asset-design-state");
+  const zoom = document.querySelector("#asset-design-zoom");
+  const zoomOutput = document.querySelector("#asset-design-zoom-output");
+  const raster = workspace?.querySelector(".asset-design-raster");
+  const svg = workspace?.querySelector(".asset-design-svg");
+  const status = workspace?.querySelector(".asset-design-status");
+  if (!workspace || !mode || !state || !zoom || !zoomOutput || !raster || !svg)
+    return;
+  const renderMode = () => {
+    workspace.dataset.assetEditorMode = mode.value;
+    raster.hidden = mode.value !== "raster";
+    svg.hidden = mode.value !== "svg";
+  };
+  const renderState = () => {
+    workspace.dataset.assetEditorState = state.value;
+    if (!status) return;
+    status.textContent =
+      {
+        ready: "640 × 360 · Preview updated",
+        rendering: "Rendering full resolution…",
+        warning: "sRGB profile normalized · Preview updated",
+        error: "Validation failed · Previous valid preview retained",
+      }[state.value] ?? "";
+  };
+  const renderZoom = () => {
+    zoomOutput.value = `${zoom.value}%`;
+    workspace.style.setProperty("--asset-design-zoom", String(zoom.value / 100));
+  };
+  mode.addEventListener("change", renderMode);
+  state.addEventListener("change", renderState);
+  zoom.addEventListener("input", renderZoom);
+  renderMode();
+  renderState();
+  renderZoom();
 })();

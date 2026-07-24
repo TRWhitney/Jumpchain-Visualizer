@@ -104,6 +104,26 @@ describe("layout presentation styles", () => {
     ).toBe("stretch");
   });
 
+  it("reserves extra stretched area without growing authored image dimensions", () => {
+    expect(
+      layoutInlineChildAreaStyle(node("image", { align: "stretch" })),
+    ).not.toHaveProperty("flex");
+    expect(
+      layoutInlineChildAreaStyle(
+        node("image", { align: "stretch", size: "md" }),
+      ),
+    ).toMatchObject({ flex: "1 1 auto", justifyContent: "stretch" });
+    expect(
+      layoutImageBoundaryStyle(
+        node("image", { align: "stretch", size: "md" }),
+        "inline",
+      ),
+    ).toMatchObject({ flex: "0 1 auto", width: "8rem" });
+    expect(
+      layoutImageBoundaryStyle(node("image", { align: "stretch" }), "inline"),
+    ).toMatchObject({ flex: undefined, width: "100%" });
+  });
+
   it.each([
     [
       "size",

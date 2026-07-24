@@ -269,36 +269,13 @@ fn save_external_workspace(value: &serde_json::Value) -> Result<(), String> {
         let source = source.as_str().ok_or("Editor source is not text")?;
         atomic_write(&root.join(name), source.as_bytes())?;
     }
-    let assets = value
+    // Asset bytes are a local editor copy. They are deliberately retained in
+    // recovery storage and flattened package export, never written back over a
+    // desktop folder that supplied the original files.
+    value
         .get("assets")
         .and_then(serde_json::Value::as_object)
         .ok_or("Editor assets are missing")?;
-    let asset_root = root.join("assets");
-    if !assets.is_empty() {
-        std::fs::create_dir_all(&asset_root)
-            .map_err(|_| "desktop asset folder could not be created")?;
-    }
-    for (name, encoded) in assets {
-        let relative = Path::new(name);
-        if relative.parent() != Some(Path::new("assets")) {
-            return Err("desktop project contains an invalid asset path".to_owned());
-        }
-        let file_name = relative
-            .file_name()
-            .and_then(|item| item.to_str())
-            .ok_or("desktop asset name is invalid")?;
-        let bytes: Vec<u8> = encoded
-            .as_array()
-            .ok_or("desktop asset bytes are invalid")?
-            .iter()
-            .map(|byte| {
-                byte.as_u64()
-                    .and_then(|value| u8::try_from(value).ok())
-                    .ok_or("desktop asset bytes are invalid")
-            })
-            .collect::<Result<_, _>>()?;
-        atomic_write(&asset_root.join(file_name), &bytes)?;
-    }
     Ok(())
 }
 
@@ -779,8 +756,8 @@ mod tests {
 
     use super::{
         CommandError, EffectivePackageSizeLimits, atomic_write, read_project_folder,
-        safe_workspace_id, sanitize_suggested_name, validate_chain_payload,
-        validate_settings_payload,
+        safe_workspace_id, sanitize_suggested_name, save_external_workspace,
+        validate_chain_payload, validate_settings_payload,
     };
 
     #[cfg(target_os = "linux")]
@@ -887,6 +864,32 @@ mod tests {
                 .expect("read fixture folder")
                 .count(),
             1
+        );
+        std::fs::remove_dir_all(&folder).expect("remove fixture folder");
+    }
+
+    #[test]
+    fn desktop_workspace_save_never_overwrites_original_asset_bytes() {
+        let folder = temporary_folder("local-asset-copy");
+        let asset_folder = folder.join("assets");
+        std::fs::create_dir_all(&asset_folder).expect("create asset fixture folder");
+        std::fs::write(folder.join("jump.jdef"), "jump\n  format: 1\n")
+            .expect("write fixture source");
+        let asset_path = asset_folder.join("pixel.png");
+        let original = [137_u8, 80, 78, 71, 1, 2, 3];
+        std::fs::write(&asset_path, original).expect("write original asset");
+        let value = serde_json::json!({
+            "location": "desktop",
+            "externalFolder": folder,
+            "files": { "jump.jdef": "jump\n  format: 1\n  name: \"Local copy\"\n" },
+            "assets": { "assets/pixel.png": [9, 8, 7, 6] }
+        });
+
+        save_external_workspace(&value).expect("save workspace sources");
+
+        assert_eq!(
+            std::fs::read(&asset_path).expect("read original asset"),
+            original
         );
         std::fs::remove_dir_all(&folder).expect("remove fixture folder");
     }

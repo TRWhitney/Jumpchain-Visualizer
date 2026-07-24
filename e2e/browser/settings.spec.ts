@@ -553,13 +553,19 @@ test("appearance, motion, and keybinding validation apply through their real con
   );
 
   await page.getByRole("tab", { name: "Key bindings" }).click();
-  await expect(page.locator(".keybinding-list > div")).toHaveCount(5);
-  const format = page
-    .locator(".keybinding-list > div")
-    .filter({ hasText: "Format" });
+  await expect(page.locator(".keybinding-row")).toHaveCount(15);
+  const sourceBindings = page
+    .locator(".keybinding-list details")
+    .filter({ hasText: "Source editor" });
+  await sourceBindings.getByText("Source editor", { exact: true }).click();
+  await expect(
+    sourceBindings.locator(".keybinding-row").first(),
+  ).not.toBeVisible();
+  await sourceBindings.getByText("Source editor", { exact: true }).click();
+  const format = page.locator(".keybinding-row").filter({ hasText: "Format" });
   await expect(format.locator("kbd")).toContainText(/⌘ Shift F/);
   const completions = page
-    .locator(".keybinding-list > div")
+    .locator(".keybinding-row")
     .filter({ hasText: "All Completions" });
   await expect(completions.locator("kbd")).toContainText(/⌘ Space/);
   await completions.getByRole("button", { name: "Change" }).click();
@@ -569,7 +575,7 @@ test("appearance, motion, and keybinding validation apply through their real con
   await expect(completions.locator("kbd")).toContainText(/⌘ Shift J/);
   await completions.getByRole("button", { name: "Reset" }).click();
   const quickAdd = page
-    .locator(".keybinding-list > div")
+    .locator(".keybinding-row")
     .filter({ hasText: "Quick Add" });
   await quickAdd.getByRole("button", { name: "Change" }).click();
   await quickAdd.getByRole("button", { name: "Cancel" }).press("Control+f");
@@ -580,6 +586,29 @@ test("appearance, motion, and keybinding validation apply through their real con
   await expect(quickAdd.locator("kbd")).toContainText(/⌘ Shift K/);
   await quickAdd.getByRole("button", { name: "Reset" }).click();
   await expect(quickAdd.locator("kbd")).toContainText(/⌘ Enter/);
+  const assetPaint = page
+    .locator(".keybinding-row")
+    .filter({ hasText: "Asset editor: Paint" });
+  await expect(assetPaint.locator("kbd")).toHaveText("B");
+  await assetPaint.getByRole("button", { name: "Change" }).click();
+  await assetPaint.getByRole("button", { name: "Cancel" }).press("p");
+  await expect(assetPaint.locator("kbd")).toHaveText("P");
+  const changeBounds = await assetPaint
+    .getByRole("button", { name: "Change" })
+    .boundingBox();
+  const resetBounds = await assetPaint
+    .getByRole("button", { name: "Reset" })
+    .boundingBox();
+  expect(changeBounds).not.toBeNull();
+  expect(resetBounds).not.toBeNull();
+  expect(Math.abs(changeBounds!.y - resetBounds!.y)).toBeLessThan(2);
+  await retainAccessibilityScreenshot(
+    testInfo,
+    "settings-keybinding-groups-and-inline-reset",
+    page.getByLabel("Application Settings", { exact: true }),
+  );
+  await assetPaint.getByRole("button", { name: "Reset" }).click();
+  await expect(assetPaint.locator("kbd")).toHaveText("B");
 });
 
 test("image alt text hover applies immediately to Editor and Chain Tracker rendering", async ({

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "purpose": "Deterministic archive-boundary attack corpus generated in tests without retaining executable payloads.",
+  "purpose": "Deterministic archive and asset-editor boundary corpus generated in tests without retaining executable payloads.",
   "cases": [
     { "id": "forged-expanded-size", "expected": "archive.size_mismatch" },
     { "id": "compression-bomb", "expected": "archive.ratio" },
@@ -11,6 +11,12 @@
     { "id": "corrupt-crc", "expected": "archive.crc" },
     { "id": "trailing-polyglot", "expected": "archive.trailing_data" },
     { "id": "malformed-image", "expected": "asset.decode" },
-    { "id": "image-pixel-budget", "expected": "asset.dimensions" }
+    { "id": "image-pixel-budget", "expected": "asset.dimensions" },
+    { "id": "safe-authored-svg-round-trip", "expected": "ready" },
+    { "id": "svg-script-element", "expected": "asset.signature" },
+    { "id": "svg-external-image", "expected": "asset.signature" },
+    { "id": "svg-entity-declaration", "expected": "asset.signature" },
+    { "id": "animated-png-editor", "expected": "read-only" },
+    { "id": "corrupt-raster-editor-document", "expected": "discard-sidecar" }
   ]
 }

@@ -709,6 +709,7 @@ function AppShellContent() {
         location: "imported",
         files: { ...review.files.definitions },
         assets: { ...review.files.assets },
+        assetEditorDocuments: {},
         trash: [],
         starred: false,
         createdAt: now,
@@ -766,6 +767,8 @@ function AppShellContent() {
         const disk = hydrateEditorWorkspace({
           ...activeEditorWorkspace,
           ...(diskValue as object),
+          assets: activeEditorWorkspace.assets,
+          assetEditorDocuments: activeEditorWorkspace.assetEditorDocuments,
           updatedAt: new Date().toISOString(),
           revision: activeEditorWorkspace.revision + 1,
         });
@@ -1682,6 +1685,15 @@ function EditorExportReview({
     setExporting(true);
     setError(null);
     try {
+      const blockedAsset = Object.entries(workspace.assetEditorDocuments).find(
+        ([, document]) =>
+          document.kind === "svg" ||
+          (document.kind === "raster" && document.validationError),
+      );
+      if (blockedAsset)
+        throw new Error(
+          `${blockedAsset[0].replace(/^assets\//, "")} has an unresolved local editor draft. Fix it before export.`,
+        );
       const archive = await new JumpPackageImportService().export(
         { definitions: workspace.files, assets: workspace.assets },
         limits,

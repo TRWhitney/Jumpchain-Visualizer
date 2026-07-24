@@ -3,7 +3,7 @@ import { assetArchivePath, assetRelativePath } from "../markup/assetPath";
 
 export { assetArchivePath, assetRelativePath } from "../markup/assetPath";
 
-const supportedAssetExtension = /\.(?:avif|gif|jpe?g|png|webp)$/i;
+const supportedAssetExtension = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
 
 export type AssetPathValidationCode =
   "empty" | "absolute" | "separator" | "segment" | "extension" | "collision";

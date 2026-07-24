@@ -376,6 +376,59 @@
   font: inherit;
 }
 
+.settings-number-control {
+  position: relative;
+  display: block;
+}
+
+.settings-number-control input {
+  width: 100%;
+  min-height: 2.2rem;
+  padding: 0.35rem 2.35rem 0.35rem 0.45rem;
+  color: #f0f0eb;
+  appearance: textfield;
+  background: #20201e;
+  border: 1px solid #52524c;
+  border-radius: 0.2rem;
+  font: inherit;
+}
+
+.settings-number-control input::-webkit-inner-spin-button,
+.settings-number-control input::-webkit-outer-spin-button {
+  appearance: none;
+}
+
+.settings-number-control > span {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
+  display: grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  overflow: hidden;
+  grid-template-rows: 1fr 1fr;
+  background: #20201e;
+  transform: translateY(-50%);
+}
+
+.settings-number-control button {
+  display: grid;
+  min-height: 0;
+  padding: 0;
+  place-items: center;
+  color: #9999a2;
+  background: transparent;
+  border: 0;
+}
+
+.settings-number-control svg {
+  width: 0.62rem;
+  height: 0.42rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+}
+
 .setting-check {
   display: flex;
   min-height: 2.2rem;
@@ -618,11 +671,41 @@
 }
 
 .keybinding-list {
+  overflow: hidden;
   border: 1px solid #41413d;
   border-radius: 0.3rem;
 }
 
-.keybinding-list > div {
+.keybinding-list > details + details {
+  border-top: 1px solid #41413d;
+}
+
+.keybinding-list summary {
+  padding: 0.55rem 0.7rem;
+  background: #292927;
+  list-style: none;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.keybinding-list summary::before {
+  display: inline-block;
+  width: 0.8rem;
+  margin-right: 0.3rem;
+  content: "›";
+}
+
+.keybinding-list details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.keybinding-list summary::marker,
+.keybinding-list summary::-webkit-details-marker {
+  display: none;
+  content: "";
+}
+
+.keybinding-section > div {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
@@ -631,8 +714,13 @@
   padding: 0.45rem 0.7rem;
 }
 
-.keybinding-list > div + div {
+.keybinding-section > div + div {
   border-top: 1px solid #41413d;
+}
+
+.keybinding-section > div > span:last-child {
+  display: flex;
+  gap: 0.35rem;
 }
 
 .keybinding-list kbd {

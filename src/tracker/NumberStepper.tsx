@@ -1,5 +1,6 @@
 import { translate } from "../localization";
 type Props = {
+  id?: string;
   label: string;
   value: number | null;
   min?: number;
@@ -7,6 +8,7 @@ type Props = {
   placeholder?: string;
   fluid?: boolean;
   disabled?: boolean;
+  invalid?: boolean;
   onChange: (value: number | null) => void;
 };
 
@@ -52,6 +54,7 @@ export function NumberStepperButtons({
 }
 
 export function NumberStepper({
+  id,
   label,
   value,
   min,
@@ -59,6 +62,7 @@ export function NumberStepper({
   placeholder = "Unset",
   fluid = false,
   disabled = false,
+  invalid = false,
   onChange,
 }: Props) {
   const step = (amount: -1 | 1) => {
@@ -74,7 +78,9 @@ export function NumberStepper({
       <label>
         <span className="sr-only">{label}</span>
         <input
+          id={id}
           aria-label={label}
+          aria-invalid={invalid || undefined}
           type="number"
           min={min}
           max={max}

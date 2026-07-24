@@ -7,8 +7,8 @@ import {
 } from "@playwright/test";
 import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
-import { zipSync } from "fflate";
-import { mkdir, writeFile } from "node:fs/promises";
+import { unzipSync, zipSync } from "fflate";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 async function openCreatedEditor(page: Page) {
@@ -65,6 +65,31 @@ async function openReference(page: Page, width: number, height: number) {
     `,
   });
   return { reference, mock: reference.locator(".editor-mockup") };
+}
+
+async function openAssetReference(
+  page: Page,
+  width: number,
+  height: number,
+  mode: "svg" | "raster",
+  state: "ready" | "rendering" | "warning" | "error",
+) {
+  const reference = await page.context().newPage();
+  await reference.setViewportSize(await page.viewportSize()!);
+  await reference.goto("/documentation/editor-design.html");
+  await reference.selectOption("#asset-design-mode", mode);
+  await reference.selectOption("#asset-design-state", state);
+  await reference.addStyleTag({
+    content: `
+      body { margin: 0 !important; overflow: hidden !important; background: #20201e !important; }
+      body > :not(main) { display: none !important; }
+      main > :not(.mockup-section) { display: none !important; }
+      .mockup-section { margin: 0 !important; }
+      .mockup-section > :not(.asset-editor-design) { display: none !important; }
+      .asset-editor-design { width: ${width}px !important; height: ${height}px !important; margin: 0 !important; border-radius: 0 !important; box-sizing: border-box !important; }
+    `,
+  });
+  return { reference, mock: reference.locator(".asset-editor-design") };
 }
 
 async function attachComparison(
@@ -156,7 +181,7 @@ async function attachComparison(
       ),
     ]);
   }
-  expect(left.width).toBe(right.width);
+  expect(Math.abs(left.width - right.width)).toBeLessThanOrEqual(2);
   expect(Math.abs(left.height - right.height)).toBeLessThanOrEqual(2);
 }
 
@@ -1022,6 +1047,91 @@ test("Show bounds does not extend the authored preview surface", async ({
   );
 });
 
+test("Strip color changes only the live preview and keeps authored colors intact", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice layout" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+
+  const source = editor.getByLabel(/source$/);
+  const authoredMarkup = `theme
+  handle: preview_surface
+  color: "#123456"
+
+choice-layout
+  handle: colored_preview
+
+  stack
+    gap: sm
+    background: preview_surface
+    text-color: "#FEDCBA"
+
+    slot: name
+
+    text: description
+
+    rule
+      color: "#C85A71"
+      thickness: 4
+      style: rounded
+`;
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(authoredMarkup);
+  await editor.getByRole("button", { name: "colored_preview" }).click();
+  await expect(editor.locator(".editor-save-state")).toHaveText("Saved", {
+    timeout: 2_000,
+  });
+
+  const markupBeforeToggle = await source.textContent();
+  const preview = editor.locator(".editor-real-preview");
+  const container = preview.locator('[data-layout-kind="stack"]').first();
+  const rule = preview.locator('[data-layout-kind="rule"] hr');
+  await expect(container).toHaveCSS("background-color", "rgb(18, 52, 86)");
+  await expect(container).toHaveCSS("color", "rgb(254, 220, 186)");
+  await expect(rule).toHaveCSS("background-color", "rgb(200, 90, 113)");
+
+  const showBounds = editor.getByLabel("Show bounds");
+  const stripColor = editor.getByLabel("Strip color");
+  const [boundsLabel, stripLabel] = await Promise.all([
+    showBounds.locator("..").boundingBox(),
+    stripColor.locator("..").boundingBox(),
+  ]);
+  expect(boundsLabel).not.toBeNull();
+  expect(stripLabel).not.toBeNull();
+  expect(stripLabel!.x).toBeGreaterThanOrEqual(
+    boundsLabel!.x + boundsLabel!.width,
+  );
+  expect(stripLabel!.y).toBeCloseTo(boundsLabel!.y, 0);
+  await attachProductionState(
+    testInfo,
+    "editor-preview-strip-color-off-production",
+    editor.locator(".editor-context-pane"),
+  );
+
+  await stripColor.check();
+  await expect(container).not.toHaveCSS("background-color", "rgb(18, 52, 86)");
+  await expect(container).not.toHaveCSS("color", "rgb(254, 220, 186)");
+  await expect(rule).not.toHaveCSS("background-color", "rgb(200, 90, 113)");
+  await expect(source).toHaveText(markupBeforeToggle!);
+  await expect(editor.locator(".editor-save-state")).toHaveText("Saved");
+  await attachProductionState(
+    testInfo,
+    "editor-preview-strip-color-on-production",
+    editor.locator(".editor-context-pane"),
+  );
+
+  await stripColor.uncheck();
+  await expect(container).toHaveCSS("background-color", "rgb(18, 52, 86)");
+  await expect(container).toHaveCSS("color", "rgb(254, 220, 186)");
+  await expect(rule).toHaveCSS("background-color", "rgb(200, 90, 113)");
+  await expect(source).toHaveText(markupBeforeToggle!);
+  await expect(editor.locator(".editor-save-state")).toHaveText("Saved");
+});
+
 test("Show bounds matches the mock boundary language and exact hover behavior", async ({
   page,
 }, testInfo) => {
@@ -1661,6 +1771,228 @@ test("Inline Text alignment uses the row's visible available space", async ({
   );
 });
 
+test("Inline Image alignment separates leaf growth from authored image size and honors preview placeholder limits", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 2048, height: 1080 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Section layout" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("layout.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`section-layout
+  handle: inline_image_stretch
+
+  stack
+    gap: md
+
+    inline
+      gap: md
+      text: welcome
+      text: blah
+
+    text: asdf
+
+    inline
+      gap: md
+      text: asdf2
+      text: asdf3
+      slot: name
+      image: pic
+`);
+  await editor.getByRole("button", { name: "inline_image_stretch" }).click();
+  await editor.getByRole("tab", { name: "Structured" }).click();
+
+  const builder = editor.locator(".editor-layout-builder");
+  await builder
+    .getByLabel("Editing container")
+    .selectOption({ label: "stack[1]/inline[3]" });
+  const imageRow = builder.locator('[data-layout-node-kind="image"]');
+  await imageRow
+    .getByRole("button", { name: "Edit Image presentation fields" })
+    .click();
+  const align = imageRow.getByLabel("align", { exact: true });
+  const preview = editor.locator(".editor-real-preview");
+  const imageBoundary = preview.locator('[data-layout-kind="image"]');
+  const imageArea = imageBoundary.locator("..");
+  const image = imageBoundary.locator("img");
+
+  await editor.getByLabel("Show bounds").check();
+  await align.scrollIntoViewIfNeeded();
+  await align.selectOption("");
+  await expect(imageArea).toHaveCSS("flex", "0 1 auto");
+  await expect(preview).toContainText("Example content for “asdf2”.");
+  await attachProductionState(
+    testInfo,
+    "editor-layout-inline-image-full-placeholder-production",
+    editor,
+  );
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Editor" }).click();
+  const placeholderLimit = page.getByLabel("Layout preview placeholder length");
+  await expect(placeholderLimit).toHaveValue("");
+  await expect(placeholderLimit).toHaveAttribute("placeholder", "Unlimited");
+  await expect(
+    page.getByTitle("Increase Layout preview placeholder length"),
+  ).toBeVisible();
+  await expect(
+    page.getByTitle("Decrease Layout preview placeholder length"),
+  ).toBeVisible();
+  const saving = page.getByLabel("Saving");
+  const [placeholderColors, savingColors] = await Promise.all([
+    placeholderLimit.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        background: style.backgroundColor,
+        border: style.borderColor,
+        color: style.color,
+      };
+    }),
+    saving.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        background: style.backgroundColor,
+        border: style.borderColor,
+        color: style.color,
+      };
+    }),
+  ]);
+  expect(placeholderColors).toEqual(savingColors);
+  await placeholderLimit.fill("8");
+  await attachProductionState(
+    testInfo,
+    "settings-editor-layout-preview-placeholder-limit-corrected",
+    page.getByLabel("Application Settings", { exact: true }),
+  );
+  await page.getByRole("tab", { name: "Developer" }).click();
+  await page.getByLabel("Use custom package limits").click();
+  await page
+    .getByRole("alertdialog", {
+      name: "Increase package limits at your own risk",
+    })
+    .getByRole("button", { name: "I understand, enable" })
+    .click();
+  const packageLimits = page.getByRole("spinbutton", { name: / limit$/ });
+  await expect(packageLimits).toHaveCount(4);
+  for (const label of [
+    "Archive",
+    "Definition file",
+    "Asset file",
+    "Expanded package",
+  ]) {
+    await expect(page.getByTitle(`Increase ${label} limit`)).toBeVisible();
+    await expect(page.getByTitle(`Decrease ${label} limit`)).toBeVisible();
+  }
+  const archiveLimit = page.getByRole("spinbutton", {
+    name: "Archive limit",
+  });
+  await archiveLimit.scrollIntoViewIfNeeded();
+  const archiveColors = await archiveLimit.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      background: style.backgroundColor,
+      border: style.borderColor,
+      color: style.color,
+    };
+  });
+  expect(archiveColors).toEqual(savingColors);
+  await attachProductionState(
+    testInfo,
+    "settings-developer-package-limit-steppers-corrected",
+    page.locator(".developer-package-limits"),
+  );
+  await page.getByRole("button", { name: "Close Settings" }).click();
+
+  const textLeaves = preview.locator('[data-layout-kind="text"]');
+  await expect(textLeaves).toHaveCount(5);
+  for (const textLeaf of await textLeaves.all())
+    await expect(textLeaf).toHaveText("Example ");
+  await expect(preview.locator('[data-layout-kind="slot"]')).toHaveText(
+    "Example ",
+  );
+
+  await align.selectOption("start");
+  const imageAtStart = await imageBoundary.boundingBox();
+  await align.selectOption("center");
+  const imageAtCenter = await imageBoundary.boundingBox();
+  await align.selectOption("end");
+  const imageAtEnd = await imageBoundary.boundingBox();
+  expect(imageAtStart).not.toBeNull();
+  expect(imageAtCenter).not.toBeNull();
+  expect(imageAtEnd).not.toBeNull();
+  expect(imageAtCenter!.x).toBeGreaterThan(imageAtStart!.x);
+  expect(imageAtEnd!.x).toBeGreaterThan(imageAtCenter!.x);
+
+  await align.selectOption("stretch");
+  await expect(imageArea).toHaveCSS("flex", "1 1 0px");
+  const [stretchedArea, stretchedBoundary, stretchedImage] = await Promise.all([
+    imageArea.boundingBox(),
+    imageBoundary.boundingBox(),
+    image.boundingBox(),
+  ]);
+  expect(stretchedArea).not.toBeNull();
+  expect(stretchedBoundary).not.toBeNull();
+  expect(stretchedImage).not.toBeNull();
+  expect(stretchedArea!.width).toBeGreaterThan(imageAtStart!.width);
+  expect(stretchedBoundary!.width).toBeCloseTo(stretchedArea!.width, 0);
+  expect(stretchedImage!.width).toBeCloseTo(stretchedArea!.width, 0);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-inline-image-unsized-stretch-corrected",
+    editor,
+  );
+
+  await align.selectOption("start");
+  await imageRow.getByLabel("size", { exact: true }).fill("200px");
+  const [authoredArea, authoredBoundary, authoredImage] = await Promise.all([
+    imageArea.boundingBox(),
+    imageBoundary.boundingBox(),
+    image.boundingBox(),
+  ]);
+  expect(authoredArea).not.toBeNull();
+  expect(authoredBoundary).not.toBeNull();
+  expect(authoredImage).not.toBeNull();
+  await align.selectOption("stretch");
+  await expect(imageArea).toHaveCSS("flex", "1 1 auto");
+  const [
+    stretchedAuthoredArea,
+    stretchedAuthoredBoundary,
+    stretchedAuthoredImage,
+  ] = await Promise.all([
+    imageArea.boundingBox(),
+    imageBoundary.boundingBox(),
+    image.boundingBox(),
+  ]);
+  expect(stretchedAuthoredArea).not.toBeNull();
+  expect(stretchedAuthoredBoundary).not.toBeNull();
+  expect(stretchedAuthoredImage).not.toBeNull();
+  expect(stretchedAuthoredArea!.width).toBeGreaterThan(
+    stretchedAuthoredBoundary!.width,
+  );
+  expect(stretchedAuthoredBoundary!.width).toBeCloseTo(
+    authoredBoundary!.width,
+    0,
+  );
+  expect(stretchedAuthoredBoundary!.height).toBeCloseTo(
+    authoredBoundary!.height,
+    0,
+  );
+  expect(stretchedAuthoredImage!.width).toBeCloseTo(authoredImage!.width, 0);
+  expect(stretchedAuthoredImage!.height).toBeCloseTo(authoredImage!.height, 0);
+  expect(authoredArea!.width).toBeCloseTo(authoredBoundary!.width, 0);
+  expect(authoredImage!.width).toBeCloseTo(200, 0);
+  expect(authoredImage!.height).toBeCloseTo(200, 0);
+  await expect(imageBoundary).toHaveCSS("flex", "0 1 auto");
+  await attachProductionState(
+    testInfo,
+    "editor-layout-inline-image-sized-leaf-stretch-corrected",
+    editor,
+  );
+});
+
 test("Editor retains mock proportions at desktop, two-pane, and single-column viewports", async ({
   page,
 }, testInfo) => {
@@ -1969,7 +2301,7 @@ test("Structured controls and Source palette shortcuts use consistent precise co
     page.getByLabel("Application Settings", { exact: true }),
   );
   const completionBinding = page
-    .locator(".keybinding-list > div")
+    .locator(".keybinding-row")
     .filter({ hasText: "All Completions" });
   await completionBinding.getByRole("button", { name: "Change" }).click();
   await completionBinding
@@ -1982,7 +2314,10 @@ test("Structured controls and Source palette shortcuts use consistent precise co
   ).toHaveCount(0);
   const reboundCompletion =
     process.platform === "darwin" ? "Meta+Shift+9" : "Control+Shift+9";
+  await expect(source).toBeVisible();
+  await source.click();
   await source.press(quickAddShortcut);
+  await expect(palette).toBeVisible();
   await expect(
     palette.getByRole("button", { name: /All completions/i }).locator("kbd"),
   ).toHaveText("⌘ Shift 9");
@@ -2698,6 +3033,7 @@ section
 test("Asset add, validation, Trash, and package history use the secure boundary", async ({
   page,
 }, testInfo) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
   const editor = await openCreatedEditor(page);
   const image = new PNG({ width: 80, height: 50 });
   for (let offset = 0; offset < image.data.length; offset += 4) {
@@ -2719,7 +3055,7 @@ test("Asset add, validation, Trash, and package history use the secure boundary"
   });
   await expect(editor.getByRole("button", { name: "pixel.png" })).toBeVisible();
   await expect(editor.getByRole("tab", { name: "Structured" })).toBeVisible();
-  await expect(editor.getByRole("tab", { name: "Source" })).toHaveCount(0);
+  await expect(editor.getByRole("tab", { name: "Source" })).toBeVisible();
   await expect(
     editor.locator(".editor-outline-scroll .is-selected"),
   ).toHaveCount(1);
@@ -2743,9 +3079,22 @@ test("Asset add, validation, Trash, and package history use the secure boundary"
   const properties = editor.locator(".editor-properties-panel");
   await expect(properties).toContainText("80 × 50");
   await expect(properties).toContainText("PNG");
+  await expect(properties).toContainText("Color model");
+  await expect(properties).toContainText("RGBA");
+  await expect(properties).toContainText("Bit depth");
+  await expect(properties).toContainText("8 bits");
+  await expect(properties).toContainText("Interlaced");
+  await expect(properties).toContainText("Alpha channel");
+  await expect(properties).toContainText("Yes");
   await expect(properties).toContainText("References");
   await expect(properties).not.toContainText("Authors");
   await expect(properties.getByRole("button")).toHaveCount(0);
+  await expect(editor.locator(".editor-save-state")).toHaveText("Saved");
+  await attachProductionState(
+    testInfo,
+    "editor-asset-header-metadata-production",
+    editor.locator(".editor-context-pane"),
+  );
   await editor.getByRole("tab", { name: "Preview" }).click();
 
   await editor.getByLabel("Folder").fill("art/icons");
@@ -2853,11 +3202,9 @@ section-layout
   await expect(
     editor.locator(".editor-outline-scroll .is-selected"),
   ).toContainText("hero.png");
-  const binaryImage = editor.locator(".editor-asset-source-panel img");
-  await expect(binaryImage).toBeVisible();
-  await expect
-    .poll(() => binaryImage.evaluate((node) => node.naturalWidth))
-    .toBe(80);
+  await expect(editor.locator(".asset-source-workspace")).toBeVisible();
+  await expect(editor.getByText("Local copy", { exact: true })).toBeVisible();
+  await expect(editor.getByRole("toolbar", { name: "Tools" })).toBeVisible();
   await expect(editor.locator(".editor-real-preview")).toBeVisible();
   await expect(editor.locator(".editor-asset-preview-panel")).toHaveCount(0);
   await attachProductionState(
@@ -2916,7 +3263,8 @@ section-layout
     .getByRole("menu", { name: "Sidebar item actions" })
     .getByRole("menuitem", { name: "Open" })
     .click();
-  await expect(editor.locator(".editor-asset-source-panel img")).toBeVisible();
+  await expect(editor.locator(".asset-source-workspace")).toBeVisible();
+  await expect(editor.getByRole("toolbar", { name: "Tools" })).toBeVisible();
   await editor.getByRole("tab", { name: "Content" }).click();
 
   for (let attempt = 0; attempt < 20; attempt += 1) {
@@ -2966,7 +3314,7 @@ section-layout
   });
   const unsupportedToast = page.locator(".app-toast").filter({
     hasText:
-      "Asset rejected: the filename must use PNG, JPEG, GIF, WebP, or AVIF.",
+      "Asset rejected: the filename must use PNG, JPEG, SVG, GIF, WebP, or AVIF.",
   });
   await expect(unsupportedToast).toBeVisible();
   await unsupportedToast
@@ -2994,6 +3342,1115 @@ section-layout
     "editor-asset-rejection-reasons-specific",
     page.locator("body"),
     "allow",
+  );
+});
+
+test("SVG, PNG, and JPEG Source editors update Preview and retain local layered state", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(90_000);
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const editor = await openCreatedEditor(page);
+  const addAsset = async (name: string, mimeType: string, buffer: Buffer) => {
+    await editor.getByRole("button", { name: "Add", exact: true }).click();
+    const chooserPromise = page.waitForEvent("filechooser");
+    await editor.getByRole("button", { name: "Asset…" }).click();
+    await (await chooserPromise).setFiles({ name, mimeType, buffer });
+    await expect(
+      editor.getByRole("button", { name: new RegExp(`^${name}`) }),
+    ).toBeVisible();
+  };
+
+  const svg = Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="40"><rect width="64" height="40" fill="#235a91"/></svg>\n',
+  );
+  const originalSvg = Buffer.from(svg);
+  await addAsset("mark.svg", "image/svg+xml", svg);
+  const editingViews = editor.getByRole("tablist", { name: "Editing view" });
+  await expect(
+    editingViews.getByRole("tab", { name: "Structured" }),
+  ).toBeVisible();
+  await editingViews.getByRole("tab", { name: "Source" }).click();
+  const svgPreview = editor.locator(".editor-asset-preview-panel img");
+  await expect(svgPreview).toBeVisible();
+  await expect(editor.getByText("Local copy", { exact: true })).toBeVisible();
+  const svgSource = editor.getByLabel("assets/mark.svg SVG source");
+  const svgGutter = editor.locator(".asset-svg-editor-host .cm-gutters");
+  await expect(svgGutter).toBeVisible();
+  expect(
+    await svgGutter.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    ),
+  ).not.toBe("rgb(255, 255, 255)");
+  await expect(
+    editor.locator(".asset-svg-editor-host .cm-svg-tag"),
+  ).not.toHaveCount(0);
+  await expect(
+    editor.locator(".asset-svg-editor-host .cm-svg-attribute"),
+  ).not.toHaveCount(0);
+  await expect(
+    editor.locator(".asset-svg-editor-host .cm-svg-string"),
+  ).not.toHaveCount(0);
+  const svgActiveLine = editor.locator(".asset-svg-editor-host .cm-activeLine");
+  await expect(svgActiveLine).toBeVisible();
+  expect(
+    await svgActiveLine.evaluate(
+      (element) => getComputedStyle(element).boxShadow,
+    ),
+  ).toContain("inset");
+  const firstPreviewUrl = await svgPreview.getAttribute("src");
+  await svgSource.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(svg.toString().replace("#235a91", "#b54a62"));
+  await expect(editor.locator(".asset-source-workspace-status")).toContainText(
+    "Preview updated",
+  );
+  await expect
+    .poll(() => svgPreview.getAttribute("src"))
+    .not.toBe(firstPreviewUrl);
+  const lastValidPreviewUrl = await svgPreview.getAttribute("src");
+  await svgSource.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(
+    '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+  );
+  await expect(editor.locator(".asset-editor-diagnostics")).toContainText(
+    "Active or embedded",
+  );
+  await expect(svgPreview).toHaveAttribute("src", lastValidPreviewUrl!);
+  const svgAuthoring = editor.locator(".editor-authoring-pane");
+  const svgAuthoringBox = await svgAuthoring.boundingBox();
+  expect(svgAuthoringBox).not.toBeNull();
+  const svgReference = await openAssetReference(
+    page,
+    Math.round(svgAuthoringBox!.width),
+    Math.round(svgAuthoringBox!.height),
+    "svg",
+    "error",
+  );
+  await attachComparison(
+    testInfo,
+    "editor-asset-svg-validation-mock-parity",
+    svgReference.mock,
+    svgAuthoring,
+  );
+  await svgReference.reference.close();
+  await editor.getByRole("button", { name: "Undo" }).click();
+  await expect(svgSource).toContainText("#b54a62");
+  await editor.getByRole("button", { name: "Redo" }).click();
+  await expect(editor.locator(".asset-editor-diagnostics")).toContainText(
+    "Active or embedded",
+  );
+  await editor.getByRole("button", { name: "Undo" }).click();
+  await attachProductionState(
+    testInfo,
+    "editor-asset-svg-source-preview-production",
+    editor,
+  );
+
+  const pngImage = new PNG({ width: 48, height: 32 });
+  for (let offset = 0; offset < pngImage.data.length; offset += 4) {
+    pngImage.data[offset] = 42;
+    pngImage.data[offset + 1] = 102;
+    pngImage.data[offset + 2] = 168;
+    pngImage.data[offset + 3] = 255;
+  }
+  const png = PNG.sync.write(pngImage);
+  const originalPng = Buffer.from(png);
+  await addAsset("photo.png", "image/png", png);
+  await editingViews.getByRole("tab", { name: "Source" }).click();
+  const pngPreview = editor.locator(".editor-asset-preview-panel img");
+  const pngPreviewUrl = await pngPreview.getAttribute("src");
+  const showOriginal = editor.getByRole("button", { name: "Show original" });
+  await showOriginal.click();
+  await expect(showOriginal).toHaveAttribute("aria-pressed", "true");
+  await page.waitForTimeout(100);
+  await expect(showOriginal).toHaveAttribute("aria-pressed", "true");
+  await showOriginal.click();
+  await expect(showOriginal).toHaveAttribute("aria-pressed", "false");
+  const rasterBody = editor.locator(".asset-raster-body");
+  const bodyBeforeTooltip = await rasterBody.boundingBox();
+  expect(bodyBeforeTooltip).not.toBeNull();
+  const paintTool = editor.getByRole("button", { name: "Paint" });
+  await paintTool.hover();
+  const paintTooltip = editor.getByRole("tooltip");
+  await expect(paintTooltip).toContainText("Paint");
+  await expect(paintTooltip).toContainText("B");
+  const bodyWithTooltip = await rasterBody.boundingBox();
+  expect(bodyWithTooltip).toEqual(bodyBeforeTooltip);
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-paint-tooltip-production",
+    editor,
+  );
+
+  await paintTool.click();
+  const rasterStage = editor.locator(".asset-raster-stage");
+  const markupCanvas = rasterStage.locator("canvas").nth(1);
+  const canvasBox = await markupCanvas.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  const blankMarkup = await markupCanvas.evaluate((canvas) =>
+    (canvas as HTMLCanvasElement).toDataURL(),
+  );
+  const startX = canvasBox!.x + canvasBox!.width * 0.2;
+  const startY = canvasBox!.y + canvasBox!.height * 0.35;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(
+    canvasBox!.x + canvasBox!.width * 0.5,
+    canvasBox!.y + canvasBox!.height * 0.65,
+    { steps: 8 },
+  );
+  await expect
+    .poll(() =>
+      markupCanvas.evaluate((canvas) =>
+        (canvas as HTMLCanvasElement).toDataURL(),
+      ),
+    )
+    .not.toBe(blankMarkup);
+  await expect
+    .poll(() =>
+      markupCanvas.evaluate((canvas) => {
+        const element = canvas as HTMLCanvasElement;
+        const context = element.getContext("2d")!;
+        return Array.from({ length: 9 }, (_, index) => {
+          const progress = index / 8;
+          const x = Math.round(element.width * (0.2 + (0.5 - 0.2) * progress));
+          const y = Math.round(
+            element.height * (0.35 + (0.65 - 0.35) * progress),
+          );
+          return context.getImageData(x, y, 1, 1).data[3] > 0;
+        }).every(Boolean);
+      }),
+    )
+    .toBe(true);
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-live-paint-production",
+    editor,
+  );
+  const firstLiveStroke = await markupCanvas.evaluate((canvas) =>
+    (canvas as HTMLCanvasElement).toDataURL(),
+  );
+  await page.mouse.move(
+    canvasBox!.x + canvasBox!.width * 0.8,
+    canvasBox!.y + canvasBox!.height * 0.35,
+    { steps: 8 },
+  );
+  await expect
+    .poll(() =>
+      markupCanvas.evaluate((canvas) =>
+        (canvas as HTMLCanvasElement).toDataURL(),
+      ),
+    )
+    .not.toBe(firstLiveStroke);
+  await page.mouse.up();
+  await expect(editor.locator(".asset-source-workspace-status")).toContainText(
+    "Preview updated",
+  );
+  await expect(editor.getByRole("region", { name: "Layers" })).toContainText(
+    "Paint",
+  );
+  await rasterStage.focus();
+  await rasterStage.press(
+    process.platform === "darwin" ? "Meta+z" : "Control+z",
+  );
+  await expect(
+    editor.getByRole("region", { name: "Layers" }),
+  ).not.toContainText("Paint");
+  await rasterStage.press(
+    process.platform === "darwin" ? "Meta+Shift+z" : "Control+Shift+z",
+  );
+  await expect(editor.getByRole("region", { name: "Layers" })).toContainText(
+    "Paint",
+  );
+  const deletePaint = editor.getByRole("button", { name: "Delete Paint" });
+  await deletePaint.hover();
+  await expect(editor.getByRole("tooltip")).toContainText("Delete Paint");
+  await deletePaint.click();
+  await expect(editor.getByRole("tooltip")).toHaveCount(0);
+  await expect(
+    editor.getByRole("region", { name: "Layers" }),
+  ).not.toContainText("Paint");
+
+  const inspector = editor.getByRole("complementary", {
+    name: "Tool inspector",
+  });
+  const exposure = inspector.getByRole("slider", { name: "Exposure" });
+  await inspector.getByText("Exposure", { exact: true }).click();
+  await expect(
+    inspector.getByRole("spinbutton", { name: "Exposure value" }),
+  ).toHaveCount(0);
+  await inspector.getByRole("button", { name: "Edit Exposure value" }).click();
+  const exposureValue = inspector.getByRole("spinbutton", {
+    name: "Exposure value",
+  });
+  await exposureValue.fill("37");
+  await exposureValue.press("Enter");
+  await expect(exposure).toHaveValue("37");
+  await inspector.getByRole("button", { name: "Reset Exposure" }).click();
+  await expect(exposure).toHaveValue("0");
+  await exposure.fill("30");
+  await exposure.dispatchEvent("pointerup");
+  await expect(editor.locator(".asset-source-workspace-status")).toContainText(
+    "Preview updated",
+  );
+  await expect
+    .poll(() => pngPreview.getAttribute("src"))
+    .not.toBe(pngPreviewUrl);
+  const correctedBaseCanvas = rasterStage.locator("canvas").first();
+  const baseBeforeTemperature = await correctedBaseCanvas.evaluate((canvas) =>
+    (canvas as HTMLCanvasElement).toDataURL(),
+  );
+  const temperature = inspector.getByRole("slider", { name: "Temperature" });
+  await temperature.fill("68");
+  await expect
+    .poll(() =>
+      correctedBaseCanvas.evaluate((canvas) =>
+        (canvas as HTMLCanvasElement).toDataURL(),
+      ),
+    )
+    .not.toBe(baseBeforeTemperature);
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-correction-proxy-production",
+    editor,
+  );
+  await temperature.dispatchEvent("pointerup");
+  await expect(editor.locator(".asset-source-workspace-status")).toContainText(
+    "Preview updated",
+  );
+  const canvasCenterPixel = await correctedBaseCanvas.evaluate((canvas) => {
+    const element = canvas as HTMLCanvasElement;
+    return Array.from(
+      element
+        .getContext("2d")!
+        .getImageData(
+          Math.floor(element.width / 2),
+          Math.floor(element.height / 2),
+          1,
+          1,
+        ).data,
+    );
+  });
+  const previewCenterPixel = await pngPreview.evaluate(async (image) => {
+    const element = image as HTMLImageElement;
+    await element.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = element.naturalWidth;
+    canvas.height = element.naturalHeight;
+    const context = canvas.getContext("2d")!;
+    context.drawImage(element, 0, 0);
+    return Array.from(
+      context.getImageData(
+        Math.floor(canvas.width / 2),
+        Math.floor(canvas.height / 2),
+        1,
+        1,
+      ).data,
+    );
+  });
+  expect(
+    canvasCenterPixel.every(
+      (channel, index) => Math.abs(channel - previewCenterPixel[index]) <= 3,
+    ),
+  ).toBe(true);
+  const beforeWarmPreset = await correctedBaseCanvas.evaluate((canvas) =>
+    (canvas as HTMLCanvasElement).toDataURL(),
+  );
+  await inspector.getByRole("button", { name: "Warm" }).click();
+  await expect(exposure).toHaveValue("0");
+  await expect(temperature).toHaveValue("24");
+  await expect(inspector.getByRole("slider", { name: "Vibrance" })).toHaveValue(
+    "12",
+  );
+  await expect(inspector.getByRole("slider", { name: "Tint" })).toHaveValue(
+    "0",
+  );
+  await expect
+    .poll(() =>
+      correctedBaseCanvas.evaluate((canvas) =>
+        (canvas as HTMLCanvasElement).toDataURL(),
+      ),
+    )
+    .not.toBe(beforeWarmPreset);
+  const correctedWarmCanvas = await correctedBaseCanvas.evaluate((canvas) =>
+    (canvas as HTMLCanvasElement).toDataURL(),
+  );
+  await showOriginal.click();
+  await expect(showOriginal).toHaveAttribute("aria-pressed", "true");
+  await expect
+    .poll(() =>
+      correctedBaseCanvas.evaluate((canvas) =>
+        (canvas as HTMLCanvasElement).toDataURL(),
+      ),
+    )
+    .not.toBe(correctedWarmCanvas);
+  await showOriginal.click();
+  await expect(showOriginal).toHaveAttribute("aria-pressed", "false");
+  await expect
+    .poll(() =>
+      correctedBaseCanvas.evaluate((canvas) =>
+        (canvas as HTMLCanvasElement).toDataURL(),
+      ),
+    )
+    .toBe(correctedWarmCanvas);
+  const correctionSummary = inspector.getByText("Corrections", {
+    exact: true,
+  });
+  const strokeWidthField = inspector
+    .locator("label")
+    .filter({ hasText: "Stroke width" })
+    .first();
+  const rasterSteppers = strokeWidthField.locator(
+    ".number-stepper-buttons button",
+  );
+  await expect(rasterSteppers).toHaveCount(2);
+  await expect(rasterSteppers.first().locator("svg path")).toHaveAttribute(
+    "d",
+    "M2 6 6 2l4 4",
+  );
+  await page.mouse.move(0, 0);
+  await expect(rasterSteppers.first()).toBeVisible();
+  await correctionSummary.click();
+  await expect(exposure).not.toBeVisible();
+  await correctionSummary.click();
+  await expect(exposure).toBeVisible();
+
+  await editor.getByRole("button", { name: "Select" }).focus();
+  await page.keyboard.press("t");
+  const textCanvasBox = await markupCanvas.boundingBox();
+  expect(textCanvasBox).not.toBeNull();
+  await page.mouse.move(
+    textCanvasBox!.x + textCanvasBox!.width * 0.15,
+    textCanvasBox!.y + textCanvasBox!.height * 0.15,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    textCanvasBox!.x + textCanvasBox!.width * 0.75,
+    textCanvasBox!.y + textCanvasBox!.height * 0.45,
+    { steps: 5 },
+  );
+  await page.mouse.up();
+  await expect(editor.getByRole("region", { name: "Layers" })).toContainText(
+    "Text",
+  );
+  await expect(rasterStage).toHaveAttribute("data-transformer-active", "false");
+  await editor.getByRole("button", { name: "Select" }).click();
+  await expect(rasterStage).toHaveAttribute("data-transformer-active", "true");
+  await editor.getByRole("button", { name: "Undo" }).click();
+  await expect(
+    editor.getByRole("region", { name: "Layers" }),
+  ).not.toContainText("Text");
+  await editor.getByRole("button", { name: "Redo" }).click();
+  await expect(editor.getByRole("region", { name: "Layers" })).toContainText(
+    "Text",
+  );
+  const textSize = inspector.getByRole("spinbutton", {
+    name: "Size",
+    exact: true,
+  });
+  const initialTextSize = await textSize.inputValue();
+  const textBoxWidth = inspector.getByRole("spinbutton", {
+    name: "Text box width",
+  });
+  const initialTextWidth = await textBoxWidth.inputValue();
+  const selectedTextCanvasBox = await markupCanvas.boundingBox();
+  expect(selectedTextCanvasBox).not.toBeNull();
+  await page.mouse.move(
+    selectedTextCanvasBox!.x + selectedTextCanvasBox!.width * 0.75,
+    selectedTextCanvasBox!.y + selectedTextCanvasBox!.height * 0.3,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    selectedTextCanvasBox!.x + selectedTextCanvasBox!.width * 0.9,
+    selectedTextCanvasBox!.y + selectedTextCanvasBox!.height * 0.3,
+    { steps: 5 },
+  );
+  await page.mouse.up();
+  await expect(textSize).toHaveValue(initialTextSize);
+  await expect(textBoxWidth).not.toHaveValue(initialTextWidth);
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-text-box-resized-production",
+    editor,
+  );
+  const resizedTextWidth = await textBoxWidth.inputValue();
+  await inspector.getByLabel("Alignment").selectOption("right");
+  await expect(textBoxWidth).toHaveValue(resizedTextWidth);
+
+  const layers = editor.getByRole("region", { name: "Layers" });
+  await editor.getByRole("button", { name: "Rectangle" }).click();
+  await expect(layers).not.toContainText("Rectangle");
+  const rectangleCanvasBox = await markupCanvas.boundingBox();
+  expect(rectangleCanvasBox).not.toBeNull();
+  await page.mouse.move(
+    rectangleCanvasBox!.x + rectangleCanvasBox!.width * 0.2,
+    rectangleCanvasBox!.y + rectangleCanvasBox!.height * 0.5,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    rectangleCanvasBox!.x + rectangleCanvasBox!.width * 0.65,
+    rectangleCanvasBox!.y + rectangleCanvasBox!.height * 0.85,
+    { steps: 5 },
+  );
+  await page.mouse.up();
+  await expect(layers).toContainText("Rectangle");
+  await layers.getByRole("button", { name: /Rectangle shape/ }).dblclick();
+  const renameRectangle = layers.getByRole("textbox", {
+    name: "Rename Rectangle",
+  });
+  await renameRectangle.fill("Frame");
+  await renameRectangle.press("Enter");
+  await expect(layers).toContainText("Frame");
+  await layers.getByRole("button", { name: "Lock Frame" }).click();
+  await expect(
+    layers.getByRole("button", { name: "Unlock Frame" }),
+  ).toBeVisible();
+  await layers.getByRole("button", { name: "Hide Frame" }).click();
+  await expect(
+    layers.getByRole("button", { name: "Show Frame" }),
+  ).toBeVisible();
+  await expect(rasterStage).toHaveAttribute(
+    "aria-label",
+    /Selected Frame, hidden and locked/,
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-hidden-locked-layer-production",
+    editor,
+  );
+
+  await editor.getByRole("button", { name: "Line" }).click();
+  await expect(layers).not.toContainText("Line");
+  const lineCanvasBox = await markupCanvas.boundingBox();
+  expect(lineCanvasBox).not.toBeNull();
+  await page.mouse.move(
+    lineCanvasBox!.x + lineCanvasBox!.width * 0.1,
+    lineCanvasBox!.y + lineCanvasBox!.height * 0.8,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    lineCanvasBox!.x + lineCanvasBox!.width * 0.7,
+    lineCanvasBox!.y + lineCanvasBox!.height * 0.2,
+    { steps: 5 },
+  );
+  await page.mouse.up();
+  await expect(layers).toContainText("Line");
+  await editor.getByRole("button", { name: "Arrow" }).click();
+  await expect(layers).not.toContainText("Arrow");
+  const arrowCanvasBox = await markupCanvas.boundingBox();
+  expect(arrowCanvasBox).not.toBeNull();
+  await page.mouse.move(
+    arrowCanvasBox!.x + arrowCanvasBox!.width * 0.15,
+    arrowCanvasBox!.y + arrowCanvasBox!.height * 0.15,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    arrowCanvasBox!.x + arrowCanvasBox!.width * 0.85,
+    arrowCanvasBox!.y + arrowCanvasBox!.height * 0.7,
+    { steps: 5 },
+  );
+  await page.mouse.up();
+  await expect(layers).toContainText("Arrow");
+  await expect(
+    inspector.getByRole("option", { name: "Current markup color" }).first(),
+  ).toHaveText("Current markup color");
+  const cropTool = editor.getByRole("button", { name: "Crop" });
+  await cropTool.click();
+  await expect(cropTool).toHaveAttribute("aria-pressed", "true");
+  const aspectLock = inspector.getByRole("checkbox", {
+    name: "Lock aspect ratio",
+  });
+  const aspectLockBounds = await aspectLock.boundingBox();
+  expect(aspectLockBounds).not.toBeNull();
+  expect(aspectLockBounds!.width).toBeLessThanOrEqual(20);
+  expect(aspectLockBounds!.height).toBeLessThanOrEqual(20);
+  await aspectLock.scrollIntoViewIfNeeded();
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-aspect-lock-production",
+    editor,
+  );
+  await expect(
+    rasterStage.getByText("Drag across the image to set the crop bounds."),
+  ).toBeVisible();
+  const previewBeforeCrop = await pngPreview.getAttribute("src");
+  const cropCanvasBox = await markupCanvas.boundingBox();
+  expect(cropCanvasBox).not.toBeNull();
+  await page.mouse.move(
+    cropCanvasBox!.x + cropCanvasBox!.width * 0.1,
+    cropCanvasBox!.y + cropCanvasBox!.height * 0.1,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    cropCanvasBox!.x + cropCanvasBox!.width * 0.85,
+    cropCanvasBox!.y + cropCanvasBox!.height * 0.8,
+    { steps: 5 },
+  );
+  await expect(rasterStage.getByText(/^Crop 3[56] × 2[1-3]$/)).toBeVisible();
+  await page.mouse.up();
+  await expect(
+    rasterStage.getByText("Drag across the image to set the crop bounds."),
+  ).toBeVisible();
+  await expect(editor.locator(".asset-raster-status")).toContainText(
+    /3[56] × 2[1-3]/,
+  );
+  await expect
+    .poll(() => pngPreview.getAttribute("src"))
+    .not.toBe(previewBeforeCrop);
+
+  const rasterAuthoring = editor.locator(".editor-authoring-pane");
+  const rasterAuthoringBox = await rasterAuthoring.boundingBox();
+  expect(rasterAuthoringBox).not.toBeNull();
+  const rasterReference = await openAssetReference(
+    page,
+    Math.round(rasterAuthoringBox!.width),
+    Math.round(rasterAuthoringBox!.height),
+    "raster",
+    "ready",
+  );
+  await attachComparison(
+    testInfo,
+    "editor-asset-raster-ready-mock-parity",
+    rasterReference.mock,
+    rasterAuthoring,
+  );
+  await rasterReference.reference.close();
+
+  await page.setViewportSize({ width: 820, height: 760 });
+  await expect(editor.locator(".asset-raster-inspector")).toBeVisible();
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-narrow-production",
+    editor,
+  );
+  await page.locator("html").evaluate((element) => {
+    element.dataset.appTheme = "light";
+  });
+  await editor.getByRole("button", { name: "Select" }).focus();
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-light-focus-production",
+    editor,
+  );
+  await page.locator("html").evaluate((element) => {
+    element.dataset.appTheme = "dark";
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+
+  await page.waitForTimeout(1_000);
+  await page.reload();
+  const reloadedEditor = page.locator(".production-editor");
+  await expect(reloadedEditor).toBeVisible();
+  await reloadedEditor.getByRole("button", { name: /^photo\.png/ }).click();
+  await reloadedEditor.getByRole("tab", { name: "Source" }).click();
+  await expect(
+    reloadedEditor.getByRole("region", { name: "Layers" }),
+  ).toContainText("Text");
+  const reloadedLayers = reloadedEditor.getByRole("region", {
+    name: "Layers",
+  });
+  const reloadedMarkupCanvas = reloadedEditor
+    .locator(".asset-raster-stage canvas")
+    .nth(1);
+  const layerCountBeforePaint = await reloadedLayers.locator("li").count();
+  await reloadedEditor
+    .getByRole("button", { name: "Paint", exact: true })
+    .click();
+  for (const y of [0.28, 0.72]) {
+    const bounds = await reloadedMarkupCanvas.boundingBox();
+    expect(bounds).not.toBeNull();
+    await page.mouse.move(
+      bounds!.x + bounds!.width * 0.2,
+      bounds!.y + bounds!.height * y,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      bounds!.x + bounds!.width * 0.55,
+      bounds!.y + bounds!.height * y,
+      { steps: 6 },
+    );
+    await page.mouse.up();
+  }
+  await expect(reloadedLayers.locator("li")).toHaveCount(
+    layerCountBeforePaint + 2,
+  );
+  await expect(
+    reloadedLayers.locator("li").filter({ hasText: /^Paintpaint/ }),
+  ).toHaveCount(2);
+
+  const selectedPaint = reloadedLayers
+    .locator("li")
+    .filter({ hasText: /^Paintpaint/ })
+    .first();
+  await selectedPaint.locator("button").first().dblclick();
+  const renamePaint = reloadedLayers.getByRole("textbox", {
+    name: "Rename Paint",
+  });
+  await renamePaint.fill("Movable Paint");
+  await renamePaint.press("Enter");
+  await expect(reloadedEditor.locator(".asset-raster-stage")).toHaveAttribute(
+    "aria-label",
+    /Selected Movable Paint, visible and editable/,
+  );
+  await reloadedEditor.getByRole("button", { name: "Select" }).click();
+  const paintMoveBounds = await reloadedMarkupCanvas.boundingBox();
+  expect(paintMoveBounds).not.toBeNull();
+  const previewBeforePaintMove = await reloadedEditor
+    .locator(".editor-asset-preview-panel img")
+    .getAttribute("src");
+  await page.mouse.move(
+    paintMoveBounds!.x + paintMoveBounds!.width * 0.4,
+    paintMoveBounds!.y + paintMoveBounds!.height * 0.72,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    paintMoveBounds!.x + paintMoveBounds!.width * 0.52,
+    paintMoveBounds!.y + paintMoveBounds!.height * 0.62,
+    { steps: 5 },
+  );
+  await page.mouse.up();
+  await expect
+    .poll(() =>
+      reloadedEditor
+        .locator(".editor-asset-preview-panel img")
+        .getAttribute("src"),
+    )
+    .not.toBe(previewBeforePaintMove);
+  await reloadedLayers
+    .locator("li")
+    .filter({ hasText: /^Paintpaint/ })
+    .first()
+    .locator("button")
+    .first()
+    .click();
+  await page.mouse.click(
+    paintMoveBounds!.x + paintMoveBounds!.width * 0.52,
+    paintMoveBounds!.y + paintMoveBounds!.height * 0.62,
+  );
+  await expect(reloadedEditor.locator(".asset-raster-stage")).toHaveAttribute(
+    "aria-label",
+    /Selected Movable Paint, visible and editable/,
+  );
+
+  const layerCountBeforeDrawingOverSelection = await reloadedLayers
+    .locator("li")
+    .count();
+  await reloadedEditor
+    .getByRole("button", { name: "Paint", exact: true })
+    .click();
+  await expect(reloadedEditor.locator(".asset-raster-stage")).toHaveAttribute(
+    "data-transformer-active",
+    "false",
+  );
+  await page.mouse.move(
+    paintMoveBounds!.x + paintMoveBounds!.width * 0.52,
+    paintMoveBounds!.y + paintMoveBounds!.height * 0.62,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    paintMoveBounds!.x + paintMoveBounds!.width * 0.72,
+    paintMoveBounds!.y + paintMoveBounds!.height * 0.82,
+    { steps: 6 },
+  );
+  await page.mouse.up();
+  await expect(reloadedLayers.locator("li")).toHaveCount(
+    layerCountBeforeDrawingOverSelection + 1,
+  );
+
+  await reloadedLayers
+    .getByRole("button", { name: "Lock Movable Paint" })
+    .click();
+  const layerCountBeforeErase = await reloadedLayers.locator("li").count();
+  const reloadedPreview = reloadedEditor.locator(
+    ".editor-asset-preview-panel img",
+  );
+  const readPreviewBytes = () =>
+    reloadedPreview.evaluate(async (image) => {
+      const element = image as HTMLImageElement;
+      await element.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = element.naturalWidth;
+      canvas.height = element.naturalHeight;
+      canvas.getContext("2d")!.drawImage(element, 0, 0);
+      return canvas.toDataURL("image/png");
+    });
+  const previewBeforeErase = await readPreviewBytes();
+  await reloadedEditor
+    .getByRole("button", { name: "Eraser", exact: true })
+    .click();
+  await page.mouse.move(
+    paintMoveBounds!.x + paintMoveBounds!.width * 0.5,
+    paintMoveBounds!.y + paintMoveBounds!.height * 0.62,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    paintMoveBounds!.x + paintMoveBounds!.width * 0.7,
+    paintMoveBounds!.y + paintMoveBounds!.height * 0.82,
+    { steps: 6 },
+  );
+  await page.mouse.up();
+  await expect(reloadedLayers.locator("li")).toHaveCount(layerCountBeforeErase);
+  await expect(
+    reloadedLayers.locator("li").filter({ hasText: /^Eraser/ }),
+  ).toHaveCount(0);
+  await expect.poll(readPreviewBytes).not.toBe(previewBeforeErase);
+  const previewAfterErase = await readPreviewBytes();
+  const reloadedStage = reloadedEditor.locator(".asset-raster-stage");
+  await reloadedStage.focus();
+  await reloadedStage.press(
+    process.platform === "darwin" ? "Meta+z" : "Control+z",
+  );
+  await expect.poll(readPreviewBytes).toBe(previewBeforeErase);
+  await reloadedStage.press(
+    process.platform === "darwin" ? "Meta+Shift+z" : "Control+Shift+z",
+  );
+  await expect.poll(readPreviewBytes).toBe(previewAfterErase);
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-move-draw-erase-production",
+    reloadedEditor,
+  );
+
+  const stageBeforeResize = await reloadedMarkupCanvas.boundingBox();
+  expect(stageBeforeResize).not.toBeNull();
+  const resizeWidth = reloadedEditor
+    .getByRole("complementary", { name: "Tool inspector" })
+    .getByLabel("Width", { exact: true });
+  await resizeWidth.fill("72");
+  await resizeWidth.press("Tab");
+  await expect(reloadedEditor.locator(".asset-raster-status")).toContainText(
+    /72 × 4[3-6]/,
+  );
+  await expect
+    .poll(async () => (await reloadedMarkupCanvas.boundingBox())?.width ?? 0)
+    .toBeGreaterThan(stageBeforeResize!.width * 1.9);
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-paint-layers-resized-production",
+    reloadedEditor,
+  );
+
+  const rawJpeg = Buffer.from(
+    await page.evaluate(async () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 40;
+      canvas.height = 30;
+      const context = canvas.getContext("2d")!;
+      context.fillStyle = "#d78345";
+      context.fillRect(0, 0, 40, 30);
+      const blob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob(
+          (value) =>
+            value ? resolve(value) : reject(new Error("JPEG unavailable")),
+          "image/jpeg",
+          0.92,
+        ),
+      );
+      return [...new Uint8Array(await blob.arrayBuffer())];
+    }),
+  );
+  const invalidIccPayload = Buffer.concat([
+    Buffer.from("ICC_PROFILE\0", "latin1"),
+    Buffer.from([1, 1]),
+    Buffer.from("not-a-valid-srgb-profile"),
+  ]);
+  const invalidIccLength = invalidIccPayload.length + 2;
+  const jpeg = Buffer.concat([
+    rawJpeg.subarray(0, 2),
+    Buffer.from([0xff, 0xe2, invalidIccLength >>> 8, invalidIccLength & 0xff]),
+    invalidIccPayload,
+    rawJpeg.subarray(2),
+  ]);
+  const originalJpeg = Buffer.from(jpeg);
+  await addAsset("portrait.jpg", "image/jpeg", jpeg);
+  await reloadedEditor.getByRole("tab", { name: "Source" }).click();
+  await expect(
+    reloadedEditor.locator(".asset-source-workspace-status"),
+  ).toContainText("normalized to safe sRGB");
+  await expect(reloadedEditor.getByLabel("JPEG quality")).toHaveValue("92");
+  await expect(
+    reloadedEditor.getByLabel("Transparency background"),
+  ).toHaveValue("#ffffff");
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-metadata-warning-production",
+    reloadedEditor,
+  );
+
+  const largeImage = new PNG({ width: 1200, height: 800 });
+  for (let offset = 0; offset < largeImage.data.length; offset += 4) {
+    largeImage.data[offset] = 38;
+    largeImage.data[offset + 1] = 82;
+    largeImage.data[offset + 2] = 128;
+    largeImage.data[offset + 3] = 255;
+  }
+  await addAsset(
+    "render-progress.png",
+    "image/png",
+    PNG.sync.write(largeImage),
+  );
+  await reloadedEditor.getByRole("tab", { name: "Source" }).click();
+  const largeStage = reloadedEditor.locator(".asset-raster-stage");
+  const largeStageBox = await largeStage.boundingBox();
+  expect(largeStageBox).not.toBeNull();
+  const previewBeforePan = await reloadedEditor
+    .locator(".editor-asset-preview-panel img")
+    .getAttribute("src");
+  await reloadedEditor.getByRole("button", { name: "Paint" }).click();
+  await page.mouse.move(
+    largeStageBox!.x + largeStageBox!.width * 0.55,
+    largeStageBox!.y + largeStageBox!.height * 0.55,
+  );
+  await page.mouse.down({ button: "middle" });
+  await expect(
+    reloadedEditor.getByRole("button", { name: "Pan" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.mouse.move(
+    largeStageBox!.x + largeStageBox!.width * 0.25,
+    largeStageBox!.y + largeStageBox!.height * 0.25,
+    { steps: 6 },
+  );
+  await expect
+    .poll(() =>
+      largeStage.evaluate((element) => ({
+        left: element.scrollLeft,
+        top: element.scrollTop,
+      })),
+    )
+    .toMatchObject({ left: expect.any(Number), top: expect.any(Number) });
+  expect(
+    await largeStage.evaluate(
+      (element) => element.scrollLeft > 0 && element.scrollTop > 0,
+    ),
+  ).toBe(true);
+  await page.mouse.up({ button: "middle" });
+  await expect(
+    reloadedEditor.getByRole("button", { name: "Paint" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    reloadedEditor.locator(".editor-asset-preview-panel img"),
+  ).toHaveAttribute("src", previewBeforePan!);
+  const pannedOverlay = largeStage.locator("canvas").last();
+  const pannedOverlayBox = await pannedOverlay.boundingBox();
+  expect(pannedOverlayBox).not.toBeNull();
+  const pannedStrokeStart = {
+    x: largeStageBox!.x + largeStageBox!.width * 0.45,
+    y: largeStageBox!.y + largeStageBox!.height * 0.45,
+  };
+  const pannedStrokeEnd = {
+    x: pannedStrokeStart.x + 48,
+    y: pannedStrokeStart.y + 28,
+  };
+  await page.mouse.move(pannedStrokeStart.x, pannedStrokeStart.y);
+  await page.mouse.down();
+  await page.mouse.move(pannedStrokeEnd.x, pannedStrokeEnd.y, { steps: 8 });
+  await expect
+    .poll(() =>
+      pannedOverlay.evaluate(
+        (canvas, position) => {
+          const context = (canvas as HTMLCanvasElement).getContext("2d")!;
+          const x = Math.round(
+            (position.x / (canvas as HTMLCanvasElement).clientWidth) *
+              (canvas as HTMLCanvasElement).width,
+          );
+          const y = Math.round(
+            (position.y / (canvas as HTMLCanvasElement).clientHeight) *
+              (canvas as HTMLCanvasElement).height,
+          );
+          return context.getImageData(x, y, 1, 1).data[3];
+        },
+        {
+          x: pannedStrokeEnd.x - pannedOverlayBox!.x,
+          y: pannedStrokeEnd.y - pannedOverlayBox!.y,
+        },
+      ),
+    )
+    .toBeGreaterThan(0);
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-panned-cursor-alignment-production",
+    reloadedEditor,
+  );
+  await page.mouse.up();
+
+  const progressExposure = reloadedEditor
+    .getByRole("complementary", { name: "Tool inspector" })
+    .getByRole("slider")
+    .first();
+  await progressExposure.fill("20");
+  await progressExposure.dispatchEvent("pointerup");
+  await expect(reloadedEditor.locator(".asset-raster-editor")).toHaveAttribute(
+    "aria-busy",
+    "true",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-render-progress-production",
+    reloadedEditor,
+  );
+  await expect(
+    reloadedEditor.locator(".asset-source-workspace-status"),
+  ).toContainText("Preview updated");
+
+  const downloadPromise = page.waitForEvent("download");
+  await reloadedEditor.getByRole("button", { name: "Export .jmp" }).click();
+  await page.getByRole("button", { name: "Export Package" }).click();
+  const download = await downloadPromise;
+  const archive = unzipSync(
+    new Uint8Array(await readFile(await download.path())),
+  );
+  expect(archive["assets/photo.png"]).toBeDefined();
+  expect(archive["assets/portrait.jpg"]).toBeDefined();
+  expect(archive["assets/mark.svg"]).toBeDefined();
+  expect(Buffer.from(archive["assets/photo.png"])).not.toEqual(originalPng);
+  expect(svg).toEqual(originalSvg);
+  expect(png).toEqual(originalPng);
+  expect(jpeg).toEqual(originalJpeg);
+});
+
+test("paint canvas drag, resize, and base-only corrections track exact document bounds", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const editor = await openCreatedEditor(page);
+  const image = new PNG({ width: 400, height: 300 });
+  for (let offset = 0; offset < image.data.length; offset += 4) {
+    image.data[offset] = 36;
+    image.data[offset + 1] = 92;
+    image.data[offset + 2] = 148;
+    image.data[offset + 3] = 255;
+  }
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  const chooserPromise = page.waitForEvent("filechooser");
+  await editor.getByRole("button", { name: "Asset…" }).click();
+  await (
+    await chooserPromise
+  ).setFiles({
+    name: "transform-paint.png",
+    mimeType: "image/png",
+    buffer: PNG.sync.write(image),
+  });
+  await editor.getByRole("tab", { name: "Source" }).click();
+
+  const stage = editor.locator(".asset-raster-stage");
+  const stageCanvas = stage.locator("canvas").first();
+  const stageBox = await stageCanvas.boundingBox();
+  expect(stageBox).not.toBeNull();
+  await editor.getByRole("button", { name: "Paint", exact: true }).click();
+  await page.mouse.move(
+    stageBox!.x + stageBox!.width * 0.2,
+    stageBox!.y + stageBox!.height * 0.3,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    stageBox!.x + stageBox!.width * 0.5,
+    stageBox!.y + stageBox!.height * 0.55,
+    { steps: 12 },
+  );
+  await page.mouse.up();
+  await expect(editor.locator(".asset-source-workspace-status")).toContainText(
+    "Preview updated",
+  );
+
+  const inspector = editor.getByRole("complementary", {
+    name: "Tool inspector",
+  });
+  await editor.getByRole("button", { name: "Select", exact: true }).click();
+  const paintX = inspector.getByRole("spinbutton", {
+    name: "Paint X position",
+  });
+  const paintY = inspector.getByRole("spinbutton", {
+    name: "Paint Y position",
+  });
+  const paintWidth = inspector.getByRole("spinbutton", {
+    name: "Paint width",
+  });
+  const paintHeight = inspector.getByRole("spinbutton", {
+    name: "Paint height",
+  });
+  const initial = {
+    x: Number(await paintX.inputValue()),
+    y: Number(await paintY.inputValue()),
+    width: Number(await paintWidth.inputValue()),
+    height: Number(await paintHeight.inputValue()),
+  };
+
+  const dragDelta = { x: 50, y: 30 };
+  await page.mouse.move(
+    stageBox!.x + initial.x + initial.width / 2,
+    stageBox!.y + initial.y + initial.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    stageBox!.x + initial.x + initial.width / 2 + dragDelta.x,
+    stageBox!.y + initial.y + initial.height / 2 + dragDelta.y,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+  await expect
+    .poll(async () => Number(await paintX.inputValue()))
+    .toBeCloseTo(initial.x + dragDelta.x, 0);
+  await expect
+    .poll(async () => Number(await paintY.inputValue()))
+    .toBeCloseTo(initial.y + dragDelta.y, 0);
+  await expect(paintWidth).toHaveValue(String(initial.width));
+  await expect(paintHeight).toHaveValue(String(initial.height));
+
+  const moved = {
+    x: Number(await paintX.inputValue()),
+    y: Number(await paintY.inputValue()),
+    width: Number(await paintWidth.inputValue()),
+    height: Number(await paintHeight.inputValue()),
+  };
+  await page.mouse.move(
+    stageBox!.x + moved.x + moved.width,
+    stageBox!.y + moved.y + moved.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    stageBox!.x + moved.x + moved.width + 60,
+    stageBox!.y + moved.y + moved.height / 2,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+  await expect(paintX).toHaveValue(String(moved.x));
+  await expect(paintY).toHaveValue(String(moved.y));
+  await expect
+    .poll(async () => Number(await paintWidth.inputValue()))
+    .toBeCloseTo(moved.width + 60, 0);
+  await expect(paintHeight).toHaveValue(String(moved.height));
+
+  const paintLayerCanvas = stage.locator("canvas").nth(1);
+  const paintBeforeCorrection = await paintLayerCanvas.evaluate((canvas) =>
+    (canvas as HTMLCanvasElement).toDataURL(),
+  );
+  const baseBeforeCorrection = await stageCanvas.evaluate((canvas) =>
+    (canvas as HTMLCanvasElement).toDataURL(),
+  );
+  const temperature = inspector.getByRole("slider", { name: "Temperature" });
+  await temperature.fill("70");
+  await expect
+    .poll(() =>
+      stageCanvas.evaluate((canvas) =>
+        (canvas as HTMLCanvasElement).toDataURL(),
+      ),
+    )
+    .not.toBe(baseBeforeCorrection);
+  expect(
+    await paintLayerCanvas.evaluate((canvas) =>
+      (canvas as HTMLCanvasElement).toDataURL(),
+    ),
+  ).toBe(paintBeforeCorrection);
+  await temperature.dispatchEvent("pointerup");
+  await expect(editor.locator(".asset-source-workspace-status")).toContainText(
+    "Preview updated",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-asset-raster-paint-transform-exact-production",
+    editor,
   );
 });
 

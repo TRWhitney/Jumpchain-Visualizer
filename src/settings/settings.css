@@ -101,8 +101,36 @@
 }
 
 .setting-control-with-reset > .setting-check,
-.setting-control-with-reset > select {
+.setting-control-with-reset > select,
+.setting-control-with-reset > .settings-number-stepper {
   min-width: 0;
+}
+
+.settings-number-stepper {
+  display: block;
+  min-width: 0;
+}
+
+.settings-number-stepper > .number-stepper {
+  width: 100%;
+}
+
+.settings-number-stepper .number-stepper input {
+  min-height: 2.2rem !important;
+  padding: 0.35rem 2.35rem 0.35rem 0.45rem !important;
+  color: #f0f0eb;
+  background: #20201e;
+  border-color: #52524c;
+  border-radius: 0.2rem;
+  font: inherit;
+}
+
+.settings-number-stepper .number-stepper-buttons {
+  background: #20201e;
+}
+
+.settings-number-stepper .number-stepper-buttons button {
+  color: #9999a2;
 }
 
 .setting-reset {
@@ -316,15 +344,80 @@
   text-transform: uppercase;
 }
 
-.keybinding-list > div:has(small) {
-  min-height: 4rem;
+.keybinding-list {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid #484844;
+  border-radius: 0.25rem;
 }
-.keybinding-list > div > span {
+.keybinding-list > details + details {
+  border-top: 1px solid #484844;
+}
+.keybinding-list summary {
+  min-height: 2.2rem;
+  padding: 0.45rem 0.6rem;
+  color: #d9d9d3;
+  background: #292927;
+  list-style: none;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.keybinding-list summary::before {
+  display: inline-block;
+  width: 0.8rem;
+  margin-right: 0.35rem;
+  color: #85857f;
+  content: "›";
+  font-size: 0.9rem;
+  transition: transform 100ms ease;
+}
+.keybinding-list details[open] > summary::before {
+  transform: rotate(90deg);
+}
+.keybinding-list summary::marker,
+.keybinding-list summary::-webkit-details-marker {
+  display: none;
+  content: "";
+}
+.keybinding-section-body {
   display: grid;
 }
-.keybinding-list > div > span small {
+.keybinding-row {
+  display: grid;
+  min-height: 2.8rem;
+  grid-template-columns: minmax(10rem, 1fr) minmax(7.5rem, auto) auto;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.55rem;
+}
+.keybinding-row + .keybinding-row {
+  border-top: 1px solid #3d3d39;
+}
+.keybinding-row > span:first-child {
+  display: grid;
+}
+.keybinding-row > span small {
   color: #ff9898;
   font-size: 0.65rem;
+}
+.keybinding-row kbd {
+  min-width: 7.5rem;
+  padding: 0.3rem 0.45rem;
+  color: #e8e8e2;
+  background: #232321;
+  border: 1px solid #484844;
+  border-radius: 0.2rem;
+  text-align: center;
+}
+.keybinding-actions {
+  display: flex;
+  justify-content: end;
+  gap: 0.35rem;
+}
+.keybinding-actions button {
+  min-height: 1.9rem;
+  padding: 0.25rem 0.5rem;
 }
 
 .tag-profile-status {
@@ -649,6 +742,19 @@
 }
 [data-app-theme="light"]
   .app-settings-surface
+  .settings-number-stepper
+  .number-stepper
+  input,
+[data-app-theme="light"]
+  .app-settings-surface
+  .settings-number-stepper
+  .number-stepper-buttons {
+  color: #292927;
+  background: #f3f1eb;
+  border-color: #aaa79e;
+}
+[data-app-theme="light"]
+  .app-settings-surface
   :is(.setting-explanation, .tag-profile-status) {
   color: #5c5c56;
   background: #eceae3;
@@ -657,11 +763,16 @@
   .app-settings-surface
   :is(
     .keybinding-list,
-    .keybinding-list > div + div,
+    .keybinding-list > details + details,
+    .keybinding-row + .keybinding-row,
     .settings-search-list,
     .settings-search-list > button + button
   ) {
   border-color: #cbc8bf;
+}
+[data-app-theme="light"] .app-settings-surface .keybinding-list summary {
+  color: #292927;
+  background: #f0eee8;
 }
 [data-app-theme="light"] .app-settings-surface .settings-subtabs {
   background: #f0eee8;

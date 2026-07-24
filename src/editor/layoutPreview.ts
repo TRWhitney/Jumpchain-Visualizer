@@ -36,6 +36,13 @@ export type LayoutPreviewFixture =
 
 const renderable = (base: string): Renderable => ({ base, variants: [] });
 
+type PlaceholderText = (value: string) => string;
+
+function placeholderText(characterLimit: number | null): PlaceholderText {
+  if (characterLimit === null) return (value) => value;
+  return (value) => [...value].slice(0, characterLimit).join("");
+}
+
 function walk(node: LayoutNode): readonly LayoutNode[] {
   return [node, ...node.children.flatMap(walk)];
 }
@@ -50,21 +57,31 @@ function uniqueTargets(nodes: readonly LayoutNode[], kind: LayoutNode["kind"]) {
   ];
 }
 
-function textBlocks(nodes: readonly LayoutNode[]): readonly TextBlock[] {
+function textBlocks(
+  nodes: readonly LayoutNode[],
+  placeholder: PlaceholderText,
+): readonly TextBlock[] {
   return uniqueTargets(nodes, "text").map((target) => ({
     handle: target,
     content: renderable(
-      translate("ui.editorWorkspace.layoutPreview.textContent", { target }),
+      placeholder(
+        translate("ui.editorWorkspace.layoutPreview.textContent", { target }),
+      ),
     ),
   }));
 }
 
-function imageBlocks(nodes: readonly LayoutNode[]): readonly ImageBlock[] {
+function imageBlocks(
+  nodes: readonly LayoutNode[],
+  placeholder: PlaceholderText,
+): readonly ImageBlock[] {
   return uniqueTargets(nodes, "image").map((target) => ({
     handle: target,
     src: layoutPreviewImagePath,
     alt: renderable(
-      translate("ui.editorWorkspace.layoutPreview.imageAlt", { target }),
+      placeholder(
+        translate("ui.editorWorkspace.layoutPreview.imageAlt", { target }),
+      ),
     ),
   }));
 }
@@ -84,18 +101,23 @@ function dummyChoice(
   nodes: readonly LayoutNode[] = [],
   groups: readonly string[] = [],
   layout?: string,
+  placeholder: PlaceholderText = (value) => value,
 ): JumpChoice {
   return {
     handle,
-    name: renderable(name),
+    name: renderable(placeholder(name)),
     layout,
-    tags: [translate("ui.editorWorkspace.layoutPreview.tag")],
+    tags: [placeholder(translate("ui.editorWorkspace.layoutPreview.tag"))],
     groups,
     selection: "toggle",
     resolution: "either",
-    options: [renderable(translate("ui.editorWorkspace.layoutPreview.option"))],
-    text: textBlocks(nodes),
-    images: imageBlocks(nodes),
+    options: [
+      renderable(
+        placeholder(translate("ui.editorWorkspace.layoutPreview.option")),
+      ),
+    ],
+    text: textBlocks(nodes, placeholder),
+    images: imageBlocks(nodes, placeholder),
     inputs: inputs(nodes),
     costs: [{ resource: "jump_points", amount: 100, mode: "flat" }],
     grants: [],
@@ -106,14 +128,17 @@ function previewPackage(
   packageItem: CanonicalJumpPackage,
   sections: CanonicalJumpPackage["sections"],
   choices: readonly JumpChoice[],
+  placeholder: PlaceholderText,
 ): CanonicalJumpPackage {
   return {
     ...packageItem,
     id: `${packageItem.id}-layout-preview`,
     logicalId: `${packageItem.logicalId}-layout-preview`,
-    name: renderable(translate("ui.editorWorkspace.layoutPreview.packageName")),
-    description: translate(
-      "ui.editorWorkspace.layoutPreview.packageDescription",
+    name: renderable(
+      placeholder(translate("ui.editorWorkspace.layoutPreview.packageName")),
+    ),
+    description: placeholder(
+      translate("ui.editorWorkspace.layoutPreview.packageDescription"),
     ),
     startingPoints: 100_000,
     defaultSectionLayout: undefined,
@@ -139,6 +164,7 @@ function referencedChoiceLayout(
 function sectionFixture(
   packageItem: CanonicalJumpPackage,
   layout: JumpLayout,
+  placeholder: PlaceholderText,
 ): LayoutPreviewFixture {
   const nodes = walk(layout.root);
   const expandNodes = nodes.filter((node) => node.kind === "expand");
@@ -181,6 +207,7 @@ function sectionFixture(
           choiceNodes,
           source.group ? [source.group] : [],
           choiceLayout?.handle,
+          placeholder,
         ),
       );
     }
@@ -197,13 +224,19 @@ function sectionFixture(
         translate("ui.editorWorkspace.layoutPreview.directChoiceName", {
           number: index + 1,
         }),
+        [],
+        [],
+        undefined,
+        placeholder,
       ),
     );
     return { handle: target, target: handle };
   });
   const section = {
     handle: "preview_section",
-    name: renderable(translate("ui.editorWorkspace.layoutPreview.sectionName")),
+    name: renderable(
+      placeholder(translate("ui.editorWorkspace.layoutPreview.sectionName")),
+    ),
     layout: layout.handle,
     sources,
     directChoices,
@@ -217,12 +250,12 @@ function sectionFixture(
         handle: choice.handle,
       })),
     ],
-    text: textBlocks(nodes),
-    images: imageBlocks(nodes),
+    text: textBlocks(nodes, placeholder),
+    images: imageBlocks(nodes, placeholder),
   };
   return {
     kind: "section-layout",
-    packageItem: previewPackage(packageItem, [section], choices),
+    packageItem: previewPackage(packageItem, [section], choices, placeholder),
     section,
     activeChoiceHandles,
   };
@@ -231,6 +264,7 @@ function sectionFixture(
 function choiceFixture(
   packageItem: CanonicalJumpPackage,
   layout: JumpLayout,
+  placeholder: PlaceholderText,
 ): LayoutPreviewFixture {
   const choice = dummyChoice(
     "preview_choice",
@@ -238,10 +272,11 @@ function choiceFixture(
     walk(layout.root),
     [],
     layout.handle,
+    placeholder,
   );
   return {
     kind: "choice-layout",
-    packageItem: previewPackage(packageItem, [], [choice]),
+    packageItem: previewPackage(packageItem, [], [choice], placeholder),
     choice,
     activeChoiceHandles: [choice.handle],
   };
@@ -250,25 +285,28 @@ function choiceFixture(
 function traitFixture(
   packageItem: CanonicalJumpPackage,
   layout: JumpLayout,
+  placeholder: PlaceholderText,
 ): LayoutPreviewFixture {
   const nodes = walk(layout.root);
   const trait: EvaluatedGrantRecord = {
     id: "preview_trait",
     kind: "trait",
-    name: translate("ui.editorWorkspace.layoutPreview.traitName"),
+    name: placeholder(translate("ui.editorWorkspace.layoutPreview.traitName")),
     sourceEntryId: "preview-entry",
     grantHandle: "preview_trait",
     sourcePackageId: packageItem.id,
     sourcePackageExactHash: packageItem.exactHash,
-    tags: [translate("ui.editorWorkspace.layoutPreview.tag")],
-    description: translate("ui.editorWorkspace.layoutPreview.traitDescription"),
+    tags: [placeholder(translate("ui.editorWorkspace.layoutPreview.tag"))],
+    description: placeholder(
+      translate("ui.editorWorkspace.layoutPreview.traitDescription"),
+    ),
     layout: layout.handle,
-    text: textBlocks(nodes),
-    images: imageBlocks(nodes),
+    text: textBlocks(nodes, placeholder),
+    images: imageBlocks(nodes, placeholder),
   };
   return {
     kind: "trait-layout",
-    packageItem: previewPackage(packageItem, [], []),
+    packageItem: previewPackage(packageItem, [], [], placeholder),
     trait,
     activeChoiceHandles: [],
   };
@@ -277,9 +315,12 @@ function traitFixture(
 export function createLayoutPreviewFixture(
   packageItem: CanonicalJumpPackage,
   layout: JumpLayout,
+  placeholderCharacterLimit: number | null = null,
 ): LayoutPreviewFixture {
+  const placeholder = placeholderText(placeholderCharacterLimit);
   if (layout.kind === "choice-layout")
-    return choiceFixture(packageItem, layout);
-  if (layout.kind === "trait-layout") return traitFixture(packageItem, layout);
-  return sectionFixture(packageItem, layout);
+    return choiceFixture(packageItem, layout, placeholder);
+  if (layout.kind === "trait-layout")
+    return traitFixture(packageItem, layout, placeholder);
+  return sectionFixture(packageItem, layout, placeholder);
 }

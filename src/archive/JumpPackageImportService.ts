@@ -7,6 +7,12 @@ import {
   type PackageDiagnostic,
 } from "../markup";
 import type { PackageSizeLimits } from "../settings/model";
+import { validateSvgBytes } from "./svgAsset";
+import { jpegTechnicalMetadata } from "./jpegTechnicalMetadata";
+import {
+  imageHeaderMetadata,
+  type ImageHeaderMetadata,
+} from "./imageHeaderMetadata";
 
 const MAX_ENTRIES = 256;
 const MAX_COMPRESSION_RATIO = 100;
@@ -21,6 +27,7 @@ const allowedAssetExtensions = new Set([
   "gif",
   "webp",
   "avif",
+  "svg",
 ]);
 
 export type SecurePackageFiles = {
@@ -365,7 +372,8 @@ function expandArchive(
 const startsWith = (bytes: Uint8Array, signature: readonly number[]) =>
   signature.every((value, index) => bytes[index] === value);
 
-export type CanonicalAssetExtension = "png" | "jpg" | "gif" | "webp" | "avif";
+export type CanonicalAssetExtension =
+  "png" | "jpg" | "gif" | "webp" | "avif" | "svg";
 
 export function canonicalAssetExtension(
   bytes: Uint8Array,
@@ -385,6 +393,7 @@ export function canonicalAssetExtension(
     text.decode(bytes.subarray(8, 32)).includes("avif")
   )
     return "avif";
+  if (validateSvgBytes(bytes)?.valid) return "svg";
   return null;
 }
 
@@ -464,11 +473,14 @@ function imageGeometry(path: string, bytes: Uint8Array) {
           0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd,
           0xce, 0xcf,
         ].includes(marker)
-      )
-        return [
-          view.getUint16(offset + 7),
-          view.getUint16(offset + 5),
-        ] as const;
+      ) {
+        const width = view.getUint16(offset + 7);
+        const height = view.getUint16(offset + 5);
+        const orientation = jpegTechnicalMetadata(bytes).orientation;
+        return orientation >= 5 && orientation <= 8
+          ? ([height, width] as const)
+          : ([width, height] as const);
+      }
       offset += 2 + length;
     }
     fail("asset.decode", { value0: path });
@@ -503,6 +515,12 @@ function imageGeometry(path: string, bytes: Uint8Array) {
         ] as const;
     fail("asset.decode", { value0: path });
   }
+  if (extension === "svg") {
+    const validation = validateSvgBytes(bytes);
+    if (!validation || !validation.valid)
+      return fail("asset.signature", { value0: path });
+    return [validation.width, validation.height] as const;
+  }
   return fail("asset.extension", { value0: path });
 }
 
@@ -521,11 +539,19 @@ async function validateImages(assets: Readonly<Record<string, Uint8Array>>) {
       fail("asset.dimensions", { value0: path });
     totalPixels += pixels;
     if (totalPixels > MAX_TOTAL_IMAGE_PIXELS) fail("asset.total_pixels", {});
-    if (typeof globalThis.createImageBitmap === "function") {
+    if (
+      !path.toLocaleLowerCase().endsWith(".svg") &&
+      typeof globalThis.createImageBitmap === "function"
+    ) {
       try {
         const copy = bytes.slice();
         const image = await globalThis.createImageBitmap(
-          new Blob([copy.buffer], { type: `image/${path.split(".").at(-1)}` }),
+          new Blob([copy.buffer], {
+            type: path.toLocaleLowerCase().endsWith(".svg")
+              ? "image/svg+xml"
+              : `image/${path.split(".").at(-1)}`,
+          }),
+          { imageOrientation: "from-image" },
         );
         const decodedWidth = image.width;
         const decodedHeight = image.height;
@@ -552,6 +578,7 @@ export type PackageAssetMetadata = {
   width: number;
   height: number;
   bytes: number;
+  header: ImageHeaderMetadata;
 };
 
 export function inspectPackageAsset(
@@ -570,6 +597,7 @@ export function inspectPackageAsset(
     width,
     height,
     bytes: bytes.byteLength,
+    header: imageHeaderMetadata(bytes, canonicalExtension),
   };
 }
 

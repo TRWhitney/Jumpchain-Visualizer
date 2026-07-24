@@ -35,6 +35,10 @@
       "label": "Saving",
       "aliases": "saving save autosave explicit persistence editor"
     },
+    "editor_layoutPreviewPlaceholderCharacterLimit": {
+      "label": "Layout preview placeholder length",
+      "aliases": "editor layout preview placeholder example representative text truncate character limit"
+    },
     "editor_warnMissingImageAlt": {
       "label": "Missing image alt warning",
       "aliases": "editor image alt alternative text accessibility warning"
@@ -143,7 +147,7 @@
     "editor_format_failed": "Formatting failed. Source was not changed.",
     "editor_quick_fix_failed": "Quick Fix failed. Source was not changed.",
     "editor_asset_added": "Asset added",
-    "editor_asset_rejected_unsupported_type": "Asset rejected: the filename must use PNG, JPEG, GIF, WebP, or AVIF.",
+    "editor_asset_rejected_unsupported_type": "Asset rejected: the filename must use PNG, JPEG, SVG, GIF, WebP, or AVIF.",
     "editor_asset_rejected_file_too_large": "Asset rejected: the file exceeds the configured per-asset size limit.",
     "editor_asset_rejected_invalid_path": "Asset rejected: the filename cannot be represented as a safe package asset path.",
     "editor_asset_rejected_duplicate_path": "Asset rejected: another asset already uses that filename.",
@@ -328,6 +332,8 @@
         "colorChainNames": "Color chain names",
         "similarInventoryAggregationIsOnByDefaultTheOther": "Similar inventory aggregation is on by default; the other seven settings are off. Exact versions never duplicate, and upstream review remains material-only and undoable.",
         "keyBindings": "Key bindings",
+        "sourceEditorShortcuts": "Source editor",
+        "assetEditorShortcuts": "Asset editor tools",
         "overridesAreUserLocalDuplicateOrPlatformReservedBindings": "Overrides are user-local. Duplicate or platform-reserved bindings are reported before a change is accepted. Editor commands update immediately, including while a workspace remains mounted behind Settings.",
         "accessibility": "Accessibility",
         "reduceMotion": "Reduce motion",
@@ -375,6 +381,7 @@
         "appearance": "Appearance",
         "accentColor": "Accent color",
         "saving": "Saving",
+        "layoutPreviewPlaceholderCharacterLimit": "Layout preview placeholder length",
         "missingImageAltWarning": "Missing image alt warning",
         "missingLayoutTargetWarning": "Missing layout target warning",
         "sidebarItemDeletion": "Sidebar item deletion",
@@ -399,6 +406,7 @@
         "chooseTheApplicationColorTheme": "Choose the application color theme.",
         "chooseTheBaseColorUsedToDeriveAccessibleApplication": "Choose the base color used to derive accessible application accents.",
         "chooseWhetherEditorChangesSaveAutomatically": "Choose whether Editor changes save automatically.",
+        "limitGeneratedLayoutPreviewPlaceholderText": "Optionally truncate generated layout-preview text to this many characters. Leave blank to show the complete representative text.",
         "warnWhenAnImageBlockOmitsAlternativeText": "Warn when an image block omits alternative text.",
         "warnWhenAReusableLayoutTargetIsAbsent": "Warn when a reusable layout target is absent.",
         "chooseWhetherSidebarDeleteUsesTrashOrPermanentRemoval": "Choose whether right-click Delete moves sidebar items to Trash or permanently removes them after confirmation.",
@@ -419,6 +427,9 @@
         "showUserFacingProjectionsOfSelectedSessionLogEvents": "Show user-facing projections of selected session log events.",
         "additionalNotificationsWaitInTheQueue": "Additional notifications wait in the queue.",
         "interactionPausesAutomaticDismissal": "Interaction pauses automatic dismissal."
+      },
+      "placeholder": {
+        "unlimitedCharacters": "Unlimited"
       }
     },
     "toastHost": {

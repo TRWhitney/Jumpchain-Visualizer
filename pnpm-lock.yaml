@@ -16,6 +16,9 @@ importers:
       "@codemirror/commands":
         specifier: ^6.10.4
         version: 6.10.4
+      "@codemirror/lang-xml":
+        specifier: 6.1.0
+        version: 6.1.0
       "@codemirror/language":
         specifier: 6.12.2
         version: 6.12.2
@@ -37,6 +40,9 @@ importers:
       "@lezer/generator":
         specifier: 1.8.0
         version: 1.8.0
+      "@lezer/highlight":
+        specifier: 1.2.3
+        version: 1.2.3
       "@lezer/lr":
         specifier: 1.4.8
         version: 1.4.8
@@ -49,6 +55,12 @@ importers:
       i18next:
         specifier: ^26.3.6
         version: 26.3.6(typescript@6.0.3)
+      konva:
+        specifier: 10.3.0
+        version: 10.3.0
+      pica:
+        specifier: 10.0.2
+        version: 10.0.2
       react:
         specifier: 19.2.7
         version: 19.2.7
@@ -61,6 +73,9 @@ importers:
       react-i18next:
         specifier: ^17.0.10
         version: 17.0.10(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3)
+      react-konva:
+        specifier: 19.2.5
+        version: 19.2.5(@types/react@19.2.17)(konva@10.3.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
     devDependencies:
       "@eslint/js":
         specifier: 10.0.1
@@ -292,6 +307,12 @@ packages:
     resolution:
       {
         integrity: sha512-Ryk9y9T0FFVF0cUGhAknveAyUOl/A1qReTFi+qPKtOh2Z9F4AUBz3XOrYD4ZEgZirdugVzHvd/2/Wcwy5OliTg==,
+      }
+
+  "@codemirror/lang-xml@6.1.0":
+    resolution:
+      {
+        integrity: sha512-3z0blhicHLfwi2UgkZYRPioSgVTo9PV5GP5ducFH6FaHy0IAJRg+ixj5gTR1gnT/glAIC8xv4w2VL1LoZfs+Jg==,
       }
 
   "@codemirror/language@6.12.2":
@@ -979,6 +1000,12 @@ packages:
         integrity: sha512-bPWa0Pgx69ylNlMlPvBPryqeLYQjyJjqPx+Aupm5zydLIF3NE+6MMLT8Yi23Bd9cif9VS00aUebn+6fDIGBcDA==,
       }
 
+  "@lezer/xml@1.0.6":
+    resolution:
+      {
+        integrity: sha512-CdDwirL0OEaStFue/66ZmFSeppuL6Dwjlk8qk153mSQwiSH/Dlri4GNymrNWnUmPl2Um7QfV1FO9KFUyX3Twww==,
+      }
+
   "@marijn/find-cluster-break@1.0.3":
     resolution:
       {
@@ -1447,6 +1474,22 @@ packages:
       }
     peerDependencies:
       "@types/react": ^19.2.0
+
+  "@types/react-reconciler@0.28.9":
+    resolution:
+      {
+        integrity: sha512-HHM3nxyUZ3zAylX8ZEyrDNd2XZOnQ0D5XfunJF5FLQnZbHHYq4UWvW1QfelQNXv1ICNkwYhfxjwfnqivYB6bFg==,
+      }
+    peerDependencies:
+      "@types/react": "*"
+
+  "@types/react-reconciler@0.33.0":
+    resolution:
+      {
+        integrity: sha512-HZOXsKT0tGI9LlUw2LuedXsVeB88wFa536vVL0M6vE8zN63nI+sSr1ByxmPToP5K5bukaVscyeCJcF9guVNJ1g==,
+      }
+    peerDependencies:
+      "@types/react": "*"
 
   "@types/react@19.2.17":
     resolution:
@@ -3111,6 +3154,12 @@ packages:
       }
     engines: { node: ">=18" }
 
+  glur@2.0.0:
+    resolution:
+      {
+        integrity: sha512-ZgJCXwuaQo4vnYG+VqtNIYV9kpNC/V/mafp0UcOMiLN/7eQVjCU+RDBLIwWXlmvwYMLFDf0IJrV/4qnM5VinCA==,
+      }
+
   graceful-fs@4.2.11:
     resolution:
       {
@@ -3406,6 +3455,14 @@ packages:
       }
     engines: { node: ">=20" }
 
+  its-fine@2.0.0:
+    resolution:
+      {
+        integrity: sha512-KLViCmWx94zOvpLwSlsx6yOCeMhZYaxrJV87Po5k/FoZzcPSahvK5qJ7fYhS61sZi5ikmh2S3Hz55A2l3U69ng==,
+      }
+    peerDependencies:
+      react: ^19.0.0
+
   jackspeak@3.4.3:
     resolution:
       {
@@ -3533,6 +3590,12 @@ packages:
     resolution:
       {
         integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==,
+      }
+
+  konva@10.3.0:
+    resolution:
+      {
+        integrity: sha512-gt19K2gzY4lHbnkvsku7eSmB+A9PTS2jG4F9coBMsdjM1UKfJNxJbDbXVpeCW1wjEGRwBD3nBamcHnqJhAeKlg==,
       }
 
   lazystream@1.0.1:
@@ -3841,6 +3904,12 @@ packages:
         integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==,
       }
 
+  multimath@3.0.0:
+    resolution:
+      {
+        integrity: sha512-U+s5xgbW55w5sbT9PeaJdEuxH5zL7wLwvp0MOJxXS8WhWDYnsTPIF3faeAltxkPNa+dDXmXs6gIiEpcCeE1YCA==,
+      }
+
   mute-stream@2.0.0:
     resolution:
       {
@@ -4083,6 +4152,12 @@ packages:
         integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==,
       }
 
+  pica@10.0.2:
+    resolution:
+      {
+        integrity: sha512-n7SniFK3eqssLjdBmUKRwvKQlO4KeQ1TX95fxexNRqt8gN0+DshoOlQ0K/wVjZ/ZRBQblBDxWWvn7E5KmoXcnQ==,
+      }
+
   picocolors@1.1.1:
     resolution:
       {
@@ -4283,6 +4358,25 @@ packages:
       {
         integrity: sha512-kZFnouyVv7eP/Phmrlo9FK+zcAdriZJvzxXHF1Sl1P377WSGe2G/JxVolhTrB/jeV47lKImhNUsijjHAAbcl/A==,
       }
+
+  react-konva@19.2.5:
+    resolution:
+      {
+        integrity: sha512-AdsuDB59GdB86QdenTAqRzr6Tfw3z9x9Opxo4BoqDjdNLsjekF9a1VhN4FlMPvg0qtrMl3d4dNmagaUTGH7fSA==,
+      }
+    peerDependencies:
+      konva: ^8.0.1 || ^7.2.5 || ^9.0.0 || ^10.0.0
+      react: ^19.2.0
+      react-dom: ^19.2.0
+
+  react-reconciler@0.33.0:
+    resolution:
+      {
+        integrity: sha512-KetWRytFv1epdpJc3J4G75I4WrplZE5jOL7Yq0p34+OVOKF4Se7WrdIdVC45XsSSmUTlht2FM/fM1FZb1mfQeA==,
+      }
+    engines: { node: ">=0.10.0" }
+    peerDependencies:
+      react: ^19.2.0
 
   react-stately@3.48.0:
     resolution:
@@ -5411,6 +5505,15 @@ snapshots:
       "@codemirror/view": 6.43.6
       "@lezer/common": 1.5.2
 
+  "@codemirror/lang-xml@6.1.0":
+    dependencies:
+      "@codemirror/autocomplete": 6.20.3
+      "@codemirror/language": 6.12.2
+      "@codemirror/state": 6.7.1
+      "@codemirror/view": 6.43.6
+      "@lezer/common": 1.5.2
+      "@lezer/xml": 1.0.6
+
   "@codemirror/language@6.12.2":
     dependencies:
       "@codemirror/state": 6.7.1
@@ -5794,6 +5897,12 @@ snapshots:
     dependencies:
       "@lezer/common": 1.5.2
 
+  "@lezer/xml@1.0.6":
+    dependencies:
+      "@lezer/common": 1.5.2
+      "@lezer/highlight": 1.2.3
+      "@lezer/lr": 1.4.8
+
   "@marijn/find-cluster-break@1.0.3": {}
 
   "@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)":
@@ -6002,6 +6111,14 @@ snapshots:
       "@types/node": 24.10.1
 
   "@types/react-dom@19.2.3(@types/react@19.2.17)":
+    dependencies:
+      "@types/react": 19.2.17
+
+  "@types/react-reconciler@0.28.9(@types/react@19.2.17)":
+    dependencies:
+      "@types/react": 19.2.17
+
+  "@types/react-reconciler@0.33.0(@types/react@19.2.17)":
     dependencies:
       "@types/react": 19.2.17
 
@@ -7227,6 +7344,8 @@ snapshots:
 
   globals@17.7.0: {}
 
+  glur@2.0.0: {}
+
   graceful-fs@4.2.11: {}
 
   grapheme-splitter@1.0.4: {}
@@ -7359,6 +7478,13 @@ snapshots:
 
   isexe@4.0.0: {}
 
+  its-fine@2.0.0(@types/react@19.2.17)(react@19.2.7):
+    dependencies:
+      "@types/react-reconciler": 0.28.9(@types/react@19.2.17)
+      react: 19.2.7
+    transitivePeerDependencies:
+      - "@types/react"
+
   jackspeak@3.4.3:
     dependencies:
       "@isaacs/cliui": 8.0.2
@@ -7445,6 +7571,8 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
+
+  konva@10.3.0: {}
 
   lazystream@1.0.1:
     dependencies:
@@ -7606,6 +7734,10 @@ snapshots:
 
   ms@2.1.3: {}
 
+  multimath@3.0.0:
+    dependencies:
+      glur: 2.0.0
+
   mute-stream@2.0.0: {}
 
   nanoid@3.3.15: {}
@@ -7738,6 +7870,11 @@ snapshots:
 
   pend@1.2.0: {}
 
+  pica@10.0.2:
+    dependencies:
+      glur: 2.0.0
+      multimath: 3.0.0
+
   picocolors@1.1.1: {}
 
   picomatch@2.3.2: {}
@@ -7857,6 +7994,23 @@ snapshots:
   react-is@18.3.1: {}
 
   react-is@19.2.7: {}
+
+  react-konva@19.2.5(@types/react@19.2.17)(konva@10.3.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+    dependencies:
+      "@types/react-reconciler": 0.33.0(@types/react@19.2.17)
+      its-fine: 2.0.0(@types/react@19.2.17)(react@19.2.7)
+      konva: 10.3.0
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
+      react-reconciler: 0.33.0(react@19.2.7)
+      scheduler: 0.27.0
+    transitivePeerDependencies:
+      - "@types/react"
+
+  react-reconciler@0.33.0(react@19.2.7):
+    dependencies:
+      react: 19.2.7
+      scheduler: 0.27.0
 
   react-stately@3.48.0(react@19.2.7):
     dependencies:

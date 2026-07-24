@@ -66,7 +66,6 @@
   color: #171717;
 }
 
-[data-app-theme="light"] .app-primary-views p,
 [data-app-theme="light"] .app-entry-grid article p,
 [data-app-theme="light"] .app-recent-work,
 [data-app-theme="light"] .app-recent-work small,
@@ -268,7 +267,6 @@
 
 [data-app-theme="light"] .editor-project-toolbar,
 [data-app-theme="light"] .editor-explorer,
-[data-app-theme="light"] .editor-form-card,
 [data-app-theme="light"] .editor-properties-panel,
 [data-app-theme="light"] .editor-context-pane,
 [data-app-theme="light"] .editor-source-toolbar,
@@ -330,6 +328,27 @@
 }
 
 [data-app-theme="light"] .cm-format-comment {
+  color: #5f5f59;
+}
+
+[data-app-theme="light"] .cm-svg-tag {
+  color: #6f42c1;
+}
+
+[data-app-theme="light"] .cm-svg-attribute {
+  color: #12608a;
+}
+
+[data-app-theme="light"] .cm-svg-string {
+  color: #765b00;
+}
+
+[data-app-theme="light"] .cm-svg-bracket,
+[data-app-theme="light"] .cm-svg-processing {
+  color: #8a4f08;
+}
+
+[data-app-theme="light"] .cm-svg-comment {
   color: #5f5f59;
 }
 
@@ -404,6 +423,218 @@
 [data-app-theme="light"] .editor-diagnostics-details code,
 [data-app-theme="light"] .editor-diagnostics-details > p {
   color: #5c5c56;
+}
+
+/* Editor structured content, layout controls, and contextual actions. */
+[data-app-theme="light"] .editor-form-card {
+  color: #343430;
+  background: transparent;
+  border-color: #cbc8bf;
+}
+
+[data-app-theme="light"] .editor-child-list > div {
+  background: #eceae4;
+  border: 1px solid #cbc8bf;
+  border-left: 2px solid var(--app-accent-raw);
+}
+
+[data-app-theme="light"] .editor-child-list button {
+  color: #343430;
+  background: #fff;
+  border-color: #aaa79e;
+}
+
+[data-app-theme="light"] .editor-child-list button small {
+  color: #686861;
+}
+
+[data-app-theme="light"] .editor-layout-breadcrumb button:hover,
+[data-app-theme="light"] .editor-layout-breadcrumb button[aria-current="page"] {
+  color: #171717;
+  background: var(--app-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--app-accent-border);
+}
+
+[data-app-theme="light"] .editor-conditional-variants {
+  color: #343430;
+  background: #eceae4;
+  border: 1px solid #cbc8bf;
+  border-left: 2px solid var(--app-accent-border);
+}
+
+[data-app-theme="light"] .editor-conditional-variants > header small,
+[data-app-theme="light"] .editor-condition-when-row > span,
+[data-app-theme="light"] .editor-condition-value > span,
+[data-app-theme="light"] .editor-condition-group-heading > span,
+[data-app-theme="light"] .editor-condition-draft small,
+[data-app-theme="light"] .editor-condition-repair-hint,
+[data-app-theme="light"] .editor-conditional-variant-group > strong {
+  color: #5c5c56;
+}
+
+[data-app-theme="light"]
+  .editor-conditional-variant-group
+  + .editor-conditional-variant-group {
+  border-color: #cbc8bf;
+}
+
+[data-app-theme="light"] .editor-condition-variant-card,
+[data-app-theme="light"] .editor-condition-draft {
+  color: #343430;
+  background: #fff;
+  border-color: #aaa79e;
+  border-left-color: var(--app-accent-border);
+}
+
+[data-app-theme="light"] .editor-condition-mode {
+  background: #e4e1d9;
+  border-color: #aaa79e;
+}
+
+[data-app-theme="light"] .editor-condition-mode button {
+  color: #5c5c56;
+}
+
+[data-app-theme="light"] .editor-condition-mode button.is-active,
+[data-app-theme="light"] .editor-condition-group-heading button.is-active {
+  color: #171717;
+  background: var(--app-accent-soft);
+  border-color: var(--app-accent-border);
+  box-shadow: inset 0 0 0 1px var(--app-accent-border);
+}
+
+[data-app-theme="light"] .editor-condition-combobox > [role="group"],
+[data-app-theme="light"] .editor-condition-group,
+[data-app-theme="light"] .editor-condition-expression-input {
+  background: #fff;
+  border-color: #aaa79e;
+}
+
+[data-app-theme="light"] .editor-condition-combobox button {
+  color: #343430;
+  background: #f3f1eb;
+  border-color: #aaa79e;
+}
+
+[data-app-theme="light"] .editor-condition-popover {
+  color: #343430;
+  background: #fff;
+  border-color: #aaa79e;
+  box-shadow: 0 0.65rem 1.8rem rgb(23 23 23 / 18%);
+}
+
+[data-app-theme="light"] .editor-condition-popover header,
+[data-app-theme="light"] .editor-condition-popover [role="option"] small {
+  color: #686861;
+}
+
+[data-app-theme="light"]
+  .editor-condition-popover
+  [role="option"]:is([data-focused], [data-selected]) {
+  color: #171717;
+  background: var(--app-accent-soft);
+}
+
+[data-app-theme="light"] .editor-condition-add-actions button,
+[data-app-theme="light"] .editor-condition-variant-card > footer button,
+[data-app-theme="light"] .editor-condition-draft > button,
+[data-app-theme="light"] .editor-conditional-variant-group > button,
+[data-app-theme="light"] .editor-conditional-variants > button {
+  color: #343430;
+  background: #f3f1eb;
+  border-color: #aaa79e;
+}
+
+[data-app-theme="light"] .editor-explorer-context-menu {
+  color: #343430;
+  background: #fff;
+  border-color: #aaa79e;
+  box-shadow: 0 0.8rem 2rem rgb(23 23 23 / 22%);
+}
+
+[data-app-theme="light"] .editor-explorer-context-menu button.is-danger {
+  color: var(--app-danger-text);
+}
+
+[data-app-theme="light"]
+  .editor-explorer-context-menu
+  button:is(:hover, :focus-visible) {
+  color: #171717;
+  background: var(--app-accent-soft);
+}
+
+[data-app-theme="light"] .editor-explorer-context-menu button:disabled {
+  color: #777770;
+}
+
+/* Editor asset canvas chrome and validation status. */
+[data-app-theme="light"] .asset-source-workspace,
+[data-app-theme="light"] .asset-raster-editor {
+  color: #343430;
+  background: #eceae4;
+}
+
+[data-app-theme="light"] .asset-raster-inspector,
+[data-app-theme="light"] .asset-raster-layers,
+[data-app-theme="light"] .asset-raster-toolrail {
+  color: #343430;
+  background: #f3f1eb;
+}
+
+[data-app-theme="light"] .asset-source-workspace-header,
+[data-app-theme="light"] .asset-source-workspace-status,
+[data-app-theme="light"] .asset-raster-commandbar,
+[data-app-theme="light"] .asset-raster-inspector section,
+[data-app-theme="light"] .asset-raster-inspector details,
+[data-app-theme="light"] .asset-raster-status {
+  border-color: #cbc8bf;
+}
+
+[data-app-theme="light"] .asset-raster-inspector label,
+[data-app-theme="light"] .asset-raster-range-field {
+  color: #5c5c56;
+}
+
+[data-app-theme="light"] .asset-raster-inspector output,
+[data-app-theme="light"] .asset-raster-encoding p,
+[data-app-theme="light"] .asset-raster-layers li > button:first-child small {
+  color: #686861;
+}
+
+[data-app-theme="light"] .asset-raster-inspector .asset-raster-range-value,
+[data-app-theme="light"] .asset-raster-inspector .asset-raster-range-reset {
+  color: #343430;
+}
+
+[data-app-theme="light"] .asset-raster-layer-name-input {
+  color: #252522;
+  background: #fff;
+}
+
+[data-app-theme="light"] .asset-raster-commandbar button[aria-pressed="true"],
+[data-app-theme="light"] .asset-raster-toolrail button[aria-pressed="true"],
+[data-app-theme="light"]
+  .asset-raster-layers
+  li.is-selected
+  > button:first-child {
+  color: #171717;
+  background: var(--app-accent-soft);
+  border-color: var(--app-accent-border);
+  box-shadow: inset 0 0 0 1px var(--app-accent-border);
+}
+
+[data-app-theme="light"] .asset-editor-diagnostics {
+  color: #37633b;
+  background: #e7efe5;
+  border-color: #a5bea3;
+}
+
+[data-app-theme="light"] .asset-editor-diagnostics.is-invalid,
+[data-app-theme="light"] .asset-source-workspace-status.is-invalid,
+[data-app-theme="light"] .asset-raster-status.is-error {
+  color: var(--app-danger-text-strong);
+  background: var(--app-danger-surface);
+  border-color: var(--app-danger-border);
 }
 
 /* Chain Tracker chrome and secondary pages. */

@@ -49,6 +49,10 @@ describe("editor asset paths", () => {
     ).toBeNull();
   });
 
+  it("accepts SVG as a package-relative asset type", () => {
+    expect(validateAssetRelativePath("icons/mark.svg")).toBeNull();
+  });
+
   it("finds and atomically rewrites only exact image source fields", () => {
     const files = {
       "jump.jdef": `section

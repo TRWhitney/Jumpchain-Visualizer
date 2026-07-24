@@ -24,6 +24,7 @@ import {
 import {
   inspectPackageAsset,
   validatePackageAsset,
+  type ImageHeaderMetadata,
   type PackageAssetMetadata,
 } from "../archive";
 import { NumberStepperButtons } from "../tracker/NumberStepper";
@@ -135,16 +136,21 @@ import {
   assetPathRejectionReason,
   assetValidationRejectionReason,
 } from "./assetImportFeedback";
+import {
+  AssetSourceWorkspace,
+  type AssetSourceCommit,
+} from "./AssetSourceWorkspace";
+import {
+  trimAssetWorkspaceHistory,
+  type AssetWorkspaceHistoryState,
+} from "./assetHistory";
 
 type SaveState = "Saved" | "Saving" | "Unsaved" | "Save failed";
 type NavigationTab = "content" | "files";
 type EditingTab = "structured" | "source";
 type ContextTab = "preview" | "properties";
 type Severity = PackageDiagnostic["severity"];
-type WorkspaceHistoryState = Pick<
-  EditorWorkspaceSnapshot,
-  "files" | "assets" | "trash"
->;
+type WorkspaceHistoryState = AssetWorkspaceHistoryState;
 type LayoutInspectionHandle = { inspect: (path: string) => void };
 type ExplorerAddKind =
   | "resource"
@@ -582,6 +588,8 @@ export function EditorWorkspace({
   const [editingTab, setEditingTab] = useState<EditingTab>("structured");
   const [contentEditingTab, setContentEditingTab] =
     useState<EditingTab>("structured");
+  const [assetEditingTab, setAssetEditingTab] =
+    useState<EditingTab>("structured");
   const [contextTab, setContextTab] = useState<ContextTab>("preview");
   const [selected, setSelected] = useState<PreviewSelection>({
     kind: "package",
@@ -635,6 +643,7 @@ export function EditorWorkspace({
     Record<Severity, boolean>
   >({ error: true, warning: true, info: true });
   const [showBounds, setShowBounds] = useState(false);
+  const [stripColor, setStripColor] = useState(false);
   const [hoveredBound, setHoveredBound] = useState<LayoutBoundHover | null>(
     null,
   );
@@ -643,6 +652,7 @@ export function EditorWorkspace({
     {
       files: workspace.files,
       assets: workspace.assets,
+      assetEditorDocuments: workspace.assetEditorDocuments,
       trash: workspace.trash,
     },
   ]);
@@ -926,6 +936,7 @@ export function EditorWorkspace({
     preserveRedo = false,
     historyGroup = "continuous",
     nextTrash = workspace.trash,
+    nextAssetEditorDocuments = workspace.assetEditorDocuments,
   ) => {
     if (
       Object.keys(nextFiles).length === Object.keys(workspace.files).length &&
@@ -936,6 +947,11 @@ export function EditorWorkspace({
       Object.entries(nextAssets).every(
         ([path, bytes]) => workspace.assets[path] === bytes,
       ) &&
+      Object.keys(nextAssetEditorDocuments).length ===
+        Object.keys(workspace.assetEditorDocuments).length &&
+      Object.entries(nextAssetEditorDocuments).every(
+        ([path, document]) => workspace.assetEditorDocuments[path] === document,
+      ) &&
       nextTrash.length === workspace.trash.length &&
       nextTrash.every((entry, index) => workspace.trash[index] === entry)
     )
@@ -943,7 +959,12 @@ export function EditorWorkspace({
     if (!preserveRedo) {
       let nextHistory: WorkspaceHistoryState[];
       let nextIndex: number;
-      const entry = { files: nextFiles, assets: nextAssets, trash: nextTrash };
+      const entry = {
+        files: nextFiles,
+        assets: nextAssets,
+        assetEditorDocuments: nextAssetEditorDocuments,
+        trash: nextTrash,
+      };
       if (
         continuous &&
         historyGroupRef.current === historyGroup &&
@@ -953,10 +974,10 @@ export function EditorWorkspace({
         nextHistory[historyIndexRef.current] = entry;
         nextIndex = historyIndexRef.current;
       } else {
-        nextHistory = [
+        nextHistory = trimAssetWorkspaceHistory([
           ...historyRef.current.slice(0, historyIndexRef.current + 1),
           entry,
-        ].slice(-100);
+        ]);
         nextIndex = nextHistory.length - 1;
       }
       historyRef.current = nextHistory;
@@ -977,6 +998,7 @@ export function EditorWorkspace({
         ...workspace,
         files: nextFiles,
         assets: nextAssets,
+        assetEditorDocuments: nextAssetEditorDocuments,
         trash: nextTrash,
         updatedAt: new Date().toISOString(),
         revision: workspace.revision + 1,
@@ -1017,9 +1039,11 @@ export function EditorWorkspace({
     if (selectedAsset) {
       const selectedBytes = workspace.assets[selectedAsset];
       setSelectedAsset(
-        Object.entries(entry.assets).find(
-          ([, bytes]) => bytes === selectedBytes,
-        )?.[0] ?? null,
+        entry.assets[selectedAsset]
+          ? selectedAsset
+          : (Object.entries(entry.assets).find(
+              ([, bytes]) => bytes === selectedBytes,
+            )?.[0] ?? null),
       );
     }
     commitWorkspace(
@@ -1029,6 +1053,7 @@ export function EditorWorkspace({
       true,
       "continuous",
       entry.trash,
+      entry.assetEditorDocuments,
     );
   };
   const redo = () => {
@@ -1041,9 +1066,11 @@ export function EditorWorkspace({
     if (selectedAsset) {
       const selectedBytes = workspace.assets[selectedAsset];
       setSelectedAsset(
-        Object.entries(entry.assets).find(
-          ([, bytes]) => bytes === selectedBytes,
-        )?.[0] ?? null,
+        entry.assets[selectedAsset]
+          ? selectedAsset
+          : (Object.entries(entry.assets).find(
+              ([, bytes]) => bytes === selectedBytes,
+            )?.[0] ?? null),
       );
     }
     commitWorkspace(
@@ -1053,6 +1080,7 @@ export function EditorWorkspace({
       true,
       "continuous",
       entry.trash,
+      entry.assetEditorDocuments,
     );
   };
 
@@ -1083,7 +1111,7 @@ export function EditorWorkspace({
     setSelectedSymbol(null);
     setSelected({ kind: "package" });
     setNavigationTab("content");
-    setEditingTab("structured");
+    setEditingTab(assetEditingTab);
     setContextTab("preview");
   };
 
@@ -1119,12 +1147,26 @@ export function EditorWorkspace({
     const nextAssets = { ...workspace.assets };
     delete nextAssets[currentPath];
     nextAssets[nextPath] = bytes;
+    const nextAssetEditorDocuments = {
+      ...workspace.assetEditorDocuments,
+    };
+    const editorDocument = nextAssetEditorDocuments[currentPath];
+    delete nextAssetEditorDocuments[currentPath];
+    if (editorDocument) nextAssetEditorDocuments[nextPath] = editorDocument;
     const nextFiles = renameAssetReferences(
       workspace.files,
       assetRelativePath(currentPath),
       nextRelativePath,
     );
-    commitWorkspace(nextFiles, nextAssets);
+    commitWorkspace(
+      nextFiles,
+      nextAssets,
+      false,
+      false,
+      "continuous",
+      workspace.trash,
+      nextAssetEditorDocuments,
+    );
     setSelectedAsset(nextPath);
     setStructuredAnnouncement(
       translate("ui.editorWorkspace.announcement.assetMoved", {
@@ -1132,6 +1174,27 @@ export function EditorWorkspace({
       }),
     );
     return null;
+  };
+
+  const commitAssetSource = ({
+    path,
+    bytes,
+    document,
+    historyLabel,
+  }: AssetSourceCommit) => {
+    if (!workspace.assets[path]) return;
+    const nextDocuments = { ...workspace.assetEditorDocuments };
+    if (document) nextDocuments[path] = document;
+    else delete nextDocuments[path];
+    commitWorkspace(
+      workspace.files,
+      { ...workspace.assets, [path]: bytes },
+      false,
+      false,
+      `asset:${path}:${historyLabel}`,
+      workspace.trash,
+      nextDocuments,
+    );
   };
 
   const openTrash = (entry: EditorTrashEntry) => {
@@ -1195,7 +1258,13 @@ export function EditorWorkspace({
       new Date().toISOString(),
     );
     if (!result.changed) return;
-    const nextTrash = [...workspace.trash, result.value.entry];
+    const editorDocument = workspace.assetEditorDocuments[path];
+    const entry = editorDocument
+      ? { ...result.value.entry, editorDocument }
+      : result.value.entry;
+    const nextTrash = [...workspace.trash, entry];
+    const nextDocuments = { ...workspace.assetEditorDocuments };
+    delete nextDocuments[path];
     if (
       !commitWorkspace(
         workspace.files,
@@ -1204,13 +1273,14 @@ export function EditorWorkspace({
         false,
         "continuous",
         nextTrash,
+        nextDocuments,
       )
     )
       return;
-    openTrash(result.value.entry);
+    openTrash(entry);
     setStructuredAnnouncement(
       translate("ui.editorWorkspace.announcement.movedToTrash", {
-        item: result.value.entry.label,
+        item: entry.label,
       }),
     );
   };
@@ -1236,6 +1306,12 @@ export function EditorWorkspace({
         false,
         "continuous",
         nextTrash,
+        entry.editorDocument
+          ? {
+              ...workspace.assetEditorDocuments,
+              [entry.originalPath]: entry.editorDocument,
+            }
+          : workspace.assetEditorDocuments,
       );
       if (navigationTab === "content") openContentAsset(entry.originalPath);
       else openFileAsset(entry.originalPath);
@@ -1291,9 +1367,15 @@ export function EditorWorkspace({
     nextAssets: Record<string, Uint8Array>,
     nextTrash: EditorTrashEntry[],
     item: string,
+    nextAssetEditorDocuments = workspace.assetEditorDocuments,
   ) => {
     const nextHistory = [
-      { files: nextFiles, assets: nextAssets, trash: nextTrash },
+      {
+        files: nextFiles,
+        assets: nextAssets,
+        assetEditorDocuments: nextAssetEditorDocuments,
+        trash: nextTrash,
+      },
     ];
     historyRef.current = nextHistory;
     historyIndexRef.current = 0;
@@ -1309,6 +1391,7 @@ export function EditorWorkspace({
       ...workspace,
       files: nextFiles,
       assets: nextAssets,
+      assetEditorDocuments: nextAssetEditorDocuments,
       trash: nextTrash,
       updatedAt: new Date().toISOString(),
       revision: workspace.revision + 1,
@@ -1357,6 +1440,11 @@ export function EditorWorkspace({
       removed.value,
       workspace.trash,
       assetBasename(path),
+      Object.fromEntries(
+        Object.entries(workspace.assetEditorDocuments).filter(
+          ([candidate]) => candidate !== path,
+        ),
+      ),
     );
   };
 
@@ -1448,7 +1536,7 @@ export function EditorWorkspace({
 
   const addAsset = async (candidate: File) => {
     const extension = candidate.name.split(".").at(-1)?.toLocaleLowerCase();
-    const allowed = ["png", "jpg", "jpeg", "gif", "webp", "avif"];
+    const allowed = ["png", "jpg", "jpeg", "gif", "webp", "avif", "svg"];
     const limit =
       effectivePackageSizeLimits(settings.developer).maxAssetFileMiB *
       1024 *
@@ -1635,7 +1723,7 @@ export function EditorWorkspace({
             ref={assetInputRef}
             className="sr-only"
             type="file"
-            accept="image/png,image/jpeg,image/gif,image/webp,image/avif"
+            accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml"
             onChange={(event) => {
               const candidate = event.target.files?.[0];
               if (candidate) void addAsset(candidate);
@@ -1972,7 +2060,7 @@ export function EditorWorkspace({
             : selectedAsset
               ? navigationTab === "files"
                 ? (["source"] as const)
-                : (["structured"] as const)
+                : (["structured", "source"] as const)
               : navigationTab === "files"
                 ? (["source"] as const)
                 : (["structured", "source"] as const)
@@ -1984,7 +2072,10 @@ export function EditorWorkspace({
               aria-selected={editingTab === tab}
               onClick={() => {
                 setEditingTab(tab);
-                if (navigationTab === "content") setContentEditingTab(tab);
+                if (navigationTab === "content") {
+                  if (selectedAsset) setAssetEditingTab(tab);
+                  else setContentEditingTab(tab);
+                }
               }}
             >
               {tab[0].toLocaleUpperCase() + tab.slice(1)}
@@ -2191,10 +2282,20 @@ export function EditorWorkspace({
           </>
         ) : selectedTrash ? (
           <TrashSourcePanel entry={selectedTrash} />
-        ) : selectedAsset && selectedAssetBytes ? (
-          <AssetBinarySourcePanel
+        ) : selectedAsset && selectedAssetBytes && selectedAssetMetadata ? (
+          <AssetSourceWorkspace
+            key={selectedAsset}
             path={selectedAsset}
+            canonicalType={selectedAssetMetadata.canonicalExtension}
+            width={selectedAssetMetadata.width}
+            height={selectedAssetMetadata.height}
             bytes={selectedAssetBytes}
+            document={workspace.assetEditorDocuments[selectedAsset]}
+            readOnly={false}
+            keybindings={sourceKeybindings}
+            onCommit={commitAssetSource}
+            onUndo={undo}
+            onRedo={redo}
           />
         ) : (
           <div className={`editor-source-panel${findOpen ? " has-find" : ""}`}>
@@ -2641,14 +2742,24 @@ export function EditorWorkspace({
                 </strong>
                 <small>{previewStatus}</small>
               </span>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={showBounds}
-                  onChange={(event) => setShowBounds(event.target.checked)}
-                />{" "}
-                {translate("ui.editorWorkspace.text.showBounds")}
-              </label>
+              <div className="editor-preview-toggles">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={showBounds}
+                    onChange={(event) => setShowBounds(event.target.checked)}
+                  />{" "}
+                  {translate("ui.editorWorkspace.text.showBounds")}
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={stripColor}
+                    onChange={(event) => setStripColor(event.target.checked)}
+                  />{" "}
+                  {translate("ui.editorWorkspace.text.stripColor")}
+                </label>
+              </div>
             </div>
             <div className="editor-bounds-tools" hidden={!showBounds}>
               <div
@@ -2697,6 +2808,10 @@ export function EditorWorkspace({
                 assets={workspace.assets}
                 selection={previewSelection}
                 showBounds={showBounds}
+                stripColor={stripColor}
+                layoutPreviewPlaceholderCharacterLimit={
+                  settings.editor.layoutPreviewPlaceholderCharacterLimit
+                }
                 hoveredBound={hoveredBound}
                 onHoveredBoundChange={setHoveredBound}
                 onBoundActivate={inspectLayoutBound}
@@ -6071,6 +6186,12 @@ function PropertiesPanel({
                     {translate("ui.editorWorkspace.text.bytes")}
                   </dd>
                 </div>
+                {assetHeaderProperties(assetMetadata.header).map((property) => (
+                  <div key={property.key}>
+                    <dt>{property.label}</dt>
+                    <dd>{property.value}</dd>
+                  </div>
+                ))}
               </>
             )}
             <div>
@@ -6155,4 +6276,114 @@ function PropertiesPanel({
       </p>
     </div>
   );
+}
+
+function formatHeaderNumber(value: number) {
+  return Number.isInteger(value)
+    ? value.toLocaleString()
+    : value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function assetHeaderProperties(header: ImageHeaderMetadata) {
+  const properties: { key: string; label: string; value: string }[] = [];
+  const add = (key: string, value: string | undefined) => {
+    if (value)
+      properties.push({
+        key,
+        label: translate(`ui.editorWorkspace.asset.header.${key}`),
+        value,
+      });
+  };
+  add(
+    "colorModel",
+    header.colorModel
+      ? translate(
+          `ui.editorWorkspace.asset.header.colorModelValue.${header.colorModel}`,
+        )
+      : undefined,
+  );
+  add(
+    "bitDepth",
+    header.bitDepth
+      ? translate("ui.editorWorkspace.asset.header.bits", {
+          count: header.bitDepth,
+        })
+      : undefined,
+  );
+  add(
+    "colorResolution",
+    header.colorResolution
+      ? translate("ui.editorWorkspace.asset.header.bits", {
+          count: header.colorResolution,
+        })
+      : undefined,
+  );
+  add(
+    "encoding",
+    header.encoding
+      ? translate(
+          `ui.editorWorkspace.asset.header.encodingValue.${header.encoding}`,
+        )
+      : undefined,
+  );
+  add(
+    "interlaced",
+    header.interlaced === undefined
+      ? undefined
+      : translate(
+          `ui.editorWorkspace.asset.header.boolean.${header.interlaced ? "yes" : "no"}`,
+        ),
+  );
+  add(
+    "alpha",
+    header.alpha === undefined
+      ? undefined
+      : translate(
+          `ui.editorWorkspace.asset.header.boolean.${header.alpha ? "yes" : "no"}`,
+        ),
+  );
+  add(
+    "animated",
+    header.animated === undefined
+      ? undefined
+      : translate(
+          `ui.editorWorkspace.asset.header.boolean.${header.animated ? "yes" : "no"}`,
+        ),
+  );
+  add(
+    "colorProfile",
+    header.colorProfile
+      ? translate(
+          `ui.editorWorkspace.asset.header.colorProfileValue.${header.colorProfile}`,
+        )
+      : undefined,
+  );
+  add(
+    "pixelDensity",
+    header.densityX && header.densityY && header.densityUnit
+      ? translate("ui.editorWorkspace.asset.header.pixelDensityValue", {
+          x: formatHeaderNumber(header.densityX),
+          y: formatHeaderNumber(header.densityY),
+          unit: header.densityUnit,
+        })
+      : undefined,
+  );
+  add(
+    "orientation",
+    header.orientation
+      ? translate(
+          `ui.editorWorkspace.asset.header.orientationValue.${header.orientation}`,
+        )
+      : undefined,
+  );
+  add("version", header.version);
+  add(
+    "palette",
+    header.paletteColors
+      ? translate("ui.editorWorkspace.asset.header.paletteValue", {
+          count: header.paletteColors,
+        })
+      : undefined,
+  );
+  return properties;
 }

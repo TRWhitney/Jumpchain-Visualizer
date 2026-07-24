@@ -1616,9 +1616,10 @@ source-ordered flex row. Unstretched leaves retain a bounded content area so
 <code>text-align</code> remains independently observable. A stretched leaf grows
 into the row’s remaining space; two or more stretched leaves have equal growth
 and therefore split that remainder after unstretched content. Positioned
-intrinsic images use their actual intrinsic area. Stretch grows an unsized image
-boundary into its available area instead of replacing it with a smaller
-synthetic width. Stack and Grid apply the same
+intrinsic images use their actual intrinsic area. Stretch assigns the remaining
+area to the image leaf; an unsized image fills that allocation, while an image
+with authored dimensions retains those dimensions inside the larger leaf.
+Stack and Grid apply the same
 start/center/end boundary-placement principle in their available horizontal
 area. These sizing rules are canonical renderer behavior shared by Editor
 preview and runtime; the preview does not fake a separate alignment result.</p>

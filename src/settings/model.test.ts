@@ -31,7 +31,10 @@ describe("application settings", () => {
           showAdditionalJumpInformation: true,
           showOpenProjectFolder: true,
         },
-        editor: { permanentlyDeleteSidebarItems: true },
+        editor: {
+          permanentlyDeleteSidebarItems: true,
+          layoutPreviewPlaceholderCharacterLimit: 12,
+        },
         notifications: { maxVisible: 5, durationMs: 1234 },
       },
       profile,
@@ -48,6 +51,7 @@ describe("application settings", () => {
     expect(result.developer.showOpenProjectFolder).toBe(true);
     expect(result.developer.showMockData).toBe(false);
     expect(result.editor.permanentlyDeleteSidebarItems).toBe(true);
+    expect(result.editor.layoutPreviewPlaceholderCharacterLimit).toBe(12);
     expect(result.notifications.maxVisible).toBe(5);
     expect(result.notifications.durationMs).toBe(5000);
     expect(result.schemaVersion).toBe(2);
@@ -87,6 +91,7 @@ describe("application settings", () => {
     expect(result.developer.showOpenProjectFolder).toBe(false);
     expect(malformed.developer.showOpenProjectFolder).toBe(false);
     expect(result.editor.permanentlyDeleteSidebarItems).toBe(false);
+    expect(result.editor.layoutPreviewPlaceholderCharacterLimit).toBeNull();
     expect(result.accessibility.imageAltTextHover).toBe(true);
     expect(
       hydrateSettings(
@@ -109,6 +114,20 @@ describe("application settings", () => {
         hydrateTagProfile,
       ).editor.permanentlyDeleteSidebarItems,
     ).toBe(false);
+    expect(
+      hydrateSettings(
+        { editor: { layoutPreviewPlaceholderCharacterLimit: 0 } },
+        profile,
+        hydrateTagProfile,
+      ).editor.layoutPreviewPlaceholderCharacterLimit,
+    ).toBeNull();
+    expect(
+      hydrateSettings(
+        { editor: { layoutPreviewPlaceholderCharacterLimit: 1_001 } },
+        profile,
+        hydrateTagProfile,
+      ).editor.layoutPreviewPlaceholderCharacterLimit,
+    ).toBeNull();
   });
 
   it("hydrates only boolean mock-data visibility and defaults it off", () => {
@@ -207,15 +226,35 @@ describe("application settings", () => {
   });
 
   it("defines, displays, and matches every Editor command binding", () => {
+    const settings = defaultSettings(createDefaultTagProfile());
     expect(keybindingActions).toEqual([
       "find",
       "quickAdd",
       "format",
       "quickFix",
       "completions",
+      "assetSelectTool",
+      "assetPanTool",
+      "assetCropTool",
+      "assetPaintTool",
+      "assetEraserTool",
+      "assetTextTool",
+      "assetLineTool",
+      "assetArrowTool",
+      "assetRectangleTool",
+      "assetEllipseTool",
     ]);
     expect(keybindingDisplay(defaultKeybindings.completions)).toBe("⌘ Space");
     expect(keybindingDisplay(defaultKeybindings.format)).toBe("⌘ Shift F");
+    expect(keybindingDisplay(defaultKeybindings.assetPaintTool)).toBe("B");
+    expect(
+      validateKeybinding(settings, "assetPaintTool", {
+        key: "p",
+        primary: false,
+        alt: false,
+        shift: false,
+      }),
+    ).toBeNull();
     expect(
       matchesKeybinding(
         {

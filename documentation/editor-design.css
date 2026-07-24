@@ -121,6 +121,245 @@
   font-size: 0.83rem;
 }
 
+.asset-editor-design {
+  display: grid;
+  height: 34rem;
+  margin: 1.25rem 0;
+  overflow: hidden;
+  color: #deded8;
+  background: #1d1d1b;
+  border: 1px solid #454541;
+  border-radius: 0.45rem;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 24%);
+}
+.asset-editor-design > header,
+.asset-editor-design > footer,
+.asset-design-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #3c3c38;
+}
+.asset-editor-design > header > div {
+  display: grid;
+}
+.asset-editor-design > header span,
+.asset-editor-design > footer {
+  color: #999991;
+  font-size: 0.72rem;
+}
+.asset-design-badge {
+  padding: 0.2rem 0.5rem;
+  color: #b8d9ff !important;
+  background: #253a50;
+  border: 1px solid #3f6489;
+  border-radius: 999px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.asset-design-options {
+  justify-content: flex-start;
+  background: #262624;
+}
+.asset-design-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #aaa9a2;
+  font-size: 0.72rem;
+}
+.asset-design-options select,
+.asset-design-options input {
+  accent-color: var(--accent);
+}
+.asset-design-options output {
+  width: 2.5rem;
+  color: #ddd;
+  font-variant-numeric: tabular-nums;
+}
+.asset-design-raster {
+  display: grid;
+  min-height: 0;
+  grid-template: "tools stage inspector" minmax(0, 1fr) "layers layers layers" 8rem / 2.2rem minmax(0, 1fr) 13rem;
+}
+.asset-design-raster > nav {
+  display: flex;
+  grid-area: tools;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  background: #262624;
+}
+.asset-design-raster button {
+  min-width: 1.6rem;
+  min-height: 1.6rem;
+  color: #ddd;
+  background: #2d2d2a;
+  border: 1px solid #50504a;
+}
+.asset-design-raster button[aria-pressed="true"] {
+  background: #2f516d;
+  border-color: #4e89b8;
+}
+.asset-design-stage {
+  display: grid;
+  grid-area: stage;
+  place-items: center;
+  overflow: auto;
+  background:
+    linear-gradient(45deg, #30302d 25%, transparent 25%),
+    linear-gradient(-45deg, #30302d 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #30302d 75%),
+    linear-gradient(-45deg, transparent 75%, #30302d 75%), #272725;
+  background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+  background-size: 18px 18px;
+}
+.asset-design-art {
+  position: relative;
+  display: grid;
+  width: min(70%, 34rem);
+  aspect-ratio: 16 / 9;
+  place-items: center;
+  color: white;
+  background: linear-gradient(135deg, #153959, #4e90b6 56%, #d89e67);
+  box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 45%);
+  transform: scale(var(--asset-design-zoom, 1));
+}
+.asset-design-art i {
+  position: absolute;
+  right: 12%;
+  bottom: 18%;
+  width: 24%;
+  height: 25%;
+  border: 3px solid #fff;
+  border-radius: 50%;
+}
+.asset-design-raster > aside {
+  grid-area: inspector;
+  padding: 0.65rem;
+  overflow: auto;
+  background: #262624;
+  border-left: 1px solid #3c3c38;
+}
+.asset-design-raster h3 {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.75rem;
+}
+.asset-design-raster details > summary {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  cursor: pointer;
+}
+.asset-design-raster details > summary::before {
+  width: 0.8rem;
+  content: "›";
+}
+.asset-design-raster details[open] > summary::before {
+  transform: rotate(90deg);
+}
+.asset-design-raster details > summary::marker,
+.asset-design-raster details > summary::-webkit-details-marker {
+  display: none;
+  content: "";
+}
+.asset-design-raster aside label {
+  display: grid;
+  gap: 0.2rem;
+  margin-bottom: 0.5rem;
+  color: #aaa9a2;
+  font-size: 0.68rem;
+}
+.asset-design-raster aside label > span {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem;
+}
+.asset-design-raster aside input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+}
+.asset-design-raster > section {
+  grid-area: layers;
+  padding: 0.5rem 0.75rem;
+  overflow: auto;
+  background: #222220;
+  border-top: 1px solid #3c3c38;
+}
+.asset-design-raster section h3 {
+  display: flex;
+  justify-content: space-between;
+}
+.asset-design-raster ol {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.asset-design-raster li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.2rem;
+}
+.asset-design-raster li button:first-child {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.5rem;
+  text-align: left;
+}
+.asset-design-raster small {
+  color: #8b8b84;
+}
+.asset-design-svg {
+  min-height: 0;
+  padding: 1rem;
+  overflow: auto;
+  background: #1c1c1a;
+}
+.asset-design-code {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  color: #91b9dc;
+  line-height: 1.8;
+}
+.asset-design-code span {
+  color: #6f6f69;
+  text-align: right;
+}
+.asset-design-code code {
+  padding-left: 1rem;
+  color: #d5a8cc;
+}
+.asset-editor-design[data-asset-editor-state="rendering"] .asset-design-status {
+  color: #f2c879;
+}
+.asset-editor-design[data-asset-editor-state="warning"] .asset-design-status {
+  color: #e7b96a;
+}
+.asset-editor-design[data-asset-editor-state="error"] .asset-design-status {
+  color: #ff9f91;
+}
+
+@media (max-width: 48rem) {
+  .asset-design-raster {
+    position: relative;
+    grid-template: "tools stage" minmax(0, 1fr) "layers layers" 8rem / 2.2rem minmax(0, 1fr);
+  }
+  .asset-design-raster > aside {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 8.5rem;
+    width: 13rem;
+    max-height: 50%;
+    border: 1px solid #55554f;
+    box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 50%);
+  }
+}
+
 .mock-toolbar {
   position: relative;
   z-index: 5;
@@ -983,6 +1222,12 @@
   margin: 0.7rem 0.9rem -0.35rem;
   padding-bottom: 0.65rem;
   border-bottom: 1px solid #3d3d38;
+}
+
+.mock-preview-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
 }
 
 .mock-preview-bounds-toggle {

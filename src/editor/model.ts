@@ -6,6 +6,10 @@ import {
 } from "../markup";
 import { translateDiagnostic } from "../localization";
 import { assetRelativePath, validateAssetRelativePath } from "./assetPaths";
+import {
+  hydrateAssetEditorDocument,
+  type AssetEditorDocument,
+} from "./assetEditorModel";
 
 export const EDITOR_WORKSPACE_SCHEMA_VERSION = 1;
 
@@ -27,6 +31,7 @@ export type EditorTrashAsset = {
   label: string;
   originalPath: string;
   bytes: Uint8Array;
+  editorDocument?: AssetEditorDocument;
   deletedAt: string;
 };
 
@@ -39,6 +44,7 @@ export type EditorWorkspaceSnapshot = {
   externalFolder?: string;
   files: Record<string, string>;
   assets: Record<string, Uint8Array>;
+  assetEditorDocuments: Record<string, AssetEditorDocument>;
   trash: EditorTrashEntry[];
   starred: boolean;
   createdAt: string;
@@ -197,6 +203,7 @@ section
       "layout.jdef": "# Layouts and themes are placed here by the Editor.\n",
     },
     assets: {},
+    assetEditorDocuments: {},
     trash: [],
     starred: false,
     createdAt: now,
@@ -283,6 +290,8 @@ export function hydrateEditorWorkspace(
                 label: entry.label,
                 originalPath: entry.originalPath,
                 bytes,
+                editorDocument:
+                  hydrateAssetEditorDocument(entry.editorDocument) ?? undefined,
                 deletedAt: entry.deletedAt,
               },
             ];
@@ -311,6 +320,26 @@ export function hydrateEditorWorkspace(
             ).flatMap(([path, value]) => {
               const bytes = hydrateBytes(value);
               return bytes ? [[path, bytes]] : [];
+            }),
+          )
+        : {},
+    assetEditorDocuments:
+      candidate.assetEditorDocuments &&
+      typeof candidate.assetEditorDocuments === "object"
+        ? Object.fromEntries(
+            Object.entries(
+              candidate.assetEditorDocuments as unknown as Record<
+                string,
+                unknown
+              >,
+            ).flatMap(([path, value]) => {
+              const document = hydrateAssetEditorDocument(value);
+              const validPath =
+                path.startsWith("assets/") &&
+                validateAssetRelativePath(assetRelativePath(path), []) === null;
+              return document && validPath && candidate.assets?.[path]
+                ? [[path, document]]
+                : [];
             }),
           )
         : {},

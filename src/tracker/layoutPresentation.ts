@@ -133,6 +133,14 @@ export function layoutLeafPresentationStyle(
 export function layoutInlineChildAreaStyle(node: LayoutNode): CSSProperties {
   const isContainer = ["stack", "inline", "wrap", "grid"].includes(node.kind);
   const align = isContainer ? "stretch" : node.presentation.align;
+  const preservesAuthoredImageSize =
+    node.kind === "image" &&
+    align === "stretch" &&
+    Boolean(
+      node.presentation.size ||
+      node.presentation.width ||
+      node.presentation.height,
+    );
   const reservesTextArea =
     ["text", "slot", "input"].includes(node.kind) &&
     align !== "stretch" &&
@@ -150,6 +158,7 @@ export function layoutInlineChildAreaStyle(node: LayoutNode): CSSProperties {
       : undefined;
   return {
     justifyContent: align === "stretch" ? "stretch" : "flex-start",
+    ...(preservesAuthoredImageSize ? { flex: "1 1 auto" } : {}),
     marginInlineStart:
       align === "center" || align === "end" ? "auto" : undefined,
     marginInlineEnd: align === "center" ? "auto" : undefined,
@@ -204,6 +213,8 @@ export function layoutImageBoundaryStyle(
   const height = shorthand ?? layoutImageDimension(presentation.height);
   const stretches = imageUsesAvailableWidth(node, parentKind);
   const inlineIntrinsic = parentKind === "inline" || parentKind === "wrap";
+  const preservesAuthoredDimensions =
+    inlineIntrinsic && Boolean(shorthand || width || height);
   const padding = layoutSpacing[presentation.padding ?? "none"] ?? "0";
   return {
     width:
@@ -216,6 +227,7 @@ export function layoutImageBoundaryStyle(
             ? undefined
             : "fit-content"),
     height: shorthand ? undefined : height,
+    flex: preservesAuthoredDimensions ? "0 1 auto" : undefined,
     boxSizing: "content-box",
     maxWidth: padding === "0" ? "100%" : `calc(100% - (${padding} * 2))`,
   };

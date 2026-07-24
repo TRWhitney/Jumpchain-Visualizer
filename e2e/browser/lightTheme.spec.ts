@@ -5,6 +5,8 @@ import {
   type Page,
   type TestInfo,
 } from "@playwright/test";
+import pixelmatch from "pixelmatch";
+import { PNG } from "pngjs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -107,6 +109,20 @@ async function expectTextContrast(
     background.evaluate((element) => getComputedStyle(element).backgroundColor),
   ]);
   expect(contrast(color, backgroundColor)).toBeGreaterThanOrEqual(minimum);
+}
+
+function exactPixelCount(image: PNG, color: readonly [number, number, number]) {
+  let count = 0;
+  for (let index = 0; index < image.data.length; index += 4) {
+    if (
+      image.data[index] === color[0] &&
+      image.data[index + 1] === color[1] &&
+      image.data[index + 2] === color[2] &&
+      image.data[index + 3] === 255
+    )
+      count += 1;
+  }
+  return count;
 }
 
 test("light shell, hubs, searches, saved cards, Delete controls, and confirmations", async ({
@@ -265,6 +281,254 @@ test("light Editor source, Properties, scrollbars, and diagnostics hover states"
   );
   await expectTextContrast(propertyHint, propertyHint);
   await retainScreenshot(testInfo, "editor-properties-hint-light", editor);
+});
+
+test("authored section text color is identical in light and dark Editor previews", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium",
+    "Retained visual audit runs in Chromium.",
+  );
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await setAppearance(page, "light");
+  await page.getByRole("button", { name: "Open Editor" }).click();
+  await page.getByRole("button", { name: "Create Project" }).click();
+  const editor = page.locator(".production-editor");
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Section layout" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("layout.jdef source");
+  await source.press("Control+a");
+  await page.keyboard.insertText(`theme
+  handle: primary
+  color: "#7D91AA"
+
+theme
+  handle: text
+  color: "#383333"
+
+section-layout
+  handle: introduction_layout
+
+  stack
+    gap: md
+    background: primary
+    text-color: text
+
+    text: welcome
+    text: asdf
+`);
+  await editor
+    .getByRole("button", { name: /^introduction_layout section$/ })
+    .click();
+  await expect(editor.locator(".editor-save-state")).toHaveText("Saved");
+
+  const preview = editor.locator(".editor-real-preview");
+  const stack = preview.locator('[data-layout-kind="stack"]').first();
+  const paragraphs = stack.locator(".jump-layout-text");
+  const authoredText = "rgb(56, 51, 51)";
+  const authoredBackground = "rgb(125, 145, 170)";
+  await expect(stack).toHaveCSS("color", authoredText);
+  await expect(stack).toHaveCSS("background-color", authoredBackground);
+  await expect(paragraphs).toHaveCount(2);
+  await expect(paragraphs.first()).toHaveCSS("color", authoredText);
+  await expect(paragraphs.last()).toHaveCSS("color", authoredText);
+  await retainScreenshot(testInfo, "editor-authored-section-text-light", stack);
+  const lightScreenshot = await stack.screenshot({ animations: "disabled" });
+  const lightImage = PNG.sync.read(lightScreenshot);
+  expect(exactPixelCount(lightImage, [56, 51, 51])).toBeGreaterThan(0);
+  expect(exactPixelCount(lightImage, [104, 104, 97])).toBe(0);
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "General" }).click();
+  await page.locator("#theme").selectOption("dark");
+  await expect(page.locator("html")).toHaveAttribute("data-app-theme", "dark");
+  await page.getByRole("button", { name: "Close Settings" }).click();
+  await expect(editor).toBeVisible();
+  await expect(stack).toHaveCSS("color", authoredText);
+  await expect(stack).toHaveCSS("background-color", authoredBackground);
+  await expect(paragraphs.first()).toHaveCSS("color", authoredText);
+  await expect(paragraphs.last()).toHaveCSS("color", authoredText);
+  await retainScreenshot(testInfo, "editor-authored-section-text-dark", stack);
+  const darkScreenshot = await stack.screenshot({ animations: "disabled" });
+  const darkImage = PNG.sync.read(darkScreenshot);
+  expect(exactPixelCount(darkImage, [56, 51, 51])).toBeGreaterThan(0);
+  expect(exactPixelCount(darkImage, [104, 104, 97])).toBe(0);
+  expect(darkImage.width).toBe(lightImage.width);
+  expect(darkImage.height).toBe(lightImage.height);
+  const difference = new PNG({
+    width: lightImage.width,
+    height: lightImage.height,
+  });
+  expect(
+    pixelmatch(
+      lightImage.data,
+      darkImage.data,
+      difference.data,
+      lightImage.width,
+      lightImage.height,
+      { includeAA: true, threshold: 0 },
+    ),
+  ).toBe(0);
+});
+
+test("light Editor structured, layout, sidebar, and asset states stay coherent", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium",
+    "Retained visual audit runs in Chromium.",
+  );
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await setAppearance(page, "light");
+  await page.getByRole("button", { name: "Open Editor" }).click();
+  await page.getByRole("button", { name: "Create Project" }).click();
+  const editor = page.locator(".production-editor");
+  const outline = editor.locator(".editor-outline-scroll");
+
+  await outline
+    .getByRole("button", { name: "introduction", exact: true })
+    .click();
+  await editor.getByRole("button", { name: "+ Text" }).click();
+  await outline
+    .getByRole("button", { name: "introduction", exact: true })
+    .click();
+  const contentTile = editor.locator(".editor-child-list > div").last();
+  await expect(contentTile).toHaveCSS("background-color", "rgb(236, 234, 228)");
+  await expect(contentTile.getByRole("button").first()).toHaveCSS(
+    "color",
+    "rgb(52, 52, 48)",
+  );
+  await expect(editor.locator(".editor-form-card").first()).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
+  await retainScreenshot(testInfo, "editor-content-tiles-light", editor);
+
+  await contentTile.getByRole("button").first().click();
+  await editor
+    .getByRole("button", { name: "+ Add conditional variant" })
+    .click();
+  const variants = editor.locator(".editor-conditional-variants");
+  await expect(variants).toHaveCSS("background-color", "rgb(236, 234, 228)");
+  await expect(variants.locator(".editor-condition-draft")).toHaveCSS(
+    "background-color",
+    "rgb(255, 255, 255)",
+  );
+  await retainScreenshot(testInfo, "editor-conditional-variants-light", editor);
+  await editor.getByRole("button", { name: "Cancel draft" }).click();
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice layout" }).click();
+  const activeLayoutBreadcrumb = editor.locator(
+    '.editor-layout-breadcrumb button[aria-current="page"]',
+  );
+  await expect(activeLayoutBreadcrumb).toHaveCSS("color", "rgb(23, 23, 23)");
+  await expect(activeLayoutBreadcrumb).not.toHaveCSS(
+    "background-color",
+    "rgb(56, 56, 52)",
+  );
+  await retainScreenshot(testInfo, "editor-layout-stack-light", editor);
+
+  const sectionsHeader = editor.locator(
+    'details[data-explorer-group="content:sections"] > summary',
+  );
+  await sectionsHeader.click({ button: "right" });
+  const sidebarMenu = editor.getByRole("menu", {
+    name: "Sidebar group actions",
+  });
+  await expect(sidebarMenu).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(sidebarMenu).toHaveCSS("color", "rgb(52, 52, 48)");
+  await retainScreenshot(testInfo, "editor-sidebar-context-menu-light", editor);
+  await page.keyboard.press("Escape");
+
+  const introductionItem = outline.getByRole("button", {
+    name: "introduction",
+    exact: true,
+  });
+  await introductionItem.click({ button: "right" });
+  const sidebarItemMenu = editor.getByRole("menu", {
+    name: "Sidebar item actions",
+  });
+  await expect(sidebarItemMenu).toHaveCSS(
+    "background-color",
+    "rgb(255, 255, 255)",
+  );
+  await expect(
+    sidebarItemMenu.getByRole("menuitem", { name: "Delete" }),
+  ).toHaveCSS("color", "rgb(159, 41, 50)");
+  await retainScreenshot(
+    testInfo,
+    "editor-sidebar-item-context-menu-light",
+    editor,
+  );
+  await page.keyboard.press("Escape");
+
+  const addAsset = async (file: string, name: RegExp) => {
+    await editor.getByRole("button", { name: "Add", exact: true }).click();
+    const chooserPromise = page.waitForEvent("filechooser");
+    await editor.getByRole("button", { name: "Asset…" }).click();
+    await (await chooserPromise).setFiles(join(process.cwd(), file));
+    const asset = editor.getByRole("button", { name });
+    await expect(asset).toBeVisible();
+    await asset.click();
+    await editor
+      .getByRole("tablist", { name: "Editing view" })
+      .getByRole("tab", { name: "Source" })
+      .click();
+  };
+
+  await addAsset("src-tauri/icons/128x128.png", /^128x128\.png/);
+  const paint = editor.getByRole("button", { name: "Paint", exact: true });
+  const fit = editor.getByRole("button", { name: "Fit", exact: true });
+  const inspector = editor.getByRole("button", {
+    name: "Inspector",
+    exact: true,
+  });
+  await paint.click();
+  await expect(paint).toHaveAttribute("aria-pressed", "true");
+  await expect(inspector).toHaveAttribute("aria-pressed", "true");
+  const [paintBackground, fitBackground, inspectorBackground] =
+    await Promise.all(
+      [paint, fit, inspector].map((control) =>
+        control.evaluate(
+          (element) => getComputedStyle(element).backgroundColor,
+        ),
+      ),
+    );
+  expect(paintBackground).not.toBe(fitBackground);
+  expect(inspectorBackground).not.toBe(fitBackground);
+  await retainScreenshot(testInfo, "editor-raster-controls-light", editor);
+
+  await page.setViewportSize({ width: 820, height: 760 });
+  const rasterToolrail = editor.locator(".asset-raster-toolrail");
+  const toolrailOverflow = await rasterToolrail.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+    overflowX: getComputedStyle(element).overflowX,
+  }));
+  expect(toolrailOverflow.scrollWidth).toBeLessThanOrEqual(
+    toolrailOverflow.clientWidth,
+  );
+  expect(toolrailOverflow.overflowX).toBe("hidden");
+  await retainScreenshot(
+    testInfo,
+    "editor-raster-toolrail-narrow-light",
+    editor,
+  );
+  await page.setViewportSize({ width: 1600, height: 1000 });
+
+  await addAsset("public/assets/threshold-mark.svg", /^threshold-mark\.svg/);
+  const svgDiagnostics = editor.locator(".asset-editor-diagnostics");
+  await expect(svgDiagnostics).toHaveText("No SVG diagnostics.");
+  await expect(svgDiagnostics).toHaveCSS(
+    "background-color",
+    "rgb(231, 239, 229)",
+  );
+  await expect(svgDiagnostics).toHaveCSS("color", "rgb(55, 99, 59)");
+  await retainScreenshot(testInfo, "editor-svg-diagnostics-light", editor);
 });
 
 test("light Chain Tracker inventory, forms, companions, and their dialogs", async ({
@@ -520,7 +784,7 @@ test("remaining Logs, Editor hub, Add menu, and Library surfaces are light", asy
   await page.getByRole("button", { name: "Settings" }).click();
   await page.getByRole("tab", { name: "Key bindings" }).click();
   const quickAdd = page
-    .locator(".keybinding-list > div")
+    .locator(".keybinding-row")
     .filter({ hasText: "Quick Add" });
   await quickAdd.getByRole("button", { name: "Change" }).click();
   await quickAdd.getByRole("button", { name: "Cancel" }).press("Control+f");

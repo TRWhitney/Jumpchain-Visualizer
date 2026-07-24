@@ -7,6 +7,7 @@ import {
   orderedEditorWorkspaces,
   summarizeWorkspace,
 } from "./model";
+import { createRasterEditorDocument } from "./assetEditorModel";
 import { MemoryEditorWorkspaceRepository } from "./repository";
 
 describe("Editor workspaces", () => {
@@ -117,5 +118,30 @@ describe("Editor workspaces", () => {
         ? [...hydrated.trash[1].bytes]
         : null,
     ).toEqual([1, 2, 3]);
+  });
+
+  it("hydrates valid editor sidecars and discards corrupt metadata without losing asset bytes", () => {
+    const workspace = createStarterWorkspace("editor-sidecars");
+    const bytes = Uint8Array.from([137, 80, 78, 71]);
+    const document = createRasterEditorDocument("png", bytes, 1, 1);
+    const hydrated = hydrateEditorWorkspace({
+      ...workspace,
+      assets: {
+        "assets/valid.png": [...bytes],
+        "assets/corrupt.png": [...bytes],
+      },
+      assetEditorDocuments: {
+        "assets/valid.png": document,
+        "assets/corrupt.png": { ...document, baseWidth: 100_000 },
+      },
+    });
+    expect(hydrated?.assetEditorDocuments["assets/valid.png"]).toMatchObject({
+      kind: "raster",
+      baseWidth: 1,
+    });
+    expect(
+      hydrated?.assetEditorDocuments["assets/corrupt.png"],
+    ).toBeUndefined();
+    expect(hydrated?.assets["assets/corrupt.png"]).toEqual(bytes);
   });
 });

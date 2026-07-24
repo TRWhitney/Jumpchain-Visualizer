@@ -306,6 +306,7 @@
                 <button type="button" data-settings-search-entry data-settings-search-text="appearance theme system light dark color mode" data-settings-category="general" data-settings-focus="mock-theme"><span><strong>Appearance</strong><small><code>appearance.theme</code> · General</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="accent color colour hex gold theme appearance" data-settings-category="general" data-settings-focus="mock-accent"><span><strong>Accent color</strong><small><code>appearance.accentColor</code> · General</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="saving save autosave explicit persistence editor" data-settings-category="editor" data-settings-focus="mock-save-mode"><span><strong>Saving</strong><small><code>editor.saveMode</code> · Editor</small></span><span aria-hidden="true">→</span></button>
+                <button type="button" data-settings-search-entry data-settings-search-text="editor layout preview placeholder example representative text truncate character limit" data-settings-category="editor" data-settings-focus="mock-layout-preview-placeholder-limit"><span><strong>Layout preview placeholder length</strong><small><code>editor.layoutPreviewPlaceholderCharacterLimit</code> · Editor</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="editor image alt alternative text accessibility warning missing suppress" data-settings-category="editor" data-settings-focus="mock-warn-missing-alt"><span><strong>Missing image alt warning</strong><small><code>editor.warnMissingImageAlt</code> · Editor</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="editor layout missing absent target reusable warning suppress text image input" data-settings-category="editor" data-settings-focus="mock-warn-missing-layout-targets"><span><strong>Missing layout target warning</strong><small><code>editor.warnMissingLayoutTargets</code> · Editor</small></span><span aria-hidden="true">→</span></button>
                 <button type="button" data-settings-search-entry data-settings-search-text="editor sidebar right click delete permanent confirmation trash remove" data-settings-category="editor" data-settings-focus="mock-permanent-sidebar-delete"><span><strong>Sidebar item deletion</strong><small><code>editor.permanentlyDeleteSidebarItems</code> · Editor</small></span><span aria-hidden="true">→</span></button>
@@ -353,6 +354,10 @@
                 <div><span class="setting-state agreed">Agreed</span><select id="mock-save-mode"><option>Autosave</option><option>Explicit save</option></select></div>
               </div>
               <div class="setting-row">
+                <div><label for="mock-layout-preview-placeholder-limit">Layout preview placeholder length</label><p>Optionally truncate generated layout-preview text to this many characters. Leave blank to show the complete representative text.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><span class="settings-number-control"><input id="mock-layout-preview-placeholder-limit" type="number" min="1" max="1000" step="1" placeholder="Unlimited"><span><button type="button" aria-label="Increase value"><svg aria-hidden="true" viewBox="0 0 12 8"><path d="M2 6 6 2l4 4"></path></svg></button><button type="button" aria-label="Decrease value"><svg aria-hidden="true" viewBox="0 0 12 8"><path d="m2 2 4 4 4-4"></path></svg></button></span></span></div>
+              </div>
+              <div class="setting-row">
                 <div><label for="mock-warn-missing-alt">Missing image alt warning</label><p>Warn when an image omits alternative text.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-warn-missing-alt"><input id="mock-warn-missing-alt" type="checkbox" checked><span>Show accessibility warning</span></label></div>
               </div>
@@ -364,7 +369,7 @@
                 <div><label for="mock-permanent-sidebar-delete">Sidebar item deletion</label><p>Choose whether right-click Delete moves sidebar items to Trash or permanently removes them after confirmation.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-permanent-sidebar-delete"><input id="mock-permanent-sidebar-delete" type="checkbox"><span>Permanently delete sidebar items</span></label></div>
               </div>
-              <div class="setting-explanation">Autosave remains the default. Explicit mode exposes Save and requires leave confirmation for unresolved changes. Warning controls affect diagnostics only. Permanent sidebar deletion is off by default, always confirms, and hides Trash only while it is empty.</div>
+              <div class="setting-explanation">Autosave remains the default. Explicit mode exposes Save and requires leave confirmation for unresolved changes. Layout preview placeholder length is blank and unlimited by default; a value from 1 through 1000 truncates generated representative text without changing authored source. Warning controls affect diagnostics only. Permanent sidebar deletion is off by default, always confirms, and hides Trash only while it is empty.</div>
             </section>
 
             <section id="settings-chain-panel" role="tabpanel" aria-labelledby="settings-chain-tab" hidden>
@@ -558,11 +563,31 @@
             <section id="settings-keys-panel" role="tabpanel" aria-labelledby="settings-keys-tab" hidden>
               <h4>Key bindings</h4>
               <div class="keybinding-list">
-                <div><span>Find</span><kbd>⌘ F</kbd><button type="button">Change</button></div>
-                <div><span>Quick Add</span><kbd>⌘ Enter</kbd><button type="button">Change</button></div>
-                <div><span>Format</span><kbd>⌘ Shift F</kbd><button type="button">Change</button></div>
-                <div><span>Quick Fix</span><kbd>⌘ .</kbd><button type="button">Change</button></div>
-                <div><span>All Completions</span><kbd>⌘ Space</kbd><button type="button">Change</button></div>
+                <details open>
+                  <summary>Source editor</summary>
+                  <div class="keybinding-section">
+                    <div><span>Find</span><kbd>⌘ F</kbd><span><button type="button">Change</button></span></div>
+                    <div><span>Quick Add</span><kbd>⌘ Enter</kbd><span><button type="button">Change</button></span></div>
+                    <div><span>Format</span><kbd>⌘ Shift F</kbd><span><button type="button">Change</button></span></div>
+                    <div><span>Quick Fix</span><kbd>⌘ .</kbd><span><button type="button">Change</button></span></div>
+                    <div><span>All Completions</span><kbd>⌘ Space</kbd><span><button type="button">Change</button></span></div>
+                  </div>
+                </details>
+                <details open>
+                  <summary>Asset editor tools</summary>
+                  <div class="keybinding-section">
+                    <div><span>Asset editor: Select</span><kbd>V</kbd><span><button type="button">Change</button></span></div>
+                    <div><span>Asset editor: Pan</span><kbd>H</kbd><span><button type="button">Change</button></span></div>
+                    <div><span>Asset editor: Crop</span><kbd>C</kbd><span><button type="button">Change</button></span></div>
+                    <div><span>Asset editor: Paint</span><kbd>P</kbd><span><button type="button">Change</button><button type="button">Reset</button></span></div>
+                    <div><span>Asset editor: Eraser</span><kbd>E</kbd><span><button type="button">Change</button></span></div>
+                    <div><span>Asset editor: Text</span><kbd>T</kbd><span><button type="button">Change</button></span></div>
+                    <div><span>Asset editor: Line</span><kbd>L</kbd><span><button type="button">Change</button></span></div>
+                    <div><span>Asset editor: Arrow</span><kbd>A</kbd><span><button type="button">Change</button></span></div>
+                    <div><span>Asset editor: Rectangle</span><kbd>R</kbd><span><button type="button">Change</button></span></div>
+                    <div><span>Asset editor: Ellipse</span><kbd>O</kbd><span><button type="button">Change</button></span></div>
+                  </div>
+                </details>
               </div>
               <div class="setting-explanation">Overrides are user-local. Duplicate or platform-reserved bindings must be reported before the change is accepted.</div>
             </section>
@@ -608,7 +633,7 @@
         </ul>
 
         <h2>Developer Package Size Limits</h2>
-        <p>Developer → Overview contains an opt-in <strong>Package size limits</strong> section. Safe effective defaults are 64 MiB archive, 2 MiB definition, 16 MiB asset, and 96 MiB expanded. Enabling overrides first displays <strong>Increase package limits at your own risk</strong>; cancellation leaves defaults effective. Disabling preserves entered values but restores safe effective values, while Reset disables and restores all defaults.</p>
+        <p>Developer → Overview contains an opt-in <strong>Package size limits</strong> section. Safe effective defaults are 64 MiB archive, 2 MiB definition, 16 MiB asset, and 96 MiB expanded. Enabling overrides first displays <strong>Increase package limits at your own risk</strong>; cancellation leaves defaults effective. Disabling preserves entered values but restores safe effective values, while Reset disables and restores all defaults. These four bounded integer fields and the Editor’s layout-preview placeholder limit reuse the same paired-chevron stepper and the same input colors as ordinary Settings controls; none expose browser-native spinner buttons.</p>
 
         <h2>Developer Mock Data</h2>
         <p><strong>See Mock Data</strong> is persisted and off by default. Enabling it exposes the three application-owned Mock Jump packages through a distinct Library source and exposes Morgan in Home and Chain lists. <strong>Reset Mock Data</strong> is physically disabled while visibility is off. When enabled it immediately recreates a deleted Morgan or atomically replaces the existing fixture with its canonical metadata, order, choices, inputs, rolls, actors, and supplement state; user-created and imported data is never changed. Disabling visibility does not invalidate an already-open or direct Morgan route.</p>

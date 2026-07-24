@@ -83,6 +83,35 @@ const packageItem: CanonicalJumpPackage = {
 };
 
 describe("layout preview fixtures", () => {
+  it("keeps representative text complete by default and truncates every placeholder when configured", () => {
+    const complete = createLayoutPreviewFixture(packageItem, sectionLayout);
+    const truncated = createLayoutPreviewFixture(
+      packageItem,
+      sectionLayout,
+      10,
+    );
+    expect(complete.kind).toBe("section-layout");
+    expect(truncated.kind).toBe("section-layout");
+    if (complete.kind !== "section-layout") return;
+    if (truncated.kind !== "section-layout") return;
+
+    expect(complete.section.name.base).toBe("Example section");
+    expect(complete.section.text[0].content.base).toBe(
+      "Example content for “introduction”.",
+    );
+    expect(truncated.section.name.base).toBe("Example se");
+    expect(truncated.section.text[0].content.base).toBe("Example co");
+    expect(
+      truncated.packageItem.choices.every(
+        (choice) =>
+          [...(choice.name.base ?? "")].length <= 10 &&
+          choice.text.every(
+            (text) => [...(text.content.base ?? "")].length <= 10,
+          ),
+      ),
+    ).toBe(true);
+  });
+
   it("populates section fields, expands, and direct choices", () => {
     const fixture = createLayoutPreviewFixture(packageItem, sectionLayout);
     expect(fixture.kind).toBe("section-layout");

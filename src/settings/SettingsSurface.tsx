@@ -14,9 +14,10 @@ import {
   chordFor,
   defaultSettings,
   effectivePackageSizeLimits,
-  keybindingActions,
+  assetToolKeybindingActions,
   keybindingDisplay,
   keybindingLabels,
+  sourceKeybindingActions,
   validatePackageSizeLimits,
   validateKeybinding,
   type ApplicationSettings,
@@ -28,6 +29,7 @@ import {
 } from "./model";
 import { createDefaultTagProfile } from "./tagProfile";
 import { changeLanguage, translate, translationCatalog } from "../localization";
+import { NumberStepper } from "../tracker/NumberStepper";
 
 const categoriesFor = (): { id: SettingsCategory; label: string }[] => {
   return [
@@ -76,6 +78,13 @@ const searchEntries = [
     "editor",
     "save-mode",
     "settingsSearch.editor_saveMode.aliases",
+  ],
+  [
+    "settingsSearch.editor_layoutPreviewPlaceholderCharacterLimit.label",
+    "editor.layoutPreviewPlaceholderCharacterLimit",
+    "editor",
+    "layout-preview-placeholder-limit",
+    "settingsSearch.editor_layoutPreviewPlaceholderCharacterLimit.aliases",
   ],
   [
     "settingsSearch.editor_warnMissingImageAlt.label",
@@ -239,6 +248,10 @@ const searchValue = (
       return settings.appearance.accentColor;
     case "editor.saveMode":
       return settings.editor.saveMode;
+    case "editor.layoutPreviewPlaceholderCharacterLimit":
+      return String(
+        settings.editor.layoutPreviewPlaceholderCharacterLimit ?? "unlimited",
+      );
     case "editor.warnMissingImageAlt":
       return String(settings.editor.warnMissingImageAlt);
     case "editor.warnMissingLayoutTargets":
@@ -887,6 +900,58 @@ function CategoryPanel({
             </option>
           </select>
         </SettingRow>
+        <SettingRow
+          id="layout-preview-placeholder-limit"
+          label={translate(
+            "ui.settingsSurface.label.layoutPreviewPlaceholderCharacterLimit",
+          )}
+          description={translate(
+            "ui.settingsSurface.description.limitGeneratedLayoutPreviewPlaceholderText",
+          )}
+          reset={() =>
+            patch(
+              {
+                ...settings,
+                editor: {
+                  ...settings.editor,
+                  layoutPreviewPlaceholderCharacterLimit: null,
+                },
+              },
+              "editor.layoutPreviewPlaceholderCharacterLimit",
+            )
+          }
+        >
+          <span className="settings-number-stepper">
+            <NumberStepper
+              id="layout-preview-placeholder-limit"
+              label={translate(
+                "ui.settingsSurface.label.layoutPreviewPlaceholderCharacterLimit",
+              )}
+              min={1}
+              max={1_000}
+              placeholder={translate(
+                "ui.settingsSurface.placeholder.unlimitedCharacters",
+              )}
+              fluid
+              value={settings.editor.layoutPreviewPlaceholderCharacterLimit}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    editor: {
+                      ...settings.editor,
+                      layoutPreviewPlaceholderCharacterLimit:
+                        value === null
+                          ? null
+                          : Math.min(1_000, Math.max(1, Math.trunc(value))),
+                    },
+                  },
+                  "editor.layoutPreviewPlaceholderCharacterLimit",
+                )
+              }
+            />
+          </span>
+        </SettingRow>
         <CheckRow
           id="warn-alt"
           label={translate("ui.settingsSurface.label.missingImageAltWarning")}
@@ -1251,8 +1316,28 @@ function CategoryPanel({
       <section role="tabpanel" aria-labelledby="settings-keys-tab">
         <h4>{translate("ui.settingsSurface.text.keyBindings")}</h4>
         <div id="keybindings" className="keybinding-list">
-          {keybindingActions.map((action) => (
-            <KeybindingRow key={action} action={action} settings={settings} />
+          {[
+            {
+              label: translate("ui.settingsSurface.text.sourceEditorShortcuts"),
+              actions: sourceKeybindingActions,
+            },
+            {
+              label: translate("ui.settingsSurface.text.assetEditorShortcuts"),
+              actions: assetToolKeybindingActions,
+            },
+          ].map((group) => (
+            <details key={group.label} open>
+              <summary>{group.label}</summary>
+              <div className="keybinding-section-body">
+                {group.actions.map((action) => (
+                  <KeybindingRow
+                    key={action}
+                    action={action}
+                    settings={settings}
+                  />
+                ))}
+              </div>
+            </details>
           ))}
         </div>
         <div className="setting-explanation">
@@ -1623,25 +1708,26 @@ function CategoryPanel({
                     ],
                   ] as const
                 ).map(([key, label, description]) => (
-                  <label className="developer-limit-field" key={key}>
+                  <div className="developer-limit-field" key={key}>
                     <span>{label}</span>
                     <small>{description}</small>
                     <span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={ABSOLUTE_PACKAGE_SIZE_LIMITS[key]}
-                        step={1}
-                        inputMode="numeric"
-                        disabled={
-                          !settings.developer.useCustomPackageSizeLimits
-                        }
-                        value={settings.developer[key]}
-                        aria-invalid={Boolean(packageLimitError)}
-                        onChange={(event) =>
-                          updatePackageLimit(key, event.target.valueAsNumber)
-                        }
-                      />
+                      <span className="settings-number-stepper">
+                        <NumberStepper
+                          label={`${label} limit`}
+                          value={settings.developer[key]}
+                          min={1}
+                          max={ABSOLUTE_PACKAGE_SIZE_LIMITS[key]}
+                          fluid
+                          disabled={
+                            !settings.developer.useCustomPackageSizeLimits
+                          }
+                          invalid={Boolean(packageLimitError)}
+                          onChange={(value) => {
+                            if (value !== null) updatePackageLimit(key, value);
+                          }}
+                        />
+                      </span>
                       {translate("ui.settingsSurface.text.mib")}
                     </span>
                     <small>
@@ -1649,7 +1735,7 @@ function CategoryPanel({
                       {ABSOLUTE_PACKAGE_SIZE_LIMITS[key]}{" "}
                       {translate("ui.settingsSurface.text.mib")}
                     </small>
-                  </label>
+                  </div>
                 ))}
               </div>
               {packageLimitError && (
@@ -2065,33 +2151,35 @@ function KeybindingRow({
     setError("");
   };
   return (
-    <div>
+    <div className="keybinding-row">
       <span>
         {keybindingLabels[action]}
         {error && <small role="alert">{error}</small>}
       </span>
       <kbd>{capturing ? "Press shortcut…" : display}</kbd>
-      <button
-        type="button"
-        onClick={() => setCapturing(!capturing)}
-        onKeyDown={capture}
-      >
-        {capturing ? "Cancel" : "Change"}
-      </button>
-      {settings.keybindings.overrides[action] && (
+      <span className="keybinding-actions">
         <button
           type="button"
-          onClick={() =>
-            update((current) => {
-              const overrides = { ...current.keybindings.overrides };
-              delete overrides[action];
-              return { ...current, keybindings: { overrides } };
-            }, `keybindings.${action}`)
-          }
+          onClick={() => setCapturing(!capturing)}
+          onKeyDown={capture}
         >
-          {translate("ui.settingsSurface.text.reset")}
+          {capturing ? "Cancel" : "Change"}
         </button>
-      )}
+        {settings.keybindings.overrides[action] && (
+          <button
+            type="button"
+            onClick={() =>
+              update((current) => {
+                const overrides = { ...current.keybindings.overrides };
+                delete overrides[action];
+                return { ...current, keybindings: { overrides } };
+              }, `keybindings.${action}`)
+            }
+          >
+            {translate("ui.settingsSurface.text.reset")}
+          </button>
+        )}
+      </span>
     </div>
   );
 }

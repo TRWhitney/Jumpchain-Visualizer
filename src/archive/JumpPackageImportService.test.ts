@@ -27,6 +27,15 @@ describe("secure Jump package boundary", () => {
     ["GIF", [...bytes("GIF89a")], "gif"],
     ["WebP", [...bytes("RIFF0000WEBP")], "webp"],
     ["AVIF", [...bytes("0000ftypavif")], "avif"],
+    [
+      "SVG",
+      [
+        ...bytes(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>',
+        ),
+      ],
+      "svg",
+    ],
   ])(
     "derives the canonical %s extension from bytes",
     (_format, value, extension) => {
@@ -54,6 +63,23 @@ describe("secure Jump package boundary", () => {
       assetCount: 0,
     });
     expect(review.hash).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("round-trips secure SVG assets without rewriting authored XML", async () => {
+    const service = new JumpPackageImportService();
+    const workspace = createStarterWorkspace("secure-svg-round-trip");
+    const source =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 8">\n  <rect width="12" height="8" fill="#123456"/>\n</svg>\n';
+    const svg = bytes(source);
+    const archive = await service.export(
+      {
+        definitions: workspace.files,
+        assets: { "assets/mark.svg": svg },
+      },
+      SAFE_PACKAGE_SIZE_LIMITS,
+    );
+    const review = await service.inspect(archive, SAFE_PACKAGE_SIZE_LIMITS);
+    expect(review.files.assets["assets/mark.svg"]).toEqual(svg);
   });
 
   it("blocks invalid distributable source before compression", async () => {

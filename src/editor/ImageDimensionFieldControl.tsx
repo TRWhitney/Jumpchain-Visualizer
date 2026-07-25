@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { translate } from "../localization";
+import { Chevron } from "../ui";
 
 export function ImageDimensionFieldControl({
   label,
@@ -73,9 +74,10 @@ export function ImageDimensionFieldControl({
           aria-controls={listId}
           onClick={() => setOpen((current) => !current)}
         >
-          <span className="editor-diagnostics-chevron" aria-hidden="true">
-            ›
-          </span>
+          <Chevron
+            className="editor-diagnostics-chevron"
+            direction={open ? "down" : "right"}
+          />
         </button>
       </div>
       {open && (

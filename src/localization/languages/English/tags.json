@@ -1160,7 +1160,8 @@
         "parent": "Parent",
         "tagToLinkAsAnAlias": "Tag to link as an alias",
         "tagAnimation": "Tag animation",
-        "gradientStopPositions": "Gradient stop positions"
+        "gradientStopPositions": "Gradient stop positions",
+        "tagActions": "{{tag}} tag actions"
       },
       "label": {
         "background": "Background",

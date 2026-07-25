@@ -1,4 +1,5 @@
 import { translate } from "../localization";
+import { Chevron } from "../ui";
 type Props = {
   id?: string;
   label: string;
@@ -34,9 +35,7 @@ export function NumberStepperButtons({
         disabled={increaseDisabled}
         onClick={onIncrease}
       >
-        <svg aria-hidden="true" viewBox="0 0 12 8">
-          <path d="M2 6 6 2l4 4" />
-        </svg>
+        <Chevron direction="up" />
       </button>
       <button
         type="button"
@@ -45,9 +44,7 @@ export function NumberStepperButtons({
         disabled={decreaseDisabled}
         onClick={onDecrease}
       >
-        <svg aria-hidden="true" viewBox="0 0 12 8">
-          <path d="m2 2 4 4 4-4" />
-        </svg>
+        <Chevron direction="down" />
       </button>
     </span>
   );

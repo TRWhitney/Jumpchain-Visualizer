@@ -9,6 +9,7 @@ import { SettingsSurface } from "./SettingsSurface";
 import { defaultSettings, type SettingsCategory } from "./model";
 import { createDefaultTagProfile } from "./tagProfile";
 import { MemorySettingsRepository, type ReportExporter } from "./repository";
+import { ContextMenuProvider } from "../ui";
 import "../../documentation/styles.css";
 import "../../documentation/settings-design.css";
 import "../../documentation/logging-design.css";
@@ -17,6 +18,52 @@ import "./settings.css";
 const exporter: ReportExporter = {
   save: async () => "saved",
 };
+
+test("Settings chrome, dropdowns, and standalone color pickers suppress the generic browser menu", async () => {
+  render(
+    <ContextMenuProvider>
+      <SettingsProvider
+        repository={new MemorySettingsRepository()}
+        reportExporter={exporter}
+      >
+        <SettingsSurfaceHarness />
+      </SettingsProvider>
+    </ContextMenuProvider>,
+  );
+  await expect
+    .element(page.getByRole("tab", { name: "General" }))
+    .toBeVisible();
+  const generalTab = page.getByRole("tab", { name: "General" }).element();
+  const document = generalTab.ownerDocument;
+  const controls = [
+    generalTab,
+    document.querySelector<HTMLSelectElement>("#theme")!,
+    document.querySelector<HTMLInputElement>('#accent[type="color"]')!,
+  ];
+  for (const control of controls) {
+    const event = new control.ownerDocument.defaultView!.MouseEvent(
+      "contextmenu",
+      {
+        bubbles: true,
+        cancelable: true,
+      },
+    );
+    expect(control.dispatchEvent(event)).toBe(false);
+    expect(event.defaultPrevented).toBe(true);
+  }
+
+  const search = page.getByRole("searchbox").element();
+  const searchEvent = new search.ownerDocument.defaultView!.MouseEvent(
+    "contextmenu",
+    {
+      bubbles: true,
+      cancelable: true,
+    },
+  );
+  expect(search.dispatchEvent(searchEvent)).toBe(true);
+  expect(searchEvent.defaultPrevented).toBe(false);
+  await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
+});
 
 function BrokenSurface(): never {
   throw new Error("Deliberate component failure");

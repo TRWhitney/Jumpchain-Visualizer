@@ -886,7 +886,7 @@ test("the imported companion is selectable only in the funded Last Trial", async
 });
 
 test(
-  "dragging a Jump exposes the accent insertion line and reorders through the shared undo toast",
+  "dragging a Jump exposes the accent insertion line and its context action reorders through the shared undo toast",
   { tag: "@cross-browser" },
   async ({ page }, testInfo) => {
     const tracker = trackerFor(page);
@@ -918,9 +918,17 @@ test(
     );
     await source.dispatchEvent("dragend", { dataTransfer });
 
-    await tracker
-      .getByRole("button", { name: "Move The Last Trial earlier in the chain" })
-      .click();
+    await source.click({ button: "right" });
+    const menu = page.getByRole("menu", {
+      name: "The Last Trial chain entry actions",
+    });
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Open",
+      "Move later",
+      "Move earlier",
+      "Remove from chain…",
+    ]);
+    await menu.getByRole("menuitem", { name: "Move earlier" }).click();
     const toast = page.locator(".app-toast-host .app-toast").filter({
       hasText: "Reorder complete",
     });
@@ -932,6 +940,24 @@ test(
       page.locator("body"),
     );
     await toast.getByRole("button", { name: "Undo" }).click();
+
+    const threshold = tracker.locator(".chain-jump-entry").filter({
+      hasText: "Threshold of a Thousand Roads",
+    });
+    await threshold.click({ button: "right" });
+    await page
+      .getByRole("menu", {
+        name: "Threshold of a Thousand Roads chain entry actions",
+      })
+      .getByRole("menuitem", { name: "Remove from chain…" })
+      .click();
+    await expect(threshold).toHaveCount(0);
+    const removalToast = page.locator(".app-toast-host .app-toast").filter({
+      hasText: "Remove Jump complete.",
+    });
+    await expect(removalToast).toBeVisible();
+    await removalToast.getByRole("button", { name: "Undo" }).click();
+    await expect(threshold).toBeVisible();
   },
 );
 
@@ -1033,6 +1059,46 @@ test("Earth remains immutable and drives previous continuity into Jump 1", async
     "earth-light-identity-controls",
     earthControls,
   );
+  await tracker.getByLabel("Earth gender").selectOption("Male");
+  await tracker.getByLabel("Earth age").fill("31");
+  await earth.click({ button: "right" });
+  const earthMenu = page.getByRole("menu", {
+    name: "Earth chain entry actions",
+  });
+  await expect(earthMenu.getByRole("menuitem")).toHaveText([
+    "Open identity setup",
+    "Clear starting gender",
+    "Clear starting age",
+  ]);
+  await earthMenu
+    .getByRole("menuitem", { name: "Open identity setup" })
+    .click();
+  await expect(tracker.getByLabel("Earth gender")).toHaveValue("Male");
+  await expect(tracker.getByLabel("Earth age")).toHaveValue("31");
+
+  await earth.click({ button: "right" });
+  await page
+    .getByRole("menu", { name: "Earth chain entry actions" })
+    .getByRole("menuitem", { name: "Clear starting gender" })
+    .click();
+  await expect(tracker.getByLabel("Earth gender")).toHaveValue("");
+  await expect(tracker.locator(".chain-jump-summary")).not.toContainText(
+    "Male",
+  );
+  await earth.click({ button: "right" });
+  await page
+    .getByRole("menu", { name: "Earth chain entry actions" })
+    .getByRole("menuitem", { name: "Clear starting age" })
+    .click();
+  await expect(tracker.getByLabel("Earth age")).toHaveValue("");
+  await earth.click({ button: "right" });
+  await expect(
+    page
+      .getByRole("menu", { name: "Earth chain entry actions" })
+      .getByRole("menuitem", { name: "Clear starting age" }),
+  ).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
   await tracker.getByLabel("Earth gender").selectOption("Male");
   await tracker.getByLabel("Earth age").fill("31");
   await tracker

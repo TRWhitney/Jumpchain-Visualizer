@@ -3,6 +3,180 @@
   color: #5f5a4d;
   color-scheme: light;
 }
+
+/* Authored appearance is expressed through renderer-scoped variables. Keeping
+   this layer scoped prevents jump colors from leaking into the Editor or
+   Tracker chrome. */
+.shared-jump-renderer.format-one-jump-renderer {
+  box-sizing: border-box;
+  padding: var(--jump-canvas-padding);
+  color: var(--jump-surface-text);
+  background: var(--jump-section-gutter);
+  border-color: var(--jump-surface-border);
+  border-width: var(--jump-border-width);
+  border-radius: var(--jump-corners);
+}
+.shared-jump-renderer.format-one-jump-renderer > header {
+  color: var(--jump-header-title);
+  background: var(--jump-header-background);
+  border-color: var(--jump-header-border);
+  border-width: 0 0 var(--jump-border-width);
+}
+.shared-jump-renderer.format-one-jump-renderer > header p {
+  color: var(--jump-header-label);
+}
+.shared-jump-renderer.format-one-jump-renderer > header h4 {
+  color: var(--jump-header-title);
+}
+.shared-jump-renderer.format-one-jump-renderer > header span {
+  color: var(--jump-header-description);
+}
+.format-one-jump-renderer .tracker-budget {
+  color: var(--jump-budget-label);
+  background: var(--jump-budget-background);
+  border-color: var(--jump-budget-border);
+  border-width: var(--jump-border-width);
+  border-radius: var(--jump-control-corners);
+}
+.format-one-jump-renderer .tracker-budget output {
+  color: var(--jump-budget-value);
+}
+.format-one-jump-renderer .rendered-jump-section {
+  margin-block-start: var(--jump-section-spacing);
+  padding: var(--jump-section-padding);
+  color: var(--jump-section-body);
+  background: var(--jump-section-background);
+  border-color: var(--jump-section-border);
+  border-width: var(--jump-section-border-width);
+  border-radius: var(--jump-corners);
+  overflow: hidden;
+}
+.format-one-jump-renderer .rendered-jump-section > header p {
+  color: var(--jump-section-body);
+}
+.format-one-jump-renderer .rendered-jump-section > header h5 {
+  color: var(--jump-section-heading);
+}
+.format-one-jump-renderer
+  :is(.default-choice-card, .selection-specimen, .group-options > article) {
+  color: var(--jump-choice-body);
+  background: var(--jump-choice-background);
+  border-color: var(--jump-choice-border);
+  border-width: var(--jump-border-width);
+  border-radius: var(--jump-corners);
+  overflow: hidden;
+}
+.format-one-jump-renderer .default-choice-heading > strong {
+  color: var(--jump-choice-heading);
+}
+.format-one-jump-renderer
+  :is(.jump-choice-description, .jump-layout-text, .earth-explanation) {
+  color: var(--jump-choice-body);
+}
+.format-one-jump-renderer
+  :is(.selection-specimen.has-group, .group-options, .jump-choice-group) {
+  color: var(--jump-group-text);
+  background: var(--jump-group-background);
+  border-color: var(--jump-group-border);
+}
+.format-one-jump-renderer
+  :is(.selection-specimen, .jump-choice-group)
+  > footer {
+  color: var(--jump-group-text);
+  background: var(--jump-group-footer-background);
+  border-color: var(--jump-group-border);
+}
+.format-one-jump-renderer
+  :is(.default-choice-actions, .jump-nested-inputs)
+  :is(button, input, select, textarea) {
+  color: var(--jump-control-text);
+  background-color: var(--jump-control-background);
+  border-color: var(--jump-control-border);
+  border-radius: var(--jump-control-corners);
+  accent-color: var(--jump-control-accent);
+}
+.format-one-jump-renderer
+  :is(.default-choice-actions, .jump-nested-inputs)
+  :is(input, textarea)::placeholder {
+  color: var(--jump-control-muted-text);
+  opacity: 1;
+}
+.format-one-jump-renderer
+  :is(.default-choice-actions, .jump-nested-inputs)
+  select {
+  appearance: none;
+  padding-inline-end: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cpath d='m2 2 4 4-4 4' fill='none' stroke='%235f5a4d' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 0.5rem 0.75rem;
+}
+.format-one-jump-renderer .number-stepper-buttons {
+  background: var(--jump-control-background);
+}
+.format-one-jump-renderer .number-stepper-buttons button {
+  color: var(--jump-control-indicator);
+  background: transparent !important;
+}
+.format-one-jump-renderer .number-stepper-buttons button:disabled {
+  color: var(--jump-control-disabled-indicator);
+}
+.format-one-jump-renderer
+  :is(.default-choice-actions, .jump-nested-inputs)
+  :is(button, input, select, textarea):hover:not(:disabled) {
+  color: var(--jump-control-hover-text);
+  background-color: var(--jump-control-hover-background);
+  border-color: var(--jump-control-hover-border);
+}
+.format-one-jump-renderer
+  :is(.default-choice-actions, .jump-nested-inputs)
+  :is(button, input, select, textarea):active:not(:disabled) {
+  color: var(--jump-control-pressed-text);
+  background-color: var(--jump-control-pressed-background);
+  border-color: var(--jump-control-pressed-border);
+}
+.format-one-jump-renderer
+  :is(.default-choice-actions, .jump-nested-inputs)
+  :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--jump-control-accent);
+  outline-offset: 2px;
+}
+.format-one-jump-renderer
+  :is(.default-choice-actions, .jump-nested-inputs)
+  :is(button, input, select, textarea):disabled {
+  color: var(--jump-control-disabled-text);
+  background-color: var(--jump-control-disabled-background);
+  border-color: var(--jump-control-disabled-border);
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+.format-one-jump-renderer .cost-badge {
+  color: var(--jump-cost-text);
+  background: var(--jump-cost-background);
+  border-color: var(--jump-cost-border);
+  border-radius: var(--jump-cost-corners);
+}
+.format-one-jump-renderer .cost-badge.is-benefit {
+  color: var(--jump-cost-benefit-text);
+  background: var(--jump-cost-benefit-background);
+  border-color: var(--jump-cost-benefit-border);
+}
+.format-one-jump-renderer .cost-badge.is-award {
+  color: var(--jump-cost-award-text);
+  background: var(--jump-cost-award-background);
+  border-color: var(--jump-cost-award-border);
+}
+.format-one-jump-renderer .cost-badge.is-roll-pending {
+  color: var(--jump-cost-pending-text);
+  background: var(--jump-cost-pending-background);
+  border-color: var(--jump-cost-pending-border);
+}
+.format-one-jump-renderer .jump-image-alt-tooltip {
+  color: var(--jump-tooltip-text);
+  background: var(--jump-tooltip-background);
+  border-color: var(--jump-tooltip-border);
+  border-radius: var(--jump-control-corners);
+}
 .format-one-jump-renderer > header {
   background: #f5f1e6;
 }
@@ -426,4 +600,118 @@
   border: 1px solid var(--app-accent-border);
   border-radius: 0.2rem;
   cursor: pointer;
+}
+
+/* Authored roles win over the legacy layered defaults above. The complete
+   Jump root qualifier leaves isolated layout scopes on their existing defaults. */
+.shared-jump-renderer.format-one-jump-renderer
+  .rendered-jump-section
+  > header
+  p {
+  color: var(--jump-section-body);
+}
+.shared-jump-renderer.format-one-jump-renderer
+  .rendered-jump-section
+  > header
+  h5 {
+  color: var(--jump-section-heading);
+}
+.shared-jump-renderer.format-one-jump-renderer
+  :is(.default-choice-card, .selection-specimen, .group-options > article) {
+  color: var(--jump-choice-body);
+  background: var(--jump-choice-background);
+  border-color: var(--jump-choice-border);
+  border-width: var(--jump-border-width);
+  border-radius: var(--jump-corners);
+}
+.shared-jump-renderer.format-one-jump-renderer
+  .default-choice-heading
+  > strong {
+  color: var(--jump-choice-heading);
+}
+.shared-jump-renderer.format-one-jump-renderer
+  :is(.jump-choice-description, .jump-layout-text, .earth-explanation) {
+  color: var(--jump-choice-body);
+}
+.shared-jump-renderer.format-one-jump-renderer
+  :is(.selection-specimen.has-group, .group-options, .jump-choice-group) {
+  color: var(--jump-group-text);
+  background: var(--jump-group-background);
+  border-color: var(--jump-group-border);
+}
+.shared-jump-renderer.format-one-jump-renderer
+  :is(.selection-specimen, .jump-choice-group)
+  > footer {
+  color: var(--jump-group-text);
+  background: var(--jump-group-footer-background);
+  border-color: var(--jump-group-border);
+}
+.shared-jump-renderer.format-one-jump-renderer
+  :is(.default-choice-actions, .jump-nested-inputs)
+  :is(button, input, select, textarea) {
+  color: var(--jump-control-text);
+  background-color: var(--jump-control-background);
+  border-color: var(--jump-control-border);
+  border-radius: var(--jump-control-corners);
+}
+.shared-jump-renderer.format-one-jump-renderer
+  :is(.default-choice-actions, .jump-nested-inputs)
+  :is(button, input, select, textarea):hover:not(:disabled) {
+  color: var(--jump-control-hover-text);
+  background-color: var(--jump-control-hover-background);
+  border-color: var(--jump-control-hover-border);
+}
+.shared-jump-renderer.format-one-jump-renderer
+  :is(.default-choice-actions, .jump-nested-inputs)
+  :is(button, input, select, textarea):active:not(:disabled) {
+  color: var(--jump-control-pressed-text);
+  background-color: var(--jump-control-pressed-background);
+  border-color: var(--jump-control-pressed-border);
+}
+.shared-jump-renderer.format-one-jump-renderer
+  :is(.default-choice-actions, .jump-nested-inputs)
+  :is(button[aria-pressed="true"], .is-selected) {
+  color: var(--jump-control-selected-text);
+  background-color: var(--jump-control-selected-background);
+  border-color: var(--jump-control-selected-border);
+}
+.shared-jump-renderer.format-one-jump-renderer
+  :is(.default-choice-actions, .jump-nested-inputs)
+  :is(button, input, select, textarea):disabled {
+  color: var(--jump-control-disabled-text);
+  background-color: var(--jump-control-disabled-background);
+  border-color: var(--jump-control-disabled-border);
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+.shared-jump-renderer.format-one-jump-renderer
+  :is(.control-range, [data-roll-output], [data-group-status]) {
+  color: var(--jump-control-muted-text);
+}
+.shared-jump-renderer.format-one-jump-renderer .cost-badge {
+  color: var(--jump-cost-text);
+  background: var(--jump-cost-background);
+  border-color: var(--jump-cost-border);
+  border-radius: var(--jump-cost-corners);
+}
+.shared-jump-renderer.format-one-jump-renderer .cost-badge.is-benefit {
+  color: var(--jump-cost-benefit-text);
+  background: var(--jump-cost-benefit-background);
+  border-color: var(--jump-cost-benefit-border);
+}
+.shared-jump-renderer.format-one-jump-renderer .cost-badge.is-award {
+  color: var(--jump-cost-award-text);
+  background: var(--jump-cost-award-background);
+  border-color: var(--jump-cost-award-border);
+}
+.shared-jump-renderer.format-one-jump-renderer .cost-badge.is-roll-pending {
+  color: var(--jump-cost-pending-text);
+  background: var(--jump-cost-pending-background);
+  border-color: var(--jump-cost-pending-border);
+}
+.shared-jump-renderer.format-one-jump-renderer .jump-image-alt-tooltip {
+  color: var(--jump-tooltip-text);
+  background: var(--jump-tooltip-background);
+  border-color: var(--jump-tooltip-border);
+  border-radius: var(--jump-control-corners);
 }

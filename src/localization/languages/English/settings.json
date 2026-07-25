@@ -292,7 +292,8 @@
       "ariaLabel": {
         "minimumSeverity": "Minimum severity",
         "filteredSessionDiagnosticEvents": "Filtered session diagnostic events",
-        "selectedLogEventDetails": "Selected log event details"
+        "selectedLogEventDetails": "Selected log event details",
+        "eventActions": "{{event}} event actions"
       }
     },
     "settingsSurface": {

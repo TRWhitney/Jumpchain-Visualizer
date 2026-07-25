@@ -45,6 +45,7 @@ import {
   type KeybindingAction,
   type KeybindingChord,
 } from "../settings/model";
+import { format1DeclarationWords } from "./format1Syntax";
 
 export type SourceSearch = {
   find: string;
@@ -94,30 +95,6 @@ type SourceCodeEditorProps = {
   keybindings: Record<KeybindingAction, KeybindingChord>;
 };
 
-const declarationWords = new Set([
-  "jump",
-  "resource",
-  "section",
-  "choice-source",
-  "choice",
-  "text",
-  "image",
-  "input",
-  "cost",
-  "grant",
-  "theme",
-  "section-layout",
-  "choice-layout",
-  "trait-layout",
-  "stack",
-  "inline",
-  "wrap",
-  "grid",
-  "slot",
-  "rule",
-  "expand",
-]);
-
 function syntaxDecorations(view: EditorView) {
   const ranges: ReturnType<Decoration["range"]>[] = [];
   for (const range of view.visibleRanges) {
@@ -135,7 +112,7 @@ function syntaxDecorations(view: EditorView) {
         );
       } else {
         const word = /^([a-z][a-z0-9-]*)(?=\s|$)/i.exec(trimmed);
-        if (word && declarationWords.has(word[1]))
+        if (word && format1DeclarationWords.has(word[1]))
           ranges.push(
             Decoration.mark({ class: "cm-format-declaration" }).range(
               line.from + indent,

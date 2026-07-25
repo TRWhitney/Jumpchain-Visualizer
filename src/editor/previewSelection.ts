@@ -3,6 +3,7 @@ import { readSourceField, structuredContext } from "./documentEditor";
 
 export type PreviewSelection =
   | { kind: "package" }
+  | { kind: "appearance"; mode: "components" | "jump" }
   | { kind: "section"; handle: string }
   | { kind: "choice"; handle: string; sectionHandle?: string }
   | { kind: "choice-source"; handle: string; sectionHandle: string }
@@ -25,6 +26,8 @@ export function previewSelectionForSymbol(
   files: Readonly<Record<string, string>>,
   symbol: FormatSymbol,
 ): PreviewSelection {
+  if (symbol.kind === "jump-appearance")
+    return { kind: "appearance", mode: "components" };
   if (["section-layout", "choice-layout", "trait-layout"].includes(symbol.kind))
     return symbol.handle
       ? { kind: "layout", handle: symbol.handle }

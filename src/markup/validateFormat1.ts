@@ -1225,9 +1225,13 @@ function validateAuthoringWarnings(
     for (const node of parsed.find((file) => file.file === "jump.jdef")?.tree ??
       [])
       if (
-        ["theme", "section-layout", "choice-layout", "trait-layout"].includes(
-          node.kind,
-        )
+        [
+          "jump-appearance",
+          "theme",
+          "section-layout",
+          "choice-layout",
+          "trait-layout",
+        ].includes(node.kind)
       )
         add(
           diagnostics,

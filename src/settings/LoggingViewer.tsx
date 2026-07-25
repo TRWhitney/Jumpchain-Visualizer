@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useSessionEvents, useSettings } from "./SettingsContext";
 import type { LogEvent, LogSeverity } from "./logging";
 import { translate } from "../localization";
+import { useContextMenu } from "../ui";
 
 const levels: LogSeverity[] = ["debug", "info", "warn", "error"];
 
 export function LoggingViewer() {
+  const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const events = useSessionEvents();
   const { logger, reportExporter } = useSettings();
   const [query, setQuery] = useState("");
@@ -20,18 +22,20 @@ export function LoggingViewer() {
   const selected =
     visible.find((event) => event.id === selectedId) ?? visible[0] ?? null;
 
-  const copyReport = async () => {
+  const copyReport = async (event = selected) => {
+    if (!event) return;
     try {
-      await navigator.clipboard.writeText(logger.report(selected));
+      await navigator.clipboard.writeText(logger.report(event));
       setMessage("Diagnostic report copied. Review it before sharing.");
     } catch {
       setMessage("Clipboard access is unavailable.");
     }
   };
-  const saveReport = async () => {
+  const saveReport = async (event = selected) => {
+    if (!event) return;
     const result = await reportExporter.save(
       "jumpchain-visualizer-report.txt",
-      logger.report(selected),
+      logger.report(event),
     );
     setMessage(
       result === "saved" ? "Diagnostic report saved." : "Save cancelled.",
@@ -113,30 +117,64 @@ export function LoggingViewer() {
             "ui.loggingViewer.ariaLabel.filteredSessionDiagnosticEvents",
           )}
         >
-          {visible.map((event) => (
-            <button
-              key={event.id}
-              type="button"
-              className={selected?.id === event.id ? "is-selected" : undefined}
-              onClick={() => {
-                setSelectedId(event.id);
-                setMessage("");
-              }}
-            >
-              <span className={`log-severity ${event.severity}`}>
-                {event.severity}
-              </span>
-              <code>
-                {event.eventName}
-                {event.occurrences > 1 ? ` ×${event.occurrences}` : ""}
-              </code>
-              <time dateTime={event.timestamp}>
-                {new Date(event.timestamp).toLocaleTimeString([], {
-                  hour12: false,
-                })}
-              </time>
-            </button>
-          ))}
+          {visible.map((event) => {
+            const view = () => {
+              setSelectedId(event.id);
+              setMessage("");
+            };
+            const menu = {
+              label: translate("ui.loggingViewer.ariaLabel.eventActions", {
+                event: event.eventName,
+              }),
+              actions: [
+                {
+                  id: "view",
+                  label: translate("common.viewDetails"),
+                  onAction: view,
+                },
+                {
+                  id: "copy",
+                  label: translate("ui.loggingViewer.text.copyReport"),
+                  onAction: () => void copyReport(event),
+                },
+                {
+                  id: "save",
+                  label: translate("ui.loggingViewer.text.saveReport"),
+                  onAction: () => void saveReport(event),
+                },
+              ],
+            };
+            return (
+              <button
+                key={event.id}
+                type="button"
+                aria-haspopup="menu"
+                className={
+                  selected?.id === event.id ? "is-selected" : undefined
+                }
+                onContextMenu={(contextEvent) =>
+                  openContextMenu(contextEvent, menu)
+                }
+                onKeyDown={(keyboardEvent) =>
+                  openContextMenuFromKeyboard(keyboardEvent, menu)
+                }
+                onClick={view}
+              >
+                <span className={`log-severity ${event.severity}`}>
+                  {event.severity}
+                </span>
+                <code>
+                  {event.eventName}
+                  {event.occurrences > 1 ? ` ×${event.occurrences}` : ""}
+                </code>
+                <time dateTime={event.timestamp}>
+                  {new Date(event.timestamp).toLocaleTimeString([], {
+                    hour12: false,
+                  })}
+                </time>
+              </button>
+            );
+          })}
           {!visible.length && (
             <p className="logging-empty">
               {events.length
@@ -308,7 +346,7 @@ function LogDetail({
       </dl>
       <div className="logging-stack">
         <strong>{translate("ui.loggingViewer.text.stackTrace")}</strong>
-        <pre>
+        <pre data-native-context-menu="true">
           {event?.error?.stack ?? "No stack trace: expected application event."}
         </pre>
       </div>

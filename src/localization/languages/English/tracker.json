@@ -73,7 +73,13 @@
         "ownsActive": " owns active",
         "isProvidedBy": " is provided by",
         "andImportedBy": " and imported by",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "openIdentitySetup": "Open identity setup",
+        "clearStartingGender": "Clear starting gender",
+        "clearStartingAge": "Clear starting age",
+        "moveEarlier": "Move earlier",
+        "moveLater": "Move later",
+        "removeFromChain": "Remove from chain…"
       },
       "ariaLabel": {
         "applicationWorkspaceSwitch": "Application workspace switch",
@@ -91,7 +97,8 @@
         "tags": "Tags",
         "acquisitionDetails": "Acquisition details",
         "closeDependencyReview": "Close dependency review",
-        "interactiveChainTrackerWorkspace": "Interactive Chain Tracker workspace"
+        "interactiveChainTrackerWorkspace": "Interactive Chain Tracker workspace",
+        "chainEntryActions": "{{entry}} chain entry actions"
       },
       "title": {
         "dragToReorder": "Drag to reorder",

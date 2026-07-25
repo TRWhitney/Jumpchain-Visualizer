@@ -187,7 +187,14 @@ export type Presentation = {
   color?: string;
   thickness?: number;
   style?: string;
+  borderColor?: string;
+  borderWidth?: string;
+  borderStyle?: string;
+  corners?: string;
+  clip?: boolean;
 };
+
+export type JumpAppearance = Readonly<Record<string, string>>;
 
 export type LayoutNode = {
   kind:
@@ -243,6 +250,7 @@ export type CanonicalJumpPackage = {
   sections: readonly JumpSection[];
   choices: readonly JumpChoice[];
   layouts: readonly JumpLayout[];
+  appearance?: JumpAppearance;
   themes: Readonly<Record<string, string>>;
   tags: readonly string[];
   diagnostics: readonly PackageDiagnostic[];

@@ -1,0 +1,81 @@
+.app-context-menu-scope {
+  display: contents;
+}
+
+.app-context-menu {
+  position: fixed;
+  z-index: 200;
+  display: grid;
+  width: max-content;
+  min-width: 11rem;
+  max-width: min(21rem, calc(100vw - 1rem));
+  padding: 0.25rem;
+  color: #ddd;
+  background: #292927;
+  border: 1px solid #5b5b55;
+  border-radius: 0.25rem;
+  box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 45%);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.82rem;
+}
+
+.app-context-menu button {
+  min-height: 2rem;
+  padding: 0.42rem 0.55rem;
+  overflow: hidden;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 0.18rem;
+  font: inherit;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.app-context-menu button:is(:hover, :focus-visible) {
+  color: #fff;
+  background: var(--app-accent-soft);
+  outline: 2px solid var(--app-accent-focus);
+  outline-offset: -2px;
+}
+
+.app-context-menu button.is-danger {
+  color: var(--app-danger-text-strong);
+}
+
+.app-context-menu button[aria-disabled="true"] {
+  color: #777;
+  cursor: not-allowed;
+}
+
+.app-context-menu button.has-separator {
+  margin-top: 0.25rem;
+  border-top: 1px solid #4c4c47;
+  border-radius: 0;
+}
+
+[data-app-theme="light"] .app-context-menu {
+  color: #343430;
+  background: #fff;
+  border-color: #aaa79e;
+  box-shadow: 0 0.8rem 2rem rgb(23 23 23 / 22%);
+}
+
+[data-app-theme="light"] .app-context-menu button:is(:hover, :focus-visible) {
+  color: #171717;
+  background: var(--app-accent-soft);
+}
+
+[data-app-theme="light"] .app-context-menu button.is-danger {
+  color: var(--app-danger-text);
+}
+
+[data-app-theme="light"] .app-context-menu button[aria-disabled="true"] {
+  color: #777770;
+}
+
+[data-app-theme="light"] .app-context-menu button.has-separator {
+  border-top-color: #cbc8bf;
+}

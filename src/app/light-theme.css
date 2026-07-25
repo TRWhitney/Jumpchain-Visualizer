@@ -545,28 +545,6 @@
   border-color: #aaa79e;
 }
 
-[data-app-theme="light"] .editor-explorer-context-menu {
-  color: #343430;
-  background: #fff;
-  border-color: #aaa79e;
-  box-shadow: 0 0.8rem 2rem rgb(23 23 23 / 22%);
-}
-
-[data-app-theme="light"] .editor-explorer-context-menu button.is-danger {
-  color: var(--app-danger-text);
-}
-
-[data-app-theme="light"]
-  .editor-explorer-context-menu
-  button:is(:hover, :focus-visible) {
-  color: #171717;
-  background: var(--app-accent-soft);
-}
-
-[data-app-theme="light"] .editor-explorer-context-menu button:disabled {
-  color: #777770;
-}
-
 /* Editor asset canvas chrome and validation status. */
 [data-app-theme="light"] .asset-source-workspace,
 [data-app-theme="light"] .asset-raster-editor {

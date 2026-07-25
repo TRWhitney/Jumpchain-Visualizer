@@ -16,6 +16,7 @@ import {
   dropIndexForTarget,
   type DropEdge,
 } from "../ui/dragReorder";
+import { useContextMenu } from "../ui";
 import {
   TrackerSupplementContext,
   SupplementProviders,
@@ -53,6 +54,7 @@ import {
   filteredInventory,
   inventoryRecordTagProjection,
   inventoryTagTree,
+  EARTH_ENTRY_ID,
   EARTH_ENTRY_STATUS,
   jumpEntryIds,
   jumpNumber,
@@ -321,6 +323,7 @@ function ChainRail({
   runtime: EvaluatedJumpRuntime;
   preloadEntry: (entryId: string) => void;
 }) {
+  const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const settingsContext = useOptionalSettings();
   const [dragged, setDragged] = useState<string | null>(null);
   const [dropIndicator, setDropIndicator] = useState<{
@@ -505,9 +508,107 @@ function ChainRail({
               const metadata = earth
                 ? EARTH_ENTRY_STATUS
                 : `${packageSourceLabel(item.source)} · ${entry.status}${runtime[id]?.gauntlet.active ? " · Gauntlet" : ""}`;
+              const earthChoices =
+                state.jumpState[EARTH_ENTRY_ID]?.actors.jumper?.choices ?? {};
+              const menu = {
+                label: translate(
+                  "ui.chainTracker.ariaLabel.chainEntryActions",
+                  {
+                    entry: item.name,
+                  },
+                ),
+                actions: earth
+                  ? [
+                      {
+                        id: "open",
+                        label: translate(
+                          "ui.chainTracker.text.openIdentitySetup",
+                        ),
+                        onAction: () =>
+                          dispatch({ type: "select-entry", entryId: id }),
+                      },
+                      ...(typeof earthChoices.earth_gender === "string"
+                        ? [
+                            {
+                              id: "clear-gender",
+                              label: translate(
+                                "ui.chainTracker.text.clearStartingGender",
+                              ),
+                              onAction: () =>
+                                dispatch({
+                                  type: "set-choice" as const,
+                                  entryId: EARTH_ENTRY_ID,
+                                  actorId: "jumper",
+                                  choiceHandle: "earth_gender",
+                                  value: null,
+                                }),
+                            },
+                          ]
+                        : []),
+                      ...(typeof earthChoices.earth_age === "number"
+                        ? [
+                            {
+                              id: "clear-age",
+                              label: translate(
+                                "ui.chainTracker.text.clearStartingAge",
+                              ),
+                              onAction: () =>
+                                dispatch({
+                                  type: "set-choice" as const,
+                                  entryId: EARTH_ENTRY_ID,
+                                  actorId: "jumper",
+                                  choiceHandle: "earth_age",
+                                  value: null,
+                                }),
+                            },
+                          ]
+                        : []),
+                    ]
+                  : [
+                      {
+                        id: "open",
+                        label: translate("common.open"),
+                        onAction: () =>
+                          dispatch({ type: "select-entry", entryId: id }),
+                      },
+                      {
+                        id: "later",
+                        label: translate("ui.chainTracker.text.moveLater"),
+                        disabled: index === state.order.length - 1,
+                        onAction: () =>
+                          dispatch({
+                            type: "request-move",
+                            entryId: id,
+                            toIndex: index + 1,
+                          }),
+                      },
+                      {
+                        id: "earlier",
+                        label: translate("ui.chainTracker.text.moveEarlier"),
+                        disabled: index <= 1,
+                        onAction: () =>
+                          dispatch({
+                            type: "request-move",
+                            entryId: id,
+                            toIndex: index - 1,
+                          }),
+                      },
+                      {
+                        id: "remove",
+                        label: translate(
+                          "ui.chainTracker.text.removeFromChain",
+                        ),
+                        danger: true,
+                        separatorBefore: true,
+                        onAction: () =>
+                          dispatch({ type: "request-remove", entryId: id }),
+                      },
+                    ],
+              };
               return (
                 <article
                   key={id}
+                  onContextMenu={(event) => openContextMenu(event, menu)}
                   className={`chain-jump-entry${earth ? " is-earth" : ""}${state.selectedEntryId === id ? " is-selected" : ""}${negative ? " has-negative-balance" : ""}${dragged === id ? " is-dragging" : ""}${dropIndicator?.entryId === id ? ` is-drop-${dropIndicator.edge}` : ""}`}
                   draggable={!earth}
                   onDragStart={(event) => {
@@ -575,9 +676,13 @@ function ChainRail({
                   <button
                     type="button"
                     className="chain-jump-select"
+                    aria-haspopup="menu"
                     aria-pressed={state.selectedEntryId === id}
                     onPointerEnter={() => preloadEntry(id)}
                     onFocus={() => preloadEntry(id)}
+                    onKeyDown={(event) =>
+                      openContextMenuFromKeyboard(event, menu)
+                    }
                     onClick={() =>
                       dispatch({ type: "select-entry", entryId: id })
                     }

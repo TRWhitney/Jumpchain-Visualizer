@@ -8,12 +8,14 @@ import {
   useRef,
   useState,
   type ButtonHTMLAttributes,
+  type KeyboardEvent as ReactKeyboardEvent,
   type KeyboardEventHandler,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type Ref,
 } from "react";
 import { flushSync } from "react-dom";
+import { Chevron, useContextMenu, type ContextMenuAction } from "../ui";
 import {
   conditionContextHandles,
   conditionNodeEntries,
@@ -28,6 +30,7 @@ import {
   type PackageAssetMetadata,
 } from "../archive";
 import { NumberStepperButtons } from "../tracker/NumberStepper";
+import { inheritedAppearanceValue } from "../tracker/jumpAppearance";
 import { integerFieldControl } from "./integerField";
 import {
   chordFor,
@@ -40,6 +43,7 @@ import {
   type KeybindingChord,
 } from "../settings/model";
 import { JumpPreview, type LayoutBoundHover } from "./JumpPreview";
+import { HandleFieldControl } from "./HandleFieldControl";
 import {
   previewSelectionForSymbol,
   type PreviewSelection,
@@ -51,9 +55,12 @@ import {
   type EditorWorkspaceSnapshot,
 } from "./model";
 import { createSelectControlModel } from "./selectControl";
+import { insertJumpAppearanceSource } from "./appearanceSource";
 import {
   addDocumentField,
   createAndAssignDocumentResource,
+  createAndAssignTopLevelDocumentReference,
+  createTopLevelDocumentDeclaration,
   declarationFieldNames,
   fieldDefault,
   fieldDefinition,
@@ -72,6 +79,7 @@ import {
   setDocumentField,
   setConditionalDocumentField,
   structuredContext,
+  type CreatableTopLevelDeclarationKind,
 } from "./documentEditor";
 import {
   collapseLayoutLeaf,
@@ -111,6 +119,7 @@ import { ImageDimensionFieldControl } from "./ImageDimensionFieldControl";
 import { ConditionalVariants } from "./ConditionalVariants";
 import { useAssetObjectUrl } from "../tracker/useAssetObjectUrls";
 import { ConfirmationDialog } from "../ui";
+import type { AppearanceColorInspection } from "./appearanceInspection";
 import {
   assetArchivePath,
   assetBasename,
@@ -151,8 +160,29 @@ type EditingTab = "structured" | "source";
 type ContextTab = "preview" | "properties";
 type Severity = PackageDiagnostic["severity"];
 type WorkspaceHistoryState = AssetWorkspaceHistoryState;
-type LayoutInspectionHandle = { inspect: (path: string) => void };
+type AssetImportTarget = {
+  symbol: FormatSymbol;
+  field: string;
+  occurrence: number;
+};
+type LayoutInspectionHandle = {
+  inspect: (path: string, field?: string) => void;
+};
+
+const importAssetOptionValue = "__editor_import_asset__";
+
+function revealEditorInspection(
+  region: HTMLElement,
+  block: ScrollLogicalPosition = "nearest",
+) {
+  region.classList.remove("is-editor-inspected");
+  void region.offsetWidth;
+  region.classList.add("is-editor-inspected");
+  region.scrollIntoView({ block, inline: "nearest" });
+}
+
 type ExplorerAddKind =
+  | "jump appearance"
   | "resource"
   | "section"
   | "choice"
@@ -171,10 +201,6 @@ type ExplorerContextTarget =
       expanded: boolean;
       additions: readonly ExplorerAddKind[];
     };
-type ExplorerContextMenuState = ExplorerContextTarget & {
-  x: number;
-  y: number;
-};
 type PermanentRemovalTarget =
   | { kind: "trash"; id: string; label: string }
   | { kind: "symbol"; symbol: FormatSymbol; label: string }
@@ -259,6 +285,7 @@ function ExplorerDisclosure({
   className,
   onToggle,
   onContextMenu,
+  onContextMenuKey,
   children,
 }: {
   groupId: string;
@@ -268,6 +295,7 @@ function ExplorerDisclosure({
   className?: string;
   onToggle: (expanded: boolean) => void;
   onContextMenu: (event: ReactMouseEvent) => void;
+  onContextMenuKey: (event: ReactKeyboardEvent<HTMLElement>) => void;
   children: ReactNode;
 }) {
   return (
@@ -277,7 +305,11 @@ function ExplorerDisclosure({
       open={expanded}
       onToggle={(event) => onToggle(event.currentTarget.open)}
     >
-      <summary onContextMenu={onContextMenu}>
+      <summary
+        aria-haspopup="menu"
+        onContextMenu={onContextMenu}
+        onKeyDown={onContextMenuKey}
+      >
         {label}
         <span>{count}</span>
       </summary>
@@ -301,12 +333,17 @@ function AssetExplorerEntries({
   selectedAsset,
   onOpenAsset,
   onContextAsset,
+  onContextAssetKey,
 }: {
   entries: readonly AssetTreeEntry[];
   canonicalExtensions: Readonly<Record<string, string>>;
   selectedAsset: string | null;
   onOpenAsset: (path: string) => void;
   onContextAsset: (path: string, event: ReactMouseEvent) => void;
+  onContextAssetKey: (
+    path: string,
+    event: ReactKeyboardEvent<HTMLElement>,
+  ) => void;
 }) {
   return entries.map((entry) =>
     entry.kind === "folder" ? (
@@ -321,6 +358,7 @@ function AssetExplorerEntries({
           selectedAsset={selectedAsset}
           onOpenAsset={onOpenAsset}
           onContextAsset={onContextAsset}
+          onContextAssetKey={onContextAssetKey}
         />
       </details>
     ) : (
@@ -337,6 +375,8 @@ function AssetExplorerEntries({
         }
         onClick={() => onOpenAsset(entry.archivePath)}
         onContextMenu={(event) => onContextAsset(entry.archivePath, event)}
+        onKeyDown={(event) => onContextAssetKey(entry.archivePath, event)}
+        aria-haspopup="menu"
       />
     ),
   );
@@ -350,8 +390,10 @@ function TrashExplorerEntries({
   expanded,
   onToggle,
   onContextGroup,
+  onContextGroupKey,
   onOpen,
   onContext,
+  onContextKey,
 }: {
   entries: readonly EditorTrashEntry[];
   hideWhenEmpty: boolean;
@@ -360,8 +402,13 @@ function TrashExplorerEntries({
   expanded: boolean;
   onToggle: (expanded: boolean) => void;
   onContextGroup: (event: ReactMouseEvent) => void;
+  onContextGroupKey: (event: ReactKeyboardEvent<HTMLElement>) => void;
   onOpen: (entry: EditorTrashEntry) => void;
   onContext: (entry: EditorTrashEntry, event: ReactMouseEvent) => void;
+  onContextKey: (
+    entry: EditorTrashEntry,
+    event: ReactKeyboardEvent<HTMLElement>,
+  ) => void;
 }) {
   if (hideWhenEmpty && entries.length === 0) return null;
   return (
@@ -373,6 +420,7 @@ function TrashExplorerEntries({
       expanded={expanded}
       onToggle={onToggle}
       onContextMenu={onContextGroup}
+      onContextMenuKey={onContextGroupKey}
     >
       {entries.map((entry) => (
         <ExplorerEntryButton
@@ -390,6 +438,8 @@ function TrashExplorerEntries({
           }
           onClick={() => onOpen(entry)}
           onContextMenu={(event) => onContext(entry, event)}
+          onKeyDown={(event) => onContextKey(entry, event)}
+          aria-haspopup="menu"
         />
       ))}
     </ExplorerDisclosure>
@@ -481,6 +531,111 @@ const declarationGroups = [
   },
 ] as const;
 
+const appearanceFieldGroups = [
+  {
+    key: "sharedColors",
+    fields: ["background", "text-color", "border-color", "accent-color"],
+  },
+  {
+    key: "surfaces",
+    fields: ["surface-background", "surface-text", "surface-border"],
+  },
+  {
+    key: "headerAndBudget",
+    fields: [
+      "header-background",
+      "header-label",
+      "header-title",
+      "header-description",
+      "header-border",
+      "budget-background",
+      "budget-label",
+      "budget-value",
+      "budget-border",
+    ],
+  },
+  {
+    key: "sections",
+    fields: [
+      "section-gutter",
+      "section-background",
+      "section-heading",
+      "section-body",
+      "section-border",
+    ],
+  },
+  {
+    key: "choicesAndGroups",
+    fields: [
+      "choice-background",
+      "choice-heading",
+      "choice-body",
+      "choice-border",
+      "group-background",
+      "group-footer-background",
+      "group-text",
+      "group-border",
+    ],
+  },
+  {
+    key: "controls",
+    fields: [
+      "control-background",
+      "control-text",
+      "control-muted-text",
+      "control-border",
+      "control-indicator",
+      "control-accent",
+      "control-hover-background",
+      "control-hover-text",
+      "control-hover-border",
+      "control-pressed-background",
+      "control-pressed-text",
+      "control-pressed-border",
+      "control-selected-background",
+      "control-selected-text",
+      "control-selected-border",
+      "control-disabled-background",
+      "control-disabled-text",
+      "control-disabled-border",
+      "control-disabled-indicator",
+    ],
+  },
+  {
+    key: "costsAndSemanticStates",
+    fields: [
+      "cost-background",
+      "cost-text",
+      "cost-border",
+      "cost-benefit-background",
+      "cost-benefit-text",
+      "cost-benefit-border",
+      "cost-award-background",
+      "cost-award-text",
+      "cost-award-border",
+      "cost-pending-background",
+      "cost-pending-text",
+      "cost-pending-border",
+    ],
+  },
+  {
+    key: "tooltips",
+    fields: ["tooltip-background", "tooltip-text", "tooltip-border"],
+  },
+  {
+    key: "shapeAndSpacing",
+    fields: [
+      "canvas-padding",
+      "section-spacing",
+      "section-padding",
+      "corners",
+      "control-corners",
+      "cost-corners",
+      "structural-border-width",
+    ],
+  },
+] as const;
+
 function defaultShadowText(defaultValue: FieldDefault | null) {
   if (!defaultValue) return undefined;
   const value =
@@ -526,6 +681,25 @@ function explorerSymbolLabel(symbol: FormatSymbol) {
   return symbol.handle || symbol.kind.replaceAll("-", " ");
 }
 
+function layoutContentOwnerLabel(
+  files: Readonly<Record<string, string>>,
+  symbols: readonly FormatSymbol[],
+  owner: FormatSymbol,
+) {
+  if (owner.kind !== "grant") return explorerSymbolLabel(owner);
+  const ancestor = symbols
+    .filter(
+      (candidate) =>
+        candidate.file === owner.file &&
+        candidate.from < owner.from &&
+        candidate.to >= owner.to &&
+        ["choice", "input"].includes(candidate.kind),
+    )
+    .sort((left, right) => right.depth - left.depth)[0];
+  const grantName = readSourceField(files[owner.file], owner, "name");
+  return `${explorerSymbolLabel(ancestor ?? owner)} · ${grantName || translate("ui.editorWorkspace.text.traitGrant")}`;
+}
+
 function sourceLine(source: string, offset: number) {
   return source.slice(0, offset).split("\n").length;
 }
@@ -541,31 +715,18 @@ function editableSnippetSelection(snippet: string) {
     : { from: valueFrom, to: valueFrom + rawValue.length };
 }
 
-const addTemplates = {
-  resource: `\nresource\n  handle: new_resource\n  name: "New Resource"\n  abbreviation: "NR"\n  initial: 0\n`,
-  section: `\nsection\n  handle: new_section\n  name: "New Section"\n`,
-  choice: `\nchoice\n  handle: new_choice\n  name: "New Choice"\n  selection: toggle\n`,
-  "section layout": `\nsection-layout\n  handle: new_section_layout\n\n  stack\n    gap: md\n\n    slot: name\n`,
-  "choice layout": `\nchoice-layout\n  handle: new_choice_layout\n\n  stack\n    gap: sm\n\n    slot: name\n    slot: control\n`,
-  "trait layout": `\ntrait-layout\n  handle: new_trait_layout\n\n  stack\n    gap: sm\n\n    slot: name\n`,
-  theme: `\ntheme\n  handle: new_theme\n  color: "#68707c"\n`,
-} as const;
+const addDeclarationKinds = [
+  "jump appearance",
+  "resource",
+  "section",
+  "choice",
+  "section layout",
+  "choice layout",
+  "trait layout",
+  "theme",
+] as const;
 
-function uniqueTopLevelTemplate(
-  template: string,
-  symbols: readonly FormatSymbol[],
-) {
-  const match = /\n {2}handle:\s*([a-z0-9_]+)/.exec(template);
-  if (!match) return template;
-  const handles = new Set(symbols.flatMap((symbol) => symbol.handle ?? []));
-  if (!handles.has(match[1])) return template;
-  let suffix = 2;
-  while (handles.has(`${match[1]}_${suffix}`)) suffix += 1;
-  return template.replace(
-    `\n  handle: ${match[1]}`,
-    `\n  handle: ${match[1]}_${suffix}`,
-  );
-}
+type AddDeclarationKind = (typeof addDeclarationKinds)[number];
 
 export function EditorWorkspace({
   workspace,
@@ -599,8 +760,7 @@ export function EditorWorkspace({
   );
   const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
   const [selectedTrashId, setSelectedTrashId] = useState<string | null>(null);
-  const [explorerContextMenu, setExplorerContextMenu] =
-    useState<ExplorerContextMenuState | null>(null);
+  const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const [expandedExplorerGroups, setExpandedExplorerGroups] = useState<
     Record<string, boolean>
   >({});
@@ -644,10 +804,16 @@ export function EditorWorkspace({
   >({ error: true, warning: true, info: true });
   const [showBounds, setShowBounds] = useState(false);
   const [stripColor, setStripColor] = useState(false);
+  const [appearancePreviewMode, setAppearancePreviewMode] = useState<
+    "components" | "jump"
+  >("components");
   const [hoveredBound, setHoveredBound] = useState<LayoutBoundHover | null>(
     null,
   );
+  const [hoveredAppearanceColor, setHoveredAppearanceColor] =
+    useState<AppearanceColorInspection | null>(null);
   const layoutInspectionRef = useRef<LayoutInspectionHandle>(null);
+  const editorRootRef = useRef<HTMLDivElement>(null);
   const [history, setHistory] = useState<WorkspaceHistoryState[]>(() => [
     {
       files: workspace.files,
@@ -662,8 +828,8 @@ export function EditorWorkspace({
   const historyGroupRef = useRef<string | null>(null);
   const historyGroupTimer = useRef<number | null>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
-  const explorerContextMenuRef = useRef<HTMLDivElement>(null);
   const assetInputRef = useRef<HTMLInputElement>(null);
+  const assetImportTargetRef = useRef<AssetImportTarget | null>(null);
   const [lastValid, setLastValid] = useState(
     () => service.analyze(workspace.files).packageItem,
   );
@@ -717,30 +883,6 @@ export function EditorWorkspace({
     return () =>
       document.removeEventListener("pointerdown", closeOnOutsidePointer);
   }, [addOpen]);
-  useEffect(() => {
-    if (!explorerContextMenu) return;
-    const close = (event: PointerEvent) => {
-      if (
-        event.target instanceof Node &&
-        !explorerContextMenuRef.current?.contains(event.target)
-      )
-        setExplorerContextMenu(null);
-    };
-    const closeMenu = () => setExplorerContextMenu(null);
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeMenu();
-    };
-    document.addEventListener("pointerdown", close);
-    window.addEventListener("blur", closeMenu);
-    window.addEventListener("resize", closeMenu);
-    window.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", close);
-      window.removeEventListener("blur", closeMenu);
-      window.removeEventListener("resize", closeMenu);
-      window.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [explorerContextMenu]);
   const sourceShortcutLabels = useMemo(
     () =>
       Object.fromEntries(
@@ -789,7 +931,9 @@ export function EditorWorkspace({
   );
   const previewSelection =
     navigationTab === "content" && resolvedSelectedSymbol && !selectedAsset
-      ? previewSelectionForSymbol(workspace.files, resolvedSelectedSymbol)
+      ? resolvedSelectedSymbol.kind === "jump-appearance"
+        ? { kind: "appearance" as const, mode: appearancePreviewMode }
+        : previewSelectionForSymbol(workspace.files, resolvedSelectedSymbol)
       : selected;
   const recoveredAnalysis = useMemo(
     () =>
@@ -1203,23 +1347,116 @@ export function EditorWorkspace({
     setSelectedSymbol(null);
     setSelected({ kind: "package" });
     setEditingTab("source");
-    setExplorerContextMenu(null);
     setContextTab("properties");
+  };
+
+  const explorerContextMenuRequest = (target: ExplorerContextTarget) => {
+    const actions: ContextMenuAction[] =
+      target.kind === "group"
+        ? [
+            ...target.additions.map((addition) => {
+              const item =
+                addition === "asset"
+                  ? translate("ui.editorWorkspace.text.asset")
+                  : translate(
+                      `ui.editorWorkspace.declaration.${addition.replaceAll(" ", "-")}`,
+                    );
+              return {
+                id: `add-${addition}`,
+                label: translate("ui.editorWorkspace.text.addItem", { item }),
+                onAction: () => runExplorerAddAction(addition),
+              };
+            }),
+            {
+              id: "toggle",
+              label: translate(
+                target.expanded
+                  ? "ui.editorWorkspace.text.collapse"
+                  : "ui.editorWorkspace.text.expand",
+              ),
+              separatorBefore: target.additions.length > 0,
+              onAction: () =>
+                setExplorerGroupExpanded(target.groupId, !target.expanded),
+            },
+          ]
+        : [
+            {
+              id: "open",
+              label: translate("ui.editorWorkspace.text.open"),
+              onAction: () => {
+                if (target.kind === "symbol") openSymbol(target.symbol);
+                else if (target.kind === "asset") {
+                  if (navigationTab === "content")
+                    openContentAsset(target.path);
+                  else openFileAsset(target.path);
+                } else openTrash(target.entry);
+              },
+            },
+            ...(target.kind === "trash"
+              ? [
+                  {
+                    id: "restore",
+                    label: translate("ui.editorWorkspace.text.restore"),
+                    disabled:
+                      target.entry.kind === "asset" &&
+                      Boolean(workspace.assets[target.entry.originalPath]),
+                    onAction: () => restoreTrashEntry(target.entry),
+                  },
+                ]
+              : []),
+            {
+              id: "delete",
+              label: translate("ui.editorWorkspace.text.delete"),
+              danger: true,
+              separatorBefore: true,
+              onAction: () => {
+                if (target.kind === "symbol") {
+                  if (settings.editor.permanentlyDeleteSidebarItems)
+                    setPermanentRemoval({
+                      kind: "symbol",
+                      symbol: target.symbol,
+                      label: explorerSymbolLabel(target.symbol),
+                    });
+                  else moveSymbolToTrash(target.symbol);
+                } else if (target.kind === "asset") {
+                  if (settings.editor.permanentlyDeleteSidebarItems)
+                    setPermanentRemoval({
+                      kind: "asset",
+                      path: target.path,
+                      label: assetBasename(target.path),
+                    });
+                  else moveAssetToTrash(target.path);
+                } else
+                  setPermanentRemoval({
+                    kind: "trash",
+                    id: target.entry.id,
+                    label: target.entry.label,
+                  });
+              },
+            },
+          ];
+    return {
+      label: translate(
+        target.kind === "group"
+          ? "ui.editorWorkspace.ariaLabel.sidebarGroupMenu"
+          : "ui.editorWorkspace.ariaLabel.sidebarItemMenu",
+      ),
+      actions,
+    };
   };
 
   const openExplorerContextMenu = (
     event: ReactMouseEvent,
     target: ExplorerContextTarget,
   ) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const estimatedHeight =
-      target.kind === "group" ? 42 * (target.additions.length + 1) + 8 : 150;
-    setExplorerContextMenu({
-      ...target,
-      x: Math.min(event.clientX, window.innerWidth - 190),
-      y: Math.min(event.clientY, window.innerHeight - estimatedHeight),
-    });
+    openContextMenu(event, explorerContextMenuRequest(target));
+  };
+
+  const openExplorerContextMenuFromKeyboard = (
+    event: ReactKeyboardEvent<HTMLElement>,
+    target: ExplorerContextTarget,
+  ) => {
+    openContextMenuFromKeyboard(event, explorerContextMenuRequest(target));
   };
 
   const moveSymbolToTrash = (symbol: FormatSymbol) => {
@@ -1354,7 +1591,6 @@ export function EditorWorkspace({
       setNavigationTab("content");
       setEditingTab(contentEditingTab);
     }
-    setExplorerContextMenu(null);
     setStructuredAnnouncement(
       translate("ui.editorWorkspace.announcement.restoredFromTrash", {
         item: entry.label,
@@ -1386,7 +1622,6 @@ export function EditorWorkspace({
     setSelectedSymbol(null);
     setSelected({ kind: "package" });
     setPermanentRemoval(null);
-    setExplorerContextMenu(null);
     onChange({
       ...workspace,
       files: nextFiles,
@@ -1489,6 +1724,49 @@ export function EditorWorkspace({
     layoutInspectionRef.current?.inspect(bound.path);
   };
 
+  const inspectAppearanceColor = (color: AppearanceColorInspection) => {
+    if (navigationTab !== "content" || previewSelection.kind !== "appearance")
+      return;
+    if (color.layout) {
+      const layoutSymbol = analysis.symbols.find(
+        (symbol) =>
+          symbol.kind === color.layout?.kind &&
+          symbol.handle === color.layout.handle,
+      );
+      if (!layoutSymbol) return;
+      flushSync(() => {
+        openSymbol(layoutSymbol);
+        setEditingTab("structured");
+        setContentEditingTab("structured");
+      });
+      window.requestAnimationFrame(() =>
+        window.requestAnimationFrame(() =>
+          layoutInspectionRef.current?.inspect(color.layout!.path, color.field),
+        ),
+      );
+      return;
+    }
+    flushSync(() => {
+      setEditingTab("structured");
+      setContentEditingTab("structured");
+    });
+    window.requestAnimationFrame(() => {
+      const region = Array.from(
+        editorRootRef.current?.querySelectorAll<HTMLElement>(
+          "[data-appearance-field]",
+        ) ?? [],
+      ).find((candidate) => candidate.dataset.appearanceField === color.field);
+      if (!region) return;
+      const group = region.closest<HTMLDetailsElement>(
+        ".editor-appearance-group",
+      );
+      if (group && !group.open) group.open = true;
+      window.requestAnimationFrame(() =>
+        revealEditorInspection(region, "center"),
+      );
+    });
+  };
+
   const runFormat = () => {
     try {
       const current = workspace.files[file] ?? "";
@@ -1534,7 +1812,10 @@ export function EditorWorkspace({
     [],
   );
 
-  const addAsset = async (candidate: File) => {
+  const addAsset = async (
+    candidate: File,
+    target: AssetImportTarget | null = null,
+  ) => {
     const extension = candidate.name.split(".").at(-1)?.toLocaleLowerCase();
     const allowed = ["png", "jpg", "jpeg", "gif", "webp", "avif", "svg"];
     const limit =
@@ -1570,11 +1851,38 @@ export function EditorWorkspace({
     const path = assetArchivePath(safeName);
     try {
       await validatePackageAsset(path, bytes);
-      const changed = commitWorkspace(workspace.files, {
+      const fieldEdit = target
+        ? setDocumentField(
+            workspace.files,
+            target.symbol,
+            target.field,
+            assetRelativePath(path),
+            target.occurrence,
+          )
+        : null;
+      if (target && !fieldEdit?.changed && fieldEdit?.reason !== "no-change") {
+        onFeedback(assetImportRejectionEvent("validation_failed"));
+        return;
+      }
+      const nextFiles = fieldEdit?.files ?? workspace.files;
+      const changed = commitWorkspace(nextFiles, {
         ...workspace.assets,
         [path]: bytes,
       });
-      if (changed) openContentAsset(path);
+      if (changed && target) {
+        setSelectedSymbol(
+          service
+            .analyze(nextFiles)
+            .symbols.find(
+              (candidate) =>
+                candidate.file === target.symbol.file &&
+                candidate.kind === target.symbol.kind &&
+                candidate.from === target.symbol.from,
+            ) ?? target.symbol,
+        );
+      } else if (changed) {
+        openContentAsset(path);
+      }
       onFeedback("editor.asset.added");
     } catch (error) {
       onFeedback(
@@ -1583,35 +1891,44 @@ export function EditorWorkspace({
     }
   };
 
-  const addTopLevelDeclaration = (kind: keyof typeof addTemplates) => {
-    const target =
-      kind.includes("layout") || kind === "theme"
-        ? "layout.jdef"
-        : kind === "choice"
-          ? "choices.jdef"
-          : "jump.jdef";
-    const template = uniqueTopLevelTemplate(
-      addTemplates[kind],
-      analysis.symbols,
-    );
-    const nextFiles = {
-      ...workspace.files,
-      [target]: (workspace.files[target] ?? "") + template,
-    };
-    commitFiles(nextFiles);
-    setFile(target);
+  const addTopLevelDeclaration = (kind: AddDeclarationKind) => {
     const declarationKind = kind.replace(" ", "-");
-    const added = service
-      .analyze(nextFiles)
-      .symbols.filter(
-        (symbol) => symbol.file === target && symbol.kind === declarationKind,
-      )
-      .at(-1);
+    const result =
+      kind === "jump appearance"
+        ? {
+            changed: true,
+            files: {
+              ...workspace.files,
+              "layout.jdef": insertJumpAppearanceSource(
+                workspace.files["layout.jdef"] ?? "",
+              ),
+            },
+            target: undefined,
+            focusField: "background",
+          }
+        : createTopLevelDocumentDeclaration(
+            workspace.files,
+            declarationKind as CreatableTopLevelDeclarationKind,
+          );
+    commitFiles(result.files);
+    const target =
+      kind === "jump appearance" ? "layout.jdef" : result.target?.file;
+    if (target) setFile(target);
+    const added =
+      result.target ??
+      service
+        .analyze(result.files)
+        .symbols.filter(
+          (symbol) => symbol.file === target && symbol.kind === declarationKind,
+        )
+        .at(-1);
     if (added) {
       setStructuredFocus(
         ["resource", "section", "choice", "theme"].includes(declarationKind)
           ? "handle"
-          : "name",
+          : declarationKind === "jump-appearance"
+            ? "background"
+            : "name",
       );
       openSymbol(added);
       setStructuredAnnouncement(
@@ -1623,12 +1940,20 @@ export function EditorWorkspace({
       );
     }
     setAddOpen(false);
-    setExplorerContextMenu(null);
   };
 
   const requestAssetAddition = () => {
     setAddOpen(false);
-    setExplorerContextMenu(null);
+    assetImportTargetRef.current = null;
+    assetInputRef.current?.click();
+  };
+
+  const requestAssetImport = (
+    symbol: FormatSymbol,
+    field: string,
+    occurrence: number,
+  ) => {
+    assetImportTargetRef.current = { symbol, field, occurrence };
     assetInputRef.current?.click();
   };
 
@@ -1657,7 +1982,11 @@ export function EditorWorkspace({
   ).length;
 
   return (
-    <div className="production-editor" aria-label={`${summary.name} Editor`}>
+    <div
+      className="production-editor"
+      aria-label={`${summary.name} Editor`}
+      ref={editorRootRef}
+    >
       <div className="editor-project-toolbar">
         <strong title={summary.name}>{summary.name}</strong>
         <span
@@ -1701,19 +2030,25 @@ export function EditorWorkspace({
           </button>
           {addOpen && (
             <div className="editor-add-options">
-              {Object.keys(addTemplates).map((kind) => (
-                <button
-                  type="button"
-                  key={kind}
-                  onClick={() =>
-                    addTopLevelDeclaration(kind as keyof typeof addTemplates)
-                  }
-                >
-                  {translate(
-                    `ui.editorWorkspace.declaration.${kind.replaceAll(" ", "-")}`,
-                  )}
-                </button>
-              ))}
+              {addDeclarationKinds
+                .filter(
+                  (kind) =>
+                    kind !== "jump appearance" ||
+                    !analysis.symbols.some(
+                      (symbol) => symbol.kind === "jump-appearance",
+                    ),
+                )
+                .map((kind) => (
+                  <button
+                    type="button"
+                    key={kind}
+                    onClick={() => addTopLevelDeclaration(kind)}
+                  >
+                    {translate(
+                      `ui.editorWorkspace.declaration.${kind.replaceAll(" ", "-")}`,
+                    )}
+                  </button>
+                ))}
               <button type="button" onClick={requestAssetAddition}>
                 {translate("ui.editorWorkspace.text.asset")}
               </button>
@@ -1726,7 +2061,9 @@ export function EditorWorkspace({
             accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml"
             onChange={(event) => {
               const candidate = event.target.files?.[0];
-              if (candidate) void addAsset(candidate);
+              const target = assetImportTargetRef.current;
+              assetImportTargetRef.current = null;
+              if (candidate) void addAsset(candidate, target);
               event.currentTarget.value = "";
             }}
           />
@@ -1802,6 +2139,37 @@ export function EditorWorkspace({
                   setEditingTab(contentEditingTab);
                 }}
               />
+              {(() => {
+                const appearance = visibleSymbols.find(
+                  (symbol) =>
+                    symbol.depth === 0 && symbol.kind === "jump-appearance",
+                );
+                return appearance ? (
+                  <ExplorerEntryButton
+                    className={
+                      selectedSymbol?.file === appearance.file &&
+                      selectedSymbol.from === appearance.from
+                        ? "is-selected"
+                        : ""
+                    }
+                    label={translate("ui.editorWorkspace.text.jumpAppearance")}
+                    onClick={() => openSymbol(appearance)}
+                    onContextMenu={(event) =>
+                      openExplorerContextMenu(event, {
+                        kind: "symbol",
+                        symbol: appearance,
+                      })
+                    }
+                    onKeyDown={(event) =>
+                      openExplorerContextMenuFromKeyboard(event, {
+                        kind: "symbol",
+                        symbol: appearance,
+                      })
+                    }
+                    aria-haspopup="menu"
+                  />
+                ) : null;
+              })()}
               {declarationGroups.map(({ id, heading, kinds, additions }) => {
                 const symbols = visibleSymbols.filter(
                   (symbol) =>
@@ -1823,6 +2191,14 @@ export function EditorWorkspace({
                     }
                     onContextMenu={(event) =>
                       openExplorerContextMenu(event, {
+                        kind: "group",
+                        groupId,
+                        expanded,
+                        additions,
+                      })
+                    }
+                    onContextMenuKey={(event) =>
+                      openExplorerContextMenuFromKeyboard(event, {
                         kind: "group",
                         groupId,
                         expanded,
@@ -1860,6 +2236,13 @@ export function EditorWorkspace({
                             symbol,
                           })
                         }
+                        onKeyDown={(event) =>
+                          openExplorerContextMenuFromKeyboard(event, {
+                            kind: "symbol",
+                            symbol,
+                          })
+                        }
+                        aria-haspopup="menu"
                       />
                     ))}
                   </ExplorerDisclosure>
@@ -1936,6 +2319,14 @@ export function EditorWorkspace({
                         additions: ["asset"],
                       })
                     }
+                    onContextMenuKey={(event) =>
+                      openExplorerContextMenuFromKeyboard(event, {
+                        kind: "group",
+                        groupId,
+                        expanded,
+                        additions: ["asset"],
+                      })
+                    }
                   >
                     <AssetExplorerEntries
                       entries={buildAssetTree(assets)}
@@ -1944,6 +2335,12 @@ export function EditorWorkspace({
                       onOpenAsset={openContentAsset}
                       onContextAsset={(path, event) =>
                         openExplorerContextMenu(event, { kind: "asset", path })
+                      }
+                      onContextAssetKey={(path, event) =>
+                        openExplorerContextMenuFromKeyboard(event, {
+                          kind: "asset",
+                          path,
+                        })
                       }
                     />
                   </ExplorerDisclosure>
@@ -1966,9 +2363,23 @@ export function EditorWorkspace({
                     additions: [],
                   })
                 }
+                onContextGroupKey={(event) =>
+                  openExplorerContextMenuFromKeyboard(event, {
+                    kind: "group",
+                    groupId: "content:trash",
+                    expanded: isExplorerGroupExpanded("content:trash"),
+                    additions: [],
+                  })
+                }
                 onOpen={openTrash}
                 onContext={(entry, event) =>
                   openExplorerContextMenu(event, { kind: "trash", entry })
+                }
+                onContextKey={(entry, event) =>
+                  openExplorerContextMenuFromKeyboard(event, {
+                    kind: "trash",
+                    entry,
+                  })
                 }
               />
             </div>
@@ -2008,6 +2419,14 @@ export function EditorWorkspace({
                     additions: ["asset"],
                   })
                 }
+                onContextMenuKey={(event) =>
+                  openExplorerContextMenuFromKeyboard(event, {
+                    kind: "group",
+                    groupId: "files:assets",
+                    expanded: isExplorerGroupExpanded("files:assets"),
+                    additions: ["asset"],
+                  })
+                }
               >
                 <AssetExplorerEntries
                   entries={buildAssetTree(Object.keys(workspace.assets))}
@@ -2016,6 +2435,12 @@ export function EditorWorkspace({
                   onOpenAsset={openFileAsset}
                   onContextAsset={(path, event) =>
                     openExplorerContextMenu(event, { kind: "asset", path })
+                  }
+                  onContextAssetKey={(path, event) =>
+                    openExplorerContextMenuFromKeyboard(event, {
+                      kind: "asset",
+                      path,
+                    })
                   }
                 />
               </ExplorerDisclosure>
@@ -2036,9 +2461,23 @@ export function EditorWorkspace({
                     additions: [],
                   })
                 }
+                onContextGroupKey={(event) =>
+                  openExplorerContextMenuFromKeyboard(event, {
+                    kind: "group",
+                    groupId: "files:trash",
+                    expanded: isExplorerGroupExpanded("files:trash"),
+                    additions: [],
+                  })
+                }
                 onOpen={openTrash}
                 onContext={(entry, event) =>
                   openExplorerContextMenu(event, { kind: "trash", entry })
+                }
+                onContextKey={(entry, event) =>
+                  openExplorerContextMenuFromKeyboard(event, {
+                    kind: "trash",
+                    entry,
+                  })
                 }
               />
             </div>
@@ -2125,6 +2564,7 @@ export function EditorWorkspace({
                   if (jump) openSymbol(jump);
                 }}
                 onEndFieldEdit={endHistoryGroup}
+                onImportAsset={requestAssetImport}
                 onUpdate={(symbol, field, value, occurrence = 0) => {
                   const result = setDocumentField(
                     workspace.files,
@@ -2189,6 +2629,43 @@ export function EditorWorkspace({
                   );
                 }}
                 onCreateResource={(owner) => setResourceCreation({ owner })}
+                onCreateReference={(
+                  owner,
+                  field,
+                  occurrence,
+                  kind,
+                  options,
+                  returnTarget,
+                ) => {
+                  const result = createAndAssignTopLevelDocumentReference(
+                    workspace.files,
+                    owner,
+                    field,
+                    occurrence,
+                    kind,
+                    options,
+                  );
+                  if (!result.changed || !result.target) return;
+                  commitFiles(result.files);
+                  setStructuredFocus(result.focusField ?? null);
+                  openSymbol(result.target);
+                  setStructuredReturnTarget(returnTarget ?? owner);
+                  setStructuredAnnouncement(
+                    translate(
+                      "ui.editorWorkspace.announcement.referenceCreated",
+                      {
+                        declaration: translate(
+                          `ui.editorWorkspace.declaration.${kind}`,
+                        ),
+                      },
+                    ),
+                  );
+                }}
+                onOpenCreatedContent={(target, returnTarget, focusField) => {
+                  setStructuredFocus(focusField);
+                  openSymbol(target);
+                  setStructuredReturnTarget(returnTarget);
+                }}
                 onRemoveChild={(owner, child) => {
                   const result = removeDocumentDeclaration(
                     workspace.files,
@@ -2742,14 +3219,47 @@ export function EditorWorkspace({
                 </strong>
                 <small>{previewStatus}</small>
               </span>
-              <div className="editor-preview-toggles">
+              <div
+                className={`editor-preview-toggles${previewSelection.kind === "appearance" ? " is-appearance" : ""}`}
+              >
+                {previewSelection.kind === "appearance" && (
+                  <span
+                    className="editor-preview-mode"
+                    role="group"
+                    aria-label={translate(
+                      "ui.editorWorkspace.ariaLabel.appearancePreviewMode",
+                    )}
+                  >
+                    {(["jump", "components"] as const).map((mode) => (
+                      <button
+                        type="button"
+                        aria-pressed={appearancePreviewMode === mode}
+                        key={mode}
+                        onClick={() => setAppearancePreviewMode(mode)}
+                      >
+                        {translate(
+                          `ui.editorWorkspace.text.appearancePreview${mode === "jump" ? "Jump" : "Components"}`,
+                        )}
+                      </button>
+                    ))}
+                  </span>
+                )}
                 <label>
                   <input
                     type="checkbox"
+                    aria-label={
+                      previewSelection.kind === "appearance"
+                        ? translate("ui.editorWorkspace.text.inspectColors")
+                        : undefined
+                    }
                     checked={showBounds}
                     onChange={(event) => setShowBounds(event.target.checked)}
                   />{" "}
-                  {translate("ui.editorWorkspace.text.showBounds")}
+                  {translate(
+                    previewSelection.kind === "appearance"
+                      ? "ui.editorWorkspace.text.inspect"
+                      : "ui.editorWorkspace.text.showBounds",
+                  )}
                 </label>
                 <label>
                   <input
@@ -2762,44 +3272,119 @@ export function EditorWorkspace({
               </div>
             </div>
             <div className="editor-bounds-tools" hidden={!showBounds}>
-              <div
-                className="editor-bounds-legend"
-                aria-label={translate(
-                  "ui.editorWorkspace.ariaLabel.layoutBoundsLegend",
-                )}
-              >
-                <span className="is-container">
-                  {translate("ui.editorWorkspace.text.container")}
-                </span>
-                <span className="is-slot">
-                  {translate("ui.editorWorkspace.text.slot")}
-                </span>
-                <span className="is-reference">
-                  {translate("ui.editorWorkspace.text.reference")}
-                </span>
-              </div>
-              <output
-                className="editor-bound-readout"
-                data-layout-bound-kind={hoveredBound?.kind}
-                aria-label={translate(
-                  "ui.editorWorkspace.ariaLabel.layoutBoundReadout",
-                )}
-                aria-live="polite"
-              >
-                <i aria-hidden="true" />
-                <span>
-                  {hoveredBound
-                    ? translate("ui.editorWorkspace.text.layoutBoundReadout", {
-                        kind: translate(
-                          `ui.editorWorkspace.text.${hoveredBound.kind}`,
-                        ),
-                        path: hoveredBound.path,
-                      })
-                    : translate(
-                        "ui.editorWorkspace.text.layoutBoundReadoutIdle",
+              {previewSelection.kind === "appearance" ? (
+                <>
+                  <div
+                    className="editor-bounds-legend editor-appearance-color-legend"
+                    aria-label={translate(
+                      "ui.editorWorkspace.ariaLabel.appearanceColorLegend",
+                    )}
+                  >
+                    {(["background", "text", "border", "accent"] as const).map(
+                      (kind) => (
+                        <span className={`is-${kind}`} key={kind}>
+                          {translate(
+                            `ui.editorWorkspace.text.appearanceColorKind${kind[0].toLocaleUpperCase()}${kind.slice(1)}`,
+                          )}
+                        </span>
+                      ),
+                    )}
+                    <span className="is-layout-override">
+                      {translate(
+                        "ui.editorWorkspace.text.appearanceColorLayoutOverride",
                       )}
-                </span>
-              </output>
+                    </span>
+                  </div>
+                  <output
+                    className="editor-bound-readout"
+                    data-appearance-color-kind={hoveredAppearanceColor?.kind}
+                    data-appearance-color-owner={
+                      hoveredAppearanceColor?.layout
+                        ? "layout"
+                        : hoveredAppearanceColor
+                          ? "appearance"
+                          : undefined
+                    }
+                    aria-label={translate(
+                      "ui.editorWorkspace.ariaLabel.appearanceColorReadout",
+                    )}
+                    aria-live="polite"
+                  >
+                    <i aria-hidden="true" />
+                    <span>
+                      {hoveredAppearanceColor
+                        ? hoveredAppearanceColor.layout
+                          ? translate(
+                              "ui.editorWorkspace.text.appearanceLayoutColorReadout",
+                              {
+                                kind: translate(
+                                  `ui.editorWorkspace.text.${hoveredAppearanceColor.layout.kind === "section-layout" ? "sectionLayout" : hoveredAppearanceColor.layout.kind === "choice-layout" ? "choiceLayout" : "traitLayout"}`,
+                                ),
+                                handle: hoveredAppearanceColor.layout.handle,
+                                field: translate(
+                                  `ui.editorWorkspace.layoutField.${hoveredAppearanceColor.field}`,
+                                ),
+                              },
+                            )
+                          : translate(
+                              "ui.editorWorkspace.text.appearanceColorReadout",
+                              {
+                                field: translate(
+                                  `ui.editorWorkspace.appearanceField.${hoveredAppearanceColor.field}`,
+                                ),
+                              },
+                            )
+                        : translate(
+                            "ui.editorWorkspace.text.appearanceColorReadoutIdle",
+                          )}
+                    </span>
+                  </output>
+                </>
+              ) : (
+                <>
+                  <div
+                    className="editor-bounds-legend"
+                    aria-label={translate(
+                      "ui.editorWorkspace.ariaLabel.layoutBoundsLegend",
+                    )}
+                  >
+                    <span className="is-container">
+                      {translate("ui.editorWorkspace.text.container")}
+                    </span>
+                    <span className="is-slot">
+                      {translate("ui.editorWorkspace.text.slot")}
+                    </span>
+                    <span className="is-reference">
+                      {translate("ui.editorWorkspace.text.reference")}
+                    </span>
+                  </div>
+                  <output
+                    className="editor-bound-readout"
+                    data-layout-bound-kind={hoveredBound?.kind}
+                    aria-label={translate(
+                      "ui.editorWorkspace.ariaLabel.layoutBoundReadout",
+                    )}
+                    aria-live="polite"
+                  >
+                    <i aria-hidden="true" />
+                    <span>
+                      {hoveredBound
+                        ? translate(
+                            "ui.editorWorkspace.text.layoutBoundReadout",
+                            {
+                              kind: translate(
+                                `ui.editorWorkspace.text.${hoveredBound.kind}`,
+                              ),
+                              path: hoveredBound.path,
+                            },
+                          )
+                        : translate(
+                            "ui.editorWorkspace.text.layoutBoundReadoutIdle",
+                          )}
+                    </span>
+                  </output>
+                </>
+              )}
             </div>
             <div className="editor-preview-scroll">
               <JumpPreview
@@ -2815,6 +3400,9 @@ export function EditorWorkspace({
                 hoveredBound={hoveredBound}
                 onHoveredBoundChange={setHoveredBound}
                 onBoundActivate={inspectLayoutBound}
+                hoveredAppearanceColor={hoveredAppearanceColor}
+                onHoveredAppearanceColorChange={setHoveredAppearanceColor}
+                onAppearanceColorActivate={inspectAppearanceColor}
               />
             </div>
           </div>
@@ -2872,9 +3460,10 @@ export function EditorWorkspace({
             aria-expanded={diagnosticsOpen}
             onClick={() => setDiagnosticsOpen((value) => !value)}
           >
-            <span className="editor-diagnostics-chevron" aria-hidden="true">
-              ›
-            </span>
+            <Chevron
+              className="editor-diagnostics-chevron"
+              direction={diagnosticsOpen ? "down" : "right"}
+            />
             <span>{translate("ui.editorWorkspace.text.diagnostics")}</span>
           </button>
           <div
@@ -2981,131 +3570,6 @@ export function EditorWorkspace({
           </div>
         )}
       </section>
-      {explorerContextMenu && (
-        <div
-          ref={explorerContextMenuRef}
-          className="editor-explorer-context-menu"
-          role="menu"
-          aria-label={translate(
-            explorerContextMenu.kind === "group"
-              ? "ui.editorWorkspace.ariaLabel.sidebarGroupMenu"
-              : "ui.editorWorkspace.ariaLabel.sidebarItemMenu",
-          )}
-          style={{ left: explorerContextMenu.x, top: explorerContextMenu.y }}
-        >
-          {explorerContextMenu.kind === "group" ? (
-            <>
-              {explorerContextMenu.additions.map((addition, index) => {
-                const item =
-                  addition === "asset"
-                    ? translate("ui.editorWorkspace.text.asset")
-                    : translate(
-                        `ui.editorWorkspace.declaration.${addition.replaceAll(" ", "-")}`,
-                      );
-                return (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    autoFocus={index === 0}
-                    key={addition}
-                    onClick={() => runExplorerAddAction(addition)}
-                  >
-                    {translate("ui.editorWorkspace.text.addItem", { item })}
-                  </button>
-                );
-              })}
-              <button
-                type="button"
-                role="menuitem"
-                autoFocus={!explorerContextMenu.additions.length}
-                onClick={() => {
-                  setExplorerGroupExpanded(
-                    explorerContextMenu.groupId,
-                    !explorerContextMenu.expanded,
-                  );
-                  setExplorerContextMenu(null);
-                }}
-              >
-                {translate(
-                  explorerContextMenu.expanded
-                    ? "ui.editorWorkspace.text.collapse"
-                    : "ui.editorWorkspace.text.expand",
-                )}
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                role="menuitem"
-                autoFocus
-                onClick={() => {
-                  if (explorerContextMenu.kind === "symbol")
-                    openSymbol(explorerContextMenu.symbol);
-                  else if (explorerContextMenu.kind === "asset") {
-                    if (navigationTab === "content")
-                      openContentAsset(explorerContextMenu.path);
-                    else openFileAsset(explorerContextMenu.path);
-                  } else openTrash(explorerContextMenu.entry);
-                  setExplorerContextMenu(null);
-                }}
-              >
-                {translate("ui.editorWorkspace.text.open")}
-              </button>
-              {explorerContextMenu.kind === "trash" && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  disabled={
-                    explorerContextMenu.entry.kind === "asset" &&
-                    Boolean(
-                      workspace.assets[explorerContextMenu.entry.originalPath],
-                    )
-                  }
-                  onClick={() => restoreTrashEntry(explorerContextMenu.entry)}
-                >
-                  {translate("ui.editorWorkspace.text.restore")}
-                </button>
-              )}
-              <button
-                type="button"
-                role="menuitem"
-                className="is-danger"
-                onClick={() => {
-                  if (explorerContextMenu.kind === "symbol") {
-                    if (settings.editor.permanentlyDeleteSidebarItems) {
-                      setPermanentRemoval({
-                        kind: "symbol",
-                        symbol: explorerContextMenu.symbol,
-                        label: explorerSymbolLabel(explorerContextMenu.symbol),
-                      });
-                      setExplorerContextMenu(null);
-                    } else moveSymbolToTrash(explorerContextMenu.symbol);
-                  } else if (explorerContextMenu.kind === "asset") {
-                    if (settings.editor.permanentlyDeleteSidebarItems) {
-                      setPermanentRemoval({
-                        kind: "asset",
-                        path: explorerContextMenu.path,
-                        label: assetBasename(explorerContextMenu.path),
-                      });
-                      setExplorerContextMenu(null);
-                    } else moveAssetToTrash(explorerContextMenu.path);
-                  } else {
-                    setPermanentRemoval({
-                      kind: "trash",
-                      id: explorerContextMenu.entry.id,
-                      label: explorerContextMenu.entry.label,
-                    });
-                    setExplorerContextMenu(null);
-                  }
-                }}
-              >
-                {translate("ui.editorWorkspace.text.delete")}
-              </button>
-            </>
-          )}
-        </div>
-      )}
       {resourceCreation && (
         <ResourceCreationDialog
           onCancel={() => setResourceCreation(null)}
@@ -3154,6 +3618,7 @@ function LayoutNodeFields({
   files,
   symbol,
   onEndFieldEdit,
+  onCreateTheme,
   onUpdate,
   fields,
   showHeading = true,
@@ -3163,6 +3628,7 @@ function LayoutNodeFields({
   files: Readonly<Record<string, string>>;
   symbol: FormatSymbol;
   onEndFieldEdit: () => void;
+  onCreateTheme: (symbol: FormatSymbol, field: string, color: string) => void;
   onUpdate: (
     symbol: FormatSymbol,
     field: string,
@@ -3254,7 +3720,11 @@ function LayoutNodeFields({
               : undefined,
         });
         return (
-          <div className="editor-schema-field" key={fieldName}>
+          <div
+            className="editor-schema-field"
+            data-layout-field={fieldName}
+            key={fieldName}
+          >
             <div
               className={`editor-field-occurrence${fieldSeverity ? ` is-${fieldSeverity}` : ""}`}
             >
@@ -3278,6 +3748,18 @@ function LayoutNodeFields({
                   }
                   onChange={(nextValue) =>
                     onUpdate(symbol, fieldName, nextValue)
+                  }
+                  onCreateTheme={(displayedColor, resolvedColor) =>
+                    onCreateTheme(
+                      symbol,
+                      fieldName,
+                      normalizeFormat1HexColor(displayedColor) ??
+                        colorChoices.find(
+                          (choice) => choice.value === displayedColor,
+                        )?.color ??
+                        (displayedColor ? resolvedColor : undefined) ??
+                        "#68707C",
+                    )
                   }
                   onBlur={onEndFieldEdit}
                 />
@@ -3399,6 +3881,22 @@ function LayoutNodeFields({
                     }
                   />
                 </span>
+              ) : referenceKind ? (
+                <HandleFieldControl
+                  label={fieldLabel}
+                  value={value}
+                  options={references}
+                  ariaInvalid={matchingDiagnostics.length > 0}
+                  ariaDescribedBy={
+                    matchingDiagnostics.length
+                      ? `${listId}-diagnostics`
+                      : undefined
+                  }
+                  onChange={(nextValue) =>
+                    onUpdate(symbol, fieldName, nextValue)
+                  }
+                  onBlur={onEndFieldEdit}
+                />
               ) : (
                 <input
                   aria-label={fieldLabel}
@@ -3427,7 +3925,7 @@ function LayoutNodeFields({
                   ))}
                 </span>
               )}
-              {references.length > 0 && (
+              {!referenceKind && references.length > 0 && (
                 <datalist id={listId}>
                   {references.map((reference) => (
                     <option key={reference} value={reference} />
@@ -3563,6 +4061,11 @@ type LayoutDropTarget = {
   placement: "before" | "inside" | "after";
 };
 
+type LayoutContentCreationRequest = {
+  kind: "text" | "image" | "input";
+  node: LayoutNodeRef | null;
+};
+
 function LayoutTreeEditor({
   assets,
   diagnostics,
@@ -3575,6 +4078,9 @@ function LayoutTreeEditor({
   activeContainerPath,
   selectionKey,
   onActiveContainerChange,
+  returnTarget,
+  onOpenCreatedContent,
+  onCreateReference,
 }: {
   assets: readonly string[];
   diagnostics: readonly PackageDiagnostic[];
@@ -3591,7 +4097,22 @@ function LayoutTreeEditor({
   activeContainerPath: string | null;
   selectionKey: string | null;
   onActiveContainerChange: (selectionKey: string, path: string) => void;
+  returnTarget: FormatSymbol | null;
+  onOpenCreatedContent: (
+    target: FormatSymbol,
+    returnTarget: FormatSymbol,
+    focusField: string | null,
+  ) => void;
+  onCreateReference: (
+    symbol: FormatSymbol,
+    field: string,
+    occurrence: number,
+    kind: CreatableTopLevelDeclarationKind,
+    options?: { color?: string },
+    returnTarget?: FormatSymbol,
+  ) => void;
 }) {
+  const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const tree = useMemo(
     () => createLayoutEditorTree(files, layout),
     [files, layout],
@@ -3616,11 +4137,13 @@ function LayoutTreeEditor({
   const dropTargetRef = useRef<LayoutDropTarget | null>(null);
   const [containerPresentationOpen, setContainerPresentationOpen] =
     useState(false);
+  const [contentCreation, setContentCreation] =
+    useState<LayoutContentCreationRequest | null>(null);
 
   useImperativeHandle(
     inspectionRef,
     () => ({
-      inspect: (path) => {
+      inspect: (path, field) => {
         if (!tree) return;
         const node = layoutNodeForPath(tree, path);
         if (!node) return;
@@ -3633,27 +4156,35 @@ function LayoutTreeEditor({
               : undefined;
             if (parent) setSelectedContainer(layoutNodeReference(parent));
           }
-          setEditingNode(null);
-          setContainerPresentationOpen(false);
-          setInspectedPath(path);
+          setEditingNode(
+            !node.container && field ? layoutNodeReference(node) : null,
+          );
+          setContainerPresentationOpen(Boolean(node.container && field));
+          setInspectedPath(field ? null : path);
         });
         window.requestAnimationFrame(() => {
-          const region = Array.from(
-            editorRef.current?.querySelectorAll<HTMLElement>(
+          window.requestAnimationFrame(() => {
+            const nodeRegion = Array.from(
+              editorRef.current?.querySelectorAll<HTMLElement>(
+                node.container
+                  ? "[data-layout-container-editor-path]"
+                  : "[data-layout-node-path]",
+              ) ?? [],
+            ).find((candidate) =>
               node.container
-                ? "[data-layout-container-editor-path]"
-                : "[data-layout-node-path]",
-            ) ?? [],
-          ).find((candidate) =>
-            node.container
-              ? candidate.dataset.layoutContainerEditorPath === node.path
-              : candidate.dataset.layoutNodePath === node.path,
-          );
-          if (!region) return;
-          region.classList.remove("is-layout-inspected");
-          void region.offsetWidth;
-          region.classList.add("is-layout-inspected");
-          region.scrollIntoView({ block: "nearest", inline: "nearest" });
+                ? candidate.dataset.layoutContainerEditorPath === node.path
+                : candidate.dataset.layoutNodePath === node.path,
+            );
+            const fieldRegion = field
+              ? Array.from(
+                  nodeRegion?.querySelectorAll<HTMLElement>(
+                    "[data-layout-field]",
+                  ) ?? [],
+                ).find((candidate) => candidate.dataset.layoutField === field)
+              : undefined;
+            if (fieldRegion) revealEditorInspection(fieldRegion, "center");
+            else if (nodeRegion) revealEditorInspection(nodeRegion);
+          });
         });
       },
     }),
@@ -3713,6 +4244,41 @@ function LayoutTreeEditor({
         return candidate.kind === kind;
       })
       .flatMap((candidate) => candidate.handle ?? []);
+  const jumpSymbol = symbols.find((candidate) => candidate.kind === "jump");
+  const defaultLayoutField = layout.kind;
+  const defaultLayoutHandle = jumpSymbol
+    ? readSourceField(files[jumpSymbol.file], jumpSymbol, defaultLayoutField)
+    : "";
+  const compatibleContentOwners = (
+    kind: LayoutContentCreationRequest["kind"],
+  ) =>
+    symbols
+      .filter((candidate) => {
+        const compatibleOwner =
+          layout.kind === "section-layout"
+            ? candidate.kind === "section"
+            : layout.kind === "choice-layout"
+              ? candidate.kind === "choice" && candidate.depth === 0
+              : candidate.kind === "grant" &&
+                readSourceField(files[candidate.file], candidate, "kind") ===
+                  "trait";
+        if (!compatibleOwner) return false;
+        if (!structuredContext(files, candidate)?.childKinds.includes(kind))
+          return false;
+        const authoredLayout = readSourceField(
+          files[candidate.file],
+          candidate,
+          "layout",
+        );
+        return (authoredLayout || defaultLayoutHandle) === layout.handle;
+      })
+      .sort((left, right) => {
+        const leftIsReturn =
+          returnTarget?.file === left.file && returnTarget.from === left.from;
+        const rightIsReturn =
+          returnTarget?.file === right.file && returnTarget.from === right.from;
+        return Number(rightIsReturn) - Number(leftIsReturn);
+      });
   const targetValues = newKind === "slot" ? slots : referenceValues(newKind);
   const targetRequired = ["slot", "text", "image", "input", "choice"].includes(
     newKind,
@@ -3740,6 +4306,36 @@ function LayoutTreeEditor({
       setSelectedContainer(result.target);
     }
     if (result.target && select === "node") setEditingNode(result.target);
+  };
+  const createAndAssignContent = (
+    request: LayoutContentCreationRequest,
+    owner: FormatSymbol,
+  ) => {
+    const created = insertDocumentChild(files, owner, request.kind);
+    if (!created.changed || !created.target?.handle) return false;
+    const layoutResult = request.node
+      ? setLayoutNodeTarget(
+          created.files,
+          layout,
+          request.node,
+          created.target.handle,
+        )
+      : selectedRef
+        ? insertLayoutChild(created.files, layout, selectedRef, request.kind, {
+            target: created.target.handle,
+          })
+        : { changed: false, files: created.files };
+    if (!layoutResult.changed) return false;
+    onApply(
+      { changed: true, files: layoutResult.files },
+      translate("ui.editorWorkspace.announcement.contentTargetCreated", {
+        declaration: displayKind(request.kind),
+        owner: explorerSymbolLabel(owner),
+      }),
+    );
+    setContentCreation(null);
+    onOpenCreatedContent(created.target, layout, created.focusField ?? null);
+    return true;
   };
   const applyReparent = (
     result: LayoutEditResult,
@@ -3997,7 +4593,7 @@ function LayoutTreeEditor({
           {selected && (
             <div
               className={`editor-layout-selected-editor${
-                inspectedPath === selected.path ? " is-layout-inspected" : ""
+                inspectedPath === selected.path ? " is-editor-inspected" : ""
               }`}
               data-layout-container-editor-path={selected.path}
               tabIndex={-1}
@@ -4041,6 +4637,9 @@ function LayoutTreeEditor({
                 files={files}
                 symbol={layoutNodeSymbol(layout, selected)}
                 onEndFieldEdit={onEndFieldEdit}
+                onCreateTheme={(node, field, color) =>
+                  onCreateReference(node, field, 0, "theme", { color }, layout)
+                }
                 onUpdate={updateLayoutField}
                 fields={["columns", "gap"]}
                 showHeading={false}
@@ -4071,6 +4670,16 @@ function LayoutTreeEditor({
                     files={files}
                     symbol={layoutNodeSymbol(layout, selected)}
                     onEndFieldEdit={onEndFieldEdit}
+                    onCreateTheme={(node, field, color) =>
+                      onCreateReference(
+                        node,
+                        field,
+                        0,
+                        "theme",
+                        { color },
+                        layout,
+                      )
+                    }
                     onUpdate={updateLayoutField}
                     fields={[
                       "padding",
@@ -4080,6 +4689,10 @@ function LayoutTreeEditor({
                       "text-align",
                       "text-size",
                       "text-color",
+                      "border-color",
+                      "border-width",
+                      "border-style",
+                      "corners",
                     ]}
                     showHeading={false}
                   />
@@ -4118,7 +4731,6 @@ function LayoutTreeEditor({
             {children.map((node, index) => {
               const isMoving = moving?.id === node.id;
               const movePanelId = `layout-move-${node.id.replaceAll(":", "-")}`;
-              const targetListId = `layout-target-${node.id.replaceAll(":", "-")}`;
               const nodeReferenceValues = referenceValues(node.kind);
               const nodeDiagnostics = diagnosticsForLayoutNode(
                 diagnostics,
@@ -4135,6 +4747,110 @@ function LayoutTreeEditor({
                 !node.compact &&
                 node.fieldNames.length === 1 &&
                 node.fieldNames[0] === "target";
+              const startMove = () => {
+                if (isMoving) {
+                  setMovingNode(null);
+                  return;
+                }
+                setMovingNode(layoutNodeReference(node));
+                const destination = destinationsForNode(node)[0];
+                setMoveDestination(destination?.id ?? "");
+              };
+              const togglePresentation = () => {
+                if (node.compact)
+                  apply(
+                    expandLayoutLeaf(files, layout, layoutNodeReference(node)),
+                    announce("layoutNodeExpanded", node.kind),
+                    "node",
+                  );
+                else if (edited?.id === node.id) {
+                  if (canCompact)
+                    apply(
+                      collapseLayoutLeaf(
+                        files,
+                        layout,
+                        layoutNodeReference(node),
+                      ),
+                      announce("layoutNodeCollapsed", node.kind),
+                    );
+                  setEditingNode(null);
+                } else setEditingNode(layoutNodeReference(node));
+              };
+              const reorder = (direction: "up" | "down") =>
+                apply(
+                  reorderLayoutNode(
+                    files,
+                    layout,
+                    layoutNodeReference(node),
+                    direction,
+                  ),
+                  announce("layoutNodeReordered", node.kind),
+                );
+              const remove = () => {
+                apply(
+                  removeLayoutNode(files, layout, layoutNodeReference(node)),
+                  announce("layoutNodeRemoved", node.kind),
+                );
+                setEditingNode(null);
+              };
+              const menu = {
+                label: translate(
+                  "ui.editorWorkspace.ariaLabel.layoutNodeActions",
+                  { node: displayKind(node.kind) },
+                ),
+                actions: [
+                  ...(node.container
+                    ? [
+                        {
+                          id: "open",
+                          label: translate("common.open"),
+                          onAction: () => selectActiveContainer(node),
+                        },
+                      ]
+                    : []),
+                  {
+                    id: "move",
+                    label: translate("ui.editorWorkspace.text.moveEllipsis"),
+                    disabled:
+                      !tree.structurallySafe ||
+                      destinationsForNode(node).length === 0,
+                    onAction: startMove,
+                  },
+                  {
+                    id: "presentation",
+                    label: translate(
+                      node.compact
+                        ? "ui.editorWorkspace.text.expandToFields"
+                        : edited?.id === node.id && canCompact
+                          ? "ui.editorWorkspace.text.collapseToShorthand"
+                          : "ui.editorWorkspace.text.editPresentation",
+                    ),
+                    disabled: !tree.structurallySafe,
+                    onAction: togglePresentation,
+                  },
+                  {
+                    id: "up",
+                    label: translate("common.moveUp"),
+                    disabled: !tree.structurallySafe || index === 0,
+                    onAction: () => reorder("up"),
+                  },
+                  {
+                    id: "down",
+                    label: translate("common.moveDown"),
+                    disabled:
+                      !tree.structurallySafe || index === children.length - 1,
+                    onAction: () => reorder("down"),
+                  },
+                  {
+                    id: "remove",
+                    label: translate("common.remove"),
+                    disabled: !tree.structurallySafe,
+                    danger: true,
+                    separatorBefore: true,
+                    onAction: remove,
+                  },
+                ],
+              };
               return (
                 <div
                   className={`editor-layout-row${
@@ -4146,13 +4862,14 @@ function LayoutTreeEditor({
                       ? ` drop-${dropTarget.placement}`
                       : ""
                   }${
-                    inspectedPath === node.path ? " is-layout-inspected" : ""
+                    inspectedPath === node.path ? " is-editor-inspected" : ""
                   }`}
                   draggable={tree.structurallySafe && !layoutDragBoundaryActive}
                   data-layout-node-kind={node.kind}
                   data-layout-node-path={node.path}
                   tabIndex={-1}
                   key={node.id}
+                  onContextMenu={(event) => openContextMenu(event, menu)}
                   onPointerDownCapture={(event) =>
                     beginLayoutControlGesture(event.currentTarget, event.target)
                   }
@@ -4299,68 +5016,114 @@ function LayoutTreeEditor({
                       </select>
                     ) : node.kind === "expand" ? (
                       <div className="editor-layout-expand-controls">
-                        <input
-                          aria-label={translate(
-                            "ui.editorWorkspace.text.source",
-                          )}
-                          defaultValue={node.source ?? ""}
-                          list="layout-choice-sources"
-                          {...diagnosticAttributes}
-                          onBlur={(event) => {
+                        <HandleFieldControl
+                          label={translate("ui.editorWorkspace.text.source")}
+                          value={node.source ?? ""}
+                          options={referenceValues("choice-source")}
+                          ariaInvalid={nodeDiagnostics.length > 0}
+                          ariaDescribedBy={
+                            nodeDiagnostics.length
+                              ? nodeDiagnosticId
+                              : undefined
+                          }
+                          commitOnBlur
+                          onChange={(nextValue) => {
                             updateLayoutField(
                               layoutNodeSymbol(layout, node),
                               "source",
-                              event.target.value,
+                              nextValue,
                             );
-                            onEndFieldEdit();
                           }}
+                          onBlur={onEndFieldEdit}
                         />
-                        <input
-                          aria-label={translate(
-                            "ui.editorWorkspace.text.using",
+                        <HandleFieldControl
+                          label={translate("ui.editorWorkspace.text.using")}
+                          value={node.using ?? ""}
+                          options={referenceValues("choice-layout")}
+                          ariaInvalid={nodeDiagnostics.length > 0}
+                          ariaDescribedBy={
+                            nodeDiagnostics.length
+                              ? nodeDiagnosticId
+                              : undefined
+                          }
+                          createLabel={translate(
+                            "ui.editorWorkspace.text.newDeclarationEllipsis",
+                            {
+                              declaration: translate(
+                                "ui.editorWorkspace.declaration.choice-layout",
+                              ),
+                            },
                           )}
-                          defaultValue={node.using ?? ""}
-                          list="layout-choice-layouts"
-                          {...diagnosticAttributes}
-                          onBlur={(event) => {
+                          commitOnBlur
+                          onChange={(nextValue) =>
                             updateLayoutField(
                               layoutNodeSymbol(layout, node),
                               "using",
-                              event.target.value,
-                            );
-                            onEndFieldEdit();
-                          }}
+                              nextValue,
+                            )
+                          }
+                          onCreate={() =>
+                            onCreateReference(
+                              layoutNodeSymbol(layout, node),
+                              "using",
+                              0,
+                              "choice-layout",
+                              undefined,
+                              layout,
+                            )
+                          }
+                          onBlur={onEndFieldEdit}
                         />
                       </div>
                     ) : (
-                      <input
+                      <HandleFieldControl
                         key={`${node.id}:${node.target}`}
-                        aria-label={translate(
+                        label={translate(
                           "ui.editorWorkspace.ariaLabel.layoutNodeTarget",
                           { node: displayKind(node.kind) },
                         )}
-                        defaultValue={node.target ?? ""}
-                        list={targetListId}
-                        {...diagnosticAttributes}
-                        onBlur={(event) =>
+                        value={node.target ?? ""}
+                        options={nodeReferenceValues}
+                        ariaInvalid={nodeDiagnostics.length > 0}
+                        ariaDescribedBy={
+                          nodeDiagnostics.length ? nodeDiagnosticId : undefined
+                        }
+                        createLabel={
+                          ["text", "image", "input"].includes(node.kind) &&
+                          compatibleContentOwners(
+                            node.kind as LayoutContentCreationRequest["kind"],
+                          ).length > 0
+                            ? translate(
+                                "ui.editorWorkspace.text.newDeclarationEllipsis",
+                                { declaration: displayKind(node.kind) },
+                              )
+                            : undefined
+                        }
+                        commitOnBlur
+                        onChange={(nextValue) =>
                           apply(
                             setLayoutNodeTarget(
                               files,
                               layout,
                               layoutNodeReference(node),
-                              event.target.value,
+                              nextValue,
                             ),
                             announce("layoutNodeUpdated", node.kind),
                           )
                         }
+                        onCreate={
+                          ["text", "image", "input"].includes(node.kind) &&
+                          compatibleContentOwners(
+                            node.kind as LayoutContentCreationRequest["kind"],
+                          ).length > 0
+                            ? () =>
+                                setContentCreation({
+                                  kind: node.kind as LayoutContentCreationRequest["kind"],
+                                  node: layoutNodeReference(node),
+                                })
+                            : undefined
+                        }
                       />
-                    )}
-                    {nodeReferenceValues.length > 0 && (
-                      <datalist id={targetListId}>
-                        {nodeReferenceValues.map((value) => (
-                          <option key={value} value={value} />
-                        ))}
-                      </datalist>
                     )}
                   </label>
                   <label>
@@ -4407,15 +5170,10 @@ function LayoutTreeEditor({
                         !tree.structurallySafe ||
                         destinationsForNode(node).length === 0
                       }
-                      onClick={() => {
-                        if (isMoving) {
-                          setMovingNode(null);
-                          return;
-                        }
-                        setMovingNode(layoutNodeReference(node));
-                        const destination = destinationsForNode(node)[0];
-                        setMoveDestination(destination?.id ?? "");
-                      }}
+                      onKeyDown={(event) =>
+                        openContextMenuFromKeyboard(event, menu)
+                      }
+                      onClick={startMove}
                     >
                       {translate("ui.editorWorkspace.text.moveEllipsis")}
                     </button>
@@ -4432,32 +5190,7 @@ function LayoutTreeEditor({
                       )}
                       aria-expanded={edited?.id === node.id && !node.compact}
                       disabled={!tree.structurallySafe}
-                      onClick={() => {
-                        if (node.compact) {
-                          apply(
-                            expandLayoutLeaf(
-                              files,
-                              layout,
-                              layoutNodeReference(node),
-                            ),
-                            announce("layoutNodeExpanded", node.kind),
-                            "node",
-                          );
-                        } else if (edited?.id === node.id) {
-                          if (canCompact)
-                            apply(
-                              collapseLayoutLeaf(
-                                files,
-                                layout,
-                                layoutNodeReference(node),
-                              ),
-                              announce("layoutNodeCollapsed", node.kind),
-                            );
-                          setEditingNode(null);
-                        } else {
-                          setEditingNode(layoutNodeReference(node));
-                        }
-                      }}
+                      onClick={togglePresentation}
                     >
                       ◫
                     </button>
@@ -4473,17 +5206,7 @@ function LayoutTreeEditor({
                         { node: displayKind(node.kind) },
                       )}
                       disabled={!tree.structurallySafe || index === 0}
-                      onClick={() =>
-                        apply(
-                          reorderLayoutNode(
-                            files,
-                            layout,
-                            layoutNodeReference(node),
-                            "up",
-                          ),
-                          announce("layoutNodeReordered", node.kind),
-                        )
-                      }
+                      onClick={() => reorder("up")}
                     >
                       ↑
                     </button>
@@ -4501,17 +5224,7 @@ function LayoutTreeEditor({
                       disabled={
                         !tree.structurallySafe || index === children.length - 1
                       }
-                      onClick={() =>
-                        apply(
-                          reorderLayoutNode(
-                            files,
-                            layout,
-                            layoutNodeReference(node),
-                            "down",
-                          ),
-                          announce("layoutNodeReordered", node.kind),
-                        )
-                      }
+                      onClick={() => reorder("down")}
                     >
                       ↓
                     </button>
@@ -4527,17 +5240,7 @@ function LayoutTreeEditor({
                         { node: displayKind(node.kind) },
                       )}
                       disabled={!tree.structurallySafe}
-                      onClick={() => {
-                        apply(
-                          removeLayoutNode(
-                            files,
-                            layout,
-                            layoutNodeReference(node),
-                          ),
-                          announce("layoutNodeRemoved", node.kind),
-                        );
-                        setEditingNode(null);
-                      }}
+                      onClick={remove}
                     >
                       ×
                     </button>
@@ -4596,6 +5299,16 @@ function LayoutTreeEditor({
                         files={files}
                         symbol={layoutNodeSymbol(layout, node)}
                         onEndFieldEdit={onEndFieldEdit}
+                        onCreateTheme={(nodeSymbol, field, color) =>
+                          onCreateReference(
+                            nodeSymbol,
+                            field,
+                            0,
+                            "theme",
+                            { color },
+                            layout,
+                          )
+                        }
                         onUpdate={updateLayoutField}
                       />
                       <LayoutInvalidFields
@@ -4652,10 +5365,34 @@ function LayoutTreeEditor({
                       ))}
                     </select>
                   ) : (
-                    <input
+                    <HandleFieldControl
+                      label={translate("ui.editorWorkspace.text.target")}
                       value={newTarget}
-                      list="layout-new-targets"
-                      onChange={(event) => setNewTarget(event.target.value)}
+                      options={targetValues}
+                      createLabel={
+                        ["text", "image", "input"].includes(newKind) &&
+                        compatibleContentOwners(
+                          newKind as LayoutContentCreationRequest["kind"],
+                        ).length > 0
+                          ? translate(
+                              "ui.editorWorkspace.text.newDeclarationEllipsis",
+                              { declaration: displayKind(newKind) },
+                            )
+                          : undefined
+                      }
+                      onChange={setNewTarget}
+                      onCreate={
+                        ["text", "image", "input"].includes(newKind) &&
+                        compatibleContentOwners(
+                          newKind as LayoutContentCreationRequest["kind"],
+                        ).length > 0
+                          ? () =>
+                              setContentCreation({
+                                kind: newKind as LayoutContentCreationRequest["kind"],
+                                node: null,
+                              })
+                          : undefined
+                      }
                     />
                   )}
                 </label>
@@ -4664,18 +5401,20 @@ function LayoutTreeEditor({
                 <>
                   <label>
                     <span>{translate("ui.editorWorkspace.text.source")}</span>
-                    <input
+                    <HandleFieldControl
+                      label={translate("ui.editorWorkspace.text.source")}
                       value={newSource}
-                      list="layout-choice-sources"
-                      onChange={(event) => setNewSource(event.target.value)}
+                      options={referenceValues("choice-source")}
+                      onChange={setNewSource}
                     />
                   </label>
                   <label>
                     <span>{translate("ui.editorWorkspace.text.using")}</span>
-                    <input
+                    <HandleFieldControl
+                      label={translate("ui.editorWorkspace.text.using")}
                       value={newUsing}
-                      list="layout-choice-layouts"
-                      onChange={(event) => setNewUsing(event.target.value)}
+                      options={referenceValues("choice-layout")}
+                      onChange={setNewUsing}
                     />
                   </label>
                 </>
@@ -4712,26 +5451,97 @@ function LayoutTreeEditor({
               >
                 {translate("ui.editorWorkspace.text.addChild")}
               </button>
-              <datalist id="layout-new-targets">
-                {targetValues.map((value) => (
-                  <option key={value} value={value} />
-                ))}
-              </datalist>
-              <datalist id="layout-choice-sources">
-                {referenceValues("choice-source").map((value) => (
-                  <option key={value} value={value} />
-                ))}
-              </datalist>
-              <datalist id="layout-choice-layouts">
-                {referenceValues("choice-layout").map((value) => (
-                  <option key={value} value={value} />
-                ))}
-              </datalist>
             </div>
           )}
         </>
       )}
+      {contentCreation && (
+        <LayoutContentCreationDialog
+          kind={contentCreation.kind}
+          owners={compatibleContentOwners(contentCreation.kind)}
+          ownerLabel={(owner) => layoutContentOwnerLabel(files, symbols, owner)}
+          onCancel={() => setContentCreation(null)}
+          onCreate={(owner) => createAndAssignContent(contentCreation, owner)}
+        />
+      )}
     </section>
+  );
+}
+
+function LayoutContentCreationDialog({
+  kind,
+  owners,
+  ownerLabel,
+  onCancel,
+  onCreate,
+}: {
+  kind: LayoutContentCreationRequest["kind"];
+  owners: readonly FormatSymbol[];
+  ownerLabel: (owner: FormatSymbol) => string;
+  onCancel: () => void;
+  onCreate: (owner: FormatSymbol) => boolean;
+}) {
+  const [ownerKey, setOwnerKey] = useState(
+    owners[0] ? `${owners[0].file}:${owners[0].from}` : "",
+  );
+  const headingId = `editor-create-layout-${kind}-heading`;
+  return (
+    <div className="editor-departure-backdrop">
+      <section role="dialog" aria-modal="true" aria-labelledby={headingId}>
+        <p>{translate("ui.editorWorkspace.text.layoutContentTarget")}</p>
+        <h2 id={headingId}>
+          {translate("ui.editorWorkspace.text.createDeclaration", {
+            declaration: translate(`ui.editorWorkspace.declaration.${kind}`),
+          })}
+        </h2>
+        <form
+          className="editor-resource-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const owner = owners.find(
+              (candidate) => `${candidate.file}:${candidate.from}` === ownerKey,
+            );
+            if (owner) onCreate(owner);
+          }}
+        >
+          <label>
+            <span>{translate("ui.editorWorkspace.text.addTo")}</span>
+            <select
+              autoFocus
+              required
+              value={ownerKey}
+              onChange={(event) => setOwnerKey(event.target.value)}
+            >
+              {owners.map((owner) => (
+                <option
+                  key={`${owner.file}:${owner.from}`}
+                  value={`${owner.file}:${owner.from}`}
+                >
+                  {ownerLabel(owner)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="editor-layout-content-explanation">
+            {translate(
+              "ui.editorWorkspace.text.layoutContentCreationExplanation",
+            )}
+          </p>
+          <div className="editor-resource-form-actions">
+            <button type="submit">
+              {translate("ui.editorWorkspace.text.createAndUseDeclaration", {
+                declaration: translate(
+                  `ui.editorWorkspace.declaration.${kind}`,
+                ),
+              })}
+            </button>
+            <button type="button" onClick={onCancel}>
+              {translate("ui.editorWorkspace.text.cancel")}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
   );
 }
 
@@ -4861,6 +5671,9 @@ function StructuredPanel({
   onAddField,
   onInsertChild,
   onCreateResource,
+  onCreateReference,
+  onOpenCreatedContent,
+  onImportAsset,
   onRemoveChild,
   onRemoveInvalidField,
   onMoveChild,
@@ -4900,6 +5713,24 @@ function StructuredPanel({
   onAddField: (symbol: FormatSymbol, field: string) => void;
   onInsertChild: (symbol: FormatSymbol, kind: string) => void;
   onCreateResource: (symbol: FormatSymbol) => void;
+  onCreateReference: (
+    symbol: FormatSymbol,
+    field: string,
+    occurrence: number,
+    kind: CreatableTopLevelDeclarationKind,
+    options?: { color?: string },
+    returnTarget?: FormatSymbol,
+  ) => void;
+  onOpenCreatedContent: (
+    target: FormatSymbol,
+    returnTarget: FormatSymbol,
+    focusField: string | null,
+  ) => void;
+  onImportAsset: (
+    symbol: FormatSymbol,
+    field: string,
+    occurrence: number,
+  ) => void;
   onRemoveChild: (owner: FormatSymbol, child: FormatSymbol) => void;
   onRemoveInvalidField: (symbol: FormatSymbol, field: string) => void;
   onMoveChild: (
@@ -4923,6 +5754,9 @@ function StructuredPanel({
     direction: "up" | "down",
   ) => void;
 }) {
+  const [appearanceGroupsExpanded, setAppearanceGroupsExpanded] = useState<
+    Record<string, boolean>
+  >({});
   const source = symbol ? files[symbol.file].slice(symbol.from, symbol.to) : "";
   const field = (name: string) =>
     symbol ? readSourceField(files[symbol.file], symbol, name) : "";
@@ -5004,6 +5838,12 @@ function StructuredPanel({
       contextualConditionHandles.some((handle) => handle === property.handle),
   );
   const renderField = (fieldName: string) => {
+    const fieldLabel =
+      symbol.kind === "jump-appearance"
+        ? translate(`ui.editorWorkspace.appearanceField.${fieldName}`)
+        : fieldName.replaceAll("-", " ");
+    const controlLabel =
+      symbol.kind === "jump-appearance" ? fieldLabel : fieldName;
     const definition =
       resolvedContext?.fields[fieldName] ??
       fieldDefinition(symbol.kind, fieldName);
@@ -5058,6 +5898,24 @@ function StructuredPanel({
         ? fieldValues(definition)
         : []),
     ].filter((option, index, options) => options.indexOf(option) === index);
+    const referenceCreationKind: CreatableTopLevelDeclarationKind | null =
+      referenceKind &&
+      ["section-layout", "choice-layout", "trait-layout"].includes(
+        referenceKind,
+      )
+        ? (referenceKind as CreatableTopLevelDeclarationKind)
+        : referenceKind === "choice" &&
+            symbol.kind === "choice" &&
+            symbol.depth > 0
+          ? "choice"
+          : null;
+    const createsResource =
+      referenceKind === "resource" &&
+      fieldName === "resource" &&
+      ["cost", "grant"].includes(symbol.kind);
+    const createdDeclarationKind = createsResource
+      ? "resource"
+      : referenceCreationKind;
     const enumValues = fieldValues(definition);
     const colorChoices =
       definition?.type === "color" ? editorColorChoices(files, symbols) : [];
@@ -5076,6 +5934,9 @@ function StructuredPanel({
     return (
       <div
         className={`editor-schema-field${["description", "content", "author", "option", "tag", "group"].includes(fieldName) ? " is-wide" : ""}`}
+        data-appearance-field={
+          symbol.kind === "jump-appearance" ? fieldName : undefined
+        }
         key={fieldName}
       >
         {displayed.map((value, occurrence) =>
@@ -5106,26 +5967,54 @@ function StructuredPanel({
               "aria-invalid": matchingDiagnostics.length ? true : undefined,
               "aria-describedby": diagnosticId,
             } as const;
+            const appearanceColorStatus =
+              symbol.kind === "jump-appearance" && definition?.type === "color"
+                ? {
+                    color: inheritedAppearanceValue(
+                      fieldName,
+                      structuredAnalysis.packageItem,
+                    ),
+                    inherited: value === "",
+                  }
+                : undefined;
             return (
               <div
                 className={`editor-field-occurrence${fieldSeverity ? ` is-${fieldSeverity}` : ""}`}
                 key={`${fieldName}:${occurrence}`}
               >
                 <span>
-                  {fieldName.replaceAll("-", " ")}
+                  {fieldLabel}
                   {definition?.required && (
                     <small>
                       {translate("ui.editorWorkspace.text.required")}
                     </small>
                   )}
                 </span>
+                {appearanceColorStatus && (
+                  <span className="editor-appearance-color-status">
+                    <i
+                      aria-hidden="true"
+                      style={{ background: appearanceColorStatus.color }}
+                    />
+                    <small>
+                      {appearanceColorStatus.inherited
+                        ? translate(
+                            "ui.editorWorkspace.appearance.inheritedValue",
+                            { value: appearanceColorStatus.color },
+                          )
+                        : translate(
+                            "ui.editorWorkspace.appearance.manuallySetValue",
+                          )}
+                    </small>
+                  </span>
+                )}
                 <span className="editor-schema-field-control">
                   {definition?.type === "boolean" ? (
                     <>
                       <input
                         type="checkbox"
                         autoFocus={fieldName === focusField && occurrence === 0}
-                        aria-label={`${fieldName}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
+                        aria-label={`${controlLabel}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
                         checked={value === "true"}
                         {...accessibility}
                         onChange={(event) => {
@@ -5150,7 +6039,7 @@ function StructuredPanel({
                     </>
                   ) : ["color", "hexColor"].includes(definition?.type ?? "") ? (
                     <ColorFieldControl
-                      label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
                       value={value}
                       choices={colorChoices}
                       allowTokens={definition?.type === "color"}
@@ -5160,22 +6049,43 @@ function StructuredPanel({
                       onChange={(nextValue) =>
                         onUpdate(symbol, fieldName, nextValue, occurrence)
                       }
+                      onCreateTheme={(displayedColor, resolvedColor) => {
+                        const color =
+                          normalizeFormat1HexColor(displayedColor) ??
+                          colorChoices.find(
+                            (choice) => choice.value === displayedColor,
+                          )?.color ??
+                          appearanceColorStatus?.color ??
+                          (displayedColor ? resolvedColor : undefined) ??
+                          "#68707C";
+                        onCreateReference(
+                          symbol,
+                          fieldName,
+                          occurrence,
+                          "theme",
+                          { color },
+                        );
+                      }}
                       onBlur={onEndFieldEdit}
                     />
                   ) : definition?.type === "quotedString:assetRelativePath" ? (
                     <select
                       autoFocus={fieldName === focusField && occurrence === 0}
-                      aria-label={`${fieldName}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      aria-label={`${controlLabel}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
                       value={value}
                       {...accessibility}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        if (event.target.value === importAssetOptionValue) {
+                          onImportAsset(symbol, fieldName, occurrence);
+                          return;
+                        }
                         onUpdate(
                           symbol,
                           fieldName,
                           event.target.value,
                           occurrence,
-                        )
-                      }
+                        );
+                      }}
                       onBlur={onEndFieldEdit}
                     >
                       <option value="">
@@ -5193,10 +6103,15 @@ function StructuredPanel({
                           {option}
                         </option>
                       ))}
+                      <option value={importAssetOptionValue}>
+                        {translate(
+                          "ui.editorWorkspace.text.importAssetEllipsis",
+                        )}
+                      </option>
                     </select>
                   ) : definition?.type === "imageDimension" ? (
                     <ImageDimensionFieldControl
-                      label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
                       value={value}
                       tokens={enumValues}
                       autoFocus={fieldName === focusField && occurrence === 0}
@@ -5218,7 +6133,7 @@ function StructuredPanel({
                     ].includes(definition?.type ?? "") ? (
                     <select
                       autoFocus={fieldName === focusField && occurrence === 0}
-                      aria-label={`${fieldName}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      aria-label={`${controlLabel}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
                       value={selectControl.value}
                       {...accessibility}
                       onChange={(event) => {
@@ -5248,7 +6163,7 @@ function StructuredPanel({
                     <textarea
                       autoFocus={fieldName === focusField && occurrence === 0}
                       spellCheck
-                      aria-label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      aria-label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
                       rows={fieldName === "content" ? 6 : 3}
                       value={value}
                       {...accessibility}
@@ -5267,7 +6182,7 @@ function StructuredPanel({
                     <span className="number-stepper editor-number-stepper is-fluid">
                       <input
                         autoFocus={fieldName === focusField && occurrence === 0}
-                        aria-label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
+                        aria-label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
                         type="number"
                         min={
                           typeof definition.const === "number"
@@ -5293,7 +6208,7 @@ function StructuredPanel({
                         onBlur={onEndFieldEdit}
                       />
                       <NumberStepperButtons
-                        label={fieldName.replaceAll("-", " ")}
+                        label={controlLabel}
                         increaseDisabled={
                           typeof definition.const === "number" &&
                           value !== "" &&
@@ -5322,6 +6237,46 @@ function StructuredPanel({
                         }}
                       />
                     </span>
+                  ) : referenceKind ? (
+                    <HandleFieldControl
+                      label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      value={value}
+                      options={referenceOptions}
+                      placeholder={value === "" ? shadowText : undefined}
+                      autoFocus={fieldName === focusField && occurrence === 0}
+                      ariaInvalid={matchingDiagnostics.length > 0}
+                      ariaDescribedBy={diagnosticId}
+                      createLabel={
+                        createdDeclarationKind
+                          ? translate(
+                              "ui.editorWorkspace.text.newDeclarationEllipsis",
+                              {
+                                declaration: translate(
+                                  `ui.editorWorkspace.declaration.${createdDeclarationKind}`,
+                                ),
+                              },
+                            )
+                          : undefined
+                      }
+                      onChange={(nextValue) =>
+                        onUpdate(symbol, fieldName, nextValue, occurrence)
+                      }
+                      onCreate={
+                        createdDeclarationKind
+                          ? () => {
+                              if (createsResource) onCreateResource(symbol);
+                              else if (referenceCreationKind)
+                                onCreateReference(
+                                  symbol,
+                                  fieldName,
+                                  occurrence,
+                                  referenceCreationKind,
+                                );
+                            }
+                          : undefined
+                      }
+                      onBlur={onEndFieldEdit}
+                    />
                   ) : (
                     <input
                       autoFocus={fieldName === focusField && occurrence === 0}
@@ -5348,17 +6303,6 @@ function StructuredPanel({
                       onBlur={onEndFieldEdit}
                     />
                   )}
-                  {fieldName === "resource" &&
-                    ["cost", "grant"].includes(symbol.kind) && (
-                      <button
-                        type="button"
-                        onClick={() => onCreateResource(symbol)}
-                      >
-                        {translate(
-                          "ui.editorWorkspace.text.createResourceEllipsis",
-                        )}
-                      </button>
-                    )}
                   {definition?.repeatable && values.length > 0 && (
                     <button
                       type="button"
@@ -5383,7 +6327,7 @@ function StructuredPanel({
                     ))}
                   </span>
                 )}
-                {referenceOptions.length > 0 && (
+                {!referenceKind && referenceOptions.length > 0 && (
                   <datalist id={listId}>
                     {referenceOptions.map((option) => (
                       <option value={option} key={option} />
@@ -5555,7 +6499,41 @@ function StructuredPanel({
           </button>
         </section>
       )}
-      {isLayout ? (
+      {symbol.kind === "jump-appearance" ? (
+        <>
+          <section className="editor-form-card">
+            <p>{translate("ui.editorWorkspace.appearance.help")}</p>
+            <p>{translate("ui.editorWorkspace.appearance.tagBoundary")}</p>
+          </section>
+          {appearanceFieldGroups.map((group) => (
+            <details
+              className="editor-appearance-group"
+              data-appearance-group={group.key}
+              key={group.key}
+              open={appearanceGroupsExpanded[group.key] ?? true}
+              onToggle={(event) => {
+                const expanded = event.currentTarget.open;
+                setAppearanceGroupsExpanded((current) =>
+                  current[group.key] === expanded
+                    ? current
+                    : { ...current, [group.key]: expanded },
+                );
+              }}
+            >
+              <summary>
+                <h3>
+                  {translate(`ui.editorWorkspace.appearanceGroup.${group.key}`)}
+                </h3>
+              </summary>
+              <div className="editor-form-grid">
+                {group.fields
+                  .filter((fieldName) => detailFields.includes(fieldName))
+                  .map(renderField)}
+              </div>
+            </details>
+          ))}
+        </>
+      ) : isLayout ? (
         <LayoutTreeEditor
           assets={assets}
           diagnostics={diagnostics}
@@ -5568,6 +6546,9 @@ function StructuredPanel({
           activeContainerPath={activeLayoutContainerPath}
           selectionKey={activeLayoutSelectionKey}
           onActiveContainerChange={onActiveLayoutContainerChange}
+          returnTarget={returnTarget}
+          onOpenCreatedContent={onOpenCreatedContent}
+          onCreateReference={onCreateReference}
         />
       ) : (
         detailFields.length > 0 &&

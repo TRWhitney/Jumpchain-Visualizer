@@ -72,6 +72,7 @@ import {
   type PackageImportReview,
 } from "../archive";
 import { ConfirmationDialog } from "../ui/ConfirmationDialog";
+import { useContextMenu } from "../ui";
 import { mockChainDefinition } from "../fixtures/mockData";
 import "../../documentation/styles.css";
 import "../../documentation/application-design.css";
@@ -124,6 +125,7 @@ export function AppShell() {
 }
 
 function AppShellContent() {
+  const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const { settings, logger } = useSettings();
   const [pathname, setPathname] = useState(window.location.pathname);
   const [settingsBackgroundPath, setSettingsBackgroundPath] = useState<
@@ -1156,8 +1158,51 @@ function AppShellContent() {
                 <div className="app-recent-list">
                   {savedEditorWorkspaces.slice(0, 5).map((workspace) => {
                     const summary = summarizeWorkspace(workspace);
+                    const menu = {
+                      label: translate(
+                        "ui.editorHub.ariaLabel.projectActions",
+                        { project: summary.name },
+                      ),
+                      actions: [
+                        {
+                          id: "open",
+                          label: translate("common.open"),
+                          onAction: () => openEditorProject(workspace),
+                        },
+                        {
+                          id: "star",
+                          label: translate(
+                            workspace.starred ? "common.unstar" : "common.star",
+                          ),
+                          onAction: () => toggleEditorStar(workspace),
+                        },
+                        {
+                          id: "export",
+                          label: translate("common.exportJmp"),
+                          onAction: () => setExportWorkspace(workspace),
+                        },
+                        {
+                          id: "delete",
+                          label: translate("common.deleteProject"),
+                          danger: true,
+                          separatorBefore: true,
+                          onAction: () => {
+                            setDeletionError(null);
+                            setDeletionTarget({
+                              kind: "editor",
+                              id: workspace.id,
+                              name: summary.name,
+                            });
+                          },
+                        },
+                      ],
+                    };
                     return (
-                      <div className="app-recent-work" key={workspace.id}>
+                      <div
+                        className="app-recent-work"
+                        key={workspace.id}
+                        onContextMenu={(event) => openContextMenu(event, menu)}
+                      >
                         <span>
                           <strong>{summary.name}</strong>
                           <small>
@@ -1177,6 +1222,10 @@ function AppShellContent() {
                           )}
                           <button
                             type="button"
+                            aria-haspopup="menu"
+                            onKeyDown={(event) =>
+                              openContextMenuFromKeyboard(event, menu)
+                            }
                             onClick={() => openEditorProject(workspace)}
                           >
                             {translate("ui.appShell.text.resume")}
@@ -1218,6 +1267,17 @@ function AppShellContent() {
                         settings.chain.colorNamesByPrimaryTag
                       }
                       onOpen={() => openChain(chain)}
+                      onToggleStar={() =>
+                        setChainStarred(chain, !chain.starred)
+                      }
+                      onDelete={() => {
+                        setDeletionError(null);
+                        setDeletionTarget({
+                          kind: "chain",
+                          id: chain.id,
+                          name: chain.name,
+                        });
+                      }}
                     />
                   ))}
                   {!savedChains.length && (
@@ -1265,6 +1325,7 @@ function AppShellContent() {
               onOpenFolder={openEditorFolder}
               onImport={importEditorProject}
               onToggleStar={toggleEditorStar}
+              onExport={setExportWorkspace}
               onDelete={(workspace) => {
                 setDeletionError(null);
                 setDeletionTarget({
@@ -1835,16 +1896,48 @@ function RecentChain({
   tags,
   colorNameByPrimaryTag,
   onOpen,
+  onToggleStar,
+  onDelete,
 }: {
   chain: SavedChain;
   tags: Record<string, TagDefinition>;
   colorNameByPrimaryTag: boolean;
   onOpen: () => void;
+  onToggleStar: () => void;
+  onDelete: () => void;
 }) {
+  const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const primaryTag = primaryTagForChain(chain);
   const primaryTagDefinition = primaryTag ? tags[primaryTag] : null;
+  const menu = {
+    label: translate("ui.appShell.ariaLabel.chainActions", {
+      chain: chain.name,
+    }),
+    actions: [
+      {
+        id: "open",
+        label: translate("common.open"),
+        onAction: onOpen,
+      },
+      {
+        id: "star",
+        label: translate(chain.starred ? "common.unstar" : "common.star"),
+        onAction: onToggleStar,
+      },
+      {
+        id: "delete",
+        label: translate("common.deleteChain"),
+        danger: true,
+        separatorBefore: true,
+        onAction: onDelete,
+      },
+    ],
+  };
   return (
-    <div className="app-recent-work">
+    <div
+      className="app-recent-work"
+      onContextMenu={(event) => openContextMenu(event, menu)}
+    >
       <span>
         <strong
           className={
@@ -1877,7 +1970,12 @@ function RecentChain({
             ★
           </span>
         )}
-        <button type="button" onClick={onOpen}>
+        <button
+          type="button"
+          aria-haspopup="menu"
+          onKeyDown={(event) => openContextMenuFromKeyboard(event, menu)}
+          onClick={onOpen}
+        >
           {translate("ui.appShell.text.resume")}
         </button>
       </div>
@@ -2060,6 +2158,7 @@ function ChainCard({
   onDelete: () => void;
   onUpdateDetails: (name: string, description: string) => void;
 }) {
+  const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(chain.name);
   const [description, setDescription] = useState(chain.description);
@@ -2079,6 +2178,36 @@ function ChainCard({
   useEffect(() => {
     if (editing) inputRef.current?.select();
   }, [editing]);
+
+  const menu = {
+    label: translate("ui.appShell.ariaLabel.chainActions", {
+      chain: chain.name,
+    }),
+    actions: [
+      {
+        id: "open",
+        label: translate("common.open"),
+        onAction: onOpen,
+      },
+      {
+        id: "edit",
+        label: translate("common.editDetails"),
+        onAction: () => setEditing(true),
+      },
+      {
+        id: "star",
+        label: translate(chain.starred ? "common.unstar" : "common.star"),
+        onAction: onToggleStar,
+      },
+      {
+        id: "delete",
+        label: translate("common.deleteChain"),
+        danger: true,
+        separatorBefore: true,
+        onAction: onDelete,
+      },
+    ],
+  };
 
   const positionSummary = () => {
     const trigger = avatarRef.current?.getBoundingClientRect();
@@ -2104,7 +2233,10 @@ function ChainCard({
   };
 
   return (
-    <article className={`app-chain-card${editing ? " is-editing" : ""}`}>
+    <article
+      className={`app-chain-card${editing ? " is-editing" : ""}`}
+      onContextMenu={(event) => openContextMenu(event, menu)}
+    >
       <div
         ref={avatarRef}
         className="app-chain-card-avatar"
@@ -2242,7 +2374,12 @@ function ChainCard({
       </button>
       {!editing && (
         <div className="app-chain-card-actions">
-          <button type="button" onClick={onOpen}>
+          <button
+            type="button"
+            aria-haspopup="menu"
+            onKeyDown={(event) => openContextMenuFromKeyboard(event, menu)}
+            onClick={onOpen}
+          >
             {translate("ui.appShell.text.open")}
           </button>
           <button

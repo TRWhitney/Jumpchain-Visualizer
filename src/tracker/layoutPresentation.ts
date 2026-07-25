@@ -34,6 +34,20 @@ const alignments = new Set(["start", "center", "end", "stretch"]);
 const justifications = new Set(["start", "center", "end", "between"]);
 const textAlignments = new Set(["start", "center", "end", "justify"]);
 const imageFits = new Set(["contain", "cover"]);
+const borderWidths: Readonly<Record<string, string>> = {
+  none: "0",
+  thin: "1px",
+  medium: "2px",
+  thick: "4px",
+};
+const borderRadii: Readonly<Record<string, string>> = {
+  none: "0",
+  sm: ".25rem",
+  md: ".4rem",
+  lg: ".7rem",
+  pill: "9999px",
+};
+const borderStyles = new Set(["solid", "dashed", "dotted"]);
 
 type PackageThemes = Pick<CanonicalJumpPackage, "themes">;
 
@@ -60,6 +74,13 @@ function sharedPresentationStyle(
     fontSize: presentation.textSize
       ? layoutTextSizes[presentation.textSize]
       : undefined,
+    borderColor: layoutColor(presentation.borderColor, packageItem),
+    borderWidth: borderWidths[presentation.borderWidth ?? ""],
+    borderStyle: borderStyles.has(presentation.borderStyle ?? "")
+      ? presentation.borderStyle
+      : undefined,
+    borderRadius: borderRadii[presentation.corners ?? ""],
+    overflow: presentation.clip ? "hidden" : undefined,
   };
 }
 

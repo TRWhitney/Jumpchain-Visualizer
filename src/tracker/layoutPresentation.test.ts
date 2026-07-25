@@ -34,6 +34,27 @@ describe("layout presentation styles", () => {
     });
   });
 
+  it("constrains authored borders, corners, and clipping", () => {
+    expect(
+      layoutContainerPresentationStyle(
+        node("stack", {
+          borderColor: "surface",
+          borderWidth: "medium",
+          borderStyle: "dashed",
+          corners: "lg",
+          clip: true,
+        }),
+        packageThemes,
+      ),
+    ).toMatchObject({
+      borderColor: "#123456",
+      borderWidth: "2px",
+      borderStyle: "dashed",
+      borderRadius: ".7rem",
+      overflow: "hidden",
+    });
+  });
+
   it.each(["start", "center", "end", "stretch"] as const)(
     "maps container align %s to child alignment",
     (align) => {

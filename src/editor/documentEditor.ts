@@ -112,6 +112,32 @@ export type DocumentEditResult = {
   focusField?: string;
 };
 
+export type CreatableTopLevelDeclarationKind =
+  | "resource"
+  | "section"
+  | "choice"
+  | "section-layout"
+  | "choice-layout"
+  | "trait-layout"
+  | "theme";
+
+const topLevelDeclarationStarters: Readonly<
+  Record<CreatableTopLevelDeclarationKind, string>
+> = {
+  resource:
+    'resource\n  handle: new_resource\n  name: "New Resource"\n  abbreviation: "NR"\n  initial: 0',
+  section: 'section\n  handle: new_section\n  name: "New Section"',
+  choice:
+    'choice\n  handle: new_choice\n  name: "New Choice"\n  selection: toggle',
+  "section-layout":
+    "section-layout\n  handle: new_section_layout\n\n  stack\n    gap: md\n\n    slot: name",
+  "choice-layout":
+    "choice-layout\n  handle: new_choice_layout\n\n  stack\n    gap: sm\n\n    slot: name\n    slot: control",
+  "trait-layout":
+    "trait-layout\n  handle: new_trait_layout\n\n  stack\n    gap: sm\n\n    slot: name",
+  theme: 'theme\n  handle: new_theme\n  color: "#68707c"',
+};
+
 const walk = (nodes: readonly SourceNode[]): SourceNode[] =>
   nodes.flatMap((node) => [node, ...walk(node.children)]);
 
@@ -403,6 +429,109 @@ function uniqueStarter(
     `${match[3]}_${suffix}` +
     starter.slice(match.index + match[0].length)
   );
+}
+
+function topLevelFile(kind: CreatableTopLevelDeclarationKind) {
+  if (kind.endsWith("-layout") || kind === "theme") return "layout.jdef";
+  if (kind === "choice") return "choices.jdef";
+  return "jump.jdef";
+}
+
+export function createTopLevelDocumentDeclaration(
+  files: Readonly<Record<string, string>>,
+  kind: CreatableTopLevelDeclarationKind,
+  options: { color?: string } = {},
+): DocumentEditResult {
+  const seededStarter =
+    kind === "theme" && /^#[0-9a-f]{6}$/i.test(options.color ?? "")
+      ? topLevelDeclarationStarters.theme.replace(
+          '"#68707c"',
+          `"${options.color!.toLocaleUpperCase()}"`,
+        )
+      : topLevelDeclarationStarters[kind];
+  const starter = uniqueStarter(files, seededStarter);
+  const handle = unquote(
+    parseFormatFile("new.jdef", starter).tree[0]?.fields.find(
+      (field) => field.name === "handle",
+    )?.value,
+  );
+  const file = topLevelFile(kind);
+  const source = files[file] ?? "";
+  const separator = source.trimEnd() ? "\n\n" : "";
+  const nextFiles = {
+    ...files,
+    [file]: `${source.trimEnd()}${separator}${starter}\n`,
+  };
+  const targetNode = walk(parseFormatFile(file, nextFiles[file]).tree).find(
+    (node) =>
+      node.kind === kind &&
+      node.fields.some(
+        (field) => field.name === "handle" && unquote(field.value) === handle,
+      ),
+  );
+  return {
+    changed: true,
+    files: nextFiles,
+    target: targetNode ? symbolForNode(targetNode, 0) : undefined,
+    focusField:
+      kind === "theme"
+        ? "color"
+        : ["resource", "section", "choice"].includes(kind)
+          ? "name"
+          : "handle",
+  };
+}
+
+export function createAndAssignTopLevelDocumentReference(
+  files: Readonly<Record<string, string>>,
+  owner: FormatSymbol,
+  field: string,
+  occurrence: number,
+  kind: CreatableTopLevelDeclarationKind,
+  options: { color?: string } = {},
+): DocumentEditResult {
+  const fieldType = structuredContext(files, owner)?.fields[field]?.type;
+  const referenceKind = fieldType?.startsWith("handleReference:")
+    ? fieldType.slice("handleReference:".length)
+    : null;
+  const compatible =
+    kind === "theme"
+      ? fieldType === "color"
+      : kind === "choice"
+        ? referenceKind === "choice"
+        : referenceKind === kind;
+  if (!compatible)
+    return { changed: false, files: { ...files }, reason: "no-change" };
+  const created = createTopLevelDocumentDeclaration(files, kind, options);
+  if (!created.target?.handle)
+    return { changed: false, files: { ...files }, reason: "stale-target" };
+  const assigned = setDocumentField(
+    created.files,
+    owner,
+    field,
+    created.target.handle,
+    occurrence,
+  );
+  if (!assigned.changed)
+    return { changed: false, files: { ...files }, reason: assigned.reason };
+  const targetNode = walk(
+    parseFormatFile(created.target.file, assigned.files[created.target.file])
+      .tree,
+  ).find(
+    (node) =>
+      node.kind === kind &&
+      node.fields.some(
+        (candidate) =>
+          candidate.name === "handle" &&
+          unquote(candidate.value) === created.target!.handle,
+      ),
+  );
+  return {
+    changed: true,
+    files: assigned.files,
+    target: targetNode ? symbolForNode(targetNode, 0) : undefined,
+    focusField: created.focusField,
+  };
 }
 
 export function insertDocumentChild(

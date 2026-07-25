@@ -297,6 +297,7 @@ them out</li>
 <p>Optional.</p>
 <p>Responsibilities:</p>
 <ul>
+<li>contain the optional singleton top-level <code>jump-appearance</code> declaration</li>
 <li>contain only top-level <code>theme</code> declarations</li>
 <li>contain only top-level <code>section-layout</code> declarations</li>
 <li>contain only top-level <code>choice-layout</code> declarations</li>
@@ -332,7 +333,7 @@ valid but should produce a warning</li>
 <p>The editor should eventually support guided extraction, such as:</p>
 <ul>
 <li>moving top-level <code>choice</code> declarations into <code>choices.jdef</code></li>
-<li>moving <code>theme</code>, <code>section-layout</code>, <code>choice-layout</code>, and <code>trait-layout</code>
+<li>moving <code>jump-appearance</code>, <code>theme</code>, <code>section-layout</code>, <code>choice-layout</code>, and <code>trait-layout</code>
 declarations into <code>layout.jdef</code></li>
 </ul>
 <h2>Top-Level Declarations</h2>
@@ -347,6 +348,7 @@ shape depending on location.</p>
 <li>top-level <code>resource</code></li>
 <li>top-level <code>section</code></li>
 <li>top-level <code>choice</code></li>
+<li>at most one top-level <code>jump-appearance</code></li>
 <li>top-level <code>theme</code></li>
 <li>top-level <code>section-layout</code></li>
 <li>top-level <code>choice-layout</code></li>
@@ -359,6 +361,7 @@ shape depending on location.</p>
 </ul>
 <h4>In <code>layout.jdef</code></h4>
 <ul>
+<li>at most one top-level <code>jump-appearance</code></li>
 <li>top-level <code>theme</code> only</li>
 <li>top-level <code>section-layout</code> only</li>
 <li>top-level <code>choice-layout</code> only</li>
@@ -1641,6 +1644,12 @@ preview and runtime; the preview does not fake a separate alignment result.</p>
 meaning should prefer <code>theme</code> declarations, and authors who want precision may
 use hex values directly.</p>
 <p>The Structured editor exposes each color-capable field as one uninterrupted bordered compound control: a leading live swatch opens the platform picker, the central value accepts a six-digit hex value or legal token, and the editor’s standard chevron disclosure opens a small bounded swatch grid for built-in and package-defined theme tokens. Opening either chooser closes the other. Theme declaration colors remain hex-only. Each grid entry displays the resolved token color, and invalid authored values remain editable with the same localized inline and global diagnostic.</p>
+<h3>Jump Appearance</h3>
+<p>A package may contain one top-level <code>jump-appearance</code> declaration. The Editor places it in <code>layout.jdef</code> after leading comments and before theme and layout declarations. Its optional shared roots are <code>background</code>, <code>text-color</code>, <code>border-color</code>, and <code>accent-color</code>. Every color accepts a built-in color name, package theme token, or six-digit hexadecimal literal.</p>
+<p>Appearance resolves in this order: an exact component or state field, its component-family field, the shared appearance field, and finally the renderer’s existing layered default. When shared text is authored but shared border or accent is omitted, those two roots inherit the authored text. Indicators and visible focus treatments inherit accent. Disabled controls inherit their ordinary control colors and retain a non-color disabled treatment unless a disabled role is authored. Consequently, background and text alone form a complete two-color appearance, while an empty declaration preserves the renderer defaults.</p>
+<p>Structured groups the constrained roles into collapsible Shared colors, Surfaces, Header &amp; budget, Sections, Choices &amp; groups, Controls, Costs &amp; semantic states, Tooltips, and Shape &amp; spacing disclosures. Empty overrides display the currently inherited swatch without materializing it in source; clearing an override restores inheritance. The Components and Jump previews can inspect correlated background, text, border-edge, and accent roles; clicking a highlighted target expands its group and scrolls the matching Structured color clear of the pane edge without changing source. When an authored section or choice layout supplies the color, the preview identifies that layout override separately and clicking opens the owning layout’s exact node presentation field instead of an appearance role. Empty manual-input placeholders use Control muted text. Layout container presentation additionally supports constrained border color, width, style, corners, and clipping. Raw CSS, URLs, gradients, fonts, scripts, and arbitrary style values are invalid.</p>
+<p>Tag badges are outside this cascade. Their appearance is always the user’s Tag Manager setting, including when a tag appears in the Components preview. The surrounding Editor and Tracker also remain application-owned.</p>
+<p>Contrast is calculated after the complete cascade resolves. Findings below 4.5:1 for ordinary text or 3:1 for known large text, meaningful borders, control indicators, and focus indicators are warnings containing the measured and expected ratio. They never block save, preview, import, or export and never rewrite an author’s colors. Malformed colors, duplicate appearance declarations, and unresolved distribution-time token references remain format errors.</p>
 <h3>Cost Scale Direction</h3>
 <p>Cost shorthand should support both literal numbers and a framework-default
 symbolic cost scale.</p>
@@ -2061,6 +2070,7 @@ an implementation detail.</p>
 <tr><td><code>image</code></td><td><code>handle</code>; <code>src</code> for export</td><td>conditional <code>alt</code> variants</td><td><code>src</code> during WIP and <code>alt</code> with diagnostics</td></tr>
 <tr><td><code>input</code></td><td><code>handle</code>, <code>selection</code></td><td><code>option</code>, <code>grant</code></td><td>selection-dependent <code>min</code>/<code>max</code></td></tr>
 <tr><td><code>theme</code></td><td><code>handle</code>, one <code>color</code></td><td>none</td><td>none</td></tr>
+<tr><td><code>jump-appearance</code></td><td>none</td><td>none</td><td>all shared, family, component, state, and geometry fields</td></tr>
 <tr><td>layout declarations</td><td><code>handle</code>, exactly one container root</td><td>nested layout nodes</td><td>none</td></tr>
 </tbody>
 </table>

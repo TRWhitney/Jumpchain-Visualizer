@@ -313,7 +313,9 @@ test(
     const editor = page.locator(".production-editor");
 
     await editor.getByRole("button", { name: "Add", exact: true }).click();
-    await editor.getByRole("button", { name: "Section layout" }).click();
+    await editor
+      .getByRole("button", { name: "Section layout", exact: true })
+      .click();
     await editor.getByRole("tab", { name: "Source" }).click();
     const source = editor.getByLabel("layout.jdef source");
     await source.press("Control+a");
@@ -455,7 +457,9 @@ test(
     await editor.getByRole("button", { name: "Cancel draft" }).click();
 
     await editor.getByRole("button", { name: "Add", exact: true }).click();
-    await editor.getByRole("button", { name: "Choice layout" }).click();
+    await editor
+      .getByRole("button", { name: "Choice layout", exact: true })
+      .click();
     const activeLayoutBreadcrumb = editor.locator(
       '.editor-layout-breadcrumb button[aria-current="page"]',
     );
@@ -470,7 +474,7 @@ test(
       'details[data-explorer-group="content:sections"] > summary',
     );
     await sectionsHeader.click({ button: "right" });
-    const sidebarMenu = editor.getByRole("menu", {
+    const sidebarMenu = page.getByRole("menu", {
       name: "Sidebar group actions",
     });
     await expect(sidebarMenu).toHaveCSS(
@@ -490,7 +494,7 @@ test(
       exact: true,
     });
     await introductionItem.click({ button: "right" });
-    const sidebarItemMenu = editor.getByRole("menu", {
+    const sidebarItemMenu = page.getByRole("menu", {
       name: "Sidebar item actions",
     });
     await expect(sidebarItemMenu).toHaveCSS(

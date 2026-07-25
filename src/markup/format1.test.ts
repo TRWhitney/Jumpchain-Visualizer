@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { generatedJumpPackages } from "../fixtures/generatedPackages";
-import { canonicalizePackage, parseFormatFile, type LayoutNode } from ".";
+import {
+  canonicalizePackage,
+  packageIsValid,
+  parseFormatFile,
+  type LayoutNode,
+} from ".";
 import conformance from "../../schema/conformance.json";
 import { sha256 } from "./sha256";
 import { translateDiagnostic } from "../localization";
@@ -18,6 +23,125 @@ const demonstrationSources = import.meta.glob("../fixtures/jumps/**/*.jdef", {
 }) as Record<string, string>;
 
 describe("Format 1 source pipeline", () => {
+  it("canonicalizes one jump appearance and rejects duplicates", () => {
+    const files = {
+      "jump.jdef": `jump
+  format: 1
+  name: "Appearance"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+`,
+      "layout.jdef": `jump-appearance
+  background: paper
+  text-color: "#112233"
+
+theme
+  handle: paper
+  color: "#fefefe"
+`,
+    };
+    const packageItem = canonicalizePackage({
+      id: "appearance",
+      exactHash: "a".repeat(64),
+      files,
+    });
+    expect(packageItem.appearance).toEqual({
+      background: "paper",
+      "text-color": "#112233",
+    });
+    expect(
+      packageItem.diagnostics.filter((item) => item.severity === "error"),
+    ).toEqual([]);
+
+    const duplicate = canonicalizePackage({
+      id: "appearance-duplicate",
+      exactHash: "b".repeat(64),
+      files: {
+        ...files,
+        "layout.jdef": `${files["layout.jdef"]}\njump-appearance\n`,
+      },
+    });
+    expect(duplicate.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "jump-appearance.cardinality",
+          severity: "error",
+        }),
+      ]),
+    );
+  });
+
+  it("includes jump appearance in presentation mixed-placement warnings", () => {
+    const packageItem = canonicalizePackage({
+      id: "appearance-mixed-placement",
+      exactHash: "f".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Appearance"
+  author: "Tester"
+  version: "1"
+
+jump-appearance
+
+section
+  handle: content
+  name: "Content"
+`,
+        "layout.jdef": `theme
+  handle: paper
+  color: "#ffffff"
+`,
+      },
+    });
+
+    expect(packageItem.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "file.layout.mixed",
+          severity: "warning",
+          range: expect.objectContaining({ file: "jump.jdef" }),
+        }),
+      ]),
+    );
+  });
+
+  it("reports resolved contrast as warning-only diagnostics", () => {
+    const packageItem = canonicalizePackage({
+      id: "appearance-contrast",
+      exactHash: "c".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Appearance"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+`,
+        "layout.jdef": `jump-appearance
+  background: "#ffffff"
+  text-color: "#eeeeee"
+`,
+      },
+    });
+    const contrast = packageItem.diagnostics.filter(
+      (item) => item.code === "appearance.contrast",
+    );
+    expect(contrast.length).toBeGreaterThan(0);
+    expect(contrast.every((item) => item.severity === "warning")).toBe(true);
+    expect(contrast[0].parameters).toMatchObject({
+      measured: expect.any(String),
+      expected: expect.any(String),
+    });
+    expect(packageIsValid(packageItem)).toBe(true);
+  });
   it("uses verified SHA-256 package identities", () => {
     expect(sha256("")).toBe(
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",

@@ -452,6 +452,7 @@ export function SettingsSurface({
       ref={root}
       className={`settings-mockup app-settings-surface${direct ? " is-direct" : ""}`}
       aria-label={translate("common.applicationSettings")}
+      data-context-menu-suppress-noneditable-controls
     >
       <aside aria-label={translate("common.settings")}>
         <div className="settings-mock-title">

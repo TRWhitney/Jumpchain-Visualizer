@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from "react";
-import { evaluateChain, type ActorEntryState } from "../domain";
-import type { CanonicalJumpPackage } from "../markup";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { evaluateChain } from "../domain";
+import type { CanonicalJumpPackage, JumpChoice } from "../markup";
 import {
   JumpChoiceRendererScope,
   JumpChoiceSourceRendererScope,
@@ -17,17 +17,189 @@ import {
 import { useAssetObjectUrls } from "../tracker/useAssetObjectUrls";
 import type { PreviewSelection } from "./previewSelection";
 import { stripPreviewColors } from "./previewColors";
+import { translate } from "../localization";
+import {
+  createPreviewActorState,
+  reducePreviewActorState,
+} from "./previewActorState";
+import {
+  annotateAppearanceInspectionTargets,
+  appearanceInspectionAtPoint,
+  type AppearanceColorInspection,
+} from "./appearanceInspection";
 
 const layoutPreviewImageUrl = `data:image/svg+xml,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180"><rect width="320" height="180" fill="#d8d3c6"/><path d="M24 142l72-72 48 48 42-42 110 66" fill="none" stroke="#6f766f" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><circle cx="246" cy="48" r="22" fill="#b58b37"/></svg>',
 )}`;
 
-const emptyActorState = (): ActorEntryState => ({
-  choices: {},
-  inputs: {},
-  choiceRolls: {},
-  sourceRolls: {},
-});
+function appearancePreviewPackage(
+  packageItem: CanonicalJumpPackage,
+): CanonicalJumpPackage {
+  const choice = (
+    handle: string,
+    name: string,
+    selection: JumpChoice["selection"],
+    extra: Partial<JumpChoice> = {},
+  ): JumpChoice => ({
+    handle,
+    name: { base: name, variants: [] },
+    tags: [],
+    groups: [],
+    selection,
+    resolution: "manual",
+    options: [],
+    text: [],
+    images: [],
+    inputs: [],
+    costs: [],
+    grants: [],
+    ...extra,
+  });
+  const choices = [
+    choice(
+      "appearance_toggle",
+      translate("ui.editorWorkspace.appearancePreview.toggleChoice"),
+      "toggle",
+      {
+        tags: ["appearance_example"],
+        text: [
+          {
+            handle: "body",
+            content: {
+              base: translate(
+                "ui.editorWorkspace.appearancePreview.choiceBody",
+              ),
+              variants: [],
+            },
+          },
+        ],
+        images: [
+          {
+            handle: "appearance_image",
+            src: layoutPreviewImagePath,
+            alt: {
+              base: translate("ui.editorWorkspace.appearancePreview.imageAlt"),
+              variants: [],
+            },
+          },
+        ],
+      },
+    ),
+    choice(
+      "appearance_text",
+      translate("ui.editorWorkspace.appearancePreview.textChoice"),
+      "text",
+    ),
+    choice(
+      "appearance_integer",
+      translate("ui.editorWorkspace.appearancePreview.integerChoice"),
+      "integer",
+      {
+        min: 0,
+        max: 10,
+      },
+    ),
+    choice(
+      "appearance_select",
+      translate("ui.editorWorkspace.appearancePreview.selectChoice"),
+      "select",
+      {
+        options: [
+          {
+            base: translate("ui.editorWorkspace.appearancePreview.optionOne"),
+            variants: [],
+          },
+          {
+            base: translate("ui.editorWorkspace.appearancePreview.optionTwo"),
+            variants: [],
+          },
+        ],
+      },
+    ),
+    choice(
+      "appearance_cost",
+      translate("ui.editorWorkspace.appearancePreview.standardCost"),
+      "toggle",
+      {
+        costs: [{ resource: "jump_points", amount: 100, mode: "flat" }],
+      },
+    ),
+    choice(
+      "appearance_benefit",
+      translate("ui.editorWorkspace.appearancePreview.benefit"),
+      "toggle",
+    ),
+    choice(
+      "appearance_award",
+      translate("ui.editorWorkspace.appearancePreview.award"),
+      "toggle",
+      {
+        costs: [{ resource: "jump_points", amount: -100, mode: "flat" }],
+      },
+    ),
+    choice(
+      "appearance_pending",
+      translate("ui.editorWorkspace.appearancePreview.pendingRoll"),
+      "integer",
+      {
+        min: 1,
+        max: 6,
+        resolution: "random",
+        costs: [{ resource: "jump_points", amount: 100, mode: "flat" }],
+      },
+    ),
+    choice(
+      "appearance_grouped",
+      translate("ui.editorWorkspace.appearancePreview.groupedChoice"),
+      "toggle",
+      { groups: ["appearance_group"] },
+    ),
+  ];
+  return {
+    ...packageItem,
+    id: `${packageItem.id}:appearance-preview`,
+    name: {
+      base: translate("ui.editorWorkspace.appearancePreview.title"),
+      variants: [],
+    },
+    description: translate("ui.editorWorkspace.appearancePreview.description"),
+    choices,
+    sections: [
+      {
+        handle: "appearance_components",
+        name: {
+          base: translate("ui.editorWorkspace.appearancePreview.section"),
+          variants: [],
+        },
+        sources: [
+          {
+            handle: "appearance_group",
+            group: "appearance_group",
+            mode: "single",
+            resolution: "manual",
+          },
+        ],
+        directChoices: choices
+          .filter((item) => item.handle !== "appearance_grouped")
+          .map((item) => ({
+            handle: item.handle,
+            target: item.handle,
+          })),
+        members: [
+          { kind: "source", handle: "appearance_group" },
+          ...choices
+            .filter((item) => item.handle !== "appearance_grouped")
+            .map((item) => ({
+              kind: "choice" as const,
+              handle: item.handle,
+            })),
+        ],
+        text: [],
+        images: [],
+      },
+    ],
+  };
+}
 
 export type LayoutBoundHover = {
   path: string;
@@ -45,6 +217,9 @@ export function JumpPreview({
   hoveredBound,
   onHoveredBoundChange,
   onBoundActivate,
+  hoveredAppearanceColor,
+  onHoveredAppearanceColorChange,
+  onAppearanceColorActivate,
 }: {
   packageItem: CanonicalJumpPackage;
   layoutPackageItem?: CanonicalJumpPackage;
@@ -56,8 +231,15 @@ export function JumpPreview({
   hoveredBound: LayoutBoundHover | null;
   onHoveredBoundChange: (value: LayoutBoundHover | null) => void;
   onBoundActivate?: (value: LayoutBoundHover) => void;
+  hoveredAppearanceColor: AppearanceColorInspection | null;
+  onHoveredAppearanceColorChange: (
+    value: AppearanceColorInspection | null,
+  ) => void;
+  onAppearanceColorActivate?: (value: AppearanceColorInspection) => void;
 }) {
-  const activeBoundRef = useRef<HTMLElement | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const activeInspectionRef = useRef<HTMLElement | null>(null);
+  const activeInspectionKeyRef = useRef("");
   const selectionHandle = "handle" in selection ? selection.handle : undefined;
   const authoredLayout = (layoutPackageItem ?? packageItem).layouts.find(
     (item) => item.handle === selectionHandle,
@@ -79,17 +261,49 @@ export function JumpPreview({
       selection.kind,
     ],
   );
-  const previewPackage = layoutPreview?.packageItem ?? packageItem;
+  const previewPackage = useMemo(
+    () =>
+      selection.kind === "appearance" && selection.mode === "components"
+        ? appearancePreviewPackage(packageItem)
+        : (layoutPreview?.packageItem ?? packageItem),
+    [layoutPreview?.packageItem, packageItem, selection],
+  );
   const renderedPackage = useMemo(
     () => (stripColor ? stripPreviewColors(previewPackage) : previewPackage),
     [previewPackage, stripColor],
   );
-  const actorState = useMemo(() => {
-    const state = emptyActorState();
-    for (const handle of layoutPreview?.activeChoiceHandles ?? [])
+  const appearanceComponents =
+    selection.kind === "appearance" && selection.mode === "components";
+  const appearancePreview = selection.kind === "appearance";
+  const activeChoiceHandlesKey = (
+    layoutPreview?.activeChoiceHandles ?? []
+  ).join("\0");
+  const previewActorKey = [
+    selection.kind,
+    "mode" in selection ? selection.mode : "",
+    selectionHandle ?? "",
+    activeChoiceHandlesKey,
+  ].join(":");
+  const initialActorState = useMemo(() => {
+    const state = createPreviewActorState();
+    if (appearanceComponents) {
+      state.choices.appearance_toggle = true;
+      state.choices.appearance_integer = 3;
+    }
+    for (const handle of activeChoiceHandlesKey
+      ? activeChoiceHandlesKey.split("\0")
+      : [])
       state.choices[handle] = true;
     return state;
-  }, [layoutPreview]);
+  }, [activeChoiceHandlesKey, appearanceComponents]);
+  const [previewActor, setPreviewActor] = useState(() => ({
+    key: previewActorKey,
+    state: initialActorState,
+  }));
+  const actorState =
+    previewActor.key === previewActorKey
+      ? previewActor.state
+      : initialActorState;
   const evaluation = useMemo(
     () =>
       evaluateChain({
@@ -109,10 +323,39 @@ export function JumpPreview({
   const assetUrls = useAssetObjectUrls(assets, true);
   useEffect(() => {
     if (showBounds) return;
-    activeBoundRef.current?.classList.remove("is-layout-bound-active");
-    activeBoundRef.current = null;
+    activeInspectionRef.current?.classList.remove(
+      "is-preview-inspection-active",
+    );
+    activeInspectionRef.current?.removeAttribute("data-appearance-active-kind");
+    activeInspectionRef.current = null;
+    activeInspectionKeyRef.current = "";
     onHoveredBoundChange(null);
-  }, [onHoveredBoundChange, showBounds]);
+    onHoveredAppearanceColorChange(null);
+  }, [onHoveredAppearanceColorChange, onHoveredBoundChange, showBounds]);
+  useLayoutEffect(() => {
+    if (!showBounds || !appearancePreview || !rootRef.current) return;
+    const cleanup = annotateAppearanceInspectionTargets(rootRef.current);
+    return () => {
+      cleanup();
+      activeInspectionRef.current?.classList.remove(
+        "is-preview-inspection-active",
+      );
+      activeInspectionRef.current?.removeAttribute(
+        "data-appearance-active-kind",
+      );
+      activeInspectionRef.current = null;
+      activeInspectionKeyRef.current = "";
+      onHoveredAppearanceColorChange(null);
+    };
+  }, [
+    appearancePreview,
+    onHoveredAppearanceColorChange,
+    packageItem,
+    previewActorKey,
+    selection.kind,
+    showBounds,
+    stripColor,
+  ]);
   const rendererProps: JumpRendererProps = {
     packageItem: renderedPackage,
     entryId: "preview-entry",
@@ -137,12 +380,35 @@ export function JumpPreview({
       showAdditionalJumpInformation: false,
       showMockData: false,
     },
-    tags: {},
+    tags:
+      selection.kind === "appearance" && selection.mode === "components"
+        ? {
+            appearance_example: {
+              id: "appearance_example",
+              label: translate(
+                "ui.editorWorkspace.appearancePreview.exampleTag",
+              ),
+              parent: "miscellaneous",
+              aliases: [],
+              color: "#7f5aa2",
+              to: "#4f326d",
+              style: "soft",
+            },
+          }
+        : {},
     companions: [],
     gauntletActive: renderedPackage.nativeGauntlet,
     resolveAsset: (path) =>
       path === layoutPreviewImagePath ? layoutPreviewImageUrl : assetUrls[path],
-    dispatch: () => undefined,
+    dispatch: (action) =>
+      setPreviewActor((current) => {
+        const state =
+          current.key === previewActorKey ? current.state : initialActorState;
+        return {
+          key: previewActorKey,
+          state: reducePreviewActorState(state, action),
+        };
+      }),
   };
   const section = renderedPackage.sections.find(
     (item) => item.handle === selectionHandle,
@@ -181,17 +447,60 @@ export function JumpPreview({
 
   return (
     <div
-      className={`editor-real-preview${layoutPreview ? " format-one-jump-renderer" : ""}${showBounds ? " show-layout-bounds" : ""}`}
+      ref={rootRef}
+      className={`editor-real-preview${layoutPreview ? " format-one-jump-renderer" : ""}${showBounds ? (appearancePreview ? " show-appearance-colors" : " show-layout-bounds") : ""}`}
       data-hovered-bound={hoveredBound?.path ?? undefined}
-      onPointerOver={(event) => {
+      data-hovered-appearance-color={hoveredAppearanceColor?.field}
+      data-hovered-appearance-owner={
+        hoveredAppearanceColor?.layout ? "layout" : "appearance"
+      }
+      onPointerMove={(event) => {
         if (!showBounds) return;
+        if (appearancePreview) {
+          const inspected = appearanceInspectionAtPoint(
+            event.target as HTMLElement,
+            event.clientX,
+            event.clientY,
+          );
+          const key = inspected
+            ? `${inspected.layout?.kind ?? "appearance"}:${inspected.layout?.handle ?? ""}:${inspected.layout?.path ?? ""}:${inspected.field}:${inspected.kind}`
+            : "";
+          if (
+            inspected?.element === activeInspectionRef.current &&
+            key === activeInspectionKeyRef.current
+          )
+            return;
+          activeInspectionRef.current?.classList.remove(
+            "is-preview-inspection-active",
+          );
+          activeInspectionRef.current?.removeAttribute(
+            "data-appearance-active-kind",
+          );
+          activeInspectionRef.current = inspected?.element ?? null;
+          activeInspectionKeyRef.current = key;
+          inspected?.element.classList.add("is-preview-inspection-active");
+          if (inspected)
+            inspected.element.dataset.appearanceActiveKind = inspected.kind;
+          onHoveredAppearanceColorChange(
+            inspected
+              ? {
+                  field: inspected.field,
+                  kind: inspected.kind,
+                  layout: inspected.layout,
+                }
+              : null,
+          );
+          return;
+        }
         const target = (event.target as HTMLElement).closest<HTMLElement>(
           "[data-layout-bound]",
         );
-        if (target === activeBoundRef.current) return;
-        activeBoundRef.current?.classList.remove("is-layout-bound-active");
-        activeBoundRef.current = target;
-        target?.classList.add("is-layout-bound-active");
+        if (target === activeInspectionRef.current) return;
+        activeInspectionRef.current?.classList.remove(
+          "is-preview-inspection-active",
+        );
+        activeInspectionRef.current = target;
+        target?.classList.add("is-preview-inspection-active");
         const kind = target?.dataset.layoutBoundKind;
         onHoveredBoundChange(
           target?.dataset.layoutBound &&
@@ -201,13 +510,36 @@ export function JumpPreview({
         );
       }}
       onPointerLeave={() => {
-        activeBoundRef.current?.classList.remove("is-layout-bound-active");
-        activeBoundRef.current = null;
+        activeInspectionRef.current?.classList.remove(
+          "is-preview-inspection-active",
+        );
+        activeInspectionRef.current?.removeAttribute(
+          "data-appearance-active-kind",
+        );
+        activeInspectionRef.current = null;
+        activeInspectionKeyRef.current = "";
         onHoveredBoundChange(null);
+        onHoveredAppearanceColorChange(null);
       }}
       onClickCapture={(event) => {
-        if (!showBounds || selection.kind !== "layout" || !onBoundActivate)
+        if (!showBounds) return;
+        if (appearancePreview && onAppearanceColorActivate) {
+          const inspected = appearanceInspectionAtPoint(
+            event.target as HTMLElement,
+            event.clientX,
+            event.clientY,
+          );
+          if (!inspected) return;
+          event.preventDefault();
+          event.stopPropagation();
+          onAppearanceColorActivate({
+            field: inspected.field,
+            kind: inspected.kind,
+            layout: inspected.layout,
+          });
           return;
+        }
+        if (selection.kind !== "layout" || !onBoundActivate) return;
         const target = (event.target as HTMLElement).closest<HTMLElement>(
           "[data-layout-bound]",
         );

@@ -200,7 +200,9 @@ section
       """
 `,
       "choices.jdef": "# Choices are placed here by the Editor.\n",
-      "layout.jdef": "# Layouts and themes are placed here by the Editor.\n",
+      "layout.jdef": `# Jump appearance, layouts, and themes are placed here by the Editor.
+jump-appearance
+`,
     },
     assets: {},
     assetEditorDocuments: {},

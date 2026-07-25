@@ -1,0 +1,19 @@
+{
+  "ui": {
+    "editorHub": {
+      "ariaLabel": {
+        "projectActions": "إجراءات مشروع {{project}}"
+      }
+    },
+    "editorWorkspace": {
+      "ariaLabel": {
+        "layoutNodeActions": "إجراءات عقدة التخطيط {{node}}"
+      },
+      "asset": {
+        "editor": {
+          "layerActions": "إجراءات الطبقة {{layer}}"
+        }
+      }
+    }
+  }
+}

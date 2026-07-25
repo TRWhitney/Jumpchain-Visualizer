@@ -217,6 +217,10 @@ src-tauri/
         <li>All upstream links open through a validated HTTPS external-navigation command.</li>
       </ul>
 
+      <h2>Application Context Menus</h2>
+      <p>One body-level provider owns context-menu placement, focus, dismissal, theme styling, RTL behavior, and application-scope suppression. Feature components own only localized actions and call the same commands as their visible controls. The complete target and native-preservation ledger is recorded in the <a href="context-menu-audit.html">Application Context-Menu Audit</a>.</p>
+      <p>Preventing generic browser chrome is not a security control and cannot prevent developer-tool access. Editable text, source editors, selectable reports, links, images, and authored content retain their browser behavior. Firefox may bypass a scripted <code>contextmenu</code> handler with <kbd>Shift</kbd>+right-click by design.</p>
+
       <h2>Testing Architecture</h2>
       <ol>
         <li>Vitest Node tests cover pure parsing transformations, validators, commands, evaluation, supplements, migrations, and serializers.</li>

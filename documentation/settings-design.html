@@ -278,6 +278,7 @@
         <h2>Interactive Settings Surface</h2>
         <p>The category navigation, accent picker, search, notification preview, tag-profile editor, and Developer session-log viewer are interactive. Changing the accent updates the complete application while preserving the current gold as the Reset default. Confirmation-state labels are documentation metadata and do not appear as badges in the application. The Tags page uses the accepted editor from <a href="tags-design.html">Tag System Design</a>.</p>
 
+        <p>Application-owned Settings chrome suppresses the generic browser menu. Tabs, buttons, dropdowns, checkboxes, and the standalone color picker therefore do not expose Back, Forward, Save, or Inspect entries. Text-entry fields—including the editable text segment of a compound color control—retain ordinary browser editing and spelling actions. This presentation policy is documented by the <a href="context-menu-audit.html">application context-menu audit</a> and is not a security boundary.</p>
         <div class="settings-mockup" data-toc-ignore aria-label="Interactive Settings surface concept">
           <aside aria-label="Settings categories">
             <div class="settings-mock-title"><span aria-hidden="true">⚙</span><strong>Settings</strong></div>

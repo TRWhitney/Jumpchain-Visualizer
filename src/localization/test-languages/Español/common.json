@@ -6,6 +6,27 @@
     "searchSettings": "Buscar configuración",
     "resetCategory": "Restablecer categoría",
     "resetAllSettings": "Restablecer toda la configuración",
-    "closeSettings": "Cerrar configuración"
+    "closeSettings": "Cerrar configuración",
+    "open": "Abrir",
+    "select": "Seleccionar",
+    "edit": "Editar",
+    "editDetails": "Editar detalles…",
+    "viewDetails": "Ver detalles",
+    "star": "Destacar",
+    "unstar": "Quitar destacado",
+    "exportJmp": "Exportar .jmp…",
+    "delete": "Eliminar",
+    "deleteProject": "Eliminar proyecto…",
+    "deleteChain": "Eliminar cadena…",
+    "remove": "Quitar",
+    "renameEllipsis": "Renombrar…",
+    "resetAppearance": "Restablecer apariencia",
+    "show": "Mostrar",
+    "hide": "Ocultar",
+    "lock": "Bloquear",
+    "unlock": "Desbloquear",
+    "moveUp": "Mover arriba",
+    "moveDown": "Mover abajo",
+    "duplicate": "Duplicar"
   }
 }

@@ -6,6 +6,27 @@
     "searchSettings": "البحث في الإعدادات",
     "resetCategory": "إعادة ضبط الفئة",
     "resetAllSettings": "إعادة ضبط كل الإعدادات",
-    "closeSettings": "إغلاق الإعدادات"
+    "closeSettings": "إغلاق الإعدادات",
+    "open": "فتح",
+    "select": "تحديد",
+    "edit": "تحرير",
+    "editDetails": "تحرير التفاصيل…",
+    "viewDetails": "عرض التفاصيل",
+    "star": "تمييز",
+    "unstar": "إلغاء التمييز",
+    "exportJmp": "تصدير ‎.jmp…",
+    "delete": "حذف",
+    "deleteProject": "حذف المشروع…",
+    "deleteChain": "حذف السلسلة…",
+    "remove": "إزالة",
+    "renameEllipsis": "إعادة التسمية…",
+    "resetAppearance": "إعادة ضبط المظهر",
+    "show": "إظهار",
+    "hide": "إخفاء",
+    "lock": "قفل",
+    "unlock": "إلغاء القفل",
+    "moveUp": "نقل لأعلى",
+    "moveDown": "نقل لأسفل",
+    "duplicate": "تكرار"
   }
 }

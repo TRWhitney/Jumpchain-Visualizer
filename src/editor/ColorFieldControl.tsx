@@ -12,6 +12,7 @@ import {
   platformScreenColorSampler,
   type ScreenColorSampler,
 } from "./screenColorSampler";
+import { Chevron } from "../ui";
 
 export type EditorColorChoice = {
   value: string;
@@ -28,6 +29,7 @@ export function ColorFieldControl({
   ariaInvalid,
   ariaDescribedBy,
   onChange,
+  onCreateTheme,
   onBlur,
   screenColorSampler = platformScreenColorSampler,
 }: {
@@ -39,6 +41,7 @@ export function ColorFieldControl({
   ariaInvalid?: boolean;
   ariaDescribedBy?: string;
   onChange: (value: string) => void;
+  onCreateTheme?: (value: string, resolvedColor: string) => void;
   onBlur: () => void;
   screenColorSampler?: ScreenColorSampler;
 }) {
@@ -186,9 +189,10 @@ export function ColorFieldControl({
             onPointerDown={() => picker.current?.blur()}
             onClick={() => setChoicesOpen((current) => !current)}
           >
-            <span className="editor-diagnostics-chevron" aria-hidden="true">
-              ›
-            </span>
+            <Chevron
+              className="editor-diagnostics-chevron"
+              direction={choicesOpen ? "down" : "right"}
+            />
           </button>
         )}
         {!allowTokens && screenSamplerAvailable && (
@@ -291,6 +295,19 @@ export function ColorFieldControl({
               </section>
             );
           })}
+          {onCreateTheme && (
+            <button
+              type="button"
+              className="editor-color-create-theme"
+              onClick={() => {
+                updateDraft(null);
+                setChoicesOpen(false);
+                onCreateTheme(displayedValue, pickerValue);
+              }}
+            >
+              {translate("ui.editorWorkspace.color.createThemeColor")}
+            </button>
+          )}
         </div>
       )}
     </div>

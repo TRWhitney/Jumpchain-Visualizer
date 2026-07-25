@@ -24,6 +24,11 @@ const packageItem: CanonicalJumpPackage = {
     foreground: "#fedcba",
     divider: "#ff0000",
   },
+  appearance: {
+    background: "surface",
+    "text-color": "foreground",
+    corners: "lg",
+  },
   layouts: [
     {
       kind: "choice-layout",
@@ -71,6 +76,7 @@ describe("stripPreviewColors", () => {
     const [rule, text] = root.children as readonly LayoutNode[];
 
     expect(stripped.themes).toEqual({});
+    expect(stripped.appearance).toEqual({ corners: "lg" });
     expect(root.presentation).toEqual({ gap: "sm" });
     expect(rule.presentation).toEqual({ thickness: 2, style: "dash" });
     expect(text.presentation).toEqual({ padding: "md", textSize: "lg" });
@@ -86,6 +92,11 @@ describe("stripPreviewColors", () => {
       surface: "#123456",
       foreground: "#fedcba",
       divider: "#ff0000",
+    });
+    expect(packageItem.appearance).toEqual({
+      background: "surface",
+      "text-color": "foreground",
+      corners: "lg",
     });
     expect(packageItem.layouts[0].root.presentation).toMatchObject({
       background: "surface",

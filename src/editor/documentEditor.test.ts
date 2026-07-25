@@ -3,6 +3,7 @@ import { Format1LanguageService } from "./languageService";
 import {
   addDocumentField,
   createAndAssignDocumentResource,
+  createAndAssignTopLevelDocumentReference,
   declarationFieldNames,
   fieldDefault,
   fieldDefinition,
@@ -458,6 +459,7 @@ section-layout
       "cost",
       "grant",
       "theme",
+      "jump-appearance",
       "section-layout",
       "choice-layout",
       "trait-layout",
@@ -590,6 +592,97 @@ section-layout
         name: "Unsafe\nresource",
         initial: "0\nsection",
       }).changed,
+    ).toBe(false);
+  });
+
+  it("creates and assigns package-owned reference declarations atomically", () => {
+    const files = {
+      "jump.jdef": source,
+      "choices.jdef": `choice
+  handle: canonical
+  name: "Canonical"
+  selection: toggle
+
+section
+  handle: placements
+  name: "Placements"
+
+  choice
+    handle: placement
+    target: canonical
+`,
+      "layout.jdef": "",
+    };
+    const symbols = service.analyze(files).symbols;
+    const jump = symbols.find((symbol) => symbol.kind === "jump")!;
+    const layoutResult = createAndAssignTopLevelDocumentReference(
+      files,
+      jump,
+      "section-layout",
+      0,
+      "section-layout",
+    );
+    expect(layoutResult.target).toMatchObject({
+      kind: "section-layout",
+      handle: "new_section_layout",
+    });
+    expect(layoutResult.files["jump.jdef"]).toContain(
+      "section-layout: new_section_layout",
+    );
+    expect(layoutResult.files["layout.jdef"]).toContain(
+      "section-layout\n  handle: new_section_layout",
+    );
+
+    const directChoice = service
+      .analyze(layoutResult.files)
+      .symbols.find(
+        (symbol) => symbol.kind === "choice" && symbol.depth === 1,
+      )!;
+    const choiceResult = createAndAssignTopLevelDocumentReference(
+      layoutResult.files,
+      directChoice,
+      "target",
+      0,
+      "choice",
+    );
+    expect(choiceResult.target).toMatchObject({
+      kind: "choice",
+      handle: "new_choice",
+    });
+    expect(choiceResult.files["choices.jdef"]).toContain("target: new_choice");
+    expect(choiceResult.files["choices.jdef"]).toContain(
+      'choice\n  handle: new_choice\n  name: "New Choice"',
+    );
+
+    const layoutStack = service
+      .analyze(choiceResult.files)
+      .symbols.find(
+        (symbol) => symbol.kind === "stack" && symbol.file === "layout.jdef",
+      )!;
+    const themeResult = createAndAssignTopLevelDocumentReference(
+      choiceResult.files,
+      layoutStack,
+      "background",
+      0,
+      "theme",
+      { color: "#1a2b3c" },
+    );
+    expect(themeResult.target).toMatchObject({
+      kind: "theme",
+      handle: "new_theme",
+    });
+    expect(themeResult.files["layout.jdef"]).toContain("background: new_theme");
+    expect(themeResult.files["layout.jdef"]).toContain(
+      'theme\n  handle: new_theme\n  color: "#1A2B3C"',
+    );
+    expect(
+      createAndAssignTopLevelDocumentReference(
+        choiceResult.files,
+        layoutStack,
+        "background",
+        0,
+        "choice-layout",
+      ).changed,
     ).toBe(false);
   });
 

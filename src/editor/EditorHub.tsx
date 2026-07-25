@@ -13,6 +13,7 @@ import {
   type EditorWorkspaceSnapshot,
 } from "./model";
 import { translate, translateDiagnostic } from "../localization";
+import { useContextMenu } from "../ui";
 
 const service = new JumpPackageImportService();
 
@@ -79,6 +80,7 @@ export function EditorHub({
   onOpenFolder,
   onImport,
   onToggleStar,
+  onExport,
   onDelete,
 }: {
   workspaces: readonly EditorWorkspaceSnapshot[];
@@ -90,8 +92,10 @@ export function EditorHub({
   onOpenFolder: () => void;
   onImport: (review: PackageImportReview) => void;
   onToggleStar: (workspace: EditorWorkspaceSnapshot) => void;
+  onExport: (workspace: EditorWorkspaceSnapshot) => void;
   onDelete: (workspace: EditorWorkspaceSnapshot) => void;
 }) {
+  const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const { settings, logger } = useSettings();
   const [search, setSearch] = useState("");
   const [inspectState, setInspectState] = useState<
@@ -285,10 +289,42 @@ export function EditorHub({
               const warnings = summary.diagnostics.filter(
                 (item) => item.severity === "warning",
               ).length;
+              const menu = {
+                label: translate("ui.editorHub.ariaLabel.projectActions", {
+                  project: summary.name,
+                }),
+                actions: [
+                  {
+                    id: "open",
+                    label: translate("common.open"),
+                    onAction: () => onOpen(workspace),
+                  },
+                  {
+                    id: "star",
+                    label: translate(
+                      summary.starred ? "common.unstar" : "common.star",
+                    ),
+                    onAction: () => onToggleStar(workspace),
+                  },
+                  {
+                    id: "export",
+                    label: translate("common.exportJmp"),
+                    onAction: () => onExport(workspace),
+                  },
+                  {
+                    id: "delete",
+                    label: translate("common.deleteProject"),
+                    danger: true,
+                    separatorBefore: true,
+                    onAction: () => onDelete(workspace),
+                  },
+                ],
+              };
               return (
                 <article
                   className="app-chain-card editor-project-card"
                   key={workspace.id}
+                  onContextMenu={(event) => openContextMenu(event, menu)}
                 >
                   <button
                     type="button"
@@ -350,7 +386,14 @@ export function EditorHub({
                     </div>
                   </dl>
                   <div className="app-chain-card-actions">
-                    <button type="button" onClick={() => onOpen(workspace)}>
+                    <button
+                      type="button"
+                      aria-haspopup="menu"
+                      onKeyDown={(event) =>
+                        openContextMenuFromKeyboard(event, menu)
+                      }
+                      onClick={() => onOpen(workspace)}
+                    >
                       {translate("ui.editorHub.text.openProject")}
                     </button>
                     <button

@@ -4,24 +4,33 @@ import { AppShell } from "./AppShell";
 import { SettingsProvider } from "../settings/SettingsProvider";
 import { ToastHost } from "../settings/ToastHost";
 import { CrashBoundary } from "../settings/CrashBoundary";
+import { ContextMenuProvider } from "../ui";
 import "../settings/settings.css";
 
 export function App() {
   if (window.location.pathname === "/review/chain-tracker")
     return (
-      <SettingsProvider>
-        <ReviewChainTracker />
-        <ToastHost />
-      </SettingsProvider>
+      <ContextMenuProvider>
+        <SettingsProvider>
+          <ReviewChainTracker />
+          <ToastHost />
+        </SettingsProvider>
+      </ContextMenuProvider>
     );
   if (window.location.pathname === "/review/supplements")
-    return <ReviewSupplements />;
+    return (
+      <ContextMenuProvider>
+        <ReviewSupplements />
+      </ContextMenuProvider>
+    );
   return (
     <SettingsProvider>
-      <CrashBoundary>
-        <AppShell />
-        <ToastHost />
-      </CrashBoundary>
+      <ContextMenuProvider>
+        <CrashBoundary>
+          <AppShell />
+          <ToastHost />
+        </CrashBoundary>
+      </ContextMenuProvider>
     </SettingsProvider>
   );
 }

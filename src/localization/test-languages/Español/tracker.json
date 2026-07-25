@@ -1,0 +1,17 @@
+{
+  "ui": {
+    "chainTracker": {
+      "text": {
+        "openIdentitySetup": "Abrir identidad inicial",
+        "clearStartingGender": "Borrar género inicial",
+        "clearStartingAge": "Borrar edad inicial",
+        "moveEarlier": "Mover antes",
+        "moveLater": "Mover después",
+        "removeFromChain": "Quitar de la cadena…"
+      },
+      "ariaLabel": {
+        "chainEntryActions": "Acciones de {{entry}} en la cadena"
+      }
+    }
+  }
+}

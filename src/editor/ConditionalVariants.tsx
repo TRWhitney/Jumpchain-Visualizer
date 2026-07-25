@@ -19,6 +19,7 @@ import {
 } from "../markup";
 import { translate, translateDiagnostic } from "../localization";
 import { NumberStepperButtons } from "../tracker/NumberStepper";
+import { Chevron } from "../ui";
 import { ConditionExpressionInput } from "./ConditionExpressionInput";
 import {
   addVisualNode,
@@ -94,9 +95,7 @@ function ConditionPropertyPicker({
         <Button
           aria-label={translate("ui.editorWorkspace.condition.showProperties")}
         >
-          <span className="editor-diagnostics-chevron" aria-hidden="true">
-            ›
-          </span>
+          <Chevron className="editor-diagnostics-chevron" />
         </Button>
       </Group>
       <Popover className="editor-condition-popover">
@@ -226,9 +225,7 @@ function ConditionValueControl({
           <Button
             aria-label={translate("ui.editorWorkspace.condition.showValues")}
           >
-            <span className="editor-diagnostics-chevron" aria-hidden="true">
-              ›
-            </span>
+            <Chevron className="editor-diagnostics-chevron" />
           </Button>
         )}
       </Group>

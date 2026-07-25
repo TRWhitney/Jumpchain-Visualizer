@@ -1,3 +1,9 @@
+jump-appearance
+  background: white
+  text-color: "#112233"
+  accent-color: purple
+  corners: md
+
 section-layout
   handle: choice_section
 

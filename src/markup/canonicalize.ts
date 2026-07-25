@@ -23,6 +23,7 @@ import type {
 } from "./model";
 import { parseFormatFile } from "./parseSource";
 import { validateFormat1 } from "./validateFormat1";
+import { format1BuiltInColors } from "./format1Colors";
 
 const handles = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 const costTokens: Record<string, number> = {
@@ -98,6 +99,134 @@ function diagnostic(
     messageKey: `diagnostics.${code}`,
     parameters,
     range: node?.range,
+  });
+}
+
+function appearanceContrastDiagnostics(
+  packageItem: Omit<CanonicalJumpPackage, "diagnostics">,
+  node: SourceNode | undefined,
+): PackageDiagnostic[] {
+  const authored = packageItem.appearance ?? {};
+  if (!node || Object.keys(authored).length === 0) return [];
+  const resolve = (candidate: string | undefined) => {
+    if (!candidate) return undefined;
+    const value = packageItem.themes[candidate] ?? candidate;
+    return /^#[0-9a-f]{6}$/i.test(value)
+      ? value
+      : format1BuiltInColors[value as keyof typeof format1BuiltInColors];
+  };
+  const role = (
+    exact: string,
+    family: string | undefined,
+    shared: "background" | "text" | "border" | "accent",
+    fallback: string,
+  ) =>
+    resolve(
+      authored[exact] ??
+        (family ? authored[`${family}-${shared}`] : undefined) ??
+        authored[
+          shared === "background"
+            ? "background"
+            : shared === "text"
+              ? "text-color"
+              : `${shared}-color`
+        ] ??
+        (shared === "border" || shared === "accent"
+          ? authored["text-color"]
+          : undefined),
+    ) ?? fallback;
+  const channel = (hex: string, offset: number) => {
+    const value = Number.parseInt(hex.slice(offset, offset + 2), 16) / 255;
+    return value <= 0.04045
+      ? value / 12.92
+      : Math.pow((value + 0.055) / 1.055, 2.4);
+  };
+  const luminance = (hex: string) =>
+    channel(hex, 1) * 0.2126 +
+    channel(hex, 3) * 0.7152 +
+    channel(hex, 5) * 0.0722;
+  const ratio = (foreground: string, background: string) => {
+    const first = luminance(foreground);
+    const second = luminance(background);
+    return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+  };
+  const surfaceBackground = role(
+    "surface-background",
+    undefined,
+    "background",
+    "#f5f1e6",
+  );
+  const checks = [
+    [
+      "surfaceText",
+      role("surface-text", undefined, "text", "#171717"),
+      surfaceBackground,
+      4.5,
+    ],
+    [
+      "headerTitle",
+      role("header-title", "surface", "text", "#171717"),
+      role("header-background", "surface", "background", "#f5f1e6"),
+      3,
+    ],
+    [
+      "headerDescription",
+      role("header-description", "surface", "text", "#5f5a4d"),
+      role("header-background", "surface", "background", "#f5f1e6"),
+      4.5,
+    ],
+    [
+      "sectionBody",
+      role("section-body", "surface", "text", "#5f5a4d"),
+      role("section-background", "surface", "background", "#f5f1e6"),
+      4.5,
+    ],
+    [
+      "choiceBody",
+      role("choice-body", "surface", "text", "#5f5a4d"),
+      role("choice-background", "surface", "background", "#f5f1e6"),
+      4.5,
+    ],
+    [
+      "controlText",
+      role("control-text", "surface", "text", "#26231f"),
+      role("control-background", "surface", "background", "#fffdf7"),
+      4.5,
+    ],
+    [
+      "controlIndicator",
+      role("control-indicator", undefined, "accent", "#5c4500"),
+      role("control-background", "surface", "background", "#fffdf7"),
+      3,
+    ],
+    [
+      "focusIndicator",
+      role("control-accent", undefined, "accent", "#725a13"),
+      surfaceBackground,
+      3,
+    ],
+    [
+      "meaningfulBorder",
+      role("surface-border", undefined, "border", "#d8cfb6"),
+      surfaceBackground,
+      3,
+    ],
+  ] as const;
+  return checks.flatMap(([roleName, foreground, background, expected]) => {
+    const measured = ratio(foreground, background);
+    if (measured >= expected) return [];
+    return [
+      {
+        code: "appearance.contrast",
+        severity: "warning" as const,
+        messageKey: `diagnostics.appearance.contrast.${roleName}`,
+        parameters: {
+          measured: measured.toFixed(2),
+          expected: expected.toFixed(1),
+        },
+        range: node.range,
+      },
+    ];
   });
 }
 
@@ -781,6 +910,11 @@ function layoutNode(
       color: value(node, "color"),
       thickness: integer(node, "thickness"),
       style: value(node, "style"),
+      borderColor: value(node, "border-color"),
+      borderWidth: value(node, "border-width"),
+      borderStyle: value(node, "border-style"),
+      corners: value(node, "corners"),
+      clip: boolean(node, "clip"),
     },
     children,
   };
@@ -1261,6 +1395,16 @@ export function canonicalizePackage(
   const diagnostics = parsed.flatMap((item) => item.diagnostics);
   const roots = parsed.flatMap((item) => item.tree);
   const jumpNodes = roots.filter((node) => node.kind === "jump");
+  const appearanceNodes = roots.filter(
+    (node) => node.kind === "jump-appearance",
+  );
+  if (appearanceNodes.length > 1)
+    diagnostic(
+      diagnostics,
+      "jump-appearance.cardinality",
+      "A package can contain only one jump appearance declaration.",
+      appearanceNodes[1],
+    );
   if (jumpNodes.length !== 1)
     diagnostic(
       diagnostics,
@@ -1327,6 +1471,12 @@ export function canonicalizePackage(
         ["section-layout", "choice-layout", "trait-layout"].includes(node.kind),
       )
       .map((node) => layout(node, diagnostics)),
+    appearance: Object.fromEntries(
+      (appearanceNodes[0]?.fields ?? []).map((item) => [
+        item.name,
+        unquote(item.value),
+      ]),
+    ),
     themes: Object.fromEntries(
       roots
         .filter((node) => node.kind === "theme")
@@ -1402,7 +1552,11 @@ export function canonicalizePackage(
         ]),
       ),
     ],
-    diagnostics: [...retainedDiagnostics, ...schemaDiagnostics],
+    diagnostics: [
+      ...retainedDiagnostics,
+      ...schemaDiagnostics,
+      ...appearanceContrastDiagnostics(canonical, appearanceNodes[0]),
+    ],
   };
 }
 

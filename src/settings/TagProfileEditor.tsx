@@ -27,6 +27,7 @@ import {
 } from "./tagProfile";
 import { primaryTagIds } from "./builtinTags";
 import { translate } from "../localization";
+import { useContextMenu } from "../ui";
 
 const sourceLabels = {
   builtin: "Built-in",
@@ -43,6 +44,7 @@ const animationLabels: Record<TagPresentation["animation"], string> = {
 };
 
 export function TagProfileEditor() {
+  const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const { settings, update, logger, installedPackages } = useSettings();
   const profile = settings.tags.profile;
   const languageTag = settings.language.tag;
@@ -351,34 +353,82 @@ export function TagProfileEditor() {
                           languageTag,
                         ),
                       )
-                      .map((entry) => (
-                        <button
-                          key={entry.id}
-                          type="button"
-                          className="tag-profile-item"
-                          aria-selected={entry.id === tag.id}
-                          onClick={() => select(entry.id)}
-                        >
-                          <span>
-                            {displayName(entry)}
-                            <small>
-                              {entry.source === "builtin"
-                                ? entry.parent
-                                  ? `Built-in · From ${profile.tags[entry.parent] ? displayName(profile.tags[entry.parent]) : entry.parent}`
-                                  : "Built-in"
-                                : `${sourceLabels[entry.source]} · ${entry.appearanceSource === "derived" ? `From ${profile.tags[entry.parent ?? "miscellaneous"]?.name ?? "Miscellaneous"}` : "Custom appearance"}`}
-                            </small>
-                          </span>
-                          <i
-                            className="profile-color-dot"
-                            style={
-                              {
-                                "--profile-color": entry.presentation.colors[0],
-                              } as CSSProperties
+                      .map((entry) => {
+                        const menu = {
+                          label: translate(
+                            "ui.tagProfileEditor.ariaLabel.tagActions",
+                            { tag: displayName(entry) },
+                          ),
+                          actions: [
+                            {
+                              id: "edit",
+                              label: translate("common.edit"),
+                              onAction: () => select(entry.id),
+                            },
+                            {
+                              id: "reset",
+                              label: translate("common.resetAppearance"),
+                              onAction: () =>
+                                replaceProfile(resetTag(profile, entry.id)),
+                            },
+                            ...(entry.source === "manual" ||
+                            entry.source === "imported"
+                              ? [
+                                  {
+                                    id: "delete",
+                                    label: translate("common.delete"),
+                                    danger: true,
+                                    separatorBefore: true,
+                                    onAction: () => {
+                                      const parent =
+                                        entry.parent ?? "miscellaneous";
+                                      replaceProfile(
+                                        deleteTag(profile, entry.id),
+                                      );
+                                      select(parent);
+                                    },
+                                  },
+                                ]
+                              : []),
+                          ],
+                        };
+                        return (
+                          <button
+                            key={entry.id}
+                            type="button"
+                            className="tag-profile-item"
+                            aria-haspopup="menu"
+                            aria-selected={entry.id === tag.id}
+                            onContextMenu={(event) =>
+                              openContextMenu(event, menu)
                             }
-                          />
-                        </button>
-                      ))}
+                            onKeyDown={(event) =>
+                              openContextMenuFromKeyboard(event, menu)
+                            }
+                            onClick={() => select(entry.id)}
+                          >
+                            <span>
+                              {displayName(entry)}
+                              <small>
+                                {entry.source === "builtin"
+                                  ? entry.parent
+                                    ? `Built-in · From ${profile.tags[entry.parent] ? displayName(profile.tags[entry.parent]) : entry.parent}`
+                                    : "Built-in"
+                                  : `${sourceLabels[entry.source]} · ${entry.appearanceSource === "derived" ? `From ${profile.tags[entry.parent ?? "miscellaneous"]?.name ?? "Miscellaneous"}` : "Custom appearance"}`}
+                              </small>
+                            </span>
+                            <i
+                              className="profile-color-dot"
+                              style={
+                                {
+                                  "--profile-color":
+                                    entry.presentation.colors[0],
+                                } as CSSProperties
+                              }
+                            />
+                          </button>
+                        );
+                      })}
                 </section>
               ) : null,
             )}

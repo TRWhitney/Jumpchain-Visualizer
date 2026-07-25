@@ -105,6 +105,39 @@ test("contextual Settings preserves its inert workspace, history, focus, and cat
   await expect(page).toHaveURL(/\/$/);
 });
 
+test("Settings suppresses generic menus on dropdowns and standalone colors while preserving text editing", async ({
+  page,
+}) => {
+  await page.goto("/settings");
+  const theme = page.locator("select#theme");
+  const accent = page.locator('input#accent[type="color"]');
+  const generalTab = page.getByRole("tab", { name: "General" });
+  for (const control of [generalTab, theme, accent]) {
+    const dispatched = await control.evaluate((element) =>
+      element.dispatchEvent(
+        new MouseEvent("contextmenu", {
+          bubbles: true,
+          cancelable: true,
+        }),
+      ),
+    );
+    expect(dispatched).toBe(false);
+  }
+
+  const searchDispatched = await page
+    .getByPlaceholder("Search settings")
+    .evaluate((element) =>
+      element.dispatchEvent(
+        new MouseEvent("contextmenu", {
+          bubbles: true,
+          cancelable: true,
+        }),
+      ),
+    );
+  expect(searchDispatched).toBe(true);
+  await expect(page.getByRole("menu")).toHaveCount(0);
+});
+
 for (const location of ["/chain", "/chain/ch-92b1"]) {
   test(`contextual Settings restores ${location}`, async ({ page }) => {
     await page.goto(location);
@@ -593,6 +626,26 @@ test(
         contentType: "image/png",
       });
     }
+
+    await page.goto("/review/chain-tracker");
+    const earth = page.locator(".chain-jump-entry.is-earth");
+    await earth.click({ button: "right" });
+    const rtlMenu = page.getByRole("menu", {
+      name: /إجراءات إدخال Earth في السلسلة/,
+    });
+    await expect(rtlMenu).toBeVisible();
+    const menuBounds = await rtlMenu.boundingBox();
+    expect(menuBounds).not.toBeNull();
+    expect(menuBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(menuBounds!.x + menuBounds!.width).toBeLessThanOrEqual(
+      await page.evaluate(() => innerWidth),
+    );
+    if (shouldCaptureReviewArtifacts(testInfo)) {
+      await testInfo.attach("context-menu-arabic-rtl", {
+        body: await page.screenshot(),
+        contentType: "image/png",
+      });
+    }
   },
 );
 
@@ -741,7 +794,9 @@ test(
     await page.getByRole("button", { name: "Create Project" }).click();
     const editor = page.locator(".production-editor");
     await editor.getByRole("button", { name: "Add", exact: true }).click();
-    await editor.getByRole("button", { name: "Choice layout" }).click();
+    await editor
+      .getByRole("button", { name: "Choice layout", exact: true })
+      .click();
     await editor.getByRole("tab", { name: "Source" }).click();
     const source = editor.getByLabel(/source$/);
     await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
@@ -1104,6 +1159,27 @@ test("global search opens nested Logs and session controls use real events", asy
     await eventList.evaluate((element) => element.scrollHeight),
   );
 
+  const appStarted = page
+    .locator(".logging-event-list button")
+    .filter({ hasText: "app.started" });
+  const rendererEvent = page
+    .locator(".logging-event-list button")
+    .filter({ hasText: "renderer.cache.reused" });
+  if (await rendererEvent.count()) await rendererEvent.click();
+  await appStarted.click({ button: "right" });
+  const eventMenu = page.getByRole("menu", {
+    name: "app.started event actions",
+  });
+  await expect(eventMenu.getByRole("menuitem")).toHaveText([
+    "View details",
+    "Copy report",
+    "Save report…",
+  ]);
+  await eventMenu.getByRole("menuitem", { name: "View details" }).click();
+  await expect(
+    page.locator(".logging-event-detail h4", { hasText: "app.started" }),
+  ).toBeVisible();
+
   await page.getByRole("button", { name: "Export…" }).click();
   await expect(
     page.getByRole("dialog", { name: "Export session events" }),
@@ -1307,6 +1383,17 @@ test("tag profile supports keyboard creation, relationships, presentation, and r
       .filter({ hasText: /^Weather Working$/ }),
   ).toBeVisible();
 
+  const storm = page
+    .locator(".tag-profile-item")
+    .filter({ hasText: /^Storm Control/ });
+  await storm.click({ button: "right" });
+  await expect(
+    page
+      .getByRole("menu", { name: "Storm Control tag actions" })
+      .getByRole("menuitem"),
+  ).toHaveText(["Edit", "Reset appearance", "Delete"]);
+  await page.keyboard.press("Escape");
+
   if (shouldCaptureReviewArtifacts(testInfo)) {
     await testInfo.attach("settings-tags-wide", {
       body: await page.screenshot(),
@@ -1362,6 +1449,13 @@ test("tag catalog separates collapsible presets and refreshes installed Jump tag
     "Built-in · From Technology",
   );
   await vehicle.click();
+  await vehicle.click({ button: "right" });
+  await expect(
+    page
+      .getByRole("menu", { name: "Vehicle tag actions" })
+      .getByRole("menuitem"),
+  ).toHaveText(["Edit", "Reset appearance"]);
+  await page.keyboard.press("Escape");
   await expect(page.getByLabel("Parent", { exact: true })).toBeEnabled();
   await expect(page.locator(".tag-alias-chip")).toContainText("Vehicles");
   await page

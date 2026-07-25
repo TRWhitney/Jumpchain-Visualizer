@@ -20,6 +20,15 @@ describe("Format1LanguageService", () => {
     expect(declaration).toContain("Begin your Jump here");
     expect(service.completions("jump").fields).toContain("description");
     expect(service.completions("choice").fields).toContain("selection");
+    expect(service.completions("jump-appearance").fields).toEqual(
+      expect.arrayContaining([
+        "background",
+        "text-color",
+        "section-background",
+        "control-accent",
+        "corners",
+      ]),
+    );
   });
 
   it("renames definitions and references atomically across package files", () => {

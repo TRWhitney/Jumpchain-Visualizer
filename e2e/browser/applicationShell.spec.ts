@@ -175,6 +175,105 @@ test(
   },
 );
 
+test("project and chain recents and hub cards expose exact-target context actions", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "Open Editor" }).click();
+  await page.getByRole("button", { name: "Create Project" }).click();
+  await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
+
+  const projectRecent = page
+    .getByRole("region", { name: "Editor workspaces" })
+    .locator(".app-recent-work")
+    .filter({ hasText: "Untitled Jump" });
+  await projectRecent.click({ button: "right" });
+  const projectMenu = page.getByRole("menu", {
+    name: "Untitled Jump project actions",
+  });
+  await expect(projectMenu.getByRole("menuitem")).toHaveText([
+    "Open",
+    "Star",
+    "Export .jmp…",
+    "Delete project…",
+  ]);
+  await projectMenu.getByRole("menuitem", { name: "Star" }).click();
+  await expect(
+    projectRecent.getByRole("img", { name: "Untitled Jump is starred" }),
+  ).toBeVisible();
+
+  await projectRecent.click({ button: "right" });
+  await page
+    .getByRole("menu", { name: "Untitled Jump project actions" })
+    .getByRole("menuitem", { name: "Export .jmp…" })
+    .click();
+  await expect(page.getByRole("alertdialog")).toContainText(
+    "Export Untitled Jump as .jmp",
+  );
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Cancel" })
+    .click();
+
+  await projectRecent.click({ button: "right" });
+  await page
+    .getByRole("menu", { name: "Untitled Jump project actions" })
+    .getByRole("menuitem", { name: "Delete project…" })
+    .click();
+  const projectDelete = page.getByRole("alertdialog", {
+    name: "Delete Untitled Jump?",
+  });
+  await expect(projectDelete).toBeVisible();
+  await projectDelete.getByRole("button", { name: "Cancel" }).click();
+
+  await page.getByRole("button", { name: "Editor", exact: true }).click();
+  const projectCard = page
+    .locator(".editor-project-card")
+    .filter({ hasText: "Untitled Jump" });
+  await projectCard.click({ button: "right" });
+  await expect(
+    page
+      .getByRole("menu", { name: "Untitled Jump project actions" })
+      .getByRole("menuitem"),
+  ).toHaveText(["Open", "Unstar", "Export .jmp…", "Delete project…"]);
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Jumpchain Visualizer" }).click();
+
+  const chainRecent = page
+    .getByRole("region", { name: "Chains" })
+    .locator(".app-recent-work")
+    .filter({ hasText: "Morgan" });
+  await chainRecent.click({ button: "right" });
+  const chainMenu = page.getByRole("menu", {
+    name: "Morgan chain actions",
+  });
+  await expect(chainMenu.getByRole("menuitem")).toHaveText([
+    "Open",
+    "Star",
+    "Delete chain…",
+  ]);
+  await chainMenu.getByRole("menuitem", { name: "Star" }).click();
+  await expect(
+    chainRecent.getByRole("img", { name: "Morgan is starred" }),
+  ).toBeVisible();
+
+  await page
+    .getByRole("button", { name: "Chain Tracker", exact: true })
+    .click();
+  const chainCard = page
+    .locator(".app-chain-card")
+    .filter({ hasText: "Morgan" });
+  await chainCard.click({ button: "right" });
+  const hubMenu = page.getByRole("menu", { name: "Morgan chain actions" });
+  await expect(hubMenu.getByRole("menuitem")).toHaveText([
+    "Open",
+    "Edit details…",
+    "Unstar",
+    "Delete chain…",
+  ]);
+  await hubMenu.getByRole("menuitem", { name: "Edit details…" }).click();
+  await expect(chainCard.getByLabel("Chain name")).toHaveValue("Morgan");
+});
+
 test("returning to the mounted chain restores its internal workspace state", async ({
   page,
 }) => {

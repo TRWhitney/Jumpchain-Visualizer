@@ -1,0 +1,9 @@
+{
+  "ui": {
+    "appShell": {
+      "ariaLabel": {
+        "chainActions": "إجراءات سلسلة {{chain}}"
+      }
+    }
+  }
+}

@@ -20,7 +20,7 @@
   "files": {
     "jump.jdef": {
       "required": true,
-      "topLevel": ["jump", "resource", "section", "choice", "theme", "section-layout", "choice-layout", "trait-layout"],
+      "topLevel": ["jump", "jump-appearance", "resource", "section", "choice", "theme", "section-layout", "choice-layout", "trait-layout"],
       "counts": { "jump": { "min": 1, "max": 1 }, "section": { "min": 1 } }
     },
     "choices.jdef": {
@@ -29,7 +29,8 @@
     },
     "layout.jdef": {
       "required": false,
-      "topLevel": ["theme", "section-layout", "choice-layout", "trait-layout"]
+      "topLevel": ["jump-appearance", "theme", "section-layout", "choice-layout", "trait-layout"],
+      "counts": { "jump-appearance": { "max": 1 } }
     }
   },
   "types": {
@@ -257,6 +258,90 @@
       },
       "children": {}
     },
+    "jump-appearance": {
+      "contexts": ["top-level"],
+      "fields": {
+        "background": { "type": "color", "min": 0, "max": 1 },
+        "text-color": { "type": "color", "min": 0, "max": 1 },
+        "border-color": { "type": "color", "min": 0, "max": 1 },
+        "accent-color": { "type": "color", "min": 0, "max": 1 },
+
+        "surface-background": { "type": "color", "min": 0, "max": 1 },
+        "surface-text": { "type": "color", "min": 0, "max": 1 },
+        "surface-border": { "type": "color", "min": 0, "max": 1 },
+
+        "header-background": { "type": "color", "min": 0, "max": 1 },
+        "header-label": { "type": "color", "min": 0, "max": 1 },
+        "header-title": { "type": "color", "min": 0, "max": 1 },
+        "header-description": { "type": "color", "min": 0, "max": 1 },
+        "header-border": { "type": "color", "min": 0, "max": 1 },
+        "budget-background": { "type": "color", "min": 0, "max": 1 },
+        "budget-label": { "type": "color", "min": 0, "max": 1 },
+        "budget-value": { "type": "color", "min": 0, "max": 1 },
+        "budget-border": { "type": "color", "min": 0, "max": 1 },
+
+        "section-gutter": { "type": "color", "min": 0, "max": 1 },
+        "section-background": { "type": "color", "min": 0, "max": 1 },
+        "section-heading": { "type": "color", "min": 0, "max": 1 },
+        "section-body": { "type": "color", "min": 0, "max": 1 },
+        "section-border": { "type": "color", "min": 0, "max": 1 },
+
+        "choice-background": { "type": "color", "min": 0, "max": 1 },
+        "choice-heading": { "type": "color", "min": 0, "max": 1 },
+        "choice-body": { "type": "color", "min": 0, "max": 1 },
+        "choice-border": { "type": "color", "min": 0, "max": 1 },
+        "group-background": { "type": "color", "min": 0, "max": 1 },
+        "group-footer-background": { "type": "color", "min": 0, "max": 1 },
+        "group-text": { "type": "color", "min": 0, "max": 1 },
+        "group-border": { "type": "color", "min": 0, "max": 1 },
+
+        "control-background": { "type": "color", "min": 0, "max": 1 },
+        "control-text": { "type": "color", "min": 0, "max": 1 },
+        "control-muted-text": { "type": "color", "min": 0, "max": 1 },
+        "control-border": { "type": "color", "min": 0, "max": 1 },
+        "control-indicator": { "type": "color", "min": 0, "max": 1 },
+        "control-accent": { "type": "color", "min": 0, "max": 1 },
+        "control-hover-background": { "type": "color", "min": 0, "max": 1 },
+        "control-hover-text": { "type": "color", "min": 0, "max": 1 },
+        "control-hover-border": { "type": "color", "min": 0, "max": 1 },
+        "control-pressed-background": { "type": "color", "min": 0, "max": 1 },
+        "control-pressed-text": { "type": "color", "min": 0, "max": 1 },
+        "control-pressed-border": { "type": "color", "min": 0, "max": 1 },
+        "control-selected-background": { "type": "color", "min": 0, "max": 1 },
+        "control-selected-text": { "type": "color", "min": 0, "max": 1 },
+        "control-selected-border": { "type": "color", "min": 0, "max": 1 },
+        "control-disabled-background": { "type": "color", "min": 0, "max": 1 },
+        "control-disabled-text": { "type": "color", "min": 0, "max": 1 },
+        "control-disabled-border": { "type": "color", "min": 0, "max": 1 },
+        "control-disabled-indicator": { "type": "color", "min": 0, "max": 1 },
+
+        "cost-background": { "type": "color", "min": 0, "max": 1 },
+        "cost-text": { "type": "color", "min": 0, "max": 1 },
+        "cost-border": { "type": "color", "min": 0, "max": 1 },
+        "cost-benefit-background": { "type": "color", "min": 0, "max": 1 },
+        "cost-benefit-text": { "type": "color", "min": 0, "max": 1 },
+        "cost-benefit-border": { "type": "color", "min": 0, "max": 1 },
+        "cost-award-background": { "type": "color", "min": 0, "max": 1 },
+        "cost-award-text": { "type": "color", "min": 0, "max": 1 },
+        "cost-award-border": { "type": "color", "min": 0, "max": 1 },
+        "cost-pending-background": { "type": "color", "min": 0, "max": 1 },
+        "cost-pending-text": { "type": "color", "min": 0, "max": 1 },
+        "cost-pending-border": { "type": "color", "min": 0, "max": 1 },
+
+        "tooltip-background": { "type": "color", "min": 0, "max": 1 },
+        "tooltip-text": { "type": "color", "min": 0, "max": 1 },
+        "tooltip-border": { "type": "color", "min": 0, "max": 1 },
+
+        "canvas-padding": { "type": "spacing", "min": 0, "max": 1 },
+        "section-spacing": { "type": "spacing", "min": 0, "max": 1 },
+        "section-padding": { "type": "spacing", "min": 0, "max": 1 },
+        "corners": { "type": "enum", "values": ["none", "sm", "md", "lg", "pill"], "min": 0, "max": 1 },
+        "control-corners": { "type": "enum", "values": ["none", "sm", "md", "lg", "pill"], "min": 0, "max": 1 },
+        "cost-corners": { "type": "enum", "values": ["none", "sm", "md", "lg", "pill"], "min": 0, "max": 1 },
+        "structural-border-width": { "type": "enum", "values": ["none", "thin", "medium", "thick"], "min": 0, "max": 1 }
+      },
+      "children": {}
+    },
     "section-layout": { "contexts": ["top-level"], "fieldSet": "layoutDeclaration", "root": "sectionLayoutRoot" },
     "choice-layout": { "contexts": ["top-level"], "fieldSet": "layoutDeclaration", "root": "choiceLayoutRoot" },
     "trait-layout": { "contexts": ["top-level"], "fieldSet": "layoutDeclaration", "root": "traitLayoutRoot" }
@@ -273,7 +358,12 @@
       "justify": { "type": "justify", "min": 0, "max": 1, "default": "start" },
       "text-align": { "type": "textAlign", "min": 0, "max": 1, "default": "start" },
       "text-size": { "type": "size", "min": 0, "max": 1, "default": "md" },
-      "text-color": { "type": "color", "min": 0, "max": 1 }
+      "text-color": { "type": "color", "min": 0, "max": 1 },
+      "border-color": { "type": "color", "min": 0, "max": 1 },
+      "border-width": { "type": "enum", "values": ["none", "thin", "medium", "thick"], "min": 0, "max": 1 },
+      "border-style": { "type": "enum", "values": ["solid", "dashed", "dotted"], "min": 0, "max": 1 },
+      "corners": { "type": "enum", "values": ["none", "sm", "md", "lg", "pill"], "min": 0, "max": 1 },
+      "clip": { "type": "boolean", "min": 0, "max": 1 }
     },
     "contentLeafPresentation": {
       "target": { "type": "handleReference:owner-local-content", "min": 1, "max": 1, "required": true },

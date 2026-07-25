@@ -174,6 +174,7 @@
 
         <h2>Interactive Viewer Concept</h2>
         <p>This complete viewer lives under Settings → Developer → Logs. The standalone copy below documents filtering, full event details, stack traces, session export/clear, and diagnostic report copying and saving.</p>
+        <p>Each event row uses the shared <a href="context-menu-audit.html">application context menu</a> for View details, Copy report, and Save report. The clicked event is passed directly to the existing redacted report command even when another event was previously selected. The report preview itself remains selectable and preserves its native browser menu.</p>
         <div class="logging-viewer" data-toc-ignore>
           <header><div><p>Session diagnostics</p><h3>Recent events</h3></div><div><button type="button" data-log-export>Export…</button><button type="button" data-log-clear>Clear session</button></div></header>
           <div class="logging-viewer-toolbar">

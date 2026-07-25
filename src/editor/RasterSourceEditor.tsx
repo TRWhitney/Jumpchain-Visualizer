@@ -40,6 +40,7 @@ import { renderCorrectedRasterProxy } from "./rasterCorrections";
 import { extractSafeImageMetadata } from "./safeImageMetadata";
 import { translate } from "../localization";
 import { NumberStepperButtons } from "../tracker/NumberStepper";
+import { useContextMenu } from "../ui";
 import {
   keybindingDisplay,
   matchesKeybinding,
@@ -582,6 +583,7 @@ export function RasterSourceEditor({
   onUndo: () => void;
   onRedo: () => void;
 }) {
+  const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const initialDocument = useMemo(() => {
     if (document) return document;
     const created = createRasterEditorDocument(format, bytes, width, height);
@@ -2904,6 +2906,130 @@ export function RasterSourceEditor({
           <ol>
             {[...draft.layers].reverse().map((layer, reversedIndex) => {
               const index = draft.layers.length - reversedIndex - 1;
+              const select = () =>
+                setDraft({ ...draft, selectedLayerId: layer.id });
+              const rename = () => {
+                setRenamingLayerId(layer.id);
+                setRenamingLayerValue(layer.name);
+              };
+              const toggleVisibility = () =>
+                updateLayer(
+                  layer.id,
+                  (selected) => ({
+                    ...selected,
+                    visible: !selected.visible,
+                  }),
+                  "Toggle layer visibility",
+                );
+              const toggleLock = () =>
+                updateLayer(
+                  layer.id,
+                  (selected) => ({
+                    ...selected,
+                    locked: !selected.locked,
+                  }),
+                  "Toggle layer lock",
+                );
+              const move = (direction: 1 | -1) => {
+                const layers = [...draft.layers];
+                [layers[index], layers[index + direction]] = [
+                  layers[index + direction],
+                  layers[index],
+                ];
+                void commit(
+                  { ...draft, layers, selectedLayerId: layer.id },
+                  "Reorder layer",
+                );
+              };
+              const duplicate = () => {
+                const copy = structuredClone(layer);
+                copy.id = layerId();
+                copy.name = `${layer.name} copy`;
+                void commit(
+                  {
+                    ...draft,
+                    layers: [
+                      ...draft.layers.slice(0, index + 1),
+                      copy,
+                      ...draft.layers.slice(index + 1),
+                    ],
+                    selectedLayerId: copy.id,
+                  },
+                  "Duplicate layer",
+                );
+              };
+              const remove = () => {
+                setTooltip(null);
+                void commit(
+                  {
+                    ...draft,
+                    layers: draft.layers.filter(
+                      (candidate) => candidate.id !== layer.id,
+                    ),
+                    selectedLayerId:
+                      draft.selectedLayerId === layer.id
+                        ? null
+                        : draft.selectedLayerId,
+                  },
+                  "Delete layer",
+                );
+              };
+              const menu = {
+                label: translate(
+                  "ui.editorWorkspace.asset.editor.layerActions",
+                  { layer: layer.name },
+                ),
+                actions: [
+                  {
+                    id: "select",
+                    label: translate("common.select"),
+                    onAction: select,
+                  },
+                  {
+                    id: "rename",
+                    label: translate("common.renameEllipsis"),
+                    onAction: rename,
+                  },
+                  {
+                    id: "visibility",
+                    label: translate(
+                      layer.visible ? "common.hide" : "common.show",
+                    ),
+                    onAction: toggleVisibility,
+                  },
+                  {
+                    id: "lock",
+                    label: translate(
+                      layer.locked ? "common.unlock" : "common.lock",
+                    ),
+                    onAction: toggleLock,
+                  },
+                  {
+                    id: "up",
+                    label: translate("common.moveUp"),
+                    disabled: index === draft.layers.length - 1,
+                    onAction: () => move(1),
+                  },
+                  {
+                    id: "down",
+                    label: translate("common.moveDown"),
+                    disabled: index === 0,
+                    onAction: () => move(-1),
+                  },
+                  {
+                    id: "duplicate",
+                    label: translate("common.duplicate"),
+                    onAction: duplicate,
+                  },
+                  {
+                    id: "delete",
+                    label: translate("common.delete"),
+                    danger: true,
+                    separatorBefore: true,
+                    onAction: remove,
+                  },
+                ],
+              };
               return (
                 <li
                   key={layer.id}
@@ -2912,6 +3038,7 @@ export function RasterSourceEditor({
                       ? "is-selected"
                       : undefined
                   }
+                  onContextMenu={(event) => openContextMenu(event, menu)}
                 >
                   {renamingLayerId === layer.id ? (
                     <input
@@ -2936,13 +3063,12 @@ export function RasterSourceEditor({
                   ) : (
                     <button
                       type="button"
-                      onClick={() =>
-                        setDraft({ ...draft, selectedLayerId: layer.id })
+                      aria-haspopup="menu"
+                      onKeyDown={(event) =>
+                        openContextMenuFromKeyboard(event, menu)
                       }
-                      onDoubleClick={() => {
-                        setRenamingLayerId(layer.id);
-                        setRenamingLayerValue(layer.name);
-                      }}
+                      onClick={select}
+                      onDoubleClick={rename}
                     >
                       <span>{layer.name}</span>
                       <small>{layer.kind}</small>
@@ -2954,16 +3080,7 @@ export function RasterSourceEditor({
                       `${layer.visible ? "Hide" : "Show"} ${layer.name}`,
                     )}
                     aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
-                    onClick={() =>
-                      updateLayer(
-                        layer.id,
-                        (selected) => ({
-                          ...selected,
-                          visible: !selected.visible,
-                        }),
-                        "Toggle layer visibility",
-                      )
-                    }
+                    onClick={toggleVisibility}
                   >
                     {layer.visible ? "◉" : "○"}
                   </button>
@@ -2973,16 +3090,7 @@ export function RasterSourceEditor({
                       `${layer.locked ? "Unlock" : "Lock"} ${layer.name}`,
                     )}
                     aria-label={`${layer.locked ? "Unlock" : "Lock"} ${layer.name}`}
-                    onClick={() =>
-                      updateLayer(
-                        layer.id,
-                        (selected) => ({
-                          ...selected,
-                          locked: !selected.locked,
-                        }),
-                        "Toggle layer lock",
-                      )
-                    }
+                    onClick={toggleLock}
                   >
                     {layer.locked ? "▣" : "▢"}
                   </button>
@@ -2991,17 +3099,7 @@ export function RasterSourceEditor({
                     {...tooltipEvents(`Move ${layer.name} up`)}
                     aria-label={`Move ${layer.name} up`}
                     disabled={index === draft.layers.length - 1}
-                    onClick={() => {
-                      const layers = [...draft.layers];
-                      [layers[index], layers[index + 1]] = [
-                        layers[index + 1],
-                        layers[index],
-                      ];
-                      void commit(
-                        { ...draft, layers, selectedLayerId: layer.id },
-                        "Reorder layer",
-                      );
-                    }}
+                    onClick={() => move(1)}
                   >
                     ↑
                   </button>
@@ -3010,17 +3108,7 @@ export function RasterSourceEditor({
                     {...tooltipEvents(`Move ${layer.name} down`)}
                     aria-label={`Move ${layer.name} down`}
                     disabled={index === 0}
-                    onClick={() => {
-                      const layers = [...draft.layers];
-                      [layers[index], layers[index - 1]] = [
-                        layers[index - 1],
-                        layers[index],
-                      ];
-                      void commit(
-                        { ...draft, layers, selectedLayerId: layer.id },
-                        "Reorder layer",
-                      );
-                    }}
+                    onClick={() => move(-1)}
                   >
                     ↓
                   </button>
@@ -3028,23 +3116,7 @@ export function RasterSourceEditor({
                     type="button"
                     {...tooltipEvents(`Duplicate ${layer.name}`)}
                     aria-label={`Duplicate ${layer.name}`}
-                    onClick={() => {
-                      const duplicate = structuredClone(layer);
-                      duplicate.id = layerId();
-                      duplicate.name = `${layer.name} copy`;
-                      void commit(
-                        {
-                          ...draft,
-                          layers: [
-                            ...draft.layers.slice(0, index + 1),
-                            duplicate,
-                            ...draft.layers.slice(index + 1),
-                          ],
-                          selectedLayerId: duplicate.id,
-                        },
-                        "Duplicate layer",
-                      );
-                    }}
+                    onClick={duplicate}
                   >
                     ⧉
                   </button>
@@ -3052,22 +3124,7 @@ export function RasterSourceEditor({
                     type="button"
                     {...tooltipEvents(`Delete ${layer.name}`)}
                     aria-label={`Delete ${layer.name}`}
-                    onClick={() => {
-                      setTooltip(null);
-                      void commit(
-                        {
-                          ...draft,
-                          layers: draft.layers.filter(
-                            (candidate) => candidate.id !== layer.id,
-                          ),
-                          selectedLayerId:
-                            draft.selectedLayerId === layer.id
-                              ? null
-                              : draft.selectedLayerId,
-                        },
-                        "Delete layer",
-                      );
-                    }}
+                    onClick={remove}
                   >
                     ×
                   </button>

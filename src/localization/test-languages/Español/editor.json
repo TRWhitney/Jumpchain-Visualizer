@@ -1,0 +1,19 @@
+{
+  "ui": {
+    "editorHub": {
+      "ariaLabel": {
+        "projectActions": "Acciones del proyecto {{project}}"
+      }
+    },
+    "editorWorkspace": {
+      "ariaLabel": {
+        "layoutNodeActions": "Acciones del nodo de diseño {{node}}"
+      },
+      "asset": {
+        "editor": {
+          "layerActions": "Acciones de la capa {{layer}}"
+        }
+      }
+    }
+  }
+}

@@ -210,6 +210,32 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
         ];
       },
     },
+    "jump-appearance": {
+      kind: "Jump appearance",
+      keyword: "jump-appearance",
+      file: "layout.jdef",
+      title: "Jump appearance",
+      fields: [
+        field("background", "Background", "white", { sourceKey: "background" }),
+        field("textColor", "Text color", "black", { sourceKey: "text-color" }),
+        field("borderColor", "Border color", "black", { sourceKey: "border-color" }),
+        field("accentColor", "Accent color", "purple", { sourceKey: "accent-color" }),
+      ],
+      source(view) {
+        return `jump-appearance
+  background: ${valueOf(view, "background")}
+  text-color: ${valueOf(view, "textColor")}
+  border-color: ${valueOf(view, "borderColor")}
+  accent-color: ${valueOf(view, "accentColor")}`;
+      },
+      properties() {
+        return [
+          ["Declaration", "jump-appearance"],
+          ["Stored in", "layout.jdef"],
+          ["Cardinality", "Singleton"],
+        ];
+      },
+    },
     origins: section("origins", "Origins", "origin_section", "origins", "single", "Choose where your chain begins.", ["human", "dragon"]),
     perks: section("perks", "Perks", "perk_section", "perks", "multi", "Purchase abilities for the jump ahead.", ["flight", "arcane-study", "unbreakable"]),
     human: choice("human", "Human", "origins", 100, "Adaptable, ambitious, and familiar."),
@@ -226,6 +252,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
 
   const semanticKeys = {
     jump: ["jump"],
+    appearance: ["jump-appearance"],
     sections: ["origins", "perks"],
     choices: ["human", "dragon", "flight", "arcane-study", "unbreakable"],
     layouts: ["origin-section-layout", "origin-card-layout", "perk-card-layout"],
@@ -254,7 +281,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
 
   views["jump-file"] = fileView("jump.jdef", "Jump details and sections", [...semanticKeys.jump, ...semanticKeys.sections], true);
   views["choices-file"] = fileView("choices.jdef", "Choice declarations", semanticKeys.choices);
-  views["layout-file"] = fileView("layout.jdef", "Layouts and themes", [...semanticKeys.layouts, ...semanticKeys.themes]);
+  views["layout-file"] = fileView("layout.jdef", "Jump appearance, layouts, and themes", [...semanticKeys.appearance, ...semanticKeys.layouts, ...semanticKeys.themes]);
   views.assets = {
     kind: "Package folder",
     keyword: "assets/",
@@ -618,8 +645,8 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
   };
 
   const sourceKeywords = new Set([
-    "jump", "section", "choice", "choice-source", "text", "image", "cost", "grant", "theme",
-    "section-layout", "choice-layout", "trait-layout", "stack", "inline", "wrap", "grid", "expand", "rule",
+    "jump", "jump-appearance", "resource", "section", "choice", "choice-source", "text", "image", "input", "cost", "grant", "theme",
+    "section-layout", "choice-layout", "trait-layout", "stack", "inline", "wrap", "grid", "slot", "expand", "rule",
   ]);
 
   const highlightedSource = (sourceLine) => {

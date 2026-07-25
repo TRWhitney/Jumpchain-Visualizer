@@ -176,3 +176,32 @@ test("token colors retain their choices control instead of a screen sampler", as
     )
     .not.toBeInTheDocument();
 });
+
+test("token choices expose contextual theme creation without changing the field", async () => {
+  const commits: string[] = [];
+  let creations = 0;
+  render(
+    <ColorFieldControl
+      label="background"
+      value="#123456"
+      choices={[]}
+      allowTokens
+      onChange={(value) => commits.push(value)}
+      onCreateTheme={() => {
+        creations += 1;
+      }}
+      onBlur={() => undefined}
+    />,
+  );
+
+  await page
+    .getByRole("button", { name: "Show color choices for background" })
+    .click();
+  await page.getByRole("button", { name: "New Theme…" }).click();
+
+  expect(creations).toBe(1);
+  expect(commits).toEqual([]);
+  await expect
+    .element(page.getByRole("button", { name: "New Theme…" }))
+    .not.toBeInTheDocument();
+});

@@ -37,6 +37,8 @@ import {
   layoutLeafPresentationStyle,
   layoutRuleStyle,
 } from "./layoutPresentation";
+import { jumpAppearanceStyle } from "./jumpAppearance";
+import { choiceRollDomain } from "./choiceRoll";
 
 const label = (value: Renderable | undefined, fallback = "") =>
   value?.base ?? value?.variants[0]?.value ?? fallback;
@@ -406,26 +408,16 @@ function ChoiceControl({
       choiceHandle: choice.handle,
       value: next,
     });
+  const rollDomain = choiceRollDomain(choice);
   const roll = () => {
-    const candidates: (string | number)[] =
-      choice.selection === "integer"
-        ? Array.from(
-            {
-              length: Math.max(
-                1,
-                (choice.max ?? Math.max(choice.min ?? 0, 5)) -
-                  (choice.min ?? 0) +
-                  1,
-              ),
-            },
-            (_, index) => (choice.min ?? 0) + index,
-          )
-        : choice.options.map((option) => label(option));
+    if (!rollDomain) return;
     const prior = props.state.choiceRolls[choice.handle]?.sequence ?? 0;
-    const result =
-      candidates[
-        (props.randomIndex ?? platformRandomIndex)(candidates.length, prior)
-      ] ?? 0;
+    const index = (props.randomIndex ?? platformRandomIndex)(
+      rollDomain.size,
+      prior,
+    );
+    const result = rollDomain.valueAt(index);
+    if (result === undefined) return;
     props.dispatch({
       type: "record-choice-roll",
       entryId: props.entryId,
@@ -437,7 +429,7 @@ function ChoiceControl({
   const rolled = props.state.choiceRolls[choice.handle];
   const randomOnly = choice.resolution === "random";
   const showManual = !randomOnly;
-  const canRoll = choice.resolution !== "manual";
+  const canRoll = choice.resolution !== "manual" && Boolean(rollDomain);
   const showControl = part !== "roll";
   const showRoll = part !== "control";
   const formTargets = choice.grants.flatMap((grant) =>
@@ -875,19 +867,18 @@ function SourceRollControls({
   const doRoll = () => {
     if (!choices.length) return;
     if (roll && !props.preferences.allowRerolls) return;
-    const result =
-      choices[
-        (props.randomIndex ?? platformRandomIndex)(
-          choices.length,
-          roll?.sequence ?? 0,
-        )
-      ].handle;
+    const index = (props.randomIndex ?? platformRandomIndex)(
+      choices.length,
+      roll?.sequence ?? 0,
+    );
+    const selected = choices[index];
+    if (!selected) return;
     props.dispatch({
       type: "record-source-roll",
       entryId: props.entryId,
       actorId: props.actorId,
       sourceKey: key,
-      result,
+      result: selected.handle,
     });
   };
   return (
@@ -1002,16 +993,40 @@ function containsSlot(node: LayoutNode, target: string): boolean {
   );
 }
 
+function layoutColorInspectionData(
+  node: LayoutNode,
+  layout: JumpLayout,
+  path: string,
+) {
+  return {
+    "data-layout-color-owner-kind": layout.kind,
+    "data-layout-color-owner-handle": layout.handle,
+    "data-layout-color-owner-path": path,
+    "data-layout-color-background": node.presentation.background
+      ? "background"
+      : undefined,
+    "data-layout-color-text": node.presentation.textColor
+      ? "text-color"
+      : undefined,
+    "data-layout-color-border": node.presentation.borderColor
+      ? "border-color"
+      : undefined,
+    "data-layout-color-accent": node.presentation.color ? "color" : undefined,
+  };
+}
+
 function LayoutLeafBoundary({
   node,
   path,
   parentKind,
+  layout,
   packageItem,
   children,
 }: {
   node: LayoutNode;
   path: string;
   parentKind?: LayoutNode["kind"];
+  layout: JumpLayout;
   packageItem: CanonicalJumpPackage;
   children: ReactNode;
 }) {
@@ -1023,6 +1038,7 @@ function LayoutLeafBoundary({
       data-layout-bound-kind={node.kind === "slot" ? "slot" : "reference"}
       data-layout-align={node.presentation.align}
       data-layout-text-align={node.presentation.textAlign}
+      {...layoutColorInspectionData(node, layout, path)}
       style={{
         ...layoutLeafPresentationStyle(node, packageItem, parentKind),
         ...(node.kind === "image"
@@ -1064,6 +1080,7 @@ function Layout({
   choice,
   source,
   sourceRoll,
+  layout,
   props,
 }: {
   node: LayoutNode;
@@ -1073,6 +1090,7 @@ function Layout({
   choice?: JumpChoice;
   source?: ChoiceSource;
   sourceRoll?: { result: string | number; sequence: number };
+  layout: JumpLayout;
   props: Props;
 }): ReactNode {
   const structuralPath = path ?? `${node.kind}[1]`;
@@ -1081,6 +1099,7 @@ function Layout({
       node={node}
       path={structuralPath}
       parentKind={parentKind}
+      layout={layout}
       packageItem={props.packageItem}
     >
       {children}
@@ -1244,6 +1263,7 @@ function Layout({
       choice,
       source,
       sourceRoll,
+      layout,
       props,
     }),
   );
@@ -1256,6 +1276,7 @@ function Layout({
       data-layout-bound={structuralPath}
       data-layout-kind={node.kind}
       data-layout-bound-kind="container"
+      {...layoutColorInspectionData(node, layout, structuralPath)}
     >
       {children.map((child, index) => (
         <Fragment
@@ -1312,6 +1333,7 @@ function ChoiceWithLayout({
         choice={choice}
         source={source}
         sourceRoll={sourceRoll}
+        layout={layout}
         props={props}
       />
     </article>
@@ -1337,6 +1359,7 @@ function JumpSectionView({
         <Layout
           node={layout.root}
           sectionHandle={section.handle}
+          layout={layout}
           props={props}
         />
       ) : (
@@ -1382,12 +1405,14 @@ function TraitLayoutNode({
   node,
   path,
   parentKind,
+  layout,
   trait,
   props,
 }: {
   node: LayoutNode;
   path?: string;
   parentKind?: LayoutNode["kind"];
+  layout: JumpLayout;
   trait: EvaluatedGrantRecord;
   props: Props;
 }): ReactNode {
@@ -1397,6 +1422,7 @@ function TraitLayoutNode({
       node={node}
       path={structuralPath}
       parentKind={parentKind}
+      layout={layout}
       packageItem={props.packageItem}
     >
       {children}
@@ -1436,6 +1462,7 @@ function TraitLayoutNode({
       data-layout-bound={structuralPath}
       data-layout-kind={node.kind}
       data-layout-bound-kind="container"
+      {...layoutColorInspectionData(node, layout, structuralPath)}
     >
       {node.children.map((child, index) => {
         const childNode = (
@@ -1443,6 +1470,7 @@ function TraitLayoutNode({
             node={child}
             path={`${structuralPath}/${child.kind}[${index + 1}]`}
             parentKind={node.kind}
+            layout={layout}
             trait={trait}
             props={props}
           />
@@ -1477,7 +1505,12 @@ function TraitView({
   );
   return layout ? (
     <article>
-      <TraitLayoutNode node={layout.root} trait={trait} props={props} />
+      <TraitLayoutNode
+        node={layout.root}
+        layout={layout}
+        trait={trait}
+        props={props}
+      />
     </article>
   ) : (
     <article>
@@ -1570,7 +1603,10 @@ export function JumpRenderer(props: Props) {
           </small>
         </div>
       )}
-      <article className="shared-jump-renderer format-one-jump-renderer">
+      <article
+        className="shared-jump-renderer format-one-jump-renderer"
+        style={jumpAppearanceStyle(props.packageItem)}
+      >
         <header>
           <div>
             <p>{props.gauntletActive ? "Gauntlet" : "Current Jump"}</p>

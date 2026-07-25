@@ -1,0 +1,17 @@
+{
+  "ui": {
+    "chainTracker": {
+      "text": {
+        "openIdentitySetup": "فتح إعداد الهوية",
+        "clearStartingGender": "مسح الجنس الابتدائي",
+        "clearStartingAge": "مسح العمر الابتدائي",
+        "moveEarlier": "نقل إلى وقت أسبق",
+        "moveLater": "نقل إلى وقت لاحق",
+        "removeFromChain": "إزالة من السلسلة…"
+      },
+      "ariaLabel": {
+        "chainEntryActions": "إجراءات إدخال {{entry}} في السلسلة"
+      }
+    }
+  }
+}

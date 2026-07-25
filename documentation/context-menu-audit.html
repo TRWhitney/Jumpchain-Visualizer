@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Application context-menu audit · Jumpchain Visualizer</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="decision-document.css" />
+  </head>
+  <body>
+    <header class="document-header">
+      <p class="eyebrow">ADR · accepted</p>
+      <h1>Application context-menu audit</h1>
+      <p>
+        The application uses one localized, theme-aware menu primitive for
+        useful object actions and one explicit native-menu policy for the
+        remaining application surface.
+      </p>
+      <nav aria-label="Documentation">
+        <a href="index.html">Overview</a>
+        <a href="application-design.html">Application</a>
+        <a href="architecture.html">Architecture</a>
+        <a href="context-menu-audit.html" aria-current="page">Context menus</a>
+      </nav>
+    </header>
+    <main>
+      <section>
+        <h2>Decision</h2>
+        <dl class="decision-record">
+          <div><dt>Status</dt><dd>Accepted and implemented</dd></div>
+          <div><dt>Context</dt><dd>Generic Back, Forward, Save, and Inspect browser chrome does not help with most application-owned objects. The Editor explorer had a useful custom menu, but its implementation and styling were feature-local.</dd></div>
+          <div><dt>Decision</dt><dd>Render one body-level fixed menu through <code>ContextMenuProvider</code>. Features provide stable action IDs, localized labels, disabled and danger state, separators, and callbacks that reuse their visible commands. The provider owns placement, focus, dismissal, RTL behavior, and native-menu suppression.</dd></div>
+          <div><dt>Consequences</dt><dd>Application objects gain consistent pointer and keyboard actions without creating a second command path. Editable or selectable content retains browser editing affordances. A context menu remains a convenience: every command has a visible or otherwise keyboard-accessible workflow.</dd></div>
+        </dl>
+      </section>
+
+      <section>
+        <h2>Audited surfaces</h2>
+        <table>
+          <thead>
+            <tr><th>Surface</th><th>Context actions</th><th>Boundary</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Editor explorer</td><td>Add, Open, Expand or Collapse, Restore, Delete</td><td>Delete retains Trash, permanent-confirmation, dependency, history, and recovery behavior.</td></tr>
+            <tr><td>Saved projects and Home recents</td><td>Open, Star or Unstar, Export <code>.jmp</code>, Delete project</td><td>Export and deletion enter their existing review or confirmation flows.</td></tr>
+            <tr><td>Saved chains and Home recents</td><td>Open, Star or Unstar, Delete chain; hub cards also expose Edit details</td><td>Exact opaque record IDs remain the target even when display names repeat.</td></tr>
+            <tr><td>Ordinary chain entries</td><td>Open, Move earlier, Move later, Remove from chain</td><td>Move and removal retain upstream-dependency review.</td></tr>
+            <tr><td>Earth</td><td>Open identity setup; Clear starting gender or age only when set</td><td>Earth is fixed in chronology and cannot be removed or reordered. Clearing dispatches the existing nullable choice commands.</td></tr>
+            <tr><td>Structured layout rows</td><td>Open container, Move, presentation expansion or collapse, Move up or down, Remove</td><td>Unavailable structural operations remain announced and disabled.</td></tr>
+            <tr><td>Raster layers</td><td>Select, Rename, Show or Hide, Lock or Unlock, Move up or down, Duplicate, Delete</td><td>Every action operates on the right-clicked layer, independent of prior selection.</td></tr>
+            <tr><td>Tag-profile entries</td><td>Edit, Reset appearance, and Delete for manual or imported tags</td><td>Built-in tags cannot be deleted.</td></tr>
+            <tr><td>Diagnostic events</td><td>View details, Copy report, Save report</td><td>Copy and Save use the existing redacted report boundary for the clicked event.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Native-menu boundary</h2>
+        <p>
+          Application-owned, non-editable chrome cancels an unhandled
+          <code>contextmenu</code> event inside the provider scope. This includes
+          blank surfaces and Settings navigation. Settings also suppresses the
+          generic menu on non-text controls such as dropdowns, checkboxes, and
+          the standalone color picker. Text-entry fields—including the text
+          segment of a compound color control—retain ordinary Cut, Copy, Paste,
+          selection, and spelling behavior.
+        </p>
+        <p>
+          Text inputs, textareas, contenteditable and CodeMirror regions,
+          selectable reports, links, images, media, and an active text
+          selection preserve the native menu. Source editors, authored rendered
+          content, dialogs, global navigation, Jump choices, inventory and
+          companion cards, package-library cards, radar charts, conditional
+          variants, and supplement purchases do not receive feature menus.
+        </p>
+        <p>
+          Suppression is presentation only. It is not a security boundary and
+          does not prevent developer-tool access. Firefox intentionally permits
+          <kbd>Shift</kbd>+right-click to bypass the scripted event.
+        </p>
+      </section>
+
+      <section>
+        <h2>Interaction and localization contract</h2>
+        <ul>
+          <li>Pointer menus open at the event coordinate; <kbd>Shift</kbd>+<kbd>F10</kbd> and the Context Menu key open beside the focused target.</li>
+          <li>The measured menu clamps to both viewport axes. Inline keyboard placement and alignment follow document direction.</li>
+          <li>Initial focus enters the first item. Up and Down wrap; Home and End jump; Enter and Space activate; Escape and Tab dismiss; outside pointer, window blur, resize, and scroll dismiss.</li>
+          <li>Disabled items remain in the menu with <code>aria-disabled</code> but never execute. Dismissal restores focus when appropriate.</li>
+          <li>Generic verbs live in <code>common.json</code>. Object-specific accessible names and interpolated labels live in feature catalogues. English is authoritative; partial Spanish and Arabic fixture packs exercise fallback, interpolation, and RTL.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Verification ledger</h2>
+        <ul>
+          <li>Browser component coverage exercises pointer and keyboard opening, wrapped focus, disabled and danger actions, dismissal, actual measurement, RTL containment, and native-menu preservation.</li>
+          <li>Settings coverage dispatches the exact event on navigation, dropdown, standalone color, and text-entry controls.</li>
+          <li>Playwright covers project and chain records, Earth and ordinary chain entries, Editor explorer and authoring rows, raster layers, tag entries, and diagnostic events by right-clicking the actual target and asserting the visible result.</li>
+          <li>Ordinary verification never updates tracked review artifacts. Fresh light, dark, and Arabic RTL captures are retained only in test output when the artifact workflow requests them.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>References</h2>
+        <ul>
+          <li><a href="https://www.w3.org/WAI/ARIA/apg/patterns/menubar/">WAI-ARIA Authoring Practices: menu and menubar pattern</a></li>
+          <li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Element/contextmenu_event">MDN: <code>contextmenu</code> event</a></li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

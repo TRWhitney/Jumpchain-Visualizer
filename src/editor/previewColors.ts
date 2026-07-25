@@ -5,6 +5,7 @@ function stripPresentationColors(presentation: Presentation): Presentation {
   delete stripped.background;
   delete stripped.textColor;
   delete stripped.color;
+  delete stripped.borderColor;
   return stripped;
 }
 
@@ -21,6 +22,24 @@ export function stripPreviewColors(
 ): CanonicalJumpPackage {
   return {
     ...packageItem,
+    appearance: Object.fromEntries(
+      Object.entries(packageItem.appearance ?? {}).filter(
+        ([field]) =>
+          !field.includes("color") &&
+          !field.endsWith("-background") &&
+          !field.endsWith("-text") &&
+          !field.endsWith("-border") &&
+          !field.endsWith("-label") &&
+          !field.endsWith("-title") &&
+          !field.endsWith("-description") &&
+          !field.endsWith("-heading") &&
+          !field.endsWith("-body") &&
+          !field.endsWith("-value") &&
+          !field.endsWith("-indicator") &&
+          !field.endsWith("-accent") &&
+          field !== "background",
+      ),
+    ),
     layouts: packageItem.layouts.map((layout) => ({
       ...layout,
       root: stripNodeColors(layout.root),

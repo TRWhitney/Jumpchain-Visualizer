@@ -1,0 +1,29 @@
+jump
+  format: 1
+  name: "Grant Description"
+  author: "Jumpchain Visualizer"
+  version: "1"
+
+section
+  handle: awards
+  name: "Awards"
+
+  choice
+    handle: ranked_award
+    target: ranked_award
+
+choice
+  handle: ranked_award
+  name: "Ranked Award"
+  selection: integer
+  min: 0
+  max: 5
+
+  grant
+    kind: item
+    measure: quantity
+
+    text
+      handle: description
+      content: "An award."
+      content when count > 1: "Several awards."

@@ -27,7 +27,13 @@ describe("chain repository", () => {
       "two",
     ]);
     const loaded = await repository.load("two");
+    expect(loaded?.schemaVersion).toBe(3);
     expect(loaded?.name).toBe("Second");
+    expect(
+      loaded?.jumpState["entry-2"].actors.jumper.sourceSelections[
+        "companions:companions"
+      ],
+    ).toContain("trial_company");
     expect((await repository.load("one"))?.starred).toBe(true);
     expect(applyAggregate(createDenseTrackerFixture(), loaded!).chainName).toBe(
       "Second",
@@ -49,6 +55,25 @@ describe("chain repository", () => {
   it("rejects unsupported and malformed values", () => {
     expect(isChainAggregate({ schemaVersion: 2 })).toBe(false);
     expect(isChainAggregate({ schemaVersion: 1, id: "" })).toBe(false);
+
+    const missingMembership = aggregateFromTracker(
+      "missing-membership",
+      createDenseTrackerFixture(),
+    );
+    delete (
+      missingMembership.jumpState["entry-2"].actors.jumper as {
+        sourceSelections?: unknown;
+      }
+    ).sourceSelections;
+    expect(isChainAggregate(missingMembership)).toBe(false);
+
+    const invalidCompanions = aggregateFromTracker(
+      "invalid-companions",
+      createDenseTrackerFixture(),
+    );
+    invalidCompanions.jumpState["entry-2"].actors.jumper.choices.trial_company =
+      ["duplicate", "duplicate"];
+    expect(isChainAggregate(invalidCompanions)).toBe(false);
   });
 
   it("normalizes persisted Earth presentation to the system label", () => {

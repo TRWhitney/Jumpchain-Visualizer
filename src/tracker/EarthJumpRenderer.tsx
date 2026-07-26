@@ -19,7 +19,7 @@ export function EarthJumpRenderer({
   const choices = state.jumpState[EARTH_ENTRY_ID]?.actors.jumper?.choices ?? {};
   return (
     <div className="chain-view-panel tracker-renderer-placeholder">
-      <article className="shared-jump-renderer format-one-jump-renderer">
+      <article className="shared-jump-renderer format-one-jump-renderer earth-jump-renderer">
         <header>
           <div>
             <p>{translate("ui.earthJumpRenderer.text.chainBeginning")}</p>

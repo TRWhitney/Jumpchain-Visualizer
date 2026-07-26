@@ -28,6 +28,10 @@ export type ContextMenuController = {
     event: ReactKeyboardEvent<HTMLElement>,
     request: ContextMenuRequest,
   ) => void;
+  openContextMenuFromTrigger: (
+    trigger: HTMLElement,
+    request: ContextMenuRequest,
+  ) => void;
 };
 
 function selectionContains(target: Node) {
@@ -73,6 +77,7 @@ const fallbackController: ContextMenuController = {
   openContextMenuFromKeyboard: (event) => {
     if (isContextMenuKey(event)) event.preventDefault();
   },
+  openContextMenuFromTrigger: () => undefined,
 };
 
 export const ContextMenuContext =

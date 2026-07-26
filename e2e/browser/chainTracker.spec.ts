@@ -6,6 +6,7 @@ import {
   type TestInfo,
 } from "./support/fixtures";
 import { shouldCaptureReviewArtifacts } from "./support/reviewArtifacts";
+import { waitForStoredSetting } from "./support/storedSettings";
 
 test.describe.configure({ timeout: 60_000 });
 
@@ -88,6 +89,106 @@ test(
     await attachScreenshot(testInfo, "morgan-three-jump-chain", tracker);
   },
 );
+
+test("new-user Chain controls keep identity and history visible while compacting only actions and tag filters", async ({
+  page,
+}) => {
+  await page.goto("/settings");
+  await page
+    .getByRole("combobox", { name: "Interface experience" })
+    .selectOption("new-user-friendly");
+  await waitForStoredSetting(page, ["chain", "compactJumpActions"], true);
+  await page.goto("/review/chain-tracker");
+  const tracker = trackerFor(page);
+
+  const more = tracker.getByRole("button", {
+    name: "More actions for Threshold of a Thousand Roads",
+  });
+  await expect(more).toBeVisible();
+  await more.click();
+  const menu = page.getByRole("menu", {
+    name: "Threshold of a Thousand Roads chain entry actions",
+  });
+  await expect(menu.getByRole("menuitem")).toHaveText([
+    "Open",
+    "Move later",
+    "Move earlier",
+    "Remove from chain…",
+  ]);
+  await page.keyboard.press("Escape");
+
+  await tracker.getByRole("button", { name: /^Earth/ }).click();
+  await expect(tracker.getByLabel("Earth gender")).toBeVisible();
+  await expect(tracker.getByLabel("Earth age")).toBeVisible();
+  await expect(
+    tracker.getByText("Before Jump 1", { exact: true }),
+  ).toBeVisible();
+
+  await tracker.getByRole("button", { name: /3\. The Last Trial/ }).click();
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await expect(tracker.getByLabel("Inventory through")).toBeVisible();
+  const tags = tracker.getByRole("button", { name: "Tags: All" });
+  await expect(tags).toHaveAttribute("aria-expanded", "false");
+  await expect(tracker.getByLabel("Tag search")).toHaveCount(0);
+  await tags.click();
+  await expect(tracker.getByLabel("Tag search")).toBeVisible();
+  const firstTag = tracker.locator(".inventory-tag-select").first();
+  const tagLabel = (await firstTag.locator("span").innerText()).replace(
+    /^◆\s*/,
+    "",
+  );
+  await firstTag.click();
+  const activeTags = tracker.getByRole("button", {
+    name: `Tags: ${tagLabel}`,
+  });
+  await expect(activeTags).toBeVisible();
+  await activeTags.click();
+  await expect(tracker.getByLabel("Tag search")).toHaveCount(0);
+  await expect(activeTags).toBeVisible();
+  await expect(tracker.getByLabel("Inventory through")).toBeVisible();
+});
+
+test("inventory tag filter setting updates the mounted tracker immediately", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Developer" }).click();
+  await page.getByLabel("Show mock fixtures").check();
+  await page.getByRole("button", { name: "Close Settings" }).click();
+  await page
+    .getByRole("region", { name: "Chains" })
+    .getByRole("button", { name: "Resume" })
+    .first()
+    .click();
+  const tracker = page.getByLabel("Interactive Chain Tracker workspace");
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await expect(tracker.getByLabel("Tag search")).toBeVisible();
+  await expect(tracker.getByRole("button", { name: "Tags: All" })).toHaveCount(
+    0,
+  );
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Chain Tracker" }).click();
+  await page.getByLabel("Start inventory tag filters collapsed").check();
+  await page.getByRole("button", { name: "Close Settings" }).click();
+
+  await expect(tracker.getByLabel("Tag search")).toHaveCount(0);
+  await expect(
+    tracker.getByRole("button", { name: "Tags: All" }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await expect(tracker.getByLabel("Inventory through")).toBeVisible();
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Chain Tracker" }).click();
+  await page.getByLabel("Start inventory tag filters collapsed").uncheck();
+  await page.getByRole("button", { name: "Close Settings" }).click();
+
+  await expect(tracker.getByLabel("Tag search")).toBeVisible();
+  await expect(tracker.getByRole("button", { name: "Tags: All" })).toHaveCount(
+    0,
+  );
+});
 
 test("the Library contains exactly the three canonical packages", async ({
   page,
@@ -767,6 +868,7 @@ test("duplicate packages aggregate identical ranked perks with dual badges", asy
   const mastery = tracker
     .getByText("Adaptive Mastery", { exact: true })
     .locator("xpath=ancestor::article[1]");
+  await mastery.getByRole("checkbox").check();
   await mastery.getByRole("spinbutton").fill("3");
   await tracker.getByRole("tab", { name: /^Inventory/ }).click();
   await tracker.getByLabel("Search inventory").fill("Adaptive Mastery");
@@ -1049,16 +1151,24 @@ test("Earth remains immutable and drives previous continuity into Jump 1", async
   const earthControls = tracker.locator(".earth-identity-controls");
   await expect(earthControls.locator(".control-specimen").first()).toHaveCSS(
     "background-color",
-    "rgb(255, 253, 247)",
+    "rgb(41, 41, 39)",
   );
   await expect(
     earthControls.locator(".control-specimen > header").first(),
-  ).toHaveCSS("background-color", "rgb(245, 241, 230)");
-  await attachScreenshot(
-    testInfo,
-    "earth-light-identity-controls",
-    earthControls,
+  ).toHaveCSS("background-color", "rgb(32, 32, 30)");
+  const earthRenderer = tracker.locator(".earth-jump-renderer");
+  await expect(earthRenderer).toHaveCSS("background-color", "rgb(36, 36, 34)");
+  await expect(earthRenderer).toHaveCSS("border-radius", "6.4px");
+  await expect(earthRenderer).toHaveCSS("color-scheme", "dark");
+  await expect(tracker.getByLabel("Earth gender")).toHaveCSS(
+    "background-repeat",
+    "no-repeat",
   );
+  await attachScreenshot(testInfo, "earth-dark-appearance", earthRenderer);
+  await earthRenderer.screenshot({
+    path: testInfo.outputPath("earth-dark-appearance.png"),
+    animations: "disabled",
+  });
   await tracker.getByLabel("Earth gender").selectOption("Male");
   await tracker.getByLabel("Earth age").fill("31");
   await earth.click({ button: "right" });

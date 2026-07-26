@@ -3,6 +3,9 @@ import {
   type CSSProperties,
   type Dispatch,
   type ReactNode,
+  useId,
+  useRef,
+  useState,
 } from "react";
 import type {
   CanonicalJumpPackage,
@@ -12,11 +15,14 @@ import type {
   JumpLayout,
   LayoutNode,
   Renderable,
+  RichBlock,
   RichInline,
 } from "../markup";
 import { parseRichText, resolveCostAmount } from "../markup";
 import {
+  choiceControlRenderContext,
   renderRenderable,
+  renderRichTextRenderable,
   type ActorEntryState,
   type EvaluatedActorJump,
   type EvaluatedGrantRecord,
@@ -42,6 +48,13 @@ import { choiceRollDomain } from "./choiceRoll";
 
 const label = (value: Renderable | undefined, fallback = "") =>
   value?.base ?? value?.variants[0]?.value ?? fallback;
+
+const displayHandle = (handle: string) =>
+  handle
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toLocaleUpperCase()}${part.slice(1)}`)
+    .join(" ");
 
 export function RenderedJumpImage({
   source,
@@ -80,12 +93,14 @@ function RichInlines({ values }: { values: readonly RichInline[] }) {
 
 function RichText({
   source,
+  blocks,
   style,
 }: {
-  source: string;
+  source?: string;
+  blocks?: readonly RichBlock[];
   style?: CSSProperties;
 }) {
-  return parseRichText(source).map((block, index) => {
+  return (blocks ?? parseRichText(source ?? "")).map((block, index) => {
     if (block.kind === "paragraph")
       return (
         <p className="jump-layout-text" key={index} style={style}>
@@ -168,30 +183,54 @@ function ChoiceTags({ choice, props }: { choice: JumpChoice; props: Props }) {
   );
 }
 
-const rendererContext = (props: Props) => ({
+const rendererContext = (
+  props: Props,
+  contextual: Readonly<Record<string, string | number | boolean>> = {},
+) => ({
   ...Object.fromEntries(
     Object.entries(props.evaluation.properties).map(([handle, property]) => [
       handle,
       property?.value,
     ]),
   ),
-  ...Object.fromEntries(
-    Object.entries(props.evaluation.choices).map(([handle, choice]) => [
-      handle,
-      typeof choice.value === "boolean" ||
-      typeof choice.value === "string" ||
-      typeof choice.value === "number"
-        ? choice.value
-        : undefined,
-    ]),
-  ),
   gauntlet: props.gauntletActive,
+  ...contextual,
 });
 const resolved = (
   value: Renderable | undefined,
   props: Props,
   fallback = "",
 ) => (value ? renderRenderable(value, rendererContext(props)) : fallback);
+function choiceMeasureContext(choice: JumpChoice, props: Props) {
+  const value = props.evaluation.choices[choice.handle]?.value;
+  if (typeof value !== "number") return {};
+  return Object.fromEntries(
+    choice.grants
+      .filter((grant) => ["perk", "item", "trait"].includes(grant.kind))
+      .map((grant) => [grant.measure === "quantity" ? "count" : "rank", value]),
+  );
+}
+
+function choiceContentContext(choice: JumpChoice, props: Props) {
+  return {
+    ...choiceControlRenderContext(
+      choice,
+      props.state,
+      props.evaluation.choices[choice.handle]?.value,
+    ),
+    ...choiceMeasureContext(choice, props),
+  };
+}
+
+const resolvedChoiceRichText = (
+  value: Renderable,
+  choice: JumpChoice,
+  props: Props,
+) =>
+  renderRichTextRenderable(
+    value,
+    rendererContext(props, choiceContentContext(choice, props)),
+  );
 
 function CostBadges({
   choice,
@@ -385,6 +424,189 @@ function CostBadges({
   );
 }
 
+function CompanionChoiceControl({
+  choice,
+  value,
+  props,
+  disabled,
+  onChange,
+}: {
+  choice: JumpChoice;
+  value: readonly string[];
+  props: Props;
+  disabled: boolean;
+  onChange: (value: readonly string[]) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const root = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const removeButtons = useRef<Array<HTMLButtonElement | null>>([]);
+  const listboxId = useId();
+  const maximum = choice.max ?? 1;
+  const minimum = choice.min ?? 1;
+  const selected = value.map(
+    (id) =>
+      props.companions.find((companion) => companion.id === id) ?? {
+        id,
+        name: id,
+      },
+  );
+  const available = props.companions.filter(
+    (companion) =>
+      !value.includes(companion.id) &&
+      companion.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
+  );
+  const placeholder = choice.placeholder
+    ? resolved({ base: choice.placeholder, variants: [] }, props)
+    : translate("ui.jumpRenderer.placeholder.chooseCompanions");
+  return (
+    <div
+      className="companion-choice-control"
+      ref={root}
+      onBlur={(event) => {
+        if (!root.current?.contains(event.relatedTarget as Node | null))
+          setOpen(false);
+      }}
+    >
+      {selected.length > 0 && (
+        <div
+          className="companion-choice-pills"
+          aria-label={translate("ui.jumpRenderer.aria.selectedCompanions")}
+        >
+          {selected.map((companion, index) => (
+            <span className="companion-choice-pill" key={companion.id}>
+              <span>{companion.name}</span>
+              <button
+                ref={(control) => {
+                  removeButtons.current[index] = control;
+                }}
+                type="button"
+                disabled={disabled}
+                aria-label={translate(
+                  "ui.jumpRenderer.aria.removeSelectedCompanion",
+                  { companion: companion.name },
+                )}
+                onClick={() => {
+                  onChange(value.filter((id) => id !== companion.id));
+                  requestAnimationFrame(() => {
+                    (
+                      removeButtons.current[index] ??
+                      removeButtons.current[index - 1] ??
+                      input.current
+                    )?.focus();
+                  });
+                }}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <input
+        ref={input}
+        type="search"
+        role="combobox"
+        aria-label={label(choice.name, choice.handle)}
+        aria-autocomplete="list"
+        aria-controls={listboxId}
+        aria-expanded={open}
+        aria-activedescendant={
+          open && available[activeIndex]
+            ? `${listboxId}-${activeIndex}`
+            : undefined
+        }
+        disabled={disabled || value.length >= maximum}
+        placeholder={placeholder}
+        value={query}
+        onFocus={() => {
+          setActiveIndex(0);
+          setOpen(true);
+        }}
+        onClick={() => setOpen(true)}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setActiveIndex(0);
+          setOpen(true);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setOpen(false);
+          } else if (event.key === "ArrowDown" && available.length) {
+            event.preventDefault();
+            setOpen(true);
+            setActiveIndex((current) => (current + 1) % available.length);
+          } else if (event.key === "ArrowUp" && available.length) {
+            event.preventDefault();
+            setOpen(true);
+            setActiveIndex(
+              (current) => (current - 1 + available.length) % available.length,
+            );
+          } else if (event.key === "Home" && available.length) {
+            event.preventDefault();
+            setActiveIndex(0);
+          } else if (event.key === "End" && available.length) {
+            event.preventDefault();
+            setActiveIndex(available.length - 1);
+          } else if (event.key === "Enter" && available[activeIndex]) {
+            event.preventDefault();
+            onChange([...value, available[activeIndex].id]);
+            setQuery("");
+            setActiveIndex(0);
+          }
+        }}
+      />
+      {open && value.length < maximum && (
+        <div
+          className="companion-choice-options"
+          id={listboxId}
+          role="listbox"
+          aria-label={translate("ui.jumpRenderer.aria.availableCompanions")}
+        >
+          {available.length ? (
+            available.map((companion, index) => (
+              <button
+                id={`${listboxId}-${index}`}
+                type="button"
+                role="option"
+                aria-selected={index === activeIndex}
+                key={companion.id}
+                onPointerMove={() => setActiveIndex(index)}
+                onClick={() => {
+                  onChange([...value, companion.id]);
+                  setQuery("");
+                  setActiveIndex(0);
+                  requestAnimationFrame(() => input.current?.focus());
+                }}
+              >
+                {companion.name}
+              </button>
+            ))
+          ) : (
+            <p>
+              {translate(
+                props.companions.length
+                  ? "ui.jumpRenderer.text.noCompanionsMatch"
+                  : "ui.jumpRenderer.text.noCompanionsAvailable",
+              )}
+            </p>
+          )}
+        </div>
+      )}
+      <small className="companion-choice-status" role="status">
+        {translate("ui.jumpRenderer.text.companionSelectionStatus", {
+          selected: value.length,
+          minimum,
+          maximum,
+        })}
+      </small>
+    </div>
+  );
+}
+
 function ChoiceControl({
   choice,
   props,
@@ -400,7 +622,7 @@ function ChoiceControl({
     storedValue === null && choice.continuity && view?.derivedContinuity
       ? view.value
       : storedValue;
-  const set = (next: boolean | string | number | null) =>
+  const set = (next: boolean | string | number | readonly string[] | null) =>
     props.dispatch({
       type: "set-choice",
       entryId: props.entryId,
@@ -473,7 +695,11 @@ function ChoiceControl({
           <span className="sr-only">{label(choice.name)}</span>
           <input
             type="text"
-            placeholder={translate("ui.jumpRenderer.placeholder.unset")}
+            placeholder={
+              choice.placeholder
+                ? resolved({ base: choice.placeholder, variants: [] }, props)
+                : translate("ui.jumpRenderer.placeholder.unset")
+            }
             disabled={formDependencyUnavailable}
             value={typeof value === "string" ? value : ""}
             onChange={(event) => set(event.target.value || null)}
@@ -488,6 +714,11 @@ function ChoiceControl({
             max={choice.max}
             value={typeof value === "number" ? value : null}
             disabled={formDependencyUnavailable}
+            placeholder={
+              choice.placeholder
+                ? resolved({ base: choice.placeholder, variants: [] }, props)
+                : translate("ui.jumpRenderer.placeholder.unset")
+            }
             onChange={set}
           />
           <span className="control-range">
@@ -504,7 +735,11 @@ function ChoiceControl({
             disabled={formDependencyUnavailable}
             onChange={(event) => set(event.target.value || null)}
           >
-            <option value="">{translate("ui.jumpRenderer.text.unset")}</option>
+            <option value="">
+              {choice.placeholder
+                ? resolved({ base: choice.placeholder, variants: [] }, props)
+                : translate("ui.jumpRenderer.text.unset")}
+            </option>
             {choice.options.map((option) => {
               const text = resolved(option, props);
               const free = view?.continuityFreeValues.includes(text);
@@ -522,9 +757,22 @@ function ChoiceControl({
           </select>
         </label>
       )}
+      {showControl && choice.selection === "companions" && (
+        <CompanionChoiceControl
+          choice={choice}
+          value={Array.isArray(value) ? value : []}
+          props={props}
+          disabled={formDependencyUnavailable}
+          onChange={set}
+        />
+      )}
       {showControl && randomOnly && (
         <output data-roll-output>
-          {rolled ? String(rolled.result) : "Not rolled"}
+          {rolled
+            ? String(rolled.result)
+            : choice.placeholder
+              ? resolved({ base: choice.placeholder, variants: [] }, props)
+              : translate("ui.jumpRenderer.text.notRolled")}
         </output>
       )}
       {showRoll && canRoll && (
@@ -550,8 +798,8 @@ function ChoiceControl({
           randomOnly &&
           value !== rolled.result &&
           !props.preferences.allowRerolls
-            ? "Claim"
-            : "Roll"}
+            ? translate("ui.jumpRenderer.text.claim")
+            : translate("ui.jumpRenderer.text.roll")}
         </button>
       )}
       {showControl && choice.selection !== "toggle" && (
@@ -599,21 +847,7 @@ function InputControls({
     <div className="jump-nested-inputs">
       {inputs.map((input) => {
         const value = props.state.inputs[choice.handle]?.[input.handle] ?? null;
-        const importGrant = input.grants.find(
-          (grant) => grant.kind === "companion-import" && grant.handle,
-        );
-        const importFunding = importGrant
-          ? input.grants.filter(
-              (grant) =>
-                grant.kind === "resource" &&
-                grant.companion === importGrant.handle &&
-                grant.resource &&
-                grant.amount !== undefined,
-            )
-          : [];
-        const inputLabel = importGrant
-          ? "Import companions"
-          : input.handle.replaceAll("_", " ");
+        const inputLabel = displayHandle(input.handle);
         const formTargets = input.grants.flatMap((grant) =>
           grant.form ? [grant.form] : [],
         );
@@ -627,7 +861,7 @@ function InputControls({
           ),
         );
         const missingForm = formTargets.find((form) => !activeForms.has(form));
-        const update = (next: string | number | readonly string[] | null) =>
+        const update = (next: string | number | null) =>
           props.dispatch({
             type: "set-input",
             entryId: props.entryId,
@@ -636,60 +870,18 @@ function InputControls({
             inputHandle: input.handle,
             value: next,
           });
-        if (input.selection === "companions")
-          return (
-            <fieldset className="companion-selection-input" key={input.handle}>
-              <legend>{inputLabel}</legend>
-              {importFunding.length > 0 && (
-                <em className="choice-provenance companion-import-funding">
-                  {translate(
-                    "ui.jumpRenderer.text.eachSelectedCompanionReceives",
-                  )}{" "}
-                  {importFunding
-                    .map(
-                      (grant) =>
-                        `${resolveCostAmount(grant.amount!)} ${props.evaluation.resources[grant.resource!]?.abbreviation ?? grant.resource}`,
-                    )
-                    .join(" and ")}
-                  .
-                </em>
-              )}
-              <span className="companion-roster">
-                {props.companions.map((companion) => {
-                  const selected =
-                    Array.isArray(value) && value.includes(companion.id);
-                  return (
-                    <label className="check-control" key={companion.id}>
-                      <input
-                        type="checkbox"
-                        disabled={Boolean(missingForm)}
-                        checked={selected}
-                        onChange={() =>
-                          update(
-                            selected
-                              ? (value as readonly string[]).filter(
-                                  (id) => id !== companion.id,
-                                )
-                              : [
-                                  ...(Array.isArray(value) ? value : []),
-                                  companion.id,
-                                ],
-                          )
-                        }
-                      />
-                      <span>{companion.name}</span>
-                    </label>
-                  );
-                })}
-              </span>
-            </fieldset>
-          );
         return (
           <label key={input.handle}>
             <strong>{inputLabel}</strong>
             {input.selection === "text" && (
               <input
                 type="text"
+                aria-label={inputLabel}
+                placeholder={
+                  input.placeholder
+                    ? resolved({ base: input.placeholder, variants: [] }, props)
+                    : translate("ui.jumpRenderer.placeholder.unset")
+                }
                 disabled={Boolean(missingForm)}
                 value={typeof value === "string" ? value : ""}
                 onChange={(event) => update(event.target.value || null)}
@@ -701,6 +893,11 @@ function InputControls({
                 min={input.min}
                 max={input.max}
                 fluid
+                placeholder={
+                  input.placeholder
+                    ? resolved({ base: input.placeholder, variants: [] }, props)
+                    : translate("ui.jumpRenderer.placeholder.unset")
+                }
                 disabled={Boolean(missingForm)}
                 value={typeof value === "number" ? value : null}
                 onChange={update}
@@ -713,7 +910,9 @@ function InputControls({
                 onChange={(event) => update(event.target.value || null)}
               >
                 <option value="">
-                  {translate("ui.jumpRenderer.text.unset")}
+                  {input.placeholder
+                    ? resolved({ base: input.placeholder, variants: [] }, props)
+                    : translate("ui.jumpRenderer.text.unset")}
                 </option>
                 {input.options.map((option) => (
                   <option key={resolved(option, props)}>
@@ -738,35 +937,34 @@ function InputControls({
 function SourceOptionControl({
   choice,
   source,
+  sourceKey,
   sourceRoll,
   props,
 }: {
   choice: JumpChoice;
   source: ChoiceSource;
+  sourceKey: string;
   sourceRoll?: { result: string | number; sequence: number };
   props: Props;
 }) {
-  const checked = Boolean(props.evaluation.choices[choice.handle]?.active);
+  const selections = props.state.sourceSelections[sourceKey] ?? [];
+  const checked = selections.includes(choice.handle);
   const setGroup = () => {
-    if (source.mode === "single") {
-      for (const other of props.packageItem.choices.filter(
-        (candidate) => source.group && candidate.groups.includes(source.group),
-      ))
-        props.dispatch({
-          type: "set-choice",
-          entryId: props.entryId,
-          actorId: props.actorId,
-          choiceHandle: other.handle,
-          value: other.handle === choice.handle ? !checked : false,
-        });
-    } else
-      props.dispatch({
-        type: "set-choice",
-        entryId: props.entryId,
-        actorId: props.actorId,
-        choiceHandle: choice.handle,
-        value: !checked,
-      });
+    props.dispatch({
+      type: "set-source-selections",
+      entryId: props.entryId,
+      actorId: props.actorId,
+      sourceKey,
+      mode: source.mode,
+      value:
+        source.mode === "single"
+          ? checked
+            ? []
+            : [choice.handle]
+          : checked
+            ? selections.filter((handle) => handle !== choice.handle)
+            : [...selections, choice.handle],
+    });
   };
   return (
     <div className="default-choice-actions">
@@ -783,8 +981,15 @@ function SourceOptionControl({
         />
         <span>
           {source.resolution === "random"
-            ? `${label(choice.name)} result`
-            : `${source.mode === "single" ? "Choose" : "Take"} ${label(choice.name)}`}
+            ? translate("ui.jumpRenderer.text.sourceResult", {
+                choice: label(choice.name),
+              })
+            : translate(
+                source.mode === "single"
+                  ? "ui.jumpRenderer.text.chooseChoice"
+                  : "ui.jumpRenderer.text.takeChoice",
+                { choice: label(choice.name) },
+              )}
         </span>
       </label>
       {sourceRoll?.result === choice.handle && (
@@ -794,11 +999,34 @@ function SourceOptionControl({
   );
 }
 
-function sourceUsesChoiceControl(choice: JumpChoice, source: ChoiceSource) {
+function SourceChoiceControls({
+  choice,
+  source,
+  sourceKey,
+  sourceRoll,
+  props,
+}: {
+  choice: JumpChoice;
+  source: ChoiceSource;
+  sourceKey: string;
+  sourceRoll?: { result: string | number; sequence: number };
+  props: Props;
+}) {
+  const selected =
+    props.state.sourceSelections[sourceKey]?.includes(choice.handle) ?? false;
   return (
-    source.mode === "multi" &&
-    source.resolution === "manual" &&
-    choice.selection !== "toggle"
+    <div className="source-choice-controls">
+      <SourceOptionControl
+        choice={choice}
+        source={source}
+        sourceKey={sourceKey}
+        sourceRoll={sourceRoll}
+        props={props}
+      />
+      {selected && choice.selection !== "toggle" && (
+        <ChoiceControl choice={choice} props={props} part="control" />
+      )}
+    </div>
   );
 }
 
@@ -806,13 +1034,18 @@ function DefaultChoice({
   choice,
   props,
   source,
+  sourceKey,
   sourceRoll,
 }: {
   choice: JumpChoice;
   props: Props;
   source?: ChoiceSource;
+  sourceKey?: string;
   sourceRoll?: { result: string | number; sequence: number };
 }) {
+  const description = choice.text.find(
+    (text) => text.handle === "description",
+  )?.content;
   return (
     <article className="default-choice-card">
       <div className="default-choice-heading">
@@ -824,16 +1057,25 @@ function DefaultChoice({
         />
       </div>
       <ChoiceTags choice={choice} props={props} />
-      {source && !sourceUsesChoiceControl(choice, source) ? (
-        <SourceOptionControl
+      {description && (
+        <div className="jump-choice-description">
+          <RichText
+            blocks={resolvedChoiceRichText(description, choice, props)}
+          />
+        </div>
+      )}
+      {source && sourceKey ? (
+        <SourceChoiceControls
           choice={choice}
           source={source}
+          sourceKey={sourceKey}
           sourceRoll={sourceRoll}
           props={props}
         />
       ) : (
         <ChoiceControl choice={choice} props={props} />
       )}
+      <InputControls choice={choice} props={props} />
     </article>
   );
 }
@@ -861,9 +1103,8 @@ function SourceRollControls({
   props: Props;
 }) {
   const { choices, key, roll } = sourceContext(source, sectionHandle, props);
-  const anySelected = choices.some(
-    (choice) => props.evaluation.choices[choice.handle]?.active,
-  );
+  const selections = props.state.sourceSelections[key] ?? [];
+  const anySelected = selections.length > 0;
   const doRoll = () => {
     if (!choices.length) return;
     if (roll && !props.preferences.allowRerolls) return;
@@ -878,6 +1119,7 @@ function SourceRollControls({
       entryId: props.entryId,
       actorId: props.actorId,
       sourceKey: key,
+      mode: source.mode,
       result: selected.handle,
     });
   };
@@ -898,15 +1140,14 @@ function SourceRollControls({
         className="secondary-control"
         disabled={!anySelected}
         onClick={() =>
-          choices.forEach((choice) =>
-            props.dispatch({
-              type: "set-choice",
-              entryId: props.entryId,
-              actorId: props.actorId,
-              choiceHandle: choice.handle,
-              value: false,
-            }),
-          )
+          props.dispatch({
+            type: "set-source-selections",
+            entryId: props.entryId,
+            actorId: props.actorId,
+            sourceKey: key,
+            mode: source.mode,
+            value: [],
+          })
         }
       >
         {translate("ui.jumpRenderer.text.clear")}
@@ -914,8 +1155,12 @@ function SourceRollControls({
       {source.resolution !== "manual" && (
         <output data-group-status>
           {roll
-            ? `${label(choices.find((choice) => choice.handle === roll.result)?.name)} · Rolled`
-            : "No result"}
+            ? translate("ui.jumpRenderer.text.rolledChoice", {
+                choice: label(
+                  choices.find((choice) => choice.handle === roll.result)?.name,
+                ),
+              })
+            : translate("ui.jumpRenderer.text.noResult")}
         </output>
       )}
       {source.mode === "multi" && (
@@ -971,6 +1216,7 @@ function SourceChoices({
             props={props}
             layoutHandle={using}
             source={source}
+            sourceKey={`${sectionHandle}:${source.handle}`}
             sourceRoll={roll}
           />
         ))}
@@ -1079,6 +1325,7 @@ function Layout({
   sectionHandle,
   choice,
   source,
+  sourceKey,
   sourceRoll,
   layout,
   props,
@@ -1089,6 +1336,7 @@ function Layout({
   sectionHandle: string;
   choice?: JumpChoice;
   source?: ChoiceSource;
+  sourceKey?: string;
   sourceRoll?: { result: string | number; sequence: number };
   layout: JumpLayout;
   props: Props;
@@ -1120,10 +1368,11 @@ function Layout({
       return bound(<ChoiceTags choice={choice} props={props} />);
     if (node.target === "control")
       return bound(
-        source && !sourceUsesChoiceControl(choice, source) ? (
-          <SourceOptionControl
+        source && sourceKey ? (
+          <SourceChoiceControls
             choice={choice}
             source={source}
+            sourceKey={sourceKey}
             sourceRoll={sourceRoll}
             props={props}
           />
@@ -1175,7 +1424,15 @@ function Layout({
       [];
     const content = owner.find((item) => item.handle === node.target)?.content;
     return content
-      ? bound(<RichText source={resolved(content, props)} />)
+      ? bound(
+          <RichText
+            blocks={
+              choice
+                ? resolvedChoiceRichText(content, choice, props)
+                : renderRichTextRenderable(content, rendererContext(props))
+            }
+          />,
+        )
       : null;
   }
   if (node.kind === "rule")
@@ -1262,6 +1519,7 @@ function Layout({
       sectionHandle,
       choice,
       source,
+      sourceKey,
       sourceRoll,
       layout,
       props,
@@ -1300,12 +1558,14 @@ function ChoiceWithLayout({
   props,
   layoutHandle,
   source,
+  sourceKey,
   sourceRoll,
 }: {
   choice: JumpChoice;
   props: Props;
   layoutHandle?: string;
   source?: ChoiceSource;
+  sourceKey?: string;
   sourceRoll?: { result: string | number; sequence: number };
 }) {
   const layout = props.packageItem.layouts.find(
@@ -1322,6 +1582,7 @@ function ChoiceWithLayout({
         choice={choice}
         props={props}
         source={source}
+        sourceKey={sourceKey}
         sourceRoll={sourceRoll}
       />
     );
@@ -1332,6 +1593,7 @@ function ChoiceWithLayout({
         sectionHandle=""
         choice={choice}
         source={source}
+        sourceKey={sourceKey}
         sourceRoll={sourceRoll}
         layout={layout}
         props={props}
@@ -1435,7 +1697,22 @@ function TraitLayoutNode({
       (item) => item.handle === node.target,
     )?.content;
     return content
-      ? bound(<RichText source={resolved(content, props)} />)
+      ? bound(
+          <RichText
+            blocks={renderRichTextRenderable(
+              content,
+              rendererContext(
+                props,
+                trait.measure
+                  ? {
+                      [trait.measure.kind === "quantity" ? "count" : "rank"]:
+                        trait.measure.value,
+                    }
+                  : {},
+              ),
+            )}
+          />,
+        )
       : null;
   }
   if (node.kind === "image") {
@@ -1520,6 +1797,30 @@ function TraitView({
   );
 }
 
+function JumpRendererAppearanceBoundary({
+  children,
+  rendererProps,
+  complete = false,
+}: {
+  children: ReactNode;
+  rendererProps: JumpRendererProps;
+  complete?: boolean;
+}) {
+  const className = `jump-renderer-appearance-boundary format-one-jump-renderer${
+    complete ? " shared-jump-renderer" : " jump-renderer-isolated-scope"
+  }`;
+  const style = jumpAppearanceStyle(rendererProps.packageItem);
+  return complete ? (
+    <article className={className} style={style}>
+      {children}
+    </article>
+  ) : (
+    <div className={className} style={style}>
+      {children}
+    </div>
+  );
+}
+
 /** Canonical trait-layout rendering scope shared by the Tracker and Editor preview. */
 export function JumpTraitRendererScope({
   trait,
@@ -1528,7 +1829,11 @@ export function JumpTraitRendererScope({
   trait: EvaluatedGrantRecord;
   rendererProps: JumpRendererProps;
 }) {
-  return <TraitView trait={trait} props={rendererProps} />;
+  return (
+    <JumpRendererAppearanceBoundary rendererProps={rendererProps}>
+      <TraitView trait={trait} props={rendererProps} />
+    </JumpRendererAppearanceBoundary>
+  );
 }
 
 /** Canonical section rendering scope shared by the Tracker and Editor preview. */
@@ -1539,7 +1844,11 @@ export function JumpSectionRendererScope({
   section: CanonicalJumpPackage["sections"][number];
   rendererProps: JumpRendererProps;
 }) {
-  return <JumpSectionView section={section} props={rendererProps} />;
+  return (
+    <JumpRendererAppearanceBoundary rendererProps={rendererProps}>
+      <JumpSectionView section={section} props={rendererProps} />
+    </JumpRendererAppearanceBoundary>
+  );
 }
 
 /** Canonical choice rendering scope shared by the Tracker and Editor preview. */
@@ -1550,7 +1859,11 @@ export function JumpChoiceRendererScope({
   choice: JumpChoice;
   rendererProps: JumpRendererProps;
 }) {
-  return <ChoiceWithLayout choice={choice} props={rendererProps} />;
+  return (
+    <JumpRendererAppearanceBoundary rendererProps={rendererProps}>
+      <ChoiceWithLayout choice={choice} props={rendererProps} />
+    </JumpRendererAppearanceBoundary>
+  );
 }
 
 /** Canonical choice-source rendering scope shared by the Tracker and Editor preview. */
@@ -1564,11 +1877,13 @@ export function JumpChoiceSourceRendererScope({
   rendererProps: JumpRendererProps;
 }) {
   return (
-    <SourceChoices
-      source={source}
-      sectionHandle={sectionHandle}
-      props={rendererProps}
-    />
+    <JumpRendererAppearanceBoundary rendererProps={rendererProps}>
+      <SourceChoices
+        source={source}
+        sectionHandle={sectionHandle}
+        props={rendererProps}
+      />
+    </JumpRendererAppearanceBoundary>
   );
 }
 
@@ -1582,14 +1897,16 @@ export function JumpImageRendererScope({
 }) {
   const source = resolveJumpImageSource(image.src, rendererProps.resolveAsset);
   return source ? (
-    <article className="jump-image-preview">
-      <span className="jump-image-preview-content">
-        <RenderedJumpImage
-          source={source}
-          alternativeText={resolved(image.alt, rendererProps)}
-        />
-      </span>
-    </article>
+    <JumpRendererAppearanceBoundary rendererProps={rendererProps}>
+      <article className="jump-image-preview">
+        <span className="jump-image-preview-content">
+          <RenderedJumpImage
+            source={source}
+            alternativeText={resolved(image.alt, rendererProps)}
+          />
+        </span>
+      </article>
+    </JumpRendererAppearanceBoundary>
   ) : null;
 }
 
@@ -1603,10 +1920,7 @@ export function JumpRenderer(props: Props) {
           </small>
         </div>
       )}
-      <article
-        className="shared-jump-renderer format-one-jump-renderer"
-        style={jumpAppearanceStyle(props.packageItem)}
-      >
+      <JumpRendererAppearanceBoundary rendererProps={props} complete>
         <header>
           <div>
             <p>{props.gauntletActive ? "Gauntlet" : "Current Jump"}</p>
@@ -1645,7 +1959,7 @@ export function JumpRenderer(props: Props) {
             </div>
           </section>
         )}
-      </article>
+      </JumpRendererAppearanceBoundary>
     </div>
   );
 }

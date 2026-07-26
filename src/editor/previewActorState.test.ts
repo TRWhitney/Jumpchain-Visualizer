@@ -42,6 +42,7 @@ describe("preview actor state", () => {
       entryId: "preview-entry",
       actorId: "jumper",
       sourceKey: "section:source",
+      mode: "single",
       result: "first",
     });
     const second = reducePreviewActorState(first, {
@@ -49,9 +50,11 @@ describe("preview actor state", () => {
       entryId: "preview-entry",
       actorId: "jumper",
       sourceKey: "section:source",
+      mode: "single",
       result: "second",
     });
-    expect(second.choices).toMatchObject({ first: false, second: true });
+    expect(second.choices).toEqual({});
+    expect(second.sourceSelections["section:source"]).toEqual(["second"]);
     expect(second.sourceRolls["section:source"]).toEqual({
       result: "second",
       sequence: 2,

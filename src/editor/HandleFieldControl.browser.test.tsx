@@ -79,3 +79,33 @@ test("deferred handle edits commit on blur", async () => {
   await page.getByRole("button", { name: "Outside" }).click();
   expect(commits).toEqual(["summary"]);
 });
+
+test("described handle choices keep the exact authored handle", async () => {
+  const commits: string[] = [];
+  render(
+    <HandleFieldControl
+      label="Companion recipient"
+      value=""
+      options={[
+        {
+          value: "trusted_friend",
+          label: "trusted_friend",
+          description: "Companion · Trusted Friend",
+        },
+      ]}
+      onChange={(value) => commits.push(value)}
+    />,
+  );
+
+  await page
+    .getByRole("button", {
+      name: "Show handle choices for Companion recipient",
+    })
+    .click();
+  await page
+    .getByRole("option", {
+      name: "trusted_friend. Companion · Trusted Friend",
+    })
+    .click();
+  expect(commits).toEqual(["trusted_friend"]);
+});

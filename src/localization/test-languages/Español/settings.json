@@ -15,8 +15,21 @@
     }
   },
   "settingsSearch": {
+    "editor_showExplanatoryText": {
+      "label": "Mostrar texto explicativo"
+    },
     "language_tag": {
       "label": "Idioma"
+    }
+  },
+  "ui": {
+    "settingsSurface": {
+      "label": {
+        "editorExplanations": "Explicaciones del editor"
+      },
+      "text": {
+        "showExplanatoryText": "Mostrar texto explicativo"
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 import type { TagProfile } from "./tagProfile";
 
-export const SETTINGS_SCHEMA_VERSION = 2;
+export const SETTINGS_SCHEMA_VERSION = 4;
 
 export type ThemePreference = "system" | "light" | "dark";
 export type MotionPreference = "system" | "reduced" | "full";
@@ -60,7 +60,11 @@ export const ABSOLUTE_PACKAGE_SIZE_LIMITS: Readonly<PackageSizeLimits> = {
 };
 
 export type ApplicationSettings = {
-  schemaVersion: 2;
+  schemaVersion: 4;
+  general: {
+    hideTechnicalLocations: boolean;
+    collapseOptionalSectionsByDefault: boolean;
+  };
   language: { tag: string };
   appearance: {
     theme: ThemePreference;
@@ -82,6 +86,9 @@ export type ApplicationSettings = {
     warnMissingLayoutTargets: boolean;
     permanentlyDeleteSidebarItems: boolean;
     layoutPreviewPlaceholderCharacterLimit: number | null;
+    collapseAdvancedViews: boolean;
+    collapsePreviewInspectionTools: boolean;
+    showExplanatoryText: boolean;
   };
   chain: {
     allowMultiplePackageVersions: boolean;
@@ -92,6 +99,8 @@ export type ApplicationSettings = {
     colorNamesByPrimaryTag: boolean;
     includeItemTagsInRadar: boolean;
     aggregateSimilarInventory: boolean;
+    compactJumpActions: boolean;
+    collapseInventoryTagFilters: boolean;
   };
   notifications: {
     enabled: boolean;
@@ -171,6 +180,10 @@ export const keybindingLabels: Record<KeybindingAction, string> = {
 export function defaultSettings(profile: TagProfile): ApplicationSettings {
   return {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
+    general: {
+      hideTechnicalLocations: false,
+      collapseOptionalSectionsByDefault: false,
+    },
     language: { tag: "en" },
     appearance: { theme: "system", accentColor: "#d4af37" },
     accessibility: { motion: "system", imageAltTextHover: true },
@@ -187,6 +200,9 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
       warnMissingLayoutTargets: true,
       permanentlyDeleteSidebarItems: false,
       layoutPreviewPlaceholderCharacterLimit: null,
+      collapseAdvancedViews: false,
+      collapsePreviewInspectionTools: false,
+      showExplanatoryText: false,
     },
     chain: {
       allowMultiplePackageVersions: false,
@@ -197,6 +213,8 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
       colorNamesByPrimaryTag: false,
       includeItemTagsInRadar: false,
       aggregateSimilarInventory: true,
+      compactJumpActions: false,
+      collapseInventoryTagFilters: false,
     },
     notifications: {
       enabled: true,
@@ -212,6 +230,91 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
     },
     keybindings: { overrides: {} },
     tags: { profile },
+  };
+}
+
+export type InterfaceExperience =
+  "experienced" | "new-user-friendly" | "custom";
+export type InterfaceExperiencePreset = Exclude<InterfaceExperience, "custom">;
+
+export const INTERFACE_EXPERIENCE_PRESETS = {
+  experienced: {
+    hideTechnicalLocations: false,
+    collapseOptionalSectionsByDefault: false,
+    collapseAdvancedViews: false,
+    collapsePreviewInspectionTools: false,
+    showExplanatoryText: false,
+    compactJumpActions: false,
+    collapseInventoryTagFilters: false,
+    maxVisibleNotifications: 3,
+  },
+  "new-user-friendly": {
+    hideTechnicalLocations: true,
+    collapseOptionalSectionsByDefault: true,
+    collapseAdvancedViews: true,
+    collapsePreviewInspectionTools: true,
+    showExplanatoryText: true,
+    compactJumpActions: true,
+    collapseInventoryTagFilters: true,
+    maxVisibleNotifications: 1,
+  },
+} as const;
+
+export function interfaceExperienceFor(
+  settings: ApplicationSettings,
+): InterfaceExperience {
+  for (const preset of [
+    "experienced",
+    "new-user-friendly",
+  ] as const satisfies readonly InterfaceExperiencePreset[]) {
+    const values = INTERFACE_EXPERIENCE_PRESETS[preset];
+    if (
+      settings.general.hideTechnicalLocations ===
+        values.hideTechnicalLocations &&
+      settings.general.collapseOptionalSectionsByDefault ===
+        values.collapseOptionalSectionsByDefault &&
+      settings.editor.collapseAdvancedViews === values.collapseAdvancedViews &&
+      settings.editor.collapsePreviewInspectionTools ===
+        values.collapsePreviewInspectionTools &&
+      settings.editor.showExplanatoryText === values.showExplanatoryText &&
+      settings.chain.compactJumpActions === values.compactJumpActions &&
+      settings.chain.collapseInventoryTagFilters ===
+        values.collapseInventoryTagFilters &&
+      settings.notifications.maxVisible === values.maxVisibleNotifications
+    )
+      return preset;
+  }
+  return "custom";
+}
+
+export function applyInterfaceExperience(
+  settings: ApplicationSettings,
+  preset: InterfaceExperiencePreset,
+): ApplicationSettings {
+  const values = INTERFACE_EXPERIENCE_PRESETS[preset];
+  return {
+    ...settings,
+    general: {
+      ...settings.general,
+      hideTechnicalLocations: values.hideTechnicalLocations,
+      collapseOptionalSectionsByDefault:
+        values.collapseOptionalSectionsByDefault,
+    },
+    editor: {
+      ...settings.editor,
+      collapseAdvancedViews: values.collapseAdvancedViews,
+      collapsePreviewInspectionTools: values.collapsePreviewInspectionTools,
+      showExplanatoryText: values.showExplanatoryText,
+    },
+    chain: {
+      ...settings.chain,
+      compactJumpActions: values.compactJumpActions,
+      collapseInventoryTagFilters: values.collapseInventoryTagFilters,
+    },
+    notifications: {
+      ...settings.notifications,
+      maxVisible: values.maxVisibleNotifications,
+    },
   };
 }
 
@@ -290,6 +393,7 @@ export function hydrateSettings(
 ): ApplicationSettings {
   const fallback = defaultSettings(defaultProfile);
   const root = record(value);
+  const general = record(root.general);
   const language = record(root.language);
   const appearance = record(root.appearance);
   const accessibility = record(root.accessibility);
@@ -344,6 +448,16 @@ export function hydrateSettings(
 
   return {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
+    general: {
+      hideTechnicalLocations: bool(
+        general.hideTechnicalLocations,
+        fallback.general.hideTechnicalLocations,
+      ),
+      collapseOptionalSectionsByDefault: bool(
+        general.collapseOptionalSectionsByDefault,
+        fallback.general.collapseOptionalSectionsByDefault,
+      ),
+    },
     language: {
       tag:
         typeof language.tag === "string" &&
@@ -415,6 +529,18 @@ export function hydrateSettings(
         1_000,
         fallback.editor.layoutPreviewPlaceholderCharacterLimit,
       ),
+      collapseAdvancedViews: bool(
+        editor.collapseAdvancedViews,
+        fallback.editor.collapseAdvancedViews,
+      ),
+      collapsePreviewInspectionTools: bool(
+        editor.collapsePreviewInspectionTools,
+        fallback.editor.collapsePreviewInspectionTools,
+      ),
+      showExplanatoryText: bool(
+        editor.showExplanatoryText,
+        fallback.editor.showExplanatoryText,
+      ),
     },
     chain: {
       allowMultiplePackageVersions: bool(
@@ -445,6 +571,14 @@ export function hydrateSettings(
       aggregateSimilarInventory: bool(
         chain.aggregateSimilarInventory,
         fallback.chain.aggregateSimilarInventory,
+      ),
+      compactJumpActions: bool(
+        chain.compactJumpActions,
+        fallback.chain.compactJumpActions,
+      ),
+      collapseInventoryTagFilters: bool(
+        chain.collapseInventoryTagFilters,
+        fallback.chain.collapseInventoryTagFilters,
       ),
     },
     notifications: {

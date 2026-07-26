@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { Completion } from "@codemirror/autocomplete";
 import {
   Button,
@@ -43,7 +43,29 @@ function propertyTypeLabel(property: ConditionPropertyDescriptor) {
   return translate(`ui.editorWorkspace.condition.type.${property.type}`);
 }
 
+function propertyLabel(property: ConditionPropertyDescriptor) {
+  return ["rank", "count"].includes(property.handle)
+    ? translate(
+        `ui.editorWorkspace.condition.contextProperty.${property.handle}`,
+      )
+    : property.handle;
+}
+
+function propertySearchText(property: ConditionPropertyDescriptor) {
+  const label = propertyLabel(property);
+  return label === property.handle
+    ? property.handle
+    : `${label} ${property.handle}`;
+}
+
 function propertyProvenance(property: ConditionPropertyDescriptor) {
+  const control = property.origins.find((item) => item.kind === "control");
+  if (control)
+    return translate(
+      control.ownerKind === "choice"
+        ? "ui.editorWorkspace.condition.choiceAnswer"
+        : "ui.editorWorkspace.condition.inputAnswer",
+    );
   const origin = property.origins.find((item) => item.kind === "grant");
   if (origin)
     return translate("ui.editorWorkspace.condition.fromOwner", {
@@ -61,11 +83,17 @@ function ConditionPropertyPicker({
   value,
   properties,
   autoFocus,
+  showDescriptions = true,
+  label = translate("ui.editorWorkspace.condition.property"),
+  placeholder = translate("ui.editorWorkspace.condition.chooseProperty"),
   onChange,
 }: {
   value: string;
   properties: readonly ConditionPropertyDescriptor[];
   autoFocus?: boolean;
+  showDescriptions?: boolean;
+  label?: string;
+  placeholder?: string;
   onChange: (value: string) => void;
 }) {
   const current = properties.find((property) => property.handle === value);
@@ -84,14 +112,9 @@ function ConditionPropertyPicker({
       onSelectionChange={(key) => key !== null && onChange(String(key))}
       menuTrigger="focus"
     >
-      <Label className="sr-only">
-        {translate("ui.editorWorkspace.condition.property")}
-      </Label>
+      <Label className="sr-only">{label}</Label>
       <Group>
-        <Input
-          autoFocus={autoFocus}
-          placeholder={translate("ui.editorWorkspace.condition.chooseProperty")}
-        />
+        <Input autoFocus={autoFocus} placeholder={placeholder} />
         <Button
           aria-label={translate("ui.editorWorkspace.condition.showProperties")}
         >
@@ -120,18 +143,22 @@ function ConditionPropertyPicker({
                   <ListBoxItem
                     id={property.handle}
                     key={property.handle}
-                    textValue={property.handle}
+                    textValue={propertySearchText(property)}
                   >
                     <span>
-                      <strong>{property.handle}</strong>
-                      <small>{propertyTypeLabel(property)}</small>
+                      <strong>{propertyLabel(property)}</strong>
+                      {showDescriptions && (
+                        <small>{propertyTypeLabel(property)}</small>
+                      )}
                     </span>
-                    <small>
-                      {propertyProvenance(property)}
-                      {property.mayBeUnset
-                        ? ` · ${translate("ui.editorWorkspace.condition.mayBeUnset")}`
-                        : ""}
-                    </small>
+                    {showDescriptions && (
+                      <small>
+                        {propertyProvenance(property)}
+                        {property.mayBeUnset
+                          ? ` · ${translate("ui.editorWorkspace.condition.mayBeUnset")}`
+                          : ""}
+                      </small>
+                    )}
                   </ListBoxItem>
                 ))}
               </ListBoxSection>
@@ -141,6 +168,160 @@ function ConditionPropertyPicker({
       </Popover>
     </ComboBox>
   );
+}
+
+export function InsertValueControl({
+  properties,
+  showDescriptions,
+  onInsert,
+}: {
+  properties: readonly ConditionPropertyDescriptor[];
+  showDescriptions: boolean;
+  onInsert: (handle: string) => void;
+}) {
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const grouped = (["context", "engine", "package"] as const)
+    .map((category) => ({
+      category,
+      properties: properties.filter(
+        (property) => property.category === category,
+      ),
+    }))
+    .filter((group) => group.properties.length);
+  useEffect(() => {
+    if (!open) return;
+    const closeOutside = (event: PointerEvent) => {
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    return () => document.removeEventListener("pointerdown", closeOutside);
+  }, [open]);
+  if (!properties.length) return null;
+  return (
+    <div className="editor-insert-value" ref={root}>
+      <button
+        type="button"
+        className="editor-insert-value-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        ref={trigger}
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+          event.preventDefault();
+          setOpen(true);
+          requestAnimationFrame(() => {
+            const items =
+              root.current?.querySelectorAll<HTMLButtonElement>(
+                '[role="menuitem"]',
+              );
+            items?.[event.key === "ArrowDown" ? 0 : items.length - 1]?.focus();
+          });
+        }}
+      >
+        {translate("ui.editorWorkspace.namedValues.insert")}
+        <Chevron
+          className="editor-diagnostics-chevron"
+          direction={open ? "up" : "down"}
+        />
+      </button>
+      {open && (
+        <div
+          className="editor-insert-value-popover"
+          role="menu"
+          aria-label={translate("ui.editorWorkspace.namedValues.insert")}
+          onKeyDown={(event) => {
+            const items = [
+              ...(root.current?.querySelectorAll<HTMLButtonElement>(
+                '[role="menuitem"]',
+              ) ?? []),
+            ];
+            const index = items.indexOf(
+              document.activeElement as HTMLButtonElement,
+            );
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setOpen(false);
+              trigger.current?.focus();
+            } else if (
+              ["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)
+            ) {
+              event.preventDefault();
+              const next =
+                event.key === "Home"
+                  ? 0
+                  : event.key === "End"
+                    ? items.length - 1
+                    : event.key === "ArrowDown"
+                      ? (index + 1) % items.length
+                      : (index - 1 + items.length) % items.length;
+              items[next]?.focus();
+            }
+          }}
+        >
+          {grouped.map((group) => (
+            <div
+              role="group"
+              aria-label={translate(
+                `ui.editorWorkspace.condition.group.${group.category}`,
+              )}
+              key={group.category}
+            >
+              <strong className="editor-insert-value-group-label">
+                {translate(
+                  `ui.editorWorkspace.condition.group.${group.category}`,
+                )}
+              </strong>
+              {group.properties.map((property) => (
+                <button
+                  type="button"
+                  role="menuitem"
+                  key={property.handle}
+                  onClick={() => {
+                    setOpen(false);
+                    onInsert(property.handle);
+                  }}
+                >
+                  <span>
+                    <strong>{propertyLabel(property)}</strong>
+                    {showDescriptions && (
+                      <small>{propertyTypeLabel(property)}</small>
+                    )}
+                  </span>
+                  {showDescriptions && (
+                    <small>
+                      {propertyProvenance(property)}
+                      {property.mayBeUnset
+                        ? ` · ${translate("ui.editorWorkspace.condition.mayBeUnset")}`
+                        : ""}
+                    </small>
+                  )}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function insertAtSelection(
+  control: HTMLTextAreaElement | null,
+  value: string,
+  insertion: string,
+  onChange: (value: string) => void,
+) {
+  const start = control?.selectionStart ?? value.length;
+  const end = control?.selectionEnd ?? start;
+  onChange(`${value.slice(0, start)}${insertion}${value.slice(end)}`);
+  requestAnimationFrame(() => {
+    control?.focus();
+    const caret = start + insertion.length;
+    control?.setSelectionRange(caret, caret);
+  });
 }
 
 function operatorOptions(type: ConditionPropertyDescriptor["type"]) {
@@ -506,23 +687,26 @@ function DraftRule({
 }
 
 function VariantValueControl({
-  fieldName,
+  fieldLabel,
   richText,
   value,
   onChange,
   onBlur,
+  textareaRef,
 }: {
-  fieldName: string;
+  fieldLabel: string;
   richText: boolean;
   value: string;
   onChange: (value: string) => void;
   onBlur: () => void;
+  textareaRef?: RefObject<HTMLTextAreaElement | null>;
 }) {
   const label = translate("ui.editorWorkspace.condition.variantValue", {
-    field: fieldName.replaceAll("-", " "),
+    field: fieldLabel,
   });
   return richText ? (
     <textarea
+      ref={textareaRef}
       aria-label={label}
       spellCheck
       rows={5}
@@ -547,7 +731,9 @@ function VariantEditor({
   index,
   count,
   fieldName,
+  fieldLabel,
   richText,
+  showExplanatoryText,
   properties,
   diagnostics,
   onUpdate,
@@ -559,7 +745,9 @@ function VariantEditor({
   index: number;
   count: number;
   fieldName: string;
+  fieldLabel: string;
   richText: boolean;
+  showExplanatoryText: boolean;
   properties: readonly ConditionPropertyDescriptor[];
   diagnostics: readonly PackageDiagnostic[];
   onUpdate: (condition: string, value: string) => void;
@@ -582,6 +770,7 @@ function VariantEditor({
     path: readonly number[];
     kind: "rule" | "group";
   } | null>(null);
+  const valueRef = useRef<HTMLTextAreaElement>(null);
   const diagnosticId = diagnostics.length
     ? `editor-condition-${fieldName}-${variant.occurrence}-diagnostics`
     : undefined;
@@ -720,16 +909,33 @@ function VariantEditor({
           ))}
         </div>
       )}
-      <label className="editor-condition-value">
-        <span>{fieldName.replaceAll("-", " ")}</span>
+      <div className="editor-condition-value">
+        <span>{fieldLabel}</span>
+        {richText && (
+          <span className="editor-rich-text-toolbar">
+            <InsertValueControl
+              properties={properties}
+              showDescriptions={showExplanatoryText}
+              onInsert={(handle) =>
+                insertAtSelection(
+                  valueRef.current,
+                  variant.value,
+                  `{{${handle}}}`,
+                  (value) => onUpdate(variant.condition, value),
+                )
+              }
+            />
+          </span>
+        )}
         <VariantValueControl
-          fieldName={fieldName}
+          fieldLabel={fieldLabel}
           richText={richText}
           value={variant.value}
           onChange={(value) => onUpdate(variant.condition, value)}
           onBlur={onEndFieldEdit}
+          textareaRef={valueRef}
         />
-      </label>
+      </div>
       <footer>
         <button
           type="button"
@@ -762,6 +968,8 @@ function VariantEditor({
 
 export function ConditionalVariants({
   fieldName,
+  fieldLabel,
+  showExplanatoryText,
   baseOccurrence,
   variants,
   fieldType,
@@ -772,6 +980,8 @@ export function ConditionalVariants({
   onEndFieldEdit,
 }: {
   fieldName: string;
+  fieldLabel: string;
+  showExplanatoryText: boolean;
   baseOccurrence: number;
   variants: readonly ConditionalVariant[];
   fieldType?: string;
@@ -794,13 +1004,13 @@ export function ConditionalVariants({
     <section className="editor-conditional-variants">
       <header>
         <strong>{translate("ui.editorWorkspace.condition.variants")}</strong>
-        <small>
-          {translate("ui.editorWorkspace.condition.behaviorSummary", {
-            field:
-              fieldName.charAt(0).toLocaleUpperCase() +
-              fieldName.slice(1).replaceAll("-", " "),
-          })}
-        </small>
+        {showExplanatoryText && (
+          <small>
+            {translate("ui.editorWorkspace.condition.behaviorSummary", {
+              field: fieldLabel,
+            })}
+          </small>
+        )}
       </header>
       {matching.map((variant, index) => (
         <VariantEditor
@@ -809,7 +1019,9 @@ export function ConditionalVariants({
           index={index}
           count={matching.length}
           fieldName={fieldName}
+          fieldLabel={fieldLabel}
           richText={fieldType === "richText"}
+          showExplanatoryText={showExplanatoryText}
           properties={properties}
           diagnostics={diagnostics.filter(
             (diagnostic) =>

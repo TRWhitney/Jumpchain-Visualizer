@@ -5,12 +5,14 @@ import type {
   TextBlock,
   ImageBlock,
   Renderable,
+  RichBlock,
+  RichInline,
 } from "../markup";
-import { resolveCostAmount } from "../markup";
+import { parseRichText, resolveCostAmount } from "../markup";
 import { evaluateConditionExpression } from "../markup";
 
-export type ChoiceValue = boolean | string | number | null;
-export type InputValue = string | number | readonly string[] | null;
+export type ChoiceValue = boolean | string | number | readonly string[] | null;
+export type InputValue = string | number | null;
 
 export type RollRecord = {
   result: string | number;
@@ -20,6 +22,7 @@ export type RollRecord = {
 export type ActorEntryState = {
   choices: Record<string, ChoiceValue>;
   inputs: Record<string, Record<string, InputValue>>;
+  sourceSelections: Record<string, readonly string[]>;
   choiceRolls: Record<string, RollRecord>;
   sourceRolls: Record<string, RollRecord>;
 };
@@ -185,6 +188,7 @@ export type EvaluateChainInput = {
 export const emptyActorEntryState = (): ActorEntryState => ({
   choices: {},
   inputs: {},
+  sourceSelections: {},
   choiceRolls: {},
   sourceRolls: {},
 });
@@ -202,11 +206,59 @@ export function choiceValueIsActive(choice: JumpChoice, value: ChoiceValue) {
   if (choice.selection === "toggle") return value === true;
   if (choice.selection === "text")
     return typeof value === "string" && value.trim().length > 0;
+  if (choice.selection === "companions")
+    return (
+      Array.isArray(value) &&
+      value.length >= (choice.min ?? 1) &&
+      value.length <= (choice.max ?? 1)
+    );
   return value !== null && value !== undefined && value !== "";
 }
 
 function sourceKey(sectionHandle: string, sourceHandle: string) {
   return `${sectionHandle}:${sourceHandle}`;
+}
+
+function choicePlacement(
+  packageItem: CanonicalJumpPackage,
+  state: ActorEntryState,
+  choice: JumpChoice,
+) {
+  const direct = packageItem.sections.some((section) =>
+    section.directChoices.some(
+      (placement) => placement.target === choice.handle,
+    ),
+  );
+  const sources = packageItem.sections.flatMap((section) =>
+    section.sources
+      .filter(
+        (source) =>
+          source.group !== undefined && choice.groups.includes(source.group),
+      )
+      .map((source) => sourceKey(section.handle, source.handle)),
+  );
+  return {
+    direct,
+    hasSource: sources.length > 0,
+    selectedBySource: sources.some((key) =>
+      state.sourceSelections[key]?.includes(choice.handle),
+    ),
+  };
+}
+
+export function choiceStateIsActive(
+  packageItem: CanonicalJumpPackage,
+  state: ActorEntryState,
+  choice: JumpChoice,
+  value: ChoiceValue = state.choices[choice.handle] ?? null,
+) {
+  const placement = choicePlacement(packageItem, state, choice);
+  const resolvedValue =
+    choice.selection === "toggle" && placement.selectedBySource ? true : value;
+  return (
+    choiceValueIsActive(choice, resolvedValue) &&
+    (placement.direct || !placement.hasSource || placement.selectedBySource)
+  );
 }
 
 export function choicesForSource(
@@ -284,6 +336,30 @@ type RenderContext = Readonly<
   Record<string, string | number | boolean | undefined>
 >;
 
+export function choiceControlRenderContext(
+  choice: JumpChoice,
+  actorState: Pick<ActorEntryState, "inputs">,
+  choiceValue: string | number | boolean | readonly string[] | null | undefined,
+): Readonly<Record<string, string | number | boolean>> {
+  const entries: [string, string | number | boolean][] = [];
+  if (
+    typeof choiceValue === "string" ||
+    typeof choiceValue === "number" ||
+    typeof choiceValue === "boolean"
+  )
+    entries.push([choice.handle, choiceValue]);
+  for (const input of choice.inputs) {
+    const value = actorState.inputs[choice.handle]?.[input.handle];
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    )
+      entries.push([input.handle, value]);
+  }
+  return Object.fromEntries(entries);
+}
+
 function inheritedGrantName(
   choice: JumpChoice,
   item: JumpGrant,
@@ -318,7 +394,7 @@ function inheritedDescription(
 }
 
 function actorRenderContext(
-  evaluation: Pick<EvaluatedActorJump, "properties" | "choices">,
+  evaluation: Pick<EvaluatedActorJump, "properties">,
   gauntlet: boolean,
 ): RenderContext {
   return {
@@ -326,16 +402,6 @@ function actorRenderContext(
       Object.entries(evaluation.properties).map(([handle, property]) => [
         handle,
         property?.value,
-      ]),
-    ),
-    ...Object.fromEntries(
-      Object.entries(evaluation.choices).map(([handle, choice]) => [
-        handle,
-        typeof choice.value === "boolean" ||
-        typeof choice.value === "string" ||
-        typeof choice.value === "number"
-          ? choice.value
-          : undefined,
       ]),
     ),
     gauntlet,
@@ -452,10 +518,20 @@ function evaluateActor(
   startingPointContribution: number,
   targetedResourceGrants: Readonly<Record<string, number>>,
   gauntletActive: boolean,
+  availableCompanionIds: ReadonlySet<string> = new Set(),
 ) {
   const choiceViews: Record<string, EvaluatedChoice> = {};
   for (const choice of packageItem.choices) {
     let selected = actorState.choices[choice.handle] ?? null;
+    if (choice.selection === "companions" && Array.isArray(selected))
+      selected = [
+        ...new Set(
+          selected.filter((actorId) => availableCompanionIds.has(actorId)),
+        ),
+      ];
+    const placement = choicePlacement(packageItem, actorState, choice);
+    if (choice.selection === "toggle" && placement.selectedBySource)
+      selected = true;
     const identityProperty = choice.grants.find(
       (grant) =>
         grant.kind === "property" &&
@@ -483,7 +559,12 @@ function evaluateActor(
       )
         selected = continuityBaseline;
     }
-    const active = choiceValueIsActive(choice, selected);
+    const active = choiceStateIsActive(
+      packageItem,
+      actorState,
+      choice,
+      selected,
+    );
     const sourceRolled = rolledBySource(packageItem, actorState, choice.handle);
     const choiceRoll = actorState.choiceRolls[choice.handle];
     const continuityFreeValues: (string | number)[] = choice.continuity
@@ -635,15 +716,19 @@ function evaluateActor(
           ? "Classic Body Mod"
           : "Default species",
     };
-  const context = actorRenderContext(
-    { properties, choices: choiceViews },
-    gauntletActive,
-  );
+  const context = actorRenderContext({ properties }, gauntletActive);
   const traits = packageItem.choices.flatMap((choice) => {
     if (!choiceViews[choice.handle]?.active) return [];
     const value = choiceViews[choice.handle]?.value;
     return choice.grants.flatMap((item, grantIndex): EvaluatedGrantRecord[] => {
-      const grantContext = grantRenderContext(context, item, value);
+      const grantContext = grantRenderContext(
+        {
+          ...context,
+          ...choiceControlRenderContext(choice, actorState, value),
+        },
+        item,
+        value,
+      );
       return item.kind === "trait" && visibleGrantIsAcquired(value)
         ? [
             {
@@ -726,6 +811,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
     };
     runtime[entryId] = { gauntlet, actors: {} };
 
+    const availableCompanionIds = new Set(companions.keys());
     const jumperState = entryState.actors.jumper ?? emptyActorEntryState();
     const jumperEvaluation = evaluateActor(
       entryId,
@@ -739,6 +825,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
       gauntlet.startingPointContribution,
       {},
       gauntlet.active,
+      availableCompanionIds,
     );
     const jumperContext = actorRenderContext(jumperEvaluation, gauntlet.active);
     const imported = new Set<string>();
@@ -746,18 +833,27 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
     const entryForms = new Map<string, EvaluatedForm>();
 
     for (const choice of packageItem.choices) {
-      if (!jumperEvaluation.choices[choice.handle]?.active) continue;
+      const evaluatedChoice = jumperEvaluation.choices[choice.handle];
+      if (!evaluatedChoice?.active) continue;
+      const choiceContext = {
+        ...jumperContext,
+        ...choiceControlRenderContext(
+          choice,
+          jumperState,
+          evaluatedChoice.value,
+        ),
+      };
       for (const [grantIndex, grant] of choice.grants.entries()) {
         if (grant.kind === "form" && grant.handle) {
           const form: EvaluatedForm = {
             id: `form:${entryId}:${grant.handle}`,
             handle: grant.handle,
-            name: inheritedGrantName(choice, grant, jumperContext),
+            name: inheritedGrantName(choice, grant, choiceContext),
             sourceEntryId: entryId,
             ownerActorId: "jumper",
-            description: inheritedDescription(choice, grant, jumperContext),
+            description: inheritedDescription(choice, grant, choiceContext),
             initials: initials(
-              inheritedGrantName(choice, grant, jumperContext),
+              inheritedGrantName(choice, grant, choiceContext),
             ),
             tags: [
               ...new Set([...choice.tags, ...grant.tags].map(normalizeTag)),
@@ -768,7 +864,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
           forms.push(form);
         }
         if (grant.kind === "companion" && grant.handle) {
-          const name = inheritedGrantName(choice, grant, jumperContext);
+          const name = inheritedGrantName(choice, grant, choiceContext);
           const companionId = `companion:${entryId}:jumper:${choice.handle}:${grantIndex}`;
           actors[companionId] = {
             id: companionId,
@@ -776,7 +872,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
             role: "Companion",
             joinedEntryId: entryId,
             initials: initials(name),
-            summary: inheritedDescription(choice, grant, jumperContext),
+            summary: inheritedDescription(choice, grant, choiceContext),
           };
           companions.set(companionId, {
             actorId: companionId,
@@ -791,17 +887,15 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
           companionTargets.set(grant.handle, [companionId]);
         }
       }
-      for (const inputItem of choice.inputs) {
-        const selected = jumperState.inputs[choice.handle]?.[inputItem.handle];
-        if (!Array.isArray(selected)) continue;
-        const selectedActors = selected.filter(
-          (actorId) => actors[actorId]?.role === "Companion",
-        );
-        for (const importGrant of inputItem.grants)
-          if (importGrant.kind === "companion-import" && importGrant.handle) {
-            companionTargets.set(importGrant.handle, selectedActors);
-            selectedActors.forEach((actorId) => imported.add(actorId));
-          }
+      const choiceValue = evaluatedChoice.value;
+      if (choice.selection === "companions" && Array.isArray(choiceValue)) {
+        const selectedActors = [
+          ...new Set(
+            choiceValue.filter((actorId) => availableCompanionIds.has(actorId)),
+          ),
+        ];
+        companionTargets.set(choice.handle, selectedActors);
+        selectedActors.forEach((actorId) => imported.add(actorId));
       }
     }
 
@@ -882,6 +976,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
               0,
               Object.fromEntries(targetedResources.get(actorId) ?? []),
               gauntlet.active,
+              availableCompanionIds,
             );
       runtime[entryId].actors[actorId] = evaluation;
       previous[actorId] = evaluation.properties;
@@ -891,6 +986,10 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
       for (const choice of packageItem.choices) {
         const evaluatedChoice = evaluation.choices[choice.handle];
         if (!evaluatedChoice?.active) continue;
+        const choiceContext = {
+          ...context,
+          ...choiceControlRenderContext(choice, state, evaluatedChoice.value),
+        };
         for (const [grantIndex, item] of choice.grants.entries()) {
           if (
             (item.kind === "perk" || item.kind === "item") &&
@@ -898,7 +997,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
           )
             for (const owner of ownersForGrant(item, actorId)) {
               const grantContext = grantRenderContext(
-                context,
+                choiceContext,
                 item,
                 evaluatedChoice.value,
               );
@@ -934,7 +1033,11 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
               visibleGrantIsAcquired(value)
             )
               for (const owner of ownersForGrant(item, actorId)) {
-                const grantContext = grantRenderContext(context, item, value);
+                const grantContext = grantRenderContext(
+                  choiceContext,
+                  item,
+                  value,
+                );
                 const ownerKey = owner.ownerActorId ?? actorId;
                 const id = `grant:${entryId}:${ownerKey}:${choice.handle}:input:${inputItem.handle}:${grantIndex}`;
                 records.push({
@@ -1014,6 +1117,43 @@ export function renderRenderable(
     evaluateCondition(variant.condition, context),
   );
   return interpolate(selected?.value ?? value.base ?? "", context);
+}
+
+export function renderRichTextRenderable(
+  value: Renderable,
+  context: Readonly<Record<string, string | number | boolean | undefined>>,
+): readonly RichBlock[] {
+  const selected = value.variants.find((variant) =>
+    evaluateCondition(variant.condition, context),
+  );
+  const substitutions: string[] = [];
+  const masked = (selected?.value ?? value.base ?? "").replace(
+    /\{\{([a-z0-9_]+)}}/g,
+    (_, handle: string) => {
+      const index = substitutions.push(String(context[handle] ?? "")) - 1;
+      return `\uE000${index}\uE001`;
+    },
+  );
+  return parseRichText(masked).map((block) => {
+    const replace = (inline: RichInline) => ({
+      ...inline,
+      text: inline.text.replace(
+        /\uE000([0-9]+)\uE001/g,
+        (_, index: string) => substitutions[Number(index)] ?? "",
+      ),
+    });
+    if (block.kind === "paragraph")
+      return { ...block, content: block.content.map(replace) };
+    if (block.kind === "list")
+      return {
+        ...block,
+        items: block.items.map((item) => item.map(replace)),
+      };
+    return {
+      ...block,
+      rows: block.rows.map((row) => row.map((cell) => cell.map(replace))),
+    };
+  });
 }
 
 function interpolate(

@@ -448,6 +448,15 @@
   color: #686861;
 }
 
+[data-app-theme="light"] .editor-input-guidance {
+  color: #5c5c56;
+}
+
+[data-app-theme="light"] .editor-input-placement-warning {
+  background: #fff3d9;
+  border-inline-start-color: #96650e;
+}
+
 [data-app-theme="light"] .editor-layout-breadcrumb button:hover,
 [data-app-theme="light"] .editor-layout-breadcrumb button[aria-current="page"] {
   color: #171717;

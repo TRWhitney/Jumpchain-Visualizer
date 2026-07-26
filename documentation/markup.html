@@ -889,15 +889,18 @@ renderers looking for documented conventional handles such as <code>description<
 is useful. The root Jump’s concise <code>description</code> remains package metadata for library
 cards and package headers rather than rendered section content.</p>
 <h3>Placeholder Direction</h3>
-<p>Placeholder interpolation should be supported in renderable string content
-using property handles such as <code>{{companion_name}}</code>.</p>
+<p>Placeholder interpolation is supported in renderable string content using
+property handles such as <code>{{companion_name}}</code>. Text owned by a Choice
+may also use that scalar Choice's handle and the handles of its scalar supporting
+Inputs directly.</p>
 <p>Current direction:</p>
 <ul>
 <li>placeholders are allowed in user-facing/renderable string values</li>
 <li>placeholders are allowed in <code>text.content</code></li>
 <li>placeholders are allowed in quoted scalar strings such as <code>name</code> and <code>alt</code></li>
 <li>placeholders are not allowed in structural/reference fields</li>
-<li>a placeholder naming no property defined by package grants produces an Editor warning and a distributable-package error</li>
+<li>inside Choice-owned Text, the owning scalar Choice answer and its scalar supporting Input answers are contextual values; their handles remain owner-local rather than becoming package properties</li>
+<li>a placeholder naming neither an available contextual value nor a property defined by package grants produces an Editor warning and a distributable-package error</li>
 <li>a known property that is currently unset for the active actor renders as an empty string without a diagnostic</li>
 <li>if a <code>name</code> contains placeholders, it must not be used for implicit handle
 derivation</li>
@@ -946,6 +949,7 @@ such as <code>visual</code>.</p>
 <ul>
 <li>required <code>handle</code></li>
 <li>required <code>selection</code></li>
+<li>optional quoted <code>placeholder</code> for text, integer, and select controls</li>
 <li>optional <code>min</code> and <code>max</code> where the selection kind supports a
 bounded count</li>
 </ul>
@@ -954,13 +958,13 @@ bounded count</li>
 <li><code>text</code></li>
 <li><code>integer</code></li>
 <li><code>select</code></li>
-<li><code>companions</code></li>
 </ul>
-<p>Inputs have no default selection kind because text, integer, select, and companion roster controls have different state and validation requirements.</p>
+<p>Inputs have no default selection kind because text, integer, and select controls have different state and validation requirements. Companion import is a Choice selection type, not an Input.</p>
 <p>Example direction:</p>
 <pre><code class="language-text">input
   handle: companion_name_input
   selection: text
+  placeholder: &quot;Companion name&quot;
 
   grant
     kind: property
@@ -968,21 +972,13 @@ bounded count</li>
 </code></pre>
 <p>Inputs do not need a <code>name</code> field. If the rendered UI needs visible labeling,
 that labeling should come from nearby authored content, typically <code>text</code>
-blocks, rather than from a special input-only label field.</p>
+blocks, rather than from a special input-only label field. A placeholder is shadow
+text inside an empty control only and never replaces that authored content.</p>
+<p>Built-in Choice cards render every owned Input in source order after the primary
+Choice control. An explicit Choice layout is authoritative and renders only Inputs
+named by <code>input</code> leaves. Omitting an owned Input from an explicit layout is
+diagnosed at that Input.</p>
 <p>When the owning choice becomes unselected, nested input values remain stored as dormant chain-entry state so reselection restores them. Dormant inputs do not apply grants, properties, costs, or other effects. Removing the chain entry deletes them with the rest of that entry’s state.</p>
-<p><code>selection: companions</code> is a runtime roster picker rather than an authored
-string list:</p>
-<ul>
-<li>its values are stable companion record identities, not names or authored
-options</li>
-<li>the available roster contains companions that exist at the current chain-entry
-evaluation point</li>
-<li><code>max</code> is required and must be a positive integer</li>
-<li><code>min</code> defaults to <code>0</code> and must not exceed <code>max</code></li>
-<li>the input prevents selecting the same companion more than once</li>
-<li>authors label and explain the picker with nearby owned <code>text</code>, as with other
-inputs</li>
-</ul>
 <h2>Choice Direction</h2>
 <p>Choices should be structured around:</p>
 <ul>
@@ -1001,6 +997,7 @@ inputs</li>
 <li>nested <code>image</code></li>
 <li>nested <code>input</code></li>
 <li>optional <code>selection</code></li>
+<li>optional quoted <code>placeholder</code> for text, integer, select, and companion controls</li>
 <li>optional <code>continuity</code> for a standardized Gender select</li>
 <li>repeated nested mechanics declarations such as <code>cost</code> and <code>grant</code></li>
 </ul>
@@ -1268,7 +1265,8 @@ choice.</p>
 <p>Block-form grants are required for kinds that are not naturally represented by
 the choice&#39;s own visible identity.</p>
 <p>Every block-form grant requires an explicit <code>kind</code>. A block without one is an error rather than useful WIP structure.</p>
-<p>Most visible grant declarations do not have author-facing handles. Forms and companions are the exceptions because arbitrary grants may reference their ownership targets. <code>kind: form</code>, block-form <code>kind: companion</code>, and <code>kind: companion-import</code> require stable package-local handles. Scalar <code>grant: companion</code> uses its owning choice handle. The application tracks visible-grant provenance through the exact installed-package hash, owning choice or input handle, immutable grant position, and any runtime record ID created after acquisition.</p>
+<p>Most visible grant declarations do not have author-facing handles. Forms and companions are the exceptions because arbitrary grants may reference their ownership targets. <code>kind: form</code> and block-form <code>kind: companion</code> require stable package-local handles. Scalar <code>grant: companion</code> uses its owning choice handle. A companion-selection Choice contributes its Choice handle to the same companion-target namespace. The application tracks visible-grant provenance through the exact installed-package hash, owning choice or input handle, immutable grant position, and any runtime record ID created after acquisition.</p>
+<p>A visible perk, item, form, companion, or trait grant may own one conventional Text block whose handle is exactly <code>description</code>. That block supplies the grant-specific description and overrides the owning Choice’s <code>description</code>; omission falls back to the Choice description and then to the generated sentence. Other Text handles and Image blocks are not valid on perk, item, form, or companion grants because those records do not render them. A trait grant is the exception: its selected trait layout may target additional owner-local Text and Image blocks, so those children remain valid for traits.</p>
 <p>A <code>kind: resource</code> grant requires both a canonical <code>resource</code> reference and an <code>amount</code>. Omitting either is an error.</p>
 <p>Resource-grant <code>amount</code> accepts any literal integer, including zero and negative values, or one of the base symbolic magnitudes <code>trivial</code>, <code>small</code>, <code>medium</code>, <code>large</code>, <code>major</code>, and <code>extreme</code>. Positive and symbolic values add to the resource; negative integers remove from it. The <code>add_*</code> token family is not valid here because the grant context already communicates addition.</p>
 <p>Current required block-form kinds:</p>
@@ -1277,7 +1275,6 @@ the choice&#39;s own visible identity.</p>
 <li><code>trait</code></li>
 <li><code>property</code></li>
 <li><code>companion</code></li>
-<li><code>companion-import</code></li>
 <li><code>form</code></li>
 </ul>
 <p>Example directions:</p>
@@ -1301,14 +1298,12 @@ the choice&#39;s own visible identity.</p>
   handle: ember_fox
   name: &quot;Ember Fox&quot;
 </code></pre>
-<pre><code class="language-text">input
+<pre><code class="language-text">choice
   handle: imported_companions
+  name: &quot;Traveling Company&quot;
   selection: companions
+  min: 1
   max: 2
-
-  grant
-    kind: companion-import
-    handle: imported_companions
 
   grant
     kind: resource
@@ -1329,25 +1324,23 @@ display content and is never used as an identity key. Removing or deactivating t
 originating grant produces dependency review for later imports and owned records
 rather than silently retargeting them.</p>
 <h3>Companion Import Direction</h3>
-<p><code>kind: companion-import</code> is valid only as a grant nested directly in an
-<code>input</code> whose selection is <code>companions</code>. Its required handle represents
-the selected runtime companions as one author-facing grant target. A positive
-resource grant must target that handle before any selected companion receives
-participation state for the current chain entry.</p>
+<p><code>selection: companions</code> is a Choice-level roster picker. The Choice handle
+represents its selected runtime companions as one author-facing grant target. A
+positive resource grant must target that handle before any selected companion
+receives participation state for the current chain entry.</p>
 <p>Current rules:</p>
 <ul>
 <li>importing does not create a new chain companion; it records that an existing
 companion participates in this Jump run</li>
 <li>the participation state records the current chain-entry ID in that companion&#39;s
 import history</li>
-<li>the import is active only while both the owning choice/input and selected
-companion identity remain active</li>
+<li>only companions acquired in earlier chain entries are available</li>
+<li><code>min</code> and <code>max</code> both default to one; authored bounds must be positive</li>
+<li>the import is active only while the Choice belongs to an active placement and its valid selected roster meets the bounds</li>
 <li>the import alone does not make a companion available in the Chain Tracker actor selector; at least one positive <code>kind: resource</code> grant must target the import handle</li>
 <li>every selected companion receives the full authored amount of each targeted resource grant in a separate actor-owned balance; the amount is not divided among them</li>
 <li>while rendering as an imported companion, ordinary costs, rolls, properties,
 perks, items, and other grants belong to that companion&#39;s state for this entry</li>
-<li>the same companion may have only one active <code>companion-import</code> grant in a
-chain entry; a duplicate import is an error rather than a second allowance</li>
 <li><code>companion: &lt;handle&gt;</code> on a perk grant assigns that perk to every runtime companion represented by the purchase or import handle without itself authorizing choices</li>
 <li>removing a selected companion after they have made choices requires impact
 review and removes that companion&#39;s entry-scoped selections and grants if
@@ -1797,7 +1790,7 @@ shadowing and should identify the earlier variant responsible.</p>
 <h3>Structured Conditional Authoring</h3>
 <p>The Structured editor presents each source-ordered variant as one separately railed card. Its field label remains the authored field name, such as <em>Content</em> or <em>Alt</em>, because a matching variant substitutes that value for the base field. The base field above remains the fallback whenever no variant matches, and a localized summary states both rules beside the variant heading.</p>
 <p><em>Add conditional variant</em> first opens a transient property draft and does not write a catch-all condition to Source. Choosing a property reveals only operators legal for its known type and commits the first complete rule. <em>Add condition</em> adds another comparison to the current All/Any group. <em>Add nested group</em> creates a subgroup with its own All/Any behavior and optional inversion. Existing authored expressions remain editable in a compact Expression mode; invalid expressions are preserved there and diagnosed at their exact tokens rather than being rewritten by the guided builder.</p>
-<p>The property catalog is shared by validation, completion, and Structured controls. It identifies engine and identity values, package property grants, and contextual <code>rank</code> or <code>count</code> only where those values exist. Known Boolean values, integer bounds, and select options produce typed controls and suggestions without preventing compatible custom text values. Reordering variants changes only their exact source lines and retains first-match semantics.</p>
+<p>The property catalog is shared by validation, completion, and Structured controls. It identifies engine and identity values, package property grants, and contextual <code>rank</code> or <code>count</code> only where those values exist. Context discovery follows nested Text or Image content through an intermediate Grant to its owning Choice or Input, so a grant-specific description can test the same selected rank or quantity as the award it describes. Known Boolean values, integer bounds, and select options produce typed controls and suggestions without preventing compatible custom text values. Reordering variants changes only their exact source lines and retains first-match semantics.</p>
 <h2>Companion Participation</h2>
 <p>Companion acquisition and per-Jump participation are distinct mechanics:</p>
 <ul>
@@ -1805,14 +1798,17 @@ shadowing and should identify the earlier variant responsible.</p>
 record in the chain</li>
 <li><code>selection: companions</code> selects existing companion records by stable runtime
 identity</li>
-<li>a nested <code>kind: companion-import</code> grant identifies those selected companions under a stable package handle</li>
-<li>a positive resource grant targeting that handle authorizes the selected companions for the current chain entry and initializes a separate resource balance for each</li>
+<li>the companion-selection Choice handle identifies those selected companions as a package target</li>
+<li>a positive resource grant targeting that Choice handle authorizes the selected companions for the current chain entry and initializes a separate resource balance for each</li>
 </ul>
 <p>Complete example:</p>
 <pre><code class="language-text">choice
   handle: import_companions
   name: &quot;Companion Import&quot;
-  selection: toggle
+  selection: companions
+  placeholder: &quot;Choose earlier companions&quot;
+  min: 1
+  max: 2
   cost: 200
 
   text
@@ -1822,25 +1818,20 @@ identity</li>
       Import up to two existing companions. Each receives 600 points.
       &quot;&quot;&quot;
 
-  input
-    handle: imported_companions
-    selection: companions
-    min: 1
-    max: 2
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 600
+    companion: import_companions
 
-    grant
-      kind: companion-import
-      handle: imported_companions
-
-    grant
-      kind: resource
-      resource: jump_points
-      amount: 600
-      companion: imported_companions
+choice
+  handle: later_training
+  name: &quot;Later Training&quot;
+  grant: perk
+  companion: import_companions
 </code></pre>
-<p>A <code>kind: companion-import</code> grant does not carry <code>resource</code> or <code>amount</code>. Currency uses the ordinary resource-grant fields plus <code>companion: &lt;import-handle&gt;</code>, so imported and purchased companions share one targeting mechanism. At least one such grant must resolve to a positive amount for the import to authorize participation.</p>
-<p><code>kind: companion-import</code> is valid only as a nested grant of an <code>input</code> with <code>selection: companions</code>. Other placements are errors because they provide no selected roster to target.</p>
-<p>The Chain Tracker evaluates this in order: the Jumper buys the choice, the input
+<p>Currency and later awards use the ordinary grant fields plus <code>companion: &lt;choice-handle&gt;</code>, so imported and purchased companions share one targeting mechanism. At least one resource grant must resolve to a positive amount for the import to authorize participation. Once active, every later perk routed to that handle is awarded to every companion currently selected by the import Choice.</p>
+<p>The Chain Tracker evaluates this in order: the Jumper activates the Choice, the Choice control
 offers eligible stable companion records, and the targeted resource grant gives each selected identity an
 entry-scoped actor state with 600 <code>jump_points</code>. Only then does that companion
 appear in the current Jump&#39;s actor selector. Names remain presentation and may
@@ -1907,7 +1898,7 @@ default.</p>
 <li>a resolved value of zero creates no acquired record for either measure; negative and non-integer measure values are invalid</li>
 <li>authored <code>measure</code> is singular, so one acquisition cannot declare itself as both ranked and quantified</li>
 <li>conditional descriptions and placeholders continue to read the authored choice/property context; adding quantity metadata must not replace or rename those values implicitly</li>
-<li>the selected measure and value must persist with provenance and appear consistently in Inventory, companion profiles, Forms, and every shared perk/item/trait detail surface</li>
+<li>the selected measure and value must persist with provenance and appear consistently wherever that grant is displayed</li>
 </ul>
 <h4>Duplicate Acquisition Aggregation</h4>
 <p>Quantity also represents repeated acquisition of a similar record, including
@@ -2010,14 +2001,12 @@ available without expanding the grant into a block:</p>
     name: &quot;Boundary Instinct&quot;
     companion: aster
 </code></pre>
-<p>An import declares its own target handle because the selected companions have runtime identities unknown to the author:</p>
-<pre><code class="language-text">input
-  handle: travelers
+<p>An import uses its Choice handle as the target because the selected companions have runtime identities unknown to the author:</p>
+<pre><code class="language-text">choice
+  handle: horizon_company
+  name: &quot;Horizon Company&quot;
   selection: companions
-
-  grant
-    kind: companion-import
-    handle: horizon_company
+  max: 2
 
   grant
     kind: resource
@@ -2038,7 +2027,7 @@ available without expanding the grant into a block:</p>
   companion: horizon_company
 </code></pre>
 <ul>
-<li>block-form companion and companion-import grants require unique package-wide handles; scalar <code>grant: companion</code> uses its owning choice handle</li>
+<li>block-form companion grants and companion-selection Choice handles share one unique package-wide target namespace; scalar <code>grant: companion</code> uses its owning Choice handle</li>
 <li><code>companion: &lt;handle&gt;</code> is valid only on perk and resource grants; items, traits, properties, forms, and companion grants cannot target companions</li>
 <li>a perk target may resolve to one purchased companion or every selected companion represented by an import handle</li>
 <li>a positive targeted resource grant is what makes a purchased or imported companion participate in the current Jump and appear in <strong>Make choices as</strong>; a targeted perk alone only accrues to the companion profile</li>
@@ -2080,7 +2069,7 @@ an implementation detail.</p>
 <li>Block-form visible grants support <code>perk</code>, <code>item</code>, <code>companion</code>, and <code>trait</code>. This makes the already-agreed partial inheritance and grant-specific tags expressible without introducing another declaration shape.</li>
 <li>Conditional variants of singular fields belong to that field on the current owner. Because <code>option</code> is repeatable, an <code>option when ...</code> variant belongs to the immediately preceding base <code>option</code> at the same indentation. A new base option starts a new variant group. This preserves scalar options and avoids option blocks.</li>
 <li><code>section</code> owns text, images, choice sources, and handled associations to top-level choices. Interactive <code>input</code> blocks remain choice-owned because their values activate choice mechanics and grants.</li>
-<li>Grant fields are kind-checked. Resource and property mechanics cannot accidentally accept visible-content fields, and companion imports remain valid only directly under a companion-selection input.</li>
+<li>Grant fields are kind-checked. Resource and property mechanics cannot accidentally accept visible-content fields. Companion import is authored as <code>selection: companions</code> on a Choice, whose handle is then available as a companion recipient target.</li>
 <li>Every authored layout has exactly one container root, identified structurally rather than by a handle. Grid requires <code>columns</code> from 1 through 12; typed leaves use their matching owner-local namespace; <code>expand</code> and compact direct <code>choice</code> placement remain section-layout-only.</li>
 </ul>
 <h3>Schema Change Policy</h3>

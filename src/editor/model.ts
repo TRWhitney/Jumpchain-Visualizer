@@ -4,7 +4,7 @@ import {
   type CanonicalJumpPackage,
   type PackageDiagnostic,
 } from "../markup";
-import { translateDiagnostic } from "../localization";
+import { translate, translateDiagnostic } from "../localization";
 import { assetRelativePath, validateAssetRelativePath } from "./assetPaths";
 import {
   hydrateAssetEditorDocument,
@@ -122,7 +122,9 @@ export function summarizeWorkspace(
     nativeGauntlet: packageItem.nativeGauntlet,
     sectionCount: packageItem.sections.length,
     choiceCount: packageItem.choices.length,
-    description: packageItem.description || "No Jump description yet.",
+    description:
+      packageItem.description ||
+      translate("ui.editorWorkspace.starter.noDescription"),
     diagnostics: packageItem.diagnostics,
     tags: packageItem.tags,
     starred: workspace.starred,
@@ -173,6 +175,16 @@ export function createStarterWorkspace(
   id: string = globalThis.crypto?.randomUUID?.() ?? `workspace-${Date.now()}`,
   now = new Date().toISOString(),
 ): EditorWorkspaceSnapshot {
+  const starter = {
+    name: translate("ui.editorWorkspace.starter.jumpName"),
+    description: translate("ui.editorWorkspace.starter.jumpDescription"),
+    author: translate("ui.editorWorkspace.starter.author"),
+    pointName: translate("ui.editorWorkspace.starter.pointName"),
+    sectionName: translate("ui.editorWorkspace.starter.sectionName"),
+    welcome: translate("ui.editorWorkspace.starter.welcome"),
+    choicesComment: translate("ui.editorWorkspace.starter.choicesComment"),
+    layoutComment: translate("ui.editorWorkspace.starter.layoutComment"),
+  };
   return {
     schemaVersion: EDITOR_WORKSPACE_SCHEMA_VERSION,
     id,
@@ -180,27 +192,24 @@ export function createStarterWorkspace(
     files: {
       "jump.jdef": `jump
   format: 1
-  name: "Untitled Jump"
-  description: "An untitled Jump."
-  author: "Anonymous"
+  name: ${JSON.stringify(starter.name)}
+  description: ${JSON.stringify(starter.description)}
+  author: ${JSON.stringify(starter.author)}
   version: "0.1"
   starting-points: 1000
-  points-name: "Choice Points"
+  points-name: ${JSON.stringify(starter.pointName)}
   points-abbreviation: "CP"
 
 section
   handle: introduction
-  name: "Introduction"
+  name: ${JSON.stringify(starter.sectionName)}
 
   text
     handle: welcome
-    content:
-      """
-      Begin your Jump here. Use Structured editing for guided fields or Source for precise Format 1 markup.
-      """
+    content: ${JSON.stringify(starter.welcome)}
 `,
-      "choices.jdef": "# Choices are placed here by the Editor.\n",
-      "layout.jdef": `# Jump appearance, layouts, and themes are placed here by the Editor.
+      "choices.jdef": `# ${starter.choicesComment}\n`,
+      "layout.jdef": `# ${starter.layoutComment}
 jump-appearance
 `,
     },

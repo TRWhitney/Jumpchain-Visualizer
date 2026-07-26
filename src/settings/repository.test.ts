@@ -13,7 +13,7 @@ describe("settings repositories", () => {
     settings.chain.warnUpstreamChanges = false;
     const stored = await repository.load();
     expect(stored).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 4,
       chain: { warnUpstreamChanges: true },
     });
   });

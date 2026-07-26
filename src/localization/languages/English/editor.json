@@ -77,7 +77,7 @@
         "unknown": "Unknown declaration “{{declaration}}”.",
         "unknownSuggested": "Unknown declaration “{{declaration}}”. Did you mean “{{suggestion}}”?",
         "context": "“{{declaration}}” is not valid inside {{context}}.",
-        "scalar": "{{declaration}} does not support scalar shorthand."
+        "scalar": "{{declaration}} does not support a simple value."
       },
       "field": {
         "unknown": "Unknown field “{{field}}” on {{declaration}}.",
@@ -162,6 +162,9 @@
         "unique": "Section layout {{layout}} places “{{target}}” more than once.",
         "unreachable": "Direct choice {{section}}.{{choice}} is omitted by its explicit layout."
       },
+      "input": {
+        "unreachable": "Input “{{input}}” is not placed by Choice layout “{{layout}}” and will not be shown."
+      },
       "container": {
         "empty": "This layout container is empty and renders nothing."
       },
@@ -179,6 +182,15 @@
       },
       "integer": {
         "bounds": "Integer choice bounds are incomplete or invalid."
+      },
+      "companions": {
+        "max": "Maximum must be a positive integer.",
+        "bounds": "The companion-selection Minimum cannot exceed its Maximum.",
+        "funding": "Import companions requires a positive currency award routed to “{{handle}}”.",
+        "shorthand": "This Choice cannot also use the simple Companion award because that would reuse its import target."
+      },
+      "placeholder": {
+        "domain": "Placeholder is valid only for Text, Integer, Select, and Import companions Choices."
       },
       "resolution": {
         "domain": "Choice resolution is valid only for integer and select choices."
@@ -222,9 +234,6 @@
         "domain": "Min and max do not apply to a {{selection}} input.",
         "order": "Input min must not exceed max."
       },
-      "companions": {
-        "max": "A companions input requires max greater than zero."
-      },
       "option": {
         "domain": "Options do not apply to a {{selection}} input.",
         "empty": "This select input has no options."
@@ -243,20 +252,14 @@
         "handle": "Form grants require a unique stable handle.",
         "target_kind": "Only perk grants may target a form.",
         "context": "Form grants are valid only directly on choices.",
-        "shorthand": "Choice form requires exactly one shorthand perk grant.",
+        "shorthand": "A Form recipient requires exactly one simple perk award on this Choice.",
         "reference": "Form target “{{target}}” does not exist."
       },
       "companion": {
         "handle": "Companion targets require a unique stable handle.",
         "target_kind": "Only perk and resource grants may target a companion.",
-        "shorthand": "Choice companion requires exactly one shorthand perk grant.",
+        "shorthand": "A Companion recipient requires exactly one simple perk award on this Choice.",
         "reference": "Companion target “{{target}}” does not exist."
-      },
-      "companion_import": {
-        "handle": "Companion import grants require a unique stable handle.",
-        "context": "Companion imports are valid only on companion inputs.",
-        "funding": "Companion import “{{handle}}” requires a positive targeted resource grant.",
-        "inline_budget": "Companion import currency uses a resource grant targeting the import handle."
       },
       "owner": {
         "conflict": "A grant cannot target both a form and a companion."
@@ -264,7 +267,7 @@
       "measure": {
         "integer_only": "Measure requires an owning integer choice or input.",
         "kind": "Measure is valid only on perk, item, and trait grants.",
-        "shorthand": "Choice measure requires exactly one shorthand perk or item grant.",
+        "shorthand": "Selected number means requires exactly one simple perk or item award on this Choice.",
         "value": "Measure must be rank or quantity."
       },
       "visible": {
@@ -330,7 +333,35 @@
   "ui": {
     "editorHub": {
       "ariaLabel": {
-        "projectActions": "{{project}} project actions"
+        "projectActions": "{{project}} project actions",
+        "delete": "Delete {{project}}",
+        "star": "Star {{project}}",
+        "unstar": "Unstar {{project}}"
+      },
+      "title": {
+        "chooseProjectFolder": "Choose a project folder",
+        "projectFoldersDesktopOnly": "Project folders are available in the desktop application"
+      },
+      "opened": {
+        "justNow": "Opened just now",
+        "today": "Opened today",
+        "yesterday": "Opened yesterday",
+        "date": "Opened {{date}}"
+      },
+      "count": {
+        "total_one": "{{formattedCount}} total",
+        "total_other": "{{formattedCount}} total",
+        "visible": "{{visible}} of {{total}}",
+        "errors_one": "{{formattedCount}} error",
+        "errors_other": "{{formattedCount}} errors",
+        "warnings_one": "{{formattedCount}} warning",
+        "warnings_other": "{{formattedCount}} warnings"
+      },
+      "empty": {
+        "noMatch": "No projects match “{{search}}”.",
+        "noProjects": "No Editor projects yet.",
+        "searchHelp": "Try a name, author, version, tag, or diagnostic.",
+        "createHelp": "Create a project or import a secure .jmp package."
       },
       "text": {
         "editor": "Editor",
@@ -348,6 +379,10 @@
         "loadingSavedProjects": "Loading saved projects…",
         "yourInMemoryWorkRemainsAvailable": "Your in-memory work remains available.",
         "delete": "Delete",
+        "nativeGauntlet": "Native Gauntlet",
+        "format1Jump": "Format 1 Jump",
+        "unknownAuthor": "Unknown author",
+        "clean": "Clean",
         "version": "Version",
         "sections": "Sections",
         "choices": "Choices",
@@ -375,7 +410,11 @@
         "asset": "Asset ",
         "expandedSizePrefix": "Expanded ",
         "atYourOwnRisk": "At your own risk.",
-        "customByteBudgetsAreActiveMandatoryMaliciousArchiveProtections": " Custom byte budgets are active. Mandatory malicious-archive protections remain enforced."
+        "customByteBudgetsAreActiveMandatoryMaliciousArchiveProtections": " Custom byte budgets are active. Mandatory malicious-archive protections remain enforced.",
+        "reviewAuthoringWarnings": "Review authoring warnings",
+        "secureInspectionComplete": "Secure inspection complete",
+        "importAnyway": "Import Anyway",
+        "importProject": "Import Project"
       },
       "placeholder": {
         "nameAuthorVersionTagDiagnostic": "Name, author, version, tag, diagnostic"
@@ -388,7 +427,10 @@
         "booleanFalse": "false",
         "builtInSectionLayout": "built-in section layout",
         "builtInChoiceLayout": "built-in choice layout",
-        "builtInTraitLayout": "built-in trait layout"
+        "builtInTraitLayout": "built-in trait layout",
+        "notGenderSelection": "Not a gender selection",
+        "unboundedMinimum": "Default: −∞ (unbounded)",
+        "unboundedMaximum": "Default: +∞ (unbounded)"
       },
       "color": {
         "hexPlaceholder": "#RRGGBB",
@@ -407,9 +449,353 @@
         "showChoicesForField": "Show handle choices for {{field}}",
         "availableHandlesForField": "Available handles for {{field}}"
       },
+      "combobox": {
+        "showSuggestionsForField": "Show suggestions for {{field}}",
+        "availableSuggestionsForField": "Available suggestions for {{field}}",
+        "showOptions": "Show choices for {{field}}",
+        "availableOptions": "Available choices for {{field}}"
+      },
+      "reference": {
+        "primaryPointCurrency": "Primary point currency",
+        "kindAndName": "{{kind}} · {{name}}",
+        "importedCompanionChoice": "Companions selected by {{name}} from earlier Jumps"
+      },
+      "setFields": {
+        "primaryTagSuggestion": "Primary profile tag",
+        "existingPackageGroupSuggestion": "Existing package group",
+        "choiceSourceGroupLabel": "Choice Source group",
+        "choiceSourceGroupHelp": "Matches this Choice Source to Choices authored with the same group. Groups connect Choices to Choice Sources; they are not presentation tags.",
+        "choiceSourceGroupPlaceholder": "Type a group or choose an existing package group.",
+        "tag": {
+          "label": "Tags",
+          "help": "Presentation tags use your current tag profile for badges. Added tags are immutable here; remove and add a tag to change it.",
+          "placeholder": "Type any tag or choose a primary tag.",
+          "add": "Add tag",
+          "addedList": "Added tags",
+          "emptyValue": "Empty source-authored tag",
+          "remove": "Remove tag {{value}}"
+        },
+        "group": {
+          "label": "Groups",
+          "help": "Groups connect Choices to Choice Sources; they are not presentation tags. Existing package groups are suggested.",
+          "placeholder": "Type a group or choose an existing package group.",
+          "add": "Add group",
+          "addedList": "Added groups",
+          "emptyValue": "Empty source-authored group",
+          "remove": "Remove group {{value}}"
+        },
+        "author": {
+          "label": "Authors",
+          "help": "Add each Jump author once. Added authors are immutable here; remove and add an author to change it.",
+          "placeholder": "Type an author name.",
+          "add": "Add author",
+          "addedList": "Added authors",
+          "emptyValue": "Empty source-authored author",
+          "remove": "Remove author {{value}}"
+        }
+      },
+      "choiceShorthand": {
+        "bothHeading": "Award recipient and rank/quantity",
+        "bothSummary": "Choose whether this award belongs to a form or companion. For an integer Choice or Input, choose whether its selected number is a rank or quantity.",
+        "recipientHeading": "Award recipient",
+        "recipientSummary": "Choose an existing form or companion to receive this award.",
+        "measureHeading": "Rank or quantity",
+        "measureSummary": "For an integer Choice or Input, choose whether its selected number is a rank or quantity.",
+        "form": {
+          "label": "Form recipient",
+          "help": "Choose an existing form to receive the awarded perk."
+        },
+        "companion": {
+          "label": "Companion recipient",
+          "help": "Choose an existing purchased or imported companion to receive the awarded perk."
+        },
+        "measure": {
+          "label": "Selected number means",
+          "help": "Treat the selected number as a perk or trait rank, or an item quantity.",
+          "selectionUnavailable": "Unavailable for this selection type. Choose Integer to use rank or quantity.",
+          "ownerSelectionUnavailable": "Unavailable because the owning Choice or Input does not use an Integer selection.",
+          "awardUnavailable": "Unavailable until this Choice awards exactly one Perk or Item.",
+          "selectionUnavailablePlaceholder": "Requires an Integer selection",
+          "awardUnavailablePlaceholder": "Requires one Perk or Item award"
+        },
+        "companionCreation": "To create a new companion, add Companion under Content and effects. Companion recipient only sends the awarded perk to a companion that already exists."
+      },
+      "description": {
+        "label": "Description",
+        "declarationLabel": "Description text",
+        "choiceOwnerHelp": "Description explains this Choice and is the fallback description for every award it grants. Other Text, Image, and Input blocks are presentation content. To create a companion, add a Companion award; Companion recipient only targets one that already exists.",
+        "grantOwnerHelp": "Description explains this specific award in Inventory and overrides the owning Choice's Description. Other Text and Image blocks are not used by this award type.",
+        "traitOwnerHelp": "Description explains this trait and overrides the owning Choice's Description. Additional Text and Image blocks may be displayed by the trait's selected layout.",
+        "choiceContentHelp": "Shown as this Choice's description and used as the fallback description for awards that do not provide their own.",
+        "grantContentHelp": "Shown as this award's description in Inventory instead of the owning Choice's fallback description.",
+        "traitContentHelp": "Shown as this trait's description instead of the owning Choice's fallback description."
+      },
+      "input": {
+        "supportingControlHelp": "This is a follow-up control used after its parent Choice is selected. Its effects use this answer, and each additional Input creates another separate control.",
+        "automaticPlacement": "The built-in Choice layout shows this Input automatically.",
+        "placedByLayout": "Shown by Choice layout “{{layout}}”.",
+        "missingFromLayout": "Input “{{input}}” is not shown because Choice layout “{{layout}}” does not place it.",
+        "placeInLayout": "Place in layout",
+        "placedAnnouncement": "Placed Input “{{input}}” in the Choice layout.",
+        "openLayout": "Open layout"
+      },
+      "previewCompanion": {
+        "first": "Earlier companion",
+        "second": "Previous Jump companion"
+      },
+      "namedValues": {
+        "answerName": "Answer name",
+        "answerNameHelp": "The stable name used by conditions and inserted values. Leaving Value blank copies the owning Choice or Input answer.",
+        "insert": "Insert value…"
+      },
+      "editorSection": {
+        "default": "Details",
+        "jump": "Jump settings",
+        "resource": "Currency details",
+        "section": "Section presentation",
+        "choice-source": "Choice group behavior",
+        "choice": "Choice behavior",
+        "text": "Text content",
+        "image": "Image content",
+        "input": "Input behavior",
+        "cost": "Cost calculation",
+        "grant": "Award details",
+        "theme": "Theme color"
+      },
+      "choiceSelection": {
+        "label": "Selection",
+        "showChoices": "Show selection types",
+        "availableChoices": "Available selection types",
+        "toggle": {
+          "label": "Toggle",
+          "description": "An on/off choice. In a single-choice group, it appears as a radio button."
+        },
+        "text": {
+          "label": "Text",
+          "description": "Let the user enter text."
+        },
+        "integer": {
+          "label": "Integer",
+          "description": "Let the user choose a whole number."
+        },
+        "select": {
+          "label": "Select",
+          "description": "Let the user choose one of the ordered options below."
+        }
+      },
+      "fieldPresentation": {
+        "label": {
+          "handle": "Handle",
+          "name": "Name",
+          "description": "Description",
+          "author": "Author",
+          "version": "Version",
+          "format": "Package format",
+          "gauntlet": "Native Gauntlet",
+          "starting-points": "Starting points",
+          "points-name": "Point name",
+          "points-abbreviation": "Point abbreviation",
+          "section-layout": "Default section layout",
+          "choice-layout": "Default Choice layout",
+          "trait-layout": "Default trait layout",
+          "abbreviation": "Abbreviation",
+          "initial": "Initial balance",
+          "layout": "Layout",
+          "group": "Group",
+          "choiceSourceMode": "Choices allowed",
+          "resolution": "How selection is made",
+          "tag": "Tag",
+          "choiceSelection": "Selection type",
+          "continuity": "Gender default",
+          "min": "Minimum",
+          "max": "Maximum",
+          "option": "Option",
+          "choiceTarget": "Choice to display",
+          "content": "Text",
+          "src": "Image file",
+          "alt": "Image description",
+          "inputSelection": "Input type",
+          "placeholder": "Placeholder",
+          "resource": "Currency",
+          "amount": "Amount",
+          "costMode": "Cost calculation",
+          "grantKind": "Award type",
+          "formRecipient": "Form recipient",
+          "companionRecipient": "Companion recipient",
+          "measure": "Selected number means",
+          "value": "Value",
+          "color": "Color"
+        },
+        "help": {
+          "handle": "A stable internal name used by references. Use lowercase letters, numbers, and single underscores.",
+          "grantHandle": "The stable internal name used to target this form, companion, imported companion group, or property.",
+          "gauntlet": "Marks this package as inherently a Gauntlet. When starting points are omitted, a native Gauntlet starts at 0 instead of 1000.",
+          "startingPoints": "The point balance available when this Jump begins.",
+          "pointsName": "The full name shown for this Jump's primary points.",
+          "pointsAbbreviation": "The short label shown beside primary point amounts.",
+          "defaultSectionLayout": "Used by Sections that do not choose their own layout.",
+          "defaultChoiceLayout": "Used by Choices that do not receive a more specific layout.",
+          "defaultTraitLayout": "Used by awarded traits that do not choose their own layout.",
+          "layoutOverride": "Choose a specific layout here, or leave it blank to use the surrounding or Jump default.",
+          "minimum": "The lowest allowed number. Minimum and maximum values are inclusive.",
+          "maximum": "The highest allowed number. Minimum and maximum values are inclusive.",
+          "option": "Add the choices shown in this ordered list. Each option must be unique.",
+          "continuity": "For a Gender Choice, choose which identity supplies the free default when the user has not chosen a value.",
+          "resolution": "Controls whether the user chooses normally, rolls, or may do either.",
+          "choiceSourceMode": "Choose whether the user may select one matching Choice or several.",
+          "inputSelection": "Choose the kind of value this supporting input collects.",
+          "placeholder": "Shown only inside an empty control. Use a Text block for visible labels, instructions, and longer explanations.",
+          "costResource": "The currency spent or awarded by this cost.",
+          "costAmount": "A positive amount is spent. A negative amount awards that currency.",
+          "costMode": "Choose whether the amount applies once or is multiplied by an integer Choice.",
+          "grantKind": "Choose what this effect adds or changes when its owning Choice or Input is active.",
+          "grantName": "The name shown for this specific award. Leave it blank to use the owning Choice's name.",
+          "grantResource": "The currency changed by this award.",
+          "grantAmount": "A positive amount adds currency; a negative amount removes it.",
+          "grantValue": "Set a fixed property value. Leave it blank to copy the owning Choice or Input value.",
+          "traitLayout": "Choose how this awarded trait is displayed.",
+          "formRecipient": "Choose an existing form to receive the awarded perk.",
+          "companionRecipient": "Choose an existing purchased or imported companion to receive the awarded perk or currency.",
+          "companionRecipientChoice": "Choose an existing purchased or imported companion to receive the awarded perk.",
+          "measure": "Treat the selected number as a perk or trait rank, or an item quantity.",
+          "imageFile": "Choose an image already in this project, or import a new one.",
+          "imageDescription": "Describe the meaningful image content for people who cannot see it.",
+          "textContent": "The text displayed wherever this content block is placed."
+        }
+      },
+      "optionLabel": {
+        "manual": "Manual",
+        "random": "Random only",
+        "either": "Manual or random",
+        "single": "One choice",
+        "multi": "Multiple choices",
+        "previous": "Previous Jump",
+        "original": "Original identity",
+        "flat": "Once",
+        "each": "Per selected number",
+        "toggle": "Toggle",
+        "text": "Text",
+        "integer": "Integer",
+        "select": "Select",
+        "companions": "Import companions",
+        "perk": "Perk",
+        "item": "Item",
+        "form": "Form",
+        "companion": "Companion",
+        "resource": "Resource",
+        "trait": "Trait",
+        "property": "Property",
+        "rank": "Rank",
+        "quantity": "Quantity",
+        "true": "True",
+        "false": "False",
+        "start": "Start",
+        "center": "Center",
+        "end": "End",
+        "stretch": "Stretch",
+        "between": "Space between",
+        "justify": "Justify",
+        "contain": "Contain",
+        "cover": "Cover",
+        "solid": "Solid",
+        "dashed": "Dashed",
+        "dotted": "Dotted",
+        "dash": "Dash",
+        "rounded": "Rounded",
+        "none": "None",
+        "xs": "Extra small",
+        "sm": "Small",
+        "md": "Medium",
+        "lg": "Large",
+        "xl": "Extra large",
+        "2xl": "2× extra large",
+        "pill": "Pill",
+        "thin": "Thin",
+        "medium": "Medium",
+        "thick": "Thick",
+        "trivial": "Trivial",
+        "small": "Small",
+        "large": "Large",
+        "major": "Major",
+        "extreme": "Extreme",
+        "add_trivial": "Award trivial",
+        "add_small": "Award small",
+        "add_medium": "Award medium",
+        "add_large": "Award large",
+        "add_major": "Award major",
+        "add_extreme": "Award extreme",
+        "black": "Black",
+        "blue": "Blue",
+        "brown": "Brown",
+        "gray": "Gray",
+        "green": "Green",
+        "orange": "Orange",
+        "pink": "Pink",
+        "purple": "Purple",
+        "red": "Red",
+        "white": "White",
+        "yellow": "Yellow"
+      },
+      "optionDescription": {
+        "choiceSelection": {
+          "toggle": "An on/off choice. In a single-choice group, it appears as a radio button.",
+          "text": "Lets the user enter text.",
+          "integer": "Lets the user choose a whole number.",
+          "select": "Lets the user choose one of the ordered options below.",
+          "companions": "Lets the user import existing companions acquired in earlier Jumps. A Companion award creates a new companion instead."
+        },
+        "inputSelection": {
+          "text": "Enter a short text response.",
+          "integer": "Enter a whole number, optionally limited by minimum and maximum.",
+          "select": "Choose one value from the ordered options below."
+        },
+        "choiceSourceMode": {
+          "single": "Choosing another matching Choice replaces the current selection.",
+          "multi": "Any number of matching Choices may be selected."
+        },
+        "resolution": {
+          "manual": "The user chooses a value normally.",
+          "random": "The value must be rolled.",
+          "either": "The user may choose normally or roll a free value."
+        },
+        "continuity": {
+          "previous": "Uses the actor's effective gender from the previous Jump.",
+          "original": "Uses the Jumper's Earth identity or a companion's acquisition identity."
+        },
+        "costMode": {
+          "flat": "Applies the amount once while the Choice is active.",
+          "each": "Multiplies the amount by the selected integer."
+        },
+        "grantKind": {
+          "perk": "Adds a perk to the recipient's inventory.",
+          "item": "Adds an item to the recipient's inventory.",
+          "form": "Creates a form profile that perks can be sent to.",
+          "companion": "Creates a new companion.",
+          "resource": "Adds or removes an amount of a currency.",
+          "trait": "Adds a visible trait that may use a trait layout.",
+          "property": "Sets a value used by conditions and identity fields."
+        },
+        "measure": {
+          "rank": "Treats the selected integer as a perk or trait rank.",
+          "quantity": "Treats the selected integer as an item or trait quantity."
+        },
+        "layoutNode": {
+          "stack": "Places children vertically, one after another.",
+          "inline": "Places children in one horizontal row.",
+          "wrap": "Places children horizontally and wraps them onto new rows.",
+          "grid": "Places children in a fixed number of columns.",
+          "slot": "Displays a built-in part such as a name, cost, control, or tags.",
+          "text": "Displays a referenced Text block.",
+          "image": "Displays a referenced Image block.",
+          "input": "Displays a referenced supporting Input.",
+          "choice": "Displays one nested Choice directly.",
+          "expand": "Displays the Choices matched by a Choice Source.",
+          "rule": "Displays a visual separator."
+        }
+      },
       "appearance": {
-        "help": "Empty fields inherit through exact override, component family, shared appearance color, then the renderer default. Clearing a field restores inheritance.",
-        "tagBoundary": "Tag badges are owned by Tag Manager and are not changed by jump appearance.",
+        "help": "Leave a field blank to inherit the broader appearance setting. A more specific value overrides it.",
+        "tagBoundary": "Tag badges use the active tag profile, so their appearance is managed separately.",
         "inheritedValue": "Inherited: {{value}}",
         "manuallySetValue": "Manually set value"
       },
@@ -442,6 +828,13 @@
         "costsAndSemanticStates": "Costs & semantic states",
         "tooltips": "Tooltips",
         "shapeAndSpacing": "Shape & spacing"
+      },
+      "explorerGroup": {
+        "resources": "Resources",
+        "sections": "Sections",
+        "choices": "Choices",
+        "layouts": "Layouts",
+        "themes": "Themes"
       },
       "appearanceField": {
         "background": "Background",
@@ -527,9 +920,9 @@
         "lastValid": "Last valid preview",
         "layoutPreview": "Layout preview",
         "sourceValid": "Source parses without errors.",
-        "sourceRecovered": "Preview recovered a deterministic incomplete field. Source is unchanged.",
-        "sourceLastValid": "Preview retains the last valid package.",
-        "layoutUsesRepresentativeData": "Layout preview uses representative content while source diagnostics remain active."
+        "sourceRecovered": "The preview temporarily filled an incomplete field. Your source is unchanged.",
+        "sourceLastValid": "The preview shows the most recent version that could be rendered.",
+        "layoutUsesRepresentativeData": "This preview uses example content so you can review the layout while fixing source errors."
       },
       "layoutPreview": {
         "packageName": "Layout preview",
@@ -543,6 +936,22 @@
         "imageAlt": "Example image for {{target}}",
         "tag": "example",
         "option": "Example option"
+      },
+      "starter": {
+        "jumpName": "Untitled Jump",
+        "jumpDescription": "An untitled Jump.",
+        "author": "Anonymous",
+        "pointName": "Choice Points",
+        "sectionName": "Introduction",
+        "welcome": "Begin your Jump here. Use Structured editing for guided fields or Source for precise Format 1 markup.",
+        "choicesComment": "Choices are placed here by the Editor.",
+        "layoutComment": "Jump appearance, layouts, and themes are placed here by the Editor.",
+        "noDescription": "No Jump description yet.",
+        "resourceName": "New Resource",
+        "resourceAbbreviation": "NR",
+        "newSectionName": "New Section",
+        "newChoiceName": "New Choice",
+        "newGrantName": "New grant"
       },
       "condition": {
         "variants": "Conditional variants",
@@ -560,13 +969,19 @@
         "showValues": "Show known values",
         "unresolvedProperty": "Unresolved authored property",
         "contextValue": "Available in this render context",
+        "choiceAnswer": "Answer from this Choice",
+        "inputAnswer": "Answer from a supporting Input",
         "engineValue": "Provided by the engine",
         "fromOwner": "From {{kind}} {{handle}}",
         "mayBeUnset": "may be unset",
         "group": {
-          "context": "This content",
+          "context": "This Choice",
           "engine": "Engine and identity",
           "package": "Package properties"
+        },
+        "contextProperty": {
+          "rank": "Rank",
+          "count": "Quantity"
         },
         "type": {
           "boolean": "Boolean",
@@ -613,8 +1028,11 @@
         "removeVariant": "Remove variant"
       },
       "ariaLabel": {
+        "removeFieldOccurrence": "Remove {{field}} {{occurrence}}",
+        "projectEditor": "{{project}} Editor",
         "undo": "Undo",
         "redo": "Redo",
+        "showFilesSourceAndPropertiesViews": "Show Files, Source, and Properties views",
         "navigation": "Navigation",
         "authoring": "Authoring",
         "editingView": "Editing view",
@@ -679,6 +1097,25 @@
         "trashRestoreCollision": "{{item}} cannot be restored because that asset location is already in use.",
         "trashRestoreMissingFile": "The original file {{file}} no longer exists, so this item cannot be restored.",
         "permanentlyDeleted": "{{item}} was permanently deleted."
+      },
+      "saveState": {
+        "saved": "Saved",
+        "saving": "Saving",
+        "unsaved": "Unsaved",
+        "failed": "Save failed"
+      },
+      "diagnosticSeverity": {
+        "error": "errors",
+        "warning": "warnings",
+        "info": "information"
+      },
+      "diagnosticCount": {
+        "error_one": "{{count}} error",
+        "error_other": "{{count}} errors",
+        "warning_one": "{{count}} warning",
+        "warning_other": "{{count}} warnings",
+        "info_one": "{{count}} information message",
+        "info_other": "{{count}} information messages"
       },
       "asset": {
         "assetFile": "Asset file",
@@ -767,6 +1204,48 @@
         "editor": {
           "localCopy": "Local copy",
           "localCopyTitle": "Edits stay in this project",
+          "ready": "Local editor ready",
+          "renderValidationFailed": "The rendered image failed package validation.",
+          "validImageRetained": "{{message}} The previous valid image was retained.",
+          "keepFailedHistory": "Keep failed {{action}}",
+          "readOnlyLocalCopy": "Read-only local copy",
+          "comingLater": "Editor coming later",
+          "restoreBeforeEdit": "Restore this asset before editing it.",
+          "secureSvgSource": "Secure SVG source",
+          "rasterCorrections": "Non-destructive corrections and markup",
+          "validatedAsset": "Validated asset",
+          "animatedPngReadOnly": "Animated PNG is preserved read-only to avoid flattening its animation.",
+          "formatUnavailable": "{{format}} editing is not available yet. The validated local copy remains unchanged.",
+          "fieldValue": "{{field}} value",
+          "editFieldValue": "Edit {{field}} value",
+          "resetField": "Reset {{field}}",
+          "canvas_one": "{{path}} editing canvas. {{count}} markup layer. Zoom {{zoom}} percent.",
+          "canvas_other": "{{path}} editing canvas. {{count}} markup layers. Zoom {{zoom}} percent.",
+          "canvasWithSelection_one": "{{path}} editing canvas. {{count}} markup layer. Zoom {{zoom}} percent. Selected {{layer}}, {{visibility}} and {{lock}}.",
+          "canvasWithSelection_other": "{{path}} editing canvas. {{count}} markup layers. Zoom {{zoom}} percent. Selected {{layer}}, {{visibility}} and {{lock}}.",
+          "visible": "visible",
+          "hidden": "hidden",
+          "locked": "locked",
+          "editable": "editable",
+          "cropSize": "Crop {{width}} × {{height}}",
+          "pngEncodingDescription": "Lossless PNG · transparency preserved",
+          "jpegEncodingDescription": "Opaque sRGB JPEG · metadata sanitized",
+          "renameLayer": "Rename {{layer}}",
+          "hideLayer": "Hide {{layer}}",
+          "showLayer": "Show {{layer}}",
+          "unlockLayer": "Unlock {{layer}}",
+          "lockLayer": "Lock {{layer}}",
+          "moveLayerUp": "Move {{layer}} up",
+          "moveLayerDown": "Move {{layer}} down",
+          "duplicateLayer": "Duplicate {{layer}}",
+          "deleteLayer": "Delete {{layer}}",
+          "renderingFullResolution": "Rendering full resolution…",
+          "renderingFailed": "The full-resolution image could not be rendered.",
+          "previewUpdated": "{{width}} × {{height}} · Preview updated",
+          "colorProfileNormalized": "The original color profile was normalized to safe sRGB.",
+          "noUnlockedLayersToErase": "No visible unlocked markup layers are available to erase.",
+          "renderStatus_one": "{{width}} × {{height}} · {{count}} layer",
+          "renderStatus_other": "{{width}} × {{height}} · {{count}} layers",
           "fit": "Fit",
           "holdOriginal": "Show original",
           "resetAll": "Reset all",
@@ -857,29 +1336,40 @@
         "initial": "Initial balance"
       },
       "layoutField": {
-        "target": "target",
-        "columns": "columns",
-        "gap": "gap",
-        "padding": "padding",
-        "background": "background",
-        "align": "align",
-        "justify": "justify",
-        "text-align": "text align",
-        "text-size": "text size",
-        "text-color": "text color",
-        "border-color": "border color",
-        "border-width": "border width",
-        "border-style": "border style",
-        "corners": "corners",
-        "size": "size",
-        "width": "width",
-        "height": "height",
-        "fit": "fit",
-        "source": "source",
-        "using": "using",
-        "color": "color",
-        "thickness": "thickness",
-        "style": "style"
+        "target": "Content to display",
+        "columns": "Columns",
+        "gap": "Gap",
+        "padding": "Padding",
+        "background": "Background",
+        "align": "Item alignment",
+        "justify": "Item distribution",
+        "text-align": "Text alignment",
+        "text-size": "Text size",
+        "text-color": "Text color",
+        "border-color": "Border color",
+        "border-width": "Border width",
+        "border-style": "Border style",
+        "corners": "Corners",
+        "clip": "Clip overflowing content",
+        "size": "Size",
+        "width": "Width",
+        "height": "Height",
+        "fit": "Image fit",
+        "source": "Choice Source",
+        "using": "Choice layout",
+        "color": "Color",
+        "thickness": "Thickness",
+        "style": "Style"
+      },
+      "layoutFieldHelp": {
+        "target": "Choose the built-in part or authored content shown at this position.",
+        "align": "Controls how each child is aligned across the container's secondary direction.",
+        "justify": "Controls how children are arranged along the container's main direction.",
+        "text-align": "Controls how text is aligned inside this element.",
+        "fit": "Contain shows the whole image; Cover fills the available area and may crop it.",
+        "clip": "Hide child content that extends outside this container.",
+        "source": "Choose the Choice Source whose matching Choices appear here.",
+        "using": "Optionally choose a specific layout for the expanded Choices."
       },
       "layoutOption": {
         "ruleStyle": {
@@ -889,6 +1379,7 @@
         }
       },
       "declaration": {
+        "jump": "Jump",
         "jump-appearance": "Jump appearance",
         "resource": "Resource",
         "section": "Section",
@@ -914,6 +1405,7 @@
       },
       "text": {
         "save": "Save",
+        "advancedViews": "Advanced views",
         "exportJmp": "Export .jmp",
         "add": "Add",
         "addItem": "Add {{item}}",
@@ -944,6 +1436,7 @@
         "completions": "Completions",
         "format1": "Format 1 ",
         "livePreview": "Live preview",
+        "previewTools": "Preview tools",
         "showBounds": " Show bounds",
         "inspectColors": "Inspect colors",
         "inspect": "Inspect",
@@ -977,20 +1470,31 @@
         "variantsForOccurrence": "Variants for {{field}} {{occurrence}}",
         "package": "Package",
         "identity": "Identity",
-        "scalarShorthand": "Scalar shorthand",
+        "scalarShorthand": "Simple value",
         "valuePrefix": "Value ",
-        "expandToFields": "Expand to fields",
-        "collapseToShorthand": "Collapse to shorthand",
+        "expandToFields": "Add details",
+        "collapseToShorthand": "Use simple value",
         "layoutTree": "Layout tree",
         "navigateContainersSlotsControlsAndReferencesReorderButtonsCommit": "Navigate containers, slots, controls, and references. Reorder buttons commit through the shared source history.",
         "fieldsAndBehavior": "Fields and behavior",
-        "contentAndDeclarations": "Content and declarations",
+        "contentAndDeclarations": "Content and effects",
+        "addContentAndEffectsHelp": "Add content or effects that belong to this {{owner}}.",
         "addADeclarationValidInsideThis": "Add a declaration valid inside this ",
         "quickAddAction": "Quick add",
-        "validHere": "Valid here",
-        "noAdditionalDeclarationsAreValidHere": "No additional declarations are valid here.",
+        "validHere": "Available here",
+        "availableHere": "Available here",
+        "addField": "Add the {{field}} field",
+        "completeField": "Complete the existing {{field}} field",
+        "addFieldToSelection": "Add {{field}} to the selected content.",
+        "addContentType": "Add {{type}} content here.",
+        "sourceContextTitle": "{{kind}} {{handle}}",
+        "unnamedDeclaration": "unnamed declaration",
+        "noAdditionalDeclarationsAreValidHere": "No additional content or effects are available here.",
         "commands": "Commands",
-        "writeADeterministicRepair": "Write a deterministic repair",
+        "writeADeterministicRepair": "Apply suggested fix",
+        "applySuggestedFix": "Apply suggested fix",
+        "matchCount": "{{current}} of {{total}}",
+        "noDiagnosticsMatchFilters": "No diagnostics match the selected filters.",
         "completeExistingFieldIn": "Complete existing field in {{title}}",
         "addToDeclaration": "Add to {{title}}",
         "insertInside": "Insert inside {{title}}",
@@ -1006,7 +1510,7 @@
         "sections": "Sections",
         "choices": "Choices",
         "gauntlet": "Gauntlet",
-        "propertiesAreDerivedFromCanonicalSourceEditThemIn": "Properties are derived from canonical source. Edit them in Structured or Source.",
+        "propertiesAreDerivedFromCanonicalSourceEditThemIn": "These details are read-only here. Edit them in Structured or Source.",
         "needsAttention": "Needs attention",
         "fieldsInvalidInContext": "These authored fields are not valid in the current context. Correct or remove them to resolve their diagnostics.",
         "createDeclaration": "Create {{declaration}}",
@@ -1058,7 +1562,11 @@
         "matchCase": "Match case",
         "matchWholeWord": "Match whole word",
         "useRegularExpression": "Use regular expression",
-        "dragLayoutNode": "Drag to reorder or move into a container"
+        "dragLayoutNode": "Drag to reorder or move into a container",
+        "applySuggestedFixAtCursor": "Apply the suggested fix at the cursor",
+        "applySuggestedFix": "Apply suggested fix",
+        "noSuggestedFixAvailable": "No suggested fix is available",
+        "toggleDiagnosticSeverity": "Toggle {{severity}}"
       }
     }
   }

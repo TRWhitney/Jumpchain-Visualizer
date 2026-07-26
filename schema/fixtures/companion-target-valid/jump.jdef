@@ -36,23 +36,15 @@ choice
 choice
   handle: import_companions
   name: "Import Companions"
+  selection: companions
 
-  input
-    handle: roster
-    selection: companions
-    max: 1
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 600
+    companion: import_companions
 
-    grant
-      kind: companion-import
-      handle: imported_roster
-
-    grant
-      kind: resource
-      resource: jump_points
-      amount: 600
-      companion: imported_roster
-
-    grant
-      kind: perk
-      name: "Imported Training"
-      companion: imported_roster
+  grant
+    kind: perk
+    name: "Imported Training"
+    companion: import_companions

@@ -82,9 +82,37 @@ const jumper: Actor = {
 };
 
 const activeActor = (
-  choices: Record<string, boolean | string | number | null>,
+  packageId: string,
+  choices: ReturnType<typeof emptyActorEntryState>["choices"],
   inputs: ReturnType<typeof emptyActorEntryState>["inputs"] = {},
-) => ({ ...emptyActorEntryState(), choices, inputs });
+) => {
+  const packageItem = packageList.find(
+    (item) => item.id === packageId,
+  )?.document;
+  const sourceSelections = packageItem
+    ? Object.fromEntries(
+        packageItem.sections.flatMap((section) =>
+          section.sources.map((source) => [
+            `${section.handle}:${source.handle}`,
+            packageItem.choices
+              .filter(
+                (choice) =>
+                  source.group &&
+                  choice.groups.includes(source.group) &&
+                  Object.hasOwn(choices, choice.handle),
+              )
+              .map((choice) => choice.handle),
+          ]),
+        ),
+      )
+    : {};
+  return {
+    ...emptyActorEntryState(),
+    choices,
+    inputs,
+    sourceSelections,
+  };
+};
 
 const makeEntries = () =>
   Object.fromEntries(
@@ -111,11 +139,12 @@ function createCuratedJumpState() {
       emptyJumpEntryState(),
     ]),
   );
-  result[EARTH_ENTRY_ID].actors.jumper = activeActor({
+  result[EARTH_ENTRY_ID].actors.jumper = activeActor(EARTH_PACKAGE_ID, {
     earth_gender: "Female",
     earth_age: 28,
   });
   result["entry-0"].actors.jumper = activeActor(
+    packageOrder[0],
     {
       roadborn_origin: true,
       threshold_alias: "Wayfinder",
@@ -139,6 +168,7 @@ function createCuratedJumpState() {
     },
   );
   result["entry-1"].actors.jumper = activeActor(
+    packageOrder[1],
     {
       engine_tier: 3,
       engine_path: "Synthesis",
@@ -163,6 +193,7 @@ function createCuratedJumpState() {
   );
   result["entry-2"].actors.jumper = {
     ...activeActor(
+      packageOrder[2],
       {
         trial_stipend: true,
         trial_oath: true,
@@ -186,10 +217,10 @@ function createCuratedJumpState() {
         either_flight: true,
         aster_companion: true,
         sentinel_companion: true,
-        trial_company: true,
+        trial_company: [lyraId],
         company_training: true,
       },
-      { trial_company: { travelers: [lyraId] } },
+      {},
     ),
     choiceRolls: {
       random_age: { result: 27, sequence: 1 },
@@ -208,7 +239,7 @@ function createCuratedJumpState() {
       "multi_either:electives": { result: "either_flight", sequence: 1 },
     },
   };
-  result["entry-2"].actors[lyraId] = activeActor({
+  result["entry-2"].actors[lyraId] = activeActor(packageOrder[2], {
     trial_stipend: true,
     manual_scholar: true,
     manual_flight: true,

@@ -160,8 +160,8 @@ function AppShellContent() {
   const [editorLoading, setEditorLoading] = useState(true);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [editorSaveState, setEditorSaveState] = useState<
-    "Saved" | "Saving" | "Unsaved" | "Save failed"
-  >("Saved");
+    "saved" | "saving" | "unsaved" | "failed"
+  >("saved");
   const editorSaveTimer = useRef<number | null>(null);
   const editorSavingIndicatorTimer = useRef<number | null>(null);
   const [pendingEditorNavigation, setPendingEditorNavigation] = useState<{
@@ -483,7 +483,7 @@ function AppShellContent() {
       if (
         leavingEditor &&
         settings.editor.saveMode === "explicit" &&
-        editorSaveState !== "Saved"
+        editorSaveState !== "saved"
       ) {
         setPendingEditorNavigation({ path: nextPath, state: extraState });
         return;
@@ -534,12 +534,12 @@ function AppShellContent() {
           ...persistedEditorWorkspacesRef.current,
           [workspace.id]: workspace,
         };
-        if (updateSaveState) setEditorSaveState("Saved");
+        if (updateSaveState) setEditorSaveState("saved");
         setEditorError(null);
         return true;
       } catch {
         if (updateSaveState) {
-          setEditorSaveState("Save failed");
+          setEditorSaveState("failed");
           setEditorError(
             translate("errors.EDITOR_AUTOSAVE_FAILED_MEMORY_RETAINED"),
           );
@@ -558,7 +558,7 @@ function AppShellContent() {
       };
       editorWorkspacesRef.current = nextWorkspaces;
       setEditorWorkspaces(nextWorkspaces);
-      setEditorSaveState("Unsaved");
+      setEditorSaveState("unsaved");
       if (settings.editor.saveMode !== "autosave") return;
       if (editorSaveTimer.current) window.clearTimeout(editorSaveTimer.current);
       if (editorSavingIndicatorTimer.current)
@@ -569,7 +569,7 @@ function AppShellContent() {
           if (
             editorWorkspacesRef.current[next.id]?.revision === saving.revision
           )
-            setEditorSaveState("Saving");
+            setEditorSaveState("saving");
         }, 150);
         void persistEditorWorkspace(saving, false)
           .then((saved) => {
@@ -578,10 +578,10 @@ function AppShellContent() {
             )
               return;
             if (saved) {
-              setEditorSaveState("Saved");
+              setEditorSaveState("saved");
               setEditorError(null);
             } else {
-              setEditorSaveState("Save failed");
+              setEditorSaveState("failed");
               setEditorError(
                 translate("errors.EDITOR_AUTOSAVE_FAILED_MEMORY_RETAINED"),
               );
@@ -601,7 +601,7 @@ function AppShellContent() {
     if (backgroundRoute.kind !== "editor-workspace") return false;
     const current = editorWorkspacesRef.current[backgroundRoute.workspaceId];
     if (!current) return false;
-    setEditorSaveState("Saving");
+    setEditorSaveState("saving");
     return persistEditorWorkspace(current);
   }, [backgroundRoute, persistEditorWorkspace]);
 
@@ -610,7 +610,7 @@ function AppShellContent() {
     const next = { ...editorWorkspacesRef.current, [created.id]: created };
     editorWorkspacesRef.current = next;
     setEditorWorkspaces(next);
-    setEditorSaveState("Saved");
+    setEditorSaveState("saved");
     void persistEditorWorkspace(created);
     logger.emit("editor.project.created", {
       attributes: { location: created.location },
@@ -627,7 +627,7 @@ function AppShellContent() {
       const next = { ...editorWorkspacesRef.current, [opened.id]: opened };
       editorWorkspacesRef.current = next;
       setEditorWorkspaces(next);
-      setEditorSaveState("Saved");
+      setEditorSaveState("saved");
       void persistEditorWorkspace(opened);
       navigate(`/editor/${encodeURIComponent(opened.id)}`);
     },
@@ -780,7 +780,7 @@ function AppShellContent() {
             exactHashForFiles(activeEditorWorkspace.files)
         )
           return;
-        if (editorSaveState === "Saved") {
+        if (editorSaveState === "saved") {
           const next = { ...editorWorkspacesRef.current, [disk.id]: disk };
           editorWorkspacesRef.current = next;
           setEditorWorkspaces(next);
@@ -1080,7 +1080,9 @@ function AppShellContent() {
           >
             →
           </button>
-          <code>{route.path}</code>
+          {!settings.general.hideTechnicalLocations && (
+            <code>{route.path}</code>
+          )}
           <span>{titleForRoute(route, activeChain?.name)}</span>
         </div>
 
@@ -1352,6 +1354,7 @@ function AppShellContent() {
                 <EditorWorkspace
                   workspace={activeEditorWorkspace}
                   settings={settings}
+                  tags={projectedTags}
                   saveState={editorSaveState}
                   onChange={changeEditorWorkspace}
                   onSave={() => void saveActiveEditor()}
@@ -1607,7 +1610,7 @@ function AppShellContent() {
                       }
                     }
                     setPendingEditorNavigation(null);
-                    setEditorSaveState("Saved");
+                    setEditorSaveState("saved");
                     performNavigation(pending.path, pending.state);
                   }}
                 >
@@ -1704,7 +1707,7 @@ function AppShellContent() {
                       [disk.id]: disk,
                     };
                     setEditorWorkspaces(next);
-                    setEditorSaveState("Saved");
+                    setEditorSaveState("saved");
                     setExternalEditorConflict(null);
                     void editorRepository.save(disk);
                   }}

@@ -531,38 +531,32 @@ choice
   layout: company_card
   group: companions
   tag: social
+  selection: companions
+  placeholder: "Choose companions from earlier Jumps."
+  min: 1
+  max: 2
   cost: 100
 
   text
     handle: description
     content: "Import up to two existing companions. Each receives 500 CP and 3 Trial Marks."
 
-  input
-    handle: travelers
-    selection: companions
-    min: 1
-    max: 2
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 500
+    companion: trial_company
 
-    grant
-      kind: companion-import
-      handle: trial_company
+  grant
+    kind: resource
+    resource: trial_marks
+    amount: 3
+    companion: trial_company
 
-    grant
-      kind: resource
-      resource: jump_points
-      amount: 500
-      companion: trial_company
-
-    grant
-      kind: resource
-      resource: trial_marks
-      amount: 3
-      companion: trial_company
-
-    grant
-      kind: perk
-      name: "Company Pathfinder"
-      companion: trial_company
+  grant
+    kind: perk
+    name: "Company Pathfinder"
+    companion: trial_company
 
   grant: perk
 
@@ -702,4 +696,3 @@ choice-layout
     text: description
     slot: tags
     slot: control
-    input: travelers

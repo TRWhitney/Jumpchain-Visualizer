@@ -84,7 +84,8 @@
       "orderingTypes": ["integer"],
       "contextProperties": {
         "rank": "integer choice or input with a rank-measured visible grant",
-        "count": "integer choice or input with a quantity-measured visible grant"
+        "count": "integer choice or input with a quantity-measured visible grant",
+        "choiceAndInputAnswers": "Text owned by a choice may use that scalar choice handle and its owner-local scalar input handles"
       },
       "functionCalls": false,
       "arithmetic": false,
@@ -154,10 +155,11 @@
             "layout": { "type": "handleReference:choice-layout", "min": 0, "max": 1 },
             "tag": { "type": "tag", "min": 0, "repeatable": true, "setLike": true },
             "group": { "type": "tag", "min": 0, "repeatable": true, "setLike": true },
-            "selection": { "type": "enum", "values": ["toggle", "text", "integer", "select"], "min": 0, "max": 1, "default": "toggle" },
+            "selection": { "type": "enum", "values": ["toggle", "text", "integer", "select", "companions"], "min": 0, "max": 1, "default": "toggle" },
+            "placeholder": { "type": "quotedString", "min": 0, "max": 1, "appliesWhen": { "selection": ["text", "integer", "select", "companions"] } },
             "continuity": { "type": "enum", "values": ["previous", "original"], "min": 0, "max": 1, "appliesWhen": { "selection": ["select"] } },
-            "min": { "type": "integer", "min": 0, "max": 1, "appliesWhen": { "selection": ["integer"] } },
-            "max": { "type": "integer", "min": 0, "max": 1, "appliesWhen": { "selection": ["integer"] } },
+            "min": { "type": "integer", "min": 0, "max": 1, "appliesWhen": { "selection": ["integer", "companions"] } },
+            "max": { "type": "integer", "min": 0, "max": 1, "defaultForCompanionSelection": 1, "appliesWhen": { "selection": ["integer", "companions"] } },
             "resolution": { "type": "enum", "values": ["random", "either"], "min": 0, "max": 1, "default": "manual", "appliesWhen": { "selection": ["integer", "select"] } },
             "option": { "type": "renderableScalar", "min": 0, "repeatable": true, "ordered": true, "exactDuplicate": "error", "appliesWhen": { "selection": ["select"] } },
             "form": { "type": "handleReference:form", "min": 0, "max": 1, "shorthandTarget": "single scalar perk grant" },
@@ -187,11 +189,17 @@
         "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
         "content": { "type": "richText", "min": 0, "max": 1, "conditionalVariants": true }
       },
+      "formsByContext": {
+        "grant:perk": { "fields": { "handle": { "type": "handle", "min": 1, "max": 1, "required": true, "const": "description" } } },
+        "grant:item": { "fields": { "handle": { "type": "handle", "min": 1, "max": 1, "required": true, "const": "description" } } },
+        "grant:form": { "fields": { "handle": { "type": "handle", "min": 1, "max": 1, "required": true, "const": "description" } } },
+        "grant:companion": { "fields": { "handle": { "type": "handle", "min": 1, "max": 1, "required": true, "const": "description" } } }
+      },
       "children": {},
       "empty": "warning"
     },
     "image": {
-      "contexts": ["section", "choice", "grant:perk", "grant:item", "grant:form", "grant:companion", "grant:trait"],
+      "contexts": ["section", "choice", "grant:trait"],
       "fields": {
         "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
         "src": { "type": "quotedString:assetRelativePath", "min": 0, "max": 1, "exportRequired": true },
@@ -203,9 +211,10 @@
       "contexts": ["choice"],
       "fields": {
         "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
-        "selection": { "type": "enum", "values": ["text", "integer", "select", "companions"], "min": 1, "max": 1, "required": true },
-        "min": { "type": "integer", "min": 0, "max": 1, "appliesWhen": { "selection": ["integer", "companions"] } },
-        "max": { "type": "integer", "min": 0, "max": 1, "appliesWhen": { "selection": ["integer", "companions"] } },
+        "selection": { "type": "enum", "values": ["text", "integer", "select"], "min": 1, "max": 1, "required": true },
+        "placeholder": { "type": "quotedString", "min": 0, "max": 1 },
+        "min": { "type": "integer", "min": 0, "max": 1, "appliesWhen": { "selection": ["integer"] } },
+        "max": { "type": "integer", "min": 0, "max": 1, "appliesWhen": { "selection": ["integer"] } },
         "option": { "type": "renderableScalar", "min": 0, "repeatable": true, "ordered": true, "exactDuplicate": "error", "appliesWhen": { "selection": ["select"] } }
       },
       "children": {
@@ -231,21 +240,21 @@
         "scalar": { "type": "enum", "values": ["perk", "item", "companion"] },
         "block": {
           "fields": {
-            "kind": { "type": "enum", "values": ["perk", "item", "form", "companion", "resource", "trait", "property", "companion-import"], "min": 1, "max": 1, "required": true },
+            "kind": { "type": "enum", "values": ["perk", "item", "form", "companion", "resource", "trait", "property"], "min": 1, "max": 1, "required": true },
             "name": { "type": "renderableScalar", "min": 0, "max": 1, "appliesWhen": { "kind": ["perk", "item", "form", "companion", "trait"] } },
             "layout": { "type": "handleReference:trait-layout", "min": 0, "max": 1, "appliesWhen": { "kind": ["trait"] } },
             "tag": { "type": "tag", "min": 0, "repeatable": true, "setLike": true, "appliesWhen": { "kind": ["perk", "item", "form", "companion", "trait"] } },
             "resource": { "type": "handleReference:resource", "min": 0, "max": 1, "appliesWhen": { "kind": ["resource"] } },
             "amount": { "type": "grantAmount", "min": 0, "max": 1, "appliesWhen": { "kind": ["resource"] } },
-            "handle": { "type": "handle", "min": 0, "max": 1, "appliesWhen": { "kind": ["form", "companion", "property", "companion-import"] } },
+            "handle": { "type": "handle", "min": 0, "max": 1, "appliesWhen": { "kind": ["form", "companion", "property"] } },
             "form": { "type": "handleReference:form", "min": 0, "max": 1, "appliesWhen": { "kind": ["perk"] } },
             "companion": { "type": "handleReference:companionTarget", "min": 0, "max": 1, "appliesWhen": { "kind": ["perk", "resource"] } },
             "measure": { "type": "enum", "values": ["rank", "quantity"], "min": 0, "max": 1, "defaultForIntegerVisibleGrant": "rank", "appliesWhen": { "kind": ["perk", "item", "trait"] } },
             "value": { "type": "propertyValue", "min": 0, "max": 1, "appliesWhen": { "kind": ["property"] } }
           },
           "children": {
-            "text": { "min": 0, "repeatable": true, "appliesWhen": { "kind": ["perk", "item", "form", "companion", "trait"] } },
-            "image": { "min": 0, "repeatable": true, "appliesWhen": { "kind": ["perk", "item", "form", "companion", "trait"] } }
+            "text": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "text", "appliesWhen": { "kind": ["perk", "item", "form", "companion", "trait"] } },
+            "image": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "image", "appliesWhen": { "kind": ["trait"] } }
           }
         }
       }
@@ -447,7 +456,11 @@
     { "code": "choice.resolution.domain", "rule": "choice resolution is valid only for integer or select" },
     { "code": "cost.unique_resource", "rule": "a choice has at most one cost per resolved resource" },
     { "code": "cost.each.integer_only", "rule": "mode each requires selection integer and explicit min >= 0" },
-    { "code": "input.bounds", "rule": "min/max are valid for integer and companions; companions requires max > 0 and defaults min to 0" },
+    { "code": "choice.companions.bounds", "rule": "selection companions defaults min and max to 1, requires explicit bounds to be positive, and min must not exceed max" },
+    { "code": "choice.companions.funding", "rule": "every companion-selection choice handle requires at least one positive targeted resource grant so imported companions can participate" },
+    { "code": "choice.companions.shorthand", "rule": "a companion-selection choice cannot use scalar companion shorthand because both would claim the owning choice handle" },
+    { "code": "choice.placeholder.domain", "rule": "choice placeholder is invalid for toggle because no empty field is rendered" },
+    { "code": "input.bounds", "rule": "min/max are valid only for integer inputs" },
     { "code": "input.options", "rule": "option is valid only for selection select" },
     { "code": "grant.resource.fields", "rule": "kind resource requires resource and amount and permits neither to be omitted" },
     { "code": "grant.property.fields", "rule": "kind property requires handle; omitted value copies the owning control" },
@@ -458,17 +471,13 @@
     { "code": "grant.form.target_kind", "rule": "form ownership is valid only on perk grants; other grant kinds cannot target a form" },
     { "code": "grant.form.shorthand", "rule": "choice-level form requires exactly one scalar perk grant and targets only that grant" },
     { "code": "grant.companion.handle", "rule": "block kind companion requires a unique package-wide stable handle; scalar companion shorthand uses its owning choice handle" },
-    { "code": "grant.companion_import.handle", "rule": "kind companion-import requires a unique package-wide stable target handle" },
-    { "code": "grant.companion.reference", "rule": "companion on a perk or resource grant resolves either a companion grant handle or a companion-import handle across sections, files, and forward references" },
+    { "code": "grant.companion.reference", "rule": "companion on a perk or resource grant resolves either a companion grant handle or a companion-selection choice handle across sections, files, and forward references" },
     { "code": "grant.companion.target_kind", "rule": "companion ownership is valid only on perk and resource grants" },
     { "code": "grant.companion.shorthand", "rule": "choice-level companion requires exactly one scalar perk grant and targets only that grant" },
     { "code": "grant.owner.conflict", "rule": "one grant cannot target both form and companion owners" },
     { "code": "grant.measure.integer_only", "rule": "measure is valid only for a visible grant owned by an integer choice or input; omission defaults such grants to rank" },
     { "code": "grant.measure.shorthand", "rule": "choice-level measure requires exactly one scalar perk or item grant and targets only that grant" },
-    { "code": "grant.companion_import.context", "rule": "kind companion-import is valid only directly under input selection companions" },
-    { "code": "grant.companion_import.inline_budget", "rule": "companion-import does not own currency fields; a separate resource grant targets its handle" },
-    { "code": "grant.companion_import.funding", "rule": "every companion-import handle requires at least one positive targeted resource grant so imported companions can participate" },
-    { "code": "grant.visible.fields", "rule": "name, tag, text, and image are valid only for perk, item, form, companion, and trait; layout is trait-layout and valid only for trait; form is valid only on perk; companion is valid only on perk and resource; measure is valid only on perk, item, and trait" },
+    { "code": "grant.visible.fields", "rule": "name and tag are valid only for perk, item, form, companion, and trait; ordinary visible grants accept one owner-local text handle named description; trait grants may additionally expose owner-local text and image content through a trait layout; layout is valid only for trait; form is valid only on perk; companion is valid only on perk and resource; measure is valid only on perk, item, and trait" },
     { "code": "layout.typed_target", "rule": "typed leaves resolve only in the matching owner-local namespace; absent targets warn and collapse" },
     { "code": "layout.choice.target", "rule": "a compact choice leaf resolves one choice-placement owned by the rendered section and each placement may appear at most once" },
     { "code": "layout.expand.source", "rule": "expand source resolves in the rendered section and each source may be expanded at most once" },

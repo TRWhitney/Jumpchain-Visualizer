@@ -224,7 +224,9 @@ function RangeField({
         <span className="asset-raster-range-actions">
           {editing ? (
             <RasterNumberInput
-              label={`${label} value`}
+              label={translate("ui.editorWorkspace.asset.editor.fieldValue", {
+                field: label,
+              })}
               minimum={minimum}
               maximum={maximum}
               step={step}
@@ -246,7 +248,10 @@ function RangeField({
             <button
               type="button"
               className="asset-raster-range-value"
-              aria-label={`Edit ${label} value`}
+              aria-label={translate(
+                "ui.editorWorkspace.asset.editor.editFieldValue",
+                { field: label },
+              )}
               onClick={() => setEditing(true)}
             >
               {value}
@@ -256,8 +261,13 @@ function RangeField({
           <button
             type="button"
             className="asset-raster-range-reset"
-            aria-label={`Reset ${label}`}
-            title={`Reset ${label}`}
+            aria-label={translate(
+              "ui.editorWorkspace.asset.editor.resetField",
+              { field: label },
+            )}
+            title={translate("ui.editorWorkspace.asset.editor.resetField", {
+              field: label,
+            })}
             disabled={value === resetValue}
             onClick={() => {
               setBounded(resetValue);
@@ -712,7 +722,7 @@ export function RasterSourceEditor({
   useEffect(() => {
     if (initialDocument.metadata.profileNormalized)
       onStatus(
-        "The original color profile was normalized to safe sRGB.",
+        translate("ui.editorWorkspace.asset.editor.colorProfileNormalized"),
         false,
       );
   }, [initialDocument.metadata.profileNormalized, onStatus, path]);
@@ -768,7 +778,10 @@ export function RasterSourceEditor({
     const generation = ++renderGeneration.current;
     setRendering(true);
     setError(null);
-    onStatus("Rendering full resolution…", false);
+    onStatus(
+      translate("ui.editorWorkspace.asset.editor.renderingFullResolution"),
+      false,
+    );
     try {
       const result = await renderClient.current!.render(
         renderDocument,
@@ -777,18 +790,33 @@ export function RasterSourceEditor({
       if (generation !== renderGeneration.current || controller.signal.aborted)
         return;
       onCommit(result.bytes, renderDocument, historyLabel);
-      onStatus(`${result.width} × ${result.height} · Preview updated`, false);
+      onStatus(
+        translate("ui.editorWorkspace.asset.editor.previewUpdated", {
+          width: result.width,
+          height: result.height,
+        }),
+        false,
+      );
     } catch (nextError) {
       if (controller.signal.aborted) return;
-      const message =
-        nextError instanceof Error ? nextError.message : "Rendering failed.";
+      console.error("Raster rendering failed.", nextError);
+      const message = translate(
+        "ui.editorWorkspace.asset.editor.renderingFailed",
+      );
       setError(message);
       onCommit(
         bytes,
         { ...renderDocument, validationError: message },
-        `Keep failed ${historyLabel.toLocaleLowerCase()}`,
+        translate("ui.editorWorkspace.asset.editor.keepFailedHistory", {
+          action: historyLabel.toLocaleLowerCase(),
+        }),
       );
-      onStatus(`${message} Previous valid image retained.`, true);
+      onStatus(
+        translate("ui.editorWorkspace.asset.editor.validImageRetained", {
+          message,
+        }),
+        true,
+      );
     } finally {
       if (generation === renderGeneration.current) setRendering(false);
     }
@@ -1108,7 +1136,12 @@ export function RasterSourceEditor({
           (layer) => layer.visible && !layer.locked,
         );
         if (eligible.length === 0) {
-          onStatus("No visible unlocked markup layers to erase.", false);
+          onStatus(
+            translate(
+              "ui.editorWorkspace.asset.editor.noUnlockedLayersToErase",
+            ),
+            false,
+          );
           return;
         }
         void commit(
@@ -1638,15 +1671,31 @@ export function RasterSourceEditor({
           }
           role="img"
           tabIndex={0}
-          aria-label={`${path} editing canvas. ${draft.layers.length} markup layers. Zoom ${Math.round(
-            zoom * 100,
-          )} percent.${
+          aria-label={translate(
             selectedLayer
-              ? ` Selected ${selectedLayer.name}, ${
-                  selectedLayer.visible ? "visible" : "hidden"
-                } and ${selectedLayer.locked ? "locked" : "editable"}.`
-              : ""
-          }`}
+              ? "ui.editorWorkspace.asset.editor.canvasWithSelection"
+              : "ui.editorWorkspace.asset.editor.canvas",
+            {
+              path,
+              count: draft.layers.length,
+              zoom: Math.round(zoom * 100),
+              layer: selectedLayer?.name,
+              visibility: selectedLayer
+                ? translate(
+                    selectedLayer.visible
+                      ? "ui.editorWorkspace.asset.editor.visible"
+                      : "ui.editorWorkspace.asset.editor.hidden",
+                  )
+                : "",
+              lock: selectedLayer
+                ? translate(
+                    selectedLayer.locked
+                      ? "ui.editorWorkspace.asset.editor.locked"
+                      : "ui.editorWorkspace.asset.editor.editable",
+                  )
+                : "",
+            },
+          )}
           aria-keyshortcuts="Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y"
           onPointerDown={handleStagePointerStart}
           onPointerMove={handleStagePointerMove}
@@ -1894,11 +1943,14 @@ export function RasterSourceEditor({
           {tool === "crop" && (
             <span className="asset-raster-crop-hint" role="status">
               {liveBox?.tool === "crop"
-                ? `Crop ${Math.round(
-                    Math.abs(liveBox.currentX - liveBox.startX),
-                  )} × ${Math.round(
-                    Math.abs(liveBox.currentY - liveBox.startY),
-                  )}`
+                ? translate("ui.editorWorkspace.asset.editor.cropSize", {
+                    width: Math.round(
+                      Math.abs(liveBox.currentX - liveBox.startX),
+                    ),
+                    height: Math.round(
+                      Math.abs(liveBox.currentY - liveBox.startY),
+                    ),
+                  })
                 : translate("ui.editorWorkspace.asset.editor.cropHint")}
             </span>
           )}
@@ -2886,8 +2938,12 @@ export function RasterSourceEditor({
               )}
               <p>
                 {format === "png"
-                  ? "Lossless PNG · transparency preserved"
-                  : "Opaque sRGB JPEG · metadata sanitized"}
+                  ? translate(
+                      "ui.editorWorkspace.asset.editor.pngEncodingDescription",
+                    )
+                  : translate(
+                      "ui.editorWorkspace.asset.editor.jpegEncodingDescription",
+                    )}
               </p>
             </details>
           </aside>
@@ -3043,7 +3099,10 @@ export function RasterSourceEditor({
                   {renamingLayerId === layer.id ? (
                     <input
                       className="asset-raster-layer-name-input"
-                      aria-label={`Rename ${layer.name}`}
+                      aria-label={translate(
+                        "ui.editorWorkspace.asset.editor.renameLayer",
+                        { layer: layer.name },
+                      )}
                       value={renamingLayerValue}
                       autoFocus
                       onChange={(event) =>
@@ -3077,9 +3136,19 @@ export function RasterSourceEditor({
                   <button
                     type="button"
                     {...tooltipEvents(
-                      `${layer.visible ? "Hide" : "Show"} ${layer.name}`,
+                      translate(
+                        layer.visible
+                          ? "ui.editorWorkspace.asset.editor.hideLayer"
+                          : "ui.editorWorkspace.asset.editor.showLayer",
+                        { layer: layer.name },
+                      ),
                     )}
-                    aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
+                    aria-label={translate(
+                      layer.visible
+                        ? "ui.editorWorkspace.asset.editor.hideLayer"
+                        : "ui.editorWorkspace.asset.editor.showLayer",
+                      { layer: layer.name },
+                    )}
                     onClick={toggleVisibility}
                   >
                     {layer.visible ? "◉" : "○"}
@@ -3087,17 +3156,34 @@ export function RasterSourceEditor({
                   <button
                     type="button"
                     {...tooltipEvents(
-                      `${layer.locked ? "Unlock" : "Lock"} ${layer.name}`,
+                      translate(
+                        layer.locked
+                          ? "ui.editorWorkspace.asset.editor.unlockLayer"
+                          : "ui.editorWorkspace.asset.editor.lockLayer",
+                        { layer: layer.name },
+                      ),
                     )}
-                    aria-label={`${layer.locked ? "Unlock" : "Lock"} ${layer.name}`}
+                    aria-label={translate(
+                      layer.locked
+                        ? "ui.editorWorkspace.asset.editor.unlockLayer"
+                        : "ui.editorWorkspace.asset.editor.lockLayer",
+                      { layer: layer.name },
+                    )}
                     onClick={toggleLock}
                   >
                     {layer.locked ? "▣" : "▢"}
                   </button>
                   <button
                     type="button"
-                    {...tooltipEvents(`Move ${layer.name} up`)}
-                    aria-label={`Move ${layer.name} up`}
+                    {...tooltipEvents(
+                      translate("ui.editorWorkspace.asset.editor.moveLayerUp", {
+                        layer: layer.name,
+                      }),
+                    )}
+                    aria-label={translate(
+                      "ui.editorWorkspace.asset.editor.moveLayerUp",
+                      { layer: layer.name },
+                    )}
                     disabled={index === draft.layers.length - 1}
                     onClick={() => move(1)}
                   >
@@ -3105,8 +3191,16 @@ export function RasterSourceEditor({
                   </button>
                   <button
                     type="button"
-                    {...tooltipEvents(`Move ${layer.name} down`)}
-                    aria-label={`Move ${layer.name} down`}
+                    {...tooltipEvents(
+                      translate(
+                        "ui.editorWorkspace.asset.editor.moveLayerDown",
+                        { layer: layer.name },
+                      ),
+                    )}
+                    aria-label={translate(
+                      "ui.editorWorkspace.asset.editor.moveLayerDown",
+                      { layer: layer.name },
+                    )}
                     disabled={index === 0}
                     onClick={() => move(-1)}
                   >
@@ -3114,16 +3208,31 @@ export function RasterSourceEditor({
                   </button>
                   <button
                     type="button"
-                    {...tooltipEvents(`Duplicate ${layer.name}`)}
-                    aria-label={`Duplicate ${layer.name}`}
+                    {...tooltipEvents(
+                      translate(
+                        "ui.editorWorkspace.asset.editor.duplicateLayer",
+                        { layer: layer.name },
+                      ),
+                    )}
+                    aria-label={translate(
+                      "ui.editorWorkspace.asset.editor.duplicateLayer",
+                      { layer: layer.name },
+                    )}
                     onClick={duplicate}
                   >
                     ⧉
                   </button>
                   <button
                     type="button"
-                    {...tooltipEvents(`Delete ${layer.name}`)}
-                    aria-label={`Delete ${layer.name}`}
+                    {...tooltipEvents(
+                      translate("ui.editorWorkspace.asset.editor.deleteLayer", {
+                        layer: layer.name,
+                      }),
+                    )}
+                    aria-label={translate(
+                      "ui.editorWorkspace.asset.editor.deleteLayer",
+                      { layer: layer.name },
+                    )}
                     onClick={remove}
                   >
                     ×
@@ -3140,10 +3249,14 @@ export function RasterSourceEditor({
         aria-live="polite"
       >
         {rendering
-          ? "Rendering full resolution…"
+          ? translate("ui.editorWorkspace.asset.editor.renderingFullResolution")
           : error
             ? error
-            : `${draft.transform.outputWidth} × ${draft.transform.outputHeight} · ${draft.layers.length} layers`}
+            : translate("ui.editorWorkspace.asset.editor.renderStatus", {
+                width: draft.transform.outputWidth,
+                height: draft.transform.outputHeight,
+                count: draft.layers.length,
+              })}
       </div>
       {tooltip && (
         <div

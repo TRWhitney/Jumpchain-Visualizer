@@ -428,6 +428,42 @@
   border-left: 3px solid var(--mock-accent-ui);
 }
 
+.tag-profile-disclosure {
+  border: 0;
+}
+
+.tag-profile-disclosure > summary {
+  display: flex;
+  min-height: 2.4rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.65rem;
+  color: #d9d9d3;
+  background: #292927;
+  border: 1px solid #484844;
+  border-radius: 0.25rem;
+  list-style: none;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tag-profile-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.tag-profile-disclosure > summary svg {
+  width: 0.55rem;
+  height: 0.8rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.tag-profile-disclosure > fieldset {
+  margin-top: 0.35rem;
+}
+
 .app-settings-surface .tag-profile-preview-pane dl > div {
   grid-template-columns: 4.8rem minmax(0, 1fr);
 }
@@ -833,6 +869,14 @@
 [data-app-theme="light"] .app-settings-surface .tag-profile-preview-pane > p,
 [data-app-theme="light"] .app-settings-surface .tag-profile-preview-pane dt {
   color: #696962;
+}
+[data-app-theme="light"]
+  .app-settings-surface
+  .tag-profile-disclosure
+  > summary {
+  color: #343430;
+  background: #f3f1eb;
+  border-color: #aaa79e;
 }
 [data-app-theme="light"]
   .app-settings-surface

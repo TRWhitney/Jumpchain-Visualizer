@@ -13,6 +13,7 @@ export default defineConfig({
         test: {
           name: "unit",
           environment: "node",
+          maxWorkers: 8,
           include: ["src/**/*.test.{ts,tsx}"],
           exclude: ["src/**/*.browser.test.{ts,tsx}"],
         },

@@ -154,6 +154,31 @@ for (const location of ["/chain", "/chain/ch-92b1"]) {
   });
 }
 
+test("interface experience preset aggregates settings and reports individual overrides as Custom", async ({
+  page,
+}) => {
+  await page.goto("/settings");
+  const experience = page.getByRole("combobox", {
+    name: "Interface experience",
+  });
+  await expect(experience).toHaveValue("experienced");
+  await experience.selectOption("new-user-friendly");
+  await expect(experience).toHaveValue("new-user-friendly");
+  await waitForStoredSetting(page, ["general", "hideTechnicalLocations"], true);
+  await waitForStoredSetting(page, ["editor", "collapseAdvancedViews"], true);
+  await waitForStoredSetting(page, ["notifications", "maxVisible"], 1);
+
+  await page.getByRole("tab", { name: "Editor" }).click();
+  await page.getByLabel("Start advanced views collapsed").uncheck();
+  await page.getByRole("tab", { name: "General" }).click();
+  await expect(experience).toHaveValue("custom");
+
+  await experience.selectOption("experienced");
+  await expect(experience).toHaveValue("experienced");
+  await waitForStoredSetting(page, ["editor", "collapseAdvancedViews"], false);
+  await waitForStoredSetting(page, ["notifications", "maxVisible"], 3);
+});
+
 test(
   "direct Settings is a full destination and preferences persist through IndexedDB",
   { tag: ["@smoke", "@cross-browser"] },

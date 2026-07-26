@@ -16,7 +16,7 @@ import {
   openApplicationDatabase,
 } from "../platform/indexedDb";
 
-export const CHAIN_SCHEMA_VERSION = 2 as const;
+export const CHAIN_SCHEMA_VERSION = 3 as const;
 
 export type ChainAggregate = {
   schemaVersion: typeof CHAIN_SCHEMA_VERSION;
@@ -121,6 +121,38 @@ export function applyAggregate(
   };
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+function validActorControlState(value: unknown) {
+  if (!isRecord(value)) return false;
+  const choices = value.choices;
+  const inputs = value.inputs;
+  const sourceSelections = value.sourceSelections;
+  if (!isRecord(choices) || !isRecord(inputs) || !isRecord(sourceSelections))
+    return false;
+  const scalar = (item: unknown) =>
+    item === null ||
+    typeof item === "boolean" ||
+    (typeof item === "string" && item.length <= 10_000) ||
+    (typeof item === "number" && Number.isSafeInteger(item));
+  const stringList = (item: unknown) =>
+    Array.isArray(item) &&
+    item.length <= 1000 &&
+    item.every(
+      (entry) =>
+        typeof entry === "string" && entry.length > 0 && entry.length <= 500,
+    ) &&
+    new Set(item).size === item.length;
+  return (
+    Object.values(choices).every((item) => scalar(item) || stringList(item)) &&
+    Object.values(inputs).every(
+      (owner) => isRecord(owner) && Object.values(owner).every(scalar),
+    ) &&
+    Object.values(sourceSelections).every(stringList)
+  );
+}
+
 export function isChainAggregate(value: unknown): value is ChainAggregate {
   if (!value || typeof value !== "object") return false;
   const item = value as Partial<ChainAggregate>;
@@ -133,6 +165,7 @@ export function isChainAggregate(value: unknown): value is ChainAggregate {
   const entries = item.entries ?? {};
   const entryKeys = Object.keys(entries);
   const order = item.order ?? [];
+  const jumpState = isRecord(item.jumpState) ? item.jumpState : {};
   const validEntries = entryKeys.every((key) => {
     const entry = entries[key];
     return (
@@ -175,7 +208,11 @@ export function isChainAggregate(value: unknown): value is ChainAggregate {
       item.lastValidatedEvaluation &&
       typeof item.lastValidatedEvaluation === "object",
     ) &&
-    order.every((id) => Boolean(item.jumpState?.[id])) &&
+    order.every((id) => {
+      const entryState = jumpState[id];
+      if (!isRecord(entryState) || !isRecord(entryState.actors)) return false;
+      return Object.values(entryState.actors).every(validActorControlState);
+    }) &&
     typeof item.selectedEntryId === "string" &&
     order.includes(item.selectedEntryId) &&
     typeof item.inspectionPointId === "string" &&

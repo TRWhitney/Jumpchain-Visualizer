@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { parseFormatFile } from "./parseSource";
 import {
+  conditionControlProperties,
+  conditionNodeEntries,
   conditionContextHandles,
   conditionPropertyCatalog,
 } from "./conditionProperties";
@@ -48,6 +50,18 @@ choice
     kind: property
     handle: enabled
     value: true
+
+choice
+  handle: details
+  name: "Details"
+
+  input
+    handle: note_control
+    selection: text
+
+    grant
+      kind: property
+      handle: note
 `,
       ),
     ];
@@ -72,6 +86,67 @@ choice
       type: "boolean",
       values: [true],
     });
+    expect(properties.find((item) => item.handle === "note")).toMatchObject({
+      type: "string",
+      category: "package",
+    });
+    expect(properties.find((item) => item.handle === "tier_control")).toBe(
+      undefined,
+    );
+    expect(properties.find((item) => item.handle === "note_control")).toBe(
+      undefined,
+    );
+  });
+
+  it("exposes the owning Choice and supporting Input answers to nested Text", () => {
+    const parsed = parseFormatFile(
+      "choices.jdef",
+      `choice
+  handle: prompt
+  name: "Prompt"
+  selection: text
+
+  text
+    handle: description
+    content when prompt = "Ready": "{{prompt}} / {{score}} / {{route}}"
+
+  input
+    handle: score
+    selection: integer
+    min: 1
+    max: 5
+
+  input
+    handle: route
+    selection: select
+    option: "North"
+    option: "South"
+`,
+    );
+    const entry = conditionNodeEntries([parsed]).find(
+      ({ node }) => node.kind === "text",
+    )!;
+
+    expect(
+      conditionControlProperties(entry.node, entry.parent, entry.ancestors),
+    ).toEqual([
+      expect.objectContaining({
+        handle: "prompt",
+        type: "string",
+        category: "context",
+      }),
+      expect.objectContaining({
+        handle: "score",
+        type: "integer",
+        minimum: 1,
+        maximum: 5,
+      }),
+      expect.objectContaining({
+        handle: "route",
+        type: "string",
+        values: ["North", "South"],
+      }),
+    ]);
   });
 
   it.each([
@@ -95,6 +170,36 @@ choice
       const owner = parsed.tree[0];
       const text = owner.children.find((node) => node.kind === "text")!;
       expect(conditionContextHandles(text, owner)).toEqual([handle]);
+    },
+  );
+
+  it.each([
+    ["perk", "", "rank"],
+    ["item", "    measure: quantity\n", "count"],
+  ])(
+    "exposes an owning integer Choice's %s context inside nested Grant text",
+    (kind, measure, handle) => {
+      const parsed = parseFormatFile(
+        "jump.jdef",
+        `choice
+  handle: measured
+  name: "Measured"
+  selection: integer
+
+  grant
+    kind: ${kind}
+${measure}
+    text
+      handle: description
+      content: "Measured content"
+`,
+      );
+      const choice = parsed.tree[0];
+      const grant = choice.children.find((node) => node.kind === "grant")!;
+      const text = grant.children.find((node) => node.kind === "text")!;
+      expect(conditionContextHandles(text, grant, [choice, grant])).toEqual([
+        handle,
+      ]);
     },
   );
 });

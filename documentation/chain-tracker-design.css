@@ -360,6 +360,15 @@
   padding: 0;
 }
 
+.chain-jump-actions:has(.chain-jump-more-actions) {
+  grid-template-columns: 1fr;
+}
+
+.chain-jump-actions .chain-jump-more-actions {
+  width: 2rem;
+  letter-spacing: -0.08em;
+}
+
 .chain-library-search {
   display: block;
   padding: 0.5rem 0.5rem 0.3rem;
@@ -1802,11 +1811,30 @@
   border-color: var(--chain-accent);
 }
 
+.inventory-search-toolbar .inventory-tag-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.inventory-tag-filter-toggle svg {
+  width: 0.55rem;
+  height: 0.8rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
 .inventory-search-layout {
   display: grid;
   grid-template-columns: 13rem minmax(24rem, 1fr);
   min-height: 0;
   overflow: hidden;
+}
+
+.inventory-search-layout.is-tag-filter-collapsed {
+  grid-template-columns: minmax(24rem, 1fr);
 }
 
 .inventory-tag-dialog {

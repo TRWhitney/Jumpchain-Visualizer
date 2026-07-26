@@ -65,6 +65,65 @@ test("Settings chrome, dropdowns, and standalone color pickers suppress the gene
   await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
 });
 
+test("interface experience applies its settings and becomes Custom after an individual override", async () => {
+  const repository = new MemorySettingsRepository();
+  render(
+    <SettingsProvider repository={repository} reportExporter={exporter}>
+      <SettingsSurfaceHarness />
+    </SettingsProvider>,
+  );
+  const experience = page.getByRole("combobox", {
+    name: "Interface experience",
+  });
+  await expect.element(experience).toHaveValue("experienced");
+  await experience.selectOptions("new-user-friendly");
+  await expect.element(experience).toHaveValue("new-user-friendly");
+  await expect
+    .element(page.getByLabelText("Hide raw technical locations"))
+    .toBeChecked();
+  await expect
+    .element(page.getByLabelText("Collapse optional sections by default"))
+    .toBeChecked();
+
+  await page.getByRole("tab", { name: "Tags" }).click();
+  const background = document.querySelector<HTMLDetailsElement>(
+    '[data-disclosure-section="tag-background"]',
+  )!;
+  const text = document.querySelector<HTMLDetailsElement>(
+    '[data-disclosure-section="tag-text"]',
+  )!;
+  const animation = document.querySelector<HTMLDetailsElement>(
+    '[data-disclosure-section="tag-animation"]',
+  )!;
+  expect(background.open).toBe(true);
+  expect(text.open).toBe(false);
+  expect(animation.open).toBe(false);
+  text.querySelector("summary")!.click();
+  expect(text.open).toBe(true);
+
+  await page.getByRole("tab", { name: "Editor" }).click();
+  await expect
+    .element(page.getByLabelText("Show explanatory text"))
+    .toBeChecked();
+  const advanced = page.getByLabelText("Start advanced views collapsed");
+  await expect.element(advanced).toBeChecked();
+  await advanced.click();
+  await page.getByRole("tab", { name: "General" }).click();
+  await expect.element(experience).toHaveValue("custom");
+
+  await expect
+    .poll(async () => {
+      const stored = (await repository.load()) as ReturnType<
+        typeof defaultSettings
+      > | null;
+      return {
+        advanced: stored?.editor.collapseAdvancedViews,
+        maximum: stored?.notifications.maxVisible,
+      };
+    })
+    .toEqual({ advanced: false, maximum: 1 });
+});
+
 function BrokenSurface(): never {
   throw new Error("Deliberate component failure");
 }
@@ -344,6 +403,53 @@ test("layout preview placeholder length is unlimited by default and persists a b
       return stored?.editor.layoutPreviewPlaceholderCharacterLimit;
     })
     .toBeNull();
+});
+
+test("Editor explanatory text persists independently and changes the experience preset to Custom", async () => {
+  const repository = new MemorySettingsRepository();
+  render(
+    <SettingsProvider repository={repository} reportExporter={exporter}>
+      <SettingsSurfaceHarness />
+    </SettingsProvider>,
+  );
+
+  const experience = page.getByRole("combobox", {
+    name: "Interface experience",
+  });
+  await expect.element(experience).toHaveValue("experienced");
+  await page.getByRole("tab", { name: "Editor" }).click();
+  const explanations = page.getByLabelText("Show explanatory text");
+  await expect.element(explanations).not.toBeChecked();
+  await explanations.click();
+  await expect.element(explanations).toBeChecked();
+  await page.getByRole("tab", { name: "General" }).click();
+  await expect.element(experience).toHaveValue("custom");
+  await expect
+    .poll(async () => {
+      const stored = (await repository.load()) as ReturnType<
+        typeof defaultSettings
+      > | null;
+      return stored?.editor.showExplanatoryText;
+    })
+    .toBe(true);
+
+  await page.getByRole("tab", { name: "Editor" }).click();
+  const explanationRow = page
+    .getByText("Editor explanations", { exact: true })
+    .element()
+    .closest(".setting-row")!;
+  explanationRow.querySelector<HTMLButtonElement>(".setting-reset")!.click();
+  await expect.element(explanations).not.toBeChecked();
+  await page.getByRole("tab", { name: "General" }).click();
+  await expect.element(experience).toHaveValue("experienced");
+  await expect
+    .poll(async () => {
+      const stored = (await repository.load()) as ReturnType<
+        typeof defaultSettings
+      > | null;
+      return stored?.editor.showExplanatoryText;
+    })
+    .toBe(false);
 });
 
 test("image alt text hover is an on-by-default persisted Accessibility preference", async () => {

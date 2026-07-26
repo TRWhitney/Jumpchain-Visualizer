@@ -76,6 +76,14 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
     },
     [openAt],
   );
+  const openContextMenuFromTrigger = useCallback(
+    (trigger: HTMLElement, request: ContextMenuRequest) => {
+      const bounds = trigger.getBoundingClientRect();
+      const rtl = document.documentElement.dir === "rtl";
+      openAt(trigger, request, rtl ? bounds.right : bounds.left, bounds.bottom);
+    },
+    [openAt],
+  );
 
   const close = useCallback((restoreFocus = true) => {
     setOpenMenu((current) => {
@@ -153,8 +161,12 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const controller = useMemo(
-    () => ({ openContextMenu, openContextMenuFromKeyboard }),
-    [openContextMenu, openContextMenuFromKeyboard],
+    () => ({
+      openContextMenu,
+      openContextMenuFromKeyboard,
+      openContextMenuFromTrigger,
+    }),
+    [openContextMenu, openContextMenuFromKeyboard, openContextMenuFromTrigger],
   );
 
   const moveFocus = (direction: 1 | -1 | "first" | "last") => {

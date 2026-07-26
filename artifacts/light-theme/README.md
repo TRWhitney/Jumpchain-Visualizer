@@ -18,6 +18,11 @@ the Tags Import, Export, and Reset controls plus their hover treatment and the
 Notifications trigger-row hover state. Paired Editor layout-preview captures
 verify that an authored section text token paints identically in Light and Dark
 without the application shell substituting its muted-text color.
+The Earth capture verifies that its application-owned renderer follows the
+active theme with rounded, layered surfaces instead of inheriting an authored
+Jump's pale fallback. Jump appearance and layout captures verify that disclosure
+cards, Inspect, and Show bounds use the light Editor surface palette while
+retaining their distinct inspection colors.
 
 The dark Settings captures confirm that its controls and hover states retain
 their pre-existing palette. The contextual Supp capture intentionally changes

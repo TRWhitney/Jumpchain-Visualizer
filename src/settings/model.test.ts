@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   SAFE_PACKAGE_SIZE_LIMITS,
+  applyInterfaceExperience,
   defaultKeybindings,
   defaultSettings,
   effectivePackageSizeLimits,
   hydrateSettings,
+  interfaceExperienceFor,
   keybindingActions,
   keybindingDisplay,
   matchesKeybinding,
@@ -54,7 +56,7 @@ describe("application settings", () => {
     expect(result.editor.layoutPreviewPlaceholderCharacterLimit).toBe(12);
     expect(result.notifications.maxVisible).toBe(5);
     expect(result.notifications.durationMs).toBe(5000);
-    expect(result.schemaVersion).toBe(2);
+    expect(result.schemaVersion).toBe(4);
     expect(result.language.tag).toBe("en");
   });
 
@@ -87,6 +89,15 @@ describe("application settings", () => {
       hydrateTagProfile,
     );
     expect(result.chain.aggregateSimilarInventory).toBe(true);
+    expect(result.general).toEqual({
+      hideTechnicalLocations: false,
+      collapseOptionalSectionsByDefault: false,
+    });
+    expect(result.editor.collapseAdvancedViews).toBe(false);
+    expect(result.editor.collapsePreviewInspectionTools).toBe(false);
+    expect(result.editor.showExplanatoryText).toBe(false);
+    expect(result.chain.compactJumpActions).toBe(false);
+    expect(result.chain.collapseInventoryTagFilters).toBe(false);
     expect(result.developer.showMockData).toBe(false);
     expect(result.developer.showOpenProjectFolder).toBe(false);
     expect(malformed.developer.showOpenProjectFolder).toBe(false);
@@ -128,6 +139,72 @@ describe("application settings", () => {
         hydrateTagProfile,
       ).editor.layoutPreviewPlaceholderCharacterLimit,
     ).toBeNull();
+  });
+
+  it("migrates schema v3 settings and hydrates explanatory text as schema v4", () => {
+    const profile = createDefaultTagProfile();
+    const result = hydrateSettings(
+      {
+        schemaVersion: 3,
+        general: {
+          hideTechnicalLocations: true,
+          collapseOptionalSectionsByDefault: "yes",
+        },
+        editor: {
+          collapseAdvancedViews: true,
+          collapsePreviewInspectionTools: false,
+          showExplanatoryText: true,
+        },
+        chain: {
+          compactJumpActions: true,
+          collapseInventoryTagFilters: true,
+        },
+      },
+      profile,
+      hydrateTagProfile,
+    );
+    expect(result.schemaVersion).toBe(4);
+    expect(result.general.hideTechnicalLocations).toBe(true);
+    expect(result.general.collapseOptionalSectionsByDefault).toBe(false);
+    expect(result.editor.collapseAdvancedViews).toBe(true);
+    expect(result.editor.collapsePreviewInspectionTools).toBe(false);
+    expect(result.editor.showExplanatoryText).toBe(true);
+    expect(result.chain.compactJumpActions).toBe(true);
+    expect(result.chain.collapseInventoryTagFilters).toBe(true);
+  });
+
+  it("applies and identifies interface experience presets", () => {
+    const settings = defaultSettings(createDefaultTagProfile());
+    expect(interfaceExperienceFor(settings)).toBe("experienced");
+
+    const novice = applyInterfaceExperience(settings, "new-user-friendly");
+    expect(interfaceExperienceFor(novice)).toBe("new-user-friendly");
+    expect(novice.general).toEqual({
+      hideTechnicalLocations: true,
+      collapseOptionalSectionsByDefault: true,
+    });
+    expect(novice.editor.collapseAdvancedViews).toBe(true);
+    expect(novice.editor.collapsePreviewInspectionTools).toBe(true);
+    expect(novice.editor.showExplanatoryText).toBe(true);
+    expect(novice.chain.compactJumpActions).toBe(true);
+    expect(novice.chain.collapseInventoryTagFilters).toBe(true);
+    expect(novice.notifications.maxVisible).toBe(1);
+
+    expect(
+      interfaceExperienceFor({
+        ...novice,
+        chain: { ...novice.chain, compactJumpActions: false },
+      }),
+    ).toBe("custom");
+    expect(
+      interfaceExperienceFor({
+        ...novice,
+        editor: { ...novice.editor, showExplanatoryText: false },
+      }),
+    ).toBe("custom");
+    expect(
+      interfaceExperienceFor(applyInterfaceExperience(novice, "experienced")),
+    ).toBe("experienced");
   });
 
   it("hydrates only boolean mock-data visibility and defaults it off", () => {

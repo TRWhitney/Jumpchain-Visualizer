@@ -95,9 +95,13 @@ describe("Format 1 structured document edits", () => {
         integerVisibleGrant: "true",
       }),
     ).toEqual({ kind: "value", value: "rank" });
-    expect(fieldDefault("input", "min", { selection: "companions" })).toEqual({
+    expect(fieldDefault("choice", "min", { selection: "companions" })).toEqual({
       kind: "value",
-      value: 0,
+      value: 1,
+    });
+    expect(fieldDefault("choice", "max", { selection: "companions" })).toEqual({
+      kind: "value",
+      value: 1,
     });
     expect(fieldDefault("input", "min", { selection: "integer" })).toBeNull();
   });
@@ -525,6 +529,30 @@ section-layout
     ]);
   });
 
+  it("limits ordinary Grant content to Description while retaining trait layout content", () => {
+    const files = {
+      "jump.jdef": `${source}
+choice
+  handle: content_rules
+  name: "Content rules"
+
+  grant
+    kind: perk
+
+  grant
+    kind: trait
+`,
+    };
+    const grants = service
+      .analyze(files)
+      .symbols.filter((symbol) => symbol.kind === "grant");
+    expect(structuredContext(files, grants[0])?.childKinds).toEqual(["text"]);
+    expect(structuredContext(files, grants[1])?.childKinds).toEqual([
+      "text",
+      "image",
+    ]);
+  });
+
   it("returns exact created child targets and preserves owner navigation", () => {
     const files = { "jump.jdef": `${source}# after\n` };
     const section = service
@@ -565,6 +593,52 @@ section-layout
     const removed = removeDocumentDeclaration(moved.files, movedText);
     expect(removed.files["jump.jdef"]).not.toContain("handle: new_text");
     expect(removed.files["jump.jdef"]).toContain("# after\n");
+  });
+
+  it("creates one exact owner-local description without renaming its semantic handle", () => {
+    const files = {
+      "jump.jdef": `${source}
+choice
+  handle: described
+  name: "Described"
+
+  grant
+    kind: perk
+`,
+    };
+    const symbols = service.analyze(files).symbols;
+    const choice = symbols.find((symbol) => symbol.kind === "choice")!;
+    const choiceDescription = insertDocumentChild(files, choice, "description");
+    expect(choiceDescription.target).toMatchObject({
+      kind: "text",
+      handle: "description",
+    });
+    expect(choiceDescription.focusField).toBe("content");
+
+    const currentGrant = service
+      .analyze(choiceDescription.files)
+      .symbols.find((symbol) => symbol.kind === "grant")!;
+    const grantDescription = insertDocumentChild(
+      choiceDescription.files,
+      currentGrant,
+      "description",
+    );
+    expect(grantDescription.target).toMatchObject({
+      kind: "text",
+      handle: "description",
+    });
+    expect(
+      grantDescription.files["jump.jdef"].match(/handle: description/g),
+    ).toHaveLength(2);
+    expect(
+      insertDocumentChild(
+        grantDescription.files,
+        service
+          .analyze(grantDescription.files)
+          .symbols.find((symbol) => symbol.kind === "grant")!,
+        "description",
+      ).changed,
+    ).toBe(false);
   });
 
   it("creates and assigns a secondary resource atomically", () => {

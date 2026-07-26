@@ -1,0 +1,24 @@
+jump
+  format: 1
+  name: "Invalid Grant Content"
+  author: "Jumpchain Visualizer"
+  version: "1"
+
+section
+  handle: awards
+  name: "Awards"
+
+  choice
+    handle: invalid_award
+    target: invalid_award
+
+choice
+  handle: invalid_award
+  name: "Invalid Award"
+
+  grant
+    kind: perk
+
+    text
+      handle: extra
+      content: "Ordinary Grant text must be its Description."

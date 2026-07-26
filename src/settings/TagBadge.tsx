@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { TagDefinition } from "../tracker/model";
 import {
   adaptTagTextToSurfaces,
@@ -13,11 +13,13 @@ export function CanonicalTagBadge({
   presentation,
   surface,
   title,
+  trailingAction,
 }: {
   label: string;
   presentation: CanonicalPresentation;
   surface?: string;
   title?: string;
+  trailingAction?: ReactNode;
 }) {
   const transparent = presentation.background === "transparent";
   const background = transparent
@@ -38,7 +40,7 @@ export function CanonicalTagBadge({
       : readableTagText(presentation.colors);
   return (
     <span
-      className={`tag-profile-badge effect-${presentation.textEffect} animation-${presentation.animation}`}
+      className={`tag-profile-badge effect-${presentation.textEffect} animation-${presentation.animation}${trailingAction ? " has-trailing-action" : ""}`}
       title={title}
       style={
         {
@@ -93,6 +95,7 @@ export function CanonicalTagBadge({
       }
     >
       <AnimatedTagText text={label} animation={presentation.animation} />
+      {trailingAction}
     </span>
   );
 }
@@ -100,9 +103,11 @@ export function CanonicalTagBadge({
 export function CanonicalTrackerTagBadge({
   tag,
   surface,
+  trailingAction,
 }: {
   tag: TagDefinition;
   surface?: string;
+  trailingAction?: ReactNode;
 }) {
   return (
     <CanonicalTagBadge
@@ -115,6 +120,7 @@ export function CanonicalTrackerTagBadge({
       title={
         tag.aliases.length ? `Aliases: ${tag.aliases.join(", ")}` : undefined
       }
+      trailingAction={trailingAction}
     />
   );
 }

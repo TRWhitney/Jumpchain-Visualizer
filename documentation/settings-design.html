@@ -54,7 +54,7 @@
         <p class="lede">The authoritative list of configurable application behavior, including defaults, allowed values, scope, persistence, and decision status.</p>
 
         <div class="settings-status" role="note">
-          <strong>Current state:</strong> appearance, accent color, motion, Editor save mode, Chain Tracker behavior, notification presentation, keybinding overrides, and the user tag profile are confirmed. Session logs are available as a Developer utility rather than persisted settings.
+          <strong>Current state:</strong> interface-experience aggregation, opt-in interface simplification, appearance, accent color, motion, Editor save mode, Chain Tracker behavior, notification presentation, keybinding overrides, and the user tag profile are confirmed. Session logs are available as a Developer utility rather than persisted settings.
         </div>
 
         <h2>Purpose</h2>
@@ -77,6 +77,8 @@
 
         <h3>Settings Search</h3>
         <p>Search covers every category and matches visible labels, stable setting keys, descriptions, allowed values, and maintained aliases. Results identify their owning category. Selecting a result clears the query, opens that category, and focuses the setting. Clearing an unfinished search restores the category that was selected before searching.</p>
+        <p><strong>Interface experience</strong> is the first General row and aggregates settings without moving their individual controls. Experienced hides optional Editor teaching text and writes the current presentation defaults; New user friendly enables Show explanatory text with the other opt-in simplification settings and reduces maximum visible notifications to one. Any later individual change, including changing explanatory text independently, displays Custom. The computed experience is not independently persisted.</p>
+        <p>Simplification settings apply to an already-mounted Editor or Chain Tracker as soon as Settings changes. Each affected disclosure resets to the new configured default at that point. Manual expansion or collapse afterward remains local to that mounted surface and does not write a persistent setting.</p>
 
         <h2>Confirmed Settings</h2>
         <div class="settings-table-wrap">
@@ -105,6 +107,55 @@
                 <td>Validated six-digit sRGB hexadecimal color</td>
                 <td>Application</td>
                 <td>The current gold remains the default, while users may choose any base accent. Accessible UI variants are derived for the active theme.</td>
+              </tr>
+              <tr>
+                <td><code>general.hideTechnicalLocations</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Application shell</td>
+                <td>Hides raw route identifiers while retaining navigation, project names, and page headings.</td>
+              </tr>
+              <tr>
+                <td><code>general.collapseOptionalSectionsByDefault</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Editor and tag profile</td>
+                <td>Seeds or resets optional section disclosures without persisting local expansion or removing controls.</td>
+              </tr>
+              <tr>
+                <td><code>editor.collapseAdvancedViews</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Editor</td>
+                <td>Starts or resets Files, Source, and Properties behind Advanced views. Opening raster Source retains its complete tool rail.</td>
+              </tr>
+              <tr>
+                <td><code>editor.showExplanatoryText</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Entire Editor product area</td>
+                <td>Shows optional field help, option descriptions, and reference metadata. It never hides labels, diagnostics, warnings, status, security, accessibility, recovery, or necessary empty-state instructions. New user friendly enables it and Experienced disables it.</td>
+              </tr>
+              <tr>
+                <td><code>editor.collapsePreviewInspectionTools</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Editor Preview</td>
+                <td>Starts or resets Inspect and Strip Color behind Preview tools while keeping the primary preview selector visible.</td>
+              </tr>
+              <tr>
+                <td><code>chain.compactJumpActions</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Chain rail</td>
+                <td>Replaces repeated move and remove buttons with the existing actions menu without changing dragging or row content.</td>
+              </tr>
+              <tr>
+                <td><code>chain.collapseInventoryTagFilters</code></td>
+                <td><code>false</code></td>
+                <td><code>true</code>, <code>false</code></td>
+                <td>Chain inventory</td>
+                <td>Starts or resets tag relationships collapsed while keeping any active filter named on its toolbar button.</td>
               </tr>
               <tr>
                 <td><code>accessibility.motion</code></td>
@@ -646,7 +697,7 @@
         <h2>Persistence and Migration</h2>
         <ul>
           <li>Settings persist independently from Jump packages and Chain records.</li>
-          <li>The persisted object carries schema version 2 and is migrated before use; version 1 receives <code>language.tag = "en"</code>.</li>
+          <li>The persisted object carries schema version 4 and is migrated before use. Version 1 receives <code>language.tag = "en"</code>; version 3 and earlier receive the Experienced default <code>editor.showExplanatoryText = false</code> when that key is absent.</li>
           <li>Missing keys receive current defaults; migrations do not rewrite unrelated preferences.</li>
           <li>A Reset action restores one setting, one category, or the complete registry without deleting projects or chains.</li>
           <li>General preference import/export remains deferred. The tag profile is the explicit exception and has its own versioned JSON transfer format.</li>

@@ -35,16 +35,6 @@ choice
 choice
   handle: broken_import
   name: "Broken Import"
-
-  input
-    handle: roster
-    selection: companions
-
-    grant
-      kind: companion-import
-      resource: jump_points
-      amount: 500
-
-    grant
-      kind: companion-import
-      handle: unfunded_import
+  selection: companions
+  max: 0
+  grant: companion

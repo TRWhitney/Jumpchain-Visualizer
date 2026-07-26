@@ -19,6 +19,22 @@
     "noResults": "No settings match this search."
   },
   "settingsSearch": {
+    "interfaceExperience": {
+      "label": "Interface experience",
+      "aliases": "interface experience preset experienced new user friendly custom onboarding simple advanced"
+    },
+    "general_hideTechnicalLocations": {
+      "label": "Technical locations",
+      "aliases": "general hide technical location route path identifier navigation"
+    },
+    "general_collapseOptionalSectionsByDefault": {
+      "label": "Optional section defaults",
+      "aliases": "general collapse optional sections default details appearance explorer tags"
+    },
+    "editor_showExplanatoryText": {
+      "label": "Show explanatory text",
+      "aliases": "editor explanations descriptive help guidance beginner new user friendly text"
+    },
     "language_tag": {
       "label": "Language",
       "aliases": "language locale translation spellcheck dictionary"
@@ -51,6 +67,14 @@
       "label": "Sidebar item deletion",
       "aliases": "editor sidebar right click delete permanent confirmation trash remove"
     },
+    "editor_collapseAdvancedViews": {
+      "label": "Advanced editor views",
+      "aliases": "editor collapse advanced views files source properties tabs disclosure"
+    },
+    "editor_collapsePreviewInspectionTools": {
+      "label": "Preview inspection tools",
+      "aliases": "editor collapse preview tools inspect bounds strip color disclosure"
+    },
     "chain_allowMultiplePackageVersions": {
       "label": "Add another package version",
       "aliases": "chain add second package version multiple parallel"
@@ -82,6 +106,14 @@
     "chain_colorNamesByPrimaryTag": {
       "label": "Color chain names by primary tag",
       "aliases": "chain color names primary highest perk tag"
+    },
+    "chain_compactJumpActions": {
+      "label": "Jump row actions",
+      "aliases": "chain compact jump row actions move earlier later remove menu"
+    },
+    "chain_collapseInventoryTagFilters": {
+      "label": "Inventory tag filters",
+      "aliases": "chain collapse inventory tag filter relationships toolbar disclosure"
     },
     "notifications_": {
       "label": "Toast notifications",
@@ -311,11 +343,19 @@
         "pathFileTypeCompressionRatioImageSchemaAndAtomicity": "Path, file-type, compression-ratio, image, schema, and atomicity protections remain mandatory and cannot be disabled.",
         "iUnderstandEnable": "I understand, enable",
         "general": "General",
+        "experienced": "Experienced",
+        "newUserFriendly": "New user friendly",
+        "custom": "Custom",
+        "hideTechnicalLocations": "Hide raw technical locations",
+        "collapseOptionalSectionsByDefault": "Collapse optional sections by default",
         "useSystemSetting": "Use system setting",
         "light": "Light",
         "dark": "Dark",
         "homeIsAlwaysTheRootDestinationStartupRedirectionIs": "Home is always the root destination. Startup redirection is an agreed application behavior, not a configurable preference.",
         "editor": "Editor",
+        "collapseAdvancedViews": "Start advanced views collapsed",
+        "collapsePreviewInspectionTools": "Start preview inspection tools collapsed",
+        "showExplanatoryText": "Show explanatory text",
         "autosave": "Autosave",
         "explicitSave": "Explicit save",
         "showAccessibilityWarning": "Show accessibility warning",
@@ -323,6 +363,8 @@
         "permanentlyDeleteSidebarItems": "Permanently delete sidebar items",
         "editorPreferencesApplyImmediatelyAndPersist": "Editor preferences apply immediately to open workspaces and persist across launches.",
         "chainTracker": "Chain Tracker",
+        "compactJumpActions": "Use compact Jump action menus",
+        "collapseInventoryTagFilters": "Start inventory tag filters collapsed",
         "allowSecondVersion": "Allow second version",
         "allowDuplicateJumps": "Allow duplicate jumps",
         "allowNegativeBalances": "Allow negative balances",
@@ -379,6 +421,9 @@
         "inputDrivenCandidatesWait500MsRepeatedMatchingEvents": "Input-driven candidates wait 500 ms. Repeated matching events update one toast and its occurrence count."
       },
       "label": {
+        "interfaceExperience": "Interface experience",
+        "technicalLocations": "Technical locations",
+        "optionalSectionDefaults": "Optional section defaults",
         "appearance": "Appearance",
         "accentColor": "Accent color",
         "saving": "Saving",
@@ -386,6 +431,9 @@
         "missingImageAltWarning": "Missing image alt warning",
         "missingLayoutTargetWarning": "Missing layout target warning",
         "sidebarItemDeletion": "Sidebar item deletion",
+        "advancedEditorViews": "Advanced editor views",
+        "previewInspectionTools": "Preview inspection tools",
+        "editorExplanations": "Editor explanations",
         "addAnotherPackageVersion": "Add another package version",
         "allowDuplicateJumps": "Allow duplicate jumps",
         "negativePointBalances": "Negative point balances",
@@ -394,6 +442,8 @@
         "includeItemTagsInRadar": "Include item tags in radar",
         "upstreamChangeWarnings": "Upstream change warnings",
         "colorChainNamesByPrimaryTag": "Color chain names by primary tag",
+        "jumpRowActions": "Jump row actions",
+        "inventoryTagFilters": "Inventory tag filters",
         "motion": "Motion",
         "altTextHoverForImages": "Alt text hover for images",
         "seeMockData": "See Mock Data",
@@ -404,6 +454,9 @@
         "toastDuration": "Toast duration"
       },
       "description": {
+        "applyAStartingCollectionOfPresentationPreferences": "Apply a starting collection of presentation preferences. Changing an included preference afterward marks the experience as Custom.",
+        "hideRawRouteIdentifiersWhileKeepingNavigationLabels": "Hide raw route identifiers while keeping navigation labels, project names, and page headings.",
+        "startFineGrainedEditorAndTagSectionsCollapsed": "Start selected fine-grained Editor and tag appearance sections collapsed without removing their controls.",
         "chooseTheApplicationColorTheme": "Choose the application color theme.",
         "chooseTheBaseColorUsedToDeriveAccessibleApplication": "Choose the base color used to derive accessible application accents.",
         "chooseWhetherEditorChangesSaveAutomatically": "Choose whether Editor changes save automatically.",
@@ -411,6 +464,9 @@
         "warnWhenAnImageBlockOmitsAlternativeText": "Warn when an image block omits alternative text.",
         "warnWhenAReusableLayoutTargetIsAbsent": "Warn when a reusable layout target is absent.",
         "chooseWhetherSidebarDeleteUsesTrashOrPermanentRemoval": "Choose whether right-click Delete moves sidebar items to Trash or permanently removes them after confirmation.",
+        "startFilesSourceAndPropertiesBehindAdvancedViews": "Start Files, Source, and Properties behind the Editor's Advanced views disclosure. Canvas tools remain visible after Source is opened.",
+        "startInspectAndStripColorBehindPreviewTools": "Start Inspect and Strip Color behind the Preview tools disclosure while keeping the primary preview mode visible.",
+        "showOptionalEditorGuidance": "Show optional guidance beneath Editor fields and descriptions beneath complex choices. Warnings, status, safety information, and required instructions always remain visible.",
         "allowAddToPlaceASecondInstalledVersionOf": "Allow Add to place a second installed version of a logical Jump package into the current chain.",
         "allowTheSameExactJumpPackageToBeAdded": "Allow the same exact Jump package to be added to this chain more than once as independent entries.",
         "permitActiveChoiceSelectionsThatWouldMakePrimaryJump": "Permit active choice selections that would make primary Jump points negative. Clearing choices and recalculation are never blocked.",
@@ -419,6 +475,8 @@
         "countTagsFromJumperAndFormItemsInRadar": "Count tags from Jumper and form items in radar statistics. Companion perks and items never contribute.",
         "reviewReorderOrDeletionOnlyWhenAnExplicitActive": "Review reorder or deletion only when an explicit active downstream dependency would become invalid.",
         "colorSavedChainNamesFromTheCategoryWithThe": "Color saved-chain names from the category with the greatest eligible radar count.",
+        "replaceRepeatedMoveAndRemoveButtonsWithAnActionsMenu": "Replace repeated Move and Remove buttons on each Jump row with one actions menu.",
+        "startInventoryTagRelationshipsBehindAToolbarDisclosure": "Start inventory tag relationships behind a toolbar disclosure while keeping active filters visible.",
         "controlNonessentialInterfaceAnimation": "Control nonessential interface animation.",
         "showAuthoredAlternativeTextWhenHoveringImagesInPreviews": "Show authored alternative text when hovering images in Editor previews and Chain Tracker. Images retain their accessibility text when this is off.",
         "showApplicationOwnedMockJumpsAndChains": "Show application-owned mock Jumps in the Library and the Morgan mock chain in saved-chain lists.",

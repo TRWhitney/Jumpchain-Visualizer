@@ -15,12 +15,20 @@ import {
   type Ref,
 } from "react";
 import { flushSync } from "react-dom";
-import { Chevron, useContextMenu, type ContextMenuAction } from "../ui";
 import {
+  Chevron,
+  DisclosureSection,
+  useContextMenu,
+  useSettingDefaultedState,
+  type ContextMenuAction,
+} from "../ui";
+import {
+  conditionControlProperties,
   conditionContextHandles,
   conditionNodeEntries,
   conditionPropertyCatalog,
   packageIsValid,
+  type ConditionPropertyDescriptor,
   type PackageDiagnostic,
 } from "../markup";
 import {
@@ -31,6 +39,10 @@ import {
 } from "../archive";
 import { NumberStepperButtons } from "../tracker/NumberStepper";
 import { inheritedAppearanceValue } from "../tracker/jumpAppearance";
+import type { TagDefinition } from "../tracker/model";
+import { CanonicalTrackerTagBadge } from "../settings/TagBadge";
+import { primaryTagIds } from "../settings/builtinTags";
+import { normalizeTag } from "../settings/tagProfile";
 import { integerFieldControl } from "./integerField";
 import {
   chordFor,
@@ -43,7 +55,9 @@ import {
   type KeybindingChord,
 } from "../settings/model";
 import { JumpPreview, type LayoutBoundHover } from "./JumpPreview";
+import { FreeTextSuggestionCombobox } from "./FreeTextSuggestionCombobox";
 import { HandleFieldControl } from "./HandleFieldControl";
+import { SetFieldControl } from "./SetFieldControl";
 import {
   previewSelectionForSymbol,
   type PreviewSelection,
@@ -116,7 +130,15 @@ import {
 } from "../markup/format1Colors";
 import { ColorFieldControl, type EditorColorChoice } from "./ColorFieldControl";
 import { ImageDimensionFieldControl } from "./ImageDimensionFieldControl";
-import { ConditionalVariants } from "./ConditionalVariants";
+import { ConditionalVariants, InsertValueControl } from "./ConditionalVariants";
+import {
+  editorDeclarationLabel,
+  editorFieldPresentation,
+  editorLayoutFieldPresentation,
+  editorLayoutNodePresentation,
+  editorOptionPresentation,
+  editorSectionLabel,
+} from "./editorPresentation";
 import { useAssetObjectUrl } from "../tracker/useAssetObjectUrls";
 import { ConfirmationDialog } from "../ui";
 import type { AppearanceColorInspection } from "./appearanceInspection";
@@ -154,12 +176,44 @@ import {
   type AssetWorkspaceHistoryState,
 } from "./assetHistory";
 
-type SaveState = "Saved" | "Saving" | "Unsaved" | "Save failed";
+type SaveState = "saved" | "saving" | "unsaved" | "failed";
 type NavigationTab = "content" | "files";
 type EditingTab = "structured" | "source";
 type ContextTab = "preview" | "properties";
 type Severity = PackageDiagnostic["severity"];
 type WorkspaceHistoryState = AssetWorkspaceHistoryState;
+type StructuredDisclosureState = Readonly<Record<string, boolean>>;
+
+const emptyStructuredDisclosureState: StructuredDisclosureState = {};
+
+function structuredDisclosureOwnerKey(
+  symbol: FormatSymbol,
+  files: Readonly<Record<string, string>>,
+  symbols: readonly FormatSymbol[],
+) {
+  const lineage = [
+    ...(structuredContext(files, symbol)?.ancestors ?? []),
+    symbol,
+  ];
+  return lineage
+    .map((item, index) => {
+      const siblings =
+        index === 0
+          ? symbols.filter((candidate) => candidate.depth === item.depth)
+          : (structuredContext(files, lineage[index - 1])?.children ?? []);
+      const occurrence = siblings
+        .filter((candidate) => candidate.kind === item.kind)
+        .findIndex(
+          (candidate) =>
+            candidate.file === item.file && candidate.from === item.from,
+        );
+      return occurrence < 0
+        ? `${item.file}:${item.kind}:offset:${item.from}`
+        : `${item.file}:${item.kind}:occurrence:${occurrence}`;
+    })
+    .join("/");
+}
+
 type AssetImportTarget = {
   symbol: FormatSymbol;
   field: string;
@@ -210,6 +264,66 @@ const service = new Format1LanguageService();
 let fallbackTrashId = 0;
 const createTrashEntryId = () =>
   globalThis.crypto?.randomUUID?.() ?? `trash-${fallbackTrashId++}`;
+
+function InterpolatedTextArea({
+  label,
+  value,
+  rows,
+  autoFocus,
+  ariaInvalid,
+  ariaDescribedBy,
+  properties,
+  showExplanatoryText,
+  onChange,
+  onBlur,
+}: {
+  label: string;
+  value: string;
+  rows: number;
+  autoFocus: boolean;
+  ariaInvalid?: boolean;
+  ariaDescribedBy?: string;
+  properties: readonly ConditionPropertyDescriptor[];
+  showExplanatoryText: boolean;
+  onChange: (value: string) => void;
+  onBlur: () => void;
+}) {
+  const control = useRef<HTMLTextAreaElement>(null);
+  const insert = (handle: string) => {
+    const start = control.current?.selectionStart ?? value.length;
+    const end = control.current?.selectionEnd ?? start;
+    const token = `{{${handle}}}`;
+    onChange(`${value.slice(0, start)}${token}${value.slice(end)}`);
+    requestAnimationFrame(() => {
+      control.current?.focus();
+      const caret = start + token.length;
+      control.current?.setSelectionRange(caret, caret);
+    });
+  };
+  return (
+    <div className="editor-interpolated-text">
+      <span className="editor-rich-text-toolbar">
+        <InsertValueControl
+          properties={properties}
+          showDescriptions={showExplanatoryText}
+          onInsert={insert}
+        />
+      </span>
+      <textarea
+        ref={control}
+        autoFocus={autoFocus}
+        spellCheck
+        aria-label={label}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
+        rows={rows}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
+      />
+    </div>
+  );
+}
 
 type ExplorerEntryButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
@@ -501,35 +615,43 @@ function editorColorChoices(
 const declarationGroups = [
   {
     id: "resources",
-    heading: "Resources",
+    headingKey: "resources",
     kinds: ["resource"],
     additions: ["resource"],
   },
   {
     id: "sections",
-    heading: "Sections",
+    headingKey: "sections",
     kinds: ["section"],
     additions: ["section"],
   },
   {
     id: "choices",
-    heading: "Choices",
+    headingKey: "choices",
     kinds: ["choice"],
     additions: ["choice"],
   },
   {
     id: "layouts",
-    heading: "Layouts",
+    headingKey: "layouts",
     kinds: ["section-layout", "choice-layout", "trait-layout"],
     additions: ["section layout", "choice layout", "trait layout"],
   },
   {
     id: "themes",
-    heading: "Themes",
+    headingKey: "themes",
     kinds: ["theme"],
     additions: ["theme"],
   },
 ] as const;
+
+const noviceCollapsedExplorerGroups = new Set([
+  "content:resources",
+  "content:layouts",
+  "content:themes",
+  "content:trash",
+  "files:trash",
+]);
 
 const appearanceFieldGroups = [
   {
@@ -673,12 +795,12 @@ const layoutRowDragBoundarySelector = [
 
 function symbolLabel(symbol: FormatSymbol) {
   if (handleIdentityDeclarations.has(symbol.kind))
-    return symbol.handle || symbol.kind.replaceAll("-", " ");
-  return symbol.name || symbol.handle || symbol.kind.replaceAll("-", " ");
+    return symbol.handle || editorDeclarationLabel(symbol.kind);
+  return symbol.name || symbol.handle || editorDeclarationLabel(symbol.kind);
 }
 
 function explorerSymbolLabel(symbol: FormatSymbol) {
-  return symbol.handle || symbol.kind.replaceAll("-", " ");
+  return symbol.handle || editorDeclarationLabel(symbol.kind);
 }
 
 function layoutContentOwnerLabel(
@@ -731,6 +853,7 @@ type AddDeclarationKind = (typeof addDeclarationKinds)[number];
 export function EditorWorkspace({
   workspace,
   settings,
+  tags,
   saveState,
   onChange,
   onSave,
@@ -739,6 +862,7 @@ export function EditorWorkspace({
 }: {
   workspace: EditorWorkspaceSnapshot;
   settings: ApplicationSettings;
+  tags: Readonly<Record<string, TagDefinition>>;
   saveState: SaveState;
   onChange: (workspace: EditorWorkspaceSnapshot, continuous?: boolean) => void;
   onSave: () => void;
@@ -752,6 +876,16 @@ export function EditorWorkspace({
   const [assetEditingTab, setAssetEditingTab] =
     useState<EditingTab>("structured");
   const [contextTab, setContextTab] = useState<ContextTab>("preview");
+  const [advancedViewsOpen, setAdvancedViewsOpen, advancedViewsSettingChanged] =
+    useSettingDefaultedState(
+      settings.editor.collapseAdvancedViews,
+      !settings.editor.collapseAdvancedViews,
+    );
+  const [previewInspectionToolsOpen, setPreviewInspectionToolsOpen] =
+    useSettingDefaultedState(
+      settings.editor.collapsePreviewInspectionTools,
+      !settings.editor.collapsePreviewInspectionTools,
+    );
   const [selected, setSelected] = useState<PreviewSelection>({
     kind: "package",
   });
@@ -761,9 +895,31 @@ export function EditorWorkspace({
   const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
   const [selectedTrashId, setSelectedTrashId] = useState<string | null>(null);
   const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
+  const [collapseOptionalSectionsInitially] = useState(
+    settings.general.collapseOptionalSectionsByDefault,
+  );
   const [expandedExplorerGroups, setExpandedExplorerGroups] = useState<
     Record<string, boolean>
   >({});
+  const [structuredDisclosureStates, setStructuredDisclosureStates] = useState<
+    Record<string, StructuredDisclosureState>
+  >({});
+  const rememberStructuredDisclosure = useCallback(
+    (owner: string, section: string, expanded: boolean) => {
+      setStructuredDisclosureStates((current) => {
+        const ownerState = current[owner] ?? emptyStructuredDisclosureState;
+        if (ownerState[section] === expanded) return current;
+        return {
+          ...current,
+          [owner]: {
+            ...ownerState,
+            [section]: expanded,
+          },
+        };
+      });
+    },
+    [],
+  );
   const [permanentRemoval, setPermanentRemoval] =
     useState<PermanentRemovalTarget | null>(null);
   const [file, setFile] = useState(
@@ -814,6 +970,7 @@ export function EditorWorkspace({
     useState<AppearanceColorInspection | null>(null);
   const layoutInspectionRef = useRef<LayoutInspectionHandle>(null);
   const editorRootRef = useRef<HTMLDivElement>(null);
+  const advancedViewsButtonRef = useRef<HTMLButtonElement>(null);
   const [history, setHistory] = useState<WorkspaceHistoryState[]>(() => [
     {
       files: workspace.files,
@@ -834,14 +991,34 @@ export function EditorWorkspace({
     () => service.analyze(workspace.files).packageItem,
   );
   const sourceRef = useRef<SourceCodeEditorHandle>(null);
+  if (advancedViewsSettingChanged && settings.editor.collapseAdvancedViews) {
+    setNavigationTab("content");
+    setEditingTab("structured");
+    setContentEditingTab("structured");
+    setAssetEditingTab("structured");
+    setContextTab("preview");
+  }
   const isExplorerGroupExpanded = (groupId: string) =>
-    expandedExplorerGroups[groupId] ?? true;
+    expandedExplorerGroups[groupId] ??
+    (!collapseOptionalSectionsInitially ||
+      !noviceCollapsedExplorerGroups.has(groupId));
   const setExplorerGroupExpanded = (groupId: string, expanded: boolean) =>
     setExpandedExplorerGroups((current) =>
       current[groupId] === expanded
         ? current
         : { ...current, [groupId]: expanded },
     );
+  const toggleAdvancedViews = () => {
+    if (advancedViewsOpen) {
+      setNavigationTab("content");
+      setEditingTab("structured");
+      setContentEditingTab("structured");
+      setAssetEditingTab("structured");
+      setContextTab("preview");
+    }
+    setAdvancedViewsOpen(!advancedViewsOpen);
+    requestAnimationFrame(() => advancedViewsButtonRef.current?.focus());
+  };
   const handleSearchInputKeyDown = (
     event: Parameters<KeyboardEventHandler<HTMLInputElement>>[0],
     enterAction: "navigate" | "replace",
@@ -911,6 +1088,17 @@ export function EditorWorkspace({
   );
   const resolvedSelectedSymbol = selectedSymbol
     ? resolveDocumentSymbol(analysis.symbols, selectedSymbol)
+    : null;
+  const structuredSymbol =
+    resolvedSelectedSymbol ??
+    analysis.symbols.find((item) => item.kind === "jump") ??
+    null;
+  const structuredDisclosureOwner = structuredSymbol
+    ? structuredDisclosureOwnerKey(
+        structuredSymbol,
+        workspace.files,
+        analysis.symbols,
+      )
     : null;
   const activeLayoutSelectionKey =
     resolvedSelectedSymbol &&
@@ -1066,7 +1254,7 @@ export function EditorWorkspace({
   }, [analysis.packageItem, currentValid]);
 
   useEffect(() => {
-    if (settings.editor.saveMode !== "explicit" || saveState === "Saved")
+    if (settings.editor.saveMode !== "explicit" || saveState === "saved")
       return;
     const guard = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener("beforeunload", guard);
@@ -1980,20 +2168,69 @@ export function EditorWorkspace({
   const infos = analysis.diagnostics.filter(
     (diagnostic) => diagnostic.severity === "info",
   ).length;
+  const previewInspectionControls = (
+    <>
+      <label>
+        <input
+          type="checkbox"
+          aria-label={
+            previewSelection.kind === "appearance"
+              ? translate("ui.editorWorkspace.text.inspectColors")
+              : undefined
+          }
+          checked={showBounds}
+          onChange={(event) => setShowBounds(event.target.checked)}
+        />{" "}
+        {translate(
+          previewSelection.kind === "appearance"
+            ? "ui.editorWorkspace.text.inspect"
+            : "ui.editorWorkspace.text.showBounds",
+        )}
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          checked={stripColor}
+          onChange={(event) => setStripColor(event.target.checked)}
+        />{" "}
+        {translate("ui.editorWorkspace.text.stripColor")}
+      </label>
+    </>
+  );
 
   return (
     <div
       className="production-editor"
-      aria-label={`${summary.name} Editor`}
+      aria-label={translate("ui.editorWorkspace.ariaLabel.projectEditor", {
+        project: summary.name,
+      })}
       ref={editorRootRef}
     >
       <div className="editor-project-toolbar">
         <strong title={summary.name}>{summary.name}</strong>
-        <span
-          className={`editor-save-state is-${saveState.toLocaleLowerCase().replace(" ", "-")}`}
-        >
-          {saveState}
+        <span className={`editor-save-state is-${saveState}`}>
+          {translate(`ui.editorWorkspace.saveState.${saveState}`)}
         </span>
+        {settings.editor.collapseAdvancedViews && (
+          <>
+            <span id="editor-advanced-views-description" className="sr-only">
+              {translate(
+                "ui.editorWorkspace.ariaLabel.showFilesSourceAndPropertiesViews",
+              )}
+            </span>
+            <button
+              ref={advancedViewsButtonRef}
+              className="editor-advanced-views-toggle"
+              type="button"
+              aria-expanded={advancedViewsOpen}
+              aria-describedby="editor-advanced-views-description"
+              onClick={toggleAdvancedViews}
+            >
+              <span>{translate("ui.editorWorkspace.text.advancedViews")}</span>
+              <Chevron direction={advancedViewsOpen ? "down" : "right"} />
+            </button>
+          </>
+        )}
         <span className="editor-toolbar-spacer" />
         <button
           type="button"
@@ -2076,7 +2313,10 @@ export function EditorWorkspace({
           role="tablist"
           aria-label={translate("ui.editorWorkspace.ariaLabel.navigation")}
         >
-          {(["content", "files"] as const).map((tab) => (
+          {(advancedViewsOpen
+            ? (["content", "files"] as const)
+            : (["content"] as const)
+          ).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -2170,7 +2410,10 @@ export function EditorWorkspace({
                   />
                 ) : null;
               })()}
-              {declarationGroups.map(({ id, heading, kinds, additions }) => {
+              {declarationGroups.map(({ id, headingKey, kinds, additions }) => {
+                const heading = translate(
+                  `ui.editorWorkspace.explorerGroup.${headingKey}`,
+                );
                 const symbols = visibleSymbols.filter(
                   (symbol) =>
                     (kinds as readonly string[]).includes(symbol.kind) &&
@@ -2178,7 +2421,8 @@ export function EditorWorkspace({
                 );
                 if (!symbols.length && symbolQuery) return null;
                 const groupId = `content:${id}`;
-                const expanded = isExplorerGroupExpanded(groupId);
+                const expanded =
+                  Boolean(symbolQuery) || isExplorerGroupExpanded(groupId);
                 return (
                   <ExplorerDisclosure
                     groupId={groupId}
@@ -2186,9 +2430,10 @@ export function EditorWorkspace({
                     label={heading}
                     count={symbols.length}
                     expanded={expanded}
-                    onToggle={(nextExpanded) =>
-                      setExplorerGroupExpanded(groupId, nextExpanded)
-                    }
+                    onToggle={(nextExpanded) => {
+                      if (!symbolQuery)
+                        setExplorerGroupExpanded(groupId, nextExpanded);
+                    }}
                     onContextMenu={(event) =>
                       openExplorerContextMenu(event, {
                         kind: "group",
@@ -2301,16 +2546,18 @@ export function EditorWorkspace({
                 );
                 if (!assets.length && symbolQuery) return null;
                 const groupId = "content:assets";
-                const expanded = isExplorerGroupExpanded(groupId);
+                const expanded =
+                  Boolean(symbolQuery) || isExplorerGroupExpanded(groupId);
                 return (
                   <ExplorerDisclosure
                     groupId={groupId}
                     label={translate("ui.editorWorkspace.text.assets")}
                     count={assets.length}
                     expanded={expanded}
-                    onToggle={(nextExpanded) =>
-                      setExplorerGroupExpanded(groupId, nextExpanded)
-                    }
+                    onToggle={(nextExpanded) => {
+                      if (!symbolQuery)
+                        setExplorerGroupExpanded(groupId, nextExpanded);
+                    }}
                     onContextMenu={(event) =>
                       openExplorerContextMenu(event, {
                         kind: "group",
@@ -2494,15 +2741,17 @@ export function EditorWorkspace({
           role="tablist"
           aria-label={translate("ui.editorWorkspace.ariaLabel.editingView")}
         >
-          {(selectedTrash
-            ? (["source"] as const)
-            : selectedAsset
-              ? navigationTab === "files"
-                ? (["source"] as const)
-                : (["structured", "source"] as const)
-              : navigationTab === "files"
-                ? (["source"] as const)
-                : (["structured", "source"] as const)
+          {(advancedViewsOpen
+            ? selectedTrash
+              ? (["source"] as const)
+              : selectedAsset
+                ? navigationTab === "files"
+                  ? (["source"] as const)
+                  : (["structured", "source"] as const)
+                : navigationTab === "files"
+                  ? (["source"] as const)
+                  : (["structured", "source"] as const)
+            : (["structured"] as const)
           ).map((tab) => (
             <button
               key={tab}
@@ -2539,13 +2788,28 @@ export function EditorWorkspace({
                 key={`${resolvedSelectedSymbol?.file ?? "jump.jdef"}:${resolvedSelectedSymbol?.from ?? 0}`}
                 packageName={summary.name}
                 diagnostics={analysis.diagnostics}
-                symbol={
-                  resolvedSelectedSymbol ??
-                  analysis.symbols.find((item) => item.kind === "jump") ??
-                  null
-                }
+                symbol={structuredSymbol}
                 files={workspace.files}
                 assets={archiveAssetPaths.map(assetRelativePath)}
+                tagDefinitions={tags}
+                collapseOptionalSectionsInitially={
+                  collapseOptionalSectionsInitially
+                }
+                optionalDisclosureState={
+                  structuredDisclosureOwner
+                    ? (structuredDisclosureStates[structuredDisclosureOwner] ??
+                      emptyStructuredDisclosureState)
+                    : emptyStructuredDisclosureState
+                }
+                onOptionalDisclosureChange={(section, expanded) => {
+                  if (!structuredDisclosureOwner) return;
+                  rememberStructuredDisclosure(
+                    structuredDisclosureOwner,
+                    section,
+                    expanded,
+                  );
+                }}
+                showExplanatoryText={settings.editor.showExplanatoryText}
                 focusField={structuredFocus}
                 layoutInspectionRef={layoutInspectionRef}
                 activeLayoutContainerPath={
@@ -2566,7 +2830,7 @@ export function EditorWorkspace({
                 onEndFieldEdit={endHistoryGroup}
                 onImportAsset={requestAssetImport}
                 onUpdate={(symbol, field, value, occurrence = 0) => {
-                  const result = setDocumentField(
+                  let result = setDocumentField(
                     workspace.files,
                     symbol,
                     field,
@@ -2574,6 +2838,21 @@ export function EditorWorkspace({
                     occurrence,
                   );
                   if (!result.changed) return;
+                  if (
+                    ["choice", "grant"].includes(symbol.kind) &&
+                    value &&
+                    ["form", "companion"].includes(field)
+                  ) {
+                    const exclusiveField =
+                      field === "form" ? "companion" : "form";
+                    const exclusiveRemoval = setDocumentField(
+                      result.files,
+                      symbol,
+                      exclusiveField,
+                      "",
+                    );
+                    if (exclusiveRemoval.changed) result = exclusiveRemoval;
+                  }
                   commitFiles(
                     result.files,
                     true,
@@ -2623,7 +2902,10 @@ export function EditorWorkspace({
                     translate(
                       "ui.editorWorkspace.announcement.declarationAdded",
                       {
-                        declaration: kind.replaceAll("-", " "),
+                        declaration:
+                          kind === "description"
+                            ? translate("ui.editorWorkspace.description.label")
+                            : editorDeclarationLabel(kind),
                       },
                     ),
                   );
@@ -2679,7 +2961,7 @@ export function EditorWorkspace({
                     translate(
                       "ui.editorWorkspace.announcement.declarationRemoved",
                       {
-                        declaration: child.kind.replaceAll("-", " "),
+                        declaration: editorDeclarationLabel(child.kind),
                       },
                     ),
                   );
@@ -2706,7 +2988,7 @@ export function EditorWorkspace({
                     translate(
                       "ui.editorWorkspace.announcement.declarationMoved",
                       {
-                        declaration: child.kind.replaceAll("-", " "),
+                        declaration: editorDeclarationLabel(child.kind),
                       },
                     ),
                   );
@@ -2811,8 +3093,12 @@ export function EditorWorkspace({
                   disabled={!quickFixAvailable}
                   title={
                     quickFixAvailable
-                      ? "Apply the deterministic repair at the cursor"
-                      : "No deterministic repair is available"
+                      ? translate(
+                          "ui.editorWorkspace.title.applySuggestedFixAtCursor",
+                        )
+                      : translate(
+                          "ui.editorWorkspace.title.noSuggestedFixAvailable",
+                        )
                   }
                 >
                   <span>{translate("ui.editorWorkspace.text.quickFix")}</span>
@@ -2915,7 +3201,10 @@ export function EditorWorkspace({
                   </div>
                   <span className="editor-find-count" aria-live="polite">
                     {findStatus.valid
-                      ? `${findStatus.current} of ${findStatus.total}`
+                      ? translate("ui.editorWorkspace.text.matchCount", {
+                          current: findStatus.current,
+                          total: findStatus.total,
+                        })
                       : findStatus.error}
                   </span>
                   <label className="editor-replace-toggle">
@@ -3015,7 +3304,19 @@ export function EditorWorkspace({
                 <SourcePalette
                   title={
                     sourceContextSymbol
-                      ? `${sourceContextSymbol.kind} · ${sourceContextSymbol.handle ?? "declaration"}`
+                      ? translate(
+                          "ui.editorWorkspace.text.sourceContextTitle",
+                          {
+                            kind: editorDeclarationLabel(
+                              sourceContextSymbol.kind,
+                            ),
+                            handle:
+                              sourceContextSymbol.handle ??
+                              translate(
+                                "ui.editorWorkspace.text.unnamedDeclaration",
+                              ),
+                          },
+                        )
                       : file
                   }
                   symbol={sourceContextSymbol}
@@ -3052,21 +3353,28 @@ export function EditorWorkspace({
                     const indentation = " ".repeat(
                       ((sourceContextSymbol?.depth ?? 0) + 1) * 2,
                     );
+                    const sourceKind = kind === "description" ? "text" : kind;
                     const childBody =
-                      kind === "cost"
-                        ? "resource: jump_points\namount: 0"
-                        : kind === "grant"
-                          ? 'kind: perk\nname: "New grant"'
-                          : kind === "choice"
-                            ? "handle: new_placement\ntarget: choice_handle"
-                            : kind === "choice-source"
-                              ? "handle: new_source\nmode: multi"
-                              : ["stack", "inline", "wrap"].includes(kind)
-                                ? "gap: md"
-                                : kind === "grid"
-                                  ? "columns: 2"
-                                  : `handle: new_${kind.replaceAll("-", "_")}`;
-                    const snippet = `\n${indentation}${kind}\n${childBody
+                      kind === "description"
+                        ? 'handle: description\ncontent: ""'
+                        : kind === "cost"
+                          ? "resource: jump_points\namount: 0"
+                          : kind === "grant"
+                            ? `kind: perk\nname: ${JSON.stringify(
+                                translate(
+                                  "ui.editorWorkspace.starter.newGrantName",
+                                ),
+                              )}`
+                            : kind === "choice"
+                              ? "handle: new_placement\ntarget: choice_handle"
+                              : kind === "choice-source"
+                                ? "handle: new_source\nmode: multi"
+                                : ["stack", "inline", "wrap"].includes(kind)
+                                  ? "gap: md"
+                                  : kind === "grid"
+                                    ? "columns: 2"
+                                    : `handle: new_${kind.replaceAll("-", "_")}`;
+                    const snippet = `\n${indentation}${sourceKind}\n${childBody
                       .split("\n")
                       .map((line) => `${indentation}  ${line}`)
                       .join("\n")}\n`;
@@ -3083,6 +3391,7 @@ export function EditorWorkspace({
                   quickFixAvailable={quickFixAvailable}
                   keybindings={sourceKeybindings}
                   shortcutLabels={sourceShortcutLabels}
+                  showExplanatoryText={settings.editor.showExplanatoryText}
                   onCompletion={() => {
                     setCompletionOpen((value) => !value);
                   }}
@@ -3188,7 +3497,10 @@ export function EditorWorkspace({
           role="tablist"
           aria-label={translate("ui.editorWorkspace.ariaLabel.contextView")}
         >
-          {(["preview", "properties"] as const).map((tab) => (
+          {(advancedViewsOpen
+            ? (["preview", "properties"] as const)
+            : (["preview"] as const)
+          ).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -3244,33 +3556,37 @@ export function EditorWorkspace({
                     ))}
                   </span>
                 )}
-                <label>
-                  <input
-                    type="checkbox"
-                    aria-label={
-                      previewSelection.kind === "appearance"
-                        ? translate("ui.editorWorkspace.text.inspectColors")
-                        : undefined
+                {settings.editor.collapsePreviewInspectionTools ? (
+                  <button
+                    className="editor-preview-tools-toggle"
+                    type="button"
+                    aria-expanded={previewInspectionToolsOpen}
+                    aria-controls="editor-preview-inspection-tools"
+                    onClick={() =>
+                      setPreviewInspectionToolsOpen(!previewInspectionToolsOpen)
                     }
-                    checked={showBounds}
-                    onChange={(event) => setShowBounds(event.target.checked)}
-                  />{" "}
-                  {translate(
-                    previewSelection.kind === "appearance"
-                      ? "ui.editorWorkspace.text.inspect"
-                      : "ui.editorWorkspace.text.showBounds",
-                  )}
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={stripColor}
-                    onChange={(event) => setStripColor(event.target.checked)}
-                  />{" "}
-                  {translate("ui.editorWorkspace.text.stripColor")}
-                </label>
+                  >
+                    <span>
+                      {translate("ui.editorWorkspace.text.previewTools")}
+                    </span>
+                    <Chevron
+                      direction={previewInspectionToolsOpen ? "down" : "right"}
+                    />
+                  </button>
+                ) : (
+                  previewInspectionControls
+                )}
               </div>
             </div>
+            {settings.editor.collapsePreviewInspectionTools &&
+              previewInspectionToolsOpen && (
+                <div
+                  id="editor-preview-inspection-tools"
+                  className="editor-preview-inspection-tools"
+                >
+                  {previewInspectionControls}
+                </div>
+              )}
             <div className="editor-bounds-tools" hidden={!showBounds}>
               {previewSelection.kind === "appearance" ? (
                 <>
@@ -3391,6 +3707,7 @@ export function EditorWorkspace({
                 packageItem={previewPackage}
                 layoutPackageItem={layoutPackageItem}
                 assets={workspace.assets}
+                tags={tags}
                 selection={previewSelection}
                 showBounds={showBounds}
                 stripColor={stripColor}
@@ -3485,8 +3802,18 @@ export function EditorWorkspace({
                   key={severity}
                   type="button"
                   aria-pressed={diagnosticFilters[severity]}
-                  aria-label={`${count} ${severity === "info" ? "information" : `${severity}s`}`}
-                  title={`Toggle ${severity}s`}
+                  aria-label={translate(
+                    `ui.editorWorkspace.diagnosticCount.${severity}`,
+                    { count },
+                  )}
+                  title={translate(
+                    "ui.editorWorkspace.title.toggleDiagnosticSeverity",
+                    {
+                      severity: translate(
+                        `ui.editorWorkspace.diagnosticSeverity.${severity}`,
+                      ),
+                    },
+                  )}
                   onClick={() =>
                     setDiagnosticFilters((current) => ({
                       ...current,
@@ -3522,7 +3849,9 @@ export function EditorWorkspace({
             <span className="editor-diagnostics-summary-text">
               {priorityDiagnostic
                 ? translateDiagnostic(priorityDiagnostic)
-                : "No included diagnostics."}
+                : translate(
+                    "ui.editorWorkspace.text.noDiagnosticsMatchFilters",
+                  )}
             </span>
           </div>
         </div>
@@ -3622,6 +3951,7 @@ function LayoutNodeFields({
   onUpdate,
   fields,
   showHeading = true,
+  showExplanatoryText,
 }: {
   assets: readonly string[];
   diagnostics: readonly PackageDiagnostic[];
@@ -3637,6 +3967,7 @@ function LayoutNodeFields({
   ) => void;
   fields?: readonly string[];
   showHeading?: boolean;
+  showExplanatoryText: boolean;
 }) {
   const context = structuredContext(files, symbol);
   if (!context) return null;
@@ -3649,7 +3980,7 @@ function LayoutNodeFields({
       {showHeading && (
         <strong>
           {translate("ui.editorWorkspace.text.editLayoutNode", {
-            node: symbol.kind,
+            node: editorDeclarationLabel(symbol.kind),
           })}
         </strong>
       )}
@@ -3702,14 +4033,19 @@ function LayoutNodeFields({
             ),
         );
         const listId = `layout-${symbol.from}-${fieldName}`;
-        const fieldLabel = translate(
-          `ui.editorWorkspace.layoutField.${fieldName}`,
-        );
+        const presentation = editorLayoutFieldPresentation(fieldName);
+        const fieldLabel = presentation.label;
+        const helpId =
+          showExplanatoryText && presentation.help
+            ? `${listId}-help`
+            : undefined;
+        const diagnosticId = matchingDiagnostics.length
+          ? `${listId}-diagnostics`
+          : undefined;
+        const describedBy = [helpId, diagnosticId].filter(Boolean).join(" ");
         const common = {
           "aria-invalid": matchingDiagnostics.length ? true : undefined,
-          "aria-describedby": matchingDiagnostics.length
-            ? `${listId}-diagnostics`
-            : undefined,
+          "aria-describedby": describedBy || undefined,
         } as const;
         const integerControl = integerFieldControl(value, {
           minimum: definition.minimum,
@@ -3733,6 +4069,7 @@ function LayoutNodeFields({
                 {definition.required && (
                   <small>{translate("ui.editorWorkspace.text.required")}</small>
                 )}
+                {helpId && <small id={helpId}>{presentation.help}</small>}
               </span>
               {["color", "hexColor"].includes(definition.type ?? "") ? (
                 <ColorFieldControl
@@ -3741,11 +4078,7 @@ function LayoutNodeFields({
                   choices={colorChoices}
                   allowTokens={definition.type === "color"}
                   ariaInvalid={matchingDiagnostics.length > 0}
-                  ariaDescribedBy={
-                    matchingDiagnostics.length
-                      ? `${listId}-diagnostics`
-                      : undefined
-                  }
+                  ariaDescribedBy={describedBy || undefined}
                   onChange={(nextValue) =>
                     onUpdate(symbol, fieldName, nextValue)
                   }
@@ -3795,11 +4128,7 @@ function LayoutNodeFields({
                   value={value}
                   tokens={options}
                   ariaInvalid={matchingDiagnostics.length > 0}
-                  ariaDescribedBy={
-                    matchingDiagnostics.length
-                      ? `${listId}-diagnostics`
-                      : undefined
-                  }
+                  ariaDescribedBy={describedBy || undefined}
                   onChange={(nextValue) =>
                     onUpdate(symbol, fieldName, nextValue)
                   }
@@ -3833,12 +4162,16 @@ function LayoutNodeFields({
                     </option>
                   )}
                   {selectControl.options.map((option) => (
-                    <option key={option} value={option}>
+                    <option value={option} key={option}>
                       {symbol.kind === "rule" && fieldName === "style"
                         ? translate(
                             `ui.editorWorkspace.layoutOption.ruleStyle.${option}`,
                           )
-                        : option}
+                        : editorOptionPresentation(
+                            symbol.kind,
+                            fieldName,
+                            option,
+                          ).label}
                     </option>
                   ))}
                 </select>
@@ -3887,11 +4220,8 @@ function LayoutNodeFields({
                   value={value}
                   options={references}
                   ariaInvalid={matchingDiagnostics.length > 0}
-                  ariaDescribedBy={
-                    matchingDiagnostics.length
-                      ? `${listId}-diagnostics`
-                      : undefined
-                  }
+                  ariaDescribedBy={describedBy || undefined}
+                  showDescriptions={showExplanatoryText}
                   onChange={(nextValue) =>
                     onUpdate(symbol, fieldName, nextValue)
                   }
@@ -4066,6 +4396,51 @@ type LayoutContentCreationRequest = {
   node: LayoutNodeRef | null;
 };
 
+function LayoutNodeKindControl({
+  label,
+  value,
+  kinds,
+  disabled,
+  ariaInvalid,
+  ariaDescribedBy,
+  showExplanatoryText,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  kinds: readonly string[];
+  disabled?: boolean;
+  ariaInvalid?: boolean;
+  ariaDescribedBy?: string;
+  showExplanatoryText: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="editor-schema-field editor-layout-kind-field">
+      <span>{label}</span>
+      <FreeTextSuggestionCombobox
+        label={label}
+        value={value}
+        suggestions={kinds.map(editorLayoutNodePresentation)}
+        disabled={disabled}
+        ariaInvalid={ariaInvalid}
+        ariaDescribedBy={ariaDescribedBy}
+        showSuggestionsLabel={translate(
+          "ui.editorWorkspace.combobox.showOptions",
+          { field: label },
+        )}
+        suggestionsLabel={translate(
+          "ui.editorWorkspace.combobox.availableOptions",
+          { field: label },
+        )}
+        selectOnly
+        showDescriptions={showExplanatoryText}
+        onChange={onChange}
+      />
+    </div>
+  );
+}
+
 function LayoutTreeEditor({
   assets,
   diagnostics,
@@ -4081,6 +4456,7 @@ function LayoutTreeEditor({
   returnTarget,
   onOpenCreatedContent,
   onCreateReference,
+  showExplanatoryText,
 }: {
   assets: readonly string[];
   diagnostics: readonly PackageDiagnostic[];
@@ -4111,6 +4487,7 @@ function LayoutTreeEditor({
     options?: { color?: string },
     returnTarget?: FormatSymbol,
   ) => void;
+  showExplanatoryText: boolean;
 }) {
   const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const tree = useMemo(
@@ -4511,19 +4888,13 @@ function LayoutTreeEditor({
       {!root ? (
         <div className="editor-layout-root-create">
           <p>{translate("ui.editorWorkspace.text.layoutNeedsRoot")}</p>
-          <label>
-            <span>{translate("ui.editorWorkspace.text.containerFlow")}</span>
-            <select
-              value={rootKinds.includes(newKind) ? newKind : rootKinds[0]}
-              onChange={(event) => setNewKind(event.target.value)}
-            >
-              {rootKinds.map((kind) => (
-                <option key={kind} value={kind}>
-                  {displayKind(kind)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <LayoutNodeKindControl
+            label={translate("ui.editorWorkspace.text.containerFlow")}
+            value={rootKinds.includes(newKind) ? newKind : rootKinds[0]}
+            kinds={rootKinds}
+            showExplanatoryText={showExplanatoryText}
+            onChange={setNewKind}
+          />
           <button
             type="button"
             onClick={() =>
@@ -4604,33 +4975,25 @@ function LayoutTreeEditor({
                   {selected.path}
                 </span>
               </label>
-              <label>
-                <span>
-                  {translate("ui.editorWorkspace.text.containerFlow")}
-                </span>
-                <select
-                  value={selected.kind}
-                  disabled={!tree.structurallySafe}
-                  onChange={(event) =>
-                    apply(
-                      convertLayoutNode(
-                        files,
-                        layout,
-                        layoutNodeReference(selected),
-                        event.target.value,
-                      ),
-                      announce("layoutNodeConverted", event.target.value),
-                      "container",
-                    )
-                  }
-                >
-                  {allowedKinds.filter(layoutNodeIsContainer).map((kind) => (
-                    <option key={kind} value={kind}>
-                      {displayKind(kind)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <LayoutNodeKindControl
+                label={translate("ui.editorWorkspace.text.containerFlow")}
+                value={selected.kind}
+                kinds={allowedKinds.filter(layoutNodeIsContainer)}
+                disabled={!tree.structurallySafe}
+                showExplanatoryText={showExplanatoryText}
+                onChange={(nextKind) =>
+                  apply(
+                    convertLayoutNode(
+                      files,
+                      layout,
+                      layoutNodeReference(selected),
+                      nextKind,
+                    ),
+                    announce("layoutNodeConverted", nextKind),
+                    "container",
+                  )
+                }
+              />
               <LayoutNodeFields
                 assets={assets}
                 diagnostics={diagnostics}
@@ -4643,6 +5006,7 @@ function LayoutTreeEditor({
                 onUpdate={updateLayoutField}
                 fields={["columns", "gap"]}
                 showHeading={false}
+                showExplanatoryText={showExplanatoryText}
               />
               <button
                 type="button"
@@ -4694,6 +5058,7 @@ function LayoutTreeEditor({
                       "border-style",
                       "corners",
                     ]}
+                    showExplanatoryText={showExplanatoryText}
                     showHeading={false}
                   />
                 </div>
@@ -4946,37 +5311,39 @@ function LayoutTreeEditor({
                   >
                     ⋮⋮
                   </span>
-                  <label>
-                    <span>{translate("ui.editorWorkspace.text.nodeType")}</span>
-                    {node.container ? (
+                  {node.container ? (
+                    <label>
+                      <span>
+                        {translate("ui.editorWorkspace.text.nodeType")}
+                      </span>
                       <span className="editor-layout-static-control">
                         {displayKind(node.kind)}
                       </span>
-                    ) : (
-                      <select
-                        value={node.kind}
-                        disabled={!tree.structurallySafe}
-                        {...diagnosticAttributes}
-                        onChange={(event) =>
-                          apply(
-                            convertLayoutNode(
-                              files,
-                              layout,
-                              layoutNodeReference(node),
-                              event.target.value,
-                            ),
-                            announce("layoutNodeConverted", event.target.value),
-                          )
-                        }
-                      >
-                        {leafKinds.map((kind) => (
-                          <option key={kind} value={kind}>
-                            {displayKind(kind)}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </label>
+                    </label>
+                  ) : (
+                    <LayoutNodeKindControl
+                      label={translate("ui.editorWorkspace.text.nodeType")}
+                      value={node.kind}
+                      kinds={leafKinds}
+                      disabled={!tree.structurallySafe}
+                      ariaInvalid={Boolean(
+                        diagnosticAttributes["aria-invalid"],
+                      )}
+                      ariaDescribedBy={diagnosticAttributes["aria-describedby"]}
+                      showExplanatoryText={showExplanatoryText}
+                      onChange={(nextKind) =>
+                        apply(
+                          convertLayoutNode(
+                            files,
+                            layout,
+                            layoutNodeReference(node),
+                            nextKind,
+                          ),
+                          announce("layoutNodeConverted", nextKind),
+                        )
+                      }
+                    />
+                  )}
                   <label>
                     <span>
                       {node.kind === "expand"
@@ -5310,6 +5677,7 @@ function LayoutTreeEditor({
                           )
                         }
                         onUpdate={updateLayoutField}
+                        showExplanatoryText={showExplanatoryText}
                       />
                       <LayoutInvalidFields
                         diagnostics={diagnostics}
@@ -5330,26 +5698,18 @@ function LayoutTreeEditor({
           </div>
           {selectedRef && (
             <div className="editor-layout-add-row">
-              <label>
-                <span>{translate("ui.editorWorkspace.text.newNodeType")}</span>
-                <select
-                  value={
-                    allowedKinds.includes(newKind) ? newKind : allowedKinds[0]
-                  }
-                  onChange={(event) => {
-                    setNewKind(event.target.value);
-                    setNewTarget(
-                      event.target.value === "slot" ? (slots[0] ?? "") : "",
-                    );
-                  }}
-                >
-                  {allowedKinds.map((kind) => (
-                    <option key={kind} value={kind}>
-                      {displayKind(kind)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <LayoutNodeKindControl
+                label={translate("ui.editorWorkspace.text.newNodeType")}
+                value={
+                  allowedKinds.includes(newKind) ? newKind : allowedKinds[0]
+                }
+                kinds={allowedKinds}
+                showExplanatoryText={showExplanatoryText}
+                onChange={(nextKind) => {
+                  setNewKind(nextKind);
+                  setNewTarget(nextKind === "slot" ? (slots[0] ?? "") : "");
+                }}
+              />
               {targetRequired && (
                 <label>
                   <span>{translate("ui.editorWorkspace.text.target")}</span>
@@ -5651,12 +6011,60 @@ function ResourceCreationDialog({
   );
 }
 
+const optionalDetailSectionKinds = new Set(["jump", "section"]);
+
+function CollapsibleFormSection({
+  className,
+  contentClassName,
+  label,
+  open,
+  disclosureId,
+  appearanceGroup,
+  children,
+  onToggle,
+}: {
+  className?: string;
+  contentClassName?: string;
+  label: ReactNode;
+  open: boolean;
+  disclosureId?: string;
+  appearanceGroup?: string;
+  children: ReactNode;
+  onToggle: (open: boolean) => void;
+}) {
+  return (
+    <DisclosureSection
+      className={`editor-form-card editor-collapsible-form-section${
+        className ? ` ${className}` : ""
+      }`}
+      dataDisclosureSection={disclosureId}
+      dataAppearanceGroup={appearanceGroup}
+      open={open}
+      onToggle={onToggle}
+      label={<h3>{label}</h3>}
+    >
+      <div
+        className={`editor-collapsible-form-section-content${
+          contentClassName ? ` ${contentClassName}` : ""
+        }`}
+      >
+        {children}
+      </div>
+    </DisclosureSection>
+  );
+}
+
 function StructuredPanel({
   packageName,
   diagnostics,
   symbol,
   files,
   assets,
+  tagDefinitions,
+  collapseOptionalSectionsInitially,
+  optionalDisclosureState,
+  onOptionalDisclosureChange,
+  showExplanatoryText,
   focusField,
   layoutInspectionRef,
   activeLayoutContainerPath,
@@ -5686,6 +6094,11 @@ function StructuredPanel({
   symbol: FormatSymbol | null;
   files: Readonly<Record<string, string>>;
   assets: readonly string[];
+  tagDefinitions: Readonly<Record<string, TagDefinition>>;
+  collapseOptionalSectionsInitially: boolean;
+  optionalDisclosureState: StructuredDisclosureState;
+  onOptionalDisclosureChange: (section: string, expanded: boolean) => void;
+  showExplanatoryText: boolean;
   focusField: string | null;
   layoutInspectionRef: Ref<LayoutInspectionHandle>;
   activeLayoutContainerPath: string | null;
@@ -5754,9 +6167,10 @@ function StructuredPanel({
     direction: "up" | "down",
   ) => void;
 }) {
-  const [appearanceGroupsExpanded, setAppearanceGroupsExpanded] = useState<
-    Record<string, boolean>
-  >({});
+  const optionalDisclosureExpanded = (
+    section: string,
+    defaultExpanded = !collapseOptionalSectionsInitially,
+  ) => optionalDisclosureState[section] ?? defaultExpanded;
   const source = symbol ? files[symbol.file].slice(symbol.from, symbol.to) : "";
   const field = (name: string) =>
     symbol ? readSourceField(files[symbol.file], symbol, name) : "";
@@ -5773,26 +6187,149 @@ function StructuredPanel({
         </span>
       </div>
     );
-  const handle = field("handle");
-  const name = handleIdentityDeclarations.has(symbol.kind)
-    ? handle
-    : field("name") || (symbol.kind === "jump" ? packageName : handle);
   const resolvedContext = structuredContext(files, symbol);
+  const handle = field("handle");
+  const isDescriptionText =
+    symbol.kind === "text" &&
+    handle === "description" &&
+    (resolvedContext?.context === "choice" ||
+      resolvedContext?.context.startsWith("grant:"));
+  const descriptionOwner =
+    resolvedContext?.context === "grant:trait"
+      ? "trait"
+      : resolvedContext?.context.startsWith("grant:")
+        ? "grant"
+        : resolvedContext?.context === "choice"
+          ? "choice"
+          : null;
+  const name = isDescriptionText
+    ? translate("ui.editorWorkspace.description.label")
+    : handleIdentityDeclarations.has(symbol.kind)
+      ? handle
+      : field("name") || (symbol.kind === "jump" ? packageName : handle);
   const isLayout = symbol.kind.includes("layout");
   const scalarForm = new RegExp(
     `^\\s*${symbol.kind.replaceAll("-", "\\-")}:\\s*(.+)$`,
   ).exec(source.split("\n")[0] ?? "");
   const visibleFieldNames =
     resolvedContext?.visibleFields ?? declarationFieldNames(symbol.kind);
-  const identityFields = visibleFieldNames.filter((item) =>
-    ["handle", "name", "description", "author", "version"].includes(item),
+  const identityFields = visibleFieldNames.filter(
+    (item) =>
+      ["handle", "name", "description", "author", "version"].includes(item) &&
+      !(isDescriptionText && item === "handle"),
   );
   const detailFields = visibleFieldNames.filter(
-    (item) => !identityFields.includes(item),
+    (item) =>
+      !identityFields.includes(item) &&
+      !(isDescriptionText && item === "handle"),
   );
+  const awardDetailFields = ["choice", "grant"].includes(symbol.kind)
+    ? detailFields.filter((item) =>
+        ["form", "companion", "measure"].includes(item),
+      )
+    : [];
+  const unorderedOrdinaryDetailFields = detailFields.filter(
+    (item) => !awardDetailFields.includes(item),
+  );
+  const choiceSelection = field("selection") || "toggle";
+  const choiceBehaviorFieldOrder =
+    choiceSelection === "select"
+      ? ["selection", "continuity", "resolution", "placeholder", "option"]
+      : [
+          "selection",
+          "resolution",
+          "min",
+          "max",
+          "placeholder",
+          "continuity",
+          "option",
+        ];
+  const choiceDetailOrder = [
+    "layout",
+    "tag",
+    "group",
+    ...choiceBehaviorFieldOrder,
+  ];
+  const ordinaryDetailFields =
+    symbol.kind === "choice"
+      ? [
+          ...choiceDetailOrder.filter((item) =>
+            unorderedOrdinaryDetailFields.includes(item),
+          ),
+          ...unorderedOrdinaryDetailFields.filter(
+            (item) => !choiceDetailOrder.includes(item),
+          ),
+        ]
+      : unorderedOrdinaryDetailFields;
   const childKinds = resolvedContext?.childKinds ?? [];
   const structuredAnalysis = service.analyze(files);
   const symbols = structuredAnalysis.symbols;
+  const inputOwner =
+    symbol.kind === "input"
+      ? [...(resolvedContext?.ancestors ?? [])]
+          .reverse()
+          .find((ancestor) => ancestor.kind === "choice")
+      : undefined;
+  const inputOwnerChoice = inputOwner?.handle
+    ? structuredAnalysis.packageItem.choices.find(
+        (choice) => choice.handle === inputOwner.handle,
+      )
+    : undefined;
+  const inputLayoutHandle =
+    inputOwnerChoice?.layout ??
+    structuredAnalysis.packageItem.defaultChoiceLayout;
+  const inputLayoutSymbol = inputLayoutHandle
+    ? symbols.find(
+        (candidate) =>
+          candidate.kind === "choice-layout" &&
+          candidate.handle === inputLayoutHandle,
+      )
+    : undefined;
+  const inputLayoutTree = inputLayoutSymbol
+    ? createLayoutEditorTree(files, inputLayoutSymbol)
+    : null;
+  const inputPlaced =
+    symbol.kind === "input" &&
+    Boolean(
+      inputLayoutTree &&
+      Object.values(inputLayoutTree.nodes).some(
+        (node) => node.kind === "input" && node.target === handle,
+      ),
+    );
+  const inputLayoutRoot =
+    inputLayoutTree?.rootId && inputLayoutTree.structurallySafe
+      ? inputLayoutTree.nodes[inputLayoutTree.rootId]
+      : undefined;
+  const primaryTagSuggestions = [...primaryTagIds].flatMap((tagId) => {
+    const tag = tagDefinitions[tagId];
+    return tag
+      ? [
+          {
+            value: tag.id,
+            label: tag.label,
+            description: translate(
+              "ui.editorWorkspace.setFields.primaryTagSuggestion",
+            ),
+          },
+        ]
+      : [];
+  });
+  const packageGroups = symbols
+    .filter((candidate) => ["choice", "choice-source"].includes(candidate.kind))
+    .flatMap((candidate) =>
+      readSourceFields(files[candidate.file], candidate, "group"),
+    )
+    .filter(
+      (group, index, groups) =>
+        Boolean(group.trim()) && groups.indexOf(group) === index,
+    );
+  const groupSuggestions = packageGroups.map((group) => ({
+    value: group,
+    label: group,
+    description: translate(
+      "ui.editorWorkspace.setFields.existingPackageGroupSuggestion",
+    ),
+  }));
   const allConditionProperties = conditionPropertyCatalog(
     structuredAnalysis.parsed,
   );
@@ -5809,7 +6346,8 @@ function StructuredPanel({
     )
     .sort((left, right) => right.depth - left.depth)[0];
   const ownerSelection = owningControl
-    ? readSourceField(files[owningControl.file], owningControl, "selection")
+    ? readSourceField(files[owningControl.file], owningControl, "selection") ||
+      (owningControl.kind === "choice" ? "toggle" : "")
     : "";
   const directGrants =
     symbol.kind === "choice"
@@ -5823,6 +6361,14 @@ function StructuredPanel({
       field("selection") === "integer" &&
       directGrants.length === 1 &&
       ["perk", "item"].includes(directGrants[0]));
+  const shortcutCompatibility = {
+    form: directGrants.length === 1 && directGrants[0] === "perk",
+    companion: directGrants.length === 1 && directGrants[0] === "perk",
+    measure:
+      field("selection") === "integer" &&
+      directGrants.length === 1 &&
+      ["perk", "item"].includes(directGrants[0]),
+  } as const;
   const conditionEntry = conditionNodeEntries(structuredAnalysis.parsed).find(
     ({ node }) =>
       node.kind === symbol.kind &&
@@ -5830,23 +6376,77 @@ function StructuredPanel({
       node.range.from === symbol.from,
   );
   const contextualConditionHandles = conditionEntry
-    ? conditionContextHandles(conditionEntry.node, conditionEntry.parent)
+    ? conditionContextHandles(
+        conditionEntry.node,
+        conditionEntry.parent,
+        conditionEntry.ancestors,
+      )
     : [];
-  const conditionProperties = allConditionProperties.filter(
-    (property) =>
-      property.category !== "context" ||
-      contextualConditionHandles.some((handle) => handle === property.handle),
+  const contextualControlProperties = conditionEntry
+    ? conditionControlProperties(
+        conditionEntry.node,
+        conditionEntry.parent,
+        conditionEntry.ancestors,
+      )
+    : [];
+  const contextualProperties = [
+    ...allConditionProperties.filter(
+      (property) =>
+        property.category === "context" &&
+        contextualConditionHandles.some((handle) => handle === property.handle),
+    ),
+    ...contextualControlProperties,
+  ];
+  const contextualPropertyHandles = new Set(
+    contextualProperties.map((property) => property.handle),
   );
+  const conditionProperties = [
+    ...contextualProperties,
+    ...allConditionProperties.filter(
+      (property) =>
+        property.category !== "context" &&
+        !contextualPropertyHandles.has(property.handle),
+    ),
+  ];
   const renderField = (fieldName: string) => {
-    const fieldLabel =
+    const presentation =
       symbol.kind === "jump-appearance"
-        ? translate(`ui.editorWorkspace.appearanceField.${fieldName}`)
-        : fieldName.replaceAll("-", " ");
-    const controlLabel =
-      symbol.kind === "jump-appearance" ? fieldLabel : fieldName;
+        ? {
+            label: translate(`ui.editorWorkspace.appearanceField.${fieldName}`),
+          }
+        : editorFieldPresentation(symbol.kind, fieldName);
+    const fieldLabel =
+      isDescriptionText && fieldName === "content"
+        ? translate("ui.editorWorkspace.description.label")
+        : symbol.kind === "grant" &&
+            fieldName === "handle" &&
+            field("kind") === "property" &&
+            field("value") === "" &&
+            owningControl
+          ? translate("ui.editorWorkspace.namedValues.answerName")
+          : symbol.kind === "choice-source" && fieldName === "group"
+            ? translate("ui.editorWorkspace.setFields.choiceSourceGroupLabel")
+            : presentation.label;
+    const fieldHelp = showExplanatoryText
+      ? isDescriptionText && fieldName === "content" && descriptionOwner
+        ? translate(
+            `ui.editorWorkspace.description.${descriptionOwner}ContentHelp`,
+          )
+        : symbol.kind === "grant" &&
+            fieldName === "handle" &&
+            field("kind") === "property" &&
+            field("value") === "" &&
+            owningControl
+          ? translate("ui.editorWorkspace.namedValues.answerNameHelp")
+          : symbol.kind === "choice-source" && fieldName === "group"
+            ? translate("ui.editorWorkspace.setFields.choiceSourceGroupHelp")
+            : presentation.help
+      : undefined;
+    const controlLabel = fieldLabel;
     const definition =
       resolvedContext?.fields[fieldName] ??
       fieldDefinition(symbol.kind, fieldName);
+    const fieldRequired = Boolean(definition?.required);
     const defaultValue = fieldDefault(symbol.kind, fieldName, {
       gauntlet: field("gauntlet"),
       selection: field("selection"),
@@ -5856,13 +6456,23 @@ function StructuredPanel({
       choiceLayout: jumpField("choice-layout"),
       traitLayout: jumpField("trait-layout"),
     });
-    const shadowText = defaultShadowText(defaultValue);
+    const shadowText =
+      defaultShadowText(defaultValue) ??
+      (symbol.kind === "choice" &&
+      fieldName === "continuity" &&
+      field("selection") === "select"
+        ? translate("ui.editorWorkspace.defaultValue.notGenderSelection")
+        : ["choice", "input"].includes(symbol.kind) && fieldName === "min"
+          ? translate("ui.editorWorkspace.defaultValue.unboundedMinimum")
+          : ["choice", "input"].includes(symbol.kind) && fieldName === "max"
+            ? translate("ui.editorWorkspace.defaultValue.unboundedMaximum")
+            : undefined);
     const referenceKind = definition?.type?.startsWith("handleReference:")
       ? definition.type.slice("handleReference:".length)
       : null;
     const referenceSymbolKinds: Readonly<Record<string, readonly string[]>> = {
       form: ["grant"],
-      companionTarget: ["grant"],
+      companionTarget: ["grant", "choice"],
       "owner-local-content": ["text", "image", "input"],
       "choice-placement": ["choice"],
     };
@@ -5882,9 +6492,17 @@ function StructuredPanel({
                   "form"
                 );
               if (referenceKind === "companionTarget")
-                return ["companion", "companion-import"].includes(
-                  readSourceField(files[candidate.file], candidate, "kind"),
-                );
+                return candidate.kind === "choice"
+                  ? readSourceField(
+                      files[candidate.file],
+                      candidate,
+                      "selection",
+                    ) === "companions"
+                  : readSourceField(
+                      files[candidate.file],
+                      candidate,
+                      "kind",
+                    ) === "companion";
               if (referenceKind === "choice-placement")
                 return candidate.depth > 0;
               return true;
@@ -5898,6 +6516,51 @@ function StructuredPanel({
         ? fieldValues(definition)
         : []),
     ].filter((option, index, options) => options.indexOf(option) === index);
+    const referenceSuggestions = referenceOptions.map((value) => {
+      if (value === "jump_points")
+        return {
+          value,
+          label: value,
+          description: translate(
+            "ui.editorWorkspace.reference.primaryPointCurrency",
+          ),
+        };
+      const candidate = symbols.find((item) => item.handle === value);
+      if (!candidate) return { value, label: value };
+      if (
+        candidate.kind === "choice" &&
+        readSourceField(files[candidate.file], candidate, "selection") ===
+          "companions"
+      )
+        return {
+          value,
+          label: value,
+          description: translate(
+            "ui.editorWorkspace.reference.importedCompanionChoice",
+            {
+              name: candidate.name ?? value,
+            },
+          ),
+        };
+      const kind =
+        candidate.kind === "grant"
+          ? editorOptionPresentation(
+              "grant",
+              "kind",
+              readSourceField(files[candidate.file], candidate, "kind"),
+            ).label
+          : editorDeclarationLabel(candidate.kind);
+      return {
+        value,
+        label: value,
+        description: candidate.name
+          ? translate("ui.editorWorkspace.reference.kindAndName", {
+              kind,
+              name: candidate.name,
+            })
+          : kind,
+      };
+    });
     const referenceCreationKind: CreatableTopLevelDeclarationKind | null =
       referenceKind &&
       ["section-layout", "choice-layout", "trait-layout"].includes(
@@ -5931,9 +6594,144 @@ function StructuredPanel({
       fieldName,
     );
     const displayed = values.length ? values : [""];
+    const alignFieldRows =
+      !definition?.repeatable && !definition?.conditionalVariants;
+    const setKind =
+      fieldName === "tag" && ["choice", "grant"].includes(symbol.kind)
+        ? ("tag" as const)
+        : fieldName === "group" && symbol.kind === "choice"
+          ? ("group" as const)
+          : fieldName === "author" && symbol.kind === "jump"
+            ? ("author" as const)
+            : null;
+    const fieldDiagnostics = (occurrence: number) =>
+      diagnostics.filter(
+        (diagnostic) =>
+          diagnostic.target?.file === symbol.file &&
+          diagnostic.target.declarationFrom === symbol.from &&
+          diagnostic.target.field === fieldName &&
+          diagnostic.target.part !== "condition" &&
+          (diagnostic.target.occurrence ?? 0) === occurrence,
+      );
+    if (setKind) {
+      const setLabel = translate(
+        `ui.editorWorkspace.setFields.${setKind}.label`,
+      );
+      const suggestionOptions =
+        setKind === "tag"
+          ? primaryTagSuggestions
+          : setKind === "group"
+            ? groupSuggestions
+            : [];
+      const tagDefinitionForValue = (value: string) => {
+        const identity = normalizeTag(value);
+        const profileEntry = Object.values(tagDefinitions).find(
+          (entry) =>
+            normalizeTag(entry.id) === identity ||
+            normalizeTag(entry.label) === identity ||
+            entry.aliases.some((alias) => normalizeTag(alias) === identity),
+        );
+        const known = profileEntry
+          ? tagDefinitions[profileEntry.id]
+          : undefined;
+        const fallback = tagDefinitions.miscellaneous;
+        return (
+          known ?? {
+            ...(fallback ?? {
+              color: "#68707c",
+              to: "#454b54",
+              style: "soft" as const,
+            }),
+            id: value,
+            label: value,
+            parent: "miscellaneous",
+            aliases: [],
+          }
+        );
+      };
+      return (
+        <SetFieldControl
+          key={fieldName}
+          kind={setKind}
+          label={setLabel}
+          help={translate(`ui.editorWorkspace.setFields.${setKind}.help`)}
+          showHelp={showExplanatoryText}
+          values={values}
+          suggestions={suggestionOptions}
+          placeholder={translate(
+            `ui.editorWorkspace.setFields.${setKind}.placeholder`,
+          )}
+          addLabel={translate(`ui.editorWorkspace.setFields.${setKind}.add`)}
+          addedListLabel={translate(
+            `ui.editorWorkspace.setFields.${setKind}.addedList`,
+          )}
+          emptyValueLabel={translate(
+            `ui.editorWorkspace.setFields.${setKind}.emptyValue`,
+          )}
+          removeLabel={(value) =>
+            translate(`ui.editorWorkspace.setFields.${setKind}.remove`, {
+              value,
+            })
+          }
+          normalize={
+            setKind === "author"
+              ? (value) => value.trim().normalize("NFKC").toLocaleLowerCase()
+              : normalizeTag
+          }
+          renderValue={
+            setKind === "tag"
+              ? (value, removeAction) => (
+                  <CanonicalTrackerTagBadge
+                    tag={tagDefinitionForValue(value)}
+                    trailingAction={removeAction}
+                  />
+                )
+              : undefined
+          }
+          renderDetails={(_, occurrence) => {
+            const matching = fieldDiagnostics(occurrence);
+            if (!matching.length) return null;
+            return (
+              <span
+                className="editor-field-diagnostics"
+                id={`${listId}-${occurrence}-diagnostics`}
+              >
+                {matching.map((diagnostic, diagnosticIndex) => (
+                  <small
+                    className={`is-${diagnostic.severity}`}
+                    key={`${diagnostic.code}:${diagnosticIndex}`}
+                  >
+                    {translateDiagnostic(diagnostic)}
+                  </small>
+                ))}
+              </span>
+            );
+          }}
+          onAdd={(value) => onUpdate(symbol, fieldName, value, values.length)}
+          onRemove={(occurrence) => onUpdate(symbol, fieldName, "", occurrence)}
+        />
+      );
+    }
     return (
       <div
-        className={`editor-schema-field${["description", "content", "author", "option", "tag", "group"].includes(fieldName) ? " is-wide" : ""}`}
+        className={`editor-schema-field${
+          [
+            "description",
+            "content",
+            "author",
+            "option",
+            "tag",
+            "group",
+            "placeholder",
+          ].includes(fieldName) ||
+          (symbol.kind === "input" && fieldName === "selection") ||
+          (symbol.kind === "choice" &&
+            ((fieldName === "selection" &&
+              !["integer", "select"].includes(choiceSelection)) ||
+              (fieldName === "resolution" && choiceSelection === "select")))
+            ? " is-wide"
+            : ""
+        }${alignFieldRows ? " is-row-aligned" : ""}`}
         data-appearance-field={
           symbol.kind === "jump-appearance" ? fieldName : undefined
         }
@@ -5946,6 +6744,40 @@ function StructuredPanel({
               defaultValue,
               enumValues,
             );
+            const measureUnavailable =
+              !value && fieldName === "measure"
+                ? symbol.kind === "choice"
+                  ? choiceSelection !== "integer"
+                    ? {
+                        help: translate(
+                          "ui.editorWorkspace.choiceShorthand.measure.selectionUnavailable",
+                        ),
+                        placeholder: translate(
+                          "ui.editorWorkspace.choiceShorthand.measure.selectionUnavailablePlaceholder",
+                        ),
+                      }
+                    : !shortcutCompatibility.measure
+                      ? {
+                          help: translate(
+                            "ui.editorWorkspace.choiceShorthand.measure.awardUnavailable",
+                          ),
+                          placeholder: translate(
+                            "ui.editorWorkspace.choiceShorthand.measure.awardUnavailablePlaceholder",
+                          ),
+                        }
+                      : undefined
+                  : symbol.kind === "grant" && ownerSelection !== "integer"
+                    ? {
+                        help: translate(
+                          "ui.editorWorkspace.choiceShorthand.measure.ownerSelectionUnavailable",
+                        ),
+                        placeholder: translate(
+                          "ui.editorWorkspace.choiceShorthand.measure.selectionUnavailablePlaceholder",
+                        ),
+                      }
+                    : undefined
+                : undefined;
+            const effectiveFieldHelp = measureUnavailable?.help ?? fieldHelp;
             const matchingDiagnostics = diagnostics.filter(
               (diagnostic) =>
                 diagnostic.target?.file === symbol.file &&
@@ -5963,10 +6795,31 @@ function StructuredPanel({
             const diagnosticId = matchingDiagnostics.length
               ? `${listId}-${occurrence}-diagnostics`
               : undefined;
+            const helpId = effectiveFieldHelp
+              ? `${listId}-${occurrence}-help`
+              : undefined;
+            const describedBy =
+              [helpId, diagnosticId].filter(Boolean).join(" ") || undefined;
             const accessibility = {
               "aria-invalid": matchingDiagnostics.length ? true : undefined,
-              "aria-describedby": diagnosticId,
+              "aria-describedby": describedBy,
             } as const;
+            const emptyIncompatibleShortcut =
+              !value &&
+              ((symbol.kind === "choice" &&
+                fieldName in shortcutCompatibility &&
+                !shortcutCompatibility[
+                  fieldName as keyof typeof shortcutCompatibility
+                ]) ||
+                (symbol.kind === "grant" &&
+                  ((fieldName === "measure" && ownerSelection !== "integer") ||
+                    (fieldName === "form" && Boolean(field("companion"))) ||
+                    (fieldName === "companion" &&
+                      field("kind") === "perk" &&
+                      Boolean(field("form"))))) ||
+                (symbol.kind === "cost" &&
+                  fieldName === "mode" &&
+                  ownerSelection !== "integer"));
             const appearanceColorStatus =
               symbol.kind === "jump-appearance" && definition?.type === "color"
                 ? {
@@ -5979,17 +6832,25 @@ function StructuredPanel({
                 : undefined;
             return (
               <div
-                className={`editor-field-occurrence${fieldSeverity ? ` is-${fieldSeverity}` : ""}`}
+                className={`editor-field-occurrence${fieldSeverity ? ` is-${fieldSeverity}` : ""}${measureUnavailable ? " is-unavailable" : ""}`}
                 key={`${fieldName}:${occurrence}`}
               >
                 <span>
                   {fieldLabel}
-                  {definition?.required && (
+                  {fieldRequired && (
                     <small>
                       {translate("ui.editorWorkspace.text.required")}
                     </small>
                   )}
                 </span>
+                {effectiveFieldHelp && (
+                  <small
+                    className={`editor-field-help${measureUnavailable ? " is-unavailable" : ""}`}
+                    id={helpId}
+                  >
+                    {effectiveFieldHelp}
+                  </small>
+                )}
                 {appearanceColorStatus && (
                   <span className="editor-appearance-color-status">
                     <i
@@ -6045,7 +6906,7 @@ function StructuredPanel({
                       allowTokens={definition?.type === "color"}
                       autoFocus={fieldName === focusField && occurrence === 0}
                       ariaInvalid={matchingDiagnostics.length > 0}
-                      ariaDescribedBy={diagnosticId}
+                      ariaDescribedBy={describedBy}
                       onChange={(nextValue) =>
                         onUpdate(symbol, fieldName, nextValue, occurrence)
                       }
@@ -6116,9 +6977,72 @@ function StructuredPanel({
                       tokens={enumValues}
                       autoFocus={fieldName === focusField && occurrence === 0}
                       ariaInvalid={matchingDiagnostics.length > 0}
-                      ariaDescribedBy={diagnosticId}
+                      ariaDescribedBy={describedBy}
                       onChange={(nextValue) =>
                         onUpdate(symbol, fieldName, nextValue, occurrence)
+                      }
+                      onBlur={onEndFieldEdit}
+                    />
+                  ) : enumValues.length > 0 &&
+                    [
+                      "enum",
+                      "spacing",
+                      "size",
+                      "align",
+                      "justify",
+                      "textAlign",
+                    ].includes(definition?.type ?? "") &&
+                    selectControl.options.some(
+                      (option) =>
+                        editorOptionPresentation(symbol.kind, fieldName, option)
+                          .description,
+                    ) ? (
+                    <FreeTextSuggestionCombobox
+                      label={controlLabel}
+                      value={selectControl.value}
+                      placeholder={
+                        measureUnavailable?.placeholder ?? shadowText
+                      }
+                      suggestions={[
+                        ...(value && selectControl.showNotSet
+                          ? [
+                              {
+                                value: "",
+                                label: translate(
+                                  "ui.editorWorkspace.text.notSet",
+                                ),
+                              },
+                            ]
+                          : []),
+                        ...selectControl.options.map((option) =>
+                          editorOptionPresentation(
+                            symbol.kind,
+                            fieldName,
+                            option,
+                          ),
+                        ),
+                      ]}
+                      autoFocus={fieldName === focusField && occurrence === 0}
+                      disabled={emptyIncompatibleShortcut}
+                      ariaInvalid={matchingDiagnostics.length > 0}
+                      ariaDescribedBy={describedBy}
+                      showSuggestionsLabel={translate(
+                        "ui.editorWorkspace.combobox.showSuggestionsForField",
+                        { field: fieldLabel },
+                      )}
+                      suggestionsLabel={translate(
+                        "ui.editorWorkspace.combobox.availableSuggestionsForField",
+                        { field: fieldLabel },
+                      )}
+                      selectOnly
+                      showDescriptions={showExplanatoryText}
+                      onChange={(nextValue) =>
+                        onUpdate(
+                          symbol,
+                          fieldName,
+                          selectControl.authoredValue(nextValue),
+                          occurrence,
+                        )
                       }
                       onBlur={onEndFieldEdit}
                     />
@@ -6134,6 +7058,7 @@ function StructuredPanel({
                     <select
                       autoFocus={fieldName === focusField && occurrence === 0}
                       aria-label={`${controlLabel}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      disabled={emptyIncompatibleShortcut}
                       value={selectControl.value}
                       {...accessibility}
                       onChange={(event) => {
@@ -6154,26 +7079,29 @@ function StructuredPanel({
                       )}
                       {selectControl.options.map((option) => (
                         <option key={option} value={option}>
-                          {option}
+                          {
+                            editorOptionPresentation(
+                              symbol.kind,
+                              fieldName,
+                              option,
+                            ).label
+                          }
                         </option>
                       ))}
                     </select>
                   ) : ["description", "content"].includes(fieldName) ||
                     definition?.type === "richText" ? (
-                    <textarea
+                    <InterpolatedTextArea
                       autoFocus={fieldName === focusField && occurrence === 0}
-                      spellCheck
-                      aria-label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
                       rows={fieldName === "content" ? 6 : 3}
                       value={value}
-                      {...accessibility}
-                      onChange={(event) =>
-                        onUpdate(
-                          symbol,
-                          fieldName,
-                          event.target.value,
-                          occurrence,
-                        )
+                      ariaInvalid={matchingDiagnostics.length > 0}
+                      ariaDescribedBy={describedBy}
+                      properties={conditionProperties}
+                      showExplanatoryText={showExplanatoryText}
+                      onChange={(nextValue) =>
+                        onUpdate(symbol, fieldName, nextValue, occurrence)
                       }
                       onBlur={onEndFieldEdit}
                     />
@@ -6241,11 +7169,13 @@ function StructuredPanel({
                     <HandleFieldControl
                       label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
                       value={value}
-                      options={referenceOptions}
+                      options={referenceSuggestions}
                       placeholder={value === "" ? shadowText : undefined}
                       autoFocus={fieldName === focusField && occurrence === 0}
+                      disabled={emptyIncompatibleShortcut}
                       ariaInvalid={matchingDiagnostics.length > 0}
-                      ariaDescribedBy={diagnosticId}
+                      ariaDescribedBy={describedBy}
+                      showDescriptions={showExplanatoryText}
                       createLabel={
                         createdDeclarationKind
                           ? translate(
@@ -6277,10 +7207,28 @@ function StructuredPanel({
                       }
                       onBlur={onEndFieldEdit}
                     />
+                  ) : symbol.kind === "choice-source" &&
+                    fieldName === "group" ? (
+                    <HandleFieldControl
+                      label={controlLabel}
+                      value={value}
+                      options={packageGroups}
+                      placeholder={translate(
+                        "ui.editorWorkspace.setFields.choiceSourceGroupPlaceholder",
+                      )}
+                      autoFocus={fieldName === focusField && occurrence === 0}
+                      ariaInvalid={matchingDiagnostics.length > 0}
+                      ariaDescribedBy={describedBy}
+                      showDescriptions={showExplanatoryText}
+                      onChange={(nextValue) =>
+                        onUpdate(symbol, fieldName, nextValue, occurrence)
+                      }
+                      onBlur={onEndFieldEdit}
+                    />
                   ) : (
                     <input
                       autoFocus={fieldName === focusField && occurrence === 0}
-                      aria-label={`${fieldName}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      aria-label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
                       type="text"
                       spellCheck={[
                         "author",
@@ -6306,7 +7254,13 @@ function StructuredPanel({
                   {definition?.repeatable && values.length > 0 && (
                     <button
                       type="button"
-                      aria-label={`Remove ${fieldName} ${occurrence + 1}`}
+                      aria-label={translate(
+                        "ui.editorWorkspace.ariaLabel.removeFieldOccurrence",
+                        {
+                          field: fieldLabel,
+                          occurrence: occurrence + 1,
+                        },
+                      )}
                       onClick={() =>
                         onUpdate(symbol, fieldName, "", occurrence)
                       }
@@ -6341,7 +7295,7 @@ function StructuredPanel({
         {definition?.repeatable && (
           <button type="button" onClick={() => onAddField(symbol, fieldName)}>
             {translate("ui.editorWorkspace.text.addPrefix")}
-            {fieldName.replaceAll("-", " ")}
+            {fieldLabel}
           </button>
         )}
         {definition?.conditionalVariants && (
@@ -6359,7 +7313,7 @@ function StructuredPanel({
                     {translate(
                       "ui.editorWorkspace.text.variantsForOccurrence",
                       {
-                        field: fieldName.replaceAll("-", " "),
+                        field: fieldLabel,
                         occurrence: baseOccurrence + 1,
                       },
                     )}
@@ -6367,6 +7321,8 @@ function StructuredPanel({
                 )}
                 <ConditionalVariants
                   fieldName={fieldName}
+                  fieldLabel={fieldLabel}
+                  showExplanatoryText={showExplanatoryText}
                   baseOccurrence={baseOccurrence}
                   variants={variants}
                   fieldType={definition.type}
@@ -6417,10 +7373,39 @@ function StructuredPanel({
           !resolvedContext?.children.length
         ? field("kind")
         : "";
+  const descriptionChild = resolvedContext?.children.find(
+    (child) =>
+      child.kind === "text" &&
+      readSourceField(files[child.file], child, "handle") === "description",
+  );
+  const grantKind = symbol.kind === "grant" ? field("kind") : "";
+  const canOwnDescription =
+    (symbol.kind === "choice" && resolvedContext?.context === "top-level") ||
+    (symbol.kind === "grant" &&
+      ["perk", "item", "form", "companion", "trait"].includes(grantKind));
+  const addableChildKinds =
+    symbol.kind === "grant" && grantKind !== "trait"
+      ? childKinds.filter((kind) => !["text", "image"].includes(kind))
+      : childKinds;
+  const hasAwardRecipientFields = awardDetailFields.some((fieldName) =>
+    ["form", "companion"].includes(fieldName),
+  );
+  const hasAwardMeasureField = awardDetailFields.includes("measure");
+  const awardDetailCopy =
+    hasAwardRecipientFields && hasAwardMeasureField
+      ? "both"
+      : hasAwardRecipientFields
+        ? "recipient"
+        : "measure";
+  const childLabel = (child: FormatSymbol) =>
+    child.kind === "text" &&
+    readSourceField(files[child.file], child, "handle") === "description"
+      ? translate("ui.editorWorkspace.description.label")
+      : symbolLabel(child);
   return (
     <div className="editor-structured-scroll">
       <header className="editor-structured-heading">
-        <p>{symbol.kind.replaceAll("-", " ")}</p>
+        <p>{editorDeclarationLabel(symbol.kind)}</p>
         <h2>{name}</h2>
         <code>
           {symbol.file}:{sourceLine(files[symbol.file], symbol.from)}
@@ -6456,7 +7441,7 @@ function StructuredPanel({
             </Fragment>
           ))}
         <BreadcrumbSeparator />
-        <span>{symbol.kind.replaceAll("-", " ")}</span>
+        <span>{editorDeclarationLabel(symbol.kind)}</span>
         {handle && (
           <>
             <BreadcrumbSeparator />
@@ -6501,36 +7486,33 @@ function StructuredPanel({
       )}
       {symbol.kind === "jump-appearance" ? (
         <>
-          <section className="editor-form-card">
-            <p>{translate("ui.editorWorkspace.appearance.help")}</p>
-            <p>{translate("ui.editorWorkspace.appearance.tagBoundary")}</p>
-          </section>
+          {showExplanatoryText && (
+            <section className="editor-form-card">
+              <p>{translate("ui.editorWorkspace.appearance.help")}</p>
+              <p>{translate("ui.editorWorkspace.appearance.tagBoundary")}</p>
+            </section>
+          )}
           {appearanceFieldGroups.map((group) => (
-            <details
+            <CollapsibleFormSection
               className="editor-appearance-group"
-              data-appearance-group={group.key}
+              appearanceGroup={group.key}
               key={group.key}
-              open={appearanceGroupsExpanded[group.key] ?? true}
-              onToggle={(event) => {
-                const expanded = event.currentTarget.open;
-                setAppearanceGroupsExpanded((current) =>
-                  current[group.key] === expanded
-                    ? current
-                    : { ...current, [group.key]: expanded },
-                );
-              }}
+              open={optionalDisclosureExpanded(
+                `appearance:${group.key}`,
+                !collapseOptionalSectionsInitially ||
+                  group.key === "sharedColors",
+              )}
+              onToggle={(expanded) =>
+                onOptionalDisclosureChange(`appearance:${group.key}`, expanded)
+              }
+              label={translate(
+                `ui.editorWorkspace.appearanceGroup.${group.key}`,
+              )}
             >
-              <summary>
-                <h3>
-                  {translate(`ui.editorWorkspace.appearanceGroup.${group.key}`)}
-                </h3>
-              </summary>
-              <div className="editor-form-grid">
-                {group.fields
-                  .filter((fieldName) => detailFields.includes(fieldName))
-                  .map(renderField)}
-              </div>
-            </details>
+              {group.fields
+                .filter((fieldName) => detailFields.includes(fieldName))
+                .map(renderField)}
+            </CollapsibleFormSection>
           ))}
         </>
       ) : isLayout ? (
@@ -6549,48 +7531,184 @@ function StructuredPanel({
           returnTarget={returnTarget}
           onOpenCreatedContent={onOpenCreatedContent}
           onCreateReference={onCreateReference}
+          showExplanatoryText={showExplanatoryText}
         />
       ) : (
-        detailFields.length > 0 &&
-        !scalarForm && (
-          <section className="editor-form-card">
-            <h3>{translate("ui.editorWorkspace.text.fieldsAndBehavior")}</h3>
-            <div className="editor-form-grid">
-              {detailFields.map(renderField)}
-            </div>
-            {collapseValue && (
-              <button
-                type="button"
-                onClick={() =>
-                  onReplace(symbol, `${symbol.kind}: ${collapseValue}`)
-                }
-              >
-                {translate("ui.editorWorkspace.text.collapseToShorthand")}
-              </button>
-            )}
-          </section>
-        )
+        <>
+          {ordinaryDetailFields.length > 0 && !scalarForm && (
+            <>
+              {optionalDetailSectionKinds.has(symbol.kind) ? (
+                <CollapsibleFormSection
+                  disclosureId="declaration-details"
+                  label={editorSectionLabel(symbol.kind)}
+                  open={optionalDisclosureExpanded("declaration-details")}
+                  onToggle={(expanded) =>
+                    onOptionalDisclosureChange("declaration-details", expanded)
+                  }
+                >
+                  {ordinaryDetailFields.map(renderField)}
+                </CollapsibleFormSection>
+              ) : (
+                <section className="editor-form-card">
+                  <h3>{editorSectionLabel(symbol.kind)}</h3>
+                  {symbol.kind === "input" && (
+                    <div className="editor-input-guidance">
+                      {showExplanatoryText && (
+                        <p>
+                          {translate(
+                            "ui.editorWorkspace.input.supportingControlHelp",
+                          )}
+                        </p>
+                      )}
+                      {!inputLayoutHandle ? (
+                        <p role="status">
+                          {translate(
+                            "ui.editorWorkspace.input.automaticPlacement",
+                          )}
+                        </p>
+                      ) : inputPlaced ? (
+                        <p role="status">
+                          {translate(
+                            "ui.editorWorkspace.input.placedByLayout",
+                            { layout: inputLayoutHandle },
+                          )}
+                        </p>
+                      ) : (
+                        <div className="editor-input-placement-warning">
+                          <p role="alert">
+                            {translate(
+                              "ui.editorWorkspace.input.missingFromLayout",
+                              {
+                                input: handle,
+                                layout: inputLayoutHandle,
+                              },
+                            )}
+                          </p>
+                          {inputLayoutSymbol && inputLayoutRoot?.container && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onLayoutEdit(
+                                  insertLayoutChild(
+                                    files,
+                                    inputLayoutSymbol,
+                                    inputLayoutRoot,
+                                    "input",
+                                    { target: handle },
+                                  ),
+                                  translate(
+                                    "ui.editorWorkspace.input.placedAnnouncement",
+                                    { input: handle },
+                                  ),
+                                )
+                              }
+                            >
+                              {translate(
+                                "ui.editorWorkspace.input.placeInLayout",
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {inputLayoutSymbol && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenSymbol(inputLayoutSymbol)}
+                        >
+                          {translate("ui.editorWorkspace.input.openLayout")}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <div className="editor-form-grid editor-detail-fields">
+                    {ordinaryDetailFields.map(renderField)}
+                  </div>
+                  {collapseValue && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onReplace(symbol, `${symbol.kind}: ${collapseValue}`)
+                      }
+                    >
+                      {translate("ui.editorWorkspace.text.collapseToShorthand")}
+                    </button>
+                  )}
+                </section>
+              )}
+            </>
+          )}
+          {awardDetailFields.length > 0 && !scalarForm && (
+            <CollapsibleFormSection
+              className={
+                symbol.kind === "choice"
+                  ? "editor-choice-shorthand"
+                  : "editor-grant-details"
+              }
+              contentClassName="editor-detail-fields"
+              disclosureId="award-details"
+              open={optionalDisclosureExpanded("award-details")}
+              onToggle={(expanded) =>
+                onOptionalDisclosureChange("award-details", expanded)
+              }
+              label={translate(
+                `ui.editorWorkspace.choiceShorthand.${awardDetailCopy}Heading`,
+              )}
+            >
+              {showExplanatoryText && (
+                <p>
+                  {translate(
+                    `ui.editorWorkspace.choiceShorthand.${awardDetailCopy}Summary`,
+                  )}
+                </p>
+              )}
+              {awardDetailFields.map(renderField)}
+            </CollapsibleFormSection>
+          )}
+        </>
       )}
       {!isLayout &&
-        (childKinds.length > 0 ||
+        (addableChildKinds.length > 0 ||
+          (canOwnDescription && !descriptionChild) ||
           Boolean(resolvedContext?.children.length)) && (
-          <section className="editor-form-card">
-            <h3>
-              {translate("ui.editorWorkspace.text.contentAndDeclarations")}
-            </h3>
-            <p>
-              {translate(
-                "ui.editorWorkspace.text.addADeclarationValidInsideThis",
-              )}
-              {symbol.kind}.
-            </p>
+          <CollapsibleFormSection
+            disclosureId="content-and-effects"
+            label={translate("ui.editorWorkspace.text.contentAndDeclarations")}
+            open={optionalDisclosureExpanded("content-and-effects")}
+            onToggle={(expanded) =>
+              onOptionalDisclosureChange("content-and-effects", expanded)
+            }
+          >
+            {showExplanatoryText && (
+              <p>
+                {symbol.kind === "choice"
+                  ? translate("ui.editorWorkspace.description.choiceOwnerHelp")
+                  : symbol.kind === "grant"
+                    ? grantKind === "trait"
+                      ? translate(
+                          "ui.editorWorkspace.description.traitOwnerHelp",
+                        )
+                      : translate(
+                          "ui.editorWorkspace.description.grantOwnerHelp",
+                        )
+                    : translate(
+                        "ui.editorWorkspace.text.addContentAndEffectsHelp",
+                        { owner: editorDeclarationLabel(symbol.kind) },
+                      )}
+              </p>
+            )}
             {Boolean(resolvedContext?.children.length) && (
               <div className="editor-child-list">
                 {resolvedContext?.children.map((child, index, allChildren) => (
                   <div key={`${child.file}:${child.from}`}>
                     <button type="button" onClick={() => onOpenSymbol(child)}>
-                      <span>{symbolLabel(child)}</span>
-                      <small>{child.kind.replaceAll("-", " ")}</small>
+                      <span>{childLabel(child)}</span>
+                      <small>
+                        {child === descriptionChild
+                          ? translate(
+                              "ui.editorWorkspace.description.declarationLabel",
+                            )
+                          : editorDeclarationLabel(child.kind)}
+                      </small>
                     </button>
                     <button
                       type="button"
@@ -6629,7 +7747,15 @@ function StructuredPanel({
               </div>
             )}
             <div className="editor-contextual-add">
-              {childKinds.map((kind) => (
+              {canOwnDescription && !descriptionChild && (
+                <button
+                  type="button"
+                  onClick={() => onInsertChild(symbol, "description")}
+                >
+                  + {translate("ui.editorWorkspace.description.label")}
+                </button>
+              )}
+              {addableChildKinds.map((kind) => (
                 <button
                   type="button"
                   key={kind}
@@ -6642,7 +7768,7 @@ function StructuredPanel({
                 </button>
               ))}
             </div>
-          </section>
+          </CollapsibleFormSection>
         )}
       {Boolean(resolvedContext?.invalidAuthoredFields.length) && (
         <section className="editor-form-card editor-needs-attention">
@@ -6680,6 +7806,7 @@ function SourcePalette({
   keybindings,
   shortcutLabels,
   onCompletion,
+  showExplanatoryText,
 }: {
   title: string;
   symbol: FormatSymbol | null;
@@ -6693,6 +7820,7 @@ function SourcePalette({
   keybindings: Record<KeybindingAction, KeybindingChord>;
   shortcutLabels: Record<KeybindingAction, string>;
   onCompletion: () => void;
+  showExplanatoryText: boolean;
 }) {
   const context = symbol ? structuredContext(files, symbol) : null;
   const completions = useMemo(
@@ -6711,30 +7839,67 @@ function SourcePalette({
       ).slice(0, 8),
     [context, source, symbol],
   );
-  const childCompletions = useMemo(
-    () => (symbol ? (context?.childKinds ?? []).slice(0, 8) : []),
-    [context, symbol],
-  );
+  const childCompletions = useMemo(() => {
+    if (!symbol || !context) return [];
+    const grantKind =
+      symbol.kind === "grant"
+        ? readSourceField(files[symbol.file], symbol, "kind")
+        : "";
+    const canOwnDescription =
+      (symbol.kind === "choice" && context.context === "top-level") ||
+      (symbol.kind === "grant" &&
+        ["perk", "item", "form", "companion", "trait"].includes(grantKind));
+    const hasDescription = context.children.some(
+      (child) =>
+        child.kind === "text" &&
+        readSourceField(files[child.file], child, "handle") === "description",
+    );
+    const childKinds =
+      symbol.kind === "grant" && grantKind !== "trait"
+        ? context.childKinds.filter((kind) => !["text", "image"].includes(kind))
+        : context.childKinds;
+    return [
+      ...(canOwnDescription && !hasDescription ? ["description"] : []),
+      ...childKinds,
+    ].slice(0, 8);
+  }, [context, files, symbol]);
   const validItems = useMemo(
     () => [
       ...completions.map((label) => ({
         id: `field:${label}`,
         label,
         description:
-          symbol &&
-          quickAddFieldMode(source, symbol, label, context?.fields[label]) ===
-            "complete"
-            ? translate("ui.editorWorkspace.text.completeExistingFieldIn", {
-                title,
-              })
-            : translate("ui.editorWorkspace.text.addToDeclaration", { title }),
+          showExplanatoryText && symbol
+            ? (editorFieldPresentation(symbol.kind, label).help ??
+              translate("ui.editorWorkspace.text.addFieldToSelection", {
+                field: editorFieldPresentation(symbol.kind, label).label,
+              }))
+            : symbol &&
+                quickAddFieldMode(
+                  source,
+                  symbol,
+                  label,
+                  context?.fields[label],
+                ) === "complete"
+              ? translate("ui.editorWorkspace.text.completeField", {
+                  field: label,
+                })
+              : translate("ui.editorWorkspace.text.addField", {
+                  field: label,
+                }),
         action: () => onAdd(label),
       })),
       ...childCompletions.map((label) => ({
         id: `child:${label}`,
-        label,
-        description: translate("ui.editorWorkspace.text.insertInside", {
-          title,
+        label:
+          label === "description"
+            ? translate("ui.editorWorkspace.description.label")
+            : label,
+        description: translate("ui.editorWorkspace.text.addContentType", {
+          type:
+            label === "description"
+              ? translate("ui.editorWorkspace.description.declarationLabel")
+              : editorDeclarationLabel(label),
         }),
         action: () => onAddChild(label),
       })),
@@ -6746,8 +7911,8 @@ function SourcePalette({
       onAdd,
       onAddChild,
       source,
+      showExplanatoryText,
       symbol,
-      title,
     ],
   );
   const mnemonics = useMemo(
@@ -6807,7 +7972,7 @@ function SourcePalette({
           ×
         </button>
       </header>
-      <p>{translate("ui.editorWorkspace.text.validHere")}</p>
+      <p>{translate("ui.editorWorkspace.text.availableHere")}</p>
       {validItems.map((item, index) => {
         const mnemonic = mnemonics[index];
         return (
@@ -6846,14 +8011,14 @@ function SourcePalette({
         disabled={!quickFixAvailable}
         title={
           quickFixAvailable
-            ? "Apply the deterministic repair"
-            : "No deterministic repair is available"
+            ? translate("ui.editorWorkspace.title.applySuggestedFix")
+            : translate("ui.editorWorkspace.title.noSuggestedFixAvailable")
         }
       >
         <span>
           {translate("ui.editorWorkspace.text.quickFix")}
           <small>
-            {translate("ui.editorWorkspace.text.writeADeterministicRepair")}
+            {translate("ui.editorWorkspace.text.applySuggestedFix")}
           </small>
         </span>
         <kbd>{shortcutLabels.quickFix}</kbd>
@@ -7202,7 +8367,7 @@ function PropertiesPanel({
           <>
             <div>
               <dt>{translate("ui.editorWorkspace.text.kind")}</dt>
-              <dd>{symbol.kind.replaceAll("-", " ")}</dd>
+              <dd>{editorDeclarationLabel(symbol.kind)}</dd>
             </div>
             {symbol.handle && (
               <div>

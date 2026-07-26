@@ -210,6 +210,7 @@ export function JumpPreview({
   packageItem,
   layoutPackageItem,
   assets,
+  tags,
   selection,
   showBounds,
   stripColor,
@@ -224,6 +225,7 @@ export function JumpPreview({
   packageItem: CanonicalJumpPackage;
   layoutPackageItem?: CanonicalJumpPackage;
   assets: Readonly<Record<string, Uint8Array>>;
+  tags: JumpRendererProps["tags"];
   selection: PreviewSelection;
   showBounds: boolean;
   stripColor: boolean;
@@ -321,6 +323,16 @@ export function JumpPreview({
     [actorState, renderedPackage],
   );
   const assetUrls = useAssetObjectUrls(assets, true);
+  const previewCompanions = [
+    {
+      id: "companion:preview-prior:jumper:preview_companion_one:0",
+      name: translate("ui.editorWorkspace.previewCompanion.first"),
+    },
+    {
+      id: "companion:preview-prior:jumper:preview_companion_two:0",
+      name: translate("ui.editorWorkspace.previewCompanion.second"),
+    },
+  ];
   useEffect(() => {
     if (showBounds) return;
     activeInspectionRef.current?.classList.remove(
@@ -383,6 +395,7 @@ export function JumpPreview({
     tags:
       selection.kind === "appearance" && selection.mode === "components"
         ? {
+            ...tags,
             appearance_example: {
               id: "appearance_example",
               label: translate(
@@ -395,8 +408,8 @@ export function JumpPreview({
               style: "soft",
             },
           }
-        : {},
-    companions: [],
+        : tags,
+    companions: previewCompanions,
     gauntletActive: renderedPackage.nativeGauntlet,
     resolveAsset: (path) =>
       path === layoutPreviewImagePath ? layoutPreviewImageUrl : assetUrls[path],
@@ -448,7 +461,7 @@ export function JumpPreview({
   return (
     <div
       ref={rootRef}
-      className={`editor-real-preview${layoutPreview ? " format-one-jump-renderer" : ""}${showBounds ? (appearancePreview ? " show-appearance-colors" : " show-layout-bounds") : ""}`}
+      className={`editor-real-preview${showBounds ? (appearancePreview ? " show-appearance-colors" : " show-layout-bounds") : ""}`}
       data-hovered-bound={hoveredBound?.path ?? undefined}
       data-hovered-appearance-color={hoveredAppearanceColor?.field}
       data-hovered-appearance-owner={

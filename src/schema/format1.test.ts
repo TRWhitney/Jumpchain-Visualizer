@@ -119,4 +119,26 @@ describe("unreleased Format 1 identity amendment", () => {
       ]),
     );
   });
+
+  it("models ordinary Grant descriptions separately from trait layout content", () => {
+    const grantChildren = schemaJson.declarations.grant.forms.block.children;
+    expect(grantChildren.text).toMatchObject({
+      ownerLocalHandleNamespace: "text",
+      appliesWhen: {
+        kind: ["perk", "item", "form", "companion", "trait"],
+      },
+    });
+    expect(grantChildren.image).toMatchObject({
+      ownerLocalHandleNamespace: "image",
+      appliesWhen: { kind: ["trait"] },
+    });
+    expect(
+      schemaJson.declarations.text.formsByContext["grant:perk"].fields.handle,
+    ).toMatchObject({ const: "description" });
+    expect(schemaJson.declarations.image.contexts).toEqual([
+      "section",
+      "choice",
+      "grant:trait",
+    ]);
+  });
 });

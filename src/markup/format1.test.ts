@@ -274,12 +274,13 @@ section
     const importChoice = trial?.choices.find(
       (choice) => choice.handle === "trial_company",
     );
-    expect(importChoice?.inputs[0].grants).toEqual(
+    expect(importChoice).toMatchObject({
+      selection: "companions",
+      min: 1,
+      max: 2,
+    });
+    expect(importChoice?.grants).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          kind: "companion-import",
-          handle: "trial_company",
-        }),
         expect.objectContaining({
           kind: "resource",
           companion: "trial_company",
@@ -290,6 +291,295 @@ section
         }),
       ]),
     );
+  });
+
+  it("defaults omitted companion-selection bounds to one", () => {
+    const packageItem = canonicalizePackage({
+      id: "default-companion-bounds",
+      exactHash: "d".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Default companion bounds"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: companions
+  name: "Companions"
+
+choice
+  handle: company
+  name: "Company"
+  selection: companions
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 100
+    companion: company
+`,
+      },
+    });
+
+    expect(packageItem.choices[0]).toMatchObject({
+      selection: "companions",
+      min: 1,
+      max: 1,
+    });
+    expect(
+      packageItem.diagnostics.some(
+        (diagnostic) => diagnostic.code === "choice.companions.max",
+      ),
+    ).toBe(false);
+  });
+
+  it("canonicalizes control placeholders and rejects one on a toggle", () => {
+    const source = `jump
+  format: 1
+  name: "Placeholders"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: controls
+  name: "Controls"
+
+  choice
+    handle: answer_field
+    target: answer
+
+choice
+  handle: answer
+  name: "Answer"
+  selection: text
+  placeholder: "Type {{answer_name}}"
+
+  input
+    handle: detail
+    selection: select
+    placeholder: "Choose a detail"
+    option: "One"
+
+  grant
+    kind: property
+    handle: answer_name
+
+choice
+  handle: invalid_toggle
+  name: "Invalid"
+  placeholder: "Not rendered"
+`;
+    const packageItem = canonicalizePackage({
+      id: "placeholder-controls",
+      exactHash: "p".repeat(64),
+      files: { "jump.jdef": source },
+    });
+    const answer = packageItem.choices.find(
+      (choice) => choice.handle === "answer",
+    );
+    expect(answer).toMatchObject({
+      placeholder: "Type {{answer_name}}",
+      inputs: [{ placeholder: "Choose a detail" }],
+    });
+    expect(packageItem.diagnostics.map((item) => item.code)).toContain(
+      "choice.placeholder.domain",
+    );
+  });
+
+  it("shares one namespace between created and selected companion targets", () => {
+    const source = `jump
+  format: 1
+  name: "Companion namespace"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: companions
+  name: "Companions"
+
+choice
+  handle: import_team
+  name: "Import team"
+  selection: companions
+  max: 2
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 100
+    companion: import_team
+
+choice
+  handle: create_team
+  name: "Create team"
+
+  grant
+    kind: companion
+    handle: import_team
+`;
+    const packageItem = canonicalizePackage({
+      id: "companion-namespace",
+      exactHash: "n".repeat(64),
+      files: { "jump.jdef": source },
+    });
+
+    expect(
+      packageItem.diagnostics.filter(
+        (item) => item.code === "grant.companion.handle",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("targets an unknown interpolation token at its exact source text", () => {
+    const source = `jump
+  format: 1
+  name: "Unknown value"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+
+  choice
+    handle: answer
+    target: answer
+
+choice
+  handle: answer
+  name: "Answer"
+
+  text
+    handle: description
+    content: "Before {{missing_answer}} after"
+`;
+    const packageItem = canonicalizePackage(
+      {
+        id: "unknown-interpolation",
+        exactHash: "u".repeat(64),
+        files: { "jump.jdef": source },
+      },
+      { profile: "editor" },
+    );
+    const diagnostic = packageItem.diagnostics.find(
+      (item) => item.code === "placeholder.property.unresolved",
+    );
+    expect(source.slice(diagnostic?.range?.from, diagnostic?.range?.to)).toBe(
+      "{{missing_answer}}",
+    );
+  });
+
+  it("accepts owning Choice and supporting Input answers in Text conditions and interpolation", () => {
+    const source = `choice
+  handle: answer
+  name: "Answer"
+  selection: text
+
+  text
+    handle: description
+    content: "{{answer}}"
+    content when detail = "Ready": "{{answer}} / {{detail}}"
+
+  input
+    handle: detail
+    selection: text
+`;
+    const packageItem = canonicalizePackage(
+      {
+        id: "contextual-control-answers",
+        exactHash: "a".repeat(64),
+        files: { "jump.jdef": source },
+      },
+      { profile: "editor" },
+    );
+
+    expect(
+      packageItem.diagnostics.filter((item) =>
+        [
+          "condition.property.unresolved",
+          "placeholder.property.unresolved",
+        ].includes(item.code),
+      ),
+    ).toEqual([]);
+  });
+
+  it("diagnoses only Inputs omitted by an explicit Choice layout", () => {
+    const source = `jump
+  format: 1
+  name: "Input placement"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: controls
+  name: "Controls"
+
+  choice
+    handle: configured
+    target: configured
+
+  choice
+    handle: built_in
+    target: built_in
+
+choice
+  handle: configured
+  name: "Configured"
+  layout: configured_layout
+
+  input
+    handle: placed
+    selection: text
+
+  input
+    handle: missing
+    selection: integer
+
+choice
+  handle: built_in
+  name: "Built in"
+
+  input
+    handle: automatic
+    selection: text
+
+choice-layout
+  handle: configured_layout
+
+  stack
+    slot: control
+    input: placed
+`;
+    const packageItem = canonicalizePackage(
+      {
+        id: "input-placement",
+        exactHash: "i".repeat(64),
+        files: { "jump.jdef": source },
+      },
+      { profile: "editor" },
+    );
+    const placementDiagnostics = packageItem.diagnostics.filter(
+      (item) => item.code === "layout.input.unreachable",
+    );
+
+    expect(placementDiagnostics).toHaveLength(1);
+    expect(placementDiagnostics[0]).toMatchObject({
+      parameters: {
+        input: "missing",
+        layout: "configured_layout",
+      },
+      target: {
+        field: "handle",
+        part: "value",
+      },
+    });
+    expect(
+      source.slice(
+        placementDiagnostics[0].range?.from,
+        placementDiagnostics[0].range?.to,
+      ),
+    ).toBe("missing");
   });
 
   it("covers the complete behaviorally distinct Format 1 demonstration catalogue", () => {
@@ -303,7 +593,7 @@ section
     const nodes = allLayouts.flatMap((layout) => walk(layout.root));
 
     expect(new Set(allChoices.map((choice) => choice.selection))).toEqual(
-      new Set(["toggle", "text", "integer", "select"]),
+      new Set(["toggle", "text", "integer", "select", "companions"]),
     );
     expect(new Set(allChoices.map((choice) => choice.resolution))).toEqual(
       new Set(["manual", "random", "either"]),
@@ -524,6 +814,42 @@ ${jumpField ? "" : authored}
       );
     },
   );
+
+  it("targets an exact duplicate ordered option at the duplicate occurrence", () => {
+    const source = `jump
+  format: 1
+  name: "Diagnostics"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+
+choice
+  handle: example
+  name: "Example"
+  selection: select
+  option: "First"
+  option: "Second"
+  option: "Second"
+`;
+    const packageItem = canonicalizePackage({
+      id: "ordered-option-diagnostic",
+      exactHash: "0".repeat(64),
+      files: { "jump.jdef": source },
+    });
+    const duplicate = packageItem.diagnostics.find(
+      (item) => item.code === "schema.field.exactDuplicate",
+    );
+    expect(duplicate?.target).toMatchObject({
+      field: "option",
+      occurrence: 2,
+    });
+    expect(source.slice(duplicate!.range!.from, duplicate!.range!.to)).toBe(
+      '"Second"',
+    );
+  });
 
   it("reports a removed layout name through the generic unknown-field rule", () => {
     const source = `jump
@@ -781,6 +1107,77 @@ ${scope === "top" ? authored : ""}
         target: expect.objectContaining({ field }),
       }),
     );
+  });
+
+  it("diagnoses unused ordinary Grant content while allowing trait layout content", () => {
+    const packageForGrant = (kind: string, content: string) =>
+      canonicalizePackage({
+        id: `grant-content-${kind}`,
+        exactHash: "3".repeat(64),
+        files: {
+          "jump.jdef": `jump
+  format: 1
+  name: "Grant content"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+
+choice
+  handle: award
+  name: "Award"
+
+  grant
+    kind: ${kind}
+${content}
+`,
+        },
+      });
+
+    const ordinary = packageForGrant(
+      "perk",
+      `    text
+      handle: extra
+      content: "Not consumed"
+
+    image
+      handle: unused
+      src: "unused.png"`,
+    );
+    expect(ordinary.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "schema.value.const",
+        target: expect.objectContaining({ field: "handle" }),
+      }),
+    );
+    expect(ordinary.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "schema.child.invalid",
+        parameters: expect.objectContaining({ child: "image" }),
+      }),
+    );
+
+    const trait = packageForGrant(
+      "trait",
+      `    text
+      handle: details
+      content: "Trait layout content"
+
+    image
+      handle: portrait
+      src: "portrait.png"`,
+    );
+    expect(
+      trait.diagnostics.filter((diagnostic) =>
+        [
+          "schema.value.const",
+          "schema.child.invalid",
+          "schema.declaration.context",
+        ].includes(diagnostic.code),
+      ),
+    ).toEqual([]);
   });
 
   it.each(["xs", "2xl", "320px", "11.5rem", "0px"])(

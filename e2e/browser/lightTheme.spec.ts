@@ -405,6 +405,76 @@ section-layout
 );
 
 test(
+  "light Earth and Editor inspection surfaces use the application visual system",
+  {
+    tag: ["@visual", "@chromium-only"],
+  },
+  async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await setAppearance(page, "light");
+    const tracker = await resumeMorgan(page);
+    await tracker.getByRole("button", { name: /^Earth/ }).click();
+    const earth = tracker.locator(".earth-jump-renderer");
+    const identityCard = earth.locator(".control-specimen").first();
+    await expect(earth).toHaveCSS("background-color", "rgb(236, 234, 228)");
+    await expect(earth).toHaveCSS("border-radius", "6.4px");
+    await expect(earth).toHaveCSS("color-scheme", "light");
+    await expect(identityCard).toHaveCSS(
+      "background-color",
+      "rgb(243, 241, 235)",
+    );
+    await expect(identityCard).toHaveCSS("border-radius", "6.4px");
+    await expect(tracker.getByLabel("Earth gender")).toHaveCSS(
+      "background-repeat",
+      "no-repeat",
+    );
+    await retainScreenshot(testInfo, "tracker-earth-light", earth);
+
+    await page.getByRole("button", { name: "Editor", exact: true }).click();
+    await page.getByRole("button", { name: "Create Project" }).click();
+    const editor = page.locator(".production-editor");
+    await editor
+      .getByRole("button", { name: "Jump appearance", exact: true })
+      .click();
+    const appearanceGroup = editor.locator(".editor-appearance-group").first();
+    await expect(appearanceGroup).toHaveCSS(
+      "background-color",
+      "rgba(0, 0, 0, 0)",
+    );
+    await expect(appearanceGroup).toHaveCSS("border-radius", "0px");
+    await expect(appearanceGroup).toHaveCSS("border-left-width", "0px");
+    await expect(appearanceGroup).toHaveCSS("border-bottom-width", "1px");
+    await editor.getByLabel("Inspect colors").check();
+    const inspectionLegend = editor.locator(".editor-appearance-color-legend");
+    await expect(inspectionLegend).toHaveCSS(
+      "background-color",
+      "rgb(236, 234, 228)",
+    );
+    await retainScreenshot(
+      testInfo,
+      "editor-jump-appearance-inspect-light",
+      editor,
+    );
+
+    await editor.getByRole("button", { name: "Add", exact: true }).click();
+    await editor
+      .getByRole("button", { name: "Choice layout", exact: true })
+      .click();
+    await editor.getByLabel("Show bounds").check();
+    const boundsLegend = editor.locator(".editor-bounds-legend");
+    await expect(boundsLegend).toHaveCSS(
+      "background-color",
+      "rgb(236, 234, 228)",
+    );
+    await expect(boundsLegend.locator(".is-container")).toHaveCSS(
+      "color",
+      "rgb(0, 103, 140)",
+    );
+    await retainScreenshot(testInfo, "editor-show-bounds-light", editor);
+  },
+);
+
+test(
   "light Editor structured, layout, sidebar, and asset states stay coherent",
   {
     tag: ["@visual", "@chromium-only"],

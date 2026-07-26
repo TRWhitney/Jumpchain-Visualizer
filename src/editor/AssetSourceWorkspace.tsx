@@ -47,7 +47,9 @@ export function AssetSourceWorkspace({
   onUndo: () => void;
   onRedo: () => void;
 }) {
-  const [status, setStatus] = useState("Local editor ready");
+  const [status, setStatus] = useState(() =>
+    translate("ui.editorWorkspace.asset.editor.ready"),
+  );
   const [invalid, setInvalid] = useState(false);
   const validationGeneration = useRef(0);
   useEffect(() => {
@@ -88,19 +90,26 @@ export function AssetSourceWorkspace({
         document: nextDocument,
         historyLabel,
       });
-    } catch (error) {
+    } catch {
       if (generation !== validationGeneration.current) return;
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Rendered bytes failed package validation.";
-      reportStatus(`${message} Previous valid image retained.`, true);
+      const message = translate(
+        "ui.editorWorkspace.asset.editor.renderValidationFailed",
+      );
+      reportStatus(
+        translate("ui.editorWorkspace.asset.editor.validImageRetained", {
+          message,
+        }),
+        true,
+      );
       if (nextDocument?.kind === "raster")
         onCommit({
           path,
           bytes,
           document: { ...nextDocument, validationError: message },
-          historyLabel: `Keep failed ${historyLabel.toLocaleLowerCase()}`,
+          historyLabel: translate(
+            "ui.editorWorkspace.asset.editor.keepFailedHistory",
+            { action: historyLabel.toLocaleLowerCase() },
+          ),
         });
     }
   };
@@ -133,9 +142,15 @@ export function AssetSourceWorkspace({
       unavailable || readOnly ? (
         <div className="asset-editor-unavailable">
           <span aria-hidden="true">◇</span>
-          <h2>{readOnly ? "Read-only local copy" : "Editor coming later"}</h2>
+          <h2>
+            {readOnly
+              ? translate("ui.editorWorkspace.asset.editor.readOnlyLocalCopy")
+              : translate("ui.editorWorkspace.asset.editor.comingLater")}
+          </h2>
           <p>
-            {readOnly ? "Restore this asset before editing it." : unavailable}
+            {readOnly
+              ? translate("ui.editorWorkspace.asset.editor.restoreBeforeEdit")
+              : unavailable}
           </p>
         </div>
       ) : (
@@ -170,10 +185,10 @@ export function AssetSourceWorkspace({
           <strong>{path.replace(/^assets\//, "")}</strong>
           <small>
             {canonicalType === "svg"
-              ? "Secure SVG source"
+              ? translate("ui.editorWorkspace.asset.editor.secureSvgSource")
               : canonicalType === "png" || canonicalType === "jpg"
-                ? "Non-destructive corrections & markup"
-                : "Validated asset"}
+                ? translate("ui.editorWorkspace.asset.editor.rasterCorrections")
+                : translate("ui.editorWorkspace.asset.editor.validatedAsset")}
           </small>
         </span>
         <span

@@ -543,7 +543,7 @@ fn validate_chain_payload(payload: &str) -> Result<serde_json::Value, String> {
     if value
         .get("schemaVersion")
         .and_then(serde_json::Value::as_u64)
-        != Some(1)
+        != Some(3)
     {
         return Err("chain schema version is unsupported".to_owned());
     }
@@ -818,9 +818,10 @@ mod tests {
 
     #[test]
     fn validates_versioned_chain_payloads() {
-        assert!(validate_chain_payload(r#"{"schemaVersion":1,"id":"chain-1"}"#).is_ok());
+        assert!(validate_chain_payload(r#"{"schemaVersion":3,"id":"chain-1"}"#).is_ok());
         assert!(validate_chain_payload(r#"{"schemaVersion":2,"id":"chain-1"}"#).is_err());
-        assert!(validate_chain_payload(r#"{"schemaVersion":1,"id":""}"#).is_err());
+        assert!(validate_chain_payload(r#"{"schemaVersion":1,"id":"chain-1"}"#).is_err());
+        assert!(validate_chain_payload(r#"{"schemaVersion":3,"id":""}"#).is_err());
     }
 
     #[cfg(target_os = "linux")]

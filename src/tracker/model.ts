@@ -179,7 +179,15 @@ export type PendingMutation =
       entryId: string;
       actorId: string;
       choiceHandle: string;
-      value: boolean | string | number | null;
+      value: import("../domain").ChoiceValue;
+      impacts: readonly FormDependencyImpact[];
+    }
+  | {
+      kind: "clear-form-source";
+      entryId: string;
+      actorId: string;
+      sourceKey: string;
+      value: readonly string[];
       impacts: readonly FormDependencyImpact[];
     };
 
@@ -281,7 +289,15 @@ export type TrackerAction =
       entryId: string;
       actorId: string;
       choiceHandle: string;
-      value: boolean | string | number | null;
+      value: import("../domain").ChoiceValue;
+    }
+  | {
+      type: "set-source-selections";
+      entryId: string;
+      actorId: string;
+      sourceKey: string;
+      mode: "single" | "multi";
+      value: readonly string[];
     }
   | {
       type: "set-input";
@@ -289,7 +305,7 @@ export type TrackerAction =
       actorId: string;
       choiceHandle: string;
       inputHandle: string;
-      value: string | number | readonly string[] | null;
+      value: string | number | null;
     }
   | { type: "set-enabled-supplements"; value: EnabledModules }
   | { type: "set-supplement-page"; value: "manage" | ModuleId }
@@ -307,6 +323,7 @@ export type TrackerAction =
       entryId: string;
       actorId: string;
       sourceKey: string;
+      mode: "single" | "multi";
       result: string;
     }
   | { type: "toggle-applied-gauntlet"; entryId: string };
@@ -807,12 +824,7 @@ export function companionImportDependencies(state: TrackerState) {
     const actor = state.jumpState[entryId]?.actors.jumper;
     if (!packageItem || !actor) continue;
     for (const choice of packageItem.choices) {
-      const value = actor.choices[choice.handle];
-      const active =
-        choice.selection === "toggle"
-          ? value === true
-          : value !== null && value !== undefined && value !== "";
-      if (!active) continue;
+      if (!choiceStateIsActive(packageItem, actor, choice)) continue;
       choice.grants.forEach((grant, grantIndex) => {
         if (grant.kind === "companion")
           providers.set(
@@ -834,10 +846,7 @@ export function companionImportDependencies(state: TrackerState) {
     const actor = state.jumpState[consumerEntryId]?.actors.jumper;
     if (!packageItem || !actor) continue;
     const choiceIsActive = (choice: (typeof packageItem.choices)[number]) => {
-      const value = actor.choices[choice.handle];
-      return choice.selection === "toggle"
-        ? value === true
-        : value !== null && value !== undefined && value !== "";
+      return choiceStateIsActive(packageItem, actor, choice);
     };
     const fundedTargets = new Set(
       packageItem.choices.flatMap((choice) => {
@@ -845,9 +854,8 @@ export function companionImportDependencies(state: TrackerState) {
         const grants = [...choice.grants];
         for (const input of choice.inputs) {
           const value = actor.inputs[choice.handle]?.[input.handle];
-          const activeInput = Array.isArray(value)
-            ? value.length > 0
-            : value !== null && value !== undefined && value !== "";
+          const activeInput =
+            value !== null && value !== undefined && value !== "";
           if (activeInput) grants.push(...input.grants);
         }
         return grants.flatMap((grant) =>
@@ -861,29 +869,23 @@ export function companionImportDependencies(state: TrackerState) {
       }),
     );
     for (const choice of packageItem.choices) {
-      if (!choiceIsActive(choice)) continue;
-      const hasImport = choice.inputs.some((input) =>
-        input.grants.some((grant) => grant.kind === "companion-import"),
-      );
-      if (!hasImport) continue;
-      for (const input of choice.inputs) {
-        const importGrant = input.grants.find(
-          (grant) => grant.kind === "companion-import" && grant.handle,
-        );
-        if (!importGrant?.handle || !fundedTargets.has(importGrant.handle))
-          continue;
-        const selected = actor.inputs[choice.handle]?.[input.handle];
-        if (!Array.isArray(selected)) continue;
-        for (const subjectId of selected) {
-          const providerEntryId = providers.get(subjectId);
-          if (providerEntryId)
-            dependencies.push({
-              kind: "companion-import",
-              subjectId,
-              providerEntryId,
-              consumerEntryId,
-            });
-        }
+      if (
+        !choiceIsActive(choice) ||
+        choice.selection !== "companions" ||
+        !fundedTargets.has(choice.handle)
+      )
+        continue;
+      const selected = actor.choices[choice.handle];
+      if (!Array.isArray(selected)) continue;
+      for (const subjectId of selected) {
+        const providerEntryId = providers.get(subjectId);
+        if (providerEntryId)
+          dependencies.push({
+            kind: "companion-import",
+            subjectId,
+            providerEntryId,
+            consumerEntryId,
+          });
       }
     }
   }
@@ -1014,7 +1016,7 @@ function actionActivatesChoice(
   state: TrackerState,
   entryId: string,
   choiceHandle: string,
-  value: boolean | string | number | null,
+  value: import("../domain").ChoiceValue,
 ) {
   const choice = packageForEntry(state, entryId)?.document?.choices.find(
     (item) => item.handle === choiceHandle,
@@ -1033,8 +1035,7 @@ function activeFormHandles(
   if (!packageItem || !actor) return new Set<string>();
   const handles = new Set<string>();
   for (const choice of packageItem.choices) {
-    if (!choiceValueIsActive(choice, actor.choices[choice.handle] ?? null))
-      continue;
+    if (!choiceStateIsActive(packageItem, actor, choice)) continue;
     for (const grant of choice.grants)
       if (grant.kind === "form" && grant.handle) handles.add(grant.handle);
   }
@@ -1102,7 +1103,7 @@ function removedFormDependencyImpacts(
     const dependentChoiceHandles = packageItem.choices
       .filter(
         (choice) =>
-          choiceValueIsActive(choice, actor.choices[choice.handle] ?? null) &&
+          choiceStateIsActive(packageItem, actor, choice) &&
           choice.grants.some((grant) => grant.form === formHandle),
       )
       .map((choice) => choice.handle);
@@ -1127,6 +1128,8 @@ export function choiceMutationWasBlocked(
   const actor = state.jumpState[action.entryId]?.actors[action.actorId];
   if (action.type === "set-choice")
     return actor?.choices[action.choiceHandle] !== action.value;
+  if (action.type === "set-source-selections")
+    return actor?.sourceSelections[action.sourceKey] !== action.value;
   if (action.type === "record-choice-roll")
     return actor?.choiceRolls[action.choiceHandle]?.result !== action.result;
   if (action.type === "record-source-roll")
@@ -1230,7 +1233,10 @@ export function trackerReducer(
       return { ...state, pending: null };
     case "commit-mutation": {
       if (!state.pending) return state;
-      if (state.pending.kind === "clear-form") {
+      if (
+        state.pending.kind === "clear-form" ||
+        state.pending.kind === "clear-form-source"
+      ) {
         const pending = state.pending;
         const entry = state.jumpState[pending.entryId];
         if (!entry) return { ...state, pending: null };
@@ -1244,13 +1250,22 @@ export function trackerReducer(
               ...entry,
               actors: {
                 ...entry.actors,
-                [pending.actorId]: {
-                  ...actor,
-                  choices: {
-                    ...actor.choices,
-                    [pending.choiceHandle]: pending.value,
-                  },
-                },
+                [pending.actorId]:
+                  pending.kind === "clear-form"
+                    ? {
+                        ...actor,
+                        choices: {
+                          ...actor.choices,
+                          [pending.choiceHandle]: pending.value,
+                        },
+                      }
+                    : {
+                        ...actor,
+                        sourceSelections: {
+                          ...actor.sourceSelections,
+                          [pending.sourceKey]: pending.value,
+                        },
+                      },
               },
             },
           },
@@ -1505,6 +1520,88 @@ export function trackerReducer(
         ),
       );
     }
+    case "set-source-selections": {
+      const entry = state.jumpState[action.entryId];
+      if (!entry) return state;
+      const packageItem = packageForEntry(state, action.entryId)?.document;
+      const sourceContext = packageItem?.sections
+        .flatMap((section) =>
+          section.sources.map((source) => ({
+            key: `${section.handle}:${source.handle}`,
+            source,
+          })),
+        )
+        .find((item) => item.key === action.sourceKey);
+      if (!packageItem || !sourceContext) return state;
+      const allowed = new Set(
+        packageItem.choices
+          .filter(
+            (choice) =>
+              sourceContext.source.group !== undefined &&
+              choice.groups.includes(sourceContext.source.group),
+          )
+          .map((choice) => choice.handle),
+      );
+      const actor = entry.actors[action.actorId] ?? emptyActorEntryState();
+      const uniqueValue = [
+        ...new Set(action.value.filter((handle) => allowed.has(handle))),
+      ];
+      const value =
+        sourceContext.source.mode === "single"
+          ? uniqueValue.slice(-1)
+          : uniqueValue;
+      let candidate: TrackerState = {
+        ...state,
+        jumpState: {
+          ...state.jumpState,
+          [action.entryId]: {
+            ...entry,
+            actors: {
+              ...entry.actors,
+              [action.actorId]: {
+                ...actor,
+                sourceSelections: {
+                  ...actor.sourceSelections,
+                  [action.sourceKey]: value,
+                },
+              },
+            },
+          },
+        },
+      };
+      const formImpacts = removedFormDependencyImpacts(
+        state,
+        candidate,
+        action.entryId,
+        action.actorId,
+      );
+      if (formImpacts.length)
+        return {
+          ...state,
+          pending: {
+            kind: "clear-form-source",
+            entryId: action.entryId,
+            actorId: action.actorId,
+            sourceKey: action.sourceKey,
+            value,
+            impacts: formImpacts,
+          },
+        };
+      candidate = cascadeRemovedFormDependencies(
+        state,
+        candidate,
+        action.entryId,
+        action.actorId,
+      );
+      const previous = actor.sourceSelections[action.sourceKey] ?? [];
+      return enforceBalancePolicy(
+        state,
+        candidate,
+        action.entryId,
+        action.actorId,
+        value.some((handle) => !previous.includes(handle)),
+      );
+    }
     case "set-input": {
       const entry = state.jumpState[action.entryId];
       if (!entry) return state;
@@ -1650,9 +1747,16 @@ export function trackerReducer(
       const previousSequence =
         actor.sourceRolls[action.sourceKey]?.sequence ?? 0;
       const previousResult = actor.sourceRolls[action.sourceKey]?.result;
-      const choices = { ...actor.choices };
-      if (typeof previousResult === "string") choices[previousResult] = false;
-      choices[action.result] = true;
+      const sourceSelections =
+        action.mode === "single"
+          ? [action.result]
+          : [
+              ...(actor.sourceSelections[action.sourceKey] ?? []).filter(
+                (handle) =>
+                  handle !== previousResult && handle !== action.result,
+              ),
+              action.result,
+            ];
       const candidate: TrackerState = {
         ...state,
         jumpState: {
@@ -1663,7 +1767,10 @@ export function trackerReducer(
               ...entry.actors,
               [action.actorId]: {
                 ...actor,
-                choices,
+                sourceSelections: {
+                  ...actor.sourceSelections,
+                  [action.sourceKey]: sourceSelections,
+                },
                 sourceRolls: {
                   ...actor.sourceRolls,
                   [action.sourceKey]: {
@@ -1714,6 +1821,7 @@ import type {
   JumpRuntimeState,
 } from "../domain";
 import {
+  choiceStateIsActive,
   choiceValueIsActive,
   emptyActorEntryState,
   emptyJumpEntryState,

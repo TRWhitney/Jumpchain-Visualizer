@@ -17,6 +17,7 @@ import {
 } from "./conditionExpression";
 import {
   collectConditionProperties,
+  conditionControlProperties,
   conditionContextHandles,
 } from "./conditionProperties";
 
@@ -46,6 +47,7 @@ type DeclarationRule = {
       max?: number;
       repeatable?: boolean;
       ownerLocalHandleNamespace?: string;
+      appliesWhen?: Readonly<Record<string, readonly string[]>>;
     }
   >;
   fieldSet?: string;
@@ -64,6 +66,8 @@ type DeclarationRule = {
     }
   >;
 };
+
+type ChildRule = NonNullable<DeclarationRule["children"]>[string];
 
 type Schema = {
   lexical: { handlePattern: string; integerPattern: string };
@@ -651,7 +655,7 @@ function validateNode(
         );
     if (rule.exactDuplicate) {
       const seen = new Set<string>();
-      for (const candidate of matching) {
+      for (const [occurrence, candidate] of matching.entries()) {
         const normalized = unquote(candidate.value);
         if (seen.has(normalized))
           add(
@@ -660,6 +664,7 @@ function validateNode(
             { field: name, value: normalized },
             node,
             candidate,
+            occurrence,
           );
         seen.add(normalized);
       }
@@ -688,10 +693,21 @@ function validateNode(
   for (const child of node.children) {
     const layoutRoot =
       node.kind.endsWith("-layout") && schema.layoutNodes[child.kind];
+    const childRule = resolved.children[child.kind] as ChildRule | undefined;
+    const childApplies =
+      childRule &&
+      Object.entries(childRule.appliesWhen ?? {}).every(([field, allowed]) =>
+        allowed.includes(
+          unquote(
+            node.fields.find((candidate) => candidate.name === field)?.value ??
+              "",
+          ),
+        ),
+      );
     if (
       !resolved.layout &&
       !layoutRoot &&
-      !Object.hasOwn(resolved.children, child.kind)
+      (!Object.hasOwn(resolved.children, child.kind) || !childApplies)
     )
       add(
         diagnostics,
@@ -703,7 +719,20 @@ function validateNode(
   }
 
   if (!resolved.layout)
-    for (const [kind, childRule] of Object.entries(resolved.children)) {
+    for (const [kind, childRule] of Object.entries(
+      resolved.children as Record<string, ChildRule>,
+    )) {
+      if (
+        !Object.entries(childRule.appliesWhen ?? {}).every(([field, allowed]) =>
+          allowed.includes(
+            unquote(
+              node.fields.find((candidate) => candidate.name === field)
+                ?.value ?? "",
+            ),
+          ),
+        )
+      )
+        continue;
       const matching = node.children.filter((child) => child.kind === kind);
       if ((childRule.min ?? 0) > matching.length)
         add(
@@ -749,11 +778,15 @@ function fieldRules(node: SourceNode, parent: SourceNode | undefined) {
 
 function walk(
   nodes: readonly SourceNode[],
-  parent?: SourceNode,
-): { node: SourceNode; parent?: SourceNode }[] {
+  ancestors: readonly SourceNode[] = [],
+): {
+  node: SourceNode;
+  parent?: SourceNode;
+  ancestors: readonly SourceNode[];
+}[] {
   return nodes.flatMap((node) => [
-    { node, parent },
-    ...walk(node.children, node),
+    { node, parent: ancestors.at(-1), ancestors },
+    ...walk(node.children, [...ancestors, node]),
   ]);
 }
 
@@ -796,8 +829,7 @@ function validateReferences(
     );
     const handle = node.fields.find((field) => field.name === "handle");
     if (handle && kind === "form") forms.add(unquote(handle.value));
-    if (handle && ["companion", "companion-import"].includes(kind))
-      companions.add(unquote(handle.value));
+    if (handle && kind === "companion") companions.add(unquote(handle.value));
     if (!handle && kind === "companion" && parent?.kind === "choice") {
       const ownerHandle = parent.fields.find(
         (field) => field.name === "handle",
@@ -806,13 +838,20 @@ function validateReferences(
     }
   }
   for (const { node } of entries.filter(({ node }) => node.kind === "choice")) {
+    const ownerHandle = node.fields.find((field) => field.name === "handle");
+    if (
+      ownerHandle &&
+      unquote(
+        node.fields.find((field) => field.name === "selection")?.value ?? "",
+      ) === "companions"
+    )
+      companions.add(unquote(ownerHandle.value));
     if (
       node.fields.some(
         (field) =>
           field.name === "grant" && unquote(field.value) === "companion",
       )
     ) {
-      const ownerHandle = node.fields.find((field) => field.name === "handle");
       if (ownerHandle) companions.add(unquote(ownerHandle.value));
     }
   }
@@ -1081,7 +1120,8 @@ function validateAuthoringWarnings(
     };
     for (const section of packageItem.sections) {
       const owner = entries.find(
-        ({ node }) =>
+        ({ node, parent }) =>
+          !parent &&
           node.kind === "section" &&
           node.fields.some(
             (field) =>
@@ -1097,7 +1137,8 @@ function validateAuthoringWarnings(
     }
     for (const choice of packageItem.choices) {
       const owner = entries.find(
-        ({ node }) =>
+        ({ node, parent }) =>
+          !parent &&
           node.kind === "choice" &&
           node.fields.some(
             (field) =>
@@ -1113,6 +1154,37 @@ function validateAuthoringWarnings(
     for (const [layoutHandle, owners] of consumers) {
       const declaration = layoutNodes.get(layoutHandle);
       if (!declaration) continue;
+      const placedInputs = new Set(
+        walk(declaration.children).flatMap(({ node }) => [
+          ...(node.kind === "input"
+            ? node.fields
+                .filter((field) => field.name === "target")
+                .map((field) => unquote(field.value))
+            : []),
+          ...node.fields
+            .filter((field) => field.name === "input")
+            .map((field) => unquote(field.value)),
+        ]),
+      );
+      for (const owner of owners)
+        for (const child of owner.owner.children.filter(
+          (candidate) => candidate.kind === "input",
+        )) {
+          const handle = child.fields.find((field) => field.name === "handle");
+          if (handle && !placedInputs.has(unquote(handle.value)))
+            add(
+              diagnostics,
+              "layout.input.unreachable",
+              {
+                input: unquote(handle.value),
+                layout: layoutHandle,
+              },
+              child,
+              handle,
+              0,
+              "warning",
+            );
+        }
       for (const { node } of walk(declaration.children)) {
         if (!["text", "image", "input"].includes(node.kind)) continue;
         const target = node.fields.find((field) => field.name === "target");
@@ -1252,7 +1324,11 @@ const canonicalTag = (value: string) =>
     .trim();
 
 function validateConditionsAndPlaceholders(
-  entries: readonly { node: SourceNode; parent?: SourceNode }[],
+  entries: readonly {
+    node: SourceNode;
+    parent?: SourceNode;
+    ancestors?: readonly SourceNode[];
+  }[],
   diagnostics: PackageDiagnostic[],
   options: PackageValidationOptions,
 ) {
@@ -1283,10 +1359,12 @@ function validateConditionsAndPlaceholders(
     operand.kind === "property"
       ? properties.get(operand.handle)
       : operand.valueType;
-  for (const { node, parent } of entries) {
+  for (const { node, parent, ancestors } of entries) {
     const properties = new Map(globalProperties);
-    for (const handle of conditionContextHandles(node, parent))
+    for (const handle of conditionContextHandles(node, parent, ancestors))
       properties.set(handle, "integer");
+    for (const property of conditionControlProperties(node, parent, ancestors))
+      properties.set(property.handle, property.type);
     const variantOccurrences = new Map<string, number>();
     const baseOccurrences = new Map<string, number>();
     const priorConditions = new Map<
@@ -1442,17 +1520,26 @@ function validateConditionsAndPlaceholders(
           continue;
         }
         if (properties.has(property)) continue;
-        add(
-          diagnostics,
-          "placeholder.property.unresolved",
-          { property },
-          node,
-          sourceField,
-          node.fields
-            .filter((field) => field.name === sourceField.name)
-            .indexOf(sourceField),
+        const occurrence = node.fields
+          .filter((field) => field.name === sourceField.name)
+          .indexOf(sourceField);
+        const quotedOffset = sourceField.value.startsWith('"') ? 1 : 0;
+        const from = quotedOffset + (match.index ?? 0);
+        diagnostics.push({
+          code: "placeholder.property.unresolved",
           severity,
-        );
+          messageKey: "diagnostics.placeholder.property.unresolved",
+          parameters: { property },
+          range: sourceField.fenced
+            ? sourceField.valueRange
+            : {
+                ...sourceField.valueRange,
+                column: sourceField.valueRange.column + from,
+                from: sourceField.valueRange.from + from,
+                to: sourceField.valueRange.from + from + match[0].length,
+              },
+          target: fieldTarget(node, sourceField, occurrence),
+        });
       }
     }
   }
@@ -1491,6 +1578,14 @@ function validateSemanticFields(
       const optionsFields = node.fields.filter(
         (field) => field.name === "option",
       );
+      const placeholder = node.fields.find(
+        (field) => field.name === "placeholder",
+      );
+      if (
+        placeholder &&
+        !["text", "integer", "select", "companions"].includes(selection)
+      )
+        add(diagnostics, "choice.placeholder.domain", {}, node, placeholder);
       if (selection !== "select" && optionsFields.length)
         for (const option of optionsFields)
           add(diagnostics, "choice.option.domain", {}, node, option);
@@ -1504,6 +1599,60 @@ function validateSemanticFields(
           0,
           "warning",
           "option",
+        );
+      const minimum = node.fields.find((field) => field.name === "min");
+      const maximum = node.fields.find((field) => field.name === "max");
+      if (
+        selection === "companions" &&
+        maximum &&
+        (!integerPattern.test(unquote(maximum.value)) ||
+          Number(unquote(maximum.value)) <= 0)
+      )
+        add(
+          diagnostics,
+          "choice.companions.max",
+          {},
+          node,
+          maximum,
+          0,
+          "error",
+          "max",
+        );
+      const resolvedMinimum =
+        selection === "companions" && !minimum
+          ? 1
+          : minimum && integerPattern.test(unquote(minimum.value))
+            ? Number(unquote(minimum.value))
+            : undefined;
+      const resolvedMaximum =
+        selection === "companions" && !maximum
+          ? 1
+          : maximum && integerPattern.test(unquote(maximum.value))
+            ? Number(unquote(maximum.value))
+            : undefined;
+      if (
+        selection === "companions" &&
+        resolvedMinimum !== undefined &&
+        resolvedMaximum !== undefined &&
+        resolvedMinimum > resolvedMaximum
+      )
+        add(diagnostics, "choice.companions.bounds", {}, node, maximum);
+      if (
+        selection === "companions" &&
+        node.fields.some(
+          (field) =>
+            field.name === "grant" && unquote(field.value) === "companion",
+        )
+      )
+        add(
+          diagnostics,
+          "choice.companions.shorthand",
+          {},
+          node,
+          node.fields.find(
+            (field) =>
+              field.name === "grant" && unquote(field.value) === "companion",
+          ),
         );
       const groups = node.fields.filter((field) => field.name === "group");
       const groupSet = new Set<string>();
@@ -1607,7 +1756,7 @@ function validateSemanticFields(
       const optionsFields = node.fields.filter(
         (field) => field.name === "option",
       );
-      if (!["integer", "companions"].includes(selection))
+      if (selection !== "integer")
         for (const bound of [minimum, maximum])
           if (bound)
             add(diagnostics, "input.bounds.domain", { selection }, node, bound);
@@ -1619,22 +1768,6 @@ function validateSemanticFields(
         Number(unquote(minimum.value)) > Number(unquote(maximum.value))
       )
         add(diagnostics, "input.bounds.order", {}, node, maximum);
-      if (
-        selection === "companions" &&
-        (!maximum ||
-          !integerPattern.test(unquote(maximum.value)) ||
-          Number(unquote(maximum.value)) <= 0)
-      )
-        add(
-          diagnostics,
-          "input.companions.max",
-          {},
-          node,
-          maximum,
-          0,
-          "error",
-          "max",
-        );
       if (selection !== "select" && optionsFields.length)
         for (const option of optionsFields)
           add(diagnostics, "input.option.domain", { selection }, node, option);

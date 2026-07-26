@@ -42,6 +42,8 @@
         "stats": "Stats",
         "tagSearch": "Tag search",
         "relationships": "Relationships",
+        "all": "All",
+        "tagsFilter": "Tags: {{tag}}",
         "allTags": "All tags",
         "exactInventoryPoint": "Exact inventory point",
         "includesDescendants": "Includes descendants",
@@ -98,7 +100,11 @@
         "acquisitionDetails": "Acquisition details",
         "closeDependencyReview": "Close dependency review",
         "interactiveChainTrackerWorkspace": "Interactive Chain Tracker workspace",
-        "chainEntryActions": "{{entry}} chain entry actions"
+        "chainEntryActions": "{{entry}} chain entry actions",
+        "moreActionsForJump": "More actions for {{jump}}",
+        "moveJumpLater": "Move {{jump}} later in the chain",
+        "moveJumpEarlier": "Move {{jump}} earlier in the chain",
+        "removeJumpFromChain": "Remove {{jump}} from the chain"
       },
       "title": {
         "dragToReorder": "Drag to reorder",
@@ -167,8 +173,18 @@
         "requires": "Requires ",
         "eachSelectedCompanionReceives": "Each selected companion receives",
         "requiresForm": "Requires form ",
+        "noCompanionsAvailable": "No companions from earlier Jumps are available.",
+        "noCompanionsMatch": "No earlier companions match this search.",
+        "companionSelectionStatus": "{{selected}} selected · minimum {{minimum}} · maximum {{maximum}}",
         "rolledLabel": "Rolled",
         "roll": "Roll",
+        "claim": "Claim",
+        "notRolled": "Not rolled",
+        "sourceResult": "{{choice}} result",
+        "chooseChoice": "Choose {{choice}}",
+        "takeChoice": "Take {{choice}}",
+        "rolledChoice": "{{choice}} · Rolled",
+        "noResult": "No result",
         "spent": "Spent",
         "cpSuffix": " CP",
         "format1EvaluatedPackage": "Format 1 evaluated package",
@@ -177,7 +193,13 @@
         "currentJumpTraits": "Current Jump traits"
       },
       "placeholder": {
-        "unset": "Unset"
+        "unset": "Unset",
+        "chooseCompanions": "Choose companions from earlier Jumps"
+      },
+      "aria": {
+        "selectedCompanions": "Selected companions",
+        "availableCompanions": "Available companions",
+        "removeSelectedCompanion": "Remove {{companion}}"
       }
     },
     "numberStepper": {

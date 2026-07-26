@@ -4,10 +4,12 @@ import {
   emptyActorEntryState,
   emptyJumpEntryState,
   evaluateChain,
+  renderRichTextRenderable,
   type ActorEntryState,
   type JumpRuntimeState,
 } from "./jumps";
 import { deterministicRandomIndex } from "./random";
+import { canonicalizePackage } from "../markup";
 
 const packages = Object.fromEntries(
   validGeneratedJumpPackages.map((item) => [item.id, item]),
@@ -24,6 +26,35 @@ const actor = (
   sourceRolls,
 });
 
+const withSourceSelections = (
+  packageId: string,
+  state: ActorEntryState,
+): ActorEntryState => {
+  const packageItem = packages[packageId];
+  if (!packageItem) return state;
+  return {
+    ...state,
+    sourceSelections: {
+      ...Object.fromEntries(
+        packageItem.sections.flatMap((section) =>
+          section.sources.map((source) => [
+            `${section.handle}:${source.handle}`,
+            packageItem.choices
+              .filter(
+                (choice) =>
+                  source.group &&
+                  choice.groups.includes(source.group) &&
+                  Object.hasOwn(state.choices, choice.handle),
+              )
+              .map((choice) => choice.handle),
+          ]),
+        ),
+      ),
+      ...state.sourceSelections,
+    },
+  };
+};
+
 const one = (
   packageId: string,
   jumper: ActorEntryState,
@@ -34,12 +65,31 @@ const one = (
     packageIdByEntry: { entry: packageId },
     packages,
     jumpState: {
-      entry: { actors: { jumper }, appliedGauntlet },
+      entry: {
+        actors: { jumper: withSourceSelections(packageId, jumper) },
+        appliedGauntlet,
+      },
     },
     jumperName: "Morgan",
   });
 
 describe("Format 1 chain evaluation", () => {
+  it("keeps interpolated author answers literal inside rich text", () => {
+    const blocks = renderRichTextRenderable(
+      {
+        base: "Answer: {{answer}}",
+        variants: [],
+      },
+      { answer: "**not bold**\n- not a list" },
+    );
+    expect(blocks).toEqual([
+      {
+        kind: "paragraph",
+        content: [{ text: "Answer: **not bold**\n- not a list" }],
+      },
+    ]);
+  });
+
   it("provides deterministic fixture randomness through an injected port", () => {
     expect(deterministicRandomIndex(3, 0)).toBe(0);
     expect(deterministicRandomIndex(3, 4)).toBe(1);
@@ -85,6 +135,48 @@ describe("Format 1 chain evaluation", () => {
     expect(ranked?.description).toBe("A practiced discipline at rank 3.");
   });
 
+  it("resolves owning Choice and supporting Input answers in award descriptions", () => {
+    const packageItem = canonicalizePackage({
+      id: "contextual-answers",
+      exactHash: "c".repeat(64),
+      files: {
+        "jump.jdef": `choice
+  handle: prompt
+  name: "Prompt"
+  selection: text
+
+  input
+    handle: detail
+    selection: text
+
+  grant
+    kind: perk
+    name: "Result"
+
+    text
+      handle: description
+      content: "Waiting"
+      content when prompt = "Ready": "{{prompt}} / {{detail}}"
+`,
+      },
+    });
+    const state = actor({ prompt: "Ready" });
+    state.inputs = { prompt: { detail: "Follow-up" } };
+    const evaluation = evaluateChain({
+      order: ["entry"],
+      packageIdByEntry: { entry: packageItem.id },
+      packages: { [packageItem.id]: packageItem },
+      jumpState: {
+        entry: { actors: { jumper: state }, appliedGauntlet: [] },
+      },
+      jumperName: "Morgan",
+    });
+
+    expect(evaluation.records).toMatchObject([
+      { name: "Result", description: "Ready / Follow-up" },
+    ]);
+  });
+
   it("defaults numeric grants to rank and supports explicit quantity measures", () => {
     const evaluation = one(
       "confluence-engine",
@@ -122,9 +214,18 @@ describe("Format 1 chain evaluation", () => {
 
   it("funds imported companions and assigns targeted perks to their profiles", () => {
     const lyra = "companion:threshold:jumper:lyra_companion:0";
-    const trial = actor({ trial_company: true });
-    trial.inputs = { trial_company: { travelers: [lyra] } };
-    const lyraState = actor({ participant_resilience: true });
+    const witness = "companion:threshold:jumper:quiet_witness:0";
+    const trial = actor({
+      trial_company: [lyra, witness],
+      company_training: true,
+    });
+    trial.sourceSelections = {
+      "companions:companions": ["trial_company", "company_training"],
+    };
+    const lyraState = withSourceSelections(
+      "last-trial",
+      actor({ participant_resilience: true }),
+    );
     const evaluation = evaluateChain({
       order: ["threshold", "trial"],
       packageIdByEntry: {
@@ -134,7 +235,12 @@ describe("Format 1 chain evaluation", () => {
       packages,
       jumpState: {
         threshold: {
-          actors: { jumper: actor({ lyra_companion: true }) },
+          actors: {
+            jumper: withSourceSelections(
+              "threshold-roads",
+              actor({ lyra_companion: true, quiet_witness: true }),
+            ),
+          },
           appliedGauntlet: [],
         },
         trial: {
@@ -149,6 +255,11 @@ describe("Format 1 chain evaluation", () => {
       expect.objectContaining({ starting: 0, granted: 500, balance: 400 }),
     );
     expect(
+      evaluation.runtime.trial.actors[witness].resources.jump_points,
+    ).toEqual(
+      expect.objectContaining({ starting: 0, granted: 500, balance: 500 }),
+    );
+    expect(
       evaluation.companions.find((companion) => companion.actorId === lyra)
         ?.importedEntryIds,
     ).toEqual(["trial"]);
@@ -156,24 +267,211 @@ describe("Format 1 chain evaluation", () => {
       evaluation.records.find((record) => record.name === "Company Pathfinder")
         ?.ownerActorId,
     ).toBe(lyra);
+    expect(
+      evaluation.records.filter(
+        (record) => record.name === "Company Pathfinder",
+      ),
+    ).toHaveLength(2);
+    expect(
+      evaluation.records
+        .filter((record) => record.name === "Company Training")
+        .map((record) => record.ownerActorId)
+        .sort(),
+    ).toEqual([lyra, witness].sort());
+  });
+
+  it("deduplicates authored companion IDs before applying targeted grants", () => {
+    const lyra = "companion:threshold:jumper:lyra_companion:0";
+    const trial = actor({ trial_company: [lyra, lyra] });
+    trial.sourceSelections = {
+      "companions:companions": ["trial_company"],
+    };
+    const evaluation = evaluateChain({
+      order: ["threshold", "trial"],
+      packageIdByEntry: {
+        threshold: "threshold-roads",
+        trial: "last-trial",
+      },
+      packages,
+      jumpState: {
+        threshold: {
+          actors: {
+            jumper: withSourceSelections(
+              "threshold-roads",
+              actor({ lyra_companion: true }),
+            ),
+          },
+          appliedGauntlet: [],
+        },
+        trial: {
+          actors: { jumper: trial },
+          appliedGauntlet: [],
+        },
+      },
+      jumperName: "Morgan",
+    });
+
+    expect(
+      evaluation.runtime.trial.actors[lyra].resources.jump_points.granted,
+    ).toBe(500);
+    expect(
+      evaluation.records.filter(
+        (record) =>
+          record.name === "Company Pathfinder" && record.ownerActorId === lyra,
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("applies no companion-selection cost or effects below the minimum", () => {
+    const lyra = "companion:threshold:jumper:lyra_companion:0";
+    const trial = actor({ trial_company: [lyra] });
+    trial.sourceSelections = {
+      "companions:companions": ["trial_company"],
+    };
+    const source = packages["last-trial"];
+    const requiresTwo = {
+      ...source,
+      choices: source.choices.map((choice) =>
+        choice.handle === "trial_company" ? { ...choice, min: 2 } : choice,
+      ),
+    };
+    const evaluation = evaluateChain({
+      order: ["threshold", "trial"],
+      packageIdByEntry: {
+        threshold: "threshold-roads",
+        trial: "requires-two",
+      },
+      packages: { ...packages, "requires-two": requiresTwo },
+      jumpState: {
+        threshold: {
+          actors: {
+            jumper: withSourceSelections(
+              "threshold-roads",
+              actor({ lyra_companion: true }),
+            ),
+          },
+          appliedGauntlet: [],
+        },
+        trial: {
+          actors: { jumper: trial },
+          appliedGauntlet: [],
+        },
+      },
+      jumperName: "Morgan",
+    });
+
+    expect(
+      evaluation.runtime.trial.actors.jumper.choices.trial_company,
+    ).toMatchObject({ active: false });
+    expect(
+      evaluation.runtime.trial.actors.jumper.choices.trial_company.costs[0]
+        .resolvedAmount,
+    ).toBe(0);
+    expect(
+      evaluation.records.some(
+        (record) =>
+          record.name === "Company Pathfinder" && record.ownerActorId === lyra,
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps grouped answers dormant until their source membership is selected", () => {
+    const dormant = actor({ adaptive_mastery: 3 });
+    dormant.sourceSelections = { "measures:measures": [] };
+    const inactive = one("confluence-engine", dormant).runtime.entry.actors
+      .jumper.choices.adaptive_mastery;
+    expect(inactive).toMatchObject({ value: 3, active: false });
+    expect(inactive.costs[0].resolvedAmount).toBe(0);
+
+    dormant.sourceSelections = {
+      "measures:measures": ["adaptive_mastery"],
+    };
+    const active = one("confluence-engine", dormant).runtime.entry.actors.jumper
+      .choices.adaptive_mastery;
+    expect(active).toMatchObject({ value: 3, active: true });
+    expect(active.costs[0].resolvedAmount).toBeGreaterThan(0);
+  });
+
+  it("evaluates a Choice once when direct and Choice Source placements are both active", () => {
+    const sourcePackage = packages["confluence-engine"];
+    const packageItem = {
+      ...sourcePackage,
+      id: "duplicate-placement",
+      sections: sourcePackage.sections.map((section) =>
+        section.handle === "measures"
+          ? {
+              ...section,
+              directChoices: [
+                ...section.directChoices,
+                {
+                  handle: "direct_adaptive_mastery",
+                  target: "adaptive_mastery",
+                },
+              ],
+              members: [
+                ...section.members,
+                { kind: "choice" as const, handle: "direct_adaptive_mastery" },
+              ],
+            }
+          : section,
+      ),
+    };
+    const state = withSourceSelections(
+      "confluence-engine",
+      actor({ adaptive_mastery: 3 }),
+    );
+    const evaluation = evaluateChain({
+      order: ["entry"],
+      packageIdByEntry: { entry: packageItem.id },
+      packages: { [packageItem.id]: packageItem },
+      jumpState: {
+        entry: { actors: { jumper: state }, appliedGauntlet: [] },
+      },
+      jumperName: "Morgan",
+    });
+
+    expect(
+      evaluation.records.filter((record) => record.name === "Adaptive Mastery"),
+    ).toHaveLength(1);
+    expect(
+      evaluation.runtime.entry.actors.jumper.resources.jump_points.spent,
+    ).toBe(150);
+  });
+
+  it("does not import a companion created in the same Jump", () => {
+    const currentAster = "companion:entry:jumper:aster_companion:0";
+    const state = actor({
+      aster_companion: true,
+      trial_company: [currentAster],
+    });
+    state.sourceSelections = {
+      "companions:companions": ["aster_companion", "trial_company"],
+    };
+    const evaluation = one("last-trial", state);
+    expect(
+      evaluation.records.some(
+        (record) =>
+          record.name === "Company Pathfinder" &&
+          record.ownerActorId === currentAster,
+      ),
+    ).toBe(false);
   });
 
   it("does not expose an imported companion when targeted perks have no currency", () => {
     const lyra = "companion:threshold:jumper:lyra_companion:0";
-    const trial = actor({ trial_company: true });
-    trial.inputs = { trial_company: { travelers: [lyra] } };
+    const trial = actor({ trial_company: [lyra] });
+    trial.sourceSelections = {
+      "companions:companions": ["trial_company"],
+    };
     const source = packages["last-trial"];
     const unfunded = {
       ...source,
       choices: source.choices.map((choice) => ({
         ...choice,
-        inputs: choice.inputs.map((input) => ({
-          ...input,
-          grants: input.grants.filter(
-            (grant) =>
-              grant.kind !== "resource" || grant.companion !== "trial_company",
-          ),
-        })),
+        grants: choice.grants.filter(
+          (grant) =>
+            grant.kind !== "resource" || grant.companion !== "trial_company",
+        ),
       })),
     };
     const evaluation = evaluateChain({
@@ -182,7 +480,12 @@ describe("Format 1 chain evaluation", () => {
       packages: { ...packages, unfunded },
       jumpState: {
         threshold: {
-          actors: { jumper: actor({ lyra_companion: true }) },
+          actors: {
+            jumper: withSourceSelections(
+              "threshold-roads",
+              actor({ lyra_companion: true }),
+            ),
+          },
           appliedGauntlet: [],
         },
         trial: { actors: { jumper: trial }, appliedGauntlet: [] },
@@ -299,13 +602,31 @@ describe("Format 1 chain evaluation", () => {
   });
 
   it("projects typed literal and copied properties", () => {
-    const projected = one(
-      "threshold-roads",
-      actor({ roadborn_origin: true, threshold_alias: "Wayfinder" }),
-    ).runtime.entry.actors.jumper;
+    const state = actor({
+      roadborn_origin: true,
+      threshold_alias: "Wayfinder",
+      custom_door: true,
+    });
+    state.inputs = {
+      custom_door: {
+        door_name: "Homeward",
+        door_count: 2,
+        door_material: "Brass",
+      },
+    };
+    const evaluation = one("threshold-roads", state);
+    const projected = evaluation.runtime.entry.actors.jumper;
     expect(projected.properties.origin?.value).toBe("Roadborn");
     expect(projected.properties.species?.value).toBe("Human");
     expect(projected.properties.carries_map?.value).toBe(true);
     expect(projected.properties.road_name?.value).toBe("Wayfinder");
+    expect(projected.properties.door_name?.value).toBe("Homeward");
+    expect(projected.properties.door_count?.value).toBe(2);
+    expect(projected.properties.door_material?.value).toBe("Brass");
+    expect(
+      evaluation.records.find((record) => record.name === "Keeper of Homeward"),
+    ).toMatchObject({
+      description: "Your 2 Brass doors answer to the name Homeward.",
+    });
   });
 });

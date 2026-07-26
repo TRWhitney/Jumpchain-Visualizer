@@ -1,5 +1,6 @@
 import format1Schema from "../../schema/format-1.json";
 import { parseFormatFile, type SourceField, type SourceNode } from "../markup";
+import { translate } from "../localization";
 import type { FormatSymbol } from "./languageService";
 
 export type FieldDefinition = {
@@ -14,6 +15,7 @@ export type FieldDefinition = {
   const?: string | number | boolean;
   default?: string | number | boolean;
   defaultForIntegerVisibleGrant?: string;
+  defaultForCompanionSelection?: number;
   conditionalVariants?: boolean;
   appliesWhen?: Readonly<Record<string, readonly string[]>>;
   exclusiveWith?: readonly string[];
@@ -121,22 +123,21 @@ export type CreatableTopLevelDeclarationKind =
   | "trait-layout"
   | "theme";
 
-const topLevelDeclarationStarters: Readonly<
-  Record<CreatableTopLevelDeclarationKind, string>
-> = {
-  resource:
-    'resource\n  handle: new_resource\n  name: "New Resource"\n  abbreviation: "NR"\n  initial: 0',
-  section: 'section\n  handle: new_section\n  name: "New Section"',
-  choice:
-    'choice\n  handle: new_choice\n  name: "New Choice"\n  selection: toggle',
-  "section-layout":
-    "section-layout\n  handle: new_section_layout\n\n  stack\n    gap: md\n\n    slot: name",
-  "choice-layout":
-    "choice-layout\n  handle: new_choice_layout\n\n  stack\n    gap: sm\n\n    slot: name\n    slot: control",
-  "trait-layout":
-    "trait-layout\n  handle: new_trait_layout\n\n  stack\n    gap: sm\n\n    slot: name",
-  theme: 'theme\n  handle: new_theme\n  color: "#68707c"',
-};
+function topLevelDeclarationStarter(kind: CreatableTopLevelDeclarationKind) {
+  const starters: Readonly<Record<CreatableTopLevelDeclarationKind, string>> = {
+    resource: `resource\n  handle: new_resource\n  name: ${JSON.stringify(translate("ui.editorWorkspace.starter.resourceName"))}\n  abbreviation: ${JSON.stringify(translate("ui.editorWorkspace.starter.resourceAbbreviation"))}\n  initial: 0`,
+    section: `section\n  handle: new_section\n  name: ${JSON.stringify(translate("ui.editorWorkspace.starter.newSectionName"))}`,
+    choice: `choice\n  handle: new_choice\n  name: ${JSON.stringify(translate("ui.editorWorkspace.starter.newChoiceName"))}\n  selection: toggle`,
+    "section-layout":
+      "section-layout\n  handle: new_section_layout\n\n  stack\n    gap: md\n\n    slot: name",
+    "choice-layout":
+      "choice-layout\n  handle: new_choice_layout\n\n  stack\n    gap: sm\n\n    slot: name\n    slot: control",
+    "trait-layout":
+      "trait-layout\n  handle: new_trait_layout\n\n  stack\n    gap: sm\n\n    slot: name",
+    theme: 'theme\n  handle: new_theme\n  color: "#68707c"',
+  };
+  return starters[kind];
+}
 
 const walk = (nodes: readonly SourceNode[]): SourceNode[] =>
   nodes.flatMap((node) => [node, ...walk(node.children)]);
@@ -363,8 +364,14 @@ export function fieldDefault(
       kind: "value",
       value: definition.defaultForIntegerVisibleGrant,
     };
-  if (kind === "input" && field === "min" && context.selection === "companions")
-    return { kind: "value", value: 0 };
+  if (kind === "choice" && context.selection === "companions") {
+    if (field === "min") return { kind: "value", value: 1 };
+    if (definition?.defaultForCompanionSelection !== undefined)
+      return {
+        kind: "value",
+        value: definition.defaultForCompanionSelection,
+      };
+  }
   if (
     kind === "jump" &&
     field === "starting-points" &&
@@ -387,15 +394,18 @@ export function declarationFieldNames(kind: string) {
   return Object.keys(declarationFields(kind));
 }
 
-const childStarters: Readonly<Record<string, string>> = {
-  "choice-source": "choice-source\n  handle: new_source\n  mode: multi",
-  choice: "choice\n  handle: new_placement\n  target: choice_handle",
-  text: 'text\n  handle: new_text\n  content: ""',
-  image: 'image\n  handle: new_image\n  alt: ""',
-  input: "input\n  handle: new_input\n  selection: text",
-  cost: "cost\n  resource: jump_points\n  amount: 0",
-  grant: 'grant\n  kind: perk\n  name: "New grant"',
-};
+function childStarter(kind: string) {
+  const starters: Readonly<Record<string, string>> = {
+    "choice-source": "choice-source\n  handle: new_source\n  mode: multi",
+    choice: "choice\n  handle: new_placement\n  target: choice_handle",
+    text: 'text\n  handle: new_text\n  content: ""',
+    image: 'image\n  handle: new_image\n  alt: ""',
+    input: "input\n  handle: new_input\n  selection: text",
+    cost: "cost\n  resource: jump_points\n  amount: 0",
+    grant: `grant\n  kind: perk\n  name: ${JSON.stringify(translate("ui.editorWorkspace.starter.newGrantName"))}`,
+  };
+  return starters[kind];
+}
 
 const preferredFocusFields: Readonly<Record<string, string>> = {
   "choice-source": "group",
@@ -444,11 +454,11 @@ export function createTopLevelDocumentDeclaration(
 ): DocumentEditResult {
   const seededStarter =
     kind === "theme" && /^#[0-9a-f]{6}$/i.test(options.color ?? "")
-      ? topLevelDeclarationStarters.theme.replace(
+      ? topLevelDeclarationStarter("theme").replace(
           '"#68707c"',
           `"${options.color!.toLocaleUpperCase()}"`,
         )
-      : topLevelDeclarationStarters[kind];
+      : topLevelDeclarationStarter(kind);
   const starter = uniqueStarter(files, seededStarter);
   const handle = unquote(
     parseFormatFile("new.jdef", starter).tree[0]?.fields.find(
@@ -540,10 +550,24 @@ export function insertDocumentChild(
   kind: string,
 ): DocumentEditResult {
   const located = locateSymbol(files, owner);
-  const starter =
-    kind === "grant" && owner.kind === "input"
+  const description = kind === "description";
+  if (
+    description &&
+    located?.node.children.some(
+      (child) =>
+        child.kind === "text" &&
+        unquote(
+          child.fields.find((field) => field.name === "handle")?.value,
+        ) === "description",
+    )
+  )
+    return { changed: false, files: { ...files }, reason: "no-change" };
+  const insertedKind = description ? "text" : kind;
+  const starter = description
+    ? 'text\n  handle: description\n  content: ""'
+    : kind === "grant" && owner.kind === "input"
       ? "grant\n  kind: resource\n  resource: jump_points\n  amount: 0"
-      : childStarters[kind];
+      : childStarter(kind);
   if (!located || !starter)
     return { changed: false, files: { ...files }, reason: "stale-target" };
   const source = files[owner.file] ?? "";
@@ -554,7 +578,7 @@ export function insertDocumentChild(
   const trimmedLength = ownerSource.trimEnd().length;
   const insertion = located.node.range.from + trimmedLength;
   const indentation = "  ".repeat(located.depth + 1);
-  const indented = uniqueStarter(files, starter)
+  const indented = (description ? starter : uniqueStarter(files, starter))
     .split("\n")
     .map((line) => `${indentation}${line}`)
     .join("\n");
@@ -567,7 +591,14 @@ export function insertDocumentChild(
   const nextOwner = locateSymbol(nextFiles, owner);
   const createdNode = [...(nextOwner?.node.children ?? [])]
     .reverse()
-    .find((child) => child.kind === kind);
+    .find(
+      (child) =>
+        child.kind === insertedKind &&
+        (!description ||
+          unquote(
+            child.fields.find((field) => field.name === "handle")?.value,
+          ) === "description"),
+    );
   const target = createdNode
     ? symbolForNode(createdNode, located.depth + 1)
     : undefined;
@@ -575,7 +606,7 @@ export function insertDocumentChild(
     changed: true,
     files: nextFiles,
     target,
-    focusField: preferredFocusFields[kind],
+    focusField: preferredFocusFields[insertedKind],
   };
 }
 

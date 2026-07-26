@@ -27,7 +27,11 @@ import {
 } from "./tagProfile";
 import { primaryTagIds } from "./builtinTags";
 import { translate } from "../localization";
-import { useContextMenu } from "../ui";
+import {
+  DisclosureSection,
+  useContextMenu,
+  useSettingDefaultedState,
+} from "../ui";
 
 const sourceLabels = {
   builtin: "Built-in",
@@ -70,6 +74,15 @@ export function TagProfileEditor() {
     builtin: false,
     acquired: true,
   });
+  const [expandedAppearanceSections, setExpandedAppearanceSections] =
+    useSettingDefaultedState(
+      settings.general.collapseOptionalSectionsByDefault,
+      {
+        background: true,
+        text: !settings.general.collapseOptionalSectionsByDefault,
+        animation: !settings.general.collapseOptionalSectionsByDefault,
+      },
+    );
   const tag = profile.tags[selectedId] ?? Object.values(profile.tags)[0];
   const entries = Object.values(profile.tags);
   const displayName = (entry: (typeof entries)[number]) =>
@@ -706,392 +719,446 @@ export function TagProfileEditor() {
               </div>
             </fieldset>
 
-            <fieldset>
-              <legend>
-                {translate("ui.tagProfileEditor.text.backgroundAndBorder")}
-              </legend>
-              <SelectField
-                label={translate("ui.tagProfileEditor.label.background")}
-                ariaLabel="Background"
-                value={presentation.background}
-                onChange={(value) =>
-                  patchPresentation({
-                    background: value as TagPresentation["background"],
-                  })
-                }
-                options={["solid", "gradient", "transparent"]}
-              />
-              <label
-                className={
-                  presentation.background !== "solid" ? "is-locked" : ""
-                }
-              >
-                <span>{translate("ui.tagProfileEditor.text.solidColor")}</span>
-                <input
-                  type="color"
-                  disabled={presentation.background !== "solid"}
-                  value={presentation.colors[0]}
-                  onChange={(event) =>
-                    patchPresentation(
-                      {
-                        colors: [
-                          event.target.value,
-                          ...presentation.colors.slice(1),
-                        ],
-                      },
-                      true,
-                    )
+            <DisclosureSection
+              className="tag-profile-disclosure"
+              dataDisclosureSection="tag-background"
+              open={expandedAppearanceSections.background}
+              label={translate("ui.tagProfileEditor.text.backgroundAndBorder")}
+              onToggle={(background) =>
+                setExpandedAppearanceSections((current) => ({
+                  ...current,
+                  background,
+                }))
+              }
+            >
+              <fieldset>
+                <legend className="sr-only">
+                  {translate("ui.tagProfileEditor.text.backgroundAndBorder")}
+                </legend>
+                <SelectField
+                  label={translate("ui.tagProfileEditor.label.background")}
+                  ariaLabel="Background"
+                  value={presentation.background}
+                  onChange={(value) =>
+                    patchPresentation({
+                      background: value as TagPresentation["background"],
+                    })
                   }
+                  options={["solid", "gradient", "transparent"]}
                 />
-                <small className="field-lock-reason">
-                  {translate(
-                    "ui.tagProfileEditor.text.availableWhenBackgroundIsSolid",
-                  )}
-                </small>
-              </label>
-              <div
-                className={`tag-gradient-editor field-wide${!gradientEnabled ? " is-locked" : ""}`}
-                aria-disabled={!gradientEnabled}
-              >
-                <div className="tag-gradient-heading">
-                  <div>
-                    <span>
-                      {translate("ui.tagProfileEditor.text.gradientStops")}
-                    </span>
-                    <small>
-                      {translate(
-                        "ui.tagProfileEditor.text.dragInteriorNodesToPositionThem",
-                      )}
-                    </small>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={
-                      !gradientEnabled || presentation.colors.length >= 6
+                <label
+                  className={
+                    presentation.background !== "solid" ? "is-locked" : ""
+                  }
+                >
+                  <span>
+                    {translate("ui.tagProfileEditor.text.solidColor")}
+                  </span>
+                  <input
+                    type="color"
+                    disabled={presentation.background !== "solid"}
+                    value={presentation.colors[0]}
+                    onChange={(event) =>
+                      patchPresentation(
+                        {
+                          colors: [
+                            event.target.value,
+                            ...presentation.colors.slice(1),
+                          ],
+                        },
+                        true,
+                      )
                     }
-                    onClick={() => {
-                      const largest = presentation.positions
-                        .slice(0, -1)
-                        .map((position, index) => ({
-                          index,
-                          gap: presentation.positions[index + 1] - position,
-                        }))
-                        .sort((a, b) => b.gap - a.gap)[0];
-                      const index = largest.index + 1;
-                      const positions = [...presentation.positions];
-                      const colors = [...presentation.colors];
-                      positions.splice(
-                        index,
-                        0,
-                        Math.round(
-                          (positions[index - 1] + positions[index]) / 2,
-                        ),
-                      );
-                      colors.splice(index, 0, presentation.colors[index - 1]);
-                      setSelectedStop(index);
-                      patchPresentation({ positions, colors });
-                    }}
-                  >
-                    {translate("ui.tagProfileEditor.text.addStop")}
-                  </button>
-                </div>
-                <GradientTrack
-                  presentation={presentation}
-                  enabled={gradientEnabled}
-                  selected={selectedStop}
-                  onSelect={setSelectedStop}
-                  onMove={(index, position) => {
-                    if (
-                      index === 0 ||
-                      index === presentation.positions.length - 1
-                    )
-                      return;
-                    const positions = [...presentation.positions];
-                    positions[index] = Math.max(
-                      positions[index - 1] + 1,
-                      Math.min(positions[index + 1] - 1, position),
-                    );
-                    patchPresentation({ positions }, true);
-                  }}
-                />
-                <div className="tag-gradient-stop-controls">
-                  <label>
-                    <span>
-                      {translate("ui.tagProfileEditor.text.selectedColor")}
-                    </span>
-                    <input
-                      type="color"
-                      disabled={!gradientEnabled}
-                      value={
-                        presentation.colors[selectedStop] ??
-                        presentation.colors[0]
+                  />
+                  <small className="field-lock-reason">
+                    {translate(
+                      "ui.tagProfileEditor.text.availableWhenBackgroundIsSolid",
+                    )}
+                  </small>
+                </label>
+                <div
+                  className={`tag-gradient-editor field-wide${!gradientEnabled ? " is-locked" : ""}`}
+                  aria-disabled={!gradientEnabled}
+                >
+                  <div className="tag-gradient-heading">
+                    <div>
+                      <span>
+                        {translate("ui.tagProfileEditor.text.gradientStops")}
+                      </span>
+                      <small>
+                        {translate(
+                          "ui.tagProfileEditor.text.dragInteriorNodesToPositionThem",
+                        )}
+                      </small>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={
+                        !gradientEnabled || presentation.colors.length >= 6
                       }
-                      onChange={(event) => {
+                      onClick={() => {
+                        const largest = presentation.positions
+                          .slice(0, -1)
+                          .map((position, index) => ({
+                            index,
+                            gap: presentation.positions[index + 1] - position,
+                          }))
+                          .sort((a, b) => b.gap - a.gap)[0];
+                        const index = largest.index + 1;
+                        const positions = [...presentation.positions];
                         const colors = [...presentation.colors];
-                        colors[selectedStop] = event.target.value;
-                        patchPresentation({ colors }, true);
+                        positions.splice(
+                          index,
+                          0,
+                          Math.round(
+                            (positions[index - 1] + positions[index]) / 2,
+                          ),
+                        );
+                        colors.splice(index, 0, presentation.colors[index - 1]);
+                        setSelectedStop(index);
+                        patchPresentation({ positions, colors });
                       }}
-                    />
-                  </label>
-                  <label className={endpoint ? "is-locked" : ""}>
-                    <span>
-                      {translate("ui.tagProfileEditor.text.position")}
-                    </span>
-                    <span className="tag-gradient-position">
+                    >
+                      {translate("ui.tagProfileEditor.text.addStop")}
+                    </button>
+                  </div>
+                  <GradientTrack
+                    presentation={presentation}
+                    enabled={gradientEnabled}
+                    selected={selectedStop}
+                    onSelect={setSelectedStop}
+                    onMove={(index, position) => {
+                      if (
+                        index === 0 ||
+                        index === presentation.positions.length - 1
+                      )
+                        return;
+                      const positions = [...presentation.positions];
+                      positions[index] = Math.max(
+                        positions[index - 1] + 1,
+                        Math.min(positions[index + 1] - 1, position),
+                      );
+                      patchPresentation({ positions }, true);
+                    }}
+                  />
+                  <div className="tag-gradient-stop-controls">
+                    <label>
+                      <span>
+                        {translate("ui.tagProfileEditor.text.selectedColor")}
+                      </span>
                       <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        disabled={!gradientEnabled || endpoint}
-                        value={presentation.positions[selectedStop] ?? 0}
+                        type="color"
+                        disabled={!gradientEnabled}
+                        value={
+                          presentation.colors[selectedStop] ??
+                          presentation.colors[0]
+                        }
                         onChange={(event) => {
-                          const positions = [...presentation.positions];
-                          positions[selectedStop] = Number(event.target.value);
-                          patchPresentation({ positions }, true);
+                          const colors = [...presentation.colors];
+                          colors[selectedStop] = event.target.value;
+                          patchPresentation({ colors }, true);
                         }}
                       />
-                      <output>{presentation.positions[selectedStop]}%</output>
-                    </span>
-                    <small className="field-lock-reason">
-                      {translate(
-                        "ui.tagProfileEditor.text.endpointPositionsStayAt0And100",
-                      )}
-                    </small>
-                  </label>
-                  <button
-                    type="button"
-                    disabled={!gradientEnabled || endpoint}
-                    onClick={() => {
-                      const colors = [...presentation.colors];
-                      const positions = [...presentation.positions];
-                      colors.splice(selectedStop, 1);
-                      positions.splice(selectedStop, 1);
-                      setSelectedStop(Math.max(1, selectedStop - 1));
-                      patchPresentation({ colors, positions });
-                    }}
-                  >
-                    {translate("ui.tagProfileEditor.text.removeStop")}
-                  </button>
-                  <label>
-                    <span>{translate("ui.tagProfileEditor.text.angle")}</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="360"
-                      disabled={!gradientEnabled}
-                      value={presentation.angle}
-                      onChange={(event) =>
-                        patchPresentation(
-                          {
-                            angle: Math.max(
-                              0,
-                              Math.min(360, Number(event.target.value)),
-                            ),
-                          },
-                          true,
-                        )
-                      }
-                    />
-                  </label>
+                    </label>
+                    <label className={endpoint ? "is-locked" : ""}>
+                      <span>
+                        {translate("ui.tagProfileEditor.text.position")}
+                      </span>
+                      <span className="tag-gradient-position">
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          disabled={!gradientEnabled || endpoint}
+                          value={presentation.positions[selectedStop] ?? 0}
+                          onChange={(event) => {
+                            const positions = [...presentation.positions];
+                            positions[selectedStop] = Number(
+                              event.target.value,
+                            );
+                            patchPresentation({ positions }, true);
+                          }}
+                        />
+                        <output>{presentation.positions[selectedStop]}%</output>
+                      </span>
+                      <small className="field-lock-reason">
+                        {translate(
+                          "ui.tagProfileEditor.text.endpointPositionsStayAt0And100",
+                        )}
+                      </small>
+                    </label>
+                    <button
+                      type="button"
+                      disabled={!gradientEnabled || endpoint}
+                      onClick={() => {
+                        const colors = [...presentation.colors];
+                        const positions = [...presentation.positions];
+                        colors.splice(selectedStop, 1);
+                        positions.splice(selectedStop, 1);
+                        setSelectedStop(Math.max(1, selectedStop - 1));
+                        patchPresentation({ colors, positions });
+                      }}
+                    >
+                      {translate("ui.tagProfileEditor.text.removeStop")}
+                    </button>
+                    <label>
+                      <span>{translate("ui.tagProfileEditor.text.angle")}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="360"
+                        disabled={!gradientEnabled}
+                        value={presentation.angle}
+                        onChange={(event) =>
+                          patchPresentation(
+                            {
+                              angle: Math.max(
+                                0,
+                                Math.min(360, Number(event.target.value)),
+                              ),
+                            },
+                            true,
+                          )
+                        }
+                      />
+                    </label>
+                  </div>
+                  <p className="field-lock-reason">
+                    {translate(
+                      "ui.tagProfileEditor.text.gradientControlsAreAvailableWhenBackgroundIsGradient",
+                    )}
+                  </p>
                 </div>
-                <p className="field-lock-reason">
+                <label>
+                  <span>
+                    {translate("ui.tagProfileEditor.text.borderColor")}
+                  </span>
+                  <input
+                    type="color"
+                    value={presentation.borderColor}
+                    onChange={(event) =>
+                      patchPresentation(
+                        { borderColor: event.target.value },
+                        true,
+                      )
+                    }
+                  />
+                </label>
+                <SelectField
+                  label={translate("ui.tagProfileEditor.label.borderWidth")}
+                  value={presentation.borderWidth}
+                  onChange={(value) =>
+                    patchPresentation({
+                      borderWidth: value as TagPresentation["borderWidth"],
+                    })
+                  }
+                  options={["none", "thin", "medium"]}
+                />
+                <SelectField
+                  label={translate("ui.tagProfileEditor.label.cornerStyle")}
+                  value={presentation.corners}
+                  onChange={(value) =>
+                    patchPresentation({
+                      corners: value as TagPresentation["corners"],
+                    })
+                  }
+                  options={["pill", "rounded", "square"]}
+                />
+                <SelectField
+                  label={translate("ui.tagProfileEditor.label.padding")}
+                  value={presentation.padding}
+                  onChange={(value) =>
+                    patchPresentation({
+                      padding: value as TagPresentation["padding"],
+                    })
+                  }
+                  options={["compact", "standard", "roomy"]}
+                />
+              </fieldset>
+            </DisclosureSection>
+
+            <DisclosureSection
+              className="tag-profile-disclosure"
+              dataDisclosureSection="tag-text"
+              open={expandedAppearanceSections.text}
+              label={translate("ui.tagProfileEditor.text.text")}
+              onToggle={(text) =>
+                setExpandedAppearanceSections((current) => ({
+                  ...current,
+                  text,
+                }))
+              }
+            >
+              <fieldset>
+                <legend className="sr-only">
+                  {translate("ui.tagProfileEditor.text.text")}
+                </legend>
+                <SelectField
+                  label={translate("ui.tagProfileEditor.label.textColorMode")}
+                  value={presentation.textMode}
+                  onChange={(value) =>
+                    patchPresentation({
+                      textMode: value as TagPresentation["textMode"],
+                    })
+                  }
+                  options={["auto", "custom"]}
+                />
+                <label
+                  className={
+                    presentation.textMode !== "custom" ? "is-locked" : ""
+                  }
+                >
+                  <span>{translate("ui.tagProfileEditor.text.textColor")}</span>
+                  <input
+                    type="color"
+                    disabled={presentation.textMode !== "custom"}
+                    value={presentation.textColor}
+                    onChange={(event) =>
+                      patchPresentation({ textColor: event.target.value }, true)
+                    }
+                  />
+                  <small className="field-lock-reason">
+                    {translate(
+                      "ui.tagProfileEditor.text.chooseCustomTextColorModeToEdit",
+                    )}
+                  </small>
+                </label>
+                <SelectField
+                  label={translate("ui.tagProfileEditor.label.weight")}
+                  value={presentation.weight}
+                  onChange={(value) =>
+                    patchPresentation({
+                      weight: value as TagPresentation["weight"],
+                    })
+                  }
+                  options={["normal", "medium", "bold"]}
+                />
+                <SelectField
+                  label={translate("ui.tagProfileEditor.label.style")}
+                  value={presentation.fontStyle}
+                  onChange={(value) =>
+                    patchPresentation({
+                      fontStyle: value as TagPresentation["fontStyle"],
+                    })
+                  }
+                  options={["normal", "italic"]}
+                />
+                <SelectField
+                  label={translate("ui.tagProfileEditor.label.decoration")}
+                  value={presentation.decoration}
+                  onChange={(value) =>
+                    patchPresentation({
+                      decoration: value as TagPresentation["decoration"],
+                    })
+                  }
+                  options={["none", "underline", "strike"]}
+                />
+                <SelectField
+                  label={translate("ui.tagProfileEditor.label.textEffect")}
+                  value={presentation.textEffect}
+                  onChange={(value) =>
+                    patchPresentation({
+                      textEffect: value as TagPresentation["textEffect"],
+                    })
+                  }
+                  options={["none", "outline", "shadow", "glow"]}
+                />
+                <p className="field-note field-wide">
                   {translate(
-                    "ui.tagProfileEditor.text.gradientControlsAreAvailableWhenBackgroundIsGradient",
+                    "ui.tagProfileEditor.text.textEffectsAreStaticPresetsAnimationIsConfiguredSeparately",
                   )}
                 </p>
-              </div>
-              <label>
-                <span>{translate("ui.tagProfileEditor.text.borderColor")}</span>
-                <input
-                  type="color"
-                  value={presentation.borderColor}
-                  onChange={(event) =>
-                    patchPresentation({ borderColor: event.target.value }, true)
-                  }
-                />
-              </label>
-              <SelectField
-                label={translate("ui.tagProfileEditor.label.borderWidth")}
-                value={presentation.borderWidth}
-                onChange={(value) =>
-                  patchPresentation({
-                    borderWidth: value as TagPresentation["borderWidth"],
-                  })
-                }
-                options={["none", "thin", "medium"]}
-              />
-              <SelectField
-                label={translate("ui.tagProfileEditor.label.cornerStyle")}
-                value={presentation.corners}
-                onChange={(value) =>
-                  patchPresentation({
-                    corners: value as TagPresentation["corners"],
-                  })
-                }
-                options={["pill", "rounded", "square"]}
-              />
-              <SelectField
-                label={translate("ui.tagProfileEditor.label.padding")}
-                value={presentation.padding}
-                onChange={(value) =>
-                  patchPresentation({
-                    padding: value as TagPresentation["padding"],
-                  })
-                }
-                options={["compact", "standard", "roomy"]}
-              />
-            </fieldset>
-
-            <fieldset>
-              <legend>{translate("ui.tagProfileEditor.text.text")}</legend>
-              <SelectField
-                label={translate("ui.tagProfileEditor.label.textColorMode")}
-                value={presentation.textMode}
-                onChange={(value) =>
-                  patchPresentation({
-                    textMode: value as TagPresentation["textMode"],
-                  })
-                }
-                options={["auto", "custom"]}
-              />
-              <label
-                className={
-                  presentation.textMode !== "custom" ? "is-locked" : ""
-                }
-              >
-                <span>{translate("ui.tagProfileEditor.text.textColor")}</span>
-                <input
-                  type="color"
-                  disabled={presentation.textMode !== "custom"}
-                  value={presentation.textColor}
-                  onChange={(event) =>
-                    patchPresentation({ textColor: event.target.value }, true)
-                  }
-                />
-                <small className="field-lock-reason">
-                  {translate(
-                    "ui.tagProfileEditor.text.chooseCustomTextColorModeToEdit",
-                  )}
-                </small>
-              </label>
-              <SelectField
-                label={translate("ui.tagProfileEditor.label.weight")}
-                value={presentation.weight}
-                onChange={(value) =>
-                  patchPresentation({
-                    weight: value as TagPresentation["weight"],
-                  })
-                }
-                options={["normal", "medium", "bold"]}
-              />
-              <SelectField
-                label={translate("ui.tagProfileEditor.label.style")}
-                value={presentation.fontStyle}
-                onChange={(value) =>
-                  patchPresentation({
-                    fontStyle: value as TagPresentation["fontStyle"],
-                  })
-                }
-                options={["normal", "italic"]}
-              />
-              <SelectField
-                label={translate("ui.tagProfileEditor.label.decoration")}
-                value={presentation.decoration}
-                onChange={(value) =>
-                  patchPresentation({
-                    decoration: value as TagPresentation["decoration"],
-                  })
-                }
-                options={["none", "underline", "strike"]}
-              />
-              <SelectField
-                label={translate("ui.tagProfileEditor.label.textEffect")}
-                value={presentation.textEffect}
-                onChange={(value) =>
-                  patchPresentation({
-                    textEffect: value as TagPresentation["textEffect"],
-                  })
-                }
-                options={["none", "outline", "shadow", "glow"]}
-              />
-              <p className="field-note field-wide">
-                {translate(
-                  "ui.tagProfileEditor.text.textEffectsAreStaticPresetsAnimationIsConfiguredSeparately",
-                )}
-              </p>
-            </fieldset>
-            <fieldset>
-              <legend>{translate("ui.tagProfileEditor.text.animation")}</legend>
-              <div className="tag-animation-field">
-                <span>{translate("ui.tagProfileEditor.text.animation")}</span>
-                <div className="tag-animation-select">
-                  <button
-                    className="tag-animation-trigger"
-                    type="button"
-                    aria-haspopup="listbox"
-                    aria-expanded={animationOpen}
-                    onClick={() => setAnimationOpen(!animationOpen)}
-                    onKeyDown={(event) => {
-                      if (
-                        event.key === "ArrowDown" ||
-                        event.key === "ArrowUp"
-                      ) {
-                        event.preventDefault();
-                        setAnimationOpen(true);
-                      }
-                    }}
-                  >
-                    <AnimatedText
-                      text={animationLabels[presentation.animation]}
-                      animation={presentation.animation}
-                    />
-                    <span aria-hidden="true">▾</span>
-                  </button>
-                  {animationOpen && (
-                    <div
-                      className="tag-animation-menu"
-                      role="listbox"
-                      aria-label={translate(
-                        "ui.tagProfileEditor.ariaLabel.tagAnimation",
-                      )}
+              </fieldset>
+            </DisclosureSection>
+            <DisclosureSection
+              className="tag-profile-disclosure"
+              dataDisclosureSection="tag-animation"
+              open={expandedAppearanceSections.animation}
+              label={translate("ui.tagProfileEditor.text.animation")}
+              onToggle={(animation) =>
+                setExpandedAppearanceSections((current) => ({
+                  ...current,
+                  animation,
+                }))
+              }
+            >
+              <fieldset>
+                <legend className="sr-only">
+                  {translate("ui.tagProfileEditor.text.animation")}
+                </legend>
+                <div className="tag-animation-field">
+                  <span>{translate("ui.tagProfileEditor.text.animation")}</span>
+                  <div className="tag-animation-select">
+                    <button
+                      className="tag-animation-trigger"
+                      type="button"
+                      aria-haspopup="listbox"
+                      aria-expanded={animationOpen}
+                      onClick={() => setAnimationOpen(!animationOpen)}
+                      onKeyDown={(event) => {
+                        if (
+                          event.key === "ArrowDown" ||
+                          event.key === "ArrowUp"
+                        ) {
+                          event.preventDefault();
+                          setAnimationOpen(true);
+                        }
+                      }}
                     >
-                      {Object.entries(animationLabels).map(
-                        ([value, label], index, all) => (
-                          <button
-                            key={value}
-                            type="button"
-                            role="option"
-                            aria-selected={presentation.animation === value}
-                            onClick={() => {
-                              patchPresentation({
-                                animation:
-                                  value as TagPresentation["animation"],
-                              });
-                              setAnimationOpen(false);
-                            }}
-                            onKeyDown={(event) =>
-                              animationKey(event, index, all.length, () =>
-                                setAnimationOpen(false),
-                              )
-                            }
-                          >
-                            <AnimatedText
-                              text={label}
-                              animation={value as TagPresentation["animation"]}
-                            />
-                          </button>
-                        ),
-                      )}
-                    </div>
-                  )}
+                      <AnimatedText
+                        text={animationLabels[presentation.animation]}
+                        animation={presentation.animation}
+                      />
+                      <span aria-hidden="true">▾</span>
+                    </button>
+                    {animationOpen && (
+                      <div
+                        className="tag-animation-menu"
+                        role="listbox"
+                        aria-label={translate(
+                          "ui.tagProfileEditor.ariaLabel.tagAnimation",
+                        )}
+                      >
+                        {Object.entries(animationLabels).map(
+                          ([value, label], index, all) => (
+                            <button
+                              key={value}
+                              type="button"
+                              role="option"
+                              aria-selected={presentation.animation === value}
+                              onClick={() => {
+                                patchPresentation({
+                                  animation:
+                                    value as TagPresentation["animation"],
+                                });
+                                setAnimationOpen(false);
+                              }}
+                              onKeyDown={(event) =>
+                                animationKey(event, index, all.length, () =>
+                                  setAnimationOpen(false),
+                                )
+                              }
+                            >
+                              <AnimatedText
+                                text={label}
+                                animation={
+                                  value as TagPresentation["animation"]
+                                }
+                              />
+                            </button>
+                          ),
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <p className="field-note">
-                {translate(
-                  "ui.tagProfileEditor.text.reducedMotionShowsTheOriginalTextColorAtFull",
-                )}
-              </p>
-            </fieldset>
+                <p className="field-note">
+                  {translate(
+                    "ui.tagProfileEditor.text.reducedMotionShowsTheOriginalTextColorAtFull",
+                  )}
+                </p>
+              </fieldset>
+            </DisclosureSection>
             {message && (
               <p className="tag-profile-status" role="status">
                 {message}

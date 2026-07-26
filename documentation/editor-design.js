@@ -791,7 +791,7 @@ ${authors.map((author) => `  author: ${quoted(author)}`).join("\n")}
     paletteClose.dataset.paneSourceAction = "close-palette";
     paletteClose.setAttribute("aria-label", "Close Quick add");
     paletteHeader.append(paletteTitle, paletteClose);
-    palette.append(paletteHeader, element("p", "source-palette-label", "Valid here"));
+    palette.append(paletteHeader, element("p", "source-palette-label", "Available here"));
     quickAddsFor(view).forEach(([label, shortcut]) => {
       const option = document.createElement("button");
       option.type = "button";

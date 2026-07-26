@@ -6,6 +6,24 @@
       }
     },
     "editorWorkspace": {
+      "fieldPresentation": {
+        "label": {
+          "handle": "Identificador",
+          "starting-points": "Puntos iniciales",
+          "choiceSelection": "Tipo de selección",
+          "grantKind": "Tipo de premio",
+          "src": "Archivo de imagen"
+        },
+        "help": {
+          "handle": "Un nombre interno estable que utilizan las referencias."
+        }
+      },
+      "optionLabel": {
+        "toggle": "Alternar",
+        "text": "Texto",
+        "integer": "Entero",
+        "select": "Selección"
+      },
       "ariaLabel": {
         "layoutNodeActions": "Acciones del nodo de diseño {{node}}"
       },

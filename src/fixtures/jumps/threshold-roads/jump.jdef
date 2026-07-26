@@ -397,6 +397,7 @@ choice
     text
       handle: description
       content: "Your {{door_material}} door answers to the name {{door_name}}."
+      content when door_count >= 2: "Your {{door_count}} {{door_material}} doors answer to the name {{door_name}}."
 
 section-layout
   handle: introduction_layout

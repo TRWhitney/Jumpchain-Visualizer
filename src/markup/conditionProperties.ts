@@ -4,7 +4,7 @@ export type ConditionPropertyType =
   "boolean" | "integer" | "string" | "unknown";
 
 export type ConditionPropertyOrigin = {
-  kind: "engine" | "context" | "grant";
+  kind: "engine" | "context" | "control" | "grant";
   ownerKind?: string;
   ownerHandle?: string;
   file?: string;
@@ -22,7 +22,11 @@ export type ConditionPropertyDescriptor = {
   mayBeUnset: boolean;
 };
 
-type NodeEntry = { node: SourceNode; parent?: SourceNode };
+type NodeEntry = {
+  node: SourceNode;
+  parent?: SourceNode;
+  ancestors?: readonly SourceNode[];
+};
 
 const unquote = (value: string | undefined) => {
   if (!value) return "";
@@ -39,10 +43,15 @@ const integerField = (node: SourceNode | undefined, name: string) => {
   return Number.isInteger(parsed) ? parsed : undefined;
 };
 
-function entriesForNode(node: SourceNode, parent?: SourceNode): NodeEntry[] {
+function entriesForNode(
+  node: SourceNode,
+  ancestors: readonly SourceNode[] = [],
+): NodeEntry[] {
   return [
-    { node, parent },
-    ...node.children.flatMap((child) => entriesForNode(child, node)),
+    { node, parent: ancestors.at(-1), ancestors },
+    ...node.children.flatMap((child) =>
+      entriesForNode(child, [...ancestors, node]),
+    ),
   ];
 }
 
@@ -52,12 +61,18 @@ export function conditionNodeEntries(parsed: readonly ParsedFormatFile[]) {
   );
 }
 
-export function conditionContextHandles(node: SourceNode, parent?: SourceNode) {
+export function conditionContextHandles(
+  node: SourceNode,
+  parent?: SourceNode,
+  ancestors: readonly SourceNode[] = [],
+) {
   const owner = ["choice", "input"].includes(node.kind)
     ? node
     : parent && ["choice", "input"].includes(parent.kind)
       ? parent
-      : undefined;
+      : [...ancestors]
+          .reverse()
+          .find((ancestor) => ["choice", "input"].includes(ancestor.kind));
   if (!owner || unquote(field(owner, "selection")) !== "integer") return [];
   const measures: string[] = [];
   const directVisibleGrants = owner.fields
@@ -92,6 +107,75 @@ function selectionType(selection: string): ConditionPropertyType {
   if (selection === "integer") return "integer";
   if (selection === "text" || selection === "select") return "string";
   return "unknown";
+}
+
+function controlProperty(
+  node: SourceNode,
+): ConditionPropertyDescriptor | undefined {
+  const handle = unquote(field(node, "handle"));
+  const selection =
+    unquote(field(node, "selection")) ||
+    (node.kind === "choice" ? "toggle" : "");
+  const type = selectionType(selection);
+  if (!handle || type === "unknown") return undefined;
+  return {
+    handle,
+    type,
+    category: "context",
+    origins: [
+      {
+        kind: "control",
+        ownerKind: node.kind,
+        ownerHandle: handle,
+        file: node.range.file,
+        line: node.range.line,
+      },
+    ],
+    values:
+      selection === "toggle"
+        ? [true, false]
+        : selection === "select"
+          ? node.fields
+              .filter((candidate) => candidate.name === "option")
+              .map((candidate) => unquote(candidate.value))
+              .filter(Boolean)
+          : [],
+    minimum: selection === "integer" ? integerField(node, "min") : undefined,
+    maximum: selection === "integer" ? integerField(node, "max") : undefined,
+    mayBeUnset: true,
+  };
+}
+
+/**
+ * Returns scalar answers that exist only while rendering content owned by a
+ * Choice. These handles are deliberately contextual: Input handles are
+ * owner-local, so exposing them package-wide would make otherwise valid
+ * packages ambiguous.
+ */
+export function conditionControlProperties(
+  node: SourceNode,
+  parent?: SourceNode,
+  ancestors: readonly SourceNode[] = [],
+) {
+  if (node.kind !== "text") return [];
+  const lineage = [...ancestors, ...(parent ? [parent] : [])];
+  const choice = [...lineage]
+    .reverse()
+    .find((ancestor) => ancestor.kind === "choice");
+  if (!choice) return [];
+  const properties = [
+    choice,
+    ...choice.children.filter((child) => child.kind === "input"),
+  ]
+    .map(controlProperty)
+    .filter((property): property is ConditionPropertyDescriptor =>
+      Boolean(property),
+    );
+  return [
+    ...new Map(
+      properties.map((property) => [property.handle, property]),
+    ).values(),
+  ];
 }
 
 function valueType(

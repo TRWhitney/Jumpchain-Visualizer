@@ -80,7 +80,8 @@ export type ImageBlock = {
   alt: Renderable;
 };
 
-export type SelectionKind = "toggle" | "text" | "integer" | "select";
+export type SelectionKind =
+  "toggle" | "text" | "integer" | "select" | "companions";
 export type ResolutionKind = "manual" | "random" | "either";
 export type SourceMode = "single" | "multi";
 
@@ -92,14 +93,7 @@ export type JumpCost = {
 };
 
 export type GrantKind =
-  | "perk"
-  | "item"
-  | "form"
-  | "companion"
-  | "resource"
-  | "trait"
-  | "property"
-  | "companion-import";
+  "perk" | "item" | "form" | "companion" | "resource" | "trait" | "property";
 
 export type JumpGrant = {
   kind: GrantKind;
@@ -120,7 +114,8 @@ export type JumpGrant = {
 
 export type JumpInput = {
   handle: string;
-  selection: "text" | "integer" | "select" | "companions";
+  selection: "text" | "integer" | "select";
+  placeholder?: string;
   min?: number;
   max?: number;
   options: readonly Renderable[];
@@ -134,6 +129,7 @@ export type JumpChoice = {
   tags: readonly string[];
   groups: readonly string[];
   selection: SelectionKind;
+  placeholder?: string;
   continuity?: "previous" | "original";
   min?: number;
   max?: number;

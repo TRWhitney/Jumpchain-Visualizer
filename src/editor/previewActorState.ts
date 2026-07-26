@@ -4,6 +4,7 @@ import type { TrackerAction } from "../tracker/model";
 export const createPreviewActorState = (): ActorEntryState => ({
   choices: {},
   inputs: {},
+  sourceSelections: {},
   choiceRolls: {},
   sourceRolls: {},
 });
@@ -38,6 +39,18 @@ export function reducePreviewActorState(
         },
       },
     };
+  if (action.type === "set-source-selections") {
+    const uniqueValue = [...new Set(action.value)];
+    const value =
+      action.mode === "single" ? uniqueValue.slice(-1) : uniqueValue;
+    return {
+      ...state,
+      sourceSelections: {
+        ...state.sourceSelections,
+        [action.sourceKey]: value,
+      },
+    };
+  }
   if (action.type === "record-choice-roll") {
     const sequence = state.choiceRolls[action.choiceHandle]?.sequence ?? 0;
     return {
@@ -57,12 +70,22 @@ export function reducePreviewActorState(
   }
   if (action.type === "record-source-roll") {
     const previous = state.sourceRolls[action.sourceKey];
-    const choices = { ...state.choices };
-    if (previous) choices[previous.result] = false;
-    choices[action.result] = true;
+    const sourceSelections =
+      action.mode === "single"
+        ? [action.result]
+        : [
+            ...(state.sourceSelections[action.sourceKey] ?? []).filter(
+              (handle) =>
+                handle !== previous?.result && handle !== action.result,
+            ),
+            action.result,
+          ];
     return {
       ...state,
-      choices,
+      sourceSelections: {
+        ...state.sourceSelections,
+        [action.sourceKey]: sourceSelections,
+      },
       sourceRolls: {
         ...state.sourceRolls,
         [action.sourceKey]: {

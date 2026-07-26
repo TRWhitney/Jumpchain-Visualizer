@@ -320,7 +320,6 @@ function grant(
     "resource",
     "trait",
     "property",
-    "companion-import",
   ]);
   if (!permitted.has(kind))
     diagnostic(
@@ -394,19 +393,15 @@ function grant(
       "Form grants require a stable handle.",
       node,
     );
-  if (
-    (result.kind === "companion" || result.kind === "companion-import") &&
-    !result.handle &&
-    "fields" in node
-  )
+  if (result.kind === "companion" && !result.handle && "fields" in node)
     diagnostic(
       diagnostics,
-      `grant.${result.kind.replace("-", "_")}.handle`,
-      `${result.kind === "companion-import" ? "Companion import" : "Companion"} grants require a stable handle.`,
+      "grant.companion.handle",
+      "Companion grants require a stable handle.",
       node,
     );
   if (
-    ["form", "companion", "companion-import"].includes(result.kind) &&
+    ["form", "companion"].includes(result.kind) &&
     result.handle &&
     "fields" in node
   )
@@ -448,16 +443,6 @@ function grant(
       diagnostics,
       "grant.measure.kind",
       "Measure is valid only on perk, item, and trait grants.",
-      node,
-    );
-  if (
-    result.kind === "companion-import" &&
-    (result.resource !== undefined || result.amount !== undefined)
-  )
-    diagnostic(
-      diagnostics,
-      "grant.companion_import.inline_budget",
-      "Companion import currency uses a resource grant targeting the import handle.",
       node,
     );
   return result;
@@ -525,7 +510,7 @@ function validateMeasureGrants(
 
 function input(node: SourceNode, diagnostics: PackageDiagnostic[]): JumpInput {
   const selection = requireValue(node, "selection", diagnostics);
-  const permitted = new Set(["text", "integer", "select", "companions"]);
+  const permitted = new Set(["text", "integer", "select"]);
   if (!permitted.has(selection))
     diagnostic(
       diagnostics,
@@ -541,16 +526,6 @@ function input(node: SourceNode, diagnostics: PackageDiagnostic[]): JumpInput {
       .filter((child) => child.kind === "grant")
       .map((child) => grant(child, diagnostics)),
   ];
-  if (
-    grants.some((item) => item.kind === "companion-import") &&
-    selection !== "companions"
-  )
-    diagnostic(
-      diagnostics,
-      "grant.companion_import.context",
-      "Companion imports are valid only on companion inputs.",
-      node,
-    );
   if (grants.some((item) => item.kind === "form"))
     diagnostic(
       diagnostics,
@@ -569,6 +544,7 @@ function input(node: SourceNode, diagnostics: PackageDiagnostic[]): JumpInput {
     selection: (permitted.has(selection)
       ? selection
       : "text") as JumpInput["selection"],
+    placeholder: value(node, "placeholder"),
     min: integer(node, "min"),
     max: integer(node, "max"),
     options: optionRenderables(node),
@@ -604,7 +580,13 @@ function choice(
   );
   const selection = value(node, "selection") ?? "toggle";
   const resolution = value(node, "resolution") ?? "manual";
-  const permittedSelection = new Set(["toggle", "text", "integer", "select"]);
+  const permittedSelection = new Set([
+    "toggle",
+    "text",
+    "integer",
+    "select",
+    "companions",
+  ]);
   const permittedResolution = new Set(["manual", "random", "either"]);
   const costs: JumpCost[] = fields(node, "cost").map((item) => ({
     resource: "jump_points",
@@ -703,13 +685,22 @@ function choice(
     selection: (permittedSelection.has(selection)
       ? selection
       : "toggle") as JumpChoice["selection"],
+    placeholder: value(node, "placeholder"),
     continuity:
       value(node, "continuity") === "previous" ||
       value(node, "continuity") === "original"
         ? (value(node, "continuity") as JumpChoice["continuity"])
         : undefined,
-    min: integer(node, "min"),
-    max: integer(node, "max"),
+    min:
+      integer(node, "min") ??
+      (permittedSelection.has(selection) && selection === "companions"
+        ? 1
+        : undefined),
+    max:
+      integer(node, "max") ??
+      (permittedSelection.has(selection) && selection === "companions"
+        ? 1
+        : undefined),
     resolution: (permittedResolution.has(resolution)
       ? resolution
       : "manual") as JumpChoice["resolution"],
@@ -995,17 +986,11 @@ function validateRelations(
     [
       "companion",
       result.choices.flatMap((item) => [
+        ...(item.selection === "companions" ? [item.handle] : []),
         ...item.grants.flatMap((grantItem) =>
           grantItem.kind === "companion" && grantItem.handle
             ? [grantItem.handle]
             : [],
-        ),
-        ...item.inputs.flatMap((inputItem) =>
-          inputItem.grants.flatMap((grantItem) =>
-            grantItem.kind === "companion-import" && grantItem.handle
-              ? [grantItem.handle]
-              : [],
-          ),
         ),
       ]),
     ],
@@ -1034,17 +1019,11 @@ function validateRelations(
   );
   const forms = new Set(formHandles);
   const companionHandles = result.choices.flatMap((item) => [
+    ...(item.selection === "companions" ? [item.handle] : []),
     ...item.grants.flatMap((grantItem) =>
       grantItem.kind === "companion" && grantItem.handle
         ? [grantItem.handle]
         : [],
-    ),
-    ...item.inputs.flatMap((inputItem) =>
-      inputItem.grants.flatMap((grantItem) =>
-        grantItem.kind === "companion-import" && grantItem.handle
-          ? [grantItem.handle]
-          : [],
-      ),
     ),
   ]);
   const companions = new Set(companionHandles);
@@ -1070,11 +1049,9 @@ function validateRelations(
       "error",
       { handle: duplicate },
     );
-  for (const importHandle of allGrants.flatMap((grantItem) =>
-    grantItem.kind === "companion-import" && grantItem.handle
-      ? [grantItem.handle]
-      : [],
-  ))
+  for (const importHandle of result.choices
+    .filter((choiceItem) => choiceItem.selection === "companions")
+    .map((choiceItem) => choiceItem.handle))
     if (
       !allGrants.some(
         (grantItem) =>
@@ -1086,8 +1063,8 @@ function validateRelations(
     )
       diagnostic(
         diagnostics,
-        "grant.companion_import.funding",
-        `Companion import “${importHandle}” requires a positive targeted resource grant.`,
+        "choice.companions.funding",
+        `Companion selection “${importHandle}” requires a positive targeted resource grant.`,
         undefined,
         "error",
         { handle: importHandle },

@@ -330,7 +330,7 @@ test("Confluence renders layouts, themes, resources, measures, and conditions", 
   );
 });
 
-test("native Gauntlet costs, awards, replacement rolls, and companion input render together", async ({
+test("native Gauntlet costs, awards, replacement rolls, and companion Choice render together", async ({
   page,
 }, testInfo) => {
   await page.goto("/review/chain-tracker?rerolls=on&negativeBalances=on");
@@ -345,8 +345,36 @@ test("native Gauntlet costs, awards, replacement rolls, and companion input rend
   await expect(
     card(tracker, "Trial Requisition").locator(".cost-badge"),
   ).toContainText(/Rolled|CP|Trial Marks/);
-  const companions = card(tracker, "Trial Company").getByRole("group");
-  await expect(companions.getByRole("checkbox")).not.toHaveCount(0);
+  const companions = card(tracker, "Trial Company");
+  const picker = companions.getByRole("combobox", {
+    name: "Trial Company",
+  });
+  await expect(picker).toBeVisible();
+  await expect(
+    companions.getByRole("button", { name: "Remove Lyra" }),
+  ).toBeVisible();
+  await companions.getByRole("button", { name: "Remove Lyra" }).click();
+  await expect(companions.getByText(/0 selected · minimum 1/)).toBeVisible();
+  await picker.fill("Lyra");
+  await picker.press("Enter");
+  await expect(
+    companions.getByRole("button", { name: "Remove Lyra" }),
+  ).toBeVisible();
+  await expect(picker).toBeFocused();
+  await picker.press("Escape");
+  await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
+  await expect(page.locator("html")).toHaveAttribute("data-app-theme", "dark");
+  await companions.screenshot({
+    path: testInfo.outputPath("companion-choice-dark.png"),
+    animations: "disabled",
+  });
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 700, height: 900 });
+  await expect(page.locator("html")).toHaveAttribute("data-app-theme", "light");
+  await companions.screenshot({
+    path: testInfo.outputPath("companion-choice-light-narrow.png"),
+    animations: "disabled",
+  });
   await attachFullRenderer(
     testInfo,
     "native-gauntlet-multi-resource-companions",

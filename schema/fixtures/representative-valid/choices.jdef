@@ -14,6 +14,12 @@ choice
       """
       Move freely through the air.
       """
+    content when flight >= 2: "Flight rank {{flight}} with call sign {{call_sign}}."
+
+  input
+    handle: call_sign
+    selection: text
+    placeholder: "Optional call sign"
 
   cost
     resource: jump_points

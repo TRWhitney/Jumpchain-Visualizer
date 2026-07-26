@@ -4,9 +4,123 @@
   color-scheme: light;
 }
 
+/*
+ * Earth is application-owned rather than package-authored, so it follows the
+ * active application theme while using the same renderer role contract as a
+ * Format 1 Jump. The small palette below feeds every role instead of allowing
+ * legacy pale defaults to leak into the dark workspace.
+ */
+.earth-jump-renderer {
+  --earth-canvas: #242422;
+  --earth-surface: #20201e;
+  --earth-raised: #292927;
+  --earth-control: #30302e;
+  --earth-control-hover: #383835;
+  --earth-control-pressed: #41413d;
+  --earth-disabled: #2c2c2a;
+  --earth-heading: #f1f1eb;
+  --earth-text: #d8d8d2;
+  --earth-muted: #aaa9a3;
+  --earth-disabled-text: #8f8c85;
+  --earth-border: #4b4b46;
+  --earth-control-border: #5b5953;
+  --earth-accent: var(--app-accent-raw, #d4af37);
+  --earth-code: #333330;
+  --jump-surface-background: var(--earth-surface);
+  --jump-surface-text: var(--earth-text);
+  --jump-surface-border: var(--earth-border);
+  --jump-header-background: var(--earth-surface);
+  --jump-header-label: var(--earth-muted);
+  --jump-header-title: var(--earth-heading);
+  --jump-header-description: var(--earth-muted);
+  --jump-header-border: var(--earth-border);
+  --jump-budget-background: var(--earth-raised);
+  --jump-budget-label: var(--earth-muted);
+  --jump-budget-value: var(--earth-heading);
+  --jump-budget-border: var(--earth-control-border);
+  --jump-section-gutter: var(--earth-canvas);
+  --jump-section-background: var(--earth-surface);
+  --jump-section-heading: var(--earth-heading);
+  --jump-section-body: var(--earth-text);
+  --jump-section-border: var(--earth-border);
+  --jump-choice-background: var(--earth-raised);
+  --jump-choice-heading: var(--earth-heading);
+  --jump-choice-body: var(--earth-text);
+  --jump-choice-border: var(--earth-border);
+  --jump-group-background: var(--earth-raised);
+  --jump-group-footer-background: var(--earth-surface);
+  --jump-group-text: var(--earth-text);
+  --jump-group-border: var(--earth-border);
+  --jump-control-background: var(--earth-control);
+  --jump-control-text: var(--earth-heading);
+  --jump-control-muted-text: var(--earth-muted);
+  --jump-control-border: var(--earth-control-border);
+  --jump-control-indicator: var(--earth-muted);
+  --jump-control-accent: var(--earth-accent);
+  --jump-control-hover-background: var(--earth-control-hover);
+  --jump-control-hover-text: var(--earth-heading);
+  --jump-control-hover-border: var(--earth-accent);
+  --jump-control-pressed-background: var(--earth-control-pressed);
+  --jump-control-pressed-text: var(--earth-heading);
+  --jump-control-pressed-border: var(--earth-accent);
+  --jump-control-selected-background: var(--earth-control-pressed);
+  --jump-control-selected-text: var(--earth-heading);
+  --jump-control-selected-border: var(--earth-accent);
+  --jump-control-disabled-background: var(--earth-disabled);
+  --jump-control-disabled-text: var(--earth-disabled-text);
+  --jump-control-disabled-border: var(--earth-border);
+  --jump-control-disabled-indicator: var(--earth-disabled-text);
+  --jump-cost-background: var(--earth-raised);
+  --jump-cost-text: var(--earth-text);
+  --jump-cost-border: var(--earth-border);
+  --jump-cost-benefit-background: #dcebdc;
+  --jump-cost-benefit-text: #173c25;
+  --jump-cost-benefit-border: #8eb99a;
+  --jump-cost-award-background: #dceaf0;
+  --jump-cost-award-text: #17394a;
+  --jump-cost-award-border: #91b5c5;
+  --jump-cost-pending-background: var(--earth-disabled);
+  --jump-cost-pending-text: var(--earth-text);
+  --jump-cost-pending-border: var(--earth-border);
+  --jump-tooltip-background: var(--earth-surface);
+  --jump-tooltip-text: var(--earth-heading);
+  --jump-tooltip-border: var(--earth-control-border);
+  --jump-canvas-padding: 0.65rem;
+  --jump-section-spacing: 0.65rem;
+  --jump-section-padding: 1rem;
+  --jump-corners: 0.4rem;
+  --jump-control-corners: 0.25rem;
+  --jump-cost-corners: 9999px;
+  --jump-border-width: 1px;
+  --jump-section-border-width: 1px;
+  color-scheme: dark;
+}
+
+[data-app-theme="light"] .earth-jump-renderer {
+  --earth-canvas: #eceae4;
+  --earth-surface: #fff;
+  --earth-raised: #f3f1eb;
+  --earth-control: #fff;
+  --earth-control-hover: #eceae4;
+  --earth-control-pressed: #dedbd2;
+  --earth-disabled: #e4e1d9;
+  --earth-heading: #171717;
+  --earth-text: #343430;
+  --earth-muted: #686861;
+  --earth-disabled-text: #777770;
+  --earth-border: #cbc8bf;
+  --earth-control-border: #aaa79e;
+  --earth-code: #e4e1d9;
+  color-scheme: light;
+}
+
 /* Authored appearance is expressed through renderer-scoped variables. Keeping
    this layer scoped prevents jump colors from leaking into the Editor or
    Tracker chrome. */
+.jump-renderer-isolated-scope {
+  display: contents;
+}
+
 .shared-jump-renderer.format-one-jump-renderer {
   box-sizing: border-box;
   padding: var(--jump-canvas-padding);
@@ -69,8 +183,7 @@
 .format-one-jump-renderer .default-choice-heading > strong {
   color: var(--jump-choice-heading);
 }
-.format-one-jump-renderer
-  :is(.jump-choice-description, .jump-layout-text, .earth-explanation) {
+.format-one-jump-renderer :is(.jump-choice-description, .earth-explanation) {
   color: var(--jump-choice-body);
 }
 .format-one-jump-renderer
@@ -350,6 +463,12 @@
 .authored-choice-layout .default-choice-actions + .default-choice-actions {
   display: none;
 }
+.authored-choice-layout
+  .source-choice-controls
+  > .default-choice-actions
+  + .default-choice-actions {
+  display: flex;
+}
 .jump-nested-inputs {
   display: grid;
   gap: 0.55rem;
@@ -386,24 +505,71 @@
   border: 1px solid #b9af96;
   border-radius: 0.23rem;
 }
-.companion-roster {
+.companion-choice-control {
+  position: relative;
   display: grid;
-  gap: 0.25rem;
+  min-width: min(22rem, 100%);
+  gap: 0.35rem;
 }
-.companion-roster .check-control > span {
-  position: static;
-  width: auto;
-  height: auto;
+.companion-choice-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.companion-choice-pill {
+  display: inline-flex;
+  min-height: 1.8rem;
+  align-items: center;
+  overflow: hidden;
+  color: var(--jump-control-text);
+  background: var(--jump-control-background);
+  border: 1px solid var(--jump-control-border);
+  border-radius: 999px;
+}
+.companion-choice-pill > span {
+  padding: 0.25rem 0.2rem 0.25rem 0.65rem;
+}
+.companion-choice-pill > button {
+  align-self: stretch;
+  padding: 0 0.55rem;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-inline-start: 1px solid var(--jump-control-border);
+  border-radius: 0;
+}
+.companion-choice-options {
+  position: absolute;
+  z-index: 4;
+  inset: calc(100% - 1.1rem) 0 auto;
+  display: grid;
+  max-height: 13rem;
+  overflow-y: auto;
+  color: var(--jump-control-text);
+  background: var(--jump-control-background);
+  border: 1px solid var(--jump-control-border);
+  border-radius: var(--jump-control-corners);
+  box-shadow: 0 0.7rem 1.4rem rgb(0 0 0 / 20%);
+}
+.companion-choice-options > :is(button, p) {
   margin: 0;
-  overflow: visible;
-  clip: auto;
+  padding: 0.55rem 0.65rem;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  text-align: start;
+}
+.companion-choice-options > button:hover,
+.companion-choice-options > button:focus-visible {
+  color: var(--jump-control-hover-text);
+  background: var(--jump-control-hover-background);
+}
+.companion-choice-status {
+  color: var(--jump-control-muted-text);
 }
 .choice-provenance {
   color: #6d6759;
   font-size: 0.58rem;
-}
-.companion-import-funding {
-  text-transform: none;
 }
 .jump-trait-list {
   display: grid;
@@ -491,28 +657,58 @@
   margin: 0 0 1rem;
 }
 .format-one-jump-renderer .earth-identity-controls .control-specimen {
-  color: #26231f;
-  background: #fffdf7;
-  border-color: #d8cfb6;
+  color: var(--jump-choice-body);
+  background: var(--jump-choice-background);
+  border-color: var(--jump-choice-border);
+  border-radius: var(--jump-corners);
 }
 .format-one-jump-renderer .earth-identity-controls .control-specimen > header {
-  background: #f5f1e6;
-  border-color: #d8cfb6;
+  background: var(--jump-group-footer-background);
+  border-color: var(--jump-choice-border);
 }
 .format-one-jump-renderer
   .earth-identity-controls
   .control-specimen
   > header
   > span {
-  color: #5f5a4d;
+  color: var(--jump-choice-body);
 }
 .format-one-jump-renderer
   .earth-identity-controls
   .control-specimen
   > header
   code {
-  color: #5f5a4d;
-  background: #e8e2d5;
+  color: var(--jump-control-muted-text);
+  background: var(--earth-code);
+  border-radius: var(--jump-control-corners);
+}
+.earth-jump-renderer .earth-identity-controls .default-choice-actions select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cpath d='m2 2 4 4-4 4' fill='none' stroke='%23aaa9a3' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 0.5rem 0.75rem;
+}
+[data-app-theme="light"]
+  .earth-jump-renderer
+  .earth-identity-controls
+  .default-choice-actions
+  select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cpath d='m2 2 4 4-4 4' fill='none' stroke='%23686861' stroke-width='1.6'/%3E%3C/svg%3E");
+}
+.earth-jump-renderer .secondary-control {
+  color: var(--jump-control-text) !important;
+}
+.earth-jump-renderer .temporary-jump-property-grid article {
+  color: var(--jump-choice-body);
+  background: var(--jump-choice-background);
+  border-color: var(--jump-choice-border);
+  border-radius: var(--jump-corners);
+}
+.earth-jump-renderer .temporary-jump-property-grid span {
+  color: var(--jump-choice-body);
+}
+.earth-jump-renderer .temporary-jump-property-grid strong {
+  color: var(--jump-choice-heading);
 }
 .chain-gauntlet-action {
   align-self: center;
@@ -602,21 +798,25 @@
   cursor: pointer;
 }
 
-/* Authored roles win over the legacy layered defaults above. The complete
-   Jump root qualifier leaves isolated layout scopes on their existing defaults. */
-.shared-jump-renderer.format-one-jump-renderer
+/* Authored roles win over the legacy layered defaults above. Full Jump and
+   isolated renderer scopes share this boundary and therefore the same cascade. */
+.jump-renderer-appearance-boundary.format-one-jump-renderer
   .rendered-jump-section
   > header
   p {
   color: var(--jump-section-body);
 }
-.shared-jump-renderer.format-one-jump-renderer
+.jump-renderer-appearance-boundary.format-one-jump-renderer
   .rendered-jump-section
   > header
   h5 {
   color: var(--jump-section-heading);
 }
-.shared-jump-renderer.format-one-jump-renderer
+.jump-renderer-appearance-boundary.format-one-jump-renderer
+  .jump-section-layout-name {
+  color: var(--jump-section-heading);
+}
+.jump-renderer-appearance-boundary.format-one-jump-renderer
   :is(.default-choice-card, .selection-specimen, .group-options > article) {
   color: var(--jump-choice-body);
   background: var(--jump-choice-background);
@@ -624,29 +824,29 @@
   border-width: var(--jump-border-width);
   border-radius: var(--jump-corners);
 }
-.shared-jump-renderer.format-one-jump-renderer
+.jump-renderer-appearance-boundary.format-one-jump-renderer
   .default-choice-heading
   > strong {
   color: var(--jump-choice-heading);
 }
-.shared-jump-renderer.format-one-jump-renderer
-  :is(.jump-choice-description, .jump-layout-text, .earth-explanation) {
+.jump-renderer-appearance-boundary.format-one-jump-renderer
+  :is(.jump-choice-description, .earth-explanation) {
   color: var(--jump-choice-body);
 }
-.shared-jump-renderer.format-one-jump-renderer
+.jump-renderer-appearance-boundary.format-one-jump-renderer
   :is(.selection-specimen.has-group, .group-options, .jump-choice-group) {
   color: var(--jump-group-text);
   background: var(--jump-group-background);
   border-color: var(--jump-group-border);
 }
-.shared-jump-renderer.format-one-jump-renderer
+.jump-renderer-appearance-boundary.format-one-jump-renderer
   :is(.selection-specimen, .jump-choice-group)
   > footer {
   color: var(--jump-group-text);
   background: var(--jump-group-footer-background);
   border-color: var(--jump-group-border);
 }
-.shared-jump-renderer.format-one-jump-renderer
+.jump-renderer-appearance-boundary.format-one-jump-renderer
   :is(.default-choice-actions, .jump-nested-inputs)
   :is(button, input, select, textarea) {
   color: var(--jump-control-text);
@@ -654,28 +854,28 @@
   border-color: var(--jump-control-border);
   border-radius: var(--jump-control-corners);
 }
-.shared-jump-renderer.format-one-jump-renderer
+.jump-renderer-appearance-boundary.format-one-jump-renderer
   :is(.default-choice-actions, .jump-nested-inputs)
   :is(button, input, select, textarea):hover:not(:disabled) {
   color: var(--jump-control-hover-text);
   background-color: var(--jump-control-hover-background);
   border-color: var(--jump-control-hover-border);
 }
-.shared-jump-renderer.format-one-jump-renderer
+.jump-renderer-appearance-boundary.format-one-jump-renderer
   :is(.default-choice-actions, .jump-nested-inputs)
   :is(button, input, select, textarea):active:not(:disabled) {
   color: var(--jump-control-pressed-text);
   background-color: var(--jump-control-pressed-background);
   border-color: var(--jump-control-pressed-border);
 }
-.shared-jump-renderer.format-one-jump-renderer
+.jump-renderer-appearance-boundary.format-one-jump-renderer
   :is(.default-choice-actions, .jump-nested-inputs)
   :is(button[aria-pressed="true"], .is-selected) {
   color: var(--jump-control-selected-text);
   background-color: var(--jump-control-selected-background);
   border-color: var(--jump-control-selected-border);
 }
-.shared-jump-renderer.format-one-jump-renderer
+.jump-renderer-appearance-boundary.format-one-jump-renderer
   :is(.default-choice-actions, .jump-nested-inputs)
   :is(button, input, select, textarea):disabled {
   color: var(--jump-control-disabled-text);
@@ -684,32 +884,36 @@
   cursor: not-allowed;
   opacity: 0.72;
 }
-.shared-jump-renderer.format-one-jump-renderer
+.jump-renderer-appearance-boundary.format-one-jump-renderer
   :is(.control-range, [data-roll-output], [data-group-status]) {
   color: var(--jump-control-muted-text);
 }
-.shared-jump-renderer.format-one-jump-renderer .cost-badge {
+.jump-renderer-appearance-boundary.format-one-jump-renderer .cost-badge {
   color: var(--jump-cost-text);
   background: var(--jump-cost-background);
   border-color: var(--jump-cost-border);
   border-radius: var(--jump-cost-corners);
 }
-.shared-jump-renderer.format-one-jump-renderer .cost-badge.is-benefit {
+.jump-renderer-appearance-boundary.format-one-jump-renderer
+  .cost-badge.is-benefit {
   color: var(--jump-cost-benefit-text);
   background: var(--jump-cost-benefit-background);
   border-color: var(--jump-cost-benefit-border);
 }
-.shared-jump-renderer.format-one-jump-renderer .cost-badge.is-award {
+.jump-renderer-appearance-boundary.format-one-jump-renderer
+  .cost-badge.is-award {
   color: var(--jump-cost-award-text);
   background: var(--jump-cost-award-background);
   border-color: var(--jump-cost-award-border);
 }
-.shared-jump-renderer.format-one-jump-renderer .cost-badge.is-roll-pending {
+.jump-renderer-appearance-boundary.format-one-jump-renderer
+  .cost-badge.is-roll-pending {
   color: var(--jump-cost-pending-text);
   background: var(--jump-cost-pending-background);
   border-color: var(--jump-cost-pending-border);
 }
-.shared-jump-renderer.format-one-jump-renderer .jump-image-alt-tooltip {
+.jump-renderer-appearance-boundary.format-one-jump-renderer
+  .jump-image-alt-tooltip {
   color: var(--jump-tooltip-text);
   background: var(--jump-tooltip-background);
   border-color: var(--jump-tooltip-border);

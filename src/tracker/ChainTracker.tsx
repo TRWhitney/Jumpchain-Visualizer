@@ -16,7 +16,7 @@ import {
   dropIndexForTarget,
   type DropEdge,
 } from "../ui/dragReorder";
-import { useContextMenu } from "../ui";
+import { Chevron, useContextMenu, useSettingDefaultedState } from "../ui";
 import {
   TrackerSupplementContext,
   SupplementProviders,
@@ -323,7 +323,11 @@ function ChainRail({
   runtime: EvaluatedJumpRuntime;
   preloadEntry: (entryId: string) => void;
 }) {
-  const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
+  const {
+    openContextMenu,
+    openContextMenuFromKeyboard,
+    openContextMenuFromTrigger,
+  } = useContextMenu();
   const settingsContext = useOptionalSettings();
   const [dragged, setDragged] = useState<string | null>(null);
   const [dropIndicator, setDropIndicator] = useState<{
@@ -696,44 +700,74 @@ function ChainRail({
                   </button>
                   {!earth && (
                     <div className="chain-jump-actions">
-                      <button
-                        type="button"
-                        disabled={index === state.order.length - 1}
-                        aria-label={`Move ${item.name} later in the chain`}
-                        onClick={() =>
-                          dispatch({
-                            type: "request-move",
-                            entryId: id,
-                            toIndex: index + 1,
-                          })
-                        }
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        disabled={index <= 1}
-                        aria-label={`Move ${item.name} earlier in the chain`}
-                        onClick={() =>
-                          dispatch({
-                            type: "request-move",
-                            entryId: id,
-                            toIndex: index - 1,
-                          })
-                        }
-                      >
-                        ↓
-                      </button>
-                      <button
-                        type="button"
-                        disabled={false}
-                        aria-label={`Remove ${item.name} from the chain`}
-                        onClick={() =>
-                          dispatch({ type: "request-remove", entryId: id })
-                        }
-                      >
-                        ×
-                      </button>
+                      {settingsContext?.settings.chain.compactJumpActions ? (
+                        <button
+                          className="chain-jump-more-actions"
+                          type="button"
+                          aria-haspopup="menu"
+                          aria-label={translate(
+                            "ui.chainTracker.ariaLabel.moreActionsForJump",
+                            { jump: item.name },
+                          )}
+                          onClick={(event) =>
+                            openContextMenuFromTrigger(
+                              event.currentTarget,
+                              menu,
+                            )
+                          }
+                        >
+                          <span aria-hidden="true">•••</span>
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            disabled={index === state.order.length - 1}
+                            aria-label={translate(
+                              "ui.chainTracker.ariaLabel.moveJumpLater",
+                              { jump: item.name },
+                            )}
+                            onClick={() =>
+                              dispatch({
+                                type: "request-move",
+                                entryId: id,
+                                toIndex: index + 1,
+                              })
+                            }
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index <= 1}
+                            aria-label={translate(
+                              "ui.chainTracker.ariaLabel.moveJumpEarlier",
+                              { jump: item.name },
+                            )}
+                            onClick={() =>
+                              dispatch({
+                                type: "request-move",
+                                entryId: id,
+                                toIndex: index - 1,
+                              })
+                            }
+                          >
+                            ↓
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={translate(
+                              "ui.chainTracker.ariaLabel.removeJumpFromChain",
+                              { jump: item.name },
+                            )}
+                            onClick={() =>
+                              dispatch({ type: "request-remove", entryId: id })
+                            }
+                          >
+                            ×
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </article>
@@ -1237,6 +1271,7 @@ function JumpWorkspace({
                 state.jumpState[entryId]?.actors[activeActorId] ?? {
                   choices: {},
                   inputs: {},
+                  sourceSelections: {},
                   choiceRolls: {},
                   sourceRolls: {},
                 }
@@ -1286,6 +1321,13 @@ function flattenInventoryTagNodes(
 function InventoryPage({ state, dispatch }: TrackerProps) {
   const records = filteredInventory(state);
   const tagTree = useMemo(() => inventoryTagTree(state), [state]);
+  const settingsContext = useOptionalSettings();
+  const collapseTagFilters =
+    settingsContext?.settings.chain.collapseInventoryTagFilters ?? false;
+  const [tagFiltersOpen, setTagFiltersOpen] = useSettingDefaultedState(
+    collapseTagFilters,
+    !collapseTagFilters,
+  );
   const [expandedTagCategories, setExpandedTagCategories] = useState<
     ReadonlySet<string>
   >(() => new Set());
@@ -1403,99 +1445,128 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
                 </button>
               ))}
             </div>
-          </div>
-          <div className="inventory-search-layout">
-            <aside
-              className="inventory-tag-dialog"
-              aria-label={translate("ui.chainTracker.ariaLabel.tagSearch")}
-            >
-              <header>
-                <p>{translate("ui.chainTracker.text.tagSearch")}</p>
-                <h5>{translate("ui.chainTracker.text.relationships")}</h5>
-              </header>
+            {collapseTagFilters && (
               <button
-                className="inventory-all-tags"
+                className="inventory-tag-filter-toggle"
                 type="button"
-                aria-pressed={state.inventoryTag === "all"}
-                onClick={() =>
-                  dispatch({ type: "set-inventory-tag", value: "all" })
-                }
+                aria-expanded={tagFiltersOpen}
+                aria-controls="inventory-tag-relationships"
+                onClick={() => setTagFiltersOpen(!tagFiltersOpen)}
               >
-                <span>{translate("ui.chainTracker.text.allTags")}</span>
-                <small>
-                  {translate("ui.chainTracker.text.exactInventoryPoint")}
-                </small>
+                <span aria-hidden="true">⌕</span>
+                <span>
+                  {translate("ui.chainTracker.text.tagsFilter", {
+                    tag:
+                      state.inventoryTag === "all"
+                        ? translate("ui.chainTracker.text.all")
+                        : (state.tags[state.inventoryTag]?.label ??
+                          state.inventoryTag),
+                  })}
+                </span>
+                <Chevron direction={tagFiltersOpen ? "down" : "right"} />
               </button>
-              <div className="inventory-tag-tree-scroll">
-                {tagTree.map((category) => {
-                  const expanded = expandedTagCategories.has(category.id);
-                  return (
-                    <div key={category.id} className="tracker-tag-filter-group">
-                      <div className="inventory-tag-root-row">
-                        <button
-                          className="inventory-tag-select"
-                          type="button"
-                          aria-pressed={state.inventoryTag === category.id}
-                          onClick={() =>
-                            dispatch({
-                              type: "set-inventory-tag",
-                              value: category.id,
-                            })
-                          }
-                        >
-                          <span>◆ {state.tags[category.id].label}</span>
-                          <small>
-                            {translate(
-                              "ui.chainTracker.text.includesDescendants",
-                            )}
-                          </small>
-                        </button>
-                        {category.children.length > 0 && (
+            )}
+          </div>
+          <div
+            className={`inventory-search-layout${tagFiltersOpen ? "" : " is-tag-filter-collapsed"}`}
+          >
+            {tagFiltersOpen && (
+              <aside
+                id="inventory-tag-relationships"
+                className="inventory-tag-dialog"
+                aria-label={translate("ui.chainTracker.ariaLabel.tagSearch")}
+              >
+                <header>
+                  <p>{translate("ui.chainTracker.text.tagSearch")}</p>
+                  <h5>{translate("ui.chainTracker.text.relationships")}</h5>
+                </header>
+                <button
+                  className="inventory-all-tags"
+                  type="button"
+                  aria-pressed={state.inventoryTag === "all"}
+                  onClick={() =>
+                    dispatch({ type: "set-inventory-tag", value: "all" })
+                  }
+                >
+                  <span>{translate("ui.chainTracker.text.allTags")}</span>
+                  <small>
+                    {translate("ui.chainTracker.text.exactInventoryPoint")}
+                  </small>
+                </button>
+                <div className="inventory-tag-tree-scroll">
+                  {tagTree.map((category) => {
+                    const expanded = expandedTagCategories.has(category.id);
+                    return (
+                      <div
+                        key={category.id}
+                        className="tracker-tag-filter-group"
+                      >
+                        <div className="inventory-tag-root-row">
                           <button
-                            className="inventory-tag-expander"
+                            className="inventory-tag-select"
                             type="button"
-                            aria-label={`${expanded ? "Collapse" : "Expand"} ${state.tags[category.id].label} tags`}
-                            aria-expanded={expanded}
-                            onClick={() => toggleCategory(category.id)}
+                            aria-pressed={state.inventoryTag === category.id}
+                            onClick={() =>
+                              dispatch({
+                                type: "set-inventory-tag",
+                                value: category.id,
+                              })
+                            }
                           >
-                            <span aria-hidden="true">›</span>
+                            <span>◆ {state.tags[category.id].label}</span>
+                            <small>
+                              {translate(
+                                "ui.chainTracker.text.includesDescendants",
+                              )}
+                            </small>
                           </button>
-                        )}
-                      </div>
-                      {expanded &&
-                        flattenInventoryTagNodes(category.children).map(
-                          ({ node, depth }) => (
+                          {category.children.length > 0 && (
                             <button
-                              key={node.id}
-                              className="inventory-tag-select inventory-tag-descendant"
-                              style={
-                                {
-                                  "--inventory-tag-depth": depth,
-                                } as CSSProperties
-                              }
+                              className="inventory-tag-expander"
                               type="button"
-                              aria-pressed={state.inventoryTag === node.id}
-                              onClick={() =>
-                                dispatch({
-                                  type: "set-inventory-tag",
-                                  value: node.id,
-                                })
-                              }
+                              aria-label={`${expanded ? "Collapse" : "Expand"} ${state.tags[category.id].label} tags`}
+                              aria-expanded={expanded}
+                              onClick={() => toggleCategory(category.id)}
                             >
-                              <span>└ {state.tags[node.id].label}</span>
-                              <small>
-                                {state.tags[node.id].aliases[0]
-                                  ? `Alias: ${state.tags[node.id].aliases[0]}`
-                                  : "Exact tag"}
-                              </small>
+                              <span aria-hidden="true">›</span>
                             </button>
-                          ),
-                        )}
-                    </div>
-                  );
-                })}
-              </div>
-            </aside>
+                          )}
+                        </div>
+                        {expanded &&
+                          flattenInventoryTagNodes(category.children).map(
+                            ({ node, depth }) => (
+                              <button
+                                key={node.id}
+                                className="inventory-tag-select inventory-tag-descendant"
+                                style={
+                                  {
+                                    "--inventory-tag-depth": depth,
+                                  } as CSSProperties
+                                }
+                                type="button"
+                                aria-pressed={state.inventoryTag === node.id}
+                                onClick={() =>
+                                  dispatch({
+                                    type: "set-inventory-tag",
+                                    value: node.id,
+                                  })
+                                }
+                              >
+                                <span>└ {state.tags[node.id].label}</span>
+                                <small>
+                                  {state.tags[node.id].aliases[0]
+                                    ? `Alias: ${state.tags[node.id].aliases[0]}`
+                                    : "Exact tag"}
+                                </small>
+                              </button>
+                            ),
+                          )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </aside>
+            )}
             <div className="inventory-results-pane">
               <div className="inventory-result-note" role="status">
                 {records.length} {records.length === 1 ? "record" : "records"}{" "}

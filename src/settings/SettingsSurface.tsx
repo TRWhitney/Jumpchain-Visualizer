@@ -11,9 +11,11 @@ import { useSettings } from "./SettingsContext";
 import {
   ABSOLUTE_PACKAGE_SIZE_LIMITS,
   SAFE_PACKAGE_SIZE_LIMITS,
+  applyInterfaceExperience,
   chordFor,
   defaultSettings,
   effectivePackageSizeLimits,
+  interfaceExperienceFor,
   assetToolKeybindingActions,
   keybindingDisplay,
   keybindingLabels,
@@ -21,6 +23,7 @@ import {
   validatePackageSizeLimits,
   validateKeybinding,
   type ApplicationSettings,
+  type InterfaceExperiencePreset,
   type KeybindingAction,
   type KeybindingChord,
   type NotificationClass,
@@ -51,6 +54,27 @@ const categoriesFor = (): { id: SettingsCategory; label: string }[] => {
 };
 
 const searchEntries = [
+  [
+    "settingsSearch.interfaceExperience.label",
+    "general.interfaceExperience",
+    "general",
+    "interface-experience",
+    "settingsSearch.interfaceExperience.aliases",
+  ],
+  [
+    "settingsSearch.general_hideTechnicalLocations.label",
+    "general.hideTechnicalLocations",
+    "general",
+    "hide-technical-locations",
+    "settingsSearch.general_hideTechnicalLocations.aliases",
+  ],
+  [
+    "settingsSearch.general_collapseOptionalSectionsByDefault.label",
+    "general.collapseOptionalSectionsByDefault",
+    "general",
+    "collapse-optional-sections",
+    "settingsSearch.general_collapseOptionalSectionsByDefault.aliases",
+  ],
   [
     "settingsSearch.language_tag.label",
     "language.tag",
@@ -108,6 +132,27 @@ const searchEntries = [
     "settingsSearch.editor_permanentlyDeleteSidebarItems.aliases",
   ],
   [
+    "settingsSearch.editor_collapseAdvancedViews.label",
+    "editor.collapseAdvancedViews",
+    "editor",
+    "collapse-advanced-views",
+    "settingsSearch.editor_collapseAdvancedViews.aliases",
+  ],
+  [
+    "settingsSearch.editor_collapsePreviewInspectionTools.label",
+    "editor.collapsePreviewInspectionTools",
+    "editor",
+    "collapse-preview-inspection-tools",
+    "settingsSearch.editor_collapsePreviewInspectionTools.aliases",
+  ],
+  [
+    "settingsSearch.editor_showExplanatoryText.label",
+    "editor.showExplanatoryText",
+    "editor",
+    "show-explanatory-text",
+    "settingsSearch.editor_showExplanatoryText.aliases",
+  ],
+  [
     "settingsSearch.chain_allowMultiplePackageVersions.label",
     "chain.allowMultiplePackageVersions",
     "chain",
@@ -162,6 +207,20 @@ const searchEntries = [
     "chain",
     "color-chain",
     "settingsSearch.chain_colorNamesByPrimaryTag.aliases",
+  ],
+  [
+    "settingsSearch.chain_compactJumpActions.label",
+    "chain.compactJumpActions",
+    "chain",
+    "compact-jump-actions",
+    "settingsSearch.chain_compactJumpActions.aliases",
+  ],
+  [
+    "settingsSearch.chain_collapseInventoryTagFilters.label",
+    "chain.collapseInventoryTagFilters",
+    "chain",
+    "collapse-inventory-tag-filters",
+    "settingsSearch.chain_collapseInventoryTagFilters.aliases",
   ],
   [
     "settingsSearch.notifications_.label",
@@ -240,6 +299,12 @@ const searchValue = (
   settings: ApplicationSettings,
 ) => {
   switch (key) {
+    case "general.interfaceExperience":
+      return interfaceExperienceFor(settings);
+    case "general.hideTechnicalLocations":
+      return String(settings.general.hideTechnicalLocations);
+    case "general.collapseOptionalSectionsByDefault":
+      return String(settings.general.collapseOptionalSectionsByDefault);
     case "language.tag":
       return settings.language.tag;
     case "appearance.theme":
@@ -256,6 +321,12 @@ const searchValue = (
       return String(settings.editor.warnMissingImageAlt);
     case "editor.warnMissingLayoutTargets":
       return String(settings.editor.warnMissingLayoutTargets);
+    case "editor.collapseAdvancedViews":
+      return String(settings.editor.collapseAdvancedViews);
+    case "editor.collapsePreviewInspectionTools":
+      return String(settings.editor.collapsePreviewInspectionTools);
+    case "editor.showExplanatoryText":
+      return String(settings.editor.showExplanatoryText);
     case "chain.allowMultiplePackageVersions":
       return String(settings.chain.allowMultiplePackageVersions);
     case "chain.allowDuplicateJumps":
@@ -272,6 +343,10 @@ const searchValue = (
       return String(settings.chain.warnUpstreamChanges);
     case "chain.colorNamesByPrimaryTag":
       return String(settings.chain.colorNamesByPrimaryTag);
+    case "chain.compactJumpActions":
+      return String(settings.chain.compactJumpActions);
+    case "chain.collapseInventoryTagFilters":
+      return String(settings.chain.collapseInventoryTagFilters);
     case "notifications.*":
       return JSON.stringify(settings.notifications);
     case "tags.profile":
@@ -433,6 +508,7 @@ export function SettingsSurface({
     }
     const next = structuredClone(settings);
     if (category === "general") {
+      next.general = defaults.general;
       next.language = defaults.language;
       next.appearance = defaults.appearance;
     }
@@ -727,6 +803,112 @@ function CategoryPanel({
       <section role="tabpanel" aria-labelledby="settings-general-tab">
         <h4>{translate("ui.settingsSurface.text.general")}</h4>
         <SettingRow
+          id="interface-experience"
+          label={translate("ui.settingsSurface.label.interfaceExperience")}
+          description={translate(
+            "ui.settingsSurface.description.applyAStartingCollectionOfPresentationPreferences",
+          )}
+          reset={() =>
+            patch(
+              applyInterfaceExperience(settings, "experienced"),
+              "general.interfaceExperience",
+            )
+          }
+        >
+          <select
+            id="interface-experience"
+            value={interfaceExperienceFor(settings)}
+            onChange={(event) => {
+              if (event.target.value === "custom") return;
+              patch(
+                applyInterfaceExperience(
+                  settings,
+                  event.target.value as InterfaceExperiencePreset,
+                ),
+                "general.interfaceExperience",
+              );
+            }}
+          >
+            <option value="experienced">
+              {translate("ui.settingsSurface.text.experienced")}
+            </option>
+            <option value="new-user-friendly">
+              {translate("ui.settingsSurface.text.newUserFriendly")}
+            </option>
+            <option value="custom" disabled>
+              {translate("ui.settingsSurface.text.custom")}
+            </option>
+          </select>
+        </SettingRow>
+        <CheckRow
+          id="hide-technical-locations"
+          label={translate("ui.settingsSurface.label.technicalLocations")}
+          description={translate(
+            "ui.settingsSurface.description.hideRawRouteIdentifiersWhileKeepingNavigationLabels",
+          )}
+          checked={settings.general.hideTechnicalLocations}
+          text={translate("ui.settingsSurface.text.hideTechnicalLocations")}
+          onChange={(value) =>
+            patch(
+              {
+                ...settings,
+                general: {
+                  ...settings.general,
+                  hideTechnicalLocations: value,
+                },
+              },
+              "general.hideTechnicalLocations",
+            )
+          }
+          reset={() =>
+            patch(
+              {
+                ...settings,
+                general: {
+                  ...settings.general,
+                  hideTechnicalLocations: false,
+                },
+              },
+              "general.hideTechnicalLocations",
+            )
+          }
+        />
+        <CheckRow
+          id="collapse-optional-sections"
+          label={translate("ui.settingsSurface.label.optionalSectionDefaults")}
+          description={translate(
+            "ui.settingsSurface.description.startFineGrainedEditorAndTagSectionsCollapsed",
+          )}
+          checked={settings.general.collapseOptionalSectionsByDefault}
+          text={translate(
+            "ui.settingsSurface.text.collapseOptionalSectionsByDefault",
+          )}
+          onChange={(value) =>
+            patch(
+              {
+                ...settings,
+                general: {
+                  ...settings.general,
+                  collapseOptionalSectionsByDefault: value,
+                },
+              },
+              "general.collapseOptionalSectionsByDefault",
+            )
+          }
+          reset={() =>
+            patch(
+              {
+                ...settings,
+                general: {
+                  ...settings.general,
+                  collapseOptionalSectionsByDefault: false,
+                },
+              },
+              "general.collapseOptionalSectionsByDefault",
+            )
+          }
+        />
+        <SettingRow
           id="language-selection"
           label={translate("settingsSearch.language_tag.label")}
           description={translate("language.description")}
@@ -858,6 +1040,107 @@ function CategoryPanel({
     return (
       <section role="tabpanel" aria-labelledby="settings-editor-tab">
         <h4>{translate("ui.settingsSurface.text.editor")}</h4>
+        <CheckRow
+          id="show-explanatory-text"
+          label={translate("ui.settingsSurface.label.editorExplanations")}
+          description={translate(
+            "ui.settingsSurface.description.showOptionalEditorGuidance",
+          )}
+          checked={settings.editor.showExplanatoryText}
+          text={translate("ui.settingsSurface.text.showExplanatoryText")}
+          onChange={(value) =>
+            patch(
+              {
+                ...settings,
+                editor: {
+                  ...settings.editor,
+                  showExplanatoryText: value,
+                },
+              },
+              "editor.showExplanatoryText",
+            )
+          }
+          reset={() =>
+            patch(
+              {
+                ...settings,
+                editor: {
+                  ...settings.editor,
+                  showExplanatoryText: false,
+                },
+              },
+              "editor.showExplanatoryText",
+            )
+          }
+        />
+        <CheckRow
+          id="collapse-advanced-views"
+          label={translate("ui.settingsSurface.label.advancedEditorViews")}
+          description={translate(
+            "ui.settingsSurface.description.startFilesSourceAndPropertiesBehindAdvancedViews",
+          )}
+          checked={settings.editor.collapseAdvancedViews}
+          text={translate("ui.settingsSurface.text.collapseAdvancedViews")}
+          onChange={(value) =>
+            patch(
+              {
+                ...settings,
+                editor: {
+                  ...settings.editor,
+                  collapseAdvancedViews: value,
+                },
+              },
+              "editor.collapseAdvancedViews",
+            )
+          }
+          reset={() =>
+            patch(
+              {
+                ...settings,
+                editor: {
+                  ...settings.editor,
+                  collapseAdvancedViews: false,
+                },
+              },
+              "editor.collapseAdvancedViews",
+            )
+          }
+        />
+        <CheckRow
+          id="collapse-preview-inspection-tools"
+          label={translate("ui.settingsSurface.label.previewInspectionTools")}
+          description={translate(
+            "ui.settingsSurface.description.startInspectAndStripColorBehindPreviewTools",
+          )}
+          checked={settings.editor.collapsePreviewInspectionTools}
+          text={translate(
+            "ui.settingsSurface.text.collapsePreviewInspectionTools",
+          )}
+          onChange={(value) =>
+            patch(
+              {
+                ...settings,
+                editor: {
+                  ...settings.editor,
+                  collapsePreviewInspectionTools: value,
+                },
+              },
+              "editor.collapsePreviewInspectionTools",
+            )
+          }
+          reset={() =>
+            patch(
+              {
+                ...settings,
+                editor: {
+                  ...settings.editor,
+                  collapsePreviewInspectionTools: false,
+                },
+              },
+              "editor.collapsePreviewInspectionTools",
+            )
+          }
+        />
         <SettingRow
           id="save-mode"
           label={translate("ui.settingsSurface.label.saving")}
@@ -1055,6 +1338,68 @@ function CategoryPanel({
     return (
       <section role="tabpanel" aria-labelledby="settings-chain-tab">
         <h4>{translate("ui.settingsSurface.text.chainTracker")}</h4>
+        <CheckRow
+          id="compact-jump-actions"
+          label={translate("ui.settingsSurface.label.jumpRowActions")}
+          description={translate(
+            "ui.settingsSurface.description.replaceRepeatedMoveAndRemoveButtonsWithAnActionsMenu",
+          )}
+          checked={settings.chain.compactJumpActions}
+          text={translate("ui.settingsSurface.text.compactJumpActions")}
+          onChange={(value) =>
+            patch(
+              {
+                ...settings,
+                chain: { ...settings.chain, compactJumpActions: value },
+              },
+              "chain.compactJumpActions",
+            )
+          }
+          reset={() =>
+            patch(
+              {
+                ...settings,
+                chain: { ...settings.chain, compactJumpActions: false },
+              },
+              "chain.compactJumpActions",
+            )
+          }
+        />
+        <CheckRow
+          id="collapse-inventory-tag-filters"
+          label={translate("ui.settingsSurface.label.inventoryTagFilters")}
+          description={translate(
+            "ui.settingsSurface.description.startInventoryTagRelationshipsBehindAToolbarDisclosure",
+          )}
+          checked={settings.chain.collapseInventoryTagFilters}
+          text={translate(
+            "ui.settingsSurface.text.collapseInventoryTagFilters",
+          )}
+          onChange={(value) =>
+            patch(
+              {
+                ...settings,
+                chain: {
+                  ...settings.chain,
+                  collapseInventoryTagFilters: value,
+                },
+              },
+              "chain.collapseInventoryTagFilters",
+            )
+          }
+          reset={() =>
+            patch(
+              {
+                ...settings,
+                chain: {
+                  ...settings.chain,
+                  collapseInventoryTagFilters: false,
+                },
+              },
+              "chain.collapseInventoryTagFilters",
+            )
+          }
+        />
         <CheckRow
           id="multiple-versions"
           label={translate("ui.settingsSurface.label.addAnotherPackageVersion")}

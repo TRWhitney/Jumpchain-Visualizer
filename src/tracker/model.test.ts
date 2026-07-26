@@ -53,6 +53,12 @@ function heroAcademyState(
             jumper: {
               ...actor,
               choices,
+              sourceSelections: Object.fromEntries(
+                Object.entries(actor.sourceSelections).map(([key, handles]) => [
+                  key,
+                  handles.filter((handle) => Object.hasOwn(choices, handle)),
+                ]),
+              ),
               choiceRolls: {},
               sourceRolls: {},
               inputs: {},
@@ -529,13 +535,16 @@ describe("Chain Tracker aggregate", () => {
   it("rejects form-targeted perks without their form and clears dependents with it", () => {
     const initial = createDenseTrackerFixture();
     const reviewed = trackerReducer(initial, {
-      type: "set-choice",
+      type: "set-source-selections",
       entryId: "entry-1",
       actorId: "jumper",
-      choiceHandle: "prism_form",
-      value: false,
+      sourceKey: "forms:forms",
+      mode: "multi",
+      value: initial.jumpState["entry-1"].actors.jumper.sourceSelections[
+        "forms:forms"
+      ].filter((handle) => handle !== "prism_form"),
     });
-    expect(reviewed.pending).toMatchObject({ kind: "clear-form" });
+    expect(reviewed.pending).toMatchObject({ kind: "clear-form-source" });
     const cleared = trackerReducer(reviewed, { type: "commit-mutation" });
     expect(
       cleared.jumpState["entry-1"].actors.jumper.choices.refractive_hide,
@@ -832,7 +841,6 @@ describe("Chain Tracker aggregate", () => {
 
   it("blocks only active choice selections that would create a negative primary balance", () => {
     const { state, entryId } = heroAcademyState({
-      trial_stipend: true,
       power_rank: 1,
       extra_attempts: 1,
       element: "Fire",
@@ -842,15 +850,18 @@ describe("Chain Tracker aggregate", () => {
     });
 
     const blocked = trackerReducer(state, {
-      type: "set-choice",
+      type: "set-source-selections",
       entryId,
       actorId: "jumper",
-      choiceHandle: "manual_flight",
-      value: true,
+      sourceKey: "multi_manual:electives",
+      mode: "multi",
+      value: ["manual_flight"],
     });
     expect(
-      blocked.jumpState[entryId].actors.jumper.choices.manual_flight,
-    ).toBeUndefined();
+      blocked.jumpState[entryId].actors.jumper.sourceSelections[
+        "multi_manual:electives"
+      ],
+    ).toEqual([]);
 
     const permitted = trackerReducer(
       {
@@ -861,16 +872,57 @@ describe("Chain Tracker aggregate", () => {
         },
       },
       {
-        type: "set-choice",
+        type: "set-source-selections",
         entryId,
         actorId: "jumper",
-        choiceHandle: "manual_flight",
-        value: true,
+        sourceKey: "multi_manual:electives",
+        mode: "multi",
+        value: ["manual_flight"],
       },
     );
     expect(
-      permitted.jumpState[entryId].actors.jumper.choices.manual_flight,
-    ).toBe(true);
+      permitted.jumpState[entryId].actors.jumper.sourceSelections[
+        "multi_manual:electives"
+      ],
+    ).toEqual(["manual_flight"]);
+  });
+
+  it("normalizes source membership for single and multiple Choice Sources", () => {
+    const initial = createDenseTrackerFixture();
+    const permissive = {
+      ...initial,
+      preferences: {
+        ...initial.preferences,
+        allowNegativePointBalances: true,
+      },
+    };
+    const single = trackerReducer(permissive, {
+      type: "set-source-selections",
+      entryId: "entry-2",
+      actorId: "jumper",
+      sourceKey: "single_manual:assignment",
+      mode: "single",
+      value: ["manual_scholar", "manual_wanderer"],
+    });
+    expect(
+      single.jumpState["entry-2"].actors.jumper.sourceSelections[
+        "single_manual:assignment"
+      ],
+    ).toEqual(["manual_wanderer"]);
+
+    const multi = trackerReducer(single, {
+      type: "set-source-selections",
+      entryId: "entry-2",
+      actorId: "jumper",
+      sourceKey: "multi_manual:electives",
+      mode: "multi",
+      value: ["manual_flight", "manual_flight", "manual_arcane"],
+    });
+    expect(
+      multi.jumpState["entry-2"].actors.jumper.sourceSelections[
+        "multi_manual:electives"
+      ],
+    ).toEqual(["manual_flight", "manual_arcane"]);
   });
 
   it("allows an inactive choice change even when recalculation creates a deficit", () => {
@@ -941,6 +993,7 @@ describe("Chain Tracker aggregate", () => {
       entryId,
       actorId: "jumper",
       sourceKey: "multi_random:electives",
+      mode: "multi",
       result: "random_arcane",
     });
     expect(

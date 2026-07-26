@@ -12,17 +12,24 @@ import {
   summarizeWorkspace,
   type EditorWorkspaceSnapshot,
 } from "./model";
-import { translate, translateDiagnostic } from "../localization";
+import {
+  localeDate,
+  localeNumber,
+  translate,
+  translateDiagnostic,
+} from "../localization";
 import { useContextMenu } from "../ui";
 
 const service = new JumpPackageImportService();
 
 const openedLabel = (value: string) => {
   const elapsed = Date.now() - Date.parse(value);
-  if (elapsed < 60_000) return "Opened just now";
-  if (elapsed < 86_400_000) return "Opened today";
-  if (elapsed < 172_800_000) return "Opened yesterday";
-  return `Opened ${new Date(value).toLocaleDateString()}`;
+  if (elapsed < 60_000) return translate("ui.editorHub.opened.justNow");
+  if (elapsed < 86_400_000) return translate("ui.editorHub.opened.today");
+  if (elapsed < 172_800_000) return translate("ui.editorHub.opened.yesterday");
+  return translate("ui.editorHub.opened.date", {
+    date: localeDate(new Date(value)),
+  });
 };
 
 function ProjectDescription({ children }: { children: string }) {
@@ -204,8 +211,8 @@ export function EditorHub({
             disabled={!desktop}
             title={
               desktop
-                ? "Choose a project folder"
-                : "Project folders are available in the desktop application"
+                ? translate("ui.editorHub.title.chooseProjectFolder")
+                : translate("ui.editorHub.title.projectFoldersDesktopOnly")
             }
           >
             {translate("ui.editorHub.text.openProjectFolder")}
@@ -255,8 +262,14 @@ export function EditorHub({
           </label>
           <span>
             {visible.length === workspaces.length
-              ? `${workspaces.length} total`
-              : `${visible.length} of ${workspaces.length}`}
+              ? translate("ui.editorHub.count.total", {
+                  count: workspaces.length,
+                  formattedCount: localeNumber(workspaces.length),
+                })
+              : translate("ui.editorHub.count.visible", {
+                  visible: localeNumber(visible.length),
+                  total: localeNumber(workspaces.length),
+                })}
           </span>
         </div>
         <div
@@ -329,8 +342,12 @@ export function EditorHub({
                   <button
                     type="button"
                     className="app-card-delete"
-                    aria-label={`Delete ${summary.name}`}
-                    title={`Delete ${summary.name}`}
+                    aria-label={translate("ui.editorHub.ariaLabel.delete", {
+                      project: summary.name,
+                    })}
+                    title={translate("ui.editorHub.ariaLabel.delete", {
+                      project: summary.name,
+                    })}
                     onClick={() => onDelete(workspace)}
                   >
                     {translate("ui.editorHub.text.delete")}
@@ -338,15 +355,16 @@ export function EditorHub({
                   <div className="editor-project-card-main">
                     <p className="editor-project-card-format">
                       {summary.nativeGauntlet
-                        ? "Native Gauntlet"
-                        : "Format 1 Jump"}
+                        ? translate("ui.editorHub.text.nativeGauntlet")
+                        : translate("ui.editorHub.text.format1Jump")}
                     </p>
                     <h3 title={summary.name}>{summary.name}</h3>
                     <span
                       className="editor-project-card-author"
                       title={summary.authors.join(", ")}
                     >
-                      {summary.authors.join(", ") || "Unknown author"}
+                      {summary.authors.join(", ") ||
+                        translate("ui.editorHub.text.unknownAuthor")}
                     </span>
                     <small>{openedLabel(summary.lastOpenedAt)}</small>
                     <ProjectDescription>
@@ -378,10 +396,16 @@ export function EditorHub({
                         }
                       >
                         {errors
-                          ? `${errors} error${errors === 1 ? "" : "s"}`
+                          ? translate("ui.editorHub.count.errors", {
+                              count: errors,
+                              formattedCount: localeNumber(errors),
+                            })
                           : warnings
-                            ? `${warnings} warning${warnings === 1 ? "" : "s"}`
-                            : "Clean"}
+                            ? translate("ui.editorHub.count.warnings", {
+                                count: warnings,
+                                formattedCount: localeNumber(warnings),
+                              })
+                            : translate("ui.editorHub.text.clean")}
                       </dd>
                     </div>
                   </dl>
@@ -399,9 +423,19 @@ export function EditorHub({
                     <button
                       type="button"
                       className="app-chain-star"
-                      aria-label={`${summary.starred ? "Unstar" : "Star"} ${summary.name}`}
+                      aria-label={translate(
+                        summary.starred
+                          ? "ui.editorHub.ariaLabel.unstar"
+                          : "ui.editorHub.ariaLabel.star",
+                        { project: summary.name },
+                      )}
                       aria-pressed={summary.starred}
-                      title={`${summary.starred ? "Unstar" : "Star"} ${summary.name}`}
+                      title={translate(
+                        summary.starred
+                          ? "ui.editorHub.ariaLabel.unstar"
+                          : "ui.editorHub.ariaLabel.star",
+                        { project: summary.name },
+                      )}
                       onClick={() => onToggleStar(workspace)}
                     >
                       <span aria-hidden="true">
@@ -416,13 +450,15 @@ export function EditorHub({
             <div className="app-chain-empty" role="status">
               <strong>
                 {search
-                  ? `No projects match “${search.trim()}”.`
-                  : "No Editor projects yet."}
+                  ? translate("ui.editorHub.empty.noMatch", {
+                      search: search.trim(),
+                    })
+                  : translate("ui.editorHub.empty.noProjects")}
               </strong>
               <span>
                 {search
-                  ? "Try a name, author, version, tag, or diagnostic."
-                  : "Create a project or import a secure .jmp package."}
+                  ? translate("ui.editorHub.empty.searchHelp")
+                  : translate("ui.editorHub.empty.createHelp")}
               </span>
             </div>
           )}
@@ -522,8 +558,8 @@ export function PackageReview({
     >
       <p>
         {review.status === "warning"
-          ? "Review authoring warnings"
-          : "Secure inspection complete"}
+          ? translate("ui.editorHub.text.reviewAuthoringWarnings")
+          : translate("ui.editorHub.text.secureInspectionComplete")}
       </p>
       <h2 id="package-review-heading">
         {review.name}{" "}
@@ -607,7 +643,9 @@ export function PackageReview({
           type="button"
           onClick={onImport}
         >
-          {review.status === "warning" ? "Import Anyway" : "Import Project"}
+          {review.status === "warning"
+            ? translate("ui.editorHub.text.importAnyway")
+            : translate("ui.editorHub.text.importProject")}
         </button>
         <button autoFocus type="button" onClick={onCancel}>
           {translate("ui.editorHub.text.cancel")}

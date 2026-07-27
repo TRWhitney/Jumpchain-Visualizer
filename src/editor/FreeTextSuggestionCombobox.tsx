@@ -229,7 +229,7 @@ export function FreeTextSuggestionCombobox({
         >
           <Chevron
             className="editor-diagnostics-chevron"
-            direction={open ? "down" : "right"}
+            direction={open ? "up" : "down"}
           />
         </button>
       </div>

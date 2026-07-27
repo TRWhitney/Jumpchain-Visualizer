@@ -161,9 +161,9 @@ test("interface experience preset aggregates settings and reports individual ove
   const experience = page.getByRole("combobox", {
     name: "Interface experience",
   });
-  await expect(experience).toHaveValue("experienced");
-  await experience.selectOption("new-user-friendly");
-  await expect(experience).toHaveValue("new-user-friendly");
+  await expect(experience).toHaveValue("advanced");
+  await experience.selectOption("beginner-friendly");
+  await expect(experience).toHaveValue("beginner-friendly");
   await waitForStoredSetting(page, ["general", "hideTechnicalLocations"], true);
   await waitForStoredSetting(page, ["editor", "collapseAdvancedViews"], true);
   await waitForStoredSetting(page, ["notifications", "maxVisible"], 1);
@@ -173,8 +173,8 @@ test("interface experience preset aggregates settings and reports individual ove
   await page.getByRole("tab", { name: "General" }).click();
   await expect(experience).toHaveValue("custom");
 
-  await experience.selectOption("experienced");
-  await expect(experience).toHaveValue("experienced");
+  await experience.selectOption("advanced");
+  await expect(experience).toHaveValue("advanced");
   await waitForStoredSetting(page, ["editor", "collapseAdvancedViews"], false);
   await waitForStoredSetting(page, ["notifications", "maxVisible"], 3);
 });
@@ -539,6 +539,114 @@ test("every Settings category preserves the fixed frame and has a fresh visual a
         },
       );
   }
+});
+
+test("General, Editor, and Chain Tracker disclosures retain session state and reveal search targets", async ({
+  page,
+}) => {
+  await page.goto("/settings");
+
+  const section = (id: string) =>
+    page.locator(`[data-settings-section="${id}"]`);
+  const visibleSectionIds = () =>
+    page
+      .locator(".settings-section-list > .settings-section")
+      .evaluateAll((sections) =>
+        sections.map((candidate) =>
+          candidate.getAttribute("data-settings-section"),
+        ),
+      );
+  const expectExpanded = async (...ids: string[]) => {
+    for (const id of ids) await expect(section(id)).toHaveAttribute("open", "");
+  };
+
+  expect(await visibleSectionIds()).toEqual([
+    "general-essentials",
+    "general-interface",
+    "general-welcome",
+  ]);
+  await expectExpanded(
+    "general-essentials",
+    "general-interface",
+    "general-welcome",
+  );
+  await expect(
+    section("general-welcome").getByRole("button", {
+      name: "Restart welcome tour",
+    }),
+  ).toBeVisible();
+
+  const interfaceSummary = section("general-interface").locator("summary");
+  await interfaceSummary.focus();
+  await page.keyboard.press("Enter");
+  await expect(section("general-interface")).not.toHaveAttribute("open", "");
+  await expect(
+    page.getByLabel("Hide raw technical locations"),
+  ).not.toBeVisible();
+
+  await page.getByRole("tab", { name: "Editor" }).click();
+  expect(await visibleSectionIds()).toEqual([
+    "editor-workflow",
+    "editor-display",
+    "editor-warnings",
+  ]);
+  await expectExpanded("editor-workflow", "editor-display", "editor-warnings");
+  await section("editor-warnings").locator("summary").click();
+  await expect(section("editor-warnings")).not.toHaveAttribute("open", "");
+  await expect(page.getByLabel("Show accessibility warning")).not.toBeVisible();
+
+  await page.getByRole("tab", { name: "Chain Tracker" }).click();
+  expect(await visibleSectionIds()).toEqual([
+    "chain-controls",
+    "chain-inventory",
+    "chain-warnings",
+  ]);
+  await expectExpanded("chain-controls", "chain-inventory", "chain-warnings");
+  await section("chain-inventory").locator("summary").click();
+  await expect(section("chain-inventory")).not.toHaveAttribute("open", "");
+
+  await page.getByRole("tab", { name: "General" }).click();
+  await expect(section("general-interface")).not.toHaveAttribute("open", "");
+  await page.getByPlaceholder("Search settings").fill("technical locations");
+  await page
+    .locator(".settings-search-list button")
+    .filter({ hasText: "general.hideTechnicalLocations" })
+    .click();
+  await expect(section("general-interface")).toHaveAttribute("open", "");
+  await expect(page.getByLabel("Hide raw technical locations")).toBeFocused();
+  await expect(
+    page.getByLabel("Hide raw technical locations"),
+  ).not.toBeChecked();
+
+  await page.getByRole("tab", { name: "Editor" }).click();
+  await expect(section("editor-warnings")).not.toHaveAttribute("open", "");
+  await page.getByPlaceholder("Search settings").fill("missing image alt");
+  await page
+    .locator(".settings-search-list button")
+    .filter({ hasText: "editor.warnMissingImageAlt" })
+    .click();
+  await expect(section("editor-warnings")).toHaveAttribute("open", "");
+  await expect(page.getByLabel("Show accessibility warning")).toBeFocused();
+
+  await page.getByRole("tab", { name: "Chain Tracker" }).click();
+  await expect(section("chain-inventory")).not.toHaveAttribute("open", "");
+
+  await page.getByRole("button", { name: "Close Settings" }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "General" }).click();
+  await expectExpanded(
+    "general-essentials",
+    "general-interface",
+    "general-welcome",
+  );
+  await section("general-welcome")
+    .getByRole("button", { name: "Restart welcome tour" })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Welcome to Jumpchain Visualizer",
+    }),
+  ).toBeVisible();
 });
 
 test(
@@ -951,10 +1059,10 @@ test("continuous accent changes stay bounded and project through the complete ap
     probe.style.color = root.getPropertyValue("--app-accent-border");
     element.append(probe);
     const border = getComputedStyle(probe).color;
-    probe.style.color = root.getPropertyValue("--app-accent-text");
-    const text = getComputedStyle(probe).color;
+    probe.style.backgroundColor = root.getPropertyValue("--app-accent-soft");
+    const soft = getComputedStyle(probe).backgroundColor;
     probe.remove();
-    return { border, text };
+    return { border, soft };
   });
   const resume = page
     .getByRole("region", { name: "Chains" })
@@ -962,7 +1070,8 @@ test("continuous accent changes stay bounded and project through the complete ap
     .first();
   await expect(resume).toHaveCSS("border-color", resolvedAccent.border);
   await resume.hover();
-  await expect(resume).toHaveCSS("color", resolvedAccent.text);
+  await expect(resume).toHaveCSS("color", "rgb(23, 23, 23)");
+  await expect(resume).toHaveCSS("background-color", resolvedAccent.soft);
 
   await page.goto("/chain");
   const newChain = page.locator(".app-new-chain");

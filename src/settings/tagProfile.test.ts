@@ -35,6 +35,14 @@ describe("tag profiles", () => {
     );
   });
 
+  it("hydrates built-in localized names and acronyms without rewriting them", () => {
+    const profile = createDefaultTagProfile();
+
+    expect(hydrateTagProfile(profile, profile)).toEqual(profile);
+    expect(profile.tags["artificial-intelligence"].aliases).toContain("AI");
+    expect(profile.tags["virtual-reality"].aliases).toContain("VR");
+  });
+
   it("enforces parent and reciprocal alias rules", () => {
     let profile = createDefaultTagProfile();
     const fire = addTag(profile, "Solar Command", "manual");

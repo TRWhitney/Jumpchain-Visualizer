@@ -56,7 +56,7 @@ describe("application settings", () => {
     expect(result.editor.layoutPreviewPlaceholderCharacterLimit).toBe(12);
     expect(result.notifications.maxVisible).toBe(5);
     expect(result.notifications.durationMs).toBe(5000);
-    expect(result.schemaVersion).toBe(4);
+    expect(result.schemaVersion).toBe(5);
     expect(result.language.tag).toBe("en");
   });
 
@@ -78,6 +78,28 @@ describe("application settings", () => {
         ["en", "fr"],
       ).language.tag,
     ).toBe("en");
+  });
+
+  it("starts onboarding for new installs and does not interrupt upgraded users", () => {
+    const profile = createDefaultTagProfile();
+    expect(
+      hydrateSettings({}, profile, hydrateTagProfile).onboarding
+        .welcomeTourStatus,
+    ).toBe("pending");
+    expect(
+      hydrateSettings({ schemaVersion: 4 }, profile, hydrateTagProfile)
+        .onboarding.welcomeTourStatus,
+    ).toBe("dismissed");
+    expect(
+      hydrateSettings(
+        {
+          schemaVersion: 5,
+          onboarding: { welcomeTourStatus: "completed" },
+        },
+        profile,
+        hydrateTagProfile,
+      ).onboarding.welcomeTourStatus,
+    ).toBe("completed");
   });
 
   it("defaults similar inventory aggregation on when the stored field is absent", () => {
@@ -141,7 +163,7 @@ describe("application settings", () => {
     ).toBeNull();
   });
 
-  it("migrates schema v3 settings and hydrates explanatory text as schema v4", () => {
+  it("migrates schema v3 settings and hydrates explanatory text as schema v5", () => {
     const profile = createDefaultTagProfile();
     const result = hydrateSettings(
       {
@@ -163,7 +185,7 @@ describe("application settings", () => {
       profile,
       hydrateTagProfile,
     );
-    expect(result.schemaVersion).toBe(4);
+    expect(result.schemaVersion).toBe(5);
     expect(result.general.hideTechnicalLocations).toBe(true);
     expect(result.general.collapseOptionalSectionsByDefault).toBe(false);
     expect(result.editor.collapseAdvancedViews).toBe(true);
@@ -175,10 +197,10 @@ describe("application settings", () => {
 
   it("applies and identifies interface experience presets", () => {
     const settings = defaultSettings(createDefaultTagProfile());
-    expect(interfaceExperienceFor(settings)).toBe("experienced");
+    expect(interfaceExperienceFor(settings)).toBe("advanced");
 
-    const novice = applyInterfaceExperience(settings, "new-user-friendly");
-    expect(interfaceExperienceFor(novice)).toBe("new-user-friendly");
+    const novice = applyInterfaceExperience(settings, "beginner-friendly");
+    expect(interfaceExperienceFor(novice)).toBe("beginner-friendly");
     expect(novice.general).toEqual({
       hideTechnicalLocations: true,
       collapseOptionalSectionsByDefault: true,
@@ -203,8 +225,8 @@ describe("application settings", () => {
       }),
     ).toBe("custom");
     expect(
-      interfaceExperienceFor(applyInterfaceExperience(novice, "experienced")),
-    ).toBe("experienced");
+      interfaceExperienceFor(applyInterfaceExperience(novice, "advanced")),
+    ).toBe("advanced");
   });
 
   it("hydrates only boolean mock-data visibility and defaults it off", () => {

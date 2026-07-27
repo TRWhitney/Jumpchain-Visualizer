@@ -22,7 +22,13 @@ beforeEach(async () => {
 });
 
 test("primary navigation updates paths, titles, selection, and route focus", async () => {
-  render(<AppShell />);
+  const settings = defaultSettings(createDefaultTagProfile());
+  settings.onboarding.welcomeTourStatus = "dismissed";
+  render(
+    <SettingsProvider repository={new MemorySettingsRepository(settings)}>
+      <AppShell />
+    </SettingsProvider>,
+  );
   await page.getByRole("button", { name: "Open Editor" }).click();
   await nextRouteFocus();
   expect(document.activeElement).toBe(
@@ -55,6 +61,7 @@ const nextRouteFocus = () =>
 function renderShellWithMockData() {
   const settings = defaultSettings(createDefaultTagProfile());
   settings.developer.showMockData = true;
+  settings.onboarding.welcomeTourStatus = "dismissed";
   render(
     <SettingsProvider repository={new MemorySettingsRepository(settings)}>
       <AppShell />

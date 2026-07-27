@@ -149,6 +149,14 @@ test(
     );
     await retainScreenshot(testInfo, "home-light", page);
 
+    const resume = page
+      .getByRole("region", { name: "Chains" })
+      .getByRole("button", { name: "Resume" });
+    await resume.hover();
+    await expectTextContrast(resume, resume);
+    await expect(resume).not.toHaveCSS("background-color", "rgb(37, 37, 35)");
+    await retainScreenshot(testInfo, "home-resume-hover-light", resume, false);
+
     await page.getByRole("button", { name: "Open Editor" }).click();
     await page.getByRole("button", { name: "Create Project" }).click();
     await page.getByRole("button", { name: "Editor", exact: true }).click();
@@ -215,6 +223,50 @@ test(
       "rgb(255, 255, 255)",
     );
     await retainScreenshot(testInfo, "chain-delete-dialog-light", page);
+  },
+);
+
+test(
+  "welcome-tour branch and interface icons retain light surfaces",
+  {
+    tag: ["@visual", "@chromium-only"],
+  },
+  async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1400, height: 900 });
+    await setAppearance(page, "light");
+    await page.getByRole("button", { name: "Settings" }).click();
+    await page.getByRole("tab", { name: "General" }).click();
+    await page.getByRole("button", { name: "Restart welcome tour" }).click();
+    await page.getByRole("button", { name: "Start tour" }).click();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("button", { name: "Continue" }).click();
+
+    const branchIcons = page.locator(".welcome-tour-branch-icon");
+    await expect(branchIcons).toHaveCount(2);
+    for (const icon of await branchIcons.all()) {
+      await expect(icon).not.toHaveCSS("background-color", "rgb(41, 42, 46)");
+      await expectTextContrast(icon, icon);
+    }
+    await retainScreenshot(
+      testInfo,
+      "welcome-tour-branch-icons-light",
+      page.getByRole("dialog"),
+      false,
+    );
+
+    await page.getByRole("button", { name: "Exit tour" }).click();
+    const modeIcons = page.locator(".welcome-tour-mode-grid > button > span");
+    await expect(modeIcons).toHaveCount(2);
+    for (const icon of await modeIcons.all()) {
+      await expect(icon).not.toHaveCSS("background-color", "rgb(41, 42, 46)");
+      await expectTextContrast(icon, icon);
+    }
+    await retainScreenshot(
+      testInfo,
+      "welcome-tour-mode-icons-light",
+      page.getByRole("dialog"),
+      false,
+    );
   },
 );
 

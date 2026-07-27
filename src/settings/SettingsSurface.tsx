@@ -53,6 +53,57 @@ const categoriesFor = (): { id: SettingsCategory; label: string }[] => {
   ];
 };
 
+type SettingsSectionId =
+  | "general-essentials"
+  | "general-interface"
+  | "general-welcome"
+  | "editor-workflow"
+  | "editor-display"
+  | "editor-warnings"
+  | "chain-controls"
+  | "chain-inventory"
+  | "chain-warnings";
+
+const initiallyExpandedSections: Record<SettingsSectionId, boolean> = {
+  "general-essentials": true,
+  "general-interface": true,
+  "general-welcome": true,
+  "editor-workflow": true,
+  "editor-display": true,
+  "editor-warnings": true,
+  "chain-controls": true,
+  "chain-inventory": true,
+  "chain-warnings": true,
+};
+
+const sectionForSettingId: Partial<Record<string, SettingsSectionId>> = {
+  "interface-experience": "general-essentials",
+  "language-selection": "general-essentials",
+  theme: "general-essentials",
+  accent: "general-essentials",
+  "hide-technical-locations": "general-interface",
+  "collapse-optional-sections": "general-interface",
+  "welcome-tour": "general-welcome",
+  "save-mode": "editor-workflow",
+  "permanent-sidebar-delete": "editor-workflow",
+  "show-explanatory-text": "editor-display",
+  "collapse-advanced-views": "editor-display",
+  "collapse-preview-inspection-tools": "editor-display",
+  "layout-preview-placeholder-limit": "editor-display",
+  "warn-alt": "editor-warnings",
+  "warn-layout": "editor-warnings",
+  "compact-jump-actions": "chain-controls",
+  "collapse-inventory-tag-filters": "chain-controls",
+  "multiple-versions": "chain-controls",
+  "duplicate-jumps": "chain-controls",
+  "negative-balances": "chain-controls",
+  rerolls: "chain-controls",
+  "aggregate-similar-inventory": "chain-inventory",
+  "item-tags-radar": "chain-inventory",
+  "color-chain": "chain-inventory",
+  upstream: "chain-warnings",
+};
+
 const searchEntries = [
   [
     "settingsSearch.interfaceExperience.label",
@@ -381,12 +432,14 @@ const searchValue = (
 export function SettingsSurface({
   onClose,
   onResetMockData,
+  onRestartWelcomeTour = () => undefined,
   direct = false,
   category,
   onCategoryChange,
 }: {
   onClose: () => void;
   onResetMockData: () => Promise<boolean>;
+  onRestartWelcomeTour?: () => void;
   direct?: boolean;
   category: SettingsCategory;
   onCategoryChange: (category: SettingsCategory) => void;
@@ -396,6 +449,9 @@ export function SettingsSurface({
   const [query, setQuery] = useState("");
   const [resetConfirm, setResetConfirm] = useState<"all" | "tags" | null>(null);
   const [packageRiskConfirm, setPackageRiskConfirm] = useState(false);
+  const [expandedSections, setExpandedSections] = useState(
+    initiallyExpandedSections,
+  );
   const root = useRef<HTMLDivElement>(null);
   const defaults = useMemo(
     () => defaultSettings(createDefaultTagProfile()),
@@ -457,9 +513,18 @@ export function SettingsSurface({
       if (event.key !== "Tab" || direct || !root.current) return;
       const focusable = [
         ...root.current.querySelectorAll<HTMLElement>(
-          "button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex='0']",
+          "button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex='0']",
         ),
-      ].filter((element) => !element.closest("[hidden]"));
+      ].filter((element) => {
+        if (element.closest("[hidden]")) return false;
+        const closedSection = element.closest<HTMLDetailsElement>(
+          "details:not([open])",
+        );
+        return (
+          !closedSection ||
+          element === closedSection.querySelector(":scope > summary")
+        );
+      });
       if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable.at(-1)!;
@@ -614,6 +679,12 @@ export function SettingsSurface({
                     key={entry[1]}
                     type="button"
                     onClick={() => {
+                      const section = sectionForSettingId[entry[3]];
+                      if (section)
+                        setExpandedSections((current) => ({
+                          ...current,
+                          [section]: true,
+                        }));
                       activate(entry[2]);
                       requestAnimationFrame(() => {
                         const target = document.getElementById(entry[3]);
@@ -649,8 +720,16 @@ export function SettingsSurface({
             category={category}
             settings={settings}
             defaults={defaults}
+            expandedSections={expandedSections}
+            onSectionExpandedChange={(section, expanded) =>
+              setExpandedSections((current) => ({
+                ...current,
+                [section]: expanded,
+              }))
+            }
             onRequestPackageLimitOverride={() => setPackageRiskConfirm(true)}
             onResetMockData={onResetMockData}
+            onRestartWelcomeTour={onRestartWelcomeTour}
           />
         )}
       </div>
@@ -761,14 +840,23 @@ function CategoryPanel({
   category,
   settings,
   defaults,
+  expandedSections,
+  onSectionExpandedChange,
   onRequestPackageLimitOverride,
   onResetMockData,
+  onRestartWelcomeTour,
 }: {
   category: SettingsCategory;
   settings: ApplicationSettings;
   defaults: ApplicationSettings;
+  expandedSections: Record<SettingsSectionId, boolean>;
+  onSectionExpandedChange: (
+    section: SettingsSectionId,
+    expanded: boolean,
+  ) => void;
   onRequestPackageLimitOverride: () => void;
   onResetMockData: () => Promise<boolean>;
+  onRestartWelcomeTour: () => void;
 }) {
   const { update, logger } = useSettings();
   const [developerPage, setDeveloperPage] = useState<"overview" | "logs">(
@@ -802,237 +890,282 @@ function CategoryPanel({
     return (
       <section role="tabpanel" aria-labelledby="settings-general-tab">
         <h4>{translate("ui.settingsSurface.text.general")}</h4>
-        <SettingRow
-          id="interface-experience"
-          label={translate("ui.settingsSurface.label.interfaceExperience")}
-          description={translate(
-            "ui.settingsSurface.description.applyAStartingCollectionOfPresentationPreferences",
-          )}
-          reset={() =>
-            patch(
-              applyInterfaceExperience(settings, "experienced"),
-              "general.interfaceExperience",
-            )
-          }
-        >
-          <select
-            id="interface-experience"
-            value={interfaceExperienceFor(settings)}
-            onChange={(event) => {
-              if (event.target.value === "custom") return;
-              patch(
-                applyInterfaceExperience(
-                  settings,
-                  event.target.value as InterfaceExperiencePreset,
-                ),
-                "general.interfaceExperience",
-              );
-            }}
-          >
-            <option value="experienced">
-              {translate("ui.settingsSurface.text.experienced")}
-            </option>
-            <option value="new-user-friendly">
-              {translate("ui.settingsSurface.text.newUserFriendly")}
-            </option>
-            <option value="custom" disabled>
-              {translate("ui.settingsSurface.text.custom")}
-            </option>
-          </select>
-        </SettingRow>
-        <CheckRow
-          id="hide-technical-locations"
-          label={translate("ui.settingsSurface.label.technicalLocations")}
-          description={translate(
-            "ui.settingsSurface.description.hideRawRouteIdentifiersWhileKeepingNavigationLabels",
-          )}
-          checked={settings.general.hideTechnicalLocations}
-          text={translate("ui.settingsSurface.text.hideTechnicalLocations")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                general: {
-                  ...settings.general,
-                  hideTechnicalLocations: value,
-                },
-              },
-              "general.hideTechnicalLocations",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                general: {
-                  ...settings.general,
-                  hideTechnicalLocations: false,
-                },
-              },
-              "general.hideTechnicalLocations",
-            )
-          }
-        />
-        <CheckRow
-          id="collapse-optional-sections"
-          label={translate("ui.settingsSurface.label.optionalSectionDefaults")}
-          description={translate(
-            "ui.settingsSurface.description.startFineGrainedEditorAndTagSectionsCollapsed",
-          )}
-          checked={settings.general.collapseOptionalSectionsByDefault}
-          text={translate(
-            "ui.settingsSurface.text.collapseOptionalSectionsByDefault",
-          )}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                general: {
-                  ...settings.general,
-                  collapseOptionalSectionsByDefault: value,
-                },
-              },
-              "general.collapseOptionalSectionsByDefault",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                general: {
-                  ...settings.general,
-                  collapseOptionalSectionsByDefault: false,
-                },
-              },
-              "general.collapseOptionalSectionsByDefault",
-            )
-          }
-        />
-        <SettingRow
-          id="language-selection"
-          label={translate("settingsSearch.language_tag.label")}
-          description={translate("language.description")}
-          reset={() => {
-            void changeLanguage(defaults.language.tag);
-            patch({ ...settings, language: defaults.language }, "language.tag");
-          }}
-        >
-          <select
-            id="language-selection"
-            value={settings.language.tag}
-            onChange={(event) => {
-              const languageTag = event.target.value;
-              void changeLanguage(languageTag);
-              patch(
-                { ...settings, language: { tag: languageTag } },
-                "language.tag",
-              );
-            }}
-          >
-            {translationCatalog.languages.map((pack) => (
-              <option
-                key={pack.languageTag}
-                value={pack.languageTag}
-                lang={pack.languageTag}
-                dir={pack.direction}
-              >
-                {pack.name}
-              </option>
-            ))}
-          </select>
-        </SettingRow>
-        <SettingRow
-          id="theme"
-          label={translate("ui.settingsSurface.label.appearance")}
-          description={translate(
-            "ui.settingsSurface.description.chooseTheApplicationColorTheme",
-          )}
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                appearance: {
-                  ...settings.appearance,
-                  theme: defaults.appearance.theme,
-                },
-              },
-              "appearance.theme",
-            )
-          }
-        >
-          <select
-            id="theme"
-            value={settings.appearance.theme}
-            onChange={(event) =>
-              patch(
-                {
-                  ...settings,
-                  appearance: {
-                    ...settings.appearance,
-                    theme: event.target
-                      .value as ApplicationSettings["appearance"]["theme"],
-                  },
-                },
-                "appearance.theme",
-              )
+        <div className="settings-section-list">
+          <SettingsSection
+            id="general-essentials"
+            label={translate("ui.settingsSurface.text.essentials")}
+            expanded={expandedSections["general-essentials"]}
+            onExpandedChange={(expanded) =>
+              onSectionExpandedChange("general-essentials", expanded)
             }
           >
-            <option value="system">
-              {translate("ui.settingsSurface.text.useSystemSetting")}
-            </option>
-            <option value="light">
-              {translate("ui.settingsSurface.text.light")}
-            </option>
-            <option value="dark">
-              {translate("ui.settingsSurface.text.dark")}
-            </option>
-          </select>
-        </SettingRow>
-        <SettingRow
-          id="accent"
-          label={translate("ui.settingsSurface.label.accentColor")}
-          description={translate(
-            "ui.settingsSurface.description.chooseTheBaseColorUsedToDeriveAccessibleApplication",
-          )}
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                appearance: {
-                  ...settings.appearance,
-                  accentColor: defaults.appearance.accentColor,
-                },
-              },
-              "appearance.accentColor",
-            )
-          }
-        >
-          <div className="accent-color-control">
-            <input
-              id="accent"
-              type="color"
-              value={settings.appearance.accentColor}
-              onChange={(event) =>
+            <SettingRow
+              id="interface-experience"
+              label={translate("ui.settingsSurface.label.interfaceExperience")}
+              description={translate(
+                "ui.settingsSurface.description.applyAStartingCollectionOfPresentationPreferences",
+              )}
+              reset={() =>
+                patch(
+                  applyInterfaceExperience(settings, "advanced"),
+                  "general.interfaceExperience",
+                )
+              }
+            >
+              <select
+                id="interface-experience"
+                value={interfaceExperienceFor(settings)}
+                onChange={(event) => {
+                  if (event.target.value === "custom") return;
+                  patch(
+                    applyInterfaceExperience(
+                      settings,
+                      event.target.value as InterfaceExperiencePreset,
+                    ),
+                    "general.interfaceExperience",
+                  );
+                }}
+              >
+                <option value="advanced">
+                  {translate("ui.settingsSurface.text.experienced")}
+                </option>
+                <option value="beginner-friendly">
+                  {translate("ui.settingsSurface.text.newUserFriendly")}
+                </option>
+                <option value="custom" disabled>
+                  {translate("ui.settingsSurface.text.custom")}
+                </option>
+              </select>
+            </SettingRow>
+            <SettingRow
+              id="language-selection"
+              label={translate("settingsSearch.language_tag.label")}
+              description={translate("language.description")}
+              reset={() => {
+                void changeLanguage(defaults.language.tag);
+                patch(
+                  { ...settings, language: defaults.language },
+                  "language.tag",
+                );
+              }}
+            >
+              <select
+                id="language-selection"
+                value={settings.language.tag}
+                onChange={(event) => {
+                  const languageTag = event.target.value;
+                  void changeLanguage(languageTag);
+                  patch(
+                    { ...settings, language: { tag: languageTag } },
+                    "language.tag",
+                  );
+                }}
+              >
+                {translationCatalog.languages.map((pack) => (
+                  <option
+                    key={pack.languageTag}
+                    value={pack.languageTag}
+                    lang={pack.languageTag}
+                    dir={pack.direction}
+                  >
+                    {pack.name}
+                  </option>
+                ))}
+              </select>
+            </SettingRow>
+            <SettingRow
+              id="theme"
+              label={translate("ui.settingsSurface.label.appearance")}
+              description={translate(
+                "ui.settingsSurface.description.chooseTheApplicationColorTheme",
+              )}
+              reset={() =>
                 patch(
                   {
                     ...settings,
                     appearance: {
                       ...settings.appearance,
-                      accentColor: event.target.value,
+                      theme: defaults.appearance.theme,
+                    },
+                  },
+                  "appearance.theme",
+                )
+              }
+            >
+              <select
+                id="theme"
+                value={settings.appearance.theme}
+                onChange={(event) =>
+                  patch(
+                    {
+                      ...settings,
+                      appearance: {
+                        ...settings.appearance,
+                        theme: event.target
+                          .value as ApplicationSettings["appearance"]["theme"],
+                      },
+                    },
+                    "appearance.theme",
+                  )
+                }
+              >
+                <option value="system">
+                  {translate("ui.settingsSurface.text.useSystemSetting")}
+                </option>
+                <option value="light">
+                  {translate("ui.settingsSurface.text.light")}
+                </option>
+                <option value="dark">
+                  {translate("ui.settingsSurface.text.dark")}
+                </option>
+              </select>
+            </SettingRow>
+            <SettingRow
+              id="accent"
+              label={translate("ui.settingsSurface.label.accentColor")}
+              description={translate(
+                "ui.settingsSurface.description.chooseTheBaseColorUsedToDeriveAccessibleApplication",
+              )}
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    appearance: {
+                      ...settings.appearance,
+                      accentColor: defaults.appearance.accentColor,
                     },
                   },
                   "appearance.accentColor",
-                  true,
+                )
+              }
+            >
+              <div className="accent-color-control">
+                <input
+                  id="accent"
+                  type="color"
+                  value={settings.appearance.accentColor}
+                  onChange={(event) =>
+                    patch(
+                      {
+                        ...settings,
+                        appearance: {
+                          ...settings.appearance,
+                          accentColor: event.target.value,
+                        },
+                      },
+                      "appearance.accentColor",
+                      true,
+                    )
+                  }
+                />
+                <output>{settings.appearance.accentColor.toUpperCase()}</output>
+              </div>
+            </SettingRow>
+          </SettingsSection>
+          <SettingsSection
+            id="general-interface"
+            label={translate("ui.settingsSurface.text.interfaceBehavior")}
+            expanded={expandedSections["general-interface"]}
+            onExpandedChange={(expanded) =>
+              onSectionExpandedChange("general-interface", expanded)
+            }
+          >
+            <CheckRow
+              id="hide-technical-locations"
+              label={translate("ui.settingsSurface.label.technicalLocations")}
+              description={translate(
+                "ui.settingsSurface.description.hideRawRouteIdentifiersWhileKeepingNavigationLabels",
+              )}
+              checked={settings.general.hideTechnicalLocations}
+              text={translate("ui.settingsSurface.text.hideTechnicalLocations")}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    general: {
+                      ...settings.general,
+                      hideTechnicalLocations: value,
+                    },
+                  },
+                  "general.hideTechnicalLocations",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    general: {
+                      ...settings.general,
+                      hideTechnicalLocations: false,
+                    },
+                  },
+                  "general.hideTechnicalLocations",
                 )
               }
             />
-            <output>{settings.appearance.accentColor.toUpperCase()}</output>
-          </div>
-        </SettingRow>
-        <div className="setting-explanation">
-          {translate(
-            "ui.settingsSurface.text.homeIsAlwaysTheRootDestinationStartupRedirectionIs",
-          )}
+            <CheckRow
+              id="collapse-optional-sections"
+              label={translate(
+                "ui.settingsSurface.label.optionalSectionDefaults",
+              )}
+              description={translate(
+                "ui.settingsSurface.description.startFineGrainedEditorAndTagSectionsCollapsed",
+              )}
+              checked={settings.general.collapseOptionalSectionsByDefault}
+              text={translate(
+                "ui.settingsSurface.text.collapseOptionalSectionsByDefault",
+              )}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    general: {
+                      ...settings.general,
+                      collapseOptionalSectionsByDefault: value,
+                    },
+                  },
+                  "general.collapseOptionalSectionsByDefault",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    general: {
+                      ...settings.general,
+                      collapseOptionalSectionsByDefault: false,
+                    },
+                  },
+                  "general.collapseOptionalSectionsByDefault",
+                )
+              }
+            />
+            <div className="setting-explanation">
+              {translate(
+                "ui.settingsSurface.text.homeIsAlwaysTheRootDestinationStartupRedirectionIs",
+              )}
+            </div>
+          </SettingsSection>
+          <SettingsSection
+            id="general-welcome"
+            label={translate("ui.settingsSurface.label.welcomeTour")}
+            expanded={expandedSections["general-welcome"]}
+            onExpandedChange={(expanded) =>
+              onSectionExpandedChange("general-welcome", expanded)
+            }
+          >
+            <SettingRow
+              id="welcome-tour"
+              label={translate("ui.settingsSurface.label.welcomeTour")}
+              description={translate(
+                "ui.settingsSurface.description.restartTheGuidedWelcomeTour",
+              )}
+            >
+              <button type="button" onClick={onRestartWelcomeTour}>
+                {translate("ui.settingsSurface.text.restartWelcomeTour")}
+              </button>
+            </SettingRow>
+          </SettingsSection>
         </div>
       </section>
     );
@@ -1040,297 +1173,340 @@ function CategoryPanel({
     return (
       <section role="tabpanel" aria-labelledby="settings-editor-tab">
         <h4>{translate("ui.settingsSurface.text.editor")}</h4>
-        <CheckRow
-          id="show-explanatory-text"
-          label={translate("ui.settingsSurface.label.editorExplanations")}
-          description={translate(
-            "ui.settingsSurface.description.showOptionalEditorGuidance",
-          )}
-          checked={settings.editor.showExplanatoryText}
-          text={translate("ui.settingsSurface.text.showExplanatoryText")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                editor: {
-                  ...settings.editor,
-                  showExplanatoryText: value,
-                },
-              },
-              "editor.showExplanatoryText",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                editor: {
-                  ...settings.editor,
-                  showExplanatoryText: false,
-                },
-              },
-              "editor.showExplanatoryText",
-            )
-          }
-        />
-        <CheckRow
-          id="collapse-advanced-views"
-          label={translate("ui.settingsSurface.label.advancedEditorViews")}
-          description={translate(
-            "ui.settingsSurface.description.startFilesSourceAndPropertiesBehindAdvancedViews",
-          )}
-          checked={settings.editor.collapseAdvancedViews}
-          text={translate("ui.settingsSurface.text.collapseAdvancedViews")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                editor: {
-                  ...settings.editor,
-                  collapseAdvancedViews: value,
-                },
-              },
-              "editor.collapseAdvancedViews",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                editor: {
-                  ...settings.editor,
-                  collapseAdvancedViews: false,
-                },
-              },
-              "editor.collapseAdvancedViews",
-            )
-          }
-        />
-        <CheckRow
-          id="collapse-preview-inspection-tools"
-          label={translate("ui.settingsSurface.label.previewInspectionTools")}
-          description={translate(
-            "ui.settingsSurface.description.startInspectAndStripColorBehindPreviewTools",
-          )}
-          checked={settings.editor.collapsePreviewInspectionTools}
-          text={translate(
-            "ui.settingsSurface.text.collapsePreviewInspectionTools",
-          )}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                editor: {
-                  ...settings.editor,
-                  collapsePreviewInspectionTools: value,
-                },
-              },
-              "editor.collapsePreviewInspectionTools",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                editor: {
-                  ...settings.editor,
-                  collapsePreviewInspectionTools: false,
-                },
-              },
-              "editor.collapsePreviewInspectionTools",
-            )
-          }
-        />
-        <SettingRow
-          id="save-mode"
-          label={translate("ui.settingsSurface.label.saving")}
-          description={translate(
-            "ui.settingsSurface.description.chooseWhetherEditorChangesSaveAutomatically",
-          )}
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                editor: {
-                  ...settings.editor,
-                  saveMode: defaults.editor.saveMode,
-                },
-              },
-              "editor.saveMode",
-            )
-          }
-        >
-          <select
-            id="save-mode"
-            value={settings.editor.saveMode}
-            onChange={(event) =>
-              patch(
-                {
-                  ...settings,
-                  editor: {
-                    ...settings.editor,
-                    saveMode: event.target.value as "autosave" | "explicit",
-                  },
-                },
-                "editor.saveMode",
-              )
+        <div className="settings-section-list">
+          <SettingsSection
+            id="editor-workflow"
+            label={translate("ui.settingsSurface.text.workflow")}
+            expanded={expandedSections["editor-workflow"]}
+            onExpandedChange={(expanded) =>
+              onSectionExpandedChange("editor-workflow", expanded)
             }
           >
-            <option value="autosave">
-              {translate("ui.settingsSurface.text.autosave")}
-            </option>
-            <option value="explicit">
-              {translate("ui.settingsSurface.text.explicitSave")}
-            </option>
-          </select>
-        </SettingRow>
-        <SettingRow
-          id="layout-preview-placeholder-limit"
-          label={translate(
-            "ui.settingsSurface.label.layoutPreviewPlaceholderCharacterLimit",
-          )}
-          description={translate(
-            "ui.settingsSurface.description.limitGeneratedLayoutPreviewPlaceholderText",
-          )}
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                editor: {
-                  ...settings.editor,
-                  layoutPreviewPlaceholderCharacterLimit: null,
-                },
-              },
-              "editor.layoutPreviewPlaceholderCharacterLimit",
-            )
-          }
-        >
-          <span className="settings-number-stepper">
-            <NumberStepper
-              id="layout-preview-placeholder-limit"
-              label={translate(
-                "ui.settingsSurface.label.layoutPreviewPlaceholderCharacterLimit",
+            <SettingRow
+              id="save-mode"
+              label={translate("ui.settingsSurface.label.saving")}
+              description={translate(
+                "ui.settingsSurface.description.chooseWhetherEditorChangesSaveAutomatically",
               )}
-              min={1}
-              max={1_000}
-              placeholder={translate(
-                "ui.settingsSurface.placeholder.unlimitedCharacters",
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    editor: {
+                      ...settings.editor,
+                      saveMode: defaults.editor.saveMode,
+                    },
+                  },
+                  "editor.saveMode",
+                )
+              }
+            >
+              <select
+                id="save-mode"
+                value={settings.editor.saveMode}
+                onChange={(event) =>
+                  patch(
+                    {
+                      ...settings,
+                      editor: {
+                        ...settings.editor,
+                        saveMode: event.target.value as "autosave" | "explicit",
+                      },
+                    },
+                    "editor.saveMode",
+                  )
+                }
+              >
+                <option value="autosave">
+                  {translate("ui.settingsSurface.text.autosave")}
+                </option>
+                <option value="explicit">
+                  {translate("ui.settingsSurface.text.explicitSave")}
+                </option>
+              </select>
+            </SettingRow>
+            <CheckRow
+              id="permanent-sidebar-delete"
+              label={translate("ui.settingsSurface.label.sidebarItemDeletion")}
+              description={translate(
+                "ui.settingsSurface.description.chooseWhetherSidebarDeleteUsesTrashOrPermanentRemoval",
               )}
-              fluid
-              value={settings.editor.layoutPreviewPlaceholderCharacterLimit}
+              checked={settings.editor.permanentlyDeleteSidebarItems}
+              text={translate(
+                "ui.settingsSurface.text.permanentlyDeleteSidebarItems",
+              )}
               onChange={(value) =>
                 patch(
                   {
                     ...settings,
                     editor: {
                       ...settings.editor,
-                      layoutPreviewPlaceholderCharacterLimit:
-                        value === null
-                          ? null
-                          : Math.min(1_000, Math.max(1, Math.trunc(value))),
+                      permanentlyDeleteSidebarItems: value,
+                    },
+                  },
+                  "editor.permanentlyDeleteSidebarItems",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    editor: {
+                      ...settings.editor,
+                      permanentlyDeleteSidebarItems: false,
+                    },
+                  },
+                  "editor.permanentlyDeleteSidebarItems",
+                )
+              }
+            />
+            <div className="setting-explanation">
+              {translate(
+                "ui.settingsSurface.text.editorPreferencesApplyImmediatelyAndPersist",
+              )}
+            </div>
+          </SettingsSection>
+          <SettingsSection
+            id="editor-display"
+            label={translate("ui.settingsSurface.text.displayAndGuidance")}
+            expanded={expandedSections["editor-display"]}
+            onExpandedChange={(expanded) =>
+              onSectionExpandedChange("editor-display", expanded)
+            }
+          >
+            <CheckRow
+              id="show-explanatory-text"
+              label={translate("ui.settingsSurface.label.editorExplanations")}
+              description={translate(
+                "ui.settingsSurface.description.showOptionalEditorGuidance",
+              )}
+              checked={settings.editor.showExplanatoryText}
+              text={translate("ui.settingsSurface.text.showExplanatoryText")}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    editor: {
+                      ...settings.editor,
+                      showExplanatoryText: value,
+                    },
+                  },
+                  "editor.showExplanatoryText",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    editor: {
+                      ...settings.editor,
+                      showExplanatoryText: false,
+                    },
+                  },
+                  "editor.showExplanatoryText",
+                )
+              }
+            />
+            <CheckRow
+              id="collapse-advanced-views"
+              label={translate("ui.settingsSurface.label.advancedEditorViews")}
+              description={translate(
+                "ui.settingsSurface.description.startFilesSourceAndPropertiesBehindAdvancedViews",
+              )}
+              checked={settings.editor.collapseAdvancedViews}
+              text={translate("ui.settingsSurface.text.collapseAdvancedViews")}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    editor: {
+                      ...settings.editor,
+                      collapseAdvancedViews: value,
+                    },
+                  },
+                  "editor.collapseAdvancedViews",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    editor: {
+                      ...settings.editor,
+                      collapseAdvancedViews: false,
+                    },
+                  },
+                  "editor.collapseAdvancedViews",
+                )
+              }
+            />
+            <CheckRow
+              id="collapse-preview-inspection-tools"
+              label={translate(
+                "ui.settingsSurface.label.previewInspectionTools",
+              )}
+              description={translate(
+                "ui.settingsSurface.description.startInspectAndStripColorBehindPreviewTools",
+              )}
+              checked={settings.editor.collapsePreviewInspectionTools}
+              text={translate(
+                "ui.settingsSurface.text.collapsePreviewInspectionTools",
+              )}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    editor: {
+                      ...settings.editor,
+                      collapsePreviewInspectionTools: value,
+                    },
+                  },
+                  "editor.collapsePreviewInspectionTools",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    editor: {
+                      ...settings.editor,
+                      collapsePreviewInspectionTools: false,
+                    },
+                  },
+                  "editor.collapsePreviewInspectionTools",
+                )
+              }
+            />
+            <SettingRow
+              id="layout-preview-placeholder-limit"
+              label={translate(
+                "ui.settingsSurface.label.layoutPreviewPlaceholderCharacterLimit",
+              )}
+              description={translate(
+                "ui.settingsSurface.description.limitGeneratedLayoutPreviewPlaceholderText",
+              )}
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    editor: {
+                      ...settings.editor,
+                      layoutPreviewPlaceholderCharacterLimit: null,
                     },
                   },
                   "editor.layoutPreviewPlaceholderCharacterLimit",
                 )
               }
+            >
+              <span className="settings-number-stepper">
+                <NumberStepper
+                  id="layout-preview-placeholder-limit"
+                  label={translate(
+                    "ui.settingsSurface.label.layoutPreviewPlaceholderCharacterLimit",
+                  )}
+                  min={1}
+                  max={1_000}
+                  placeholder={translate(
+                    "ui.settingsSurface.placeholder.unlimitedCharacters",
+                  )}
+                  fluid
+                  value={settings.editor.layoutPreviewPlaceholderCharacterLimit}
+                  onChange={(value) =>
+                    patch(
+                      {
+                        ...settings,
+                        editor: {
+                          ...settings.editor,
+                          layoutPreviewPlaceholderCharacterLimit:
+                            value === null
+                              ? null
+                              : Math.min(1_000, Math.max(1, Math.trunc(value))),
+                        },
+                      },
+                      "editor.layoutPreviewPlaceholderCharacterLimit",
+                    )
+                  }
+                />
+              </span>
+            </SettingRow>
+          </SettingsSection>
+          <SettingsSection
+            id="editor-warnings"
+            label={translate("ui.settingsSurface.text.warnings")}
+            expanded={expandedSections["editor-warnings"]}
+            onExpandedChange={(expanded) =>
+              onSectionExpandedChange("editor-warnings", expanded)
+            }
+          >
+            <CheckRow
+              id="warn-alt"
+              label={translate(
+                "ui.settingsSurface.label.missingImageAltWarning",
+              )}
+              description={translate(
+                "ui.settingsSurface.description.warnWhenAnImageBlockOmitsAlternativeText",
+              )}
+              checked={settings.editor.warnMissingImageAlt}
+              text={translate(
+                "ui.settingsSurface.text.showAccessibilityWarning",
+              )}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    editor: { ...settings.editor, warnMissingImageAlt: value },
+                  },
+                  "editor.warnMissingImageAlt",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    editor: { ...settings.editor, warnMissingImageAlt: true },
+                  },
+                  "editor.warnMissingImageAlt",
+                )
+              }
             />
-          </span>
-        </SettingRow>
-        <CheckRow
-          id="warn-alt"
-          label={translate("ui.settingsSurface.label.missingImageAltWarning")}
-          description={translate(
-            "ui.settingsSurface.description.warnWhenAnImageBlockOmitsAlternativeText",
-          )}
-          checked={settings.editor.warnMissingImageAlt}
-          text={translate("ui.settingsSurface.text.showAccessibilityWarning")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                editor: { ...settings.editor, warnMissingImageAlt: value },
-              },
-              "editor.warnMissingImageAlt",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                editor: { ...settings.editor, warnMissingImageAlt: true },
-              },
-              "editor.warnMissingImageAlt",
-            )
-          }
-        />
-        <CheckRow
-          id="warn-layout"
-          label={translate(
-            "ui.settingsSurface.label.missingLayoutTargetWarning",
-          )}
-          description={translate(
-            "ui.settingsSurface.description.warnWhenAReusableLayoutTargetIsAbsent",
-          )}
-          checked={settings.editor.warnMissingLayoutTargets}
-          text={translate("ui.settingsSurface.text.showMissingTargetWarning")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                editor: { ...settings.editor, warnMissingLayoutTargets: value },
-              },
-              "editor.warnMissingLayoutTargets",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                editor: { ...settings.editor, warnMissingLayoutTargets: true },
-              },
-              "editor.warnMissingLayoutTargets",
-            )
-          }
-        />
-        <CheckRow
-          id="permanent-sidebar-delete"
-          label={translate("ui.settingsSurface.label.sidebarItemDeletion")}
-          description={translate(
-            "ui.settingsSurface.description.chooseWhetherSidebarDeleteUsesTrashOrPermanentRemoval",
-          )}
-          checked={settings.editor.permanentlyDeleteSidebarItems}
-          text={translate(
-            "ui.settingsSurface.text.permanentlyDeleteSidebarItems",
-          )}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                editor: {
-                  ...settings.editor,
-                  permanentlyDeleteSidebarItems: value,
-                },
-              },
-              "editor.permanentlyDeleteSidebarItems",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                editor: {
-                  ...settings.editor,
-                  permanentlyDeleteSidebarItems: false,
-                },
-              },
-              "editor.permanentlyDeleteSidebarItems",
-            )
-          }
-        />
-        <div className="setting-explanation">
-          {translate(
-            "ui.settingsSurface.text.editorPreferencesApplyImmediatelyAndPersist",
-          )}
+            <CheckRow
+              id="warn-layout"
+              label={translate(
+                "ui.settingsSurface.label.missingLayoutTargetWarning",
+              )}
+              description={translate(
+                "ui.settingsSurface.description.warnWhenAReusableLayoutTargetIsAbsent",
+              )}
+              checked={settings.editor.warnMissingLayoutTargets}
+              text={translate(
+                "ui.settingsSurface.text.showMissingTargetWarning",
+              )}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    editor: {
+                      ...settings.editor,
+                      warnMissingLayoutTargets: value,
+                    },
+                  },
+                  "editor.warnMissingLayoutTargets",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    editor: {
+                      ...settings.editor,
+                      warnMissingLayoutTargets: true,
+                    },
+                  },
+                  "editor.warnMissingLayoutTargets",
+                )
+              }
+            />
+          </SettingsSection>
         </div>
       </section>
     );
@@ -1338,306 +1514,353 @@ function CategoryPanel({
     return (
       <section role="tabpanel" aria-labelledby="settings-chain-tab">
         <h4>{translate("ui.settingsSurface.text.chainTracker")}</h4>
-        <CheckRow
-          id="compact-jump-actions"
-          label={translate("ui.settingsSurface.label.jumpRowActions")}
-          description={translate(
-            "ui.settingsSurface.description.replaceRepeatedMoveAndRemoveButtonsWithAnActionsMenu",
-          )}
-          checked={settings.chain.compactJumpActions}
-          text={translate("ui.settingsSurface.text.compactJumpActions")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                chain: { ...settings.chain, compactJumpActions: value },
-              },
-              "chain.compactJumpActions",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                chain: { ...settings.chain, compactJumpActions: false },
-              },
-              "chain.compactJumpActions",
-            )
-          }
-        />
-        <CheckRow
-          id="collapse-inventory-tag-filters"
-          label={translate("ui.settingsSurface.label.inventoryTagFilters")}
-          description={translate(
-            "ui.settingsSurface.description.startInventoryTagRelationshipsBehindAToolbarDisclosure",
-          )}
-          checked={settings.chain.collapseInventoryTagFilters}
-          text={translate(
-            "ui.settingsSurface.text.collapseInventoryTagFilters",
-          )}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                chain: {
-                  ...settings.chain,
-                  collapseInventoryTagFilters: value,
-                },
-              },
-              "chain.collapseInventoryTagFilters",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                chain: {
-                  ...settings.chain,
-                  collapseInventoryTagFilters: false,
-                },
-              },
-              "chain.collapseInventoryTagFilters",
-            )
-          }
-        />
-        <CheckRow
-          id="multiple-versions"
-          label={translate("ui.settingsSurface.label.addAnotherPackageVersion")}
-          description={translate(
-            "ui.settingsSurface.description.allowAddToPlaceASecondInstalledVersionOf",
-          )}
-          checked={settings.chain.allowMultiplePackageVersions}
-          text={translate("ui.settingsSurface.text.allowSecondVersion")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                chain: {
-                  ...settings.chain,
-                  allowMultiplePackageVersions: value,
-                },
-              },
-              "chain.allowMultiplePackageVersions",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                chain: {
-                  ...settings.chain,
-                  allowMultiplePackageVersions: false,
-                },
-              },
-              "chain.allowMultiplePackageVersions",
-            )
-          }
-        />
-        <CheckRow
-          id="duplicate-jumps"
-          label={translate("ui.settingsSurface.label.allowDuplicateJumps")}
-          description={translate(
-            "ui.settingsSurface.description.allowTheSameExactJumpPackageToBeAdded",
-          )}
-          checked={settings.chain.allowDuplicateJumps}
-          text={translate("ui.settingsSurface.text.allowDuplicateJumps")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                chain: {
-                  ...settings.chain,
-                  allowDuplicateJumps: value,
-                },
-              },
-              "chain.allowDuplicateJumps",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                chain: {
-                  ...settings.chain,
-                  allowDuplicateJumps: false,
-                },
-              },
-              "chain.allowDuplicateJumps",
-            )
-          }
-        />
-        <CheckRow
-          id="negative-balances"
-          label={translate("ui.settingsSurface.label.negativePointBalances")}
-          description={translate(
-            "ui.settingsSurface.description.permitActiveChoiceSelectionsThatWouldMakePrimaryJump",
-          )}
-          checked={settings.chain.allowNegativePointBalances}
-          text={translate("ui.settingsSurface.text.allowNegativeBalances")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                chain: { ...settings.chain, allowNegativePointBalances: value },
-              },
-              "chain.allowNegativePointBalances",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                chain: { ...settings.chain, allowNegativePointBalances: false },
-              },
-              "chain.allowNegativePointBalances",
-            )
-          }
-        />
-        <CheckRow
-          id="rerolls"
-          label={translate("ui.settingsSurface.label.rerolls")}
-          description={translate(
-            "ui.settingsSurface.description.allowARecordedRandomResultToBeReplacedFor",
-          )}
-          checked={settings.chain.allowRerolls}
-          text={translate("ui.settingsSurface.text.allowRerolls")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                chain: { ...settings.chain, allowRerolls: value },
-              },
-              "chain.allowRerolls",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                chain: { ...settings.chain, allowRerolls: false },
-              },
-              "chain.allowRerolls",
-            )
-          }
-        />
-        <CheckRow
-          id="aggregate-similar-inventory"
-          label={translate(
-            "ui.settingsSurface.label.aggregateSimilarPerksAndItems",
-          )}
-          description={translate(
-            "ui.settingsSurface.description.combineRecordsWithTheSameOwnerKindResolvedName",
-          )}
-          checked={settings.chain.aggregateSimilarInventory}
-          text={translate("ui.settingsSurface.text.aggregateSimilarRecords")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                chain: {
-                  ...settings.chain,
-                  aggregateSimilarInventory: value,
-                },
-              },
-              "chain.aggregateSimilarInventory",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                chain: {
-                  ...settings.chain,
-                  aggregateSimilarInventory: true,
-                },
-              },
-              "chain.aggregateSimilarInventory",
-            )
-          }
-        />
-        <CheckRow
-          id="item-tags-radar"
-          label={translate("ui.settingsSurface.label.includeItemTagsInRadar")}
-          description={translate(
-            "ui.settingsSurface.description.countTagsFromJumperAndFormItemsInRadar",
-          )}
-          checked={settings.chain.includeItemTagsInRadar}
-          text={translate("ui.settingsSurface.text.countItemTags")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                chain: { ...settings.chain, includeItemTagsInRadar: value },
-              },
-              "chain.includeItemTagsInRadar",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                chain: { ...settings.chain, includeItemTagsInRadar: false },
-              },
-              "chain.includeItemTagsInRadar",
-            )
-          }
-        />
-        <CheckRow
-          id="upstream"
-          label={translate("ui.settingsSurface.label.upstreamChangeWarnings")}
-          description={translate(
-            "ui.settingsSurface.description.reviewReorderOrDeletionOnlyWhenAnExplicitActive",
-          )}
-          checked={settings.chain.warnUpstreamChanges}
-          text={translate("ui.settingsSurface.text.warnAboutUpstreamChanges")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                chain: { ...settings.chain, warnUpstreamChanges: value },
-              },
-              "chain.warnUpstreamChanges",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                chain: { ...settings.chain, warnUpstreamChanges: false },
-              },
-              "chain.warnUpstreamChanges",
-            )
-          }
-        />
-        <CheckRow
-          id="color-chain"
-          label={translate(
-            "ui.settingsSurface.label.colorChainNamesByPrimaryTag",
-          )}
-          description={translate(
-            "ui.settingsSurface.description.colorSavedChainNamesFromTheCategoryWithThe",
-          )}
-          checked={settings.chain.colorNamesByPrimaryTag}
-          text={translate("ui.settingsSurface.text.colorChainNames")}
-          onChange={(value) =>
-            patch(
-              {
-                ...settings,
-                chain: { ...settings.chain, colorNamesByPrimaryTag: value },
-              },
-              "chain.colorNamesByPrimaryTag",
-            )
-          }
-          reset={() =>
-            patch(
-              {
-                ...settings,
-                chain: { ...settings.chain, colorNamesByPrimaryTag: false },
-              },
-              "chain.colorNamesByPrimaryTag",
-            )
-          }
-        />
+        <div className="settings-section-list">
+          <SettingsSection
+            id="chain-controls"
+            label={translate("ui.settingsSurface.text.controlsAndRules")}
+            expanded={expandedSections["chain-controls"]}
+            onExpandedChange={(expanded) =>
+              onSectionExpandedChange("chain-controls", expanded)
+            }
+          >
+            <CheckRow
+              id="compact-jump-actions"
+              label={translate("ui.settingsSurface.label.jumpRowActions")}
+              description={translate(
+                "ui.settingsSurface.description.replaceRepeatedMoveAndRemoveButtonsWithAnActionsMenu",
+              )}
+              checked={settings.chain.compactJumpActions}
+              text={translate("ui.settingsSurface.text.compactJumpActions")}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    chain: { ...settings.chain, compactJumpActions: value },
+                  },
+                  "chain.compactJumpActions",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    chain: { ...settings.chain, compactJumpActions: false },
+                  },
+                  "chain.compactJumpActions",
+                )
+              }
+            />
+            <CheckRow
+              id="collapse-inventory-tag-filters"
+              label={translate("ui.settingsSurface.label.inventoryTagFilters")}
+              description={translate(
+                "ui.settingsSurface.description.startInventoryTagRelationshipsBehindAToolbarDisclosure",
+              )}
+              checked={settings.chain.collapseInventoryTagFilters}
+              text={translate(
+                "ui.settingsSurface.text.collapseInventoryTagFilters",
+              )}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    chain: {
+                      ...settings.chain,
+                      collapseInventoryTagFilters: value,
+                    },
+                  },
+                  "chain.collapseInventoryTagFilters",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    chain: {
+                      ...settings.chain,
+                      collapseInventoryTagFilters: false,
+                    },
+                  },
+                  "chain.collapseInventoryTagFilters",
+                )
+              }
+            />
+            <CheckRow
+              id="multiple-versions"
+              label={translate(
+                "ui.settingsSurface.label.addAnotherPackageVersion",
+              )}
+              description={translate(
+                "ui.settingsSurface.description.allowAddToPlaceASecondInstalledVersionOf",
+              )}
+              checked={settings.chain.allowMultiplePackageVersions}
+              text={translate("ui.settingsSurface.text.allowSecondVersion")}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    chain: {
+                      ...settings.chain,
+                      allowMultiplePackageVersions: value,
+                    },
+                  },
+                  "chain.allowMultiplePackageVersions",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    chain: {
+                      ...settings.chain,
+                      allowMultiplePackageVersions: false,
+                    },
+                  },
+                  "chain.allowMultiplePackageVersions",
+                )
+              }
+            />
+            <CheckRow
+              id="duplicate-jumps"
+              label={translate("ui.settingsSurface.label.allowDuplicateJumps")}
+              description={translate(
+                "ui.settingsSurface.description.allowTheSameExactJumpPackageToBeAdded",
+              )}
+              checked={settings.chain.allowDuplicateJumps}
+              text={translate("ui.settingsSurface.text.allowDuplicateJumps")}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    chain: {
+                      ...settings.chain,
+                      allowDuplicateJumps: value,
+                    },
+                  },
+                  "chain.allowDuplicateJumps",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    chain: {
+                      ...settings.chain,
+                      allowDuplicateJumps: false,
+                    },
+                  },
+                  "chain.allowDuplicateJumps",
+                )
+              }
+            />
+            <CheckRow
+              id="negative-balances"
+              label={translate(
+                "ui.settingsSurface.label.negativePointBalances",
+              )}
+              description={translate(
+                "ui.settingsSurface.description.permitActiveChoiceSelectionsThatWouldMakePrimaryJump",
+              )}
+              checked={settings.chain.allowNegativePointBalances}
+              text={translate("ui.settingsSurface.text.allowNegativeBalances")}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    chain: {
+                      ...settings.chain,
+                      allowNegativePointBalances: value,
+                    },
+                  },
+                  "chain.allowNegativePointBalances",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    chain: {
+                      ...settings.chain,
+                      allowNegativePointBalances: false,
+                    },
+                  },
+                  "chain.allowNegativePointBalances",
+                )
+              }
+            />
+            <CheckRow
+              id="rerolls"
+              label={translate("ui.settingsSurface.label.rerolls")}
+              description={translate(
+                "ui.settingsSurface.description.allowARecordedRandomResultToBeReplacedFor",
+              )}
+              checked={settings.chain.allowRerolls}
+              text={translate("ui.settingsSurface.text.allowRerolls")}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    chain: { ...settings.chain, allowRerolls: value },
+                  },
+                  "chain.allowRerolls",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    chain: { ...settings.chain, allowRerolls: false },
+                  },
+                  "chain.allowRerolls",
+                )
+              }
+            />
+          </SettingsSection>
+          <SettingsSection
+            id="chain-inventory"
+            label={translate("ui.settingsSurface.text.inventoryAndAppearance")}
+            expanded={expandedSections["chain-inventory"]}
+            onExpandedChange={(expanded) =>
+              onSectionExpandedChange("chain-inventory", expanded)
+            }
+          >
+            <CheckRow
+              id="aggregate-similar-inventory"
+              label={translate(
+                "ui.settingsSurface.label.aggregateSimilarPerksAndItems",
+              )}
+              description={translate(
+                "ui.settingsSurface.description.combineRecordsWithTheSameOwnerKindResolvedName",
+              )}
+              checked={settings.chain.aggregateSimilarInventory}
+              text={translate(
+                "ui.settingsSurface.text.aggregateSimilarRecords",
+              )}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    chain: {
+                      ...settings.chain,
+                      aggregateSimilarInventory: value,
+                    },
+                  },
+                  "chain.aggregateSimilarInventory",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    chain: {
+                      ...settings.chain,
+                      aggregateSimilarInventory: true,
+                    },
+                  },
+                  "chain.aggregateSimilarInventory",
+                )
+              }
+            />
+            <CheckRow
+              id="item-tags-radar"
+              label={translate(
+                "ui.settingsSurface.label.includeItemTagsInRadar",
+              )}
+              description={translate(
+                "ui.settingsSurface.description.countTagsFromJumperAndFormItemsInRadar",
+              )}
+              checked={settings.chain.includeItemTagsInRadar}
+              text={translate("ui.settingsSurface.text.countItemTags")}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    chain: { ...settings.chain, includeItemTagsInRadar: value },
+                  },
+                  "chain.includeItemTagsInRadar",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    chain: { ...settings.chain, includeItemTagsInRadar: false },
+                  },
+                  "chain.includeItemTagsInRadar",
+                )
+              }
+            />
+            <CheckRow
+              id="color-chain"
+              label={translate(
+                "ui.settingsSurface.label.colorChainNamesByPrimaryTag",
+              )}
+              description={translate(
+                "ui.settingsSurface.description.colorSavedChainNamesFromTheCategoryWithThe",
+              )}
+              checked={settings.chain.colorNamesByPrimaryTag}
+              text={translate("ui.settingsSurface.text.colorChainNames")}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    chain: { ...settings.chain, colorNamesByPrimaryTag: value },
+                  },
+                  "chain.colorNamesByPrimaryTag",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    chain: { ...settings.chain, colorNamesByPrimaryTag: false },
+                  },
+                  "chain.colorNamesByPrimaryTag",
+                )
+              }
+            />
+          </SettingsSection>
+          <SettingsSection
+            id="chain-warnings"
+            label={translate("ui.settingsSurface.text.changeWarnings")}
+            expanded={expandedSections["chain-warnings"]}
+            onExpandedChange={(expanded) =>
+              onSectionExpandedChange("chain-warnings", expanded)
+            }
+          >
+            <CheckRow
+              id="upstream"
+              label={translate(
+                "ui.settingsSurface.label.upstreamChangeWarnings",
+              )}
+              description={translate(
+                "ui.settingsSurface.description.reviewReorderOrDeletionOnlyWhenAnExplicitActive",
+              )}
+              checked={settings.chain.warnUpstreamChanges}
+              text={translate(
+                "ui.settingsSurface.text.warnAboutUpstreamChanges",
+              )}
+              onChange={(value) =>
+                patch(
+                  {
+                    ...settings,
+                    chain: { ...settings.chain, warnUpstreamChanges: value },
+                  },
+                  "chain.warnUpstreamChanges",
+                )
+              }
+              reset={() =>
+                patch(
+                  {
+                    ...settings,
+                    chain: { ...settings.chain, warnUpstreamChanges: false },
+                  },
+                  "chain.warnUpstreamChanges",
+                )
+              }
+            />
+          </SettingsSection>
+        </div>
         <div className="setting-explanation">
           {translate(
             "ui.settingsSurface.text.similarInventoryAggregationIsOnByDefaultTheOther",
@@ -2177,6 +2400,34 @@ function CategoryPanel({
   );
 }
 
+function SettingsSection({
+  id,
+  label,
+  expanded,
+  onExpandedChange,
+  children,
+}: {
+  id: SettingsSectionId;
+  label: string;
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <details
+      className="settings-section"
+      data-settings-section={id}
+      open={expanded}
+      onToggle={(event) => onExpandedChange(event.currentTarget.open)}
+    >
+      <summary>
+        <h5>{label}</h5>
+      </summary>
+      <div className="settings-section-body">{children}</div>
+    </details>
+  );
+}
+
 function SettingRow({
   id,
   label,
@@ -2188,7 +2439,7 @@ function SettingRow({
   label: string;
   description: string;
   children: React.ReactNode;
-  reset: () => void;
+  reset?: () => void;
 }) {
   return (
     <div className="setting-row">
@@ -2199,9 +2450,11 @@ function SettingRow({
       <div>
         <div className="setting-control-with-reset">
           {children}
-          <button type="button" className="setting-reset" onClick={reset}>
-            {translate("ui.settingsSurface.text.reset")}
-          </button>
+          {reset && (
+            <button type="button" className="setting-reset" onClick={reset}>
+              {translate("ui.settingsSurface.text.reset")}
+            </button>
+          )}
         </div>
       </div>
     </div>

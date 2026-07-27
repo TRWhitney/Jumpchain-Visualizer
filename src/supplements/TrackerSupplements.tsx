@@ -175,7 +175,14 @@ export function TrackerSupplementWorkspace({
           </header>
           <div className="supplement-manage-list">
             {modules.map((module) => (
-              <article key={module.id}>
+              <article
+                key={module.id}
+                data-tour-target={
+                  module.id === "body-mod"
+                    ? "tracker-enable-body-mod"
+                    : undefined
+                }
+              >
                 <div>
                   <strong>{module.name}</strong>
                   <p>{module.description}</p>

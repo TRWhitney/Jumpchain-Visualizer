@@ -111,7 +111,8 @@ test("optional Structured form sections initialize once and retain session state
   await page.goto("/settings");
   await page
     .getByRole("combobox", { name: "Interface experience" })
-    .selectOption("new-user-friendly");
+    .selectOption("beginner-friendly");
+  await waitForStoredSetting(page, ["editor", "collapseAdvancedViews"], true);
   let editor = await openCreatedEditor(page);
 
   await editor.getByRole("button", { name: "Advanced views" }).click();
@@ -278,7 +279,7 @@ test("new-user interface disclosures preserve advanced editor and raster functio
   await page.goto("/settings");
   await page
     .getByRole("combobox", { name: "Interface experience" })
-    .selectOption("new-user-friendly");
+    .selectOption("beginner-friendly");
   await waitForStoredSetting(page, ["editor", "collapseAdvancedViews"], true);
   const editor = await openCreatedEditor(page);
 
@@ -3235,7 +3236,26 @@ test("Editor retains mock proportions at desktop, two-pane, and single-column vi
     );
     await attachComparison(testInfo, `editor-responsive-${name}`, mock, editor);
     await reference.close();
-    await page.evaluate(() => indexedDB.deleteDatabase("jumpchain-visualizer"));
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          const open = indexedDB.open("jumpchain-visualizer", 4);
+          open.onerror = () => reject(open.error);
+          open.onsuccess = () => {
+            const database = open.result;
+            const transaction = database.transaction(
+              "editor-workspaces",
+              "readwrite",
+            );
+            transaction.objectStore("editor-workspaces").clear();
+            transaction.onerror = () => reject(transaction.error);
+            transaction.oncomplete = () => {
+              database.close();
+              resolve();
+            };
+          };
+        }),
+    );
   }
 });
 
@@ -5918,6 +5938,66 @@ test("Structured authors representative Format 1 fields, children, repeats, and 
   );
 });
 
+test("conditional property choices dismiss and honor reduced motion", async ({
+  page,
+}, testInfo) => {
+  const editor = await openCreatedEditor(page);
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Accessibility" }).click();
+  await page.getByLabel("Motion", { exact: true }).selectOption("reduced");
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-app-motion",
+    "reduced",
+  );
+  await page.getByRole("button", { name: "Close Settings" }).click();
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice", exact: true }).click();
+  await editor.getByRole("button", { name: "introduction" }).click();
+  await editor.getByRole("button", { name: "+ Text" }).click();
+
+  await editor
+    .getByRole("button", { name: "+ Add conditional variant" })
+    .click();
+  const propertyChoices = editor.locator(
+    '.editor-condition-draft button[aria-label="Show available properties"]',
+  );
+  const propertyChevron = propertyChoices.locator("svg");
+  await expect(propertyChevron).toHaveCSS("transition-duration", "0s");
+  await expect(propertyChevron).toHaveAttribute(
+    "style",
+    "transform: rotate(90deg);",
+  );
+  await propertyChoices.click();
+  await expect(page.locator(".editor-condition-popover")).toBeVisible();
+  await expect(propertyChevron).toHaveAttribute(
+    "style",
+    "transform: rotate(270deg);",
+  );
+  await editor.screenshot({
+    path: testInfo.outputPath("conditional-property-picker-open.png"),
+    animations: "disabled",
+  });
+
+  const operator = editor.locator(
+    ".editor-condition-draft .editor-condition-rule-row > select",
+  );
+  await operator.click({ position: { x: 140, y: 20 } });
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+
+  await expect(operator).toHaveValue("inactive");
+  await expect(page.locator(".editor-condition-popover")).toHaveCount(0);
+  await expect(propertyChevron).toHaveAttribute(
+    "style",
+    "transform: rotate(90deg);",
+  );
+  await editor.screenshot({
+    path: testInfo.outputPath("conditional-property-picker-dismissed.png"),
+    animations: "disabled",
+  });
+});
+
 test("Choice and Input placeholders, contextual answers, and caret insertion use the real preview", async ({
   page,
 }, testInfo) => {
@@ -7057,8 +7137,9 @@ test("Choice child pages share recipient, measure, description, and conditional 
   await page.goto("/settings");
   await page
     .getByRole("combobox", { name: "Interface experience" })
-    .selectOption("new-user-friendly");
+    .selectOption("beginner-friendly");
   await page.getByLabel("Collapse optional sections by default").check();
+  await waitForStoredSetting(page, ["editor", "showExplanatoryText"], true);
   const editor = await openCreatedEditor(page);
 
   await editor.getByRole("button", { name: "Add", exact: true }).click();
@@ -7336,7 +7417,8 @@ test("Input and Cost subpages share owning-Choice applicability and bound defaul
   await page.goto("/settings");
   await page
     .getByRole("combobox", { name: "Interface experience" })
-    .selectOption("new-user-friendly");
+    .selectOption("beginner-friendly");
+  await waitForStoredSetting(page, ["editor", "showExplanatoryText"], true);
   const editor = await openCreatedEditor(page);
 
   await editor.getByRole("button", { name: "Add", exact: true }).click();

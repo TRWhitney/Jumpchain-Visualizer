@@ -19,6 +19,97 @@ const exporter: ReportExporter = {
   save: async () => "saved",
 };
 
+test("General, Editor, and Chain Tracker settings use session disclosures and search reveals collapsed settings", async () => {
+  render(
+    <SettingsProvider
+      repository={new MemorySettingsRepository()}
+      reportExporter={exporter}
+    >
+      <SettingsSurfaceHarness />
+    </SettingsProvider>,
+  );
+  await expect
+    .element(page.getByRole("tab", { name: "General" }))
+    .toBeVisible();
+
+  const sectionIds = () =>
+    [
+      ...document.querySelectorAll<HTMLDetailsElement>(
+        ".settings-section-list > .settings-section",
+      ),
+    ].map((section) => section.dataset.settingsSection);
+  const section = (id: string) =>
+    document.querySelector<HTMLDetailsElement>(
+      `[data-settings-section="${id}"]`,
+    )!;
+
+  expect(sectionIds()).toEqual([
+    "general-essentials",
+    "general-interface",
+    "general-welcome",
+  ]);
+  expect(section("general-essentials").open).toBe(true);
+  expect(section("general-interface").open).toBe(true);
+  expect(section("general-welcome").open).toBe(true);
+  expect(
+    section("general-essentials").querySelectorAll(
+      "#interface-experience, #language-selection, #theme, #accent",
+    ),
+  ).toHaveLength(4);
+  expect(
+    section("general-interface").querySelectorAll(
+      "#hide-technical-locations, #collapse-optional-sections",
+    ),
+  ).toHaveLength(2);
+  expect(section("general-welcome").querySelector("button")).not.toBeNull();
+
+  section("general-interface").querySelector("summary")!.click();
+  await expect.poll(() => section("general-interface").open).toBe(false);
+  await expect
+    .element(page.getByLabelText("Hide raw technical locations"))
+    .not.toBeVisible();
+
+  await page.getByRole("tab", { name: "Editor" }).click();
+  expect(sectionIds()).toEqual([
+    "editor-workflow",
+    "editor-display",
+    "editor-warnings",
+  ]);
+  expect(
+    [
+      ...document.querySelectorAll<HTMLDetailsElement>(".settings-section"),
+    ].every((candidate) => candidate.open),
+  ).toBe(true);
+
+  await page.getByRole("tab", { name: "Chain Tracker" }).click();
+  expect(sectionIds()).toEqual([
+    "chain-controls",
+    "chain-inventory",
+    "chain-warnings",
+  ]);
+  expect(
+    [
+      ...document.querySelectorAll<HTMLDetailsElement>(".settings-section"),
+    ].every((candidate) => candidate.open),
+  ).toBe(true);
+  section("chain-inventory").querySelector("summary")!.click();
+  await expect.poll(() => section("chain-inventory").open).toBe(false);
+
+  await page.getByRole("tab", { name: "General" }).click();
+  expect(section("general-interface").open).toBe(false);
+  await page.getByRole("searchbox").fill("technical locations");
+  await page
+    .getByRole("button", { name: /general\.hideTechnicalLocations/ })
+    .click();
+  await expect.poll(() => section("general-interface").open).toBe(true);
+  await expect
+    .element(page.getByLabelText("Hide raw technical locations"))
+    .toHaveFocus();
+
+  await page.getByRole("tab", { name: "Chain Tracker" }).click();
+  expect(section("chain-inventory").open).toBe(false);
+});
+
 test("Settings chrome, dropdowns, and standalone color pickers suppress the generic browser menu", async () => {
   render(
     <ContextMenuProvider>
@@ -75,9 +166,9 @@ test("interface experience applies its settings and becomes Custom after an indi
   const experience = page.getByRole("combobox", {
     name: "Interface experience",
   });
-  await expect.element(experience).toHaveValue("experienced");
-  await experience.selectOptions("new-user-friendly");
-  await expect.element(experience).toHaveValue("new-user-friendly");
+  await expect.element(experience).toHaveValue("advanced");
+  await experience.selectOptions("beginner-friendly");
+  await expect.element(experience).toHaveValue("beginner-friendly");
   await expect
     .element(page.getByLabelText("Hide raw technical locations"))
     .toBeChecked();
@@ -416,7 +507,7 @@ test("Editor explanatory text persists independently and changes the experience 
   const experience = page.getByRole("combobox", {
     name: "Interface experience",
   });
-  await expect.element(experience).toHaveValue("experienced");
+  await expect.element(experience).toHaveValue("advanced");
   await page.getByRole("tab", { name: "Editor" }).click();
   const explanations = page.getByLabelText("Show explanatory text");
   await expect.element(explanations).not.toBeChecked();
@@ -441,7 +532,7 @@ test("Editor explanatory text persists independently and changes the experience 
   explanationRow.querySelector<HTMLButtonElement>(".setting-reset")!.click();
   await expect.element(explanations).not.toBeChecked();
   await page.getByRole("tab", { name: "General" }).click();
-  await expect.element(experience).toHaveValue("experienced");
+  await expect.element(experience).toHaveValue("advanced");
   await expect
     .poll(async () => {
       const stored = (await repository.load()) as ReturnType<

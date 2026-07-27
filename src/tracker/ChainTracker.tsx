@@ -180,6 +180,13 @@ function MainTabs({ state, dispatch }: TrackerProps) {
           key={page}
           type="button"
           role="tab"
+          data-tour-target={
+            page === "inventory"
+              ? "tracker-inventory-tab"
+              : page === "supplements"
+                ? "tracker-supplements-tab"
+                : undefined
+          }
           aria-selected={state.page === page}
           tabIndex={state.page === page ? 0 : -1}
           onClick={() => dispatch({ type: "set-page", page })}
@@ -378,6 +385,9 @@ function ChainRail({
             key={page}
             type="button"
             role="tab"
+            data-tour-target={
+              page === "library" ? "tracker-library-tab" : undefined
+            }
             aria-selected={state.railPage === page}
             tabIndex={state.railPage === page ? 0 : -1}
             onClick={() => dispatch({ type: "set-rail-page", page })}
@@ -486,6 +496,7 @@ function ChainRail({
           </dl>
           <div
             className="chain-jump-list"
+            data-tour-target="tracker-chain-list"
             aria-label={translate(
               "ui.chainTracker.ariaLabel.orderedChainJumpsNewestFirst",
             )}
@@ -612,6 +623,11 @@ function ChainRail({
               return (
                 <article
                   key={id}
+                  data-tour-target={
+                    state.selectedEntryId === id
+                      ? "tracker-selected-entry"
+                      : undefined
+                  }
                   onContextMenu={(event) => openContextMenu(event, menu)}
                   className={`chain-jump-entry${earth ? " is-earth" : ""}${state.selectedEntryId === id ? " is-selected" : ""}${negative ? " has-negative-balance" : ""}${dragged === id ? " is-dragging" : ""}${dropIndicator?.entryId === id ? ` is-drop-${dropIndicator.edge}` : ""}`}
                   draggable={!earth}
@@ -907,7 +923,15 @@ function ChainRail({
                   ? `Add to chain again (x${existingCount + 1})`
                   : "Open chain entity";
               return (
-                <article key={item.id} className="chain-library-card">
+                <article
+                  key={item.id}
+                  className="chain-library-card"
+                  data-tour-target={
+                    item.id === "welcome-tour-crossroads"
+                      ? "tracker-add-tutorial"
+                      : undefined
+                  }
+                >
                   <div>
                     <strong>
                       {item.name} · v{item.version}
@@ -1573,7 +1597,18 @@ function InventoryPage({ state, dispatch }: TrackerProps) {
                 {translate("ui.chainTracker.text.throughRangeSeparator")}
                 {packageForEntry(state, state.inspectionPointId).name}.
               </div>
-              <div className="chain-record-list">
+              <div
+                className="chain-record-list"
+                data-tour-target={
+                  records.some(
+                    (record) =>
+                      record.grantHandle === "field_training" ||
+                      record.grantHandle === "travel_pack",
+                  )
+                    ? "tracker-inventory-tutorial-results"
+                    : undefined
+                }
+              >
                 {records.map((record) => (
                   <RecordCard
                     key={record.id}

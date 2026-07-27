@@ -435,9 +435,13 @@ export function hydrateTagProfile(
     const base =
       existing?.presentation ??
       derivedPresentation(profile, input.name, parent);
+    const displayName =
+      existing && normalizeTag(input.name) === normalizeTag(existing.name)
+        ? existing.name
+        : tagDisplayName(input.name);
     profile.tags[id] = {
       id,
-      name: tagDisplayName(input.name),
+      name: displayName,
       source,
       parent,
       aliases: Array.isArray(input.aliases)
@@ -445,7 +449,13 @@ export function hydrateTagProfile(
             .slice(0, 100)
             .filter((alias): alias is string => typeof alias === "string")
             .filter((alias) => [...alias].length <= 120)
-            .map(tagDisplayName)
+            .map(
+              (alias) =>
+                existing?.aliases.find(
+                  (candidate) =>
+                    normalizeTag(candidate) === normalizeTag(alias),
+                ) ?? tagDisplayName(alias),
+            )
         : (existing?.aliases ?? []),
       appearanceSource:
         source === "builtin"
@@ -471,7 +481,7 @@ export function hydrateTagProfile(
       tag.parent = builtinTagPresetById[tag.id]?.parent ?? "miscellaneous";
     const aliases = new Map<string, string>();
     for (const alias of tag.aliases) {
-      const display = tagDisplayName(alias);
+      const display = alias;
       const normalized = normalizeTag(display);
       if (
         display &&

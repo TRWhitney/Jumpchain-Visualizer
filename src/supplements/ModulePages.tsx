@@ -60,6 +60,7 @@ export function BodyModPage() {
   return (
     <div
       className="bodymod-full-mock"
+      data-tour-target="tracker-use-body-mod"
       aria-label={translate(
         "ui.modulePages.ariaLabel.interactiveClassicBodyModFullSupplementPage",
       )}

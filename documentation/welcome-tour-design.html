@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Welcome-tour lifecycle, step map, responsive presentation, accessibility, and isolated fixture design.">
+  <title>Welcome Tour Design | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="welcome-tour-design.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html"><span class="site-mark" aria-hidden="true">JV</span><span>Jumpchain Visualizer <small>Documentation</small></span></a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html">Overview</a>
+      <a href="application-design.html">Application</a>
+      <a href="welcome-tour-design.html" aria-current="page">Welcome tour</a>
+      <a href="settings-design.html">Settings</a>
+      <a href="editor-design.html">Editor</a>
+      <a href="chain-tracker-design.html">Chain Tracker</a>
+    </nav>
+  </header>
+
+  <main id="content" class="tour-document" tabindex="-1">
+    <header class="tour-hero">
+      <p class="eyebrow">Accepted onboarding design</p>
+      <h1>Modern welcome tour</h1>
+      <p class="lede">A first-run, resumable spotlight lesson that teaches navigation before actions, uses isolated practice data, and ends with an explicit interface-presentation choice.</p>
+    </header>
+
+    <section aria-labelledby="principles-heading">
+      <h2 id="principles-heading">Interaction contract</h2>
+      <div class="tour-principles">
+        <article><strong>Navigate visibly</strong><p>Tabs, explorer rows, pages, and disclosures are user-completed steps. A controlled directive prepares a view only for recovery, Back, Skip, or reload.</p></article>
+        <article><strong>Reveal the result</strong><p>Context-changing actions retarget the completed coachmark around their result before Continue advances. Inventory navigation is followed by a dedicated reveal of Field Training and Traveler’s Pack.</p></article>
+        <article><strong>Stay temporary</strong><p>The practice Editor workspace and Tracker chain live only in the validated tour-session aggregate and never enter normal registries.</p></article>
+        <article><strong>Remain in context</strong><p>A translucent four-region scrim preserves spatial orientation. The highlighted target retains shape, focus, and non-color boundaries.</p></article>
+      </div>
+    </section>
+
+    <section aria-labelledby="map-heading">
+      <h2 id="map-heading">Step map</h2>
+      <div class="tour-map" aria-label="Home steps branch to Editor and Tracker lessons, then converge on interface mode selection">
+        <div class="tour-map-column">
+          <h3>Home</h3>
+          <ol><li>Welcome and isolation</li><li>Global navigation and history</li><li>Workspace cards and recents</li><li>Choose Editor or Tracker</li></ol>
+        </div>
+        <span aria-hidden="true">→</span>
+        <div class="tour-map-branches">
+          <div class="tour-map-column">
+            <h3>Editor</h3>
+            <ol><li>Workspace orientation</li><li>Navigate to Jump details</li><li>Review metadata</li><li>Add and configure a Choice</li><li>Navigate to first_steps</li><li>Place and verify the Choice</li><li>Optional Files, Source, appearance, and export</li></ol>
+          </div>
+          <div class="tour-map-column">
+            <h3>Tracker</h3>
+            <ol><li>Workspace orientation</li><li>Navigate to Library and add The Crossroads</li><li>Select a route, perk, and item</li><li>Reorder the two Jumps</li><li>Navigate to Inventory, then reveal both records</li><li>Navigate to Supplements, enable and open Body Mod</li><li>Change build or body type</li></ol>
+          </div>
+        </div>
+        <span aria-hidden="true">→</span>
+        <div class="tour-map-column"><h3>Finish</h3><ol><li>Offer the remaining branch</li><li>Choose Beginner friendly or Advanced</li><li>On restart, optionally keep current settings</li><li>Clear every temporary record</li></ol></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="states-heading">
+      <h2 id="states-heading">Responsive visual states</h2>
+      <div class="tour-visual-grid">
+        <article class="tour-stage is-dark">
+          <div class="tour-target">Highlighted control</div>
+          <div class="tour-card"><small>EDITOR LESSON · STEP 4 OF 13</small><h3>Add your first Choice</h3><div class="tour-progress"><i></i><i></i><i></i><i></i><i></i></div><p>Select Add in the project toolbar, then select Choice.</p><span>Desktop coachmarks select the side with the most usable space and never leave the viewport.</span></div>
+        </article>
+        <article class="tour-stage is-light">
+          <div class="tour-target">Field Training · Traveler’s Pack</div>
+          <div class="tour-card"><small>TRACKER LESSON · STEP 9 OF 13</small><h3>Your perk and item are persistent</h3><p>The result remains visible beside the card; the scrim provides context instead of erasing the workspace.</p></div>
+        </article>
+        <article class="tour-stage is-narrow">
+          <div class="tour-target">Target</div>
+          <div class="tour-card"><small>HOME · STEP 2 OF 4</small><h3>Your work is always close</h3><p>Below 720px the card becomes a bounded bottom sheet.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="lifecycle-heading">
+      <h2 id="lifecycle-heading">Lifecycle and persistence</h2>
+      <p><code>ApplicationSettings</code> schema 5 stores <code>onboarding.welcomeTourStatus</code> as <code>pending</code>, <code>in-progress</code>, <code>completed</code>, or <code>dismissed</code>. New installs are pending; earlier settings schemas hydrate as dismissed so established users are not interrupted.</p>
+      <p><code>WelcomeTourSessionV1</code> stores the current step, branch progress, return path, exact Editor and Tracker input, navigation outcomes, revision, and rollback checkpoints. Browser IndexedDB and bounded Tauri commands validate expected fixture IDs, files, packages, step IDs, and size. Browser writes use a revisioned synchronous pending mirror so an immediate reload cannot outrun the durable transaction.</p>
+      <p>Completion and dismissal both require the non-dismissible interface picker and then clear the session. A Settings restart preserves the underlying return route and explicit-save departure guard. “Keep my current settings” is available only for a restarted tour.</p>
+    </section>
+
+    <section aria-labelledby="accessibility-heading">
+      <h2 id="accessibility-heading">Accessibility and internationalization</h2>
+      <ul>
+        <li>The coachmark and highlighted target form one focus cycle; unrelated controls remain pointer- and keyboard-inert behind the four-region scrim.</li>
+        <li>The target receives <code>aria-describedby</code>, headings receive programmatic focus, success and step changes are announced, and Escape opens the Exit outcome instead of silently dismissing.</li>
+        <li>Target rings combine shape, border, glow, and contrast rather than color alone. High-contrast mode strengthens the border; the resolved Reduced Motion setting removes spotlight spatial interpolation.</li>
+        <li>Editor, Tracker, Beginner friendly, and Advanced choice icons use a white tile with accessible accent glyph and border colors in Light mode; Dark mode retains its established dark accent tile.</li>
+        <li>Placement tracks ResizeObserver, nested scrolling, browser zoom, viewport resizing, RTL direction, and target replacement. Missing targets show Retry and Skip recovery.</li>
+        <li>Every heading, instruction, action, announcement, mode description, and fixture display value is localized through the standard English-fallback catalog. Stable handles and IDs are intentionally not translated.</li>
+      </ul>
+    </section>
+
+    <a class="back-to-top" href="#content">Back to top</a>
+  </main>
+</body>
+</html>

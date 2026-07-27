@@ -281,6 +281,75 @@
   font-size: 1.1rem;
 }
 
+.settings-section-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.settings-section {
+  overflow: hidden;
+  background: #252523;
+  border: 1px solid #484844;
+  border-radius: 0.3rem;
+}
+
+.settings-section > summary {
+  display: flex;
+  min-height: 2.6rem;
+  align-items: center;
+  padding: 0.55rem 0.7rem;
+  color: #d9d9d3;
+  background: #292927;
+  list-style: none;
+  cursor: pointer;
+}
+
+.settings-section > summary::before {
+  display: inline-block;
+  width: 0.8rem;
+  margin-inline-end: 0.35rem;
+  color: #85857f;
+  content: "›";
+  font-size: 1rem;
+  transition: transform 100ms ease;
+}
+
+.settings-section[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+[dir="rtl"] .settings-section:not([open]) > summary::before {
+  transform: rotate(180deg);
+}
+
+.settings-section > summary::marker,
+.settings-section > summary::-webkit-details-marker {
+  display: none;
+  content: "";
+}
+
+.settings-section > summary:focus-visible {
+  outline: 2px solid var(--mock-accent-ui);
+  outline-offset: -2px;
+}
+
+.settings-section > summary h5 {
+  margin: 0;
+  color: inherit;
+  font-size: 0.82rem;
+}
+
+.settings-section-body {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.55rem;
+  border-top: 1px solid #41413d;
+}
+
+.settings-section-body .setting-explanation {
+  margin-top: 0;
+}
+
 .settings-search-panel h4 span {
   margin-left: 0.35rem;
   color: #85857f;

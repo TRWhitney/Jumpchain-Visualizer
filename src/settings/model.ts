@@ -1,6 +1,6 @@
 import type { TagProfile } from "./tagProfile";
 
-export const SETTINGS_SCHEMA_VERSION = 4;
+export const SETTINGS_SCHEMA_VERSION = 5;
 
 export type ThemePreference = "system" | "light" | "dark";
 export type MotionPreference = "system" | "reduced" | "full";
@@ -60,7 +60,10 @@ export const ABSOLUTE_PACKAGE_SIZE_LIMITS: Readonly<PackageSizeLimits> = {
 };
 
 export type ApplicationSettings = {
-  schemaVersion: 4;
+  schemaVersion: 5;
+  onboarding: {
+    welcomeTourStatus: "pending" | "in-progress" | "completed" | "dismissed";
+  };
   general: {
     hideTechnicalLocations: boolean;
     collapseOptionalSectionsByDefault: boolean;
@@ -180,6 +183,7 @@ export const keybindingLabels: Record<KeybindingAction, string> = {
 export function defaultSettings(profile: TagProfile): ApplicationSettings {
   return {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
+    onboarding: { welcomeTourStatus: "pending" },
     general: {
       hideTechnicalLocations: false,
       collapseOptionalSectionsByDefault: false,
@@ -233,12 +237,11 @@ export function defaultSettings(profile: TagProfile): ApplicationSettings {
   };
 }
 
-export type InterfaceExperience =
-  "experienced" | "new-user-friendly" | "custom";
+export type InterfaceExperience = "advanced" | "beginner-friendly" | "custom";
 export type InterfaceExperiencePreset = Exclude<InterfaceExperience, "custom">;
 
 export const INTERFACE_EXPERIENCE_PRESETS = {
-  experienced: {
+  advanced: {
     hideTechnicalLocations: false,
     collapseOptionalSectionsByDefault: false,
     collapseAdvancedViews: false,
@@ -248,7 +251,7 @@ export const INTERFACE_EXPERIENCE_PRESETS = {
     collapseInventoryTagFilters: false,
     maxVisibleNotifications: 3,
   },
-  "new-user-friendly": {
+  "beginner-friendly": {
     hideTechnicalLocations: true,
     collapseOptionalSectionsByDefault: true,
     collapseAdvancedViews: true,
@@ -264,8 +267,8 @@ export function interfaceExperienceFor(
   settings: ApplicationSettings,
 ): InterfaceExperience {
   for (const preset of [
-    "experienced",
-    "new-user-friendly",
+    "advanced",
+    "beginner-friendly",
   ] as const satisfies readonly InterfaceExperiencePreset[]) {
     const values = INTERFACE_EXPERIENCE_PRESETS[preset];
     if (
@@ -393,6 +396,9 @@ export function hydrateSettings(
 ): ApplicationSettings {
   const fallback = defaultSettings(defaultProfile);
   const root = record(value);
+  const storedSchemaVersion =
+    typeof root.schemaVersion === "number" ? root.schemaVersion : 0;
+  const onboarding = record(root.onboarding);
   const general = record(root.general);
   const language = record(root.language);
   const appearance = record(root.appearance);
@@ -448,6 +454,18 @@ export function hydrateSettings(
 
   return {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
+    onboarding: {
+      welcomeTourStatus:
+        storedSchemaVersion >= SETTINGS_SCHEMA_VERSION
+          ? oneOf(
+              onboarding.welcomeTourStatus,
+              ["pending", "in-progress", "completed", "dismissed"] as const,
+              fallback.onboarding.welcomeTourStatus,
+            )
+          : storedSchemaVersion > 0
+            ? "dismissed"
+            : fallback.onboarding.welcomeTourStatus,
+    },
     general: {
       hideTechnicalLocations: bool(
         general.hideTechnicalLocations,

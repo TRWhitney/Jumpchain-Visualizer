@@ -21,7 +21,7 @@
   "settingsSearch": {
     "interfaceExperience": {
       "label": "Interface experience",
-      "aliases": "interface experience preset experienced new user friendly custom onboarding simple advanced"
+      "aliases": "interface experience preset advanced beginner friendly custom onboarding simple experienced new user friendly"
     },
     "general_hideTechnicalLocations": {
       "label": "Technical locations",
@@ -343,9 +343,12 @@
         "pathFileTypeCompressionRatioImageSchemaAndAtomicity": "Path, file-type, compression-ratio, image, schema, and atomicity protections remain mandatory and cannot be disabled.",
         "iUnderstandEnable": "I understand, enable",
         "general": "General",
-        "experienced": "Experienced",
-        "newUserFriendly": "New user friendly",
+        "essentials": "Essentials",
+        "interfaceBehavior": "Interface behavior",
+        "experienced": "Advanced",
+        "newUserFriendly": "Beginner friendly",
         "custom": "Custom",
+        "restartWelcomeTour": "Restart welcome tour",
         "hideTechnicalLocations": "Hide raw technical locations",
         "collapseOptionalSectionsByDefault": "Collapse optional sections by default",
         "useSystemSetting": "Use system setting",
@@ -353,6 +356,9 @@
         "dark": "Dark",
         "homeIsAlwaysTheRootDestinationStartupRedirectionIs": "Home is always the root destination. Startup redirection is an agreed application behavior, not a configurable preference.",
         "editor": "Editor",
+        "workflow": "Workflow",
+        "displayAndGuidance": "Display and guidance",
+        "warnings": "Warnings",
         "collapseAdvancedViews": "Start advanced views collapsed",
         "collapsePreviewInspectionTools": "Start preview inspection tools collapsed",
         "showExplanatoryText": "Show explanatory text",
@@ -363,6 +369,9 @@
         "permanentlyDeleteSidebarItems": "Permanently delete sidebar items",
         "editorPreferencesApplyImmediatelyAndPersist": "Editor preferences apply immediately to open workspaces and persist across launches.",
         "chainTracker": "Chain Tracker",
+        "controlsAndRules": "Controls and rules",
+        "inventoryAndAppearance": "Inventory and appearance",
+        "changeWarnings": "Change warnings",
         "compactJumpActions": "Use compact Jump action menus",
         "collapseInventoryTagFilters": "Start inventory tag filters collapsed",
         "allowSecondVersion": "Allow second version",
@@ -373,7 +382,7 @@
         "countItemTags": "Count item tags",
         "warnAboutUpstreamChanges": "Warn about upstream changes",
         "colorChainNames": "Color chain names",
-        "similarInventoryAggregationIsOnByDefaultTheOther": "Similar inventory aggregation is on by default; the other seven settings are off. Exact versions never duplicate, and upstream review remains material-only and undoable.",
+        "similarInventoryAggregationIsOnByDefaultTheOther": "Similar inventory aggregation is on by default; the other nine settings are off. Exact versions never duplicate, and upstream review remains material-only and undoable.",
         "keyBindings": "Key bindings",
         "sourceEditorShortcuts": "Source editor",
         "assetEditorShortcuts": "Asset editor tools",
@@ -422,6 +431,7 @@
       },
       "label": {
         "interfaceExperience": "Interface experience",
+        "welcomeTour": "Welcome tour",
         "technicalLocations": "Technical locations",
         "optionalSectionDefaults": "Optional section defaults",
         "appearance": "Appearance",
@@ -455,6 +465,7 @@
       },
       "description": {
         "applyAStartingCollectionOfPresentationPreferences": "Apply a starting collection of presentation preferences. Changing an included preference afterward marks the experience as Custom.",
+        "restartTheGuidedWelcomeTour": "Open the guided introduction again with a fresh temporary workspace and chain.",
         "hideRawRouteIdentifiersWhileKeepingNavigationLabels": "Hide raw route identifiers while keeping navigation labels, project names, and page headings.",
         "startFineGrainedEditorAndTagSectionsCollapsed": "Start selected fine-grained Editor and tag appearance sections collapsed without removing their controls.",
         "chooseTheApplicationColorTheme": "Choose the application color theme.",

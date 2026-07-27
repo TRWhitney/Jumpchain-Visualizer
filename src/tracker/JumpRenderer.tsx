@@ -1047,7 +1047,18 @@ function DefaultChoice({
     (text) => text.handle === "description",
   )?.content;
   return (
-    <article className="default-choice-card">
+    <article
+      className="default-choice-card"
+      data-tour-target={
+        choice.handle === "route"
+          ? "tracker-choice-route"
+          : choice.handle === "field_training"
+            ? "tracker-choice-perk"
+            : choice.handle === "travel_pack"
+              ? "tracker-choice-item"
+              : undefined
+      }
+    >
       <div className="default-choice-heading">
         <strong>{label(choice.name, choice.handle)}</strong>
         <CostBadges

@@ -810,6 +810,17 @@
   color: #292927;
   background: #f0eee8;
 }
+[data-app-theme="light"] .app-settings-surface .settings-section {
+  background: #f6f5f1;
+  border-color: #cbc8bf;
+}
+[data-app-theme="light"] .app-settings-surface .settings-section > summary {
+  color: #292927;
+  background: #f0eee8;
+}
+[data-app-theme="light"] .app-settings-surface .settings-section-body {
+  border-color: #cbc8bf;
+}
 [data-app-theme="light"] .app-settings-surface .settings-subtabs {
   background: #f0eee8;
   border-color: #cbc8bf;

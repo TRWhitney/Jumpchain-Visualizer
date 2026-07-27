@@ -93,6 +93,144 @@ fn save_settings(payload: String, state: State<'_, PersistenceState>) -> Command
         .map_err(|_| CommandError::from("settings write failed"))
 }
 
+fn validate_welcome_tour_payload(payload: &str) -> Result<(), String> {
+    const STEP_IDS: &[&str] = &[
+        "welcome",
+        "home-navigation",
+        "home-workspaces",
+        "choose-branch",
+        "editor-overview",
+        "editor-open-details",
+        "editor-metadata",
+        "editor-add-choice",
+        "editor-configure-choice",
+        "editor-open-section",
+        "editor-place-choice",
+        "editor-preview",
+        "editor-advanced-offer",
+        "editor-advanced-toggle",
+        "editor-advanced-tabs",
+        "editor-advanced-appearance",
+        "editor-advanced-export",
+        "editor-summary",
+        "tracker-overview",
+        "tracker-library",
+        "tracker-add-jump",
+        "tracker-route-choice",
+        "tracker-perk-choice",
+        "tracker-item-choice",
+        "tracker-reorder",
+        "tracker-inventory",
+        "tracker-inventory-result",
+        "tracker-supplements",
+        "tracker-enable-body-mod",
+        "tracker-open-body-mod",
+        "tracker-use-body-mod",
+        "tracker-summary",
+        "mode-choice",
+    ];
+    const EDITOR_FILES: &[&str] = &["jump.jdef", "choices.jdef", "layout.jdef"];
+    const PACKAGE_IDS: &[&str] = &[
+        "system-earth",
+        "welcome-tour-trailhead",
+        "welcome-tour-crossroads",
+    ];
+    if payload.len() > 2 * 1024 * 1024 {
+        return Err("welcome tour payload exceeds the application limit".to_owned());
+    }
+    let value: serde_json::Value =
+        serde_json::from_str(payload).map_err(|_| "welcome tour payload is invalid JSON")?;
+    if value
+        .get("schemaVersion")
+        .and_then(serde_json::Value::as_u64)
+        != Some(1)
+    {
+        return Err("welcome tour schema version is unsupported".to_owned());
+    }
+    if !value
+        .get("stepId")
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(|step| STEP_IDS.contains(&step))
+    {
+        return Err("welcome tour step is invalid".to_owned());
+    }
+    let editor = value
+        .get("editorWorkspace")
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| "welcome tour Editor workspace is invalid".to_owned())?;
+    if editor.get("id").and_then(serde_json::Value::as_str) != Some("welcome-tour-editor") {
+        return Err("welcome tour Editor identity is invalid".to_owned());
+    }
+    let files = editor
+        .get("files")
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| "welcome tour Editor files are invalid".to_owned())?;
+    if files.len() != EDITOR_FILES.len()
+        || !files
+            .iter()
+            .all(|(name, source)| EDITOR_FILES.contains(&name.as_str()) && source.is_string())
+    {
+        return Err("welcome tour Editor files are invalid".to_owned());
+    }
+    let packages = value
+        .pointer("/trackerState/packages")
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| "welcome tour Tracker packages are invalid".to_owned())?;
+    if packages.len() != PACKAGE_IDS.len()
+        || !packages.keys().all(|id| PACKAGE_IDS.contains(&id.as_str()))
+    {
+        return Err("welcome tour Tracker packages are invalid".to_owned());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn load_welcome_tour_session(
+    state: State<'_, PersistenceState>,
+) -> CommandResult<Option<serde_json::Value>> {
+    let store = state
+        .0
+        .lock()
+        .map_err(|_| "welcome tour database lock failed")?;
+    store
+        .load("welcome-tour")
+        .map_err(|_| "welcome tour read failed")?
+        .map(|payload| {
+            validate_welcome_tour_payload(&payload)?;
+            serde_json::from_str(&payload)
+                .map_err(|_| "welcome tour payload is invalid JSON".to_owned())
+        })
+        .transpose()
+        .map_err(Into::into)
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn save_welcome_tour_session(
+    payload: String,
+    state: State<'_, PersistenceState>,
+) -> CommandResult<()> {
+    validate_welcome_tour_payload(&payload)?;
+    state
+        .0
+        .lock()
+        .map_err(|_| "welcome tour database lock failed")?
+        .save("welcome-tour", 1, &payload)
+        .map_err(|_| CommandError::from("welcome tour write failed"))
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn clear_welcome_tour_session(state: State<'_, PersistenceState>) -> CommandResult<()> {
+    state
+        .0
+        .lock()
+        .map_err(|_| "welcome tour database lock failed")?
+        .remove("welcome-tour")
+        .map_err(|_| CommandError::from("welcome tour clear failed"))
+}
+
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 fn load_chains(state: State<'_, PersistenceState>) -> CommandResult<Vec<serde_json::Value>> {
@@ -566,7 +704,7 @@ fn validate_settings_payload(payload: &str) -> Result<(), String> {
     if value
         .get("schemaVersion")
         .and_then(serde_json::Value::as_u64)
-        != Some(2)
+        != Some(5)
     {
         return Err("settings schema version is unsupported".to_owned());
     }
@@ -728,6 +866,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             load_settings,
             save_settings,
+            load_welcome_tour_session,
+            save_welcome_tour_session,
+            clear_welcome_tour_session,
             load_chains,
             chains_initialized,
             save_chain,
@@ -757,7 +898,7 @@ mod tests {
     use super::{
         CommandError, EffectivePackageSizeLimits, atomic_write, read_project_folder,
         safe_workspace_id, sanitize_suggested_name, save_external_workspace,
-        validate_chain_payload, validate_settings_payload,
+        validate_chain_payload, validate_settings_payload, validate_welcome_tour_payload,
     };
 
     #[cfg(target_os = "linux")]
@@ -796,7 +937,36 @@ mod tests {
     fn rejects_invalid_or_unsupported_settings_payloads() {
         assert!(validate_settings_payload("not-json").is_err());
         assert!(validate_settings_payload(r#"{"schemaVersion":1}"#).is_err());
-        assert!(validate_settings_payload(r#"{"schemaVersion":2}"#).is_ok());
+        assert!(validate_settings_payload(r#"{"schemaVersion":2}"#).is_err());
+        assert!(validate_settings_payload(r#"{"schemaVersion":5}"#).is_ok());
+    }
+
+    #[test]
+    fn validates_bounded_welcome_tour_payloads() {
+        let valid = r#"{
+          "schemaVersion":1,
+          "stepId":"welcome",
+          "editorWorkspace":{
+            "id":"welcome-tour-editor",
+            "files":{"jump.jdef":"","choices.jdef":"","layout.jdef":""}
+          },
+          "trackerState":{"packages":{
+            "system-earth":{},
+            "welcome-tour-trailhead":{},
+            "welcome-tour-crossroads":{}
+          }}
+        }"#;
+        assert!(validate_welcome_tour_payload("not-json").is_err());
+        assert!(validate_welcome_tour_payload(valid).is_ok());
+        assert!(
+            validate_welcome_tour_payload(r#"{"schemaVersion":2,"stepId":"welcome"}"#).is_err()
+        );
+        assert!(validate_welcome_tour_payload(r#"{"schemaVersion":1,"stepId":""}"#).is_err());
+        assert!(validate_welcome_tour_payload(&valid.replace("welcome", "unknown-step")).is_err());
+        assert!(
+            validate_welcome_tour_payload(&valid.replace("welcome-tour-editor", "ordinary-editor"))
+                .is_err()
+        );
     }
 
     #[test]

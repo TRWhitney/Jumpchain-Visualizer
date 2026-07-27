@@ -161,13 +161,17 @@ test("token colors retain their choices control instead of a screen sampler", as
       onBlur={() => undefined}
     />,
   );
-  await expect
-    .element(
-      page.getByRole("button", {
-        name: "Show color choices for background",
-      }),
-    )
-    .toBeVisible();
+  const choices = page.getByRole("button", {
+    name: "Show color choices for background",
+  });
+  await expect.element(choices).toBeVisible();
+  expect(choices.element().querySelector("svg")?.style.transform).toBe(
+    "rotate(90deg)",
+  );
+  await choices.click();
+  expect(choices.element().querySelector("svg")?.style.transform).toBe(
+    "rotate(270deg)",
+  );
   await expect
     .element(
       page.getByRole("button", {

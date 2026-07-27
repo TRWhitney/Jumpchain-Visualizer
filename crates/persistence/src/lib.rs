@@ -81,6 +81,20 @@ impl AggregateStore {
         )?;
         transaction.commit()
     }
+
+    /// Removes one aggregate payload when disposable state is no longer needed.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `SQLite` error when the delete cannot be committed.
+    pub fn remove(&mut self, key: &str) -> rusqlite::Result<()> {
+        let transaction = self.connection.transaction()?;
+        transaction.execute(
+            "DELETE FROM application_aggregates WHERE aggregate_key = ?1",
+            params![key],
+        )?;
+        transaction.commit()
+    }
 }
 
 #[cfg(test)]
@@ -105,5 +119,7 @@ mod tests {
             store.load("settings").expect("updated load").as_deref(),
             Some(r#"{"schemaVersion":1,"changed":true}"#)
         );
+        store.remove("settings").expect("remove settings");
+        assert_eq!(store.load("settings").expect("removed load"), None);
     }
 }

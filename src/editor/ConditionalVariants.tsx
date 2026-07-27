@@ -1,8 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import {
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import type { Completion } from "@codemirror/autocomplete";
 import {
   Button,
   ComboBox,
+  ComboBoxStateContext,
   Group,
   Header,
   Input,
@@ -79,6 +87,16 @@ function propertyProvenance(property: ConditionPropertyDescriptor) {
   );
 }
 
+function ConditionComboBoxChevron() {
+  const state = useContext(ComboBoxStateContext);
+  return (
+    <Chevron
+      className="editor-diagnostics-chevron"
+      direction={state?.isOpen ? "up" : "down"}
+    />
+  );
+}
+
 function ConditionPropertyPicker({
   value,
   properties,
@@ -110,7 +128,7 @@ function ConditionPropertyPicker({
       className="editor-condition-combobox"
       selectedKey={value || null}
       onSelectionChange={(key) => key !== null && onChange(String(key))}
-      menuTrigger="focus"
+      menuTrigger="input"
     >
       <Label className="sr-only">{label}</Label>
       <Group>
@@ -118,7 +136,7 @@ function ConditionPropertyPicker({
         <Button
           aria-label={translate("ui.editorWorkspace.condition.showProperties")}
         >
-          <Chevron className="editor-diagnostics-chevron" />
+          <ConditionComboBoxChevron />
         </Button>
       </Group>
       <Popover className="editor-condition-popover">
@@ -406,7 +424,7 @@ function ConditionValueControl({
           <Button
             aria-label={translate("ui.editorWorkspace.condition.showValues")}
           >
-            <Chevron className="editor-diagnostics-chevron" />
+            <ConditionComboBoxChevron />
           </Button>
         )}
       </Group>

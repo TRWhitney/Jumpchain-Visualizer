@@ -88,6 +88,8 @@
       ? document.getElementById(result.dataset.settingsFocus)
       : document.getElementById(nextTab.getAttribute("aria-controls"))?.querySelector("button, select, input");
     if (focusTarget?.matches("[role='tab']")) focusTarget.click();
+    const owningSection = focusTarget?.closest(".settings-section");
+    if (owningSection) owningSection.open = true;
     focusTarget?.focus();
   });
 

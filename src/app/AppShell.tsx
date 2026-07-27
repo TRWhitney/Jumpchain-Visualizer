@@ -11,6 +11,7 @@ import {
 import { SettingsSurface } from "../settings/SettingsSurface";
 import { useOptionalSettings, useSettings } from "../settings/SettingsContext";
 import {
+  applyInterfaceExperience,
   effectivePackageSizeLimits,
   type SettingsCategory,
 } from "../settings/model";
@@ -97,6 +98,20 @@ import {
   translateDiagnostic,
   translateError,
 } from "../localization";
+import {
+  WelcomeTourOverlay,
+  backWelcomeTour,
+  completeWelcomeTourBranch,
+  createWelcomeTourSession,
+  createWelcomeTourSessionRepository,
+  nextWelcomeTourStep,
+  satisfyWelcomeTourStep,
+  stageWelcomeTourSession,
+  transitionWelcomeTour,
+  welcomeTourActionComplete,
+  type WelcomeTourBranch,
+  type WelcomeTourSessionV1,
+} from "../tour";
 
 type ShellHistoryState = {
   jvIndex?: number;
@@ -126,7 +141,7 @@ export function AppShell() {
 
 function AppShellContent() {
   const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
-  const { settings, logger } = useSettings();
+  const { settings, logger, update, replace } = useSettings();
   const [pathname, setPathname] = useState(window.location.pathname);
   const [settingsBackgroundPath, setSettingsBackgroundPath] = useState<
     string | null
@@ -141,6 +156,15 @@ function AppShellContent() {
     useState<SettingsCategory>("general");
   const [historyIndex, setHistoryIndex] = useState(currentHistoryIndex);
   const [historyMaximum, setHistoryMaximum] = useState(currentHistoryIndex);
+  const tourRepository = useMemo(
+    () => createWelcomeTourSessionRepository(),
+    [],
+  );
+  const [tourSession, setTourSession] = useState<WelcomeTourSessionV1 | null>(
+    null,
+  );
+  const tourSessionRef = useRef<WelcomeTourSessionV1 | null>(null);
+  const tourSaveQueue = useRef(Promise.resolve());
   const [chainRegistry, chainRegistryDispatch] = useReducer(
     chainRegistryReducer,
     undefined,
@@ -167,6 +191,9 @@ function AppShellContent() {
   const [pendingEditorNavigation, setPendingEditorNavigation] = useState<{
     path: string;
     state: Partial<ShellHistoryState>;
+  } | null>(null);
+  const [pendingTourRestart, setPendingTourRestart] = useState<{
+    returnPath: string;
   } | null>(null);
   const [exportWorkspace, setExportWorkspace] =
     useState<EditorWorkspaceSnapshot | null>(null);
@@ -207,11 +234,97 @@ function AppShellContent() {
         : route,
     [route, settingsBackgroundPath],
   );
+  const persistTourSession = useCallback(
+    (next: WelcomeTourSessionV1) => {
+      stageWelcomeTourSession(next);
+      tourSessionRef.current = next;
+      setTourSession(next);
+      tourSaveQueue.current = tourSaveQueue.current
+        .catch(() => undefined)
+        .then(() => tourRepository.save(next))
+        .catch((error: unknown) => {
+          logger.emit("storage.write_failed", {
+            attributes: {
+              aggregate: "welcome-tour",
+              errorCode: "WELCOME_TOUR_WRITE_FAILED",
+            },
+            error,
+          });
+        });
+    },
+    [logger, tourRepository],
+  );
+
+  useEffect(() => {
+    const status = settings.onboarding.welcomeTourStatus;
+    if (status === "completed" || status === "dismissed") {
+      return;
+    }
+    if (tourSession) return;
+    let live = true;
+    const initialize = async () => {
+      const returnPath =
+        pathname === "/settings" ? (settingsBackgroundPath ?? "/") : pathname;
+      const stored =
+        status === "in-progress" ? await tourRepository.load() : null;
+      const next = stored ?? createWelcomeTourSession(returnPath);
+      if (!live) return;
+      persistTourSession(next);
+      if (status !== "in-progress")
+        update(
+          (current) => ({
+            ...current,
+            onboarding: {
+              ...current.onboarding,
+              welcomeTourStatus: "in-progress",
+            },
+          }),
+          "onboarding.welcomeTourStatus",
+        );
+    };
+    void initialize().catch((error: unknown) => {
+      logger.emit("storage.recovery_used", {
+        attributes: {
+          aggregate: "welcome-tour",
+          reason: "invalid-or-missing-session",
+        },
+        error,
+      });
+      if (!live) return;
+      const next = createWelcomeTourSession("/");
+      persistTourSession(next);
+    });
+    return () => {
+      live = false;
+    };
+  }, [
+    logger,
+    pathname,
+    persistTourSession,
+    settings.onboarding.welcomeTourStatus,
+    settingsBackgroundPath,
+    tourRepository,
+    tourSession,
+    update,
+  ]);
+
+  useEffect(() => {
+    if (!tourSession || window.location.pathname === "/") return;
+    const frame = window.requestAnimationFrame(() => {
+      const state = (window.history.state as ShellHistoryState | null) ?? {};
+      window.history.replaceState(state, "", "/");
+      setPathname("/");
+      setSettingsBackgroundPath(null);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [tourSession]);
+
   const activeEditorWorkspace =
     backgroundRoute.kind === "editor-workspace"
       ? editorWorkspaces[backgroundRoute.workspaceId]
       : undefined;
-  const workspace = workspaceForRoute(backgroundRoute);
+  const workspace =
+    tourSession?.activeBranch ?? workspaceForRoute(backgroundRoute);
   const allSavedChains = useMemo(
     () =>
       orderedChains(chainRegistry).map((chain) => {
@@ -499,7 +612,9 @@ function AppShellContent() {
   );
 
   const isActive = (kind: typeof backgroundRoute.kind) =>
-    backgroundRoute.kind === kind;
+    tourSession
+      ? kind === "home" && tourSession.activeBranch === null
+      : backgroundRoute.kind === kind;
   const knownEditor =
     backgroundRoute.kind === "editor-workspace" &&
     activeEditorWorkspace !== undefined;
@@ -968,6 +1083,172 @@ function AppShellContent() {
     chainStatesRef.current = chainStates;
   }, [chainStates]);
 
+  const changeTourEditorWorkspace = useCallback(
+    (workspace: EditorWorkspaceSnapshot) => {
+      if (!tourSession) return;
+      persistTourSession({
+        ...tourSession,
+        revision: tourSession.revision + 1,
+        editorWorkspace: workspace,
+      });
+    },
+    [persistTourSession, tourSession],
+  );
+
+  const tourTrackerDispatch = useCallback<Dispatch<TrackerAction>>(
+    (action) => {
+      const current = tourSessionRef.current;
+      if (!current) return;
+      const openedBodyMod =
+        action.type === "set-supplement-page" && action.value === "body-mod";
+      persistTourSession({
+        ...current,
+        revision: current.revision + 1,
+        trackerState: trackerReducer(current.trackerState, action),
+        navigation: {
+          ...current.navigation,
+          trackerBodyModOpened:
+            current.navigation.trackerBodyModOpened || openedBodyMod,
+        },
+      });
+    },
+    [persistTourSession],
+  );
+
+  const tourActionComplete = useMemo(
+    () => (tourSession ? welcomeTourActionComplete(tourSession) : false),
+    [tourSession],
+  );
+
+  const continueTour = useCallback(() => {
+    if (!tourSession || !tourActionComplete) return;
+    persistTourSession(nextWelcomeTourStep(tourSession));
+  }, [persistTourSession, tourActionComplete, tourSession]);
+
+  const skipTourStep = useCallback(() => {
+    if (!tourSession) return;
+    const satisfied = satisfyWelcomeTourStep(tourSession);
+    persistTourSession(nextWelcomeTourStep(satisfied));
+  }, [persistTourSession, tourSession]);
+
+  const chooseTourBranch = useCallback(
+    (branch: WelcomeTourBranch) => {
+      if (!tourSession) return;
+      persistTourSession(
+        transitionWelcomeTour(
+          tourSession,
+          branch === "editor" ? "editor-overview" : "tracker-overview",
+          { branch },
+        ),
+      );
+    },
+    [persistTourSession, tourSession],
+  );
+
+  const chooseAdvancedTour = useCallback(
+    (advanced: boolean) => {
+      if (!tourSession) return;
+      const next = { ...tourSession, advancedEditor: advanced };
+      persistTourSession(
+        transitionWelcomeTour(
+          next,
+          advanced ? "editor-advanced-toggle" : "editor-summary",
+        ),
+      );
+    },
+    [persistTourSession, tourSession],
+  );
+
+  const exitTour = useCallback(() => {
+    if (!tourSession) return;
+    persistTourSession({
+      ...transitionWelcomeTour(tourSession, "mode-choice", {
+        branch: null,
+        resetHistory: true,
+      }),
+      pendingOutcome: "dismissed",
+    });
+  }, [persistTourSession, tourSession]);
+
+  const chooseTourMode = useCallback(
+    (mode: "advanced" | "beginner-friendly" | "keep-current") => {
+      if (!tourSession?.pendingOutcome) return;
+      const returnPath = tourSession.returnPath || "/";
+      const outcome = tourSession.pendingOutcome;
+      replace(
+        mode === "keep-current"
+          ? {
+              ...settings,
+              onboarding: {
+                ...settings.onboarding,
+                welcomeTourStatus: outcome,
+              },
+            }
+          : {
+              ...applyInterfaceExperience(settings, mode),
+              onboarding: {
+                ...settings.onboarding,
+                welcomeTourStatus: outcome,
+              },
+            },
+        "onboarding.welcomeTourStatus",
+      );
+      tourSessionRef.current = null;
+      setTourSession(null);
+      void tourSaveQueue.current.finally(() => tourRepository.clear());
+      const nextIndex = historyIndex + 1;
+      window.history.replaceState({ jvIndex: nextIndex }, "", returnPath);
+      setHistoryIndex(nextIndex);
+      setHistoryMaximum(nextIndex);
+      setPathname(returnPath);
+      setSettingsBackgroundPath(null);
+    },
+    [historyIndex, replace, settings, tourRepository, tourSession],
+  );
+
+  const startFreshWelcomeTour = useCallback(
+    (returnPath: string) => {
+      const next = createWelcomeTourSession(returnPath, true);
+      stageWelcomeTourSession(next);
+      tourSessionRef.current = next;
+      setTourSession(next);
+      void tourRepository.clear().finally(() => persistTourSession(next));
+      update(
+        (current) => ({
+          ...current,
+          onboarding: {
+            ...current.onboarding,
+            welcomeTourStatus: "in-progress",
+          },
+        }),
+        "onboarding.welcomeTourStatus",
+      );
+    },
+    [persistTourSession, tourRepository, update],
+  );
+
+  const restartWelcomeTour = useCallback(() => {
+    const returnPath =
+      settingsBackgroundPath ?? (pathname === "/settings" ? "/" : pathname);
+    if (
+      backgroundRoute.kind === "editor-workspace" &&
+      settings.editor.saveMode === "explicit" &&
+      editorSaveState !== "saved"
+    ) {
+      setPendingTourRestart({ returnPath });
+      setPendingEditorNavigation({ path: "/", state: {} });
+      return;
+    }
+    startFreshWelcomeTour(returnPath);
+  }, [
+    backgroundRoute.kind,
+    editorSaveState,
+    pathname,
+    settings.editor.saveMode,
+    settingsBackgroundPath,
+    startFreshWelcomeTour,
+  ]);
+
   const resetMockData = useCallback(async () => {
     const restored = createDenseTrackerFixture();
     const aggregate = aggregateFromTracker(
@@ -1019,12 +1300,14 @@ function AppShellContent() {
           "ui.appShell.ariaLabel.jumpchainVisualizerApplication",
         )}
       >
-        <header className="app-mock-header">
+        <header className="app-mock-header" data-tour-target="app-navigation">
           <button
             className="app-mock-brand"
             type="button"
             aria-pressed={workspace === "home"}
-            onClick={() => navigate("/")}
+            onClick={() => {
+              if (!tourSession) navigate("/");
+            }}
           >
             <span aria-hidden="true">{translate("ui.appShell.text.jv")}</span>
             <strong>{translate("ui.appShell.text.jumpchainVisualizer")}</strong>
@@ -1037,14 +1320,18 @@ function AppShellContent() {
             <button
               type="button"
               aria-pressed={workspace === "editor"}
-              onClick={() => navigate("/editor")}
+              onClick={() => {
+                if (!tourSession) navigate("/editor");
+              }}
             >
               {translate("ui.appShell.text.editor")}
             </button>
             <button
               type="button"
               aria-pressed={workspace === "chain"}
-              onClick={() => navigate("/chain")}
+              onClick={() => {
+                if (!tourSession) navigate("/chain");
+              }}
             >
               {translate("ui.appShell.text.chainTracker")}
             </button>
@@ -1054,7 +1341,9 @@ function AppShellContent() {
             className="app-mock-settings"
             type="button"
             aria-pressed={route.kind === "settings"}
-            onClick={toggleSettings}
+            onClick={() => {
+              if (!tourSession) toggleSettings();
+            }}
           >
             {translate("ui.appShell.text.settings")}
           </button>
@@ -1115,7 +1404,7 @@ function AppShellContent() {
             >
               {translate("ui.appShell.text.whatWouldYouLikeToDo")}
             </h1>
-            <div className="app-entry-grid">
+            <div className="app-entry-grid" data-tour-target="home-workspaces">
               <article>
                 <span className="app-entry-icon" aria-hidden="true">
                   ✎
@@ -1128,7 +1417,12 @@ function AppShellContent() {
                     )}
                   </p>
                 </div>
-                <button type="button" onClick={() => navigate("/editor")}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!tourSession) navigate("/editor");
+                  }}
+                >
                   {translate("ui.appShell.text.openEditor")}
                 </button>
               </article>
@@ -1144,7 +1438,12 @@ function AppShellContent() {
                     )}
                   </p>
                 </div>
-                <button type="button" onClick={() => navigate("/chain")}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!tourSession) navigate("/chain");
+                  }}
+                >
                   {translate("ui.appShell.text.openChainTracker")}
                 </button>
               </article>
@@ -1308,6 +1607,78 @@ function AppShellContent() {
                 </div>
               </section>
             </div>
+          </section>
+
+          <section
+            className="app-editor-workspace"
+            data-welcome-tour-scope="editor"
+            hidden={tourSession?.activeBranch !== "editor"}
+            inert={tourSession?.activeBranch !== "editor" || undefined}
+            aria-label={translate("ui.appShell.ariaLabel.editorWorkspace")}
+            data-tour-target="editor-workspace"
+          >
+            {tourSession?.activeBranch === "editor" && (
+              <EditorWorkspace
+                workspace={tourSession.editorWorkspace}
+                settings={applyInterfaceExperience(
+                  settings,
+                  "beginner-friendly",
+                )}
+                tags={projectedTags}
+                saveState="saved"
+                onChange={changeTourEditorWorkspace}
+                onSave={() => undefined}
+                onExport={() => undefined}
+                onFeedback={(eventName) => logger.emit(eventName)}
+                tour={{
+                  stepId: tourSession.stepId,
+                  advancedOpen: tourSession.editorAdvancedOpen,
+                  onAdvancedOpenChange: (advancedOpen) =>
+                    persistTourSession({
+                      ...tourSession,
+                      revision: tourSession.revision + 1,
+                      editorAdvancedOpen: advancedOpen,
+                    }),
+                  onNavigate: (destination) =>
+                    persistTourSession({
+                      ...tourSession,
+                      revision: tourSession.revision + 1,
+                      navigation: {
+                        ...tourSession.navigation,
+                        editorDetailsOpened:
+                          tourSession.navigation.editorDetailsOpened ||
+                          destination === "details",
+                        editorSectionOpened:
+                          tourSession.navigation.editorSectionOpened ||
+                          destination === "section",
+                        editorFilesOpened:
+                          tourSession.navigation.editorFilesOpened ||
+                          destination === "files",
+                        editorAppearanceOpened:
+                          tourSession.navigation.editorAppearanceOpened ||
+                          destination === "appearance",
+                      },
+                    }),
+                }}
+              />
+            )}
+          </section>
+
+          <section
+            className="app-chain-workspace"
+            data-welcome-tour-scope="tracker"
+            hidden={tourSession?.activeBranch !== "tracker"}
+            inert={tourSession?.activeBranch !== "tracker" || undefined}
+            data-tour-target="tracker-workspace"
+          >
+            {tourSession?.activeBranch === "tracker" && (
+              <ChainTracker
+                state={tourSession.trackerState}
+                dispatch={tourTrackerDispatch}
+                showApplicationHeader={false}
+                active
+              />
+            )}
           </section>
 
           <section
@@ -1555,6 +1926,7 @@ function AppShellContent() {
             <SettingsSurface
               onClose={closeSettings}
               onResetMockData={resetMockData}
+              onRestartWelcomeTour={restartWelcomeTour}
               direct={!settingsBackgroundPath}
               category={settingsCategory}
               onCategoryChange={setSettingsCategory}
@@ -1584,8 +1956,11 @@ function AppShellContent() {
                     const pending = pendingEditorNavigation;
                     void saveActiveEditor().then((saved) => {
                       if (!saved) return;
+                      const restart = pendingTourRestart;
                       setPendingEditorNavigation(null);
+                      setPendingTourRestart(null);
                       performNavigation(pending.path, pending.state);
+                      if (restart) startFreshWelcomeTour(restart.returnPath);
                     });
                   }}
                 >
@@ -1611,7 +1986,10 @@ function AppShellContent() {
                     }
                     setPendingEditorNavigation(null);
                     setEditorSaveState("saved");
+                    const restart = pendingTourRestart;
+                    setPendingTourRestart(null);
                     performNavigation(pending.path, pending.state);
+                    if (restart) startFreshWelcomeTour(restart.returnPath);
                   }}
                 >
                   {translate("ui.appShell.text.discard")}
@@ -1619,7 +1997,10 @@ function AppShellContent() {
                 <button
                   autoFocus
                   type="button"
-                  onClick={() => setPendingEditorNavigation(null)}
+                  onClick={() => {
+                    setPendingEditorNavigation(null);
+                    setPendingTourRestart(null);
+                  }}
                 >
                   {translate("ui.appShell.text.cancel")}
                 </button>
@@ -1724,6 +2105,24 @@ function AppShellContent() {
               </div>
             </section>
           </div>
+        )}
+        {tourSession && (
+          <WelcomeTourOverlay
+            session={tourSession}
+            actionComplete={tourActionComplete}
+            onContinue={continueTour}
+            onBack={() => persistTourSession(backWelcomeTour(tourSession))}
+            onSkip={skipTourStep}
+            onExit={exitTour}
+            onChooseBranch={chooseTourBranch}
+            onChooseAdvanced={chooseAdvancedTour}
+            onFinishBranch={(nextBranch) =>
+              persistTourSession(
+                completeWelcomeTourBranch(tourSession, nextBranch),
+              )
+            }
+            onChooseMode={chooseTourMode}
+          />
         )}
       </div>
     </SupplementProviders>

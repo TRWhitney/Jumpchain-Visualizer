@@ -87,6 +87,12 @@
   color: #5c5c56;
 }
 
+[data-app-theme="light"] .app-recent-work button:is(:hover, :focus-visible) {
+  color: #171717;
+  background: var(--app-accent-soft);
+  border-color: var(--app-accent-border);
+}
+
 [data-app-theme="light"] .app-chain-hub-heading {
   border-color: #aaa79e;
 }

@@ -73,11 +73,14 @@
         <h2>Presentation and Routing</h2>
         <p>Settings uses the agreed <a href="application-design.html#route-backed-settings-overlay">route-backed overlay</a>. Opening it from Home or a workspace pushes <code>/settings</code>, preserves the prior route underneath as inert content, and restores that route on Close, Escape, or Back. Opening <code>/settings</code> directly renders the same content as a full page.</p>
         <p>The initial surface includes persistent categories, global setting search, visible defaults, and a per-setting Reset action. The Settings frame keeps one compact, stable height across categories; each category and complex editor scrolls inside its own content region instead of resizing the dialog. Changes normally apply immediately; settings that cannot apply safely without restart must say so before the user changes them.</p>
-        <p>Language is the first setting in General. Its native dropdown applies immediately and uses each pack folder name as that language's self-name. English appears first and remains the invalid-value fallback. See <a href="localization.html">Localization Resources</a>.</p>
+        <p>General, Editor, and Chain Tracker organize their preferences into native disclosure sections. Every section starts expanded when Settings opens, multiple sections may remain open together, and manual disclosure choices last only for that Settings surface. Category changes and search preserve those choices; reopening Settings restores every section to expanded. Search expands a result’s owning section before it focuses the setting.</p>
+        <p>General orders <strong>Essentials</strong>, <strong>Interface behavior</strong>, and <strong>Welcome tour</strong>. Interface experience remains first; Language follows it and applies immediately, using each pack folder name as that language's self-name. English appears first and remains the invalid-value fallback. Theme and accent complete Essentials, interface defaults remain together, and Restart welcome tour is the final General setting. See <a href="localization.html">Localization Resources</a>.</p>
+        <p>Editor orders <strong>Workflow</strong>, <strong>Display and guidance</strong>, and <strong>Warnings</strong>. Chain Tracker orders <strong>Controls and rules</strong>, <strong>Inventory and appearance</strong>, and <strong>Change warnings</strong>. These disclosures change only presentation and never alter the settings stored inside them.</p>
 
         <h3>Settings Search</h3>
         <p>Search covers every category and matches visible labels, stable setting keys, descriptions, allowed values, and maintained aliases. Results identify their owning category. Selecting a result clears the query, opens that category, and focuses the setting. Clearing an unfinished search restores the category that was selected before searching.</p>
-        <p><strong>Interface experience</strong> is the first General row and aggregates settings without moving their individual controls. Experienced hides optional Editor teaching text and writes the current presentation defaults; New user friendly enables Show explanatory text with the other opt-in simplification settings and reduces maximum visible notifications to one. Any later individual change, including changing explanatory text independently, displays Custom. The computed experience is not independently persisted.</p>
+        <p><strong>Interface experience</strong> is the first General row and aggregates settings without moving their individual controls. Advanced hides optional Editor teaching text and writes the full-density presentation defaults; Beginner friendly enables Show explanatory text with the other opt-in simplification settings and reduces maximum visible notifications to one. Any later individual change, including changing explanatory text independently, displays Custom. The computed experience is not independently persisted.</p>
+        <p><strong>Welcome tour</strong> follows the lifecycle in <a href="welcome-tour-design.html">Welcome Tour Design</a>. Settings schema 5 stores only <code>onboarding.welcomeTourStatus</code>; the resumable temporary session has a separate bounded repository. “Restart welcome tour” starts immediately after any required explicit-save Editor departure decision. The final picker reapplies Beginner friendly or Advanced, or preserves current preferences when the tour was restarted from Settings.</p>
         <p>Simplification settings apply to an already-mounted Editor or Chain Tracker as soon as Settings changes. Each affected disclosure resets to the new configured default at that point. Manual expansion or collapse afterward remains local to that mounted surface and does not write a persistent setting.</p>
 
         <h2>Confirmed Settings</h2>
@@ -87,6 +90,13 @@
               <tr><th>Key</th><th>Default</th><th>Allowed values</th><th>Scope</th><th>Reason</th></tr>
             </thead>
             <tbody>
+              <tr>
+                <td><code>onboarding.welcomeTourStatus</code></td>
+                <td><code>pending</code> on a new install</td>
+                <td><code>pending</code>, <code>in-progress</code>, <code>completed</code>, <code>dismissed</code></td>
+                <td>Application lifecycle</td>
+                <td>Runs onboarding once, resumes a validated temporary lesson, and leaves upgraded users dismissed until they explicitly restart it.</td>
+              </tr>
               <tr>
                 <td><code>language.tag</code></td>
                 <td><code>en</code></td>
@@ -384,48 +394,122 @@
 
             <section id="settings-general-panel" role="tabpanel" aria-labelledby="settings-general-tab">
               <h4>General</h4>
-              <div class="setting-row">
-                <div><label for="mock-language">Language</label><p>Choose the language used by the application. The platform uses it as the spell-check dictionary signal when a matching dictionary is installed.</p></div>
-                <div><span class="setting-state agreed">Agreed</span><select id="mock-language"><option>English</option></select></div>
+              <div class="settings-section-list">
+                <details class="settings-section" data-settings-section="general-essentials" open>
+                  <summary><h5>Essentials</h5></summary>
+                  <div class="settings-section-body">
+                    <div class="setting-row">
+                      <div><label for="mock-interface-experience">Interface experience</label><p>Apply a starting collection of presentation preferences.</p></div>
+                      <div><select id="mock-interface-experience"><option>Advanced</option><option>Beginner friendly</option></select></div>
+                    </div>
+                    <div class="setting-row">
+                      <div><label for="mock-language">Language</label><p>Choose the language used by the application. The platform uses it as the spell-check dictionary signal when a matching dictionary is installed.</p></div>
+                      <div><span class="setting-state agreed">Agreed</span><select id="mock-language"><option>English</option></select></div>
+                    </div>
+                    <div class="setting-row">
+                      <div><label for="mock-theme">Appearance</label><p>Choose the application color theme.</p></div>
+                      <div><span class="setting-state agreed">Agreed</span><select id="mock-theme"><option>Use system setting</option><option>Light</option><option>Dark</option></select></div>
+                    </div>
+                    <div class="setting-row">
+                      <div><label for="mock-accent">Accent color</label><p>Choose the base color used to derive accessible application accents.</p></div>
+                      <div><span class="setting-state agreed">Agreed</span><div class="accent-color-control"><input id="mock-accent" type="color" value="#d4af37"><output id="mock-accent-value" for="mock-accent">#D4AF37</output><button id="mock-accent-reset" type="button">Reset</button></div></div>
+                    </div>
+                  </div>
+                </details>
+                <details class="settings-section" data-settings-section="general-interface" open>
+                  <summary><h5>Interface behavior</h5></summary>
+                  <div class="settings-section-body">
+                    <div class="setting-row">
+                      <div><label for="mock-hide-technical-locations">Technical locations</label><p>Hide raw route identifiers while retaining navigation labels.</p></div>
+                      <div><label class="setting-check"><input id="mock-hide-technical-locations" type="checkbox"><span>Hide raw technical locations</span></label></div>
+                    </div>
+                    <div class="setting-row">
+                      <div><label for="mock-collapse-optional-sections">Optional section defaults</label><p>Start fine-grained Editor and tag sections collapsed.</p></div>
+                      <div><label class="setting-check"><input id="mock-collapse-optional-sections" type="checkbox"><span>Collapse optional sections by default</span></label></div>
+                    </div>
+                    <div class="setting-explanation">Home is always the root destination. Startup redirection is an agreed application behavior, not a configurable preference.</div>
+                  </div>
+                </details>
+                <details class="settings-section" data-settings-section="general-welcome" open>
+                  <summary><h5>Welcome tour</h5></summary>
+                  <div class="settings-section-body">
+                    <div class="setting-row">
+                      <div><label for="mock-restart-welcome-tour">Welcome tour</label><p>Restart the guided welcome tour.</p></div>
+                      <div><button id="mock-restart-welcome-tour" type="button">Restart welcome tour</button></div>
+                    </div>
+                  </div>
+                </details>
               </div>
-              <div class="setting-row">
-                <div><label for="mock-theme">Appearance</label><p>Choose the application color theme.</p></div>
-                <div><span class="setting-state agreed">Agreed</span><select id="mock-theme"><option>Use system setting</option><option>Light</option><option>Dark</option></select></div>
-              </div>
-              <div class="setting-row">
-                <div><label for="mock-accent">Accent color</label><p>Choose the base color used to derive accessible application accents.</p></div>
-                <div><span class="setting-state agreed">Agreed</span><div class="accent-color-control"><input id="mock-accent" type="color" value="#d4af37"><output id="mock-accent-value" for="mock-accent">#D4AF37</output><button id="mock-accent-reset" type="button">Reset</button></div></div>
-              </div>
-              <div class="setting-explanation">Home is always the root destination. Startup redirection is an agreed application behavior, not a configurable preference.</div>
             </section>
 
             <section id="settings-editor-panel" role="tabpanel" aria-labelledby="settings-editor-tab" hidden>
               <h4>Editor</h4>
-              <div class="setting-row">
-                <div><label for="mock-save-mode">Saving</label><p>Choose how source and structured changes are committed.</p></div>
-                <div><span class="setting-state agreed">Agreed</span><select id="mock-save-mode"><option>Autosave</option><option>Explicit save</option></select></div>
+              <div class="settings-section-list">
+                <details class="settings-section" data-settings-section="editor-workflow" open>
+                  <summary><h5>Workflow</h5></summary>
+                  <div class="settings-section-body">
+                    <div class="setting-row">
+                      <div><label for="mock-save-mode">Saving</label><p>Choose how source and structured changes are committed.</p></div>
+                      <div><span class="setting-state agreed">Agreed</span><select id="mock-save-mode"><option>Autosave</option><option>Explicit save</option></select></div>
+                    </div>
+                    <div class="setting-row">
+                      <div><label for="mock-permanent-sidebar-delete">Sidebar item deletion</label><p>Choose whether right-click Delete moves sidebar items to Trash or permanently removes them after confirmation.</p></div>
+                      <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-permanent-sidebar-delete"><input id="mock-permanent-sidebar-delete" type="checkbox"><span>Permanently delete sidebar items</span></label></div>
+                    </div>
+                    <div class="setting-explanation">Editor preferences apply immediately to open workspaces and persist across launches.</div>
+                  </div>
+                </details>
+                <details class="settings-section" data-settings-section="editor-display" open>
+                  <summary><h5>Display and guidance</h5></summary>
+                  <div class="settings-section-body">
+                    <div class="setting-row">
+                      <div><label for="mock-show-explanatory-text">Editor explanations</label><p>Show optional Editor guidance.</p></div>
+                      <div><label class="setting-check"><input id="mock-show-explanatory-text" type="checkbox"><span>Show explanatory text</span></label></div>
+                    </div>
+                    <div class="setting-row">
+                      <div><label for="mock-collapse-advanced-views">Advanced Editor views</label><p>Start Files, Source, and Properties behind Advanced views.</p></div>
+                      <div><label class="setting-check"><input id="mock-collapse-advanced-views" type="checkbox"><span>Start advanced views collapsed</span></label></div>
+                    </div>
+                    <div class="setting-row">
+                      <div><label for="mock-collapse-preview-tools">Preview inspection tools</label><p>Start Inspect and Strip color behind Preview tools.</p></div>
+                      <div><label class="setting-check"><input id="mock-collapse-preview-tools" type="checkbox"><span>Start preview inspection tools collapsed</span></label></div>
+                    </div>
+                    <div class="setting-row">
+                      <div><label for="mock-layout-preview-placeholder-limit">Layout preview placeholder length</label><p>Optionally truncate generated layout-preview text to this many characters. Leave blank to show the complete representative text.</p></div>
+                      <div><span class="setting-state agreed">Agreed</span><span class="settings-number-control"><input id="mock-layout-preview-placeholder-limit" type="number" min="1" max="1000" step="1" placeholder="Unlimited"><span><button type="button" aria-label="Increase value"><svg aria-hidden="true" viewBox="0 0 12 8"><path d="M2 6 6 2l4 4"></path></svg></button><button type="button" aria-label="Decrease value"><svg aria-hidden="true" viewBox="0 0 12 8"><path d="m2 2 4 4 4-4"></path></svg></button></span></span></div>
+                    </div>
+                  </div>
+                </details>
+                <details class="settings-section" data-settings-section="editor-warnings" open>
+                  <summary><h5>Warnings</h5></summary>
+                  <div class="settings-section-body">
+                    <div class="setting-row">
+                      <div><label for="mock-warn-missing-alt">Missing image alt warning</label><p>Warn when an image omits alternative text.</p></div>
+                      <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-warn-missing-alt"><input id="mock-warn-missing-alt" type="checkbox" checked><span>Show accessibility warning</span></label></div>
+                    </div>
+                    <div class="setting-row">
+                      <div><label for="mock-warn-missing-layout-targets">Missing layout target warning</label><p>Warn when reusable layouts name content absent from a particular owner.</p></div>
+                      <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-warn-missing-layout-targets"><input id="mock-warn-missing-layout-targets" type="checkbox" checked><span>Show missing-target warning</span></label></div>
+                    </div>
+                  </div>
+                </details>
               </div>
-              <div class="setting-row">
-                <div><label for="mock-layout-preview-placeholder-limit">Layout preview placeholder length</label><p>Optionally truncate generated layout-preview text to this many characters. Leave blank to show the complete representative text.</p></div>
-                <div><span class="setting-state agreed">Agreed</span><span class="settings-number-control"><input id="mock-layout-preview-placeholder-limit" type="number" min="1" max="1000" step="1" placeholder="Unlimited"><span><button type="button" aria-label="Increase value"><svg aria-hidden="true" viewBox="0 0 12 8"><path d="M2 6 6 2l4 4"></path></svg></button><button type="button" aria-label="Decrease value"><svg aria-hidden="true" viewBox="0 0 12 8"><path d="m2 2 4 4 4-4"></path></svg></button></span></span></div>
-              </div>
-              <div class="setting-row">
-                <div><label for="mock-warn-missing-alt">Missing image alt warning</label><p>Warn when an image omits alternative text.</p></div>
-                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-warn-missing-alt"><input id="mock-warn-missing-alt" type="checkbox" checked><span>Show accessibility warning</span></label></div>
-              </div>
-              <div class="setting-row">
-                <div><label for="mock-warn-missing-layout-targets">Missing layout target warning</label><p>Warn when reusable layouts name content absent from a particular owner.</p></div>
-                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-warn-missing-layout-targets"><input id="mock-warn-missing-layout-targets" type="checkbox" checked><span>Show missing-target warning</span></label></div>
-              </div>
-              <div class="setting-row">
-                <div><label for="mock-permanent-sidebar-delete">Sidebar item deletion</label><p>Choose whether right-click Delete moves sidebar items to Trash or permanently removes them after confirmation.</p></div>
-                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-permanent-sidebar-delete"><input id="mock-permanent-sidebar-delete" type="checkbox"><span>Permanently delete sidebar items</span></label></div>
-              </div>
-              <div class="setting-explanation">Autosave remains the default. Explicit mode exposes Save and requires leave confirmation for unresolved changes. Layout preview placeholder length is blank and unlimited by default; a value from 1 through 1000 truncates generated representative text without changing authored source. Warning controls affect diagnostics only. Permanent sidebar deletion is off by default, always confirms, and hides Trash only while it is empty.</div>
             </section>
 
             <section id="settings-chain-panel" role="tabpanel" aria-labelledby="settings-chain-tab" hidden>
               <h4>Chain Tracker</h4>
+              <div class="settings-section-list">
+                <details class="settings-section" data-settings-section="chain-controls" open>
+                  <summary><h5>Controls and rules</h5></summary>
+                  <div class="settings-section-body">
+                    <div class="setting-row">
+                      <div><label for="mock-compact-jump-actions">Jump row actions</label><p>Replace repeated move and remove controls with a compact actions menu.</p></div>
+                      <div><label class="setting-check"><input id="mock-compact-jump-actions" type="checkbox"><span>Use compact Jump action menus</span></label></div>
+                    </div>
+                    <div class="setting-row">
+                      <div><label for="mock-collapse-inventory-filters">Inventory tag filters</label><p>Start inventory tag relationships behind their toolbar disclosure.</p></div>
+                      <div><label class="setting-check"><input id="mock-collapse-inventory-filters" type="checkbox"><span>Start inventory tag filters collapsed</span></label></div>
+                    </div>
               <div class="setting-row">
                 <div><label for="mock-multiple-package-versions">Add another package version</label><p>Allow Add to place a second installed version of a logical Jump package into the current chain. Existing and imported entries are unaffected.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-multiple-package-versions"><input id="mock-multiple-package-versions" type="checkbox"><span>Allow second version</span></label></div>
@@ -442,6 +526,11 @@
                 <div><label for="mock-allow-rerolls">Rerolls</label><p>Allow a recorded random result to be replaced for the same chain entry.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-allow-rerolls"><input id="mock-allow-rerolls" type="checkbox"><span>Allow rerolls</span></label></div>
               </div>
+                  </div>
+                </details>
+                <details class="settings-section" data-settings-section="chain-inventory" open>
+                  <summary><h5>Inventory and appearance</h5></summary>
+                  <div class="settings-section-body">
               <div class="setting-row">
                 <div><label for="mock-aggregate-similar-inventory">Aggregate similar perks and items</label><p>Combine same-owner records with the same kind, resolved name, and rank while retaining every source, description, and tag.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-aggregate-similar-inventory"><input id="mock-aggregate-similar-inventory" type="checkbox" checked><span>Aggregate similar records</span></label></div>
@@ -451,14 +540,22 @@
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-item-tags-radar"><input id="mock-item-tags-radar" type="checkbox"><span>Count item tags</span></label></div>
               </div>
               <div class="setting-row">
-                <div><label for="mock-warn-upstream-changes">Upstream change warnings</label><p>Review a reorder or deletion before it invalidates an explicit active downstream reference.</p></div>
-                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-warn-upstream-changes"><input id="mock-warn-upstream-changes" type="checkbox"><span>Warn about upstream changes</span></label></div>
-              </div>
-              <div class="setting-row">
                 <div><label for="mock-color-chain-names">Color chain names by primary tag</label><p>Color saved-chain names using the top-level tag category containing the most accrued perks.</p></div>
                 <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-color-chain-names"><input id="mock-color-chain-names" type="checkbox"><span>Color chain names</span></label></div>
               </div>
-              <div class="setting-explanation">Similar inventory aggregation is on by default; the other seven settings are off. Parallel versions never duplicate an exact version or update existing entries; duplicate Jumps create independent exact-package entries and remain intact if the setting is later disabled. Similar Inventory records share an owner, perk/item kind, resolved name, and rank; their package and grant handles may differ. Negative balances apply to the Jumper and to companions granted a positive point budget in that run. Without rerolls, a source-level roll is locked after its first stored result; removing the chain entry deletes that roll record along with the entry. Radar statistics count Jumper and form perks by default; item tags are opt-in and companion records never count. Upstream warnings appear only when an explicit active dependency would become invalid—for example, when a companion provider would no longer precede a Jump that imports that companion. Changes to ordinary historical records do not warn, and every committed reorder or deletion remains undoable. Primary-tag coloring uses the same eligible radar records, resolves equal counts by the stable built-in category order, and leaves chains without tagged records in the ordinary text color. It changes the saved-list presentation but not tag badges or chain content.</div>
+                  </div>
+                </details>
+                <details class="settings-section" data-settings-section="chain-warnings" open>
+                  <summary><h5>Change warnings</h5></summary>
+                  <div class="settings-section-body">
+              <div class="setting-row">
+                <div><label for="mock-warn-upstream-changes">Upstream change warnings</label><p>Review a reorder or deletion before it invalidates an explicit active downstream reference.</p></div>
+                <div><span class="setting-state agreed">Agreed</span><label class="setting-check" for="mock-warn-upstream-changes"><input id="mock-warn-upstream-changes" type="checkbox"><span>Warn about upstream changes</span></label></div>
+              </div>
+                  </div>
+                </details>
+              </div>
+              <div class="setting-explanation">Similar inventory aggregation is on by default; the other nine settings are off. Parallel versions never duplicate an exact version or update existing entries; duplicate Jumps create independent exact-package entries and remain intact if the setting is later disabled. Similar Inventory records share an owner, perk/item kind, resolved name, and rank; their package and grant handles may differ. Negative balances apply to the Jumper and to companions granted a positive point budget in that run. Without rerolls, a source-level roll is locked after its first stored result; removing the chain entry deletes that roll record along with the entry. Radar statistics count Jumper and form perks by default; item tags are opt-in and companion records never count. Upstream warnings appear only when an explicit active dependency would become invalid—for example, when a companion provider would no longer precede a Jump that imports that companion. Changes to ordinary historical records do not warn, and every committed reorder or deletion remains undoable. Primary-tag coloring uses the same eligible radar records, resolves equal counts by the stable built-in category order, and leaves chains without tagged records in the ordinary text color. It changes the saved-list presentation but not tag badges or chain content.</div>
             </section>
 
             <section id="settings-notifications-panel" class="settings-notifications-panel" role="tabpanel" aria-labelledby="settings-notifications-tab" hidden>

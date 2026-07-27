@@ -96,7 +96,7 @@ test("new-user Chain controls keep identity and history visible while compacting
   await page.goto("/settings");
   await page
     .getByRole("combobox", { name: "Interface experience" })
-    .selectOption("new-user-friendly");
+    .selectOption("beginner-friendly");
   await waitForStoredSetting(page, ["chain", "compactJumpActions"], true);
   await page.goto("/review/chain-tracker");
   const tracker = trackerFor(page);
@@ -1072,7 +1072,7 @@ test("a stale canonical demo hash rebinds without losing selections or reaching 
   await expect
     .poll(async () =>
       page.evaluate(async () => {
-        const request = indexedDB.open("jumpchain-visualizer", 3);
+        const request = indexedDB.open("jumpchain-visualizer", 4);
         const database = await new Promise<IDBDatabase>((resolve, reject) => {
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
@@ -1090,7 +1090,7 @@ test("a stale canonical demo hash rebinds without losing selections or reaching 
     .toBe(true);
 
   await page.evaluate(async () => {
-    const request = indexedDB.open("jumpchain-visualizer", 3);
+    const request = indexedDB.open("jumpchain-visualizer", 4);
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);

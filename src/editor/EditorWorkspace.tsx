@@ -175,6 +175,7 @@ import {
   trimAssetWorkspaceHistory,
   type AssetWorkspaceHistoryState,
 } from "./assetHistory";
+import type { WelcomeTourStepId } from "../tour/model";
 
 type SaveState = "saved" | "saving" | "unsaved" | "failed";
 type NavigationTab = "content" | "files";
@@ -859,6 +860,7 @@ export function EditorWorkspace({
   onSave,
   onExport,
   onFeedback,
+  tour,
 }: {
   workspace: EditorWorkspaceSnapshot;
   settings: ApplicationSettings;
@@ -868,6 +870,14 @@ export function EditorWorkspace({
   onSave: () => void;
   onExport: () => void;
   onFeedback: (eventName: string) => void;
+  tour?: {
+    stepId: WelcomeTourStepId;
+    advancedOpen: boolean;
+    onAdvancedOpenChange: (open: boolean) => void;
+    onNavigate: (
+      destination: "details" | "section" | "files" | "appearance",
+    ) => void;
+  };
 }) {
   const [navigationTab, setNavigationTab] = useState<NavigationTab>("content");
   const [editingTab, setEditingTab] = useState<EditingTab>("structured");
@@ -970,6 +980,7 @@ export function EditorWorkspace({
     useState<AppearanceColorInspection | null>(null);
   const layoutInspectionRef = useRef<LayoutInspectionHandle>(null);
   const editorRootRef = useRef<HTMLDivElement>(null);
+  const preparedTourStepRef = useRef<string | null>(null);
   const advancedViewsButtonRef = useRef<HTMLButtonElement>(null);
   const [history, setHistory] = useState<WorkspaceHistoryState[]>(() => [
     {
@@ -1016,7 +1027,9 @@ export function EditorWorkspace({
       setAssetEditingTab("structured");
       setContextTab("preview");
     }
-    setAdvancedViewsOpen(!advancedViewsOpen);
+    const next = !advancedViewsOpen;
+    setAdvancedViewsOpen(next);
+    tour?.onAdvancedOpenChange(next);
     requestAnimationFrame(() => advancedViewsButtonRef.current?.focus());
   };
   const handleSearchInputKeyDown = (
@@ -1425,6 +1438,59 @@ export function EditorWorkspace({
     setFile(symbol.file);
     setEditingTab(contentEditingTab);
   };
+
+  useEffect(() => {
+    if (!tour) return;
+    const preparationKey = `${tour.stepId}:${tour.advancedOpen}`;
+    if (preparedTourStepRef.current === preparationKey) return;
+    const kind =
+      tour.stepId === "editor-metadata"
+        ? "jump"
+        : tour.stepId === "editor-configure-choice"
+          ? "choice"
+          : tour.stepId === "editor-place-choice"
+            ? "section"
+            : null;
+    const symbol = analysis.symbols.find(
+      (candidate) => candidate.depth === 0 && candidate.kind === kind,
+    );
+    if (kind && !symbol) return;
+    const frame = window.requestAnimationFrame(() => {
+      preparedTourStepRef.current = preparationKey;
+      if (advancedViewsOpen !== tour.advancedOpen)
+        setAdvancedViewsOpen(tour.advancedOpen);
+      if (!symbol) return;
+      setSelectedTrashId(null);
+      setSelectedAsset(null);
+      setSelectedSymbol(symbol);
+      setSelected(previewSelectionForSymbol(workspace.files, symbol));
+      setFile(symbol.file);
+      setNavigationTab("content");
+      setEditingTab("structured");
+      setContentEditingTab("structured");
+      if (kind === "section") {
+        const owner = structuredDisclosureOwnerKey(
+          symbol,
+          workspace.files,
+          analysis.symbols,
+        );
+        setStructuredDisclosureStates((current) => ({
+          ...current,
+          [owner]: {
+            ...(current[owner] ?? {}),
+            "content-and-effects": true,
+          },
+        }));
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    analysis.symbols,
+    advancedViewsOpen,
+    setAdvancedViewsOpen,
+    tour,
+    workspace.files,
+  ]);
 
   const openFile = (nextFile: string) => {
     setSelectedTrashId(null);
@@ -2222,6 +2288,7 @@ export function EditorWorkspace({
               ref={advancedViewsButtonRef}
               className="editor-advanced-views-toggle"
               type="button"
+              data-tour-target="editor-advanced-toggle"
               aria-expanded={advancedViewsOpen}
               aria-describedby="editor-advanced-views-description"
               onClick={toggleAdvancedViews}
@@ -2253,10 +2320,18 @@ export function EditorWorkspace({
             {translate("ui.editorWorkspace.text.save")}
           </button>
         )}
-        <button type="button" onClick={onExport}>
+        <button
+          type="button"
+          onClick={onExport}
+          data-tour-target="editor-export"
+        >
           {translate("ui.editorWorkspace.text.exportJmp")}
         </button>
-        <div ref={addMenuRef} className="editor-add-menu">
+        <div
+          ref={addMenuRef}
+          className="editor-add-menu"
+          data-tour-target={addOpen ? undefined : "editor-add"}
+        >
           <button
             className="editor-primary-action"
             type="button"
@@ -2266,7 +2341,7 @@ export function EditorWorkspace({
             {translate("ui.editorWorkspace.text.add")}
           </button>
           {addOpen && (
-            <div className="editor-add-options">
+            <div className="editor-add-options" data-tour-target="editor-add">
               {addDeclarationKinds
                 .filter(
                   (kind) =>
@@ -2307,11 +2382,15 @@ export function EditorWorkspace({
         </div>
       </div>
 
-      <aside className="editor-explorer">
+      <aside
+        className="editor-explorer"
+        data-tour-target="editor-navigation-appearance"
+      >
         <div
           className="editor-tabs editor-navigation-tabs"
           role="tablist"
           aria-label={translate("ui.editorWorkspace.ariaLabel.navigation")}
+          data-tour-target="editor-advanced-tabs"
         >
           {(advancedViewsOpen
             ? (["content", "files"] as const)
@@ -2333,6 +2412,7 @@ export function EditorWorkspace({
                   else openFileAsset(selectedAsset);
                   return;
                 }
+                if (tab === "files") tour?.onNavigate("files");
                 setNavigationTab(tab);
                 setEditingTab(tab === "files" ? "source" : contentEditingTab);
               }}
@@ -2367,7 +2447,9 @@ export function EditorWorkspace({
                     : ""
                 }
                 label={translate("ui.editorWorkspace.text.jumpDetails")}
+                data-tour-target="editor-navigation-details"
                 onClick={() => {
+                  tour?.onNavigate("details");
                   setSelected({ kind: "package" });
                   setSelectedSymbol(
                     analysis.symbols.find((symbol) => symbol.kind === "jump") ??
@@ -2393,7 +2475,10 @@ export function EditorWorkspace({
                         : ""
                     }
                     label={translate("ui.editorWorkspace.text.jumpAppearance")}
-                    onClick={() => openSymbol(appearance)}
+                    onClick={() => {
+                      tour?.onNavigate("appearance");
+                      openSymbol(appearance);
+                    }}
                     onContextMenu={(event) =>
                       openExplorerContextMenu(event, {
                         kind: "symbol",
@@ -2461,6 +2546,16 @@ export function EditorWorkspace({
                         }
                         key={`${symbol.file}:${symbol.from}`}
                         label={explorerSymbolLabel(symbol)}
+                        data-tour-target={
+                          symbol.kind === "section" &&
+                          readSourceField(
+                            workspace.files[symbol.file],
+                            symbol,
+                            "handle",
+                          ) === "first_steps"
+                            ? "editor-navigation-section"
+                            : undefined
+                        }
                         after={
                           symbol.kind.includes("layout") ? (
                             <small>{symbol.kind.replace("-layout", "")}</small>
@@ -2474,7 +2569,18 @@ export function EditorWorkspace({
                             />
                           ) : undefined
                         }
-                        onClick={() => openSymbol(symbol)}
+                        onClick={() => {
+                          if (
+                            symbol.kind === "section" &&
+                            readSourceField(
+                              workspace.files[symbol.file],
+                              symbol,
+                              "handle",
+                            ) === "first_steps"
+                          )
+                            tour?.onNavigate("section");
+                          openSymbol(symbol);
+                        }}
                         onContextMenu={(event) =>
                           openExplorerContextMenu(event, {
                             kind: "symbol",
@@ -3523,7 +3629,10 @@ export function EditorWorkspace({
             bytes={selectedAssetBytes}
           />
         ) : contextTab === "preview" ? (
-          <div className="editor-preview-panel">
+          <div
+            className="editor-preview-panel"
+            data-tour-target="editor-preview"
+          >
             <div className="editor-preview-toolbar">
               <span>
                 <strong>
@@ -7403,7 +7512,22 @@ function StructuredPanel({
       ? translate("ui.editorWorkspace.description.label")
       : symbolLabel(child);
   return (
-    <div className="editor-structured-scroll">
+    <div
+      className="editor-structured-scroll"
+      data-tour-target={
+        symbol.kind === "jump"
+          ? "editor-jump-details"
+          : symbol.kind === "choice"
+            ? resolvedContext?.context === "top-level"
+              ? "editor-choice-fields"
+              : "editor-section-content"
+            : symbol.kind === "section"
+              ? "editor-section-content"
+              : symbol.kind === "jump-appearance"
+                ? "editor-appearance"
+                : undefined
+      }
+    >
       <header className="editor-structured-heading">
         <p>{editorDeclarationLabel(symbol.kind)}</p>
         <h2>{name}</h2>

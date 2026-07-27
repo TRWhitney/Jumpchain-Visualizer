@@ -98,10 +98,12 @@ export function SettingsProvider({
           settingsSource.write(hydrated);
           persistedSource.write(hydrated);
           setSettings(hydrated);
-          if (JSON.stringify(stored) !== JSON.stringify(hydrated))
+          if (JSON.stringify(stored) !== JSON.stringify(hydrated)) {
+            await actualRepository.save(hydrated);
             logger.emit("storage.recovery_used", {
               attributes: { aggregate: "settings", reason: "invalid-values" },
             });
+          }
         } else await changeLanguage(initial.language.tag);
         if (!active) return;
         setLoaded(true);
@@ -179,7 +181,8 @@ export function SettingsProvider({
         continuousAuditTimer.current = null;
         pendingContinuous.current = null;
         setSettings(next);
-        logger.emit("settings.value.changed", { attributes: { settingKey } });
+        if (!settingKey.startsWith("onboarding."))
+          logger.emit("settings.value.changed", { attributes: { settingKey } });
         if (settingKey.startsWith("notifications."))
           logger.syncNotificationPreferences();
         return;
@@ -221,7 +224,8 @@ export function SettingsProvider({
       settingsSource.write(next);
       setSettings(next);
       persist(next, false);
-      logger.emit("settings.value.changed", { attributes: { settingKey } });
+      if (!settingKey.startsWith("onboarding."))
+        logger.emit("settings.value.changed", { attributes: { settingKey } });
       if (settingKey.startsWith("notifications."))
         logger.syncNotificationPreferences();
     },

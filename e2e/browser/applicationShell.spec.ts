@@ -63,7 +63,7 @@ async function expectStoredChain(page: Page, id: string) {
           }),
         {
           databaseName: "jumpchain-visualizer",
-          databaseVersion: 3,
+          databaseVersion: 4,
           chainId: id,
         },
       ),

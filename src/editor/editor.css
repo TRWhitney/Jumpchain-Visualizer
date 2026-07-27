@@ -1334,10 +1334,6 @@
 }
 .editor-condition-combobox button .editor-diagnostics-chevron {
   display: inline-block;
-  transform: rotate(90deg);
-}
-.editor-condition-combobox button[data-pressed] .editor-diagnostics-chevron {
-  transform: rotate(-90deg);
 }
 .editor-condition-popover {
   z-index: 80;
@@ -1560,14 +1556,6 @@
   color: #eee;
   background: #30302d;
 }
-.editor-image-dimension-combobox .editor-diagnostics-chevron {
-  transform: rotate(90deg);
-}
-.editor-image-dimension-combobox
-  button[aria-expanded="true"]
-  .editor-diagnostics-chevron {
-  transform: rotate(-90deg);
-}
 .editor-image-dimension-popover {
   position: absolute;
   z-index: 8;
@@ -1670,14 +1658,6 @@
 .editor-handle-combobox > button:disabled {
   cursor: default;
   opacity: 0.45;
-}
-.editor-handle-combobox .editor-diagnostics-chevron {
-  transform: rotate(90deg);
-}
-.editor-handle-combobox
-  > button[aria-expanded="true"]
-  .editor-diagnostics-chevron {
-  transform: rotate(-90deg);
 }
 .editor-handle-popover {
   position: absolute;
@@ -1982,12 +1962,6 @@
 .editor-color-screen-sampler:disabled {
   cursor: wait;
   opacity: 0.58;
-}
-.editor-color-choice-trigger .editor-diagnostics-chevron {
-  transform: rotate(90deg);
-}
-.editor-color-choice-trigger[aria-expanded="true"] .editor-diagnostics-chevron {
-  transform: rotate(-90deg);
 }
 .editor-color-choice-popover {
   position: absolute;
@@ -4081,6 +4055,9 @@
   stroke-linejoin: miter;
   stroke-width: 1.6;
   transition: transform 120ms ease;
+}
+[data-app-motion="reduced"] .editor-diagnostics-chevron {
+  transition: none;
 }
 .editor-diagnostics-toggle[aria-expanded="true"] .editor-diagnostics-chevron {
   transform: rotate(-90deg);

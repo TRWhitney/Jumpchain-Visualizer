@@ -1,0 +1,248 @@
+{
+  "tour": {
+    "sections": {
+      "welcome": "Welcome tour",
+      "home": "Home",
+      "editor": "Editor lesson",
+      "tracker": "Tracker lesson",
+      "finish": "Make it yours"
+    },
+    "progress": "Step {{current}} of {{total}}",
+    "progressLabel": "Tour progress: step {{current}} of {{total}}",
+    "actions": {
+      "exit": "Exit tour",
+      "back": "Back",
+      "retry": "Retry",
+      "skipStep": "Skip step—do it for me",
+      "start": "Start tour",
+      "continue": "Continue",
+      "stepComplete": "Nice work. This step is complete.",
+      "exploreAdvanced": "Explore advanced tools",
+      "notNow": "Not now",
+      "continueOther": "Continue in {{branch}}",
+      "finishTour": "Finish tour"
+    },
+    "targetMissing": {
+      "title": "This control is taking a moment",
+      "body": "The tour could not locate the next control. Retry after the view settles, or let the tour complete this step for you."
+    },
+    "branch": {
+      "editor": {
+        "title": "Create in the Editor",
+        "short": "the Editor",
+        "body": "Build a small Jump with structured controls and see it appear in Preview."
+      },
+      "tracker": {
+        "title": "Travel in the Tracker",
+        "short": "the Tracker",
+        "body": "Add a Jump, make choices, arrange the chain, and explore persistent benefits."
+      }
+    },
+    "mode": {
+      "beginner": {
+        "title": "Beginner friendly",
+        "body": "Keep advanced panels tucked away, show more explanations, and simplify dense actions."
+      },
+      "advanced": {
+        "title": "Advanced",
+        "body": "Keep every workspace control visible and use the full-density interface."
+      },
+      "keepCurrent": "Keep my current settings"
+    },
+    "steps": {
+      "welcome": {
+        "title": "Welcome to Jumpchain Visualizer",
+        "body": "This guided tour first explains Home, then lets you practice in either the Editor or Chain Tracker.",
+        "detail": "The lesson uses temporary data. It is saved only so you can resume the tour, and it is permanently removed when you finish or exit."
+      },
+      "home-navigation": {
+        "title": "Your work is always close",
+        "body": "The top bar is global navigation: select the JV brand for Home, Editor or Chain Tracker for a workspace hub, and Settings for preferences.",
+        "detail": "Back and Forward follow in-app location history. During this lesson these controls stay locked so temporary work cannot leak into normal navigation."
+      },
+      "home-workspaces": {
+        "title": "Start new work or resume",
+        "body": "The two large Home cards open the Editor and Chain Tracker hubs. Existing projects and chains appear in the recent lists below them.",
+        "detail": "Creating a Jump means authoring a package; starting a chain means importing Jumps and recording a Jumper’s decisions."
+      },
+      "choose-branch": {
+        "title": "Where would you like to begin?",
+        "body": "Choose a card below to navigate into a temporary Editor or Tracker workspace.",
+        "detail": "The app will visibly switch workspaces. At the end you can take the other branch or finish."
+      },
+      "editor-overview": {
+        "title": "You’re in the practice Editor",
+        "body": "Your branch choice opened My First Jump. Content is on the left, the selected declaration is edited in the center, and live Preview is on the right.",
+        "detail": "Nothing here appears in Your Jump projects. Continue to begin navigating the project yourself."
+      },
+      "editor-open-details": {
+        "title": "Navigate to Jump details",
+        "body": "In the left Content explorer, select Jump details.",
+        "detail": "Explorer selections decide what the center Structured pane edits. The highlighted row is the package-level starting point."
+      },
+      "editor-metadata": {
+        "title": "Review the Jump’s identity",
+        "body": "Structured now shows the name, description, authors, version, and expandable Jump settings for point configuration.",
+        "detail": "These values are prefilled so this lesson can focus on the authoring loop. Continue after you locate them."
+      },
+      "editor-add-choice": {
+        "title": "Add your first Choice",
+        "body": "Select Add in the project toolbar, then select Choice from the menu that opens.",
+        "detail": "The Editor creates a reusable top-level Choice in choices.jdef and navigates directly to its Structured form."
+      },
+      "editor-configure-choice": {
+        "title": "Give the Choice a clear identity",
+        "body": "Change Handle from new_choice to road_companion and Name from New Choice to Road Companion.",
+        "detail": "Handles use lowercase letters, numbers, and single underscores. Leave Selection type as Toggle; the step completes after both identity fields are valid."
+      },
+      "editor-open-section": {
+        "title": "Navigate to the section",
+        "body": "In the left Content explorer, expand Sections if needed and select first_steps.",
+        "detail": "Sections control reading order. This selection replaces the Choice form with the section’s Structured content editor."
+      },
+      "editor-place-choice": {
+        "title": "Place the Choice in a section",
+        "body": "Under Content & effects, select + Direct choice. In the new placement, set Choice to display to road_companion.",
+        "detail": "The top-level Choice defines behavior; this placement decides where readers see it. Keep the generated placement handle."
+      },
+      "editor-preview": {
+        "title": "Check the reader's view",
+        "body": "Look at live Preview on the right and find Road Companion inside First steps.",
+        "detail": "The Diagnostics bar along the bottom reports authoring problems. A viable Jump has no blocking red diagnostics."
+      },
+      "editor-advanced-offer": {
+        "title": "Your minimum Jump is ready",
+        "body": "You completed the minimum loop: add a declaration, configure it, place it, and verify it.",
+        "detail": "Explore advanced tools for a short navigation lesson covering files, source, appearance, and export, or finish this branch."
+      },
+      "editor-advanced-toggle": {
+        "title": "Reveal advanced views",
+        "body": "Select Advanced views in the project toolbar.",
+        "detail": "This reveals Files navigation and Source and Properties editing tabs without changing your authored data."
+      },
+      "editor-advanced-tabs": {
+        "title": "Navigate to Files and Source",
+        "body": "Select Files in the left navigation.",
+        "detail": "The center pane switches to Source for the selected .jdef file. Content and Structured remain the safer visual path."
+      },
+      "editor-advanced-appearance": {
+        "title": "Return to visual appearance",
+        "body": "Select Content, then select Jump appearance in the explorer.",
+        "detail": "This returns to Structured editing. Appearance, layouts, themes, and Preview inspection tools control presentation separately from content."
+      },
+      "editor-advanced-export": {
+        "title": "Export only when it is ready",
+        "body": "The Export .jmp action packages a finished project for use in the Tracker.",
+        "detail": "Export validates definitions, references, files, and assets first. The tour does not create an archive; continue after locating the action."
+      },
+      "editor-summary": {
+        "title": "You built a working Jump",
+        "body": "You navigated the explorer and completed the core Editor loop: add, configure, place, and verify.",
+        "detail": "Continue into the Tracker lesson, or finish now. This temporary project is deleted after your interface choice."
+      },
+      "tracker-overview": {
+        "title": "You’re in the practice Tracker",
+        "body": "Your branch choice opened an isolated chain. The left rail holds Earth and ordered Jumps; the main view shows the selected entry; top tabs collect lasting results.",
+        "detail": "Nothing here appears in saved chains. Continue to navigate the Tracker yourself."
+      },
+      "tracker-library": {
+        "title": "Open the Jump Library",
+        "body": "Select Library at the top of the left rail.",
+        "detail": "Library replaces the timeline with installed Jumps available to add. The current timeline is preserved."
+      },
+      "tracker-add-jump": {
+        "title": "Add The Crossroads",
+        "body": "On The Crossroads library card, select Add to chain.",
+        "detail": "The Tracker returns to the timeline, appends the Jump, selects it, and displays its choices in the main view.",
+        "completedTitle": "The Crossroads is now in your chain",
+        "completedBody": "The Tracker returned to Chain, added The Crossroads after The Trailhead, and selected it for you.",
+        "completedDetail": "The highlighted timeline entry holds this Jump’s place in your history. Its choices are now visible in the main view."
+      },
+      "tracker-route-choice": {
+        "title": "Make a defining choice",
+        "body": "Under Choose a route, select either Forest road or Coastal road.",
+        "detail": "This is select-one: choosing one option replaces the other. The result is stored with this exact Jump entry."
+      },
+      "tracker-perk-choice": {
+        "title": "Take lasting training",
+        "body": "Turn on Field Training.",
+        "detail": "This toggle Choice spends its cost and grants a perk. The Tracker will project that perk into Inventory."
+      },
+      "tracker-item-choice": {
+        "title": "Take something with you",
+        "body": "Turn on Traveler’s Pack.",
+        "detail": "This toggle Choice spends its cost and grants an item that the Tracker projects into Inventory."
+      },
+      "tracker-reorder": {
+        "title": "Arrange the journey",
+        "body": "In the left timeline, move The Crossroads before The Trailhead with drag-and-drop or its Move earlier action.",
+        "detail": "Earth stays fixed at the beginning. Reordering changes chronology while keeping decisions attached to their Jump."
+      },
+      "tracker-inventory": {
+        "title": "See what persists",
+        "body": "Select Inventory in the top page navigation.",
+        "detail": "This navigation replaces the Jump view with the chain’s persistent perks and items. Continue after the tab activates."
+      },
+      "tracker-inventory-result": {
+        "title": "Your perk and item are persistent",
+        "body": "Inventory now contains Field Training and Traveler’s Pack from your earlier choices.",
+        "detail": "Each record shows its kind and source Jump. The historical cutoff can also answer when a benefit entered the chain."
+      },
+      "tracker-supplements": {
+        "title": "Open Supplements",
+        "body": "Select Supplements in the top page navigation.",
+        "detail": "This page manages optional systems. Supplements begin disabled and can add their own pages."
+      },
+      "tracker-enable-body-mod": {
+        "title": "Enable Classic Body Mod",
+        "body": "In the Classic Body Mod card, turn on Enabled.",
+        "detail": "Enabling adds a Classic Body Mod page, but does not navigate away from Manage Supplements."
+      },
+      "tracker-open-body-mod": {
+        "title": "Navigate into Body Mod",
+        "body": "In the Classic Body Mod card, select Open page.",
+        "detail": "The dedicated supplement page replaces the management list. You can return with Manage Supplements.",
+        "completedTitle": "Classic Body Mod is open",
+        "completedBody": "The management list has been replaced by Classic Body Mod’s dedicated workspace.",
+        "completedDetail": "The highlighted page contains its budget, build, body type, stats, perks, and review controls."
+      },
+      "tracker-use-body-mod": {
+        "title": "Shape a persistent baseline",
+        "body": "In Build & body, choose a build or body type different from the current selection.",
+        "detail": "Body Mod describes the Jumper’s persistent baseline, so this configuration follows the chain."
+      },
+      "tracker-summary": {
+        "title": "Your practice chain is underway",
+        "body": "You navigated Library, the timeline, Inventory, Supplements, and Body Mod while recording a complete set of practice decisions.",
+        "detail": "Continue into the Editor lesson, or finish now. This temporary chain is deleted after your interface choice."
+      },
+      "mode-choice": {
+        "title": "Choose your interface",
+        "body": "Choose the presentation preset you want to use after the tour.",
+        "detail": "Beginner friendly adds guidance; Advanced exposes the full interface. A restarted tour can keep its already configured settings."
+      }
+    },
+    "fixture": {
+      "author": "Jumpchain Visualizer",
+      "pointsName": "Choice Points",
+      "chainName": "Your Practice Chain",
+      "crossroadsName": "The Crossroads",
+      "crossroadsDescription": "A tiny practice Jump with just enough choices to learn the Tracker.",
+      "trailheadName": "The Trailhead",
+      "trailheadDescription": "A short prologue used to practice arranging a chain.",
+      "prologueName": "Before the road",
+      "prologueText": "Every chain begins somewhere.",
+      "editorName": "My First Jump",
+      "editorDescription": "A small guided workspace for learning the Editor.",
+      "sectionName": "First steps",
+      "sectionText": "Choose what you will take on the road.",
+      "editorChoicesComment": "Your guided Choice will be added here.",
+      "guidedChoiceName": "Road Companion",
+      "routeName": "Choose a route",
+      "routeForest": "Forest road",
+      "routeCoast": "Coastal road",
+      "trainingName": "Field Training",
+      "packName": "Traveler's Pack"
+    }
+  }
+}

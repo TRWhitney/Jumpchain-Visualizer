@@ -191,7 +191,7 @@ export function ColorFieldControl({
           >
             <Chevron
               className="editor-diagnostics-chevron"
-              direction={choicesOpen ? "down" : "right"}
+              direction={choicesOpen ? "up" : "down"}
             />
           </button>
         )}

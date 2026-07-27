@@ -53,10 +53,19 @@ test("select-only suggestions display localized labels and commit canonical valu
 
   render(<Harness />);
   const selection = page.getByRole("combobox", { name: "Selection" });
+  const showSuggestions = page.getByRole("button", {
+    name: "Show selection types",
+  });
   await expect.element(selection).toHaveValue("Toggle");
   await expect.element(selection).toHaveAttribute("readonly");
+  expect(showSuggestions.element().querySelector("svg")?.style.transform).toBe(
+    "rotate(90deg)",
+  );
 
   await selection.click();
+  expect(showSuggestions.element().querySelector("svg")?.style.transform).toBe(
+    "rotate(270deg)",
+  );
   await expect
     .element(
       page.getByRole("option", {

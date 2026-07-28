@@ -809,7 +809,7 @@ function validateReferences(
       kind,
       new Set(
         entries
-          .filter(({ node }) => node.kind === kind)
+          .filter(({ node, parent }) => !parent && node.kind === kind)
           .flatMap(({ node }) => {
             const handle = node.fields.find((field) => field.name === "handle");
             return handle ? [unquote(handle.value)] : [];
@@ -837,7 +837,9 @@ function validateReferences(
       if (ownerHandle) companions.add(unquote(ownerHandle.value));
     }
   }
-  for (const { node } of entries.filter(({ node }) => node.kind === "choice")) {
+  for (const { node } of entries.filter(
+    ({ node, parent }) => !parent && node.kind === "choice",
+  )) {
     const ownerHandle = node.fields.find((field) => field.name === "handle");
     if (
       ownerHandle &&

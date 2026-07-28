@@ -2449,7 +2449,12 @@
 }
 .editor-layout-selected-editor.is-editor-inspected,
 .editor-layout-row.is-editor-inspected,
-.editor-schema-field.is-editor-inspected {
+.editor-schema-field.is-editor-inspected,
+.editor-field-occurrence.is-editor-inspected,
+.editor-set-field.is-editor-inspected,
+.editor-set-entry.is-editor-inspected,
+.editor-condition-variant-card.is-editor-inspected,
+.editor-structured-heading.is-editor-inspected {
   scroll-margin: 0.85rem;
   outline: 2px solid var(--app-accent-border);
   outline-offset: 2px;
@@ -2467,7 +2472,12 @@
 @media (prefers-reduced-motion: reduce) {
   .editor-layout-selected-editor.is-editor-inspected,
   .editor-layout-row.is-editor-inspected,
-  .editor-schema-field.is-editor-inspected {
+  .editor-schema-field.is-editor-inspected,
+  .editor-field-occurrence.is-editor-inspected,
+  .editor-set-field.is-editor-inspected,
+  .editor-set-entry.is-editor-inspected,
+  .editor-condition-variant-card.is-editor-inspected,
+  .editor-structured-heading.is-editor-inspected {
     animation: none;
     outline-color: transparent;
   }

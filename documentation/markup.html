@@ -110,6 +110,7 @@ values rather than structural identifiers.</p>
 valid directly. Any other escape sequence is an error. Authors should use the
 triple-quoted fenced form for multiline prose instead of constructing long bodies
 from escaped newlines.</p>
+<p>The Structured editor displays the decoded value of a quoted scalar and re-encodes it when writing source, so literal backslashes and quotes remain directly editable without accumulating source escape characters. Fenced rich text is displayed verbatim.</p>
 <p>A quoted scalar must open and close on the same physical line. Reaching the end
 of the line without a closing quote is a syntax error; Editor recovery remains
 limited to that line rather than consuming following declarations.</p>
@@ -395,6 +396,7 @@ shape depending on location.</p>
 </ul>
 <h3>Derived Handles</h3>
 <p>Tooling may generate required handles for author convenience, but generated handles are materialized into source and remain stable afterward.</p>
+<p>When a declaration handle is edited in the Structured editor, the Editor waits for typing to settle and then updates authored references in the matching handle namespace. An invalid intermediate handle retains its prior referenced identity only while that editor session remains open, allowing a valid correction to migrate the references; reopening a project while the handle is invalid intentionally loses that transient association.</p>
 <p>Current direction:</p>
 <ul>
 <li>when creating a declaration with a required handle, tooling may derive and immediately write an initial handle from its <code>name</code> or conventional role</li>
@@ -806,6 +808,7 @@ strings as machine truth</li>
 <p>Current rules:</p>
 <ul>
 <li><code>handle</code> is the section’s stable package-local identity for navigation, owned choice sources, and layout references</li>
+<li>a section-owned direct Choice placement has an owner-local placement handle, while its required <code>target</code> resolves only against top-level Choice declaration handles; the two namespaces never satisfy one another</li>
 <li>renaming a section does not automatically change its handle</li>
 <li><code>name</code> is required semantic navigation and accessibility text even when the selected section layout does not visibly render a heading</li>
 <li>a valid distributable package contains at least one top-level <code>section</code></li>
@@ -1490,6 +1493,10 @@ the global diagnostic strip; Source editing marks the same exact source range.
 Messages are localized at the presentation boundary. Missing-image-alt and
 missing-layout-target warnings continue to honor their Editor preferences without
 weakening distribution validation.</p>
+<p>Activating a global diagnostic preserves the current authoring view. Structured
+editing reveals the exact control through the same inspection behavior used by
+preview color and layout-bound inspection, while Content Source and Files retain
+their source context and select the diagnostic range.</p>
 <p>Layout-field compatibility uses these levels:</p>
 <ul>
 <li>an unknown presentation field is an error</li>
@@ -1638,7 +1645,7 @@ meaning should prefer <code>theme</code> declarations, and authors who want prec
 use hex values directly.</p>
 <p>The Structured editor exposes each color-capable field as one uninterrupted bordered compound control: a leading live swatch opens the platform picker, the central value accepts a six-digit hex value or legal token, and the editor’s standard chevron disclosure opens a small bounded swatch grid for built-in and package-defined theme tokens. Opening either chooser closes the other. Theme declaration colors remain hex-only. Each grid entry displays the resolved token color, and invalid authored values remain editable with the same localized inline and global diagnostic.</p>
 <h3>Jump Appearance</h3>
-<p>A package may contain one top-level <code>jump-appearance</code> declaration. The Editor places it in <code>layout.jdef</code> after leading comments and before theme and layout declarations. Its optional shared roots are <code>background</code>, <code>text-color</code>, <code>border-color</code>, and <code>accent-color</code>. Every color accepts a built-in color name, package theme token, or six-digit hexadecimal literal.</p>
+<p>A package may contain one top-level <code>jump-appearance</code> declaration. The Editor places it in <code>layout.jdef</code> after leading comments and before theme and layout declarations, with the same conventional blank-line separation used by other top-level declarations. The blank line is optional Format 1 whitespace; inserting the declaration or explicitly formatting source adds it for readability without making adjacent declarations invalid. Its optional shared roots are <code>background</code>, <code>text-color</code>, <code>border-color</code>, and <code>accent-color</code>. Every color accepts a built-in color name, package theme token, or six-digit hexadecimal literal.</p>
 <p>Appearance resolves in this order: an exact component or state field, its component-family field, the shared appearance field, and finally the renderer’s existing layered default. When shared text is authored but shared border or accent is omitted, those two roots inherit the authored text. Indicators and visible focus treatments inherit accent. Disabled controls inherit their ordinary control colors and retain a non-color disabled treatment unless a disabled role is authored. Consequently, background and text alone form a complete two-color appearance, while an empty declaration preserves the renderer defaults.</p>
 <p>Structured groups the constrained roles into collapsible Shared colors, Surfaces, Header &amp; budget, Sections, Choices &amp; groups, Controls, Costs &amp; semantic states, Tooltips, and Shape &amp; spacing disclosures. Empty overrides display the currently inherited swatch without materializing it in source; clearing an override restores inheritance. The Components and Jump previews can inspect correlated background, text, border-edge, and accent roles; clicking a highlighted target expands its group and scrolls the matching Structured color clear of the pane edge without changing source. When an authored section or choice layout supplies the color, the preview identifies that layout override separately and clicking opens the owning layout’s exact node presentation field instead of an appearance role. Empty manual-input placeholders use Control muted text. Layout container presentation additionally supports constrained border color, width, style, corners, and clipping. Raw CSS, URLs, gradients, fonts, scripts, and arbitrary style values are invalid.</p>
 <p>Tag badges are outside this cascade. Their appearance is always the user’s Tag Manager setting, including when a tag appears in the Components preview. The surrounding Editor and Tracker also remain application-owned.</p>

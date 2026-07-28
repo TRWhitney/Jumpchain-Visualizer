@@ -195,6 +195,46 @@ describe("Format 1 structured document edits", () => {
     expect(readSourceField(invalid, section, "name")).toBe('"Incomplete');
   });
 
+  it("round-trips quoted escapes and preserves fenced rich text verbatim", () => {
+    const files = {
+      "jump.jdef": `${source}
+  text
+    handle: escaped
+    content: "Initial"
+`,
+    };
+    const text = service
+      .analyze(files)
+      .symbols.find((symbol) => symbol.kind === "text")!;
+    const escaped = `Wait, don't leave \\\\ and say "hello"`;
+    const changed = setDocumentField(files, text, "content", escaped);
+    const current = service
+      .analyze(changed.files)
+      .symbols.find((symbol) => symbol.kind === "text")!;
+
+    expect(changed.files["jump.jdef"]).toContain(
+      `content: ${JSON.stringify(escaped)}`,
+    );
+    expect(
+      readSourceField(changed.files["jump.jdef"], current, "content"),
+    ).toBe(escaped);
+    expect(
+      setDocumentField(changed.files, current, "content", escaped).changed,
+    ).toBe(false);
+
+    const fenced = '"quoted"\nnext line';
+    const multiline = setDocumentField(
+      changed.files,
+      current,
+      "content",
+      fenced,
+    );
+    expect(multiline.files["jump.jdef"]).toContain('      """\n      "quoted"');
+    expect(
+      readSourceField(multiline.files["jump.jdef"], current, "content"),
+    ).toBe(fenced);
+  });
+
   it("adds repeated authors without rewriting the existing occurrence", () => {
     const files = { "jump.jdef": source };
     const jump = service
@@ -593,6 +633,57 @@ choice
     const removed = removeDocumentDeclaration(moved.files, movedText);
     expect(removed.files["jump.jdef"]).not.toContain("handle: new_text");
     expect(removed.files["jump.jdef"]).toContain("# after\n");
+  });
+
+  it("keeps scalar Cost and Grant children navigable, ordered, and removable", () => {
+    const files = {
+      "jump.jdef": `${source}
+choice
+  handle: compact_children
+  name: "Compact children"
+
+  cost: -1000
+
+  grant
+    kind: item
+`,
+    };
+    const symbols = service.analyze(files).symbols;
+    const choice = symbols.find(
+      (symbol) =>
+        symbol.kind === "choice" && symbol.handle === "compact_children",
+    )!;
+    const cost = symbols.find(
+      (symbol) => symbol.kind === "cost" && symbol.depth === 1,
+    )!;
+    const context = structuredContext(files, choice)!;
+
+    expect(context.children.map((child) => child.kind)).toEqual([
+      "cost",
+      "grant",
+    ]);
+    expect(context.invalidAuthoredFields).not.toContain("cost");
+    expect(structuredContext(files, cost)).toMatchObject({
+      context: "choice",
+      scalar: true,
+      parent: { kind: "choice", handle: "compact_children" },
+    });
+
+    const moved = moveDocumentChild(files, choice, cost, "down");
+    expect(moved.changed).toBe(true);
+    expect(moved.target).toMatchObject({ kind: "cost", depth: 1 });
+    expect(moved.files["jump.jdef"].indexOf("grant\n")).toBeLessThan(
+      moved.files["jump.jdef"].indexOf("cost: -1000"),
+    );
+
+    const removed = removeDocumentDeclaration(moved.files, moved.target!);
+    expect(removed.changed).toBe(true);
+    expect(removed.files["jump.jdef"]).not.toContain("cost: -1000");
+    expect(removed.files["jump.jdef"]).toContain("grant\n    kind: item");
+    expect(removed.target).toMatchObject({
+      kind: "choice",
+      handle: "compact_children",
+    });
   });
 
   it("creates one exact owner-local description without renaming its semantic handle", () => {

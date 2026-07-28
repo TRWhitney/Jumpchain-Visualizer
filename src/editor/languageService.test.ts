@@ -51,6 +51,20 @@ describe("Format1LanguageService", () => {
     expect(service.format("jump  \n\n\n\tformat: 1")).toBe(
       "jump\n\n  format: 1\n",
     );
+    expect(
+      service.format(`jump-appearance
+  background: primary
+theme
+  handle: primary
+  color: "#837792"
+`),
+    ).toBe(`jump-appearance
+  background: primary
+
+theme
+  handle: primary
+  color: "#837792"
+`);
   });
 
   it("limits declaration diagnostics to the declaration keyword", () => {

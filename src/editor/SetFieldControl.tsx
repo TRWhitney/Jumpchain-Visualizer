@@ -13,6 +13,7 @@ import {
 
 export function SetFieldControl({
   kind,
+  fieldName,
   label,
   help,
   showHelp = true,
@@ -30,6 +31,7 @@ export function SetFieldControl({
   onRemove,
 }: {
   kind: "tag" | "group" | "author";
+  fieldName?: string;
   label: string;
   help: string;
   showHelp?: boolean;
@@ -82,6 +84,7 @@ export function SetFieldControl({
     <div
       className={`editor-set-field is-${kind}`}
       data-editor-drag-boundary
+      data-structured-field={fieldName}
       ref={root}
     >
       <span className="editor-set-field-label">{label}</span>
@@ -156,6 +159,7 @@ export function SetFieldControl({
             return (
               <div
                 className={`editor-set-entry is-${kind}`}
+                data-structured-occurrence={occurrence}
                 role="listitem"
                 key={`${occurrence}:${value}`}
               >

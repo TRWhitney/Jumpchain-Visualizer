@@ -525,10 +525,7 @@
         "declarationLabel": "Description text",
         "choiceOwnerHelp": "Description explains this Choice and is the fallback description for every award it grants. Other Text, Image, and Input blocks are presentation content. To create a companion, add a Companion award; Companion recipient only targets one that already exists.",
         "grantOwnerHelp": "Description explains this specific award in Inventory and overrides the owning Choice's Description. Other Text and Image blocks are not used by this award type.",
-        "traitOwnerHelp": "Description explains this trait and overrides the owning Choice's Description. Additional Text and Image blocks may be displayed by the trait's selected layout.",
-        "choiceContentHelp": "Shown as this Choice's description and used as the fallback description for awards that do not provide their own.",
-        "grantContentHelp": "Shown as this award's description in Inventory instead of the owning Choice's fallback description.",
-        "traitContentHelp": "Shown as this trait's description instead of the owning Choice's fallback description."
+        "traitOwnerHelp": "Description explains this trait and overrides the owning Choice's Description. Additional Text and Image blocks may be displayed by the trait's selected layout."
       },
       "input": {
         "supportingControlHelp": "This is a follow-up control used after its parent Choice is selected. Its effects use this answer, and each additional Input creates another separate control.",

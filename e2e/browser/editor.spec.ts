@@ -986,6 +986,64 @@ test("Jump appearance color inspection links both previews to exact Structured c
   await expect(source).toHaveText(sourceBeforeInspection!);
 });
 
+test("contrast diagnostics reuse color inspection for both exact Structured fields", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const editor = await openCreatedEditor(page);
+  await editor
+    .getByRole("button", { name: "Jump appearance", exact: true })
+    .click();
+
+  await editor
+    .getByLabel("Surface background", { exact: true })
+    .fill("#ffffff");
+  await editor.getByLabel("Surface text", { exact: true }).fill("#eeeeee");
+  await editor.getByLabel("Surface text", { exact: true }).press("Tab");
+
+  const surfaces = editor.locator('[data-appearance-group="surfaces"]');
+  if ((await surfaces.getAttribute("open")) !== null)
+    await surfaces.locator("summary").click();
+  await expect(surfaces).not.toHaveAttribute("open", "");
+
+  await editor.getByRole("button", { name: "Diagnostics" }).click();
+  const contrastDiagnostic = editor
+    .locator(".editor-diagnostics-details button")
+    .filter({ hasText: "Surface text contrast" });
+  await contrastDiagnostic.click();
+
+  const surfaceText = editor
+    .getByLabel("Surface text", { exact: true })
+    .locator(
+      "xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' editor-schema-field ')]",
+    );
+  await expect(editor.getByRole("tab", { name: "Structured" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(surfaces).toHaveAttribute("open", "");
+  await expect(surfaceText).toHaveClass(/is-editor-inspected/);
+  await expect
+    .poll(() =>
+      surfaceText.evaluate((element) => getComputedStyle(element).outlineColor),
+    )
+    .toBe("rgba(0, 0, 0, 0)");
+
+  await contrastDiagnostic.click();
+  const surfaceBackground = editor
+    .getByLabel("Surface background", { exact: true })
+    .locator(
+      "xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' editor-schema-field ')]",
+    );
+  await expect(surfaceBackground).toHaveClass(/is-editor-inspected/);
+  await page.screenshot({
+    path: testInfo.outputPath(
+      "contrast-diagnostic-exact-structured-destination.png",
+    ),
+    fullPage: true,
+  });
+});
+
 test("Jump appearance inspection identifies section and choice layout color overrides", async ({
   page,
 }, testInfo) => {
@@ -1143,6 +1201,44 @@ test("Jump appearance Source uses the complete current syntax highlighting", asy
     path: testInfo.outputPath("jump-appearance-source-syntax.png"),
     fullPage: true,
   });
+});
+
+test("Jump appearance insertion and Format add the conventional declaration separator", async ({
+  page,
+}) => {
+  const editor = await openCreatedEditor(page);
+  await editor
+    .getByRole("button", { name: "Jump appearance", exact: true })
+    .click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  let source = editor.getByLabel("layout.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`theme
+  handle: paper
+  color: "#837792"
+`);
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor
+    .getByRole("button", { name: "Jump appearance", exact: true })
+    .click();
+  source = editor.getByLabel("layout.jdef source");
+  const expectSeparated = async () => {
+    const lines = source.locator(".cm-line");
+    await expect(lines.nth(0)).toHaveText("jump-appearance");
+    await expect(lines.nth(1)).toHaveText("");
+    await expect(lines.nth(2)).toHaveText("theme");
+  };
+  await expectSeparated();
+
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`jump-appearance
+theme
+  handle: paper
+  color: "#837792"
+`);
+  await editor.getByRole("button", { name: "Format", exact: true }).click();
+  await expectSeparated();
 });
 
 async function expectInside(parent: Locator, child: Locator) {
@@ -2185,6 +2281,94 @@ test("Structured handle editing preserves declaration identity through temporary
     .toMatch(/handle:\s*abc2\s+name:\s*"New Section"/);
 });
 
+test("Structured handle renames debounce reference updates and retain invalid lineage only for the editor session", async ({
+  page,
+}) => {
+  let editor = await openCreatedEditor(page);
+  const outline = editor.locator(".editor-outline-scroll");
+  await editor
+    .getByRole("button", { name: "Jump details", exact: true })
+    .click();
+  const defaultLayout = editor.getByLabel("Default section layout", {
+    exact: true,
+  });
+  await editor
+    .getByRole("button", {
+      name: "Show handle choices for Default section layout",
+    })
+    .click();
+  await editor.getByRole("option", { name: "New Section layout…" }).click();
+
+  const handle = editor.getByLabel("Handle", { exact: true });
+  await handle.fill("Not a valid handle");
+  await page.waitForTimeout(650);
+  await editor.getByRole("button", { name: "Back to jump" }).click();
+  await expect(defaultLayout).toHaveValue("new_section_layout");
+
+  await outline
+    .getByRole("button", {
+      name: "Not a valid handle section",
+      exact: true,
+    })
+    .click();
+  await editor.getByLabel("Handle", { exact: true }).fill("renamed_layout");
+  await editor
+    .getByRole("button", { name: "Jump details", exact: true })
+    .click();
+  await expect(defaultLayout).toHaveValue("new_section_layout");
+  await expect(defaultLayout).toHaveValue("renamed_layout", {
+    timeout: 2_000,
+  });
+  await editor.getByRole("button", { name: "Undo" }).click();
+  await expect(defaultLayout).toHaveValue("new_section_layout");
+  await expect(
+    outline.getByRole("button", {
+      name: "Not a valid handle section",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await editor.getByRole("button", { name: "Redo" }).click();
+  await expect(defaultLayout).toHaveValue("renamed_layout");
+  await expect(
+    outline.getByRole("button", {
+      name: "renamed_layout section",
+      exact: true,
+    }),
+  ).toBeVisible();
+
+  await outline
+    .getByRole("button", {
+      name: "renamed_layout section",
+      exact: true,
+    })
+    .click();
+  await editor.getByLabel("Handle", { exact: true }).fill("Still not valid");
+  await page.waitForTimeout(650);
+  await page.getByRole("button", { name: "Editor", exact: true }).click();
+  await page
+    .locator(".editor-project-card")
+    .first()
+    .getByRole("button", { name: "Open Project" })
+    .click();
+
+  editor = page.locator(".production-editor");
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", {
+      name: "Still not valid section",
+      exact: true,
+    })
+    .click();
+  await editor.getByLabel("Handle", { exact: true }).fill("after_reopening");
+  await page.waitForTimeout(650);
+  await editor
+    .getByRole("button", { name: "Jump details", exact: true })
+    .click();
+  await expect(
+    editor.getByLabel("Default section layout", { exact: true }),
+  ).toHaveValue("renamed_layout");
+});
+
 test("Show bounds does not extend the authored preview surface", async ({
   page,
 }, testInfo) => {
@@ -2514,6 +2698,48 @@ test("clicking layout preview bounds outlines the exact Structured node or selec
     testInfo,
     "editor-layout-bound-click-source-keyword-production",
     editor,
+  );
+});
+
+test("layout diagnostics reuse Show bounds inspection for the exact field", async ({
+  page,
+}) => {
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor
+    .getByRole("button", { name: "Choice layout", exact: true })
+    .click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("layout.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`choice-layout
+  handle: diagnostic_layout
+
+  stack
+    text
+      target: description
+      text-align: sideways
+`);
+  await editor.getByRole("button", { name: "diagnostic_layout" }).click();
+  await editor.getByRole("tab", { name: "Structured" }).click();
+
+  const textRow = editor.locator('[data-layout-node-kind="text"]');
+  await expect(textRow.locator(".editor-layout-row-node-fields")).toHaveCount(
+    0,
+  );
+  await editor.getByRole("button", { name: "Diagnostics" }).click();
+  await editor
+    .locator(".editor-diagnostics-details button")
+    .filter({ hasText: "sideways" })
+    .click();
+
+  const textAlign = textRow.locator('[data-layout-field="text-align"]');
+  await expect(textRow.locator(".editor-layout-row-node-fields")).toBeVisible();
+  await expect(textAlign).toBeVisible();
+  await expect(textAlign).toHaveClass(/is-editor-inspected/);
+  await expect(editor.getByRole("tab", { name: "Structured" })).toHaveAttribute(
+    "aria-selected",
+    "true",
   );
 });
 
@@ -3853,12 +4079,40 @@ test("Structured section references and handles show live localized diagnostics"
     .locator(".editor-diagnostics-details button")
     .filter({ hasText: "is not a legal handle reference" })
     .click();
+  await expect(editor.getByRole("tab", { name: "Structured" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(layoutField.locator(".editor-field-occurrence")).toHaveClass(
+    /is-editor-inspected/,
+  );
+
+  await editor.getByRole("tab", { name: "Source" }).click();
+  await editor
+    .locator(".editor-diagnostics-details button")
+    .filter({ hasText: "is not a legal handle reference" })
+    .click();
+  await expect(editor.getByRole("tab", { name: "Content" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await expect(editor.getByRole("tab", { name: "Source" })).toHaveAttribute(
     "aria-selected",
     "true",
   );
   await expect(editor.locator(".cm-selectionBackground")).toHaveCount(1);
   await expect(editor.locator(".cm-lintRange-error")).toHaveCount(2);
+
+  await editor.getByRole("tab", { name: "Files" }).click();
+  await editor
+    .locator(".editor-diagnostics-details button")
+    .filter({ hasText: "is not a legal handle reference" })
+    .click();
+  await expect(editor.getByRole("tab", { name: "Files" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(editor.locator(".cm-selectionBackground")).toHaveCount(1);
   await attachProductionState(
     testInfo,
     "editor-section-illegal-handles-source-markers-production",
@@ -3885,6 +4139,46 @@ test("Structured section references and handles show live localized diagnostics"
     "editor-unresolved-layout-distribution-error-production",
     page.getByRole("alertdialog"),
   );
+});
+
+test("Direct Choice targets use only package Choice handles, not placement handles", async ({
+  page,
+}) => {
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice", exact: true }).click();
+  await editor.getByLabel("Handle", { exact: true }).fill("canonical_choice");
+  await editor
+    .getByRole("button", { name: "introduction", exact: true })
+    .click();
+  await editor
+    .getByRole("button", { name: "+ Direct choice", exact: true })
+    .click();
+
+  await editor.getByLabel("Handle", { exact: true }).fill("dropinloc");
+  const target = editor.getByLabel("Choice to display", { exact: true });
+  await target.fill("dropinloc");
+  await expect(target).toHaveAttribute("aria-invalid", "true");
+  await expect(editor.locator(".editor-field-diagnostics")).toContainText(
+    "does not resolve to a choice declaration",
+  );
+
+  await editor
+    .getByRole("button", {
+      name: "Show handle choices for Choice to display",
+    })
+    .click();
+  await expect(
+    editor.getByRole("option", { name: "canonical_choice", exact: true }),
+  ).toBeVisible();
+  await expect(
+    editor.getByRole("option", { name: "dropinloc", exact: true }),
+  ).toHaveCount(0);
+  await editor
+    .getByRole("option", { name: "canonical_choice", exact: true })
+    .click();
+  await expect(target).toHaveValue("canonical_choice");
+  await expect(target).not.toHaveAttribute("aria-invalid", "true");
 });
 
 test("Structured choice-source groups distinguish missing, unmatched, and illegal handles", async ({
@@ -3997,6 +4291,68 @@ test("Structured field edits never consume adjacent fields", async ({
   const source = editor.getByLabel(/source$/);
   await expect(source).toContainText("handle: introduction");
   expect(await source.innerText()).not.toMatch(/layout:\s*handle:/);
+});
+
+test("Structured text fields round-trip slashes and quotes without multiplying escapes", async ({
+  page,
+}) => {
+  const editor = await openCreatedEditor(page);
+  await editor
+    .getByRole("button", { name: "introduction", exact: true })
+    .click();
+  await editor.getByRole("button", { name: "+ Text", exact: true }).click();
+  const text = editor.getByLabel("Text", { exact: true });
+  const prefix = "Wait, don't leave";
+
+  await text.fill(prefix);
+  await text.pressSequentially("\\\\");
+  await expect(text).toHaveValue(`${prefix}\\\\`);
+  await text.press("Backspace");
+  await expect(text).toHaveValue(`${prefix}\\`);
+  await text.press("Backspace");
+  await expect(text).toHaveValue(prefix);
+
+  const finalValue = 'Quote " and slash \\!';
+  await text.fill('Quote " and slash \\');
+  await text.pressSequentially("!");
+  await expect(text).toHaveValue(finalValue);
+  await editor.getByRole("tab", { name: "Source" }).click();
+  await expect(editor.getByLabel("jump.jdef source")).toContainText(
+    `content: ${JSON.stringify(finalValue)}`,
+  );
+});
+
+test("Text keeps its ordinary Structured editor when its handle is description", async ({
+  page,
+}, testInfo) => {
+  const editor = await openCreatedEditor(page);
+  await editor
+    .getByRole("button", { name: "introduction", exact: true })
+    .click();
+  await editor.getByRole("button", { name: "+ Text", exact: true }).click();
+
+  const handle = editor.getByRole("textbox", { name: "Handle", exact: true });
+  const content = editor.getByRole("textbox", { name: "Text", exact: true });
+  await expect(handle).toHaveValue("new_text");
+  await handle.fill("description");
+
+  await expect(
+    editor.getByRole("heading", { name: "description", exact: true }),
+  ).toBeVisible();
+  await expect(
+    editor.getByRole("heading", { name: "Text content", exact: true }),
+  ).toBeVisible();
+  await expect(handle).toHaveValue("description");
+  await expect(content).toBeVisible();
+  await editor.screenshot({
+    path: testInfo.outputPath("description-handle-ordinary-text-editor.png"),
+    animations: "disabled",
+  });
+  await content.fill("Still an ordinary text item.");
+
+  await handle.fill("renamed_text");
+  await expect(handle).toHaveValue("renamed_text");
+  await expect(content).toHaveValue("Still an ordinary text item.");
 });
 
 test("Source search, replacement, folding, feedback, and grouped undo are operable", async ({
@@ -6053,7 +6409,7 @@ test("Choice and Input placeholders, contextual answers, and caret insertion use
 
   await editor.getByRole("button", { name: /^Description\b/ }).click();
   const description = editor.getByRole("textbox", {
-    name: "Description",
+    name: "Text",
     exact: true,
   });
   await description.evaluate((control: HTMLTextAreaElement) => {
@@ -6093,7 +6449,7 @@ test("Choice and Input placeholders, contextual answers, and caret insertion use
     .getByRole("combobox", { name: "Condition value" })
     .fill("Ready");
   const conditionalDescription = inputConditionVariant.getByRole("textbox", {
-    name: "Description conditional value",
+    name: "Text conditional value",
   });
   await conditionalDescription.fill("Answers: ");
   await conditionalDescription.evaluate((control: HTMLTextAreaElement) => {
@@ -7285,20 +7641,28 @@ test("Choice child pages share recipient, measure, description, and conditional 
     .getByRole("button", { name: "+ Description", exact: true })
     .click();
   await expect(
-    editor.getByRole("heading", { name: "Description", exact: true }),
+    editor.getByRole("heading", { name: "description", exact: true }),
   ).toBeVisible();
   await expect(
     editor.getByText(
-      "Shown as this award's description in Inventory instead of the owning Choice's fallback description.",
-      { exact: true },
+      "The text displayed wherever this content block is placed.",
+      {
+        exact: true,
+      },
     ),
   ).toBeVisible();
-  await expect(
-    editor.getByRole("textbox", { name: "Handle", exact: true }),
-  ).toHaveCount(0);
+  const grantDescriptionHandle = editor.getByRole("textbox", {
+    name: "Handle",
+    exact: true,
+  });
+  await expect(grantDescriptionHandle).toHaveValue("description");
   await editor
-    .getByRole("textbox", { name: "Description", exact: true })
+    .getByRole("textbox", { name: "Text", exact: true })
     .fill("A ranked award.");
+  await grantDescriptionHandle.fill("award_description");
+  await expect(grantDescriptionHandle).toHaveValue("award_description");
+  await grantDescriptionHandle.fill("description");
+  await expect(grantDescriptionHandle).toHaveValue("description");
   await editor
     .getByRole("button", { name: "+ Add conditional variant" })
     .click();
@@ -7321,8 +7685,10 @@ test("Choice child pages share recipient, measure, description, and conditional 
     .click();
   await expect(
     editor.getByText(
-      "Shown as this Choice's description and used as the fallback description for awards that do not provide their own.",
-      { exact: true },
+      "The text displayed wherever this content block is placed.",
+      {
+        exact: true,
+      },
     ),
   ).toBeVisible();
   await editor
@@ -7398,8 +7764,10 @@ test("Choice child pages share recipient, measure, description, and conditional 
     .click();
   await expect(
     editor.getByText(
-      "Shown as this trait's description instead of the owning Choice's fallback description.",
-      { exact: true },
+      "The text displayed wherever this content block is placed.",
+      {
+        exact: true,
+      },
     ),
   ).toBeVisible();
 
@@ -7503,6 +7871,81 @@ test("Input and Cost subpages share owning-Choice applicability and bound defaul
       exact: true,
     }),
   ).toBeEnabled();
+});
+
+test("Use simple value repairs an invalid shorthand-compatible Cost", async ({
+  page,
+}, testInfo) => {
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice", exact: true }).click();
+  await openContentAndEffects(editor);
+  await editor.getByRole("button", { name: "+ Cost", exact: true }).click();
+
+  const amount = editor.getByLabel("Amount", { exact: true });
+  await amount.fill("");
+  await expect(amount).toHaveAttribute("aria-invalid", "true");
+  const useSimpleValue = editor.getByRole("button", {
+    name: "Use simple value",
+    exact: true,
+  });
+  await expect(useSimpleValue).toBeVisible();
+  await editor.screenshot({
+    path: testInfo.outputPath("invalid-cost-can-use-simple-value.png"),
+    animations: "disabled",
+  });
+
+  await useSimpleValue.click();
+  await expect(
+    editor.getByRole("heading", { name: "Simple value", exact: true }),
+  ).toBeVisible();
+  await expect(editor.getByRole("textbox", { name: "Value" })).toHaveValue("0");
+  await expect(editor.locator(".editor-field-diagnostics")).toHaveCount(0);
+  await editor.getByRole("button", { name: "Add details" }).click();
+  const repairedAmount = editor.getByLabel("Amount", { exact: true });
+  await expect(repairedAmount).toHaveValue("0");
+  await repairedAmount.fill("-1000");
+  await editor
+    .getByRole("button", { name: "Use simple value", exact: true })
+    .click();
+  await expect(editor.getByRole("textbox", { name: "Value" })).toHaveValue(
+    "-1000",
+  );
+  await expect(
+    editor
+      .locator(".editor-breadcrumbs")
+      .getByRole("button", { name: "new_choice", exact: true }),
+  ).toBeVisible();
+  await editor
+    .locator(".editor-breadcrumbs")
+    .getByRole("button", { name: "new_choice", exact: true })
+    .click();
+  const childList = editor.locator(".editor-child-list");
+  await expect(
+    childList.getByRole("button", { name: "Cost Cost", exact: true }),
+  ).toBeVisible();
+  await expect(
+    editor.getByRole("heading", { name: "Needs attention" }),
+  ).toHaveCount(0);
+  await childList.scrollIntoViewIfNeeded();
+  await editor.screenshot({
+    path: testInfo.outputPath("simple-cost-remains-a-choice-child.png"),
+    animations: "disabled",
+  });
+  await childList
+    .getByRole("button", { name: "Cost Cost", exact: true })
+    .click();
+  await editor.getByRole("button", { name: "Add details" }).click();
+  await expect(
+    editor.getByRole("heading", { name: "Cost calculation", exact: true }),
+  ).toBeVisible();
+  await expect(editor.getByLabel("Amount", { exact: true })).toHaveValue(
+    "-1000",
+  );
+  await editor.getByRole("tab", { name: "Source" }).click();
+  await expect(editor.getByLabel("choices.jdef source")).toContainText(
+    "  cost\n    resource: jump_points\n    amount: -1000\n    mode: flat",
+  );
 });
 
 test("Editor explanations toggle live without changing source, history, or preview", async ({

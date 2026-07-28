@@ -159,75 +159,111 @@ function appearanceContrastDiagnostics(
   const checks = [
     [
       "surfaceText",
+      "surface-text",
       role("surface-text", undefined, "text", "#171717"),
+      "surface-background",
       surfaceBackground,
       4.5,
     ],
     [
       "headerTitle",
+      "header-title",
       role("header-title", "surface", "text", "#171717"),
+      "header-background",
       role("header-background", "surface", "background", "#f5f1e6"),
       3,
     ],
     [
       "headerDescription",
+      "header-description",
       role("header-description", "surface", "text", "#5f5a4d"),
+      "header-background",
       role("header-background", "surface", "background", "#f5f1e6"),
       4.5,
     ],
     [
       "sectionBody",
+      "section-body",
       role("section-body", "surface", "text", "#5f5a4d"),
+      "section-background",
       role("section-background", "surface", "background", "#f5f1e6"),
       4.5,
     ],
     [
       "choiceBody",
+      "choice-body",
       role("choice-body", "surface", "text", "#5f5a4d"),
+      "choice-background",
       role("choice-background", "surface", "background", "#f5f1e6"),
       4.5,
     ],
     [
       "controlText",
+      "control-text",
       role("control-text", "surface", "text", "#26231f"),
+      "control-background",
       role("control-background", "surface", "background", "#fffdf7"),
       4.5,
     ],
     [
       "controlIndicator",
+      "control-indicator",
       role("control-indicator", undefined, "accent", "#5c4500"),
+      "control-background",
       role("control-background", "surface", "background", "#fffdf7"),
       3,
     ],
     [
       "focusIndicator",
+      "control-accent",
       role("control-accent", undefined, "accent", "#725a13"),
+      "surface-background",
       surfaceBackground,
       3,
     ],
     [
       "meaningfulBorder",
+      "surface-border",
       role("surface-border", undefined, "border", "#d8cfb6"),
+      "surface-background",
       surfaceBackground,
       3,
     ],
   ] as const;
-  return checks.flatMap(([roleName, foreground, background, expected]) => {
-    const measured = ratio(foreground, background);
-    if (measured >= expected) return [];
-    return [
-      {
-        code: "appearance.contrast",
-        severity: "warning" as const,
-        messageKey: `diagnostics.appearance.contrast.${roleName}`,
-        parameters: {
-          measured: measured.toFixed(2),
-          expected: expected.toFixed(1),
+  return checks.flatMap(
+    ([
+      roleName,
+      foregroundField,
+      foreground,
+      backgroundField,
+      background,
+      expected,
+    ]) => {
+      const measured = ratio(foreground, background);
+      if (measured >= expected) return [];
+      return [
+        {
+          code: "appearance.contrast",
+          severity: "warning" as const,
+          messageKey: `diagnostics.appearance.contrast.${roleName}`,
+          parameters: {
+            measured: measured.toFixed(2),
+            expected: expected.toFixed(1),
+          },
+          range: node.range,
+          structuredTargets: [foregroundField, backgroundField].map(
+            (field) => ({
+              file: node.range.file,
+              declarationFrom: node.range.from,
+              field,
+              occurrence: 0,
+              part: "value" as const,
+            }),
+          ),
         },
-        range: node.range,
-      },
-    ];
-  });
+      ];
+    },
+  );
 }
 
 function requireValue(

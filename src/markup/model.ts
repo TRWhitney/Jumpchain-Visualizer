@@ -25,6 +25,7 @@ export type PackageDiagnostic = {
   parameters?: Readonly<Record<string, string | number>>;
   range?: SourceRange;
   target?: DiagnosticTarget;
+  structuredTargets?: readonly DiagnosticTarget[];
 };
 
 export type PackageValidationProfile = "editor" | "distribution";

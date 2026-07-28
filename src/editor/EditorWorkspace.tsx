@@ -29,6 +29,7 @@ import {
   conditionPropertyCatalog,
   packageIsValid,
   type ConditionPropertyDescriptor,
+  type DiagnosticTarget,
   type PackageDiagnostic,
 } from "../markup";
 import {
@@ -155,6 +156,10 @@ import {
   type AssetTreeEntry,
 } from "./assetPaths";
 import {
+  handleCanPropagate,
+  renameDocumentHandleReferences,
+} from "./handleReferences";
+import {
   permanentlyDeleteAsset,
   permanentlyDeleteDeclaration,
   restoreAsset,
@@ -224,6 +229,14 @@ type LayoutInspectionHandle = {
   inspect: (path: string, field?: string) => void;
 };
 
+type PendingHandleRename = {
+  key: string;
+  symbol: Pick<FormatSymbol, "file" | "from" | "kind">;
+  expectedHandle: string;
+  historyGroup: string;
+  historyIndex: number;
+};
+
 const importAssetOptionValue = "__editor_import_asset__";
 
 function revealEditorInspection(
@@ -234,6 +247,25 @@ function revealEditorInspection(
   void region.offsetWidth;
   region.classList.add("is-editor-inspected");
   region.scrollIntoView({ block, inline: "nearest" });
+}
+
+function appearanceColorKindForField(
+  field: string,
+): AppearanceColorInspection["kind"] {
+  if (field.includes("background")) return "background";
+  if (field.includes("border")) return "border";
+  if (field.includes("accent") || field.includes("indicator")) return "accent";
+  return "text";
+}
+
+function diagnosticActivationKey(diagnostic: PackageDiagnostic) {
+  return [
+    diagnostic.code,
+    diagnostic.messageKey ?? "",
+    diagnostic.range?.file ?? "",
+    diagnostic.range?.from ?? "",
+    diagnostic.range?.to ?? "",
+  ].join(":");
 }
 
 type ExplorerAddKind =
@@ -804,6 +836,11 @@ function explorerSymbolLabel(symbol: FormatSymbol) {
   return symbol.handle || editorDeclarationLabel(symbol.kind);
 }
 
+function indentDeclarationContinuation(declaration: string, depth: number) {
+  const indentation = "  ".repeat(depth);
+  return declaration.replaceAll("\n", `\n${indentation}`);
+}
+
 function layoutContentOwnerLabel(
   files: Readonly<Record<string, string>>,
   symbols: readonly FormatSymbol[],
@@ -995,9 +1032,24 @@ export function EditorWorkspace({
   const historyIndexRef = useRef(historyIndex);
   const historyGroupRef = useRef<string | null>(null);
   const historyGroupTimer = useRef<number | null>(null);
+  const commitFilesRef = useRef<
+    (
+      nextFiles: Record<string, string>,
+      continuous?: boolean,
+      preserveRedo?: boolean,
+      historyGroup?: string,
+    ) => boolean
+  >(() => false);
+  const handleReferenceLineageRef = useRef(new Map<string, string>());
+  const [pendingHandleRename, setPendingHandleRename] =
+    useState<PendingHandleRename | null>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
   const assetInputRef = useRef<HTMLInputElement>(null);
   const assetImportTargetRef = useRef<AssetImportTarget | null>(null);
+  const diagnosticActivationRef = useRef<{
+    key: string;
+    index: number;
+  } | null>(null);
   const [lastValid, setLastValid] = useState(
     () => service.analyze(workspace.files).packageItem,
   );
@@ -1373,6 +1425,74 @@ export function EditorWorkspace({
       preserveRedo,
       historyGroup,
     );
+
+  useEffect(() => {
+    commitFilesRef.current = commitFiles;
+  });
+
+  useEffect(() => {
+    if (!pendingHandleRename) return;
+    const timer = window.setTimeout(() => {
+      const currentAnalysis = service.analyze(workspace.files);
+      const currentSymbol = currentAnalysis.symbols.find(
+        (candidate) =>
+          candidate.file === pendingHandleRename.symbol.file &&
+          candidate.kind === pendingHandleRename.symbol.kind &&
+          candidate.from === pendingHandleRename.symbol.from,
+      );
+      const referencedHandle = handleReferenceLineageRef.current.get(
+        pendingHandleRename.key,
+      );
+      if (
+        !currentSymbol ||
+        !referencedHandle ||
+        currentSymbol.handle !== pendingHandleRename.expectedHandle ||
+        !handleCanPropagate(
+          workspace.files,
+          currentSymbol,
+          currentAnalysis.symbols,
+          currentAnalysis.diagnostics,
+        )
+      ) {
+        setPendingHandleRename(null);
+        return;
+      }
+      const nextFiles = renameDocumentHandleReferences(
+        workspace.files,
+        currentSymbol,
+        referencedHandle,
+        currentSymbol.handle,
+      );
+      handleReferenceLineageRef.current.delete(pendingHandleRename.key);
+      setPendingHandleRename(null);
+      if (
+        historyIndexRef.current === pendingHandleRename.historyIndex &&
+        historyRef.current[pendingHandleRename.historyIndex]?.files ===
+          workspace.files
+      ) {
+        const nextHistory = [...historyRef.current];
+        nextHistory[pendingHandleRename.historyIndex] = {
+          ...nextHistory[pendingHandleRename.historyIndex],
+          files: nextFiles,
+        };
+        historyRef.current = nextHistory;
+        setHistory(nextHistory);
+        commitFilesRef.current(
+          nextFiles,
+          true,
+          true,
+          pendingHandleRename.historyGroup,
+        );
+      } else
+        commitFilesRef.current(
+          nextFiles,
+          true,
+          false,
+          pendingHandleRename.historyGroup,
+        );
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [pendingHandleRename, workspace.files]);
 
   const undo = () => {
     if (historyIndexRef.current <= 0) return;
@@ -1979,8 +2099,7 @@ export function EditorWorkspace({
   };
 
   const inspectAppearanceColor = (color: AppearanceColorInspection) => {
-    if (navigationTab !== "content" || previewSelection.kind !== "appearance")
-      return;
+    if (navigationTab !== "content") return;
     if (color.layout) {
       const layoutSymbol = analysis.symbols.find(
         (symbol) =>
@@ -2000,7 +2119,12 @@ export function EditorWorkspace({
       );
       return;
     }
+    const appearanceSymbol = analysis.symbols.find(
+      (symbol) => symbol.kind === "jump-appearance",
+    );
+    if (!appearanceSymbol) return;
     flushSync(() => {
+      openSymbol(appearanceSymbol);
       setEditingTab("structured");
       setContentEditingTab("structured");
     });
@@ -2019,6 +2143,206 @@ export function EditorWorkspace({
         revealEditorInspection(region, "center"),
       );
     });
+  };
+
+  const diagnosticOwner = (file: string, from: number, to: number = from) =>
+    analysis.symbols
+      .filter(
+        (symbol) =>
+          symbol.file === file && symbol.from <= from && symbol.to >= to,
+      )
+      .sort((left, right) => left.to - left.from - (right.to - right.from))[0];
+
+  const fallbackStructuredTarget = (
+    diagnostic: PackageDiagnostic,
+  ): DiagnosticTarget | undefined => {
+    if (!diagnostic.range) return undefined;
+    const owner = diagnosticOwner(
+      diagnostic.range.file,
+      diagnostic.range.from,
+      diagnostic.range.to,
+    );
+    return owner
+      ? {
+          file: owner.file,
+          declarationFrom: owner.from,
+          part: "declaration",
+        }
+      : undefined;
+  };
+
+  const revealStructuredTarget = (
+    target: DiagnosticTarget,
+    diagnostic: PackageDiagnostic,
+  ) => {
+    const exactSymbol = analysis.symbols.find(
+      (symbol) =>
+        symbol.file === target.file && symbol.from === target.declarationFrom,
+    );
+    const layoutSymbol = analysis.symbols
+      .filter(
+        (symbol) =>
+          symbol.file === target.file &&
+          ["section-layout", "choice-layout", "trait-layout"].includes(
+            symbol.kind,
+          ) &&
+          symbol.from <= target.declarationFrom &&
+          symbol.to >= target.declarationFrom,
+      )
+      .sort((left, right) => left.to - left.from - (right.to - right.from))[0];
+    if (layoutSymbol) {
+      const tree = createLayoutEditorTree(workspace.files, layoutSymbol);
+      const layoutNode = tree
+        ? ((diagnostic.range
+            ? Object.values(tree.nodes).find((node) => {
+                const fieldRange = node.sourceField?.range;
+                return Boolean(
+                  node.compact &&
+                  fieldRange &&
+                  fieldRange.from <= diagnostic.range!.from &&
+                  fieldRange.to >= diagnostic.range!.to,
+                );
+              })
+            : undefined) ??
+          Object.values(tree.nodes).find(
+            (node) => node.from === target.declarationFrom,
+          ))
+        : undefined;
+      if (layoutNode) {
+        flushSync(() => {
+          openSymbol(layoutSymbol);
+          setEditingTab("structured");
+          setContentEditingTab("structured");
+        });
+        window.requestAnimationFrame(() =>
+          window.requestAnimationFrame(() =>
+            layoutInspectionRef.current?.inspect(layoutNode.path, target.field),
+          ),
+        );
+        return;
+      }
+    }
+    const symbol =
+      exactSymbol ??
+      (diagnostic.range
+        ? diagnosticOwner(
+            diagnostic.range.file,
+            diagnostic.range.from,
+            diagnostic.range.to,
+          )
+        : undefined);
+    if (!symbol) return;
+    flushSync(() => {
+      openSymbol(symbol);
+      setEditingTab("structured");
+      setContentEditingTab("structured");
+    });
+    window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(() => {
+        let region: HTMLElement | undefined;
+        if (target.field && target.part === "condition") {
+          region = Array.from(
+            editorRootRef.current?.querySelectorAll<HTMLElement>(
+              "[data-structured-variant-field]",
+            ) ?? [],
+          ).find(
+            (candidate) =>
+              candidate.dataset.structuredVariantField === target.field &&
+              Number(candidate.dataset.structuredVariantOccurrence) ===
+                (target.variantOccurrence ?? target.occurrence ?? 0),
+          );
+        } else if (target.field) {
+          const fieldRegion = Array.from(
+            editorRootRef.current?.querySelectorAll<HTMLElement>(
+              "[data-structured-field]",
+            ) ?? [],
+          ).find(
+            (candidate) => candidate.dataset.structuredField === target.field,
+          );
+          region =
+            Array.from(
+              fieldRegion?.querySelectorAll<HTMLElement>(
+                "[data-structured-occurrence]",
+              ) ?? [],
+            ).find(
+              (candidate) =>
+                Number(candidate.dataset.structuredOccurrence) ===
+                (target.occurrence ?? 0),
+            ) ?? fieldRegion;
+        } else {
+          region =
+            editorRootRef.current?.querySelector<HTMLElement>(
+              ".editor-structured-heading",
+            ) ?? undefined;
+        }
+        if (!region) return;
+        const disclosure = region.closest<HTMLDetailsElement>("details");
+        if (disclosure && !disclosure.open) disclosure.open = true;
+        window.requestAnimationFrame(() =>
+          revealEditorInspection(region, "center"),
+        );
+      }),
+    );
+  };
+
+  const openDiagnosticSource = (diagnostic: PackageDiagnostic) => {
+    if (!diagnostic.range) return;
+    if (navigationTab === "files") {
+      openFile(diagnostic.range.file);
+    } else {
+      const owner = diagnosticOwner(
+        diagnostic.range.file,
+        diagnostic.range.from,
+        diagnostic.range.to,
+      );
+      setSelectedTrashId(null);
+      setSelectedAsset(null);
+      setSelectedSymbol(owner ?? null);
+      setSelected(
+        owner
+          ? previewSelectionForSymbol(workspace.files, owner)
+          : { kind: "package" },
+      );
+      setFile(diagnostic.range.file);
+      setEditingTab("source");
+      setContentEditingTab("source");
+    }
+    window.requestAnimationFrame(() =>
+      sourceRef.current?.setSelectionRange(
+        diagnostic.range!.from,
+        diagnostic.range!.to,
+      ),
+    );
+  };
+
+  const activateDiagnostic = (diagnostic: PackageDiagnostic) => {
+    if (navigationTab !== "content" || editingTab !== "structured") {
+      openDiagnosticSource(diagnostic);
+      return;
+    }
+    const targets =
+      diagnostic.structuredTargets ??
+      (diagnostic.target ? [diagnostic.target] : []);
+    const availableTargets = targets.length
+      ? targets
+      : [fallbackStructuredTarget(diagnostic)].filter(
+          (target): target is DiagnosticTarget => Boolean(target),
+        );
+    if (!availableTargets.length) return;
+    const key = diagnosticActivationKey(diagnostic);
+    const prior = diagnosticActivationRef.current;
+    const index =
+      prior?.key === key ? (prior.index + 1) % availableTargets.length : 0;
+    diagnosticActivationRef.current = { key, index };
+    const target = availableTargets[index];
+    if (diagnostic.code === "appearance.contrast" && target.field) {
+      inspectAppearanceColor({
+        field: target.field,
+        kind: appearanceColorKindForField(target.field),
+      });
+      return;
+    }
+    revealStructuredTarget(target, diagnostic);
   };
 
   const runFormat = () => {
@@ -2936,6 +3260,17 @@ export function EditorWorkspace({
                 onEndFieldEdit={endHistoryGroup}
                 onImportAsset={requestAssetImport}
                 onUpdate={(symbol, field, value, occurrence = 0) => {
+                  const historyGroup = `field:${symbol.file}:${symbol.from}:${field}:${occurrence}`;
+                  const handleRenameKey = `${symbol.file}:${symbol.from}:${symbol.kind}`;
+                  if (
+                    field === "handle" &&
+                    symbol.handle &&
+                    !handleReferenceLineageRef.current.has(handleRenameKey)
+                  )
+                    handleReferenceLineageRef.current.set(
+                      handleRenameKey,
+                      symbol.handle,
+                    );
                   let result = setDocumentField(
                     workspace.files,
                     symbol,
@@ -2959,13 +3294,8 @@ export function EditorWorkspace({
                     );
                     if (exclusiveRemoval.changed) result = exclusiveRemoval;
                   }
-                  commitFiles(
-                    result.files,
-                    true,
-                    false,
-                    `field:${symbol.file}:${symbol.from}:${field}:${occurrence}`,
-                  );
-                  setSelectedSymbol(
+                  commitFiles(result.files, true, false, historyGroup);
+                  const nextSymbol =
                     service
                       .analyze(result.files)
                       .symbols.find(
@@ -2973,8 +3303,16 @@ export function EditorWorkspace({
                           candidate.file === symbol.file &&
                           candidate.kind === symbol.kind &&
                           candidate.from === symbol.from,
-                      ) ?? symbol,
-                  );
+                      ) ?? symbol;
+                  setSelectedSymbol(nextSymbol);
+                  if (field === "handle")
+                    setPendingHandleRename({
+                      key: handleRenameKey,
+                      symbol,
+                      expectedHandle: value,
+                      historyGroup,
+                      historyIndex: historyIndexRef.current,
+                    });
                 }}
                 onLayoutEdit={(result, announcement, continuous = false) => {
                   if (!result.changed) return;
@@ -3134,7 +3472,10 @@ export function EditorWorkspace({
                       ...workspace.files,
                       [symbol.file]:
                         workspace.files[symbol.file].slice(0, symbol.from) +
-                        declaration +
+                        indentDeclarationContinuation(
+                          declaration,
+                          symbol.depth,
+                        ) +
                         workspace.files[symbol.file].slice(symbol.to),
                     },
                     continuous,
@@ -3971,17 +4312,12 @@ export function EditorWorkspace({
                 type="button"
                 className={`is-${diagnostic.severity}`}
                 key={`${diagnostic.code}:${index}`}
-                disabled={!diagnostic.range}
-                onClick={() => {
-                  if (!diagnostic.range) return;
-                  openFile(diagnostic.range.file);
-                  requestAnimationFrame(() => {
-                    sourceRef.current?.setSelectionRange(
-                      diagnostic.range!.from,
-                      diagnostic.range!.to,
-                    );
-                  });
-                }}
+                disabled={
+                  !diagnostic.range &&
+                  !diagnostic.target &&
+                  !diagnostic.structuredTargets?.length
+                }
+                onClick={() => activateDiagnostic(diagnostic)}
               >
                 <span className="editor-diagnostic-icon" aria-hidden="true">
                   {diagnostic.severity === "error"
@@ -4120,6 +4456,8 @@ function LayoutNodeFields({
                     return candidate.kind === symbol.kind;
                   if (referenceKind === "choice-placement")
                     return candidate.kind === "choice" && candidate.depth > 0;
+                  if (referenceKind === "choice")
+                    return candidate.kind === "choice" && candidate.depth === 0;
                   return candidate.kind === referenceKind;
                 })
                 .flatMap((candidate) =>
@@ -6298,39 +6636,20 @@ function StructuredPanel({
     );
   const resolvedContext = structuredContext(files, symbol);
   const handle = field("handle");
-  const isDescriptionText =
-    symbol.kind === "text" &&
-    handle === "description" &&
-    (resolvedContext?.context === "choice" ||
-      resolvedContext?.context.startsWith("grant:"));
-  const descriptionOwner =
-    resolvedContext?.context === "grant:trait"
-      ? "trait"
-      : resolvedContext?.context.startsWith("grant:")
-        ? "grant"
-        : resolvedContext?.context === "choice"
-          ? "choice"
-          : null;
-  const name = isDescriptionText
-    ? translate("ui.editorWorkspace.description.label")
-    : handleIdentityDeclarations.has(symbol.kind)
-      ? handle
-      : field("name") || (symbol.kind === "jump" ? packageName : handle);
+  const name = handleIdentityDeclarations.has(symbol.kind)
+    ? handle
+    : field("name") || (symbol.kind === "jump" ? packageName : handle);
   const isLayout = symbol.kind.includes("layout");
   const scalarForm = new RegExp(
     `^\\s*${symbol.kind.replaceAll("-", "\\-")}:\\s*(.+)$`,
   ).exec(source.split("\n")[0] ?? "");
   const visibleFieldNames =
     resolvedContext?.visibleFields ?? declarationFieldNames(symbol.kind);
-  const identityFields = visibleFieldNames.filter(
-    (item) =>
-      ["handle", "name", "description", "author", "version"].includes(item) &&
-      !(isDescriptionText && item === "handle"),
+  const identityFields = visibleFieldNames.filter((item) =>
+    ["handle", "name", "description", "author", "version"].includes(item),
   );
   const detailFields = visibleFieldNames.filter(
-    (item) =>
-      !identityFields.includes(item) &&
-      !(isDescriptionText && item === "handle"),
+    (item) => !identityFields.includes(item),
   );
   const awardDetailFields = ["choice", "grant"].includes(symbol.kind)
     ? detailFields.filter((item) =>
@@ -6525,31 +6844,25 @@ function StructuredPanel({
           }
         : editorFieldPresentation(symbol.kind, fieldName);
     const fieldLabel =
-      isDescriptionText && fieldName === "content"
-        ? translate("ui.editorWorkspace.description.label")
-        : symbol.kind === "grant" &&
-            fieldName === "handle" &&
-            field("kind") === "property" &&
-            field("value") === "" &&
-            owningControl
-          ? translate("ui.editorWorkspace.namedValues.answerName")
-          : symbol.kind === "choice-source" && fieldName === "group"
-            ? translate("ui.editorWorkspace.setFields.choiceSourceGroupLabel")
-            : presentation.label;
+      symbol.kind === "grant" &&
+      fieldName === "handle" &&
+      field("kind") === "property" &&
+      field("value") === "" &&
+      owningControl
+        ? translate("ui.editorWorkspace.namedValues.answerName")
+        : symbol.kind === "choice-source" && fieldName === "group"
+          ? translate("ui.editorWorkspace.setFields.choiceSourceGroupLabel")
+          : presentation.label;
     const fieldHelp = showExplanatoryText
-      ? isDescriptionText && fieldName === "content" && descriptionOwner
-        ? translate(
-            `ui.editorWorkspace.description.${descriptionOwner}ContentHelp`,
-          )
-        : symbol.kind === "grant" &&
-            fieldName === "handle" &&
-            field("kind") === "property" &&
-            field("value") === "" &&
-            owningControl
-          ? translate("ui.editorWorkspace.namedValues.answerNameHelp")
-          : symbol.kind === "choice-source" && fieldName === "group"
-            ? translate("ui.editorWorkspace.setFields.choiceSourceGroupHelp")
-            : presentation.help
+      ? symbol.kind === "grant" &&
+        fieldName === "handle" &&
+        field("kind") === "property" &&
+        field("value") === "" &&
+        owningControl
+        ? translate("ui.editorWorkspace.namedValues.answerNameHelp")
+        : symbol.kind === "choice-source" && fieldName === "group"
+          ? translate("ui.editorWorkspace.setFields.choiceSourceGroupHelp")
+          : presentation.help
       : undefined;
     const controlLabel = fieldLabel;
     const definition =
@@ -6585,41 +6898,40 @@ function StructuredPanel({
       "owner-local-content": ["text", "image", "input"],
       "choice-placement": ["choice"],
     };
+    const referenceCandidates = referenceKind
+      ? symbols
+          .filter((candidate) =>
+            (referenceSymbolKinds[referenceKind] ?? [referenceKind]).includes(
+              candidate.kind,
+            ),
+          )
+          .filter((candidate) => {
+            if (referenceKind === "choice")
+              return candidate.kind === "choice" && candidate.depth === 0;
+            if (referenceKind === "form")
+              return (
+                readSourceField(files[candidate.file], candidate, "kind") ===
+                "form"
+              );
+            if (referenceKind === "companionTarget")
+              return candidate.kind === "choice"
+                ? readSourceField(
+                    files[candidate.file],
+                    candidate,
+                    "selection",
+                  ) === "companions"
+                : readSourceField(files[candidate.file], candidate, "kind") ===
+                    "companion";
+            if (referenceKind === "choice-placement")
+              return candidate.depth > 0;
+            return true;
+          })
+      : [];
     const referenceOptions = [
       ...(referenceKind === "resource" ? ["jump_points"] : []),
-      ...(referenceKind
-        ? symbols
-            .filter((candidate) =>
-              (referenceSymbolKinds[referenceKind] ?? [referenceKind]).includes(
-                candidate.kind,
-              ),
-            )
-            .filter((candidate) => {
-              if (referenceKind === "form")
-                return (
-                  readSourceField(files[candidate.file], candidate, "kind") ===
-                  "form"
-                );
-              if (referenceKind === "companionTarget")
-                return candidate.kind === "choice"
-                  ? readSourceField(
-                      files[candidate.file],
-                      candidate,
-                      "selection",
-                    ) === "companions"
-                  : readSourceField(
-                      files[candidate.file],
-                      candidate,
-                      "kind",
-                    ) === "companion";
-              if (referenceKind === "choice-placement")
-                return candidate.depth > 0;
-              return true;
-            })
-            .flatMap((candidate) =>
-              candidate.handle ? [candidate.handle] : [],
-            )
-        : []),
+      ...referenceCandidates.flatMap((candidate) =>
+        candidate.handle ? [candidate.handle] : [],
+      ),
       ...(definition?.type === "quotedString:assetRelativePath" ? assets : []),
       ...(["costAmount", "grantAmount"].includes(definition?.type ?? "")
         ? fieldValues(definition)
@@ -6634,7 +6946,9 @@ function StructuredPanel({
             "ui.editorWorkspace.reference.primaryPointCurrency",
           ),
         };
-      const candidate = symbols.find((item) => item.handle === value);
+      const candidate = referenceCandidates.find(
+        (item) => item.handle === value,
+      );
       if (!candidate) return { value, label: value };
       if (
         candidate.kind === "choice" &&
@@ -6762,6 +7076,7 @@ function StructuredPanel({
         <SetFieldControl
           key={fieldName}
           kind={setKind}
+          fieldName={fieldName}
           label={setLabel}
           help={translate(`ui.editorWorkspace.setFields.${setKind}.help`)}
           showHelp={showExplanatoryText}
@@ -6844,6 +7159,7 @@ function StructuredPanel({
         data-appearance-field={
           symbol.kind === "jump-appearance" ? fieldName : undefined
         }
+        data-structured-field={fieldName}
         key={fieldName}
       >
         {displayed.map((value, occurrence) =>
@@ -6942,6 +7258,7 @@ function StructuredPanel({
             return (
               <div
                 className={`editor-field-occurrence${fieldSeverity ? ` is-${fieldSeverity}` : ""}${measureUnavailable ? " is-unavailable" : ""}`}
+                data-structured-occurrence={occurrence}
                 key={`${fieldName}:${occurrence}`}
               >
                 <span>
@@ -7466,22 +7783,38 @@ function StructuredPanel({
   const authoredFieldNames = resolvedContext?.node.fields.map(
     (candidate) => candidate.name,
   );
-  const collapseValue =
+  const costAmount = field("amount");
+  const costAmountIsValid =
+    /^-?(?:0|[1-9][0-9]*)$/.test(costAmount) ||
+    fieldValues(fieldDefinition("cost", "amount")).includes(costAmount);
+  const costResource = field("resource");
+  const costMode = field("mode");
+  const scalarGrantKinds = ["perk", "item", "companion"];
+  const grantKindValue = field("kind");
+  const simpleValue =
     symbol.kind === "cost" &&
     !scalarForm &&
-    field("resource") === "jump_points" &&
-    ["", "flat"].includes(field("mode")) &&
+    (costResource === "jump_points" ||
+      !/^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(costResource)) &&
+    costMode !== "each" &&
     (authoredFieldNames ?? []).every((item) =>
       ["resource", "amount", "mode"].includes(item),
     )
-      ? field("amount")
+      ? costAmountIsValid
+        ? costAmount
+        : "0"
       : symbol.kind === "grant" &&
           !scalarForm &&
-          ["perk", "item", "companion"].includes(field("kind")) &&
+          (scalarGrantKinds.includes(grantKindValue) ||
+            !fieldValues(fieldDefinition("grant", "kind")).includes(
+              grantKindValue,
+            )) &&
           authoredFieldNames?.every((item) => item === "kind") &&
           !resolvedContext?.children.length
-        ? field("kind")
-        : "";
+        ? scalarGrantKinds.includes(grantKindValue)
+          ? grantKindValue
+          : "perk"
+        : null;
   const descriptionChild = resolvedContext?.children.find(
     (child) =>
       child.kind === "text" &&
@@ -7747,11 +8080,11 @@ function StructuredPanel({
                   <div className="editor-form-grid editor-detail-fields">
                     {ordinaryDetailFields.map(renderField)}
                   </div>
-                  {collapseValue && (
+                  {simpleValue !== null && (
                     <button
                       type="button"
                       onClick={() =>
-                        onReplace(symbol, `${symbol.kind}: ${collapseValue}`)
+                        onReplace(symbol, `${symbol.kind}: ${simpleValue}`)
                       }
                     >
                       {translate("ui.editorWorkspace.text.collapseToShorthand")}

@@ -140,6 +140,10 @@ section
       measured: expect.any(String),
       expected: expect.any(String),
     });
+    expect(contrast[0].structuredTargets).toEqual([
+      expect.objectContaining({ field: "surface-text" }),
+      expect.objectContaining({ field: "surface-background" }),
+    ]);
     expect(packageIsValid(packageItem)).toBe(true);
   });
   it("uses verified SHA-256 package identities", () => {
@@ -468,6 +472,55 @@ choice
     expect(source.slice(diagnostic?.range?.from, diagnostic?.range?.to)).toBe(
       "{{missing_answer}}",
     );
+  });
+
+  it("does not resolve a direct Choice target from its placement handle", () => {
+    const source = `jump
+  format: 1
+  name: "Choice namespaces"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: origin
+  name: "Origin"
+
+  choice
+    handle: dropinloc
+    target: dropinloc
+`;
+    const unresolved = canonicalizePackage({
+      id: "choice-placement-namespace",
+      exactHash: "c".repeat(64),
+      files: { "jump.jdef": source },
+    });
+    const diagnostic = unresolved.diagnostics.find(
+      (item) =>
+        item.code === "section.choice.target" &&
+        item.target?.field === "target",
+    );
+
+    expect(diagnostic).toBeDefined();
+    expect(source.slice(diagnostic!.range!.from, diagnostic!.range!.to)).toBe(
+      "dropinloc",
+    );
+
+    const resolved = canonicalizePackage({
+      id: "choice-declaration-namespace",
+      exactHash: "d".repeat(64),
+      files: {
+        "jump.jdef": `${source}
+choice
+  handle: dropinloc
+  name: "Drop-in"
+`,
+      },
+    });
+    expect(
+      resolved.diagnostics.filter(
+        (item) => item.code === "section.choice.target",
+      ),
+    ).toEqual([]);
   });
 
   it("accepts owning Choice and supporting Input answers in Text conditions and interpolation", () => {

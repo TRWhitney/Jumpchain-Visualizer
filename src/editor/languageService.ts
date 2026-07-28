@@ -22,6 +22,9 @@ export type FormatSymbol = {
 type SchemaDeclaration = {
   fields?: Record<string, unknown>;
   children?: Record<string, unknown>;
+  forms?: {
+    scalar?: unknown;
+  };
   formsByContext?: Record<
     string,
     {
@@ -52,8 +55,20 @@ function symbolsForNode(node: SourceNode, depth: number): FormatSymbol[] {
       to: node.range.to,
       depth,
     },
+    ...node.fields
+      .filter(
+        (candidate) =>
+          schemaDeclarations[candidate.name]?.forms?.scalar !== undefined,
+      )
+      .map((candidate) => ({
+        kind: candidate.name,
+        file: candidate.range.file,
+        from: candidate.range.from,
+        to: candidate.range.to,
+        depth: depth + 1,
+      })),
     ...node.children.flatMap((child) => symbolsForNode(child, depth + 1)),
-  ];
+  ].sort((left, right) => left.from - right.from);
 }
 
 function flattenNodes(nodes: readonly SourceNode[]): SourceNode[] {
@@ -208,13 +223,22 @@ export class Format1LanguageService {
   }
 
   format(source: string) {
-    return source
+    const normalized = source
       .replace(/\t/g, "  ")
       .split(/\r?\n/)
       .map((line) => line.replace(/[ \t]+$/g, ""))
       .join("\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .replace(/\s*$/, "\n");
+      .replace(/\n{3,}/g, "\n\n");
+    const lines = normalized.split("\n");
+    const roots = parseFormatFile("formatted.jdef", normalized).tree;
+    const insertions = roots.slice(1).flatMap((root) => {
+      let line = root.range.line - 1;
+      while (line > 0 && /^\s*#/.test(lines[line - 1])) line -= 1;
+      return line > 0 && lines[line - 1].trim() ? [line] : [];
+    });
+    for (const line of insertions.sort((left, right) => right - left))
+      lines.splice(line, 0, "");
+    return lines.join("\n").replace(/\s*$/, "\n");
   }
 
   highestPriorityDiagnostic(diagnostics: readonly PackageDiagnostic[]) {

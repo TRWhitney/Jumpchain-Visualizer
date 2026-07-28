@@ -498,6 +498,12 @@
             Input type takes a full row so its inclusive Minimum and Maximum
             form one aligned pair. Cost calculation cannot choose
             <em>Per selected number</em> without an Integer owner. Integer
+            Costs and simple Grants keep <em>Use simple value</em> available
+            while a shorthand-compatible block has missing or invalid required
+            values; conversion repairs those values to <code>cost: 0</code> or
+            <code>grant: perk</code>. Valid semantics that shorthand cannot
+            represent, such as another currency or a per-selected-number cost,
+            do not offer the conversion. Integer
             Choices pair Selection type with How selection is made and then
             Minimum with Maximum; Select Choices pair Selection type with Gender
             default. Omitted companion-selection bounds both show
@@ -531,10 +537,13 @@
             <strong>Description content:</strong> Choice and visible Grant
             owners expose a dedicated <em>+ Description</em> action in
             Structured and Quick Add. The resulting owner-local Text block keeps
-            the canonical <code>description</code> handle out of the ordinary
-            rename UI. Choice Description explains the Choice and supplies the
-            fallback description for its grants; Grant Description overrides
-            that fallback wherever the grant is displayed. Perk, item, form, and
+            the canonical <code>description</code> handle as a convenient
+            starting value, but it uses the ordinary Text editor and its Handle
+            remains editable. Changing any Text block's handle to or from
+            <code>description</code> never changes its editing surface. Choice
+            Description explains the Choice and supplies the fallback
+            description for its grants; Grant Description overrides that
+            fallback wherever the grant is displayed. Perk, item, form, and
             companion Grants therefore offer no arbitrary Text or Image
             creation. Trait Grants retain additional Text and Image actions
             because trait layouts consume those owner-local targets. Invalid

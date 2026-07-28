@@ -808,7 +808,11 @@ function VariantEditor({
     })),
   ];
   return (
-    <article className="editor-condition-variant-card">
+    <article
+      className="editor-condition-variant-card"
+      data-structured-variant-field={fieldName}
+      data-structured-variant-occurrence={variant.occurrence}
+    >
       <header>
         <strong>
           {translate("ui.editorWorkspace.condition.variantNumber", {

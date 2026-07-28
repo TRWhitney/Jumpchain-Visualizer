@@ -176,6 +176,45 @@ function locateSymbol(
   );
 }
 
+function scalarFieldNode(field: SourceField): SourceNode {
+  return {
+    kind: field.name,
+    scalar: field.value,
+    fields: [],
+    children: [],
+    range: field.range,
+  };
+}
+
+function scalarChildFields(node: SourceNode) {
+  return node.fields.filter(
+    (field) => schema.declarations[field.name]?.forms?.scalar !== undefined,
+  );
+}
+
+function locateStructuredSymbol(
+  files: Readonly<Record<string, string>>,
+  symbol: FormatSymbol,
+): LocatedNode | undefined {
+  const direct = locateSymbol(files, symbol);
+  if (direct) return direct;
+  const parsed = parseFormatFile(symbol.file, files[symbol.file] ?? "");
+  for (const located of locateNodes(parsed.tree)) {
+    const field = scalarChildFields(located.node).find(
+      (candidate) =>
+        candidate.name === symbol.kind && candidate.range.from === symbol.from,
+    );
+    if (field)
+      return {
+        node: scalarFieldNode(field),
+        parent: located.node,
+        ancestors: [...located.ancestors, located.node],
+        depth: located.depth + 1,
+      };
+  }
+  return undefined;
+}
+
 function contextName(parent: SourceNode | undefined) {
   if (!parent) return "top-level";
   if (parent.kind !== "grant") return parent.kind;
@@ -251,7 +290,7 @@ export function structuredContext(
   files: Readonly<Record<string, string>>,
   symbol: FormatSymbol,
 ): StructuredContext | null {
-  const located = locateSymbol(files, symbol);
+  const located = locateStructuredSymbol(files, symbol);
   if (!located) return null;
   const { node, parent, ancestors, depth } = located;
   const declaration = schema.declarations[node.kind];
@@ -272,6 +311,9 @@ export function structuredContext(
       ) as Record<string, FieldDefinition>);
   const visibleFields = applicableFieldNames(node, fields);
   const authoredNames = [...new Set(node.fields.map((field) => field.name))];
+  const scalarChildNames = new Set(
+    scalarChildFields(node).map((field) => field.name),
+  );
   const childRules =
     node.scalar !== undefined
       ? {}
@@ -310,10 +352,15 @@ export function structuredContext(
     fields,
     visibleFields,
     invalidAuthoredFields: authoredNames.filter(
-      (name) => !visibleFields.includes(name),
+      (name) => !visibleFields.includes(name) && !scalarChildNames.has(name),
     ),
     childKinds,
-    children: node.children.map((child) => symbolForNode(child, depth + 1)),
+    children: [
+      ...node.children.map((child) => symbolForNode(child, depth + 1)),
+      ...scalarChildFields(node).map((field) =>
+        symbolForNode(scalarFieldNode(field), depth + 1),
+      ),
+    ].sort((left, right) => left.from - right.from),
   };
 }
 
@@ -615,20 +662,27 @@ export function removeDocumentDeclaration(
   symbol: FormatSymbol,
 ): DocumentEditResult {
   const located = locateSymbol(files, symbol);
-  if (!located)
+  const scalarLocated = located
+    ? undefined
+    : locateStructuredSymbol(files, symbol);
+  if (!located && !scalarLocated)
     return { changed: false, files: { ...files }, reason: "stale-target" };
   const source = files[symbol.file] ?? "";
-  let from = located.node.range.from;
-  const to = located.node.range.to;
-  if (from > 0 && source[from - 1] === "\n") from -= 1;
+  const target = located ?? scalarLocated!;
+  let from = target.node.range.from;
+  let to = target.node.range.to;
+  if (scalarLocated) {
+    from = source.lastIndexOf("\n", Math.max(0, from - 1)) + 1;
+    if (source[to] === "\n") to += 1;
+  } else if (from > 0 && source[from - 1] === "\n") from -= 1;
   return {
     changed: true,
     files: {
       ...files,
       [symbol.file]: source.slice(0, from) + source.slice(to),
     },
-    target: located.parent
-      ? symbolForNode(located.parent, Math.max(0, located.depth - 1))
+    target: target.parent
+      ? symbolForNode(target.parent, Math.max(0, target.depth - 1))
       : undefined,
   };
 }
@@ -642,13 +696,17 @@ export function moveDocumentChild(
   const located = locateSymbol(files, owner);
   if (!located)
     return { changed: false, files: { ...files }, reason: "stale-target" };
-  const index = located.node.children.findIndex(
+  const children = [
+    ...located.node.children,
+    ...scalarChildFields(located.node).map(scalarFieldNode),
+  ].sort((left, right) => left.range.from - right.range.from);
+  const index = children.findIndex(
     (candidate) =>
       candidate.kind === child.kind && candidate.range.from === child.from,
   );
   const otherIndex = direction === "up" ? index - 1 : index + 1;
-  const other = located.node.children[otherIndex];
-  const current = located.node.children[index];
+  const other = children[otherIndex];
+  const current = children[index];
   if (!current || !other)
     return { changed: false, files: { ...files }, reason: "no-change" };
   const left = direction === "up" ? other : current;
@@ -666,20 +724,19 @@ export function moveDocumentChild(
       leftText +
       source.slice(right.range.to),
   };
-  const nextOwner = locateSymbol(nextFiles, owner);
-  const target = nextOwner?.node.children.find((candidate) => {
-    if (candidate.kind !== child.kind) return false;
-    const candidateHandle = unquote(
-      candidate.fields.find((field) => field.name === "handle")?.value,
-    );
-    return child.handle
-      ? candidateHandle === child.handle
-      : candidate.range.from !== other.range.from;
-  });
+  const movedFrom =
+    direction === "up"
+      ? left.range.from
+      : left.range.from + rightText.length + between.length;
+  const target = {
+    ...symbolForNode(current, located.depth + 1),
+    from: movedFrom,
+    to: movedFrom + current.range.to - current.range.from,
+  };
   return {
     changed: true,
     files: nextFiles,
-    target: target ? symbolForNode(target, located.depth + 1) : undefined,
+    target,
   };
 }
 
@@ -786,13 +843,22 @@ export function readSourceField(
   occurrence = 0,
 ) {
   const field = sourceField(source, symbol, name, occurrence);
-  return field ? unquoteValue(field.value) : "";
+  return field ? readFieldValue(field) : "";
 }
 
-const unquoteValue = (value: string) =>
-  value.length >= 2 && value.startsWith('"') && value.endsWith('"')
-    ? value.slice(1, -1)
-    : value;
+const unquoteValue = (value: string) => {
+  if (value.length < 2 || !value.startsWith('"') || !value.endsWith('"'))
+    return value;
+  try {
+    const parsed = JSON.parse(value);
+    return typeof parsed === "string" ? parsed : value.slice(1, -1);
+  } catch {
+    return value.slice(1, -1);
+  }
+};
+
+const readFieldValue = (field: SourceField) =>
+  field.fenced ? field.value : unquoteValue(field.value);
 
 export function quickAddFieldMode(
   source: string,
@@ -803,7 +869,7 @@ export function quickAddFieldMode(
   const definition = definitionOverride ?? fieldDefinition(symbol.kind, name);
   const existing = sourceField(source, symbol, name);
   if (!existing) return "add";
-  const value = unquoteValue(existing.value).trim();
+  const value = readFieldValue(existing).trim();
   const required = Boolean(definition?.required || (definition?.min ?? 0) > 0);
   if (required && !value) return "complete";
   if (definition?.const !== undefined && value !== String(definition.const))
@@ -820,7 +886,7 @@ export function readSourceFields(
   if (!node) return [];
   return node.fields
     .filter((field) => field.name === name && field.condition === undefined)
-    .map((field) => unquoteValue(field.value));
+    .map(readFieldValue);
 }
 
 export function readConditionalSourceFields(
@@ -834,7 +900,7 @@ export function readConditionalSourceFields(
     .filter((field) => field.name === name && field.condition !== undefined)
     .map((field) => ({
       condition: field.condition ?? "",
-      value: unquoteValue(field.value),
+      value: readFieldValue(field),
     }));
 }
 
@@ -858,7 +924,7 @@ export function readConditionalSourceFieldGroups(
         baseOccurrence: Math.max(0, baseOccurrence),
         occurrence: occurrence++,
         condition: field.condition,
-        value: unquoteValue(field.value),
+        value: readFieldValue(field),
       },
     ];
   });

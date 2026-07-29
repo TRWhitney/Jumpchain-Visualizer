@@ -384,10 +384,20 @@
             selection. Selecting a layout renders that layout through the
             canonical renderer with localized representative data for every
             authored slot, text, image, input, expanded choice source, direct
-            choice, or trait target; this isolated authoring fixture remains
+            choice, or trait target. Section, choice, and trait layout
+            namespaces remain distinct when declarations reuse a handle, so
+            each page previews only its own authored tree. Typed layout target
+            choices and missing-target diagnostics use that same owner
+            namespace: Choice layouts inspect Choice content, Section layouts
+            inspect Section content, and Trait layouts inspect content on Trait
+            grants. This isolated authoring fixture remains
             available when unrelated package diagnostics would otherwise force a
             last-valid package fallback and never enters project source or saved
-            state. Strip color sits beside Show bounds and removes authored
+            state. A selected Choice likewise overlays its safely parsed current
+            declaration and the current Choice-layout namespace onto a
+            last-valid fallback, so changing or clearing its layout remains
+            visible without admitting unrelated invalid source into the
+            preview. Strip color sits beside Show bounds and removes authored
             layout backgrounds, text colors, rule colors, and theme resolution
             only from the current preview. It is transient editor UI state and
             never changes source, history, or saved project data. When the

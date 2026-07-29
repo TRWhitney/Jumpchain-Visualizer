@@ -1,3 +1,4 @@
+import type { JumpLayout } from "../markup";
 import type { FormatSymbol } from "./languageService";
 import { readSourceField, structuredContext } from "./documentEditor";
 
@@ -14,7 +15,11 @@ export type PreviewSelection =
       alt?: string;
       sectionHandle?: string;
     }
-  | { kind: "layout"; handle: string };
+  | {
+      kind: "layout";
+      handle: string;
+      layoutKind: JumpLayout["kind"];
+    };
 
 const closestAncestor = (ancestors: readonly FormatSymbol[], kind: string) => {
   for (let index = ancestors.length - 1; index >= 0; index -= 1)
@@ -22,15 +27,24 @@ const closestAncestor = (ancestors: readonly FormatSymbol[], kind: string) => {
   return undefined;
 };
 
+const isLayoutKind = (kind: string): kind is JumpLayout["kind"] =>
+  kind === "section-layout" ||
+  kind === "choice-layout" ||
+  kind === "trait-layout";
+
 export function previewSelectionForSymbol(
   files: Readonly<Record<string, string>>,
   symbol: FormatSymbol,
 ): PreviewSelection {
   if (symbol.kind === "jump-appearance")
     return { kind: "appearance", mode: "components" };
-  if (["section-layout", "choice-layout", "trait-layout"].includes(symbol.kind))
+  if (isLayoutKind(symbol.kind))
     return symbol.handle
-      ? { kind: "layout", handle: symbol.handle }
+      ? {
+          kind: "layout",
+          handle: symbol.handle,
+          layoutKind: symbol.kind,
+        }
       : { kind: "package" };
   if (symbol.kind === "section")
     return symbol.handle

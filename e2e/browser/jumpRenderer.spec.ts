@@ -100,6 +100,18 @@ test(
     await expect(manualScholar).toBeChecked();
     await expect(randomScholar).toBeChecked();
     await expect(eitherScholar).toBeChecked();
+    const manualScholarCard = manualScholar.locator(
+      "xpath=ancestor::article[1]",
+    );
+    const [radioBox, headingBox] = await Promise.all([
+      manualScholar.boundingBox(),
+      manualScholarCard.getByText("Scholar", { exact: true }).boundingBox(),
+    ]);
+    expect(radioBox).not.toBeNull();
+    expect(headingBox).not.toBeNull();
+    expect(radioBox!.x).toBeCloseTo(headingBox!.x, 0);
+    expect(radioBox!.width).toBeLessThanOrEqual(20);
+    expect(radioBox!.height).toBeLessThanOrEqual(20);
     expect(
       new Set(
         await Promise.all(
@@ -339,9 +351,11 @@ test("native Gauntlet costs, awards, replacement rolls, and companion Choice ren
   await expect(
     tracker.getByRole("button", { name: "Native Gauntlet" }),
   ).toBeDisabled();
-  await expect(
-    card(tracker, "The Trial's Allowance").locator(".cost-badge"),
-  ).toBeVisible();
+  const allowanceBadge = card(tracker, "The Trial's Allowance").locator(
+    ".cost-badge",
+  );
+  await expect(allowanceBadge).toHaveText("+1200 CP");
+  await expect(allowanceBadge).toHaveClass(/is-award/);
   await expect(
     card(tracker, "Trial Requisition").locator(".cost-badge"),
   ).toContainText(/Rolled|CP|Trial Marks/);

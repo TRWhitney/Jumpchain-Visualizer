@@ -10,6 +10,7 @@ import {
   FreeTextSuggestionCombobox,
   type FreeTextSuggestion,
 } from "./FreeTextSuggestionCombobox";
+import { SpellingTextInput } from "./SpellingTextControl";
 
 export function SetFieldControl({
   kind,
@@ -95,14 +96,14 @@ export function SetFieldControl({
       )}
       <div className="editor-set-composer">
         {kind === "author" ? (
-          <input
+          <SpellingTextInput
             className="editor-set-text-input"
             aria-label={label}
             aria-describedby={showHelp ? helpId : undefined}
             type="text"
-            spellCheck
             value={draft}
             placeholder={placeholder}
+            onSpellingChange={setDraft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
               if (event.key !== "Enter") return;

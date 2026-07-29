@@ -1,4 +1,5 @@
 import type { CanonicalJumpPackage, LayoutNode, Presentation } from "../markup";
+import { defaultCostAppearanceColors } from "../tracker/jumpAppearance";
 
 function stripPresentationColors(presentation: Presentation): Presentation {
   const stripped = { ...presentation };
@@ -22,8 +23,8 @@ export function stripPreviewColors(
 ): CanonicalJumpPackage {
   return {
     ...packageItem,
-    appearance: Object.fromEntries(
-      Object.entries(packageItem.appearance ?? {}).filter(
+    appearance: Object.fromEntries([
+      ...Object.entries(packageItem.appearance ?? {}).filter(
         ([field]) =>
           !field.includes("color") &&
           !field.endsWith("-background") &&
@@ -39,7 +40,8 @@ export function stripPreviewColors(
           !field.endsWith("-accent") &&
           field !== "background",
       ),
-    ),
+      ...Object.entries(defaultCostAppearanceColors),
+    ]),
     layouts: packageItem.layouts.map((layout) => ({
       ...layout,
       root: stripNodeColors(layout.root),

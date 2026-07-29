@@ -7,6 +7,7 @@ import type {
   ParsedFormatFile,
   SourceField,
   SourceNode,
+  JumpLayout,
 } from "./model";
 import {
   conditionComparisons,
@@ -20,6 +21,10 @@ import {
   conditionControlProperties,
   conditionContextHandles,
 } from "./conditionProperties";
+import {
+  layoutNodeSupportsTextStyling,
+  layoutNodeUsesControlAlignment,
+} from "./layoutSemantics";
 
 type FieldRule = {
   type?: string;
@@ -509,6 +514,33 @@ function validateNode(
           node,
           sourceField,
         );
+      continue;
+    }
+    const slotTarget = unquote(
+      node.fields.find((field) => field.name === "target")?.value ?? "",
+    );
+    if (
+      node.kind === "slot" &&
+      ((["text-size", "text-color"].includes(sourceField.name) &&
+        !layoutNodeSupportsTextStyling(node.kind, slotTarget)) ||
+        (sourceField.name === "control-adornments" &&
+          !layoutNodeUsesControlAlignment(node.kind, slotTarget)))
+    ) {
+      const occurrence = node.fields
+        .filter((candidate) => candidate.name === sourceField.name)
+        .indexOf(sourceField);
+      add(
+        diagnostics,
+        "schema.field.unknown",
+        {
+          field: sourceField.name,
+          declaration: node.kind,
+          suggestion: "",
+        },
+        node,
+        sourceField,
+        occurrence,
+      );
       continue;
     }
     const rule =
@@ -1084,21 +1116,31 @@ function validateAuthoringWarnings(
 
   if (options.warnings?.missingLayoutTargets !== false) {
     const layoutNodes = new Map<string, SourceNode>();
+    const layoutKey = (kind: JumpLayout["kind"], handle: string) =>
+      `${kind}\0${handle}`;
     for (const { node } of entries.filter(({ node }) =>
       node.kind.endsWith("-layout"),
     )) {
       const handle = node.fields.find((field) => field.name === "handle");
-      if (handle) layoutNodes.set(unquote(handle.value), node);
+      if (handle)
+        layoutNodes.set(
+          layoutKey(node.kind as JumpLayout["kind"], unquote(handle.value)),
+          node,
+        );
     }
     const consumers = new Map<
       string,
       {
-        label: string;
-        owner: SourceNode;
-        handles: Record<string, Set<string>>;
-      }[]
+        layout: string;
+        owners: {
+          label: string;
+          owner: SourceNode;
+          handles: Record<string, Set<string>>;
+        }[];
+      }
     >();
     const addConsumer = (
+      layoutKind: JumpLayout["kind"],
       layout: string | undefined,
       label: string,
       owner: SourceNode | undefined,
@@ -1116,9 +1158,10 @@ function validateAuthoringWarnings(
         if (handle && handles[child.kind])
           handles[child.kind].add(unquote(handle.value));
       }
-      const current = consumers.get(layout) ?? [];
-      current.push({ label, owner, handles });
-      consumers.set(layout, current);
+      const key = layoutKey(layoutKind, layout);
+      const current = consumers.get(key) ?? { layout, owners: [] };
+      current.owners.push({ label, owner, handles });
+      consumers.set(key, current);
     };
     for (const section of packageItem.sections) {
       const owner = entries.find(
@@ -1132,6 +1175,7 @@ function validateAuthoringWarnings(
           ),
       )?.node;
       addConsumer(
+        "section-layout",
         section.layout ?? packageItem.defaultSectionLayout,
         `section ${section.handle}`,
         owner,
@@ -1148,13 +1192,36 @@ function validateAuthoringWarnings(
           ),
       )?.node;
       addConsumer(
+        "choice-layout",
         choice.layout ?? packageItem.defaultChoiceLayout,
         `choice ${choice.handle}`,
         owner,
       );
     }
-    for (const [layoutHandle, owners] of consumers) {
-      const declaration = layoutNodes.get(layoutHandle);
+    for (const { node } of entries) {
+      if (node.kind !== "grant") continue;
+      const kind = node.fields.find((field) => field.name === "kind");
+      if (!kind || unquote(kind.value) !== "trait") continue;
+      const layout = node.fields.find((field) => field.name === "layout");
+      const ownerChoice = entries.find(
+        ({ node: candidate }) =>
+          candidate.kind === "choice" &&
+          candidate.range.file === node.range.file &&
+          candidate.range.from <= node.range.from &&
+          candidate.range.to >= node.range.to,
+      )?.node;
+      const choiceHandle = ownerChoice?.fields.find(
+        (field) => field.name === "handle",
+      );
+      addConsumer(
+        "trait-layout",
+        layout ? unquote(layout.value) : packageItem.defaultTraitLayout,
+        `trait ${choiceHandle ? unquote(choiceHandle.value) : "grant"}`,
+        node,
+      );
+    }
+    for (const [key, { layout: layoutHandle, owners }] of consumers) {
+      const declaration = layoutNodes.get(key);
       if (!declaration) continue;
       const placedInputs = new Set(
         walk(declaration.children).flatMap(({ node }) => [

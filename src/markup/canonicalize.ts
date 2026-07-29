@@ -927,6 +927,7 @@ function layoutNode(
       align: value(node, "align"),
       justify: value(node, "justify"),
       textAlign: value(node, "text-align"),
+      controlAdornments: boolean(node, "control-adornments"),
       textSize: value(node, "text-size"),
       textColor: value(node, "text-color"),
       columns: integer(node, "columns"),
@@ -1043,7 +1044,12 @@ function validateRelations(
       );
 
   const choices = new Set(result.choices.map((item) => item.handle));
-  const layouts = new Map(result.layouts.map((item) => [item.handle, item]));
+  const layoutFor = (kind: JumpLayout["kind"], handle: string | undefined) =>
+    handle
+      ? result.layouts.find(
+          (item) => item.kind === kind && item.handle === handle,
+        )
+      : undefined;
   const resources = new Set([
     "jump_points",
     ...result.resources.map((item) => item.handle),
@@ -1136,7 +1142,7 @@ function validateRelations(
           "error",
           { target: direct.target },
         );
-    if (sectionItem.layout && !layouts.has(sectionItem.layout))
+    if (sectionItem.layout && !layoutFor("section-layout", sectionItem.layout))
       diagnostic(
         diagnostics,
         "layout.reference",
@@ -1169,7 +1175,7 @@ function validateRelations(
     }
   }
   for (const choiceItem of result.choices) {
-    if (choiceItem.layout && !layouts.has(choiceItem.layout))
+    if (choiceItem.layout && !layoutFor("choice-layout", choiceItem.layout))
       diagnostic(
         diagnostics,
         "layout.reference",
@@ -1298,12 +1304,11 @@ function validateRelations(
   }
 
   for (const sectionItem of result.sections) {
-    const selectedLayout = sectionItem.layout
-      ? layouts.get(sectionItem.layout)
-      : result.defaultSectionLayout
-        ? layouts.get(result.defaultSectionLayout)
-        : undefined;
-    if (!selectedLayout || selectedLayout.kind !== "section-layout") continue;
+    const selectedLayout = layoutFor(
+      "section-layout",
+      sectionItem.layout ?? result.defaultSectionLayout,
+    );
+    if (!selectedLayout) continue;
     const nodes = walk(selectedLayout.root);
     const expanded = nodes.filter((item) => item.kind === "expand");
     const placed = nodes
@@ -1334,7 +1339,7 @@ function validateRelations(
           "error",
           { source: target, section: sectionItem.handle },
         );
-      if (source.using && layouts.get(source.using)?.kind !== "choice-layout")
+      if (source.using && !layoutFor("choice-layout", source.using))
         diagnostic(
           diagnostics,
           "layout.expand.using",

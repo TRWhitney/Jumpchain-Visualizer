@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { CanonicalJumpPackage, JumpLayout, LayoutNode } from "../markup";
-import { createLayoutPreviewFixture } from "./layoutPreview";
+import {
+  createLayoutPreviewFixture,
+  layoutPreviewAcceptsChoiceLayout,
+} from "./layoutPreview";
 
 const leaf = (kind: LayoutNode["kind"], target?: string): LayoutNode => ({
   kind,
@@ -27,6 +30,16 @@ const choiceLayout: JumpLayout = {
     leaf("input", "notes"),
     leaf("slot", "control"),
     leaf("slot", "roll"),
+  ),
+};
+
+const alternateChoiceLayout: JumpLayout = {
+  kind: "choice-layout",
+  handle: "compact_choice",
+  root: root(
+    leaf("slot", "name"),
+    leaf("text", "summary"),
+    leaf("slot", "control"),
   ),
 };
 
@@ -76,13 +89,44 @@ const packageItem: CanonicalJumpPackage = {
   resources: [],
   sections: [],
   choices: [],
-  layouts: [sectionLayout, choiceLayout, traitLayout],
+  layouts: [sectionLayout, choiceLayout, alternateChoiceLayout, traitLayout],
   themes: {},
   tags: [],
   diagnostics: [],
 };
 
 describe("layout preview fixtures", () => {
+  it("offers Choice-layout composition only where it can affect a Section layout", () => {
+    expect(layoutPreviewAcceptsChoiceLayout(sectionLayout)).toBe(true);
+    expect(layoutPreviewAcceptsChoiceLayout(choiceLayout)).toBe(false);
+    expect(layoutPreviewAcceptsChoiceLayout(traitLayout)).toBe(false);
+    expect(
+      layoutPreviewAcceptsChoiceLayout({
+        kind: "section-layout",
+        handle: "fully_assigned",
+        root: root({
+          kind: "expand",
+          source: "main",
+          using: choiceLayout.handle,
+          presentation: {},
+          children: [],
+        }),
+      }),
+    ).toBe(false);
+    expect(
+      layoutPreviewAcceptsChoiceLayout({
+        kind: "section-layout",
+        handle: "inherits_choice_layout",
+        root: root({
+          kind: "expand",
+          source: "main",
+          presentation: {},
+          children: [],
+        }),
+      }),
+    ).toBe(true);
+  });
+
   it("keeps representative text complete by default and truncates every placeholder when configured", () => {
     const complete = createLayoutPreviewFixture(packageItem, sectionLayout);
     const truncated = createLayoutPreviewFixture(
@@ -142,6 +186,29 @@ describe("layout preview fixtures", () => {
     expect(fixture.packageItem.choices[0].text[0].handle).toBe("description");
     expect(fixture.packageItem.choices[0].images[0].handle).toBe("hero");
     expect(fixture.packageItem.choices[0].inputs[0].handle).toBe("notes");
+  });
+
+  it("composes generated Section choices with another Choice layout without overriding Expand Using", () => {
+    const fixture = createLayoutPreviewFixture(
+      packageItem,
+      sectionLayout,
+      null,
+      alternateChoiceLayout.handle,
+    );
+    expect(fixture.kind).toBe("section-layout");
+    if (fixture.kind !== "section-layout") return;
+
+    expect(fixture.packageItem.defaultChoiceLayout).toBe(
+      alternateChoiceLayout.handle,
+    );
+    expect(fixture.packageItem.choices.slice(0, 2)).toMatchObject([
+      { layout: choiceLayout.handle },
+      { layout: choiceLayout.handle },
+    ]);
+    expect(fixture.packageItem.choices[2]).toMatchObject({
+      layout: alternateChoiceLayout.handle,
+      text: [{ handle: "summary" }],
+    });
   });
 
   it("populates every choice-layout content namespace and built-in slot data", () => {

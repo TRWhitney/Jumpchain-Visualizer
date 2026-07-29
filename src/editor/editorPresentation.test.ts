@@ -144,6 +144,24 @@ describe("Editor field presentation catalog", () => {
     ).toEqual([]);
   });
 
+  it("labels inner alignment for control slots without calling it text", () => {
+    expect(
+      editorLayoutFieldPresentation("text-align", {
+        controlAlignment: true,
+      }),
+    ).toMatchObject({
+      label: "Control alignment",
+      help: "Controls how the control is aligned inside this element.",
+    });
+    expect(editorLayoutFieldPresentation("text-align")).toMatchObject({
+      label: "Text alignment",
+    });
+    expect(editorLayoutFieldPresentation("control-adornments")).toEqual({
+      label: "Control adornments",
+      help: "Show the decorative rule and spacing around this control group.",
+    });
+  });
+
   it("keeps canonical stored values distinct from localized labels", () => {
     expect(editorOptionPresentation("input", "selection", "integer")).toEqual({
       value: "integer",

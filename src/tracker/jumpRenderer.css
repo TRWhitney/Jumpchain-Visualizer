@@ -76,9 +76,9 @@
   --jump-cost-benefit-background: #dcebdc;
   --jump-cost-benefit-text: #173c25;
   --jump-cost-benefit-border: #8eb99a;
-  --jump-cost-award-background: #dceaf0;
-  --jump-cost-award-text: #17394a;
-  --jump-cost-award-border: #91b5c5;
+  --jump-cost-award-background: #dcebdc;
+  --jump-cost-award-text: #173c25;
+  --jump-cost-award-border: #8eb99a;
   --jump-cost-pending-background: var(--earth-disabled);
   --jump-cost-pending-text: var(--earth-text);
   --jump-cost-pending-border: var(--earth-border);
@@ -387,6 +387,10 @@
   inline-size: min(20rem, 100%);
   max-inline-size: 100%;
 }
+.jump-layout-leaf-boundary[data-layout-control-align="justify"] > * {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
 .jump-layout-inline-child-area {
   display: flex;
   flex: 0 1 auto;
@@ -468,6 +472,11 @@
   > .default-choice-actions
   + .default-choice-actions {
   display: flex;
+}
+.jump-layout-leaf-boundary[data-layout-control-adornments="off"]
+  .default-choice-actions {
+  padding-top: 0;
+  border-top: 0;
 }
 .jump-nested-inputs {
   display: grid;

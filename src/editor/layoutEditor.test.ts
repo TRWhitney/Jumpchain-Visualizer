@@ -9,6 +9,8 @@ import {
   insertLayoutChild,
   insertLayoutRoot,
   layoutAllowedNodeKinds,
+  layoutContentTargetHandles,
+  layoutNodeHasEditableFields,
   layoutNodeForPath,
   layoutNodeSourceSelection,
   layoutSelectionKey,
@@ -157,6 +159,74 @@ describe("schema-driven layout editor", () => {
     expect(layoutSlotTargets("trait-layout")).toEqual(["name"]);
   });
 
+  it("exposes editable fields only for node kinds that define them", () => {
+    expect(layoutNodeHasEditableFields("choice")).toBe(true);
+    expect(layoutNodeHasEditableFields("rule")).toBe(true);
+    expect(layoutNodeHasEditableFields("not-a-layout-node")).toBe(false);
+  });
+
+  it("scopes content target handles to section, choice, and trait owners", () => {
+    const contentFiles = {
+      "content.jdef": `section
+  handle: section_owner
+  name: "Section owner"
+
+  text
+    handle: section_text
+    content: "Section"
+
+  image
+    handle: section_image
+    src: "section.png"
+    alt: "Section"
+
+choice
+  handle: choice_owner
+  name: "Choice owner"
+  selection: toggle
+
+  text
+    handle: choice_text
+    content: "Choice"
+
+  input
+    handle: choice_input
+    selection: text
+
+  grant
+    kind: trait
+
+    text
+      handle: trait_text
+      content: "Trait"
+
+    image
+      handle: trait_image
+      src: "trait.png"
+      alt: "Trait"
+`,
+    };
+
+    expect(
+      layoutContentTargetHandles(contentFiles, "section-layout", "text"),
+    ).toEqual(["section_text"]);
+    expect(
+      layoutContentTargetHandles(contentFiles, "choice-layout", "text"),
+    ).toEqual(["choice_text"]);
+    expect(
+      layoutContentTargetHandles(contentFiles, "choice-layout", "input"),
+    ).toEqual(["choice_input"]);
+    expect(
+      layoutContentTargetHandles(contentFiles, "trait-layout", "text"),
+    ).toEqual(["trait_text"]);
+    expect(
+      layoutContentTargetHandles(contentFiles, "trait-layout", "image"),
+    ).toEqual(["trait_image"]);
+    expect(
+      layoutContentTargetHandles(contentFiles, "trait-layout", "input"),
+    ).toEqual([]);
+  });
+
   it("inserts only legal children into the selected container", () => {
     const tree = treeFor();
     const root = tree.nodes[tree.rootId!];
@@ -286,6 +356,41 @@ describe("schema-driven layout editor", () => {
       "      text: introduction",
     );
     expect(structuralErrors(collapsed.files["layout.jdef"])).toEqual([]);
+  });
+
+  it("round-trips direct choices through alignable block presentation", () => {
+    const source = `section-layout
+  handle: section_page
+
+  inline
+    choice: age
+    choice: location
+`;
+    const symbol = { ...layout, to: source.length };
+    const initial = createLayoutEditorTree(files(source), symbol)!;
+    const location = node(initial, "inline[1]/choice[2]");
+    const expanded = expandLayoutLeaf(files(source), symbol, {
+      file: location.file,
+      from: location.from,
+      kind: location.kind,
+      compact: location.compact,
+    });
+    expect(expanded.changed).toBe(true);
+    expect(expanded.files["layout.jdef"]).toContain(
+      "    choice\n      target: location",
+    );
+    const alignedFiles = files(
+      expanded.files["layout.jdef"].replace(
+        "      target: location",
+        "      target: location\n      align: end",
+      ),
+    );
+    const alignedTree = createLayoutEditorTree(alignedFiles, symbol)!;
+    expect(node(alignedTree, "inline[1]/choice[2]").fieldNames).toEqual([
+      "target",
+      "align",
+    ]);
+    expect(structuralErrors(alignedFiles["layout.jdef"])).toEqual([]);
   });
 
   it("models every container and leaf presentation field with repeated targets", () => {

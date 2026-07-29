@@ -29,6 +29,7 @@ import { translate, translateDiagnostic } from "../localization";
 import { NumberStepperButtons } from "../tracker/NumberStepper";
 import { Chevron } from "../ui";
 import { ConditionExpressionInput } from "./ConditionExpressionInput";
+import { SpellingTextArea, SpellingTextInput } from "./SpellingTextControl";
 import {
   addVisualNode,
   expressionToVisual,
@@ -723,21 +724,21 @@ function VariantValueControl({
     field: fieldLabel,
   });
   return richText ? (
-    <textarea
+    <SpellingTextArea
       ref={textareaRef}
       aria-label={label}
-      spellCheck
       rows={5}
       value={value}
+      onSpellingChange={onChange}
       onChange={(event) => onChange(event.target.value)}
       onBlur={onBlur}
     />
   ) : (
-    <input
+    <SpellingTextInput
       aria-label={label}
       type="text"
-      spellCheck
       value={value}
+      onSpellingChange={onChange}
       onChange={(event) => onChange(event.target.value)}
       onBlur={onBlur}
     />

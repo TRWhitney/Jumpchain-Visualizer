@@ -2495,6 +2495,149 @@ choice-layout
   await expect(editor.locator(".editor-save-state")).toHaveText("Saved");
 });
 
+test("Strip color restores semantic free badges and stacked costs stay centered", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const jumpSource = editor.getByLabel("jump.jdef source");
+  await jumpSource.press(
+    process.platform === "darwin" ? "Meta+a" : "Control+a",
+  );
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Cost badge alignment"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: identity
+  name: "Identity"
+
+  choice
+    handle: age_slot
+    target: age
+
+choice
+  handle: age
+  name: "Age"
+  selection: integer
+  resolution: either
+  min: 18
+  max: 90
+  cost: 100
+`);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor
+    .getByRole("button", { name: "Jump appearance", exact: true })
+    .click();
+  const layoutSource = editor.getByLabel("layout.jdef source");
+  await layoutSource.press(
+    process.platform === "darwin" ? "Meta+a" : "Control+a",
+  );
+  await page.keyboard.insertText(`jump-appearance
+  background: "#999CC4"
+`);
+  await editor.getByRole("button", { name: "identity", exact: true }).click();
+
+  const card = editor
+    .locator(".editor-real-preview article.default-choice-card")
+    .filter({ hasText: "Age" });
+  await card.getByRole("button", { name: "Roll", exact: true }).click();
+  const badge = card.locator(".cost-badge.is-benefit.is-stacked");
+  await expect(badge).toContainText("Rolled");
+  await expect(badge).toHaveCSS("background-color", "rgb(153, 156, 196)");
+
+  await editor.getByLabel("Strip color").check();
+  await expect(badge).toHaveCSS("background-color", "rgb(220, 235, 220)");
+  await expect(badge).toHaveCSS("color", "rgb(23, 60, 37)");
+  await expect(badge).toHaveCSS("border-color", "rgb(142, 185, 154)");
+
+  const name = card.locator(".default-choice-heading > strong");
+  const [nameBox, badgeBox] = await Promise.all([
+    name.boundingBox(),
+    badge.boundingBox(),
+  ]);
+  expect(nameBox).not.toBeNull();
+  expect(badgeBox).not.toBeNull();
+  expect(
+    Math.abs(
+      nameBox!.y + nameBox!.height / 2 - (badgeBox!.y + badgeBox!.height / 2),
+    ),
+  ).toBeLessThanOrEqual(2);
+  const [cardBox, headingBox, actionsBox] = await Promise.all([
+    card.boundingBox(),
+    card.locator(".default-choice-heading").boundingBox(),
+    card.locator(".default-choice-actions").boundingBox(),
+  ]);
+  expect(cardBox).not.toBeNull();
+  expect(headingBox).not.toBeNull();
+  expect(actionsBox).not.toBeNull();
+  expect(headingBox!.height).toBeLessThan(badgeBox!.height);
+  const clearanceAboveBadge = badgeBox!.y - cardBox!.y;
+  const clearanceBeforeDivider =
+    actionsBox!.y - (badgeBox!.y + badgeBox!.height);
+  expect(clearanceBeforeDivider).toBeGreaterThanOrEqual(2);
+  expect(
+    Math.abs(clearanceAboveBadge - clearanceBeforeDivider),
+  ).toBeLessThanOrEqual(2);
+  await testInfo.attach("section-centered-semantic-cost-badge", {
+    body: await captureReviewScreenshot(page),
+    contentType: "image/png",
+  });
+
+  await editor.getByRole("button", { name: "age", exact: true }).click();
+  await expect(editor.getByLabel("Strip color")).toBeChecked();
+  const selectedChoiceCard = editor
+    .locator(".editor-real-preview article.default-choice-card")
+    .filter({ hasText: "Age" });
+  await selectedChoiceCard
+    .getByRole("button", { name: "Roll", exact: true })
+    .click();
+  const selectedChoiceBadge = selectedChoiceCard.locator(
+    ".cost-badge.is-benefit.is-stacked",
+  );
+  await expect(selectedChoiceBadge).toContainText("Rolled");
+  await expect(selectedChoiceBadge).toHaveCSS(
+    "background-color",
+    "rgb(220, 235, 220)",
+  );
+  await expect(selectedChoiceBadge).toHaveCSS("color", "rgb(23, 60, 37)");
+  await expect(selectedChoiceBadge).toHaveCSS(
+    "border-color",
+    "rgb(142, 185, 154)",
+  );
+  const [
+    selectedCardBox,
+    selectedHeadingBox,
+    selectedBadgeBox,
+    selectedActionsBox,
+  ] = await Promise.all([
+    selectedChoiceCard.boundingBox(),
+    selectedChoiceCard.locator(".default-choice-heading").boundingBox(),
+    selectedChoiceBadge.boundingBox(),
+    selectedChoiceCard.locator(".default-choice-actions").boundingBox(),
+  ]);
+  expect(selectedCardBox).not.toBeNull();
+  expect(selectedHeadingBox).not.toBeNull();
+  expect(selectedBadgeBox).not.toBeNull();
+  expect(selectedActionsBox).not.toBeNull();
+  expect(selectedHeadingBox!.height).toBeLessThan(selectedBadgeBox!.height);
+  const selectedClearanceAboveBadge = selectedBadgeBox!.y - selectedCardBox!.y;
+  const selectedClearanceBeforeDivider =
+    selectedActionsBox!.y - (selectedBadgeBox!.y + selectedBadgeBox!.height);
+  expect(selectedClearanceBeforeDivider).toBeGreaterThanOrEqual(2);
+  expect(
+    Math.abs(selectedClearanceAboveBadge - selectedClearanceBeforeDivider),
+  ).toBeLessThanOrEqual(2);
+  await testInfo.attach("selected-choice-centered-semantic-cost-badge", {
+    body: await captureReviewScreenshot(page),
+    contentType: "image/png",
+  });
+});
+
 test("Show bounds matches the mock boundary language and exact hover behavior", async ({
   page,
 }, testInfo) => {
@@ -2741,6 +2884,384 @@ test("layout diagnostics reuse Show bounds inspection for the exact field", asyn
     "aria-selected",
     "true",
   );
+});
+
+test("control slots align their leaf and inner control independently", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1600, height: 1100 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor
+    .getByRole("button", { name: "Choice layout", exact: true })
+    .click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("layout.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`choice-layout
+  handle: control_alignment
+
+  stack
+    slot: name
+
+    inline
+      slot
+        target: control
+        align: start
+        text-align: start
+`);
+  await editor.getByRole("button", { name: "control_alignment" }).click();
+  await editor.getByRole("tab", { name: "Structured" }).click();
+
+  const container = editor.locator(".editor-layout-level-navigation select");
+  await container.selectOption({ label: "stack[1]/inline[2]" });
+  const controlRow = editor.locator('[data-layout-node-kind="slot"]');
+  await controlRow
+    .getByRole("button", { name: "Edit Slot presentation fields" })
+    .click();
+  await expect(
+    controlRow.getByLabel("Control alignment", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    controlRow.getByLabel("Text alignment", { exact: true }),
+  ).toHaveCount(0);
+  await expect(controlRow.getByLabel("Text size", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(
+    controlRow.getByLabel("Text color", { exact: true }),
+  ).toHaveCount(0);
+  const adornments = controlRow.getByLabel("Control adornments", {
+    exact: true,
+  });
+  await expect(adornments).toBeVisible();
+  await expect(adornments).toBeChecked();
+  const adornmentsBox = await adornments.boundingBox();
+  expect(adornmentsBox).not.toBeNull();
+  expect(adornmentsBox!.width).toBeLessThanOrEqual(20);
+  expect(adornmentsBox!.height).toBeLessThanOrEqual(20);
+
+  const preview = editor.locator(".editor-real-preview");
+  const boundary = preview.locator(
+    '[data-layout-bound="stack[1]/inline[2]/slot[1]"]',
+  );
+  const control = boundary.locator(".default-choice-actions");
+  const startBoundaryBox = await boundary.boundingBox();
+  const startControlBox = await control.boundingBox();
+  expect(startBoundaryBox).not.toBeNull();
+  expect(startControlBox).not.toBeNull();
+
+  await controlRow
+    .getByLabel("Item alignment", { exact: true })
+    .selectOption("end");
+  const endBoundaryBox = await boundary.boundingBox();
+  const startInsideEndedLeafBox = await control.boundingBox();
+  expect(endBoundaryBox).not.toBeNull();
+  expect(startInsideEndedLeafBox).not.toBeNull();
+  expect(endBoundaryBox!.x).toBeGreaterThan(startBoundaryBox!.x);
+  expect(startInsideEndedLeafBox!.x - endBoundaryBox!.x).toBeCloseTo(
+    startControlBox!.x - startBoundaryBox!.x,
+    0,
+  );
+
+  await controlRow
+    .getByLabel("Control alignment", { exact: true })
+    .selectOption("end");
+  const innerEndBoundaryBox = await boundary.boundingBox();
+  const innerEndControlBox = await control.boundingBox();
+  expect(innerEndBoundaryBox).not.toBeNull();
+  expect(innerEndControlBox).not.toBeNull();
+  expect(innerEndBoundaryBox!.x).toBeCloseTo(endBoundaryBox!.x, 0);
+  expect(innerEndControlBox!.x).toBeGreaterThan(startInsideEndedLeafBox!.x);
+  const decorated = await control.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      borderTopWidth: style.borderTopWidth,
+      paddingTop: style.paddingTop,
+    };
+  });
+  expect(decorated.borderTopWidth).not.toBe("0px");
+  expect(Number.parseFloat(decorated.paddingTop)).toBeGreaterThan(0);
+
+  const previewCheckbox = control.getByRole("checkbox");
+  const checkboxBox = await previewCheckbox.boundingBox();
+  expect(checkboxBox).not.toBeNull();
+  await adornments.uncheck();
+  await expect(boundary).toHaveAttribute(
+    "data-layout-control-adornments",
+    "off",
+  );
+  await expect
+    .poll(() =>
+      control.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          borderTopWidth: style.borderTopWidth,
+          paddingTop: style.paddingTop,
+        };
+      }),
+    )
+    .toEqual({ borderTopWidth: "0px", paddingTop: "0px" });
+  await expect(previewCheckbox).toBeVisible();
+  expect(await previewCheckbox.boundingBox()).toMatchObject({
+    width: checkboxBox!.width,
+    height: checkboxBox!.height,
+  });
+  await editor.screenshot({
+    path: testInfo.outputPath("control-slot-without-adornments.png"),
+    animations: "disabled",
+  });
+  await adornments.check();
+  await expect(boundary).toHaveAttribute(
+    "data-layout-control-adornments",
+    "on",
+  );
+  await expect
+    .poll(() =>
+      control.evaluate((element) => getComputedStyle(element).borderTopWidth),
+    )
+    .not.toBe("0px");
+
+  await container.selectOption({ label: "stack[1]" });
+  const nameRow = editor.locator('[data-layout-node-kind="slot"]');
+  await nameRow
+    .getByRole("button", { name: "Edit Slot presentation fields" })
+    .click();
+  await expect(
+    nameRow.getByLabel("Text alignment", { exact: true }),
+  ).toBeVisible();
+  await expect(nameRow.getByLabel("Text size", { exact: true })).toBeVisible();
+  await expect(nameRow.getByLabel("Text color", { exact: true })).toBeVisible();
+  await expect(
+    nameRow.getByLabel("Control alignment", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    nameRow.getByLabel("Control adornments", { exact: true }),
+  ).toHaveCount(0);
+});
+
+test("direct Choice leaves align independently and default toggle controls share neighboring control geometry", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 2000, height: 1050 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const jumpSource = editor.getByLabel("jump.jdef source");
+  await jumpSource.press(
+    process.platform === "darwin" ? "Meta+a" : "Control+a",
+  );
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Choice alignment"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: identity
+  name: "Identity"
+  layout: identity_layout
+
+  choice
+    handle: age_field
+    target: age
+
+  choice
+    handle: location_field
+    target: location
+
+choice
+  handle: age
+  name: "Age"
+  selection: integer
+  resolution: either
+  min: 18
+  max: 90
+  cost: 100
+
+choice
+  handle: location
+  name: "Location (Poolside)"
+  selection: toggle
+`);
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor
+    .getByRole("button", { name: "Section layout", exact: true })
+    .click();
+  const layoutSource = editor.getByLabel("layout.jdef source");
+  await layoutSource.press(
+    process.platform === "darwin" ? "Meta+a" : "Control+a",
+  );
+  await page.keyboard.insertText(`section-layout
+  handle: identity_layout
+
+  inline
+    gap: md
+    choice: age_field
+    choice: location_field
+`);
+  await editor.getByRole("button", { name: "identity_layout" }).click();
+  await editor.getByRole("tab", { name: "Structured" }).click();
+
+  const builder = editor.locator(".editor-layout-builder");
+  const choices = builder.locator('[data-layout-node-kind="choice"]');
+  await expect(choices).toHaveCount(2);
+  const locationRow = choices.nth(1);
+  await locationRow
+    .getByRole("button", { name: "Edit Choice presentation fields" })
+    .click();
+  await expect(
+    locationRow.getByLabel("Item alignment", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    locationRow.getByLabel("Padding", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    locationRow.getByLabel("Background", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    locationRow.getByLabel("Text alignment", { exact: true }),
+  ).toHaveCount(0);
+  await locationRow
+    .getByLabel("Item alignment", { exact: true })
+    .selectOption("end");
+  await editor.screenshot({
+    path: testInfo.outputPath("direct-choice-alignment-control.png"),
+    animations: "disabled",
+  });
+  await editor.getByRole("tab", { name: "Source" }).click();
+  await expect(layoutSource).toContainText(`choice
+      target: location_field
+      align: end`);
+
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  const layoutPreview = editor.locator(".editor-real-preview");
+  const ageBoundary = layoutPreview.locator(
+    '[data-layout-bound="inline[1]/choice[1]"]',
+  );
+  const locationBoundary = layoutPreview.locator(
+    '[data-layout-bound="inline[1]/choice[2]"]',
+  );
+  const ageBoundaryBox = await ageBoundary.boundingBox();
+  const locationBoundaryBox = await locationBoundary.boundingBox();
+  expect(ageBoundaryBox).not.toBeNull();
+  expect(locationBoundaryBox).not.toBeNull();
+  expect(locationBoundaryBox!.x).toBeGreaterThan(
+    ageBoundaryBox!.x + ageBoundaryBox!.width,
+  );
+  await editor.screenshot({
+    path: testInfo.outputPath("direct-choice-aligned-right.png"),
+    animations: "disabled",
+  });
+
+  await locationRow
+    .getByRole("button", { name: "Edit Choice presentation fields" })
+    .click();
+  await locationRow
+    .getByLabel("Item alignment", { exact: true })
+    .selectOption("stretch");
+  await editor.getByRole("button", { name: "identity", exact: true }).click();
+  const preview = editor.locator(".editor-real-preview");
+  const ageCard = preview
+    .locator("article.default-choice-card")
+    .filter({ hasText: "Age" });
+  const locationCard = preview
+    .locator("article.default-choice-card")
+    .filter({ hasText: "Location (Poolside)" });
+  const ageActions = ageCard.locator(".default-choice-actions");
+  const locationActions = locationCard.locator(".default-choice-actions");
+  const ageInput = ageActions.getByRole("spinbutton");
+  const locationToggle = locationActions.getByRole("checkbox");
+  const [
+    ageCardBox,
+    locationCardBox,
+    ageActionsBox,
+    locationActionsBox,
+    ageInputBox,
+    locationToggleBox,
+  ] = await Promise.all([
+    ageCard.boundingBox(),
+    locationCard.boundingBox(),
+    ageActions.boundingBox(),
+    locationActions.boundingBox(),
+    ageInput.boundingBox(),
+    locationToggle.boundingBox(),
+  ]);
+  expect(ageCardBox).not.toBeNull();
+  expect(locationCardBox).not.toBeNull();
+  expect(ageActionsBox).not.toBeNull();
+  expect(locationActionsBox).not.toBeNull();
+  expect(ageInputBox).not.toBeNull();
+  expect(locationToggleBox).not.toBeNull();
+  expect(locationActionsBox!.y).toBeCloseTo(ageActionsBox!.y, 0);
+  expect(locationToggleBox!.x - locationCardBox!.x).toBeCloseTo(
+    ageInputBox!.x - ageCardBox!.x,
+    0,
+  );
+  expect(
+    Math.abs(
+      locationToggleBox!.y +
+        locationToggleBox!.height / 2 -
+        (ageInputBox!.y + ageInputBox!.height / 2),
+    ),
+  ).toBeLessThanOrEqual(2.5);
+  expect(locationToggleBox!.width).toBeLessThanOrEqual(20);
+  expect(locationToggleBox!.height).toBeLessThanOrEqual(20);
+
+  await ageActions.getByRole("button", { name: "Roll", exact: true }).click();
+  const stackedBadge = ageCard.locator(".cost-badge.is-benefit.is-stacked");
+  await expect(stackedBadge).toContainText("Rolled");
+  const ageName = ageCard.locator(".default-choice-heading > strong");
+  const [
+    rolledAgeCardBox,
+    rolledAgeActionsBox,
+    rolledLocationActionsBox,
+    rolledAgeHeadingBox,
+    rolledLocationHeadingBox,
+    rolledBadgeBox,
+    rolledNameBox,
+  ] = await Promise.all([
+    ageCard.boundingBox(),
+    ageActions.boundingBox(),
+    locationActions.boundingBox(),
+    ageCard.locator(".default-choice-heading").boundingBox(),
+    locationCard.locator(".default-choice-heading").boundingBox(),
+    stackedBadge.boundingBox(),
+    ageName.boundingBox(),
+  ]);
+  expect(rolledAgeCardBox).not.toBeNull();
+  expect(rolledAgeActionsBox).not.toBeNull();
+  expect(rolledLocationActionsBox).not.toBeNull();
+  expect(rolledAgeHeadingBox).not.toBeNull();
+  expect(rolledLocationHeadingBox).not.toBeNull();
+  expect(rolledBadgeBox).not.toBeNull();
+  expect(rolledNameBox).not.toBeNull();
+  expect(rolledAgeActionsBox!.y).toBeCloseTo(ageActionsBox!.y, 0);
+  expect(rolledAgeActionsBox!.y).toBeCloseTo(rolledLocationActionsBox!.y, 0);
+  expect(rolledAgeHeadingBox!.height).toBeCloseTo(
+    rolledLocationHeadingBox!.height,
+    0,
+  );
+  expect(
+    Math.abs(
+      rolledNameBox!.y +
+        rolledNameBox!.height / 2 -
+        (rolledBadgeBox!.y + rolledBadgeBox!.height / 2),
+    ),
+  ).toBeLessThanOrEqual(2);
+  const rolledClearanceAboveBadge = rolledBadgeBox!.y - rolledAgeCardBox!.y;
+  const rolledClearanceBeforeDivider =
+    rolledAgeActionsBox!.y - (rolledBadgeBox!.y + rolledBadgeBox!.height);
+  expect(rolledClearanceBeforeDivider).toBeGreaterThanOrEqual(2);
+  expect(
+    Math.abs(rolledClearanceAboveBadge - rolledClearanceBeforeDivider),
+  ).toBeLessThanOrEqual(2);
+  await editor.screenshot({
+    path: testInfo.outputPath("direct-choice-alignment-and-controls.png"),
+    animations: "disabled",
+  });
 });
 
 test("layout presentation controls render complete leaf and flow alignment semantics", async ({
@@ -4319,6 +4840,54 @@ test("Structured text fields round-trip slashes and quotes without multiplying e
   await editor.getByRole("tab", { name: "Source" }).click();
   await expect(editor.getByLabel("jump.jdef source")).toContainText(
     `content: ${JSON.stringify(finalValue)}`,
+  );
+});
+
+test("Structured text fields offer offline spelling corrections on right click", async ({
+  page,
+}, testInfo) => {
+  const editor = await openCreatedEditor(page);
+  const description = editor.getByLabel("Description", { exact: true });
+  await description.fill("thd location");
+  await expect(description).toHaveAttribute(
+    "data-spelling-suggestions",
+    "ready",
+  );
+
+  await description.evaluate((control: HTMLTextAreaElement) => {
+    control.focus();
+    control.setSelectionRange(0, 3);
+  });
+  await description.click({
+    button: "right",
+    position: { x: 12, y: 12 },
+  });
+  const menu = page.getByRole("menu", {
+    name: "Spelling suggestions for “thd”",
+  });
+  await expect(menu).toBeVisible();
+  await expect(
+    menu.getByRole("menuitem", { name: "the", exact: true }),
+  ).toBeVisible();
+  await testInfo.attach("structured-spelling-suggestions", {
+    body: await captureReviewScreenshot(page),
+    contentType: "image/png",
+  });
+
+  await menu.getByRole("menuitem", { name: "the", exact: true }).click();
+  await expect(description).toHaveValue("the location");
+  await expect(description).toBeFocused();
+  await expect
+    .poll(() =>
+      description.evaluate((control: HTMLTextAreaElement) => [
+        control.selectionStart,
+        control.selectionEnd,
+      ]),
+    )
+    .toEqual([3, 3]);
+  await editor.getByRole("tab", { name: "Source" }).click();
+  await expect(editor.getByLabel("jump.jdef source")).toContainText(
+    'description: "the location"',
   );
 });
 
@@ -7883,6 +8452,19 @@ test("Use simple value repairs an invalid shorthand-compatible Cost", async ({
   await editor.getByRole("button", { name: "+ Cost", exact: true }).click();
 
   const amount = editor.getByLabel("Amount", { exact: true });
+  const previewBadge = editor.locator(".editor-real-preview .cost-badge");
+  await expect(previewBadge).toHaveText("Free");
+  const freeBadgeColors = await previewBadge.evaluate((badge) => {
+    const style = getComputedStyle(badge);
+    return {
+      background: style.backgroundColor,
+      border: style.borderColor,
+      color: style.color,
+    };
+  });
+  await amount.fill("1000");
+  await expect(previewBadge).toHaveText("1000 CP");
+  await expect(previewBadge).not.toHaveClass(/is-award/);
   await amount.fill("");
   await expect(amount).toHaveAttribute("aria-invalid", "true");
   const useSimpleValue = editor.getByRole("button", {
@@ -7904,6 +8486,25 @@ test("Use simple value repairs an invalid shorthand-compatible Cost", async ({
   await editor.getByRole("button", { name: "Add details" }).click();
   const repairedAmount = editor.getByLabel("Amount", { exact: true });
   await expect(repairedAmount).toHaveValue("0");
+  await repairedAmount.fill("-1000");
+  await expect(previewBadge).toHaveText("+1000 CP");
+  await expect(previewBadge).toHaveClass(/is-award/);
+  expect(
+    await previewBadge.evaluate((badge) => {
+      const style = getComputedStyle(badge);
+      return {
+        background: style.backgroundColor,
+        border: style.borderColor,
+        color: style.color,
+      };
+    }),
+  ).toEqual(freeBadgeColors);
+  await editor.screenshot({
+    path: testInfo.outputPath("cost-award-badge.png"),
+    animations: "disabled",
+  });
+  await repairedAmount.fill("add_small");
+  await expect(previewBadge).toHaveText("+200 CP");
   await repairedAmount.fill("-1000");
   await editor
     .getByRole("button", { name: "Use simple value", exact: true })
@@ -10472,7 +11073,7 @@ test("container children and rules expose inline presentation editors", async ({
   await expect(source).toContainText("style: rounded");
 });
 
-test("layout declarations preview representative content without a valid package fallback", async ({
+test("layout declarations preview representative content and compose Choice layouts without a valid package fallback", async ({
   page,
 }, testInfo) => {
   await page.emulateMedia({ colorScheme: "dark" });
@@ -10490,7 +11091,7 @@ test("layout declarations preview representative content without a valid package
       "Layout preview",
     );
     await expect(editor.locator(".editor-source-status")).toContainText(
-      "This preview uses example content so you can review the layout while fixing source errors.",
+      "This preview uses generated content so you can review the reusable layout independently of package data.",
     );
     await expect(
       preview.locator(".jump-renderer-appearance-boundary"),
@@ -10506,7 +11107,8 @@ test("layout declarations preview representative content without a valid package
   await replaceSelectedSource(`choice-layout
   handle: new_choice_layout
 
-  stack
+  grid
+    columns: 2
     gap: sm
     slot: name
     slot: cost
@@ -10529,6 +11131,9 @@ test("layout declarations preview representative content without a valid package
   await expect(
     preview.getByRole("checkbox", { name: "Take Example choice 1" }),
   ).toBeChecked();
+  await expect(
+    editor.getByLabel("Choice layout for generated choices", { exact: true }),
+  ).toHaveCount(0);
   await attachProductionState(
     testInfo,
     "editor-choice-layout-dummy-preview-production",
@@ -10539,7 +11144,8 @@ test("layout declarations preview representative content without a valid package
   await replaceSelectedSource(`choice-layout
   handle: new_choice_layout
 
-  stack
+  grid
+    columns: 2
     gap: sm
     slot: name
     slot: cost
@@ -10572,6 +11178,34 @@ section-layout
   await expect(preview).toContainText("Example choice 1");
   await expect(preview).toContainText("Example choice 2");
   await expect(preview).toContainText("Example direct choice 1");
+  const generatedChoiceLayout = editor
+    .locator(".editor-layout-preview-composition")
+    .getByLabel("Choice layout for generated choices", { exact: true });
+  await expect(generatedChoiceLayout).toBeVisible();
+  await expect(generatedChoiceLayout).toHaveValue("");
+  await expect(
+    generatedChoiceLayout.locator('option[value="new_choice_layout"]'),
+  ).toHaveText("new_choice_layout");
+  const directChoice = preview
+    .locator("article.default-choice-card")
+    .filter({ hasText: "Example direct choice 1" });
+  await expect(directChoice).not.toHaveClass(/authored-choice-layout/);
+  await expect(preview.locator(".authored-choice-layout")).toHaveCount(2);
+  await generatedChoiceLayout.selectOption("new_choice_layout");
+  await expect(directChoice).toHaveClass(/authored-choice-layout/);
+  await expect(directChoice.locator('[data-layout-kind="grid"]')).toBeVisible();
+  await expect(directChoice).toContainText(
+    "Example content for “description”.",
+  );
+  await expect(preview.locator(".authored-choice-layout")).toHaveCount(3);
+  await directChoice.scrollIntoViewIfNeeded();
+  await editor.screenshot({
+    path: testInfo.outputPath("section-layout-composed-choice-preview.png"),
+    animations: "disabled",
+  });
+  await generatedChoiceLayout.selectOption("");
+  await expect(directChoice).not.toHaveClass(/authored-choice-layout/);
+  await expect(preview.locator(".authored-choice-layout")).toHaveCount(2);
   await expect(
     preview.locator(".source-roll-controls").getByRole("button", {
       name: "Roll",
@@ -10604,6 +11238,9 @@ section-layout
       size: sm
 `);
   await expect(preview).toContainText("Example trait");
+  await expect(
+    editor.getByLabel("Choice layout for generated choices", { exact: true }),
+  ).toHaveCount(0);
   await expect(preview).toContainText("Example content for “details”.");
   const traitImage = preview.getByAltText("Example image for icon");
   await expect(traitImage).toBeVisible();
@@ -10614,6 +11251,311 @@ section-layout
     "editor-trait-layout-dummy-preview-production",
     editor,
   );
+});
+
+test("same-handle layout namespaces keep their own representative previews", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const editor = await openCreatedEditor(page);
+  const preview = editor.locator(".editor-real-preview");
+
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const jumpSource = editor.getByLabel("jump.jdef source");
+  await jumpSource.press(
+    process.platform === "darwin" ? "Meta+a" : "Control+a",
+  );
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Layout owners"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: section_consumer
+  name: "Section consumer"
+  layout: shared_layout
+
+  text
+    handle: section_copy
+    content: "Section copy"
+`);
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice", exact: true }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const choicesSource = editor.getByLabel("choices.jdef source");
+  await choicesSource.press(
+    process.platform === "darwin" ? "Meta+a" : "Control+a",
+  );
+  await page.keyboard.insertText(`choice
+  handle: choice_consumer
+  name: "Choice consumer"
+  layout: shared_layout
+  selection: toggle
+
+  text
+    handle: choice_copy
+    content: "Choice copy"
+
+  grant
+    kind: trait
+    layout: shared_layout
+
+    text
+      handle: trait_copy
+      content: "Trait copy"
+`);
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor
+    .getByRole("button", { name: "Choice layout", exact: true })
+    .click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("layout.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`section-layout
+  handle: shared_layout
+
+  stack
+    slot: name
+    text: section_copy
+
+choice-layout
+  handle: shared_layout
+
+  grid
+    columns: 2
+    slot: name
+    text: choice_copy
+    slot: cost
+    slot: control
+    text: missing_choice
+
+trait-layout
+  handle: shared_layout
+
+  wrap
+    slot: name
+    text: trait_copy
+`);
+  await editor.getByRole("tab", { name: "Structured" }).click();
+
+  const outline = editor.locator(".editor-outline-scroll");
+  const layoutButton = (kind: "section" | "choice" | "trait") =>
+    outline
+      .getByRole("button", { name: /^shared_layout/ })
+      .filter({ has: page.locator("small", { hasText: kind }) });
+
+  await expect(layoutButton("choice")).toHaveCount(1);
+  await layoutButton("choice").click();
+  await expect(preview).toContainText("Example choice 1");
+  await expect(preview).toContainText("Example content for “choice_copy”.");
+  await expect(preview.locator('[data-layout-kind="grid"]')).toBeVisible();
+  const choiceTextRows = editor.locator('[data-layout-node-kind="text"]');
+  const choiceCopyRow = choiceTextRows.first();
+  await choiceCopyRow
+    .getByRole("button", {
+      name: "Show handle choices for Text target",
+      exact: true,
+    })
+    .click();
+  await expect(
+    editor.getByRole("option", { name: "choice_copy", exact: true }),
+  ).toBeVisible();
+  await expect(
+    editor.getByRole("option", { name: "section_copy", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    editor.getByRole("option", { name: "trait_copy", exact: true }),
+  ).toHaveCount(0);
+  await editor
+    .getByRole("option", { name: "choice_copy", exact: true })
+    .click();
+  const missingChoiceRow = choiceTextRows.last();
+  await expect(
+    missingChoiceRow.locator(".editor-layout-inline-diagnostics"),
+  ).toContainText("absent from choice choice_consumer");
+  await expect(
+    missingChoiceRow.locator(".editor-layout-inline-diagnostics"),
+  ).not.toContainText("section section_consumer");
+  await editor.getByRole("combobox", { name: "Flow", exact: true }).click();
+  await editor.getByRole("option", { name: "Inline", exact: true }).click();
+  await expect(preview.locator('[data-layout-kind="inline"]')).toBeVisible();
+  await editor.getByLabel("Show bounds").check();
+  const choiceTextPath = "inline[1]/text[2]";
+  await preview.locator(`[data-layout-bound="${choiceTextPath}"]`).click();
+  await expect(
+    editor.locator(`[data-layout-node-path="${choiceTextPath}"]`),
+  ).toHaveClass(/is-editor-inspected/);
+  await attachProductionState(
+    testInfo,
+    "editor-choice-layout-colliding-handle-preview-production",
+    editor,
+  );
+  await editor.screenshot({
+    path: testInfo.outputPath("choice-layout-placeholder-preview.png"),
+    animations: "disabled",
+  });
+
+  await layoutButton("trait").click();
+  await expect(preview).toContainText("Example trait");
+  await expect(preview).toContainText("Example content for “trait_copy”.");
+  await expect(preview.locator('[data-layout-kind="wrap"]')).toBeVisible();
+  await editor
+    .getByRole("button", {
+      name: "Show handle choices for Text target",
+      exact: true,
+    })
+    .click();
+  await expect(
+    editor.getByRole("option", { name: "trait_copy", exact: true }),
+  ).toBeVisible();
+  await expect(
+    editor.getByRole("option", { name: "section_copy", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    editor.getByRole("option", { name: "choice_copy", exact: true }),
+  ).toHaveCount(0);
+  await editor.getByRole("option", { name: "trait_copy", exact: true }).click();
+  const traitTextPath = "wrap[1]/text[2]";
+  await preview.locator(`[data-layout-bound="${traitTextPath}"]`).click();
+  await expect(
+    editor.locator(`[data-layout-node-path="${traitTextPath}"]`),
+  ).toHaveClass(/is-editor-inspected/);
+  await attachProductionState(
+    testInfo,
+    "editor-trait-layout-colliding-handle-preview-production",
+    editor,
+  );
+  await editor.screenshot({
+    path: testInfo.outputPath("trait-layout-placeholder-preview.png"),
+    animations: "disabled",
+  });
+
+  await layoutButton("section").click();
+  await expect(preview).toContainText("Example section");
+  await expect(preview).toContainText("Example content for “section_copy”.");
+  await expect(preview.locator('[data-layout-kind="stack"]')).toBeVisible();
+  await editor
+    .getByRole("button", {
+      name: "Show handle choices for Text target",
+      exact: true,
+    })
+    .click();
+  await expect(
+    editor.getByRole("option", { name: "section_copy", exact: true }),
+  ).toBeVisible();
+  await expect(
+    editor.getByRole("option", { name: "choice_copy", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    editor.getByRole("option", { name: "trait_copy", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("a selected Choice keeps its current custom layout during last-valid fallback", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const editor = await openCreatedEditor(page);
+  const preview = editor.locator(".editor-real-preview");
+  const replaceSource = async (label: string, source: string) => {
+    await editor.getByRole("tab", { name: "Source" }).click();
+    const sourceEditor = editor.getByLabel(label);
+    await sourceEditor.press(
+      process.platform === "darwin" ? "Meta+a" : "Control+a",
+    );
+    await page.keyboard.insertText(source);
+  };
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice", exact: true }).click();
+  await replaceSource(
+    "choices.jdef source",
+    `choice
+  handle: dropin
+  name: "Drop-In"
+  selection: toggle
+
+  text
+    handle: description
+    content: "Current Choice content"
+`,
+  );
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "dropin", exact: true })
+    .click();
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor
+    .getByRole("button", { name: "Choice layout", exact: true })
+    .click();
+  await replaceSource(
+    "layout.jdef source",
+    `choice-layout
+  handle: origin
+
+  grid
+    columns: 2
+    slot: name
+    text: description
+    slot: control
+`,
+  );
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "dropin", exact: true })
+    .click();
+  await expect(editor.locator(".editor-preview-toolbar small")).toHaveText(
+    "Current source",
+  );
+  await expect(preview.locator(".authored-choice-layout")).toHaveCount(0);
+
+  await replaceSource(
+    "choices.jdef source",
+    `choice
+  handle: dropin
+  name: "Drop-In"
+  layout: origin
+  unsupported: true
+  selection: toggle
+
+  text
+    handle: description
+    content: "Current Choice content"
+`,
+  );
+  await expect(editor.locator(".editor-preview-toolbar small")).toHaveText(
+    "Last valid preview",
+  );
+  await expect(preview.locator(".authored-choice-layout")).toHaveCount(1);
+  await expect(preview.locator('[data-layout-kind="grid"]')).toBeVisible();
+  await expect(preview).toContainText("Current Choice content");
+  await editor.screenshot({
+    path: testInfo.outputPath(
+      "choice-current-custom-layout-last-valid-preview.png",
+    ),
+    animations: "disabled",
+  });
+
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  const layout = editor.getByLabel("Layout", { exact: true });
+  await expect(layout).toHaveValue("origin");
+  await layout.fill("");
+  await layout.press("Tab");
+  await expect(preview.locator(".authored-choice-layout")).toHaveCount(0);
+  await expect(preview.locator(".default-choice-heading")).toContainText(
+    "Drop-In",
+  );
+  await editor.screenshot({
+    path: testInfo.outputPath("choice-cleared-layout-last-valid-preview.png"),
+    animations: "disabled",
+  });
 });
 
 test("diagnostics reproduce the mock icons and open upward", async ({

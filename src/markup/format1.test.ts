@@ -973,6 +973,62 @@ theme
     );
   });
 
+  it("canonicalizes direct-choice leaf presentation", () => {
+    const source = `jump
+  format: 1
+  name: "Aligned choices"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: identity
+  name: "Identity"
+  layout: identity_layout
+
+  choice
+    handle: age_field
+    target: age
+
+choice
+  handle: age
+  name: "Age"
+  selection: integer
+  min: 1
+  max: 100
+
+section-layout
+  handle: identity_layout
+
+  inline
+    choice
+      target: age_field
+      padding: sm
+      background: surface
+      align: end
+`;
+    const packageItem = canonicalizePackage({
+      id: "direct-choice-presentation",
+      exactHash: "4".repeat(64),
+      files: { "jump.jdef": source },
+    });
+    expect(packageItem.layouts[0]?.root.children[0]).toMatchObject({
+      kind: "choice",
+      target: "age_field",
+      presentation: {
+        padding: "sm",
+        background: "surface",
+        align: "end",
+      },
+    });
+    expect(
+      packageItem.diagnostics.filter(
+        (diagnostic) =>
+          diagnostic.target?.declarationFrom ===
+          source.lastIndexOf("    choice\n"),
+      ),
+    ).toEqual([]);
+  });
+
   it("canonicalizes rule presentation and diagnoses invalid values at their fields", () => {
     const valid = `jump
   format: 1
@@ -1303,6 +1359,138 @@ section-layout
     ).toEqual(["text-align", "text-size", "text-color"]);
   });
 
+  it("allows inner alignment but rejects text styling on control and roll slots", () => {
+    const packageItem = canonicalizePackage({
+      id: "slot-text-presentation",
+      exactHash: "4".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Slot presentation"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+
+choice-layout
+  handle: controls
+
+  stack
+    slot
+      target: name
+      text-align: center
+      text-size: lg
+      text-color: red
+
+    slot
+      target: control
+      text-align: end
+      text-size: 2xl
+      text-color: blue
+
+section-layout
+  handle: section_controls
+
+  stack
+    slot
+      target: roll
+      text-align: end
+      text-size: 2xl
+      text-color: blue
+
+trait-layout
+  handle: trait_name
+
+  stack
+    slot
+      target: name
+      text-align: center
+      text-size: lg
+      text-color: red
+`,
+      },
+    });
+
+    const unknown = packageItem.diagnostics.filter(
+      (diagnostic) => diagnostic.code === "schema.field.unknown",
+    );
+    expect(unknown.map((diagnostic) => diagnostic.target?.field)).toEqual([
+      "text-size",
+      "text-color",
+      "text-size",
+      "text-color",
+    ]);
+    expect(
+      new Set(unknown.map((diagnostic) => diagnostic.target?.declarationFrom))
+        .size,
+    ).toBe(2);
+  });
+
+  it("allows control adornments only on control and roll slots", () => {
+    const packageItem = canonicalizePackage({
+      id: "slot-control-adornments",
+      exactHash: "5".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Control adornments"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+
+choice-layout
+  handle: choice_controls
+
+  stack
+    slot
+      target: name
+      control-adornments: false
+
+    slot
+      target: control
+      control-adornments: false
+
+section-layout
+  handle: section_controls
+
+  stack
+    slot
+      target: roll
+      control-adornments: false
+
+trait-layout
+  handle: trait_name
+
+  stack
+    slot
+      target: name
+      control-adornments: false
+`,
+      },
+    });
+
+    expect(
+      packageItem.diagnostics
+        .filter((diagnostic) => diagnostic.code === "schema.field.unknown")
+        .map((diagnostic) => diagnostic.target?.field),
+    ).toEqual(["control-adornments", "control-adornments"]);
+    expect(
+      packageItem.layouts
+        .find((layout) => layout.handle === "choice_controls")
+        ?.root.children.find((node) => node.target === "control")?.presentation,
+    ).toMatchObject({ controlAdornments: false });
+    expect(
+      packageItem.layouts
+        .find((layout) => layout.handle === "section_controls")
+        ?.root.children.find((node) => node.target === "roll")?.presentation,
+    ).toMatchObject({ controlAdornments: false });
+  });
+
   it("uses warning diagnostics in Editor and blocking diagnostics for distribution", () => {
     const source = `jump
   format: 1
@@ -1480,5 +1668,139 @@ section-layout
         target: expect.objectContaining({ field: "text" }),
       }),
     );
+  });
+
+  it("keeps reusable-layout target diagnostics in the matching layout namespace", () => {
+    const source = `jump
+  format: 1
+  name: "Layout namespaces"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: origin
+  name: "Origin"
+  layout: origin
+
+choice
+  handle: dropin
+  name: "Drop-In"
+  layout: origin
+  selection: toggle
+
+section-layout
+  handle: origin
+
+  stack
+    slot: name
+
+choice-layout
+  handle: origin
+
+  stack
+    text: description
+
+trait-layout
+  handle: origin
+
+  stack
+    text: trait_description
+`;
+    const packageItem = canonicalizePackage(
+      {
+        id: "layout-namespace-diagnostics",
+        exactHash: "5".repeat(64),
+        files: { "jump.jdef": source },
+      },
+      {
+        profile: "editor",
+        warnings: { missingLayoutTargets: true },
+      },
+    );
+    const missing = packageItem.diagnostics.filter(
+      (diagnostic) => diagnostic.code === "layout.typedTarget.missing",
+    );
+
+    expect(missing).toHaveLength(1);
+    expect(missing[0]).toMatchObject({
+      parameters: {
+        kind: "text",
+        target: "description",
+        owner: "choice dropin",
+      },
+      target: expect.objectContaining({ field: "text" }),
+    });
+    expect(
+      missing.some((diagnostic) =>
+        String(diagnostic.parameters?.owner).includes("section"),
+      ),
+    ).toBe(false);
+    expect(
+      missing.some((diagnostic) =>
+        String(diagnostic.parameters?.target).includes("trait_description"),
+      ),
+    ).toBe(false);
+  });
+
+  it("checks Trait layout targets against the Trait grant that uses the layout", () => {
+    const source = `jump
+  format: 1
+  name: "Trait layout diagnostics"
+  author: "Tester"
+  version: "1"
+
+choice
+  handle: layered_trait
+  name: "Layered trait"
+  selection: toggle
+
+  text
+    handle: choice_copy
+    content: "Choice copy"
+
+  grant
+    kind: trait
+    layout: shared_layout
+
+    text
+      handle: trait_copy
+      content: "Trait copy"
+
+choice-layout
+  handle: shared_layout
+
+  stack
+    text: choice_copy
+
+trait-layout
+  handle: shared_layout
+
+  stack
+    text: missing_trait_copy
+`;
+    const packageItem = canonicalizePackage(
+      {
+        id: "trait-layout-namespace-diagnostics",
+        exactHash: "6".repeat(64),
+        files: { "jump.jdef": source },
+      },
+      {
+        profile: "editor",
+        warnings: { missingLayoutTargets: true },
+      },
+    );
+    const missing = packageItem.diagnostics.filter(
+      (diagnostic) => diagnostic.code === "layout.typedTarget.missing",
+    );
+
+    expect(missing).toHaveLength(1);
+    expect(missing[0]).toMatchObject({
+      parameters: {
+        kind: "text",
+        target: "missing_trait_copy",
+        owner: "trait layered_trait",
+      },
+      target: expect.objectContaining({ field: "text" }),
+    });
   });
 });

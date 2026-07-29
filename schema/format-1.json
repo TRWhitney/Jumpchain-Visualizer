@@ -383,8 +383,24 @@
       "text-size": { "type": "size", "min": 0, "max": 1 },
       "text-color": { "type": "color", "min": 0, "max": 1 }
     },
+    "slotLeafPresentation": {
+      "target": { "type": "handleReference:owner-local-content", "min": 1, "max": 1, "required": true },
+      "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
+      "background": { "type": "color", "min": 0, "max": 1 },
+      "align": { "type": "align", "min": 0, "max": 1 },
+      "text-align": { "type": "textAlign", "min": 0, "max": 1 },
+      "control-adornments": { "type": "boolean", "min": 0, "max": 1, "default": true, "appliesWhen": { "target": ["control", "roll"] } },
+      "text-size": { "type": "size", "min": 0, "max": 1, "appliesWhen": { "target": ["name", "cost", "tags"] } },
+      "text-color": { "type": "color", "min": 0, "max": 1, "appliesWhen": { "target": ["name", "cost", "tags"] } }
+    },
     "imageLeafPresentation": {
       "target": { "type": "handleReference:owner-local-content", "min": 1, "max": 1, "required": true },
+      "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
+      "background": { "type": "color", "min": 0, "max": 1 },
+      "align": { "type": "align", "min": 0, "max": 1 }
+    },
+    "choiceLeafPresentation": {
+      "target": { "type": "handleReference:choice-placement", "min": 1, "max": 1, "required": true },
       "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
       "background": { "type": "color", "min": 0, "max": 1 },
       "align": { "type": "align", "min": 0, "max": 1 }
@@ -400,7 +416,7 @@
       "additionalFields": { "columns": { "type": "integer", "minimum": 1, "maximum": 12, "required": true } },
       "children": "layoutNode*"
     },
-    "slot": { "kind": "leaf", "compact": "slot: <target>", "blockFields": "contentLeafPresentation", "targetsByLayout": { "section": ["name", "roll"], "choice": ["name", "cost", "control", "roll", "tags"], "trait": ["name"] } },
+    "slot": { "kind": "leaf", "compact": "slot: <target>", "blockFields": "slotLeafPresentation", "targetsByLayout": { "section": ["name", "roll"], "choice": ["name", "cost", "control", "roll", "tags"], "trait": ["name"] } },
     "text": { "kind": "leaf", "compact": "text: <target>", "blockFields": "contentLeafPresentation", "targetNamespace": "text" },
     "input": { "kind": "leaf", "compact": "input: <target>", "blockFields": "contentLeafPresentation", "targetNamespace": "input" },
     "image": {
@@ -427,7 +443,7 @@
     "choice": {
       "kind": "leaf",
       "compact": "choice: <target>",
-      "compactOnly": true,
+      "blockFields": "choiceLeafPresentation",
       "allowedLayouts": ["section-layout"],
       "targetNamespace": "choice-placement"
     },

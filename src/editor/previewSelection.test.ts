@@ -33,6 +33,24 @@ choice
   handle: alpha
   name: "Alpha"
   selection: toggle
+
+section-layout
+  handle: shared_layout
+
+  stack
+    slot: name
+
+choice-layout
+  handle: shared_layout
+
+  stack
+    slot: name
+
+trait-layout
+  handle: shared_layout
+
+  stack
+    slot: name
 `;
 
 describe("Structured preview selection", () => {
@@ -73,4 +91,17 @@ describe("Structured preview selection", () => {
       expected,
     );
   });
+
+  it.each(["section-layout", "choice-layout", "trait-layout"])(
+    "preserves the %s namespace when layout handles collide",
+    (kind) => {
+      expect(
+        previewSelectionForSymbol(files, symbol(kind, "shared_layout")),
+      ).toEqual({
+        kind: "layout",
+        handle: "shared_layout",
+        layoutKind: kind,
+      });
+    },
+  );
 });

@@ -47,6 +47,9 @@ describe("jump appearance cascade", () => {
     expect(resolved.headerDescription).toBe("#5f5a4d");
     expect(resolved.budgetBackground).toBe("#fffdf7");
     expect(resolved.costBenefitBackground).toBe("#dcebdc");
+    expect(resolved.costAwardBackground).toBe(resolved.costBenefitBackground);
+    expect(resolved.costAwardText).toBe(resolved.costBenefitText);
+    expect(resolved.costAwardBorder).toBe(resolved.costBenefitBorder);
   });
 
   it("reports inherited values without writing them into appearance", () => {

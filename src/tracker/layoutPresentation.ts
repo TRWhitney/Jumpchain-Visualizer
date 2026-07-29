@@ -1,6 +1,10 @@
 import type { CSSProperties } from "react";
 import type { CanonicalJumpPackage, LayoutNode } from "../markup";
 import { format1BuiltInColors } from "../markup/format1Colors";
+import {
+  layoutNodeSupportsTextStyling,
+  layoutNodeUsesControlAlignment,
+} from "../markup/layoutSemantics";
 
 const layoutSpacing: Readonly<Record<string, string>> = {
   none: "0",
@@ -136,8 +140,15 @@ export function layoutLeafPresentationStyle(
     align && alignments.has(align)
       ? (align as CSSProperties["alignSelf"])
       : undefined;
+  const controlAlignment = node.presentation.textAlign;
+  const controlJustifyContent =
+    controlAlignment === "center"
+      ? "center"
+      : controlAlignment === "end"
+        ? "flex-end"
+        : "flex-start";
   return {
-    ...(node.kind === "image"
+    ...(node.kind === "image" || node.kind === "choice"
       ? {
           padding: layoutSpacing[node.presentation.padding ?? "none"],
           backgroundColor: layoutColor(
@@ -145,7 +156,19 @@ export function layoutLeafPresentationStyle(
             packageItem,
           ),
         }
-      : sharedPresentationStyle(node, packageItem)),
+      : layoutNodeUsesControlAlignment(node.kind, node.target)
+        ? {
+            padding: layoutSpacing[node.presentation.padding ?? "none"],
+            backgroundColor: layoutColor(
+              node.presentation.background,
+              packageItem,
+            ),
+            display: "flex",
+            justifyContent: controlJustifyContent,
+          }
+        : layoutNodeSupportsTextStyling(node.kind, node.target)
+          ? sharedPresentationStyle(node, packageItem)
+          : {}),
     alignSelf: parentKind === "stack" ? positionedAlign : undefined,
     justifySelf: parentKind === "grid" ? positionedAlign : undefined,
   };

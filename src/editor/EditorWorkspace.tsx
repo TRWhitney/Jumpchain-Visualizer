@@ -27,6 +27,7 @@ import {
   conditionContextHandles,
   conditionNodeEntries,
   conditionPropertyCatalog,
+  layoutNodeUsesControlAlignment,
   packageIsValid,
   type ConditionPropertyDescriptor,
   type DiagnosticTarget,
@@ -56,9 +57,11 @@ import {
   type KeybindingChord,
 } from "../settings/model";
 import { JumpPreview, type LayoutBoundHover } from "./JumpPreview";
+import { layoutPreviewAcceptsChoiceLayout } from "./layoutPreview";
 import { FreeTextSuggestionCombobox } from "./FreeTextSuggestionCombobox";
 import { HandleFieldControl } from "./HandleFieldControl";
 import { SetFieldControl } from "./SetFieldControl";
+import { SpellingTextArea, SpellingTextInput } from "./SpellingTextControl";
 import {
   previewSelectionForSymbol,
   type PreviewSelection,
@@ -104,7 +107,9 @@ import {
   insertLayoutChild,
   insertLayoutRoot,
   layoutAllowedNodeKinds,
+  layoutContentTargetHandles,
   layoutNodeForPath,
+  layoutNodeHasEditableFields,
   layoutNodeIsContainer,
   layoutNodeSourceSelection,
   layoutSelectionKey,
@@ -342,15 +347,15 @@ function InterpolatedTextArea({
           onInsert={insert}
         />
       </span>
-      <textarea
+      <SpellingTextArea
         ref={control}
         autoFocus={autoFocus}
-        spellCheck
         aria-label={label}
         aria-invalid={ariaInvalid}
         aria-describedby={ariaDescribedBy}
         rows={rows}
         value={value}
+        onSpellingChange={onChange}
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
       />
@@ -996,6 +1001,9 @@ export function EditorWorkspace({
   const [activeLayoutContainers, setActiveLayoutContainers] = useState<
     Record<string, string>
   >({});
+  const [layoutPreviewChoiceLayouts, setLayoutPreviewChoiceLayouts] = useState<
+    Record<string, string>
+  >({});
   const [structuredAnnouncement, setStructuredAnnouncement] = useState("");
   const [resourceCreation, setResourceCreation] = useState<{
     owner: FormatSymbol;
@@ -1216,10 +1224,51 @@ export function EditorWorkspace({
       ? [analysis.packageItem, recoveredAnalysis.packageItem, lastValid].find(
           (packageItem) =>
             packageItem.layouts.some(
-              (layout) => layout.handle === previewSelection.handle,
+              (layout) =>
+                layout.kind === previewSelection.layoutKind &&
+                layout.handle === previewSelection.handle,
             ),
         )
       : undefined;
+  const choicePackageItem =
+    previewSelection.kind === "choice"
+      ? [analysis.packageItem, recoveredAnalysis.packageItem, lastValid].find(
+          (packageItem) =>
+            packageItem.choices.some(
+              (choice) => choice.handle === previewSelection.handle,
+            ),
+        )
+      : undefined;
+  const previewedLayout =
+    previewSelection.kind === "layout"
+      ? layoutPackageItem?.layouts.find(
+          (layout) =>
+            layout.kind === previewSelection.layoutKind &&
+            layout.handle === previewSelection.handle,
+        )
+      : undefined;
+  const previewChoiceLayoutOptions =
+    previewSelection.kind === "layout" &&
+    previewSelection.layoutKind === "section-layout" &&
+    previewedLayout &&
+    layoutPreviewAcceptsChoiceLayout(previewedLayout)
+      ? (layoutPackageItem?.layouts ?? [])
+          .filter((layout) => layout.kind === "choice-layout")
+          .map((layout) => layout.handle)
+      : [];
+  const previewChoiceLayoutKey =
+    previewSelection.kind === "layout" &&
+    previewSelection.layoutKind === "section-layout"
+      ? activeLayoutSelectionKey
+      : null;
+  const requestedPreviewChoiceLayout = previewChoiceLayoutKey
+    ? (layoutPreviewChoiceLayouts[previewChoiceLayoutKey] ?? "")
+    : "";
+  const previewChoiceLayout = previewChoiceLayoutOptions.includes(
+    requestedPreviewChoiceLayout,
+  )
+    ? requestedPreviewChoiceLayout
+    : "";
   const previewStatus = layoutPackageItem
     ? translate("ui.editorWorkspace.previewStatus.layoutPreview")
     : currentValid
@@ -4028,6 +4077,47 @@ export function EditorWorkspace({
                 )}
               </div>
             </div>
+            {previewChoiceLayoutKey &&
+              previewChoiceLayoutOptions.length > 0 && (
+                <div className="editor-layout-preview-composition">
+                  <label>
+                    <span>
+                      {translate(
+                        "ui.editorWorkspace.layoutPreview.choiceLayout",
+                      )}
+                      <small>
+                        {translate(
+                          "ui.editorWorkspace.layoutPreview.choiceLayoutHelp",
+                        )}
+                      </small>
+                    </span>
+                    <select
+                      aria-label={translate(
+                        "ui.editorWorkspace.layoutPreview.choiceLayout",
+                      )}
+                      value={previewChoiceLayout}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setLayoutPreviewChoiceLayouts((current) => ({
+                          ...current,
+                          [previewChoiceLayoutKey]: value,
+                        }));
+                      }}
+                    >
+                      <option value="">
+                        {translate(
+                          "ui.editorWorkspace.layoutPreview.builtInChoiceLayout",
+                        )}
+                      </option>
+                      {previewChoiceLayoutOptions.map((handle) => (
+                        <option value={handle} key={handle}>
+                          {handle}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              )}
             {settings.editor.collapsePreviewInspectionTools &&
               previewInspectionToolsOpen && (
                 <div
@@ -4156,6 +4246,7 @@ export function EditorWorkspace({
               <JumpPreview
                 packageItem={previewPackage}
                 layoutPackageItem={layoutPackageItem}
+                choicePackageItem={choicePackageItem}
                 assets={workspace.assets}
                 tags={tags}
                 selection={previewSelection}
@@ -4164,6 +4255,7 @@ export function EditorWorkspace({
                 layoutPreviewPlaceholderCharacterLimit={
                   settings.editor.layoutPreviewPlaceholderCharacterLimit
                 }
+                layoutPreviewChoiceLayout={previewChoiceLayout || undefined}
                 hoveredBound={hoveredBound}
                 onHoveredBoundChange={setHoveredBound}
                 onBoundActivate={inspectLayoutBound}
@@ -4480,7 +4572,12 @@ function LayoutNodeFields({
             ),
         );
         const listId = `layout-${symbol.from}-${fieldName}`;
-        const presentation = editorLayoutFieldPresentation(fieldName);
+        const presentation = editorLayoutFieldPresentation(fieldName, {
+          controlAlignment: layoutNodeUsesControlAlignment(
+            symbol.kind,
+            readSourceField(files[symbol.file], symbol, "target"),
+          ),
+        });
         const fieldLabel = presentation.label;
         const helpId =
           showExplanatoryText && presentation.help
@@ -4543,6 +4640,28 @@ function LayoutNodeFields({
                   }
                   onBlur={onEndFieldEdit}
                 />
+              ) : definition.type === "boolean" ? (
+                <span className="editor-schema-field-control">
+                  <input
+                    type="checkbox"
+                    aria-label={fieldLabel}
+                    checked={
+                      value === ""
+                        ? definition.default === true
+                        : value === "true"
+                    }
+                    {...common}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      onUpdate(
+                        symbol,
+                        fieldName,
+                        definition.default === checked ? "" : String(checked),
+                      );
+                    }}
+                    onBlur={onEndFieldEdit}
+                  />
+                </span>
               ) : definition.type === "quotedString:assetRelativePath" ? (
                 <select
                   aria-label={fieldLabel}
@@ -5068,6 +5187,10 @@ function LayoutTreeEditor({
         return candidate.kind === kind;
       })
       .flatMap((candidate) => candidate.handle ?? []);
+  const typedReferenceValues = (kind: string) =>
+    kind === "text" || kind === "image" || kind === "input"
+      ? layoutContentTargetHandles(files, tree.layoutKind, kind)
+      : referenceValues(kind);
   const jumpSymbol = symbols.find((candidate) => candidate.kind === "jump");
   const defaultLayoutField = layout.kind;
   const defaultLayoutHandle = jumpSymbol
@@ -5103,7 +5226,8 @@ function LayoutTreeEditor({
           returnTarget?.file === right.file && returnTarget.from === right.from;
         return Number(rightIsReturn) - Number(leftIsReturn);
       });
-  const targetValues = newKind === "slot" ? slots : referenceValues(newKind);
+  const targetValues =
+    newKind === "slot" ? slots : typedReferenceValues(newKind);
   const targetRequired = ["slot", "text", "image", "input", "choice"].includes(
     newKind,
   );
@@ -5543,7 +5667,7 @@ function LayoutTreeEditor({
             {children.map((node, index) => {
               const isMoving = moving?.id === node.id;
               const movePanelId = `layout-move-${node.id.replaceAll(":", "-")}`;
-              const nodeReferenceValues = referenceValues(node.kind);
+              const nodeReferenceValues = typedReferenceValues(node.kind);
               const nodeDiagnostics = diagnosticsForLayoutNode(
                 diagnostics,
                 node,
@@ -5559,6 +5683,7 @@ function LayoutTreeEditor({
                 !node.compact &&
                 node.fieldNames.length === 1 &&
                 node.fieldNames[0] === "target";
+              const hasEditableFields = layoutNodeHasEditableFields(node.kind);
               const startMove = () => {
                 if (isMoving) {
                   setMovingNode(null);
@@ -5628,18 +5753,22 @@ function LayoutTreeEditor({
                       destinationsForNode(node).length === 0,
                     onAction: startMove,
                   },
-                  {
-                    id: "presentation",
-                    label: translate(
-                      node.compact
-                        ? "ui.editorWorkspace.text.expandToFields"
-                        : edited?.id === node.id && canCompact
-                          ? "ui.editorWorkspace.text.collapseToShorthand"
-                          : "ui.editorWorkspace.text.editPresentation",
-                    ),
-                    disabled: !tree.structurallySafe,
-                    onAction: togglePresentation,
-                  },
+                  ...(hasEditableFields
+                    ? [
+                        {
+                          id: "presentation",
+                          label: translate(
+                            node.compact
+                              ? "ui.editorWorkspace.text.expandToFields"
+                              : edited?.id === node.id && canCompact
+                                ? "ui.editorWorkspace.text.collapseToShorthand"
+                                : "ui.editorWorkspace.text.editPresentation",
+                          ),
+                          disabled: !tree.structurallySafe,
+                          onAction: togglePresentation,
+                        },
+                      ]
+                    : []),
                   {
                     id: "up",
                     label: translate("common.moveUp"),
@@ -5991,23 +6120,30 @@ function LayoutTreeEditor({
                     >
                       {translate("ui.editorWorkspace.text.moveEllipsis")}
                     </button>
-                    <button
-                      type="button"
-                      className="editor-layout-action-presentation"
-                      aria-label={translate(
-                        "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
-                        { node: displayKind(node.kind) },
-                      )}
-                      title={translate(
-                        "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
-                        { node: displayKind(node.kind) },
-                      )}
-                      aria-expanded={edited?.id === node.id && !node.compact}
-                      disabled={!tree.structurallySafe}
-                      onClick={togglePresentation}
-                    >
-                      ◫
-                    </button>
+                    {hasEditableFields ? (
+                      <button
+                        type="button"
+                        className="editor-layout-action-presentation"
+                        aria-label={translate(
+                          "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
+                          { node: displayKind(node.kind) },
+                        )}
+                        title={translate(
+                          "ui.editorWorkspace.ariaLabel.editLayoutNodePresentation",
+                          { node: displayKind(node.kind) },
+                        )}
+                        aria-expanded={edited?.id === node.id && !node.compact}
+                        disabled={!tree.structurallySafe}
+                        onClick={togglePresentation}
+                      >
+                        ◫
+                      </button>
+                    ) : (
+                      <span
+                        className="editor-layout-action-presentation-placeholder"
+                        aria-hidden="true"
+                      />
+                    )}
                     <button
                       type="button"
                       className="editor-layout-action-up"
@@ -7651,17 +7787,34 @@ function StructuredPanel({
                       }
                       onBlur={onEndFieldEdit}
                     />
+                  ) : ["author", "name", "title"].includes(fieldName) ? (
+                    <SpellingTextInput
+                      autoFocus={fieldName === focusField && occurrence === 0}
+                      aria-label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
+                      type="text"
+                      value={value}
+                      {...accessibility}
+                      placeholder={value === "" ? shadowText : undefined}
+                      list={referenceOptions.length ? listId : undefined}
+                      onSpellingChange={(nextValue) =>
+                        onUpdate(symbol, fieldName, nextValue, occurrence)
+                      }
+                      onChange={(event) =>
+                        onUpdate(
+                          symbol,
+                          fieldName,
+                          event.target.value,
+                          occurrence,
+                        )
+                      }
+                      onBlur={onEndFieldEdit}
+                    />
                   ) : (
                     <input
                       autoFocus={fieldName === focusField && occurrence === 0}
                       aria-label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
                       type="text"
-                      spellCheck={[
-                        "author",
-                        "description",
-                        "name",
-                        "title",
-                      ].includes(fieldName)}
+                      spellCheck={false}
                       value={value}
                       {...accessibility}
                       placeholder={value === "" ? shadowText : undefined}

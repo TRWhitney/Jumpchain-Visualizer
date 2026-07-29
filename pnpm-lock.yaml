@@ -58,6 +58,9 @@ importers:
       konva:
         specifier: 10.3.0
         version: 10.3.0
+      nspell:
+        specifier: ^2.1.5
+        version: 2.1.5
       pica:
         specifier: 10.0.2
         version: 10.0.2
@@ -89,6 +92,9 @@ importers:
       "@types/node":
         specifier: 24.10.1
         version: 24.10.1
+      "@types/nspell":
+        specifier: ^2.1.6
+        version: 2.1.6
       "@types/pixelmatch":
         specifier: ^5.2.6
         version: 5.2.6
@@ -128,6 +134,9 @@ importers:
       "@wdio/types":
         specifier: 9.29.1
         version: 9.29.1
+      dictionary-en:
+        specifier: ^4.0.0
+        version: 4.0.0
       eslint:
         specifier: 10.7.0
         version: 10.7.0(jiti@2.7.0)(supports-color@8.1.1)
@@ -1455,6 +1464,12 @@ packages:
         integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==,
       }
 
+  "@types/nspell@2.1.6":
+    resolution:
+      {
+        integrity: sha512-PnWYqrBZhkKAreX2kIZDJcBeigZJzXC8VmSuNiXeILUNreczBZHLxGEv/pRT+zL8rsXLxT5bRbiIF9wuh6cGgg==,
+      }
+
   "@types/pixelmatch@5.2.6":
     resolution:
       {
@@ -2555,6 +2570,12 @@ packages:
       }
     engines: { node: ">=8" }
 
+  dictionary-en@4.0.0:
+    resolution:
+      {
+        integrity: sha512-3NHnE1uq33ZE/CIwaZ6gqxa4BnglHnxeAcTM0GJ7cmtRGcvX9InMK/IqLtYcUMFCUpUNgybH+DzkqdgAo3F1zg==,
+      }
+
   diff@5.2.2:
     resolution:
       {
@@ -3360,6 +3381,13 @@ packages:
       }
     engines: { node: ">=8" }
 
+  is-buffer@2.0.5:
+    resolution:
+      {
+        integrity: sha512-i2R6zNFDwgEHJyQUtJEk0XFi1i0dPFn/oqjK3/vPCcDeJvW5NQ83V8QbicfF1SupOaB0h8ntgBC2YiE7dfyctQ==,
+      }
+    engines: { node: ">=4" }
+
   is-extglob@2.1.1:
     resolution:
       {
@@ -3972,6 +4000,12 @@ packages:
         integrity: sha512-9qny7Z9DsQU8Ou39ERsPU4OZQlSTP47ShQzuKZ6PRXpYLtIFgl/DEBYEXKlvcEa+9tHVcK8CF81Y2V72qaZhWA==,
       }
     engines: { node: ">=18" }
+
+  nspell@2.1.5:
+    resolution:
+      {
+        integrity: sha512-PSStyugKMiD9mHmqI/CR5xXrSIGejUXPlo88FBRq5Og1kO5QwQ5Ilu8D8O5I/SHpoS+mibpw6uKA8rd3vXd2Sg==,
+      }
 
   nth-check@2.1.1:
     resolution:
@@ -6102,6 +6136,10 @@ snapshots:
 
   "@types/normalize-package-data@2.4.4": {}
 
+  "@types/nspell@2.1.6":
+    dependencies:
+      "@types/node": 24.10.1
+
   "@types/pixelmatch@5.2.6":
     dependencies:
       "@types/node": 24.10.1
@@ -6930,6 +6968,8 @@ snapshots:
 
   detect-libc@2.1.2: {}
 
+  dictionary-en@4.0.0: {}
+
   diff@5.2.2: {}
 
   diff@8.0.4: {}
@@ -7448,6 +7488,8 @@ snapshots:
     dependencies:
       binary-extensions: 2.3.0
 
+  is-buffer@2.0.5: {}
+
   is-extglob@2.1.1: {}
 
   is-fullwidth-code-point@3.0.0: {}
@@ -7766,6 +7808,10 @@ snapshots:
     dependencies:
       path-key: 4.0.0
       unicorn-magic: 0.3.0
+
+  nspell@2.1.5:
+    dependencies:
+      is-buffer: 2.0.5
 
   nth-check@2.1.1:
     dependencies:

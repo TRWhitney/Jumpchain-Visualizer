@@ -14,6 +14,7 @@ import {
   createLayoutPreviewFixture,
   layoutPreviewImagePath,
 } from "./layoutPreview";
+import { selectedChoicePreviewPackage } from "./selectionPreview";
 import { useAssetObjectUrls } from "../tracker/useAssetObjectUrls";
 import type { PreviewSelection } from "./previewSelection";
 import { stripPreviewColors } from "./previewColors";
@@ -209,12 +210,14 @@ export type LayoutBoundHover = {
 export function JumpPreview({
   packageItem,
   layoutPackageItem,
+  choicePackageItem,
   assets,
   tags,
   selection,
   showBounds,
   stripColor,
   layoutPreviewPlaceholderCharacterLimit,
+  layoutPreviewChoiceLayout,
   hoveredBound,
   onHoveredBoundChange,
   onBoundActivate,
@@ -224,12 +227,14 @@ export function JumpPreview({
 }: {
   packageItem: CanonicalJumpPackage;
   layoutPackageItem?: CanonicalJumpPackage;
+  choicePackageItem?: CanonicalJumpPackage;
   assets: Readonly<Record<string, Uint8Array>>;
   tags: JumpRendererProps["tags"];
   selection: PreviewSelection;
   showBounds: boolean;
   stripColor: boolean;
   layoutPreviewPlaceholderCharacterLimit: number | null;
+  layoutPreviewChoiceLayout?: string;
   hoveredBound: LayoutBoundHover | null;
   onHoveredBoundChange: (value: LayoutBoundHover | null) => void;
   onBoundActivate?: (value: LayoutBoundHover) => void;
@@ -244,7 +249,10 @@ export function JumpPreview({
   const activeInspectionKeyRef = useRef("");
   const selectionHandle = "handle" in selection ? selection.handle : undefined;
   const authoredLayout = (layoutPackageItem ?? packageItem).layouts.find(
-    (item) => item.handle === selectionHandle,
+    (item) =>
+      selection.kind === "layout" &&
+      item.kind === selection.layoutKind &&
+      item.handle === selectionHandle,
   );
   const layoutPreview = useMemo(
     () =>
@@ -253,22 +261,35 @@ export function JumpPreview({
             layoutPackageItem ?? packageItem,
             authoredLayout,
             layoutPreviewPlaceholderCharacterLimit,
+            layoutPreviewChoiceLayout,
           )
         : null,
     [
       authoredLayout,
       layoutPackageItem,
       layoutPreviewPlaceholderCharacterLimit,
+      layoutPreviewChoiceLayout,
       packageItem,
       selection.kind,
     ],
   );
+  const contextualPackage = useMemo(
+    () =>
+      selection.kind === "choice" && choicePackageItem
+        ? selectedChoicePreviewPackage(
+            packageItem,
+            choicePackageItem,
+            selection.handle,
+          )
+        : packageItem,
+    [choicePackageItem, packageItem, selection],
+  );
   const previewPackage = useMemo(
     () =>
       selection.kind === "appearance" && selection.mode === "components"
-        ? appearancePreviewPackage(packageItem)
-        : (layoutPreview?.packageItem ?? packageItem),
-    [layoutPreview?.packageItem, packageItem, selection],
+        ? appearancePreviewPackage(contextualPackage)
+        : (layoutPreview?.packageItem ?? contextualPackage),
+    [contextualPackage, layoutPreview?.packageItem, selection],
   );
   const renderedPackage = useMemo(
     () => (stripColor ? stripPreviewColors(previewPackage) : previewPackage),
@@ -283,6 +304,7 @@ export function JumpPreview({
   const previewActorKey = [
     selection.kind,
     "mode" in selection ? selection.mode : "",
+    selection.kind === "layout" ? selection.layoutKind : "",
     selectionHandle ?? "",
     activeChoiceHandlesKey,
   ].join(":");
@@ -439,7 +461,10 @@ export function JumpPreview({
     (item) => item.handle === selectionHandle,
   );
   const layout = renderedPackage.layouts.find(
-    (item) => item.handle === selectionHandle,
+    (item) =>
+      selection.kind === "layout" &&
+      item.kind === selection.layoutKind &&
+      item.handle === selectionHandle,
   );
   const layoutSection = layout
     ? (renderedPackage.sections.find(

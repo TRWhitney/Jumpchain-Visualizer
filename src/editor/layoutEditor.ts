@@ -2,7 +2,7 @@ import format1Schema from "../../schema/format-1.json";
 import { parseFormatFile, type SourceField, type SourceNode } from "../markup";
 import type { FormatSymbol } from "./languageService";
 
-type LayoutKind = "section-layout" | "choice-layout" | "trait-layout";
+export type LayoutKind = "section-layout" | "choice-layout" | "trait-layout";
 
 type LayoutNodeDefinition = {
   kind: "container" | "leaf" | "special";
@@ -151,12 +151,61 @@ export function layoutSlotTargets(layoutKind: LayoutKind) {
   ];
 }
 
+export function layoutContentTargetHandles(
+  files: Readonly<Record<string, string>>,
+  layoutKind: LayoutKind,
+  contentKind: "text" | "image" | "input",
+) {
+  const roots = Object.entries(files).flatMap(
+    ([file, source]) => parseFormatFile(file, source).tree,
+  );
+  const descendants = (node: SourceNode): readonly SourceNode[] => [
+    node,
+    ...node.children.flatMap(descendants),
+  ];
+  const owners =
+    layoutKind === "section-layout"
+      ? roots.filter((node) => node.kind === "section")
+      : layoutKind === "choice-layout"
+        ? roots.filter((node) => node.kind === "choice")
+        : roots
+            .flatMap(descendants)
+            .filter(
+              (node) =>
+                node.kind === "grant" &&
+                node.fields.some(
+                  (field) =>
+                    field.name === "kind" && unquote(field.value) === "trait",
+                ),
+            );
+  return [
+    ...new Set(
+      owners.flatMap((owner) =>
+        owner.children.flatMap((child) => {
+          if (child.kind !== contentKind) return [];
+          const handle = child.fields.find((field) => field.name === "handle");
+          return handle ? [unquote(handle.value)] : [];
+        }),
+      ),
+    ),
+  ];
+}
+
 export function layoutNodeIsContainer(kind: string) {
   return containerKinds.has(kind);
 }
 
 export function layoutNodeSupportsCompact(kind: string) {
   return compactKinds.has(kind);
+}
+
+export function layoutNodeHasEditableFields(kind: string) {
+  const definition = schema.layoutNodes[kind];
+  return Boolean(
+    definition?.fields ||
+    definition?.blockFields ||
+    definition?.additionalFields,
+  );
 }
 
 export function createLayoutEditorTree(
@@ -746,7 +795,7 @@ export function convertLayoutNode(
       ? layoutSlotTargets(tree.layoutKind)[0]
       : `new_${kind}`;
   let body: string;
-  if (["slot", "text", "image", "input"].includes(kind)) {
+  if (["slot", "text", "image", "input", "choice"].includes(kind)) {
     const fields = node.sourceNode?.fields ?? [];
     const shared = fields.filter((field) =>
       [
@@ -766,8 +815,7 @@ export function convertLayoutNode(
             ...shared.map((field) => renderedField(field, 2)),
           ].join("\n")
         : `${kind}: ${target}`;
-  } else if (kind === "choice") body = `choice: ${target}`;
-  else if (kind === "rule") body = "rule";
+  } else if (kind === "rule") body = "rule";
   else body = ["expand", ...(target ? [`  source: ${target}`] : [])].join("\n");
   const rendered = body
     .split("\n")
@@ -834,7 +882,7 @@ export function expandLayoutLeaf(
     !tree ||
     !tree.structurallySafe ||
     !node?.compact ||
-    !["slot", "text", "image", "input"].includes(node.kind)
+    !["slot", "text", "image", "input", "choice"].includes(node.kind)
   )
     return failed(files, "invalid-target");
   const source = files[layout.file] ?? "";
@@ -870,7 +918,7 @@ export function collapseLayoutLeaf(
     !tree.structurallySafe ||
     !node?.sourceNode ||
     node.compact ||
-    !["slot", "text", "image", "input"].includes(node.kind) ||
+    !["slot", "text", "image", "input", "choice"].includes(node.kind) ||
     node.fieldNames.some((field) => field !== "target")
   )
     return failed(files, "invalid-target");

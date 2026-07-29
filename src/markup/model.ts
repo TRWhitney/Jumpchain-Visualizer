@@ -174,6 +174,7 @@ export type Presentation = {
   align?: string;
   justify?: string;
   textAlign?: string;
+  controlAdornments?: boolean;
   textSize?: string;
   textColor?: string;
   columns?: number;

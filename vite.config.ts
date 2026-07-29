@@ -1,11 +1,19 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { cpSync, readFile } from "node:fs";
-import { extname, join, normalize } from "node:path";
+import { copyFileSync, cpSync, mkdirSync, readFile } from "node:fs";
+import { dirname, extname, join, normalize } from "node:path";
+import { fileURLToPath } from "node:url";
 import { documentationRequestNeedsVite } from "./src/platform/documentationRequest";
 
 const tauriHost = process.env.TAURI_DEV_HOST;
 const documentationRoot = join(import.meta.dirname, "documentation");
+const englishDictionaryRoot = dirname(
+  fileURLToPath(import.meta.resolve("dictionary-en")),
+);
+const englishDictionaryFiles = {
+  "/dictionaries/en.aff": join(englishDictionaryRoot, "index.aff"),
+  "/dictionaries/en.dic": join(englishDictionaryRoot, "index.dic"),
+} as const;
 
 const documentationPlugin = {
   name: "jumpchain-documentation",
@@ -78,8 +86,53 @@ const documentationPlugin = {
   },
 };
 
+const spellingDictionaryPlugin = {
+  name: "jumpchain-spelling-dictionary",
+  configureServer(server: {
+    middlewares: {
+      use: (
+        path: string,
+        handler: (
+          request: unknown,
+          response: {
+            statusCode: number;
+            setHeader: (name: string, value: string) => void;
+            end: (body?: Buffer | string) => void;
+          },
+          next: () => void,
+        ) => void,
+      ) => void;
+    };
+  }) {
+    for (const [route, source] of Object.entries(englishDictionaryFiles))
+      server.middlewares.use(route, (_request, response, next) => {
+        readFile(source, (error, content) => {
+          if (error) {
+            next();
+            return;
+          }
+          response.statusCode = 200;
+          response.setHeader("Content-Type", "text/plain; charset=utf-8");
+          response.end(content);
+        });
+      });
+  },
+  closeBundle() {
+    const destination = join(import.meta.dirname, "dist", "dictionaries");
+    mkdirSync(destination, { recursive: true });
+    copyFileSync(
+      englishDictionaryFiles["/dictionaries/en.aff"],
+      join(destination, "en.aff"),
+    );
+    copyFileSync(
+      englishDictionaryFiles["/dictionaries/en.dic"],
+      join(destination, "en.dic"),
+    );
+  },
+};
+
 export default defineConfig({
-  plugins: [react(), documentationPlugin],
+  plugins: [react(), documentationPlugin, spellingDictionaryPlugin],
   clearScreen: false,
   server: {
     host: tauriHost ?? "127.0.0.1",

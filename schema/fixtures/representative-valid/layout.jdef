@@ -18,7 +18,9 @@ section-layout
       thickness: 2
       style: rounded
     choice: gender_field
-    choice: age_field
+    choice
+      target: age_field
+      align: end
 
     expand
       source: main

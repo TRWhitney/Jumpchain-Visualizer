@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CanonicalJumpPackage, LayoutNode } from "../markup";
+import { defaultCostAppearanceColors } from "../tracker/jumpAppearance";
 import { stripPreviewColors } from "./previewColors";
 
 const packageItem: CanonicalJumpPackage = {
@@ -27,6 +28,7 @@ const packageItem: CanonicalJumpPackage = {
   appearance: {
     background: "surface",
     "text-color": "foreground",
+    "cost-benefit-background": "#abcdef",
     corners: "lg",
   },
   layouts: [
@@ -76,7 +78,10 @@ describe("stripPreviewColors", () => {
     const [rule, text] = root.children as readonly LayoutNode[];
 
     expect(stripped.themes).toEqual({});
-    expect(stripped.appearance).toEqual({ corners: "lg" });
+    expect(stripped.appearance).toEqual({
+      corners: "lg",
+      ...defaultCostAppearanceColors,
+    });
     expect(root.presentation).toEqual({ gap: "sm" });
     expect(rule.presentation).toEqual({ thickness: 2, style: "dash" });
     expect(text.presentation).toEqual({ padding: "md", textSize: "lg" });
@@ -96,6 +101,7 @@ describe("stripPreviewColors", () => {
     expect(packageItem.appearance).toEqual({
       background: "surface",
       "text-color": "foreground",
+      "cost-benefit-background": "#abcdef",
       corners: "lg",
     });
     expect(packageItem.layouts[0].root.presentation).toMatchObject({

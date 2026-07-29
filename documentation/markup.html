@@ -501,7 +501,7 @@ typed handled-content leaves, just as prose and visuals are handled in
 <p>The selected default choice presentation is a compact vertical <code>stack</code>. An <code>inline</code> header places <code>name</code> and <code>cost</code> apart, followed by <code>tags</code>, then an <code>inline</code> action row containing <code>control</code> and choice-level <code>roll</code>. This includes every built-in choice slot without discovering arbitrary owned blocks.</p>
 <p>Neither built-in nor authored layout containers expose handles. Authoring and debugging tools derive transient structural paths from each container’s nested source position.</p>
 <p>At runtime, empty or inapplicable slots reserve no space. A container whose children all collapse for that reason also collapses. The structured layout editor still shows those nodes as authoring placeholders so their positions remain understandable.</p>
-<p>When a layout declaration itself is selected, the Editor previews it through the canonical renderer with isolated representative section, choice, or trait data. Matching dummy text, images, inputs, costs, tags, expanded source choices, and direct choices make authored targets visible without changing source or requiring the surrounding package to be distributable.</p>
+<p>When a layout declaration itself is selected, the Editor previews it through the canonical renderer with isolated representative section, choice, or trait data. Matching dummy text, images, inputs, costs, tags, expanded source choices, and direct choices make authored targets visible without changing source or requiring the surrounding package to be distributable. A Section layout containing a direct <code>choice</code> or an <code>expand</code> without <code>using</code> also offers a transient Choice-layout selector. It applies the selected Choice layout to those generated choices and populates their referenced content targets; an explicit <code>expand using</code> remains authoritative for its own expansion.</p>
 <p>Authored layouts replace presentation only; they do not change semantic membership or state.</p>
 <p>The current agreed direction for layout trees is:</p>
 <p>The Structured editor presents this language through a selected-container tree rather than source-line indentation controls. It shows the selected container’s structural path, flow, spacing, optional presentation fields, and source-ordered direct children. Changing the selected container collapses any open child fields; reparenting a child through drag or <em>Move…</em> likewise leaves its fields collapsed at the destination. Up/down and drops at a sibling row’s top or bottom edge reorder within the current container. Dropping in the highlighted center of a valid container row reparents and appends the node through the same exact-range command as <em>Move…</em>; the dragged node and all its descendants are excluded as destinations. <em>Move…</em> remains the explicit accessible path to the root or any other non-descendant container and toggles its destination controls when pressed again; there is no separate Cancel action in that expansion. Removing a non-root container promotes its children at that source position. <em>Add child</em> is schema-filtered for the owning layout kind and gathers required targets before it writes source. One consistent presentation icon beside the selected container controls and on every child row toggles that node’s available fields. A nested container can therefore be edited either from its row in the parent or after opening it as the selected container; rules expose color, thickness, and style through the same action. Expanded child fields take their full natural height within the Structured pane instead of creating a nested scroll region. Closing a compact-capable leaf converts it back to compact source only when no block-only semantics would be lost; there is no separate compaction action. Invalid but parseable Source-authored fields remain visible as localized Needs attention controls so Structured can remove them without guessing at unsafe ancestry.</p>
@@ -533,13 +533,17 @@ typed handled-content leaves, just as prose and visuals are handled in
 <h3>Node Shape</h3>
 <p>Container nodes are nested declaration blocks. Their nesting and source order define their structure; they do not declare handles.</p>
 <p>Simple leaf references use a compact scalar form.</p>
-<p>Typed <code>text</code>, <code>image</code>, and <code>input</code> references, as well as <code>slot</code>, support equivalent compact and block forms. Compact leaves use forms such as <code>text: description</code>, <code>image: visual</code>, <code>input: quantity</code>, or <code>slot: cost</code>. A block leaf requires <code>target</code> and may add presentation fields:</p>
+<p>Typed <code>text</code>, <code>image</code>, and <code>input</code> references, as well as <code>slot</code> and direct <code>choice</code> placement, support equivalent compact and block forms. Compact leaves use forms such as <code>text: description</code>, <code>image: visual</code>, <code>input: quantity</code>, <code>slot: cost</code>, or <code>choice: age_field</code>. A block leaf requires <code>target</code> and may add presentation fields:</p>
 <pre><code class="language-text">text
   target: description
   padding: sm
 
 slot
   target: cost
+  align: end
+
+choice
+  target: age_field
   align: end
 </code></pre>
 <p>A horizontal separator is a standalone targetless leaf. Its bare form uses a one-pixel, solid, theme-aware line:</p>
@@ -551,7 +555,7 @@ slot
   style: rounded</code></pre>
 <p><code>style</code> accepts <code>solid</code>, <code>dash</code>, or <code>rounded</code>; omission defaults to <code>solid</code>. <code>rounded</code> renders a solid rule with rounded end caps and uses <code>thickness</code> as the bar height. The vocabulary is intentionally extensible so future rule styles can be added without changing the node shape. A rule spans its available layout width and has no target, handle, or child nodes; surrounding containers control its spacing. Other leaf nodes likewise do not have handles or children. A typed leaf’s block form does not create a different semantic node; it only provides room for presentation fields.</p>
 <p>The same typed content target or <code>slot</code> target may appear more than once in one layout. Each occurrence is an independent presentation node over the same underlying content or control. The generic <code>ref</code> form is not supported because declaration-kind namespaces allow matching handles.</p>
-<p>A typed content leaf whose target is not present on a particular section or choice is valid and collapses without reserving runtime space. This permits one authored layout to be reused across content with different optional fields. The Editor warns about an absent target by default and shows the leaf as a structured-authoring placeholder; users may suppress that diagnostic with <code>editor.warnMissingLayoutTargets</code>. A missing target does not make a distributable package invalid.</p>
+<p>A typed content leaf whose target is not present on a particular section, choice, or trait grant is valid and collapses without reserving runtime space. Each layout kind resolves targets only in its matching owner-local namespace; equal handles on another owner kind neither populate the Structured target picker nor satisfy the diagnostic. This permits one authored layout to be reused across content with different optional fields. The Editor warns about an absent target by default and shows the leaf as a structured-authoring placeholder; users may suppress that diagnostic with <code>editor.warnMissingLayoutTargets</code>. A missing target does not make a distributable package invalid.</p>
 <p>Current container-identity rules:</p>
 <ul>
 <li><code>stack</code>, <code>inline</code>, <code>wrap</code>, and <code>grid</code> do not accept a <code>handle</code> field</li>
@@ -619,14 +623,16 @@ slot
     handle: age_field
     target: starting_age
 </code></pre>
-<p>The section block names both the owner-local placement and its top-level target. The layout places it through compact-only scalar leaves; this is not expansion and has no block form.</p>
+<p>The section block names both the owner-local placement and its top-level target. The layout may place it through a compact scalar leaf or a block leaf with <code>padding</code>, <code>background</code>, and <code>align</code>. This is not expansion; presentation changes the placement boundary without changing the referenced Choice.</p>
 <pre><code class="language-text">section-layout
   handle: identity_section
 
   grid
     columns: 2
     choice: gender_field
-    choice: age_field
+    choice
+      target: age_field
+      align: end
 </code></pre>
 <ul>
 <li>forward references to top-level choices are allowed</li>
@@ -1606,10 +1612,19 @@ the container cross-axis control. In <code>inline</code> and <code>wrap</code>,
 leaf among the available main-axis space. <code>stretch</code> grows the leaf into
 the remaining space; multiple stretched siblings divide that remainder equally
 after unstretched siblings retain their authored content area.</p>
-<p><code>text-align</code> positions text inside the space of the node to which it
-applies. Container text alignment is inherited by descendant slot, text, and
-input boundaries; a leaf value overrides that inheritance. An omitted leaf
-value continues to inherit. The text-bearing leaf boundary owns its padding,
+<p><code>text-align</code> positions content inside the space of the node to which
+it applies. Container text alignment is inherited by descendant text-bearing
+slot, text, and input boundaries; a leaf value overrides that inheritance. An
+omitted leaf value continues to inherit. On the non-text <code>control</code> and
+<code>roll</code> slots, Structured labels this same inner-axis field
+<em>Control alignment</em> and it positions the control group inside the leaf;
+the leaf’s separate <code>align</code> still positions the leaf itself. Control
+and roll slots also accept the optional boolean
+<code>control-adornments</code> field. It defaults to <code>true</code>;
+<code>false</code> removes the control group’s decorative separator and its
+reserved separator spacing without changing the control itself. Control and
+roll slots do not accept <code>text-size</code> or
+<code>text-color</code>. A text-bearing leaf boundary owns its padding,
 background, alignment, text alignment, text size, and text color, so rich text
 containing multiple paragraphs, lists, or tables receives one coherent
 presentation box. Image leaves are non-text content and therefore expose only

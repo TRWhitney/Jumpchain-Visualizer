@@ -449,6 +449,9 @@
         "showChoicesForField": "Show handle choices for {{field}}",
         "availableHandlesForField": "Available handles for {{field}}"
       },
+      "spelling": {
+        "suggestionsFor": "Spelling suggestions for “{{word}}”"
+      },
       "combobox": {
         "showSuggestionsForField": "Show suggestions for {{field}}",
         "availableSuggestionsForField": "Available suggestions for {{field}}",
@@ -919,7 +922,7 @@
         "sourceValid": "Source parses without errors.",
         "sourceRecovered": "The preview temporarily filled an incomplete field. Your source is unchanged.",
         "sourceLastValid": "The preview shows the most recent version that could be rendered.",
-        "layoutUsesRepresentativeData": "This preview uses example content so you can review the layout while fixing source errors."
+        "layoutUsesRepresentativeData": "This preview uses generated content so you can review the reusable layout independently of package data."
       },
       "layoutPreview": {
         "packageName": "Layout preview",
@@ -929,6 +932,9 @@
         "directChoiceName": "Example direct choice {{number}}",
         "traitName": "Example trait",
         "traitDescription": "Representative trait content.",
+        "choiceLayout": "Choice layout for generated choices",
+        "choiceLayoutHelp": "Applies to direct choices and expansions without their own Using value.",
+        "builtInChoiceLayout": "Built-in choice layout",
         "textContent": "Example content for “{{target}}”.",
         "imageAlt": "Example image for {{target}}",
         "tag": "example",
@@ -1341,6 +1347,8 @@
         "align": "Item alignment",
         "justify": "Item distribution",
         "text-align": "Text alignment",
+        "control-align": "Control alignment",
+        "control-adornments": "Control adornments",
         "text-size": "Text size",
         "text-color": "Text color",
         "border-color": "Border color",
@@ -1363,6 +1371,8 @@
         "align": "Controls how each child is aligned across the container's secondary direction.",
         "justify": "Controls how children are arranged along the container's main direction.",
         "text-align": "Controls how text is aligned inside this element.",
+        "control-align": "Controls how the control is aligned inside this element.",
+        "control-adornments": "Show the decorative rule and spacing around this control group.",
         "fit": "Contain shows the whole image; Cover fills the available area and may crop it.",
         "clip": "Hide child content that extends outside this container.",
         "source": "Choose the Choice Source whose matching Choices appear here.",

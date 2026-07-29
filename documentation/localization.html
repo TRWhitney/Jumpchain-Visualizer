@@ -84,7 +84,14 @@
 
     <section>
       <h2>Formatting, direction, and spell-check</h2>
-      <p>Numbers, dates, lists, plural selection, case folding, and collation use the active BCP 47 tag. Layout uses document direction and logical CSS where direction matters. Natural-language authoring fields explicitly enable <code>spellcheck</code>; search, JSON, paths, handles, and CodeMirror source disable it. The root <code>lang</code> is the dictionary signal, but the browser/webview and operating system decide whether a matching dictionary is installed. The application bundles no dictionary and cannot guarantee spell-check availability.</p>
+      <p>Numbers, dates, lists, plural selection, case folding, and collation use the active BCP 47 tag. Layout uses document direction and logical CSS where direction matters. Natural-language authoring fields explicitly enable <code>spellcheck</code>; search, JSON, paths, handles, and CodeMirror source disable it. Native underlines still depend on the browser/webview and operating-system dictionary selected from the root <code>lang</code>.</p>
+      <p>English releases also bundle an offline Hunspell dictionary. It loads lazily only when an English language pack is active and supplies deterministic corrections when an author right-clicks a misspelled word in a Structured natural-language field. Suggestions replace only that word and preserve its capitalization. Interpolation handles inside <code>{{…}}</code> are excluded. Left click remains ordinary caret placement, and Shift+right-click requests the native editing menu. Other languages retain their native spell-check behavior until a compatible application dictionary is bundled. The application suggestion path performs no network lookup and does not send authored text away from the device.</p>
+    </section>
+
+    <section>
+      <h2>Spelling resource attribution</h2>
+      <p>The spelling engine uses <code>nspell</code>, copyright © 2016 Titus Wormer, under the MIT License. The <code>dictionary-en</code> word list is derived from SCOWL, collective work copyright © 2000–2018 Kevin Atkinson, and its affix rules include work derived from Geoff Kuenning's Ispell under the BSD license.</p>
+      <p>Permission is granted to use, copy, modify, distribute, and sell the SCOWL word lists, associated scripts, generated output, and documentation for any purpose without fee, provided Kevin Atkinson's copyright and this permission appear in copies and supporting documentation. The work is provided “as is” without a suitability representation. The MIT spelling-engine software is provided without warranty; permission is granted to use, copy, modify, merge, publish, distribute, sublicense, and sell it provided its copyright and permission notice are included in copies or substantial portions.</p>
     </section>
 
     <section>

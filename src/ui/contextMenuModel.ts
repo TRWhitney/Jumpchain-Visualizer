@@ -17,6 +17,7 @@ export type ContextMenuAction = {
 export type ContextMenuRequest = {
   label: string;
   actions: readonly ContextMenuAction[];
+  overrideNative?: boolean;
 };
 
 export type ContextMenuController = {

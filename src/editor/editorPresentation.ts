@@ -170,21 +170,27 @@ export function editorLayoutNodePresentation(
 
 export function editorLayoutFieldPresentation(
   field: string,
+  options: { controlAlignment?: boolean } = {},
 ): EditorFieldPresentation {
+  const presentationField =
+    field === "text-align" && options.controlAlignment
+      ? "control-align"
+      : field;
   const helpFields = new Set([
     "target",
     "align",
     "justify",
     "text-align",
+    "control-adornments",
     "fit",
     "clip",
     "source",
     "using",
   ]);
   return {
-    label: translate(`ui.editorWorkspace.layoutField.${field}`),
+    label: translate(`ui.editorWorkspace.layoutField.${presentationField}`),
     help: helpFields.has(field)
-      ? translate(`ui.editorWorkspace.layoutFieldHelp.${field}`)
+      ? translate(`ui.editorWorkspace.layoutFieldHelp.${presentationField}`)
       : undefined,
   };
 }

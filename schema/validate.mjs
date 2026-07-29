@@ -31,8 +31,8 @@ if (!choice?.formsByContext?.section?.fields?.target)
   errors.push("format-1 choice must define its section association form");
 if (choice?.formsByContext?.["top-level"]?.fields?.species)
   errors.push("format-1 choice.species must be replaced by property grants");
-if (!schema.layoutNodes.choice?.compactOnly)
-  errors.push("format-1 section choice layout leaf must be compact-only");
+if (!schema.layoutNodes.choice?.blockFields)
+  errors.push("format-1 section choice layout leaf must define block presentation fields");
 if (!choice?.formsByContext?.["top-level"]?.fields?.form)
   errors.push("format-1 choice shorthand must define form targeting");
 if (!choice?.formsByContext?.["top-level"]?.fields?.measure)

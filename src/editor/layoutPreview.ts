@@ -47,6 +47,17 @@ function walk(node: LayoutNode): readonly LayoutNode[] {
   return [node, ...node.children.flatMap(walk)];
 }
 
+export function layoutPreviewAcceptsChoiceLayout(layout: JumpLayout) {
+  return (
+    layout.kind === "section-layout" &&
+    walk(layout.root).some(
+      (node) =>
+        node.kind === "choice" ||
+        (node.kind === "expand" && node.using === undefined),
+    )
+  );
+}
+
 function uniqueTargets(nodes: readonly LayoutNode[], kind: LayoutNode["kind"]) {
   return [
     ...new Set(
@@ -165,6 +176,7 @@ function sectionFixture(
   packageItem: CanonicalJumpPackage,
   layout: JumpLayout,
   placeholder: PlaceholderText,
+  choiceLayoutHandle?: string,
 ): LayoutPreviewFixture {
   const nodes = walk(layout.root);
   const expandNodes = nodes.filter((node) => node.kind === "expand");
@@ -194,7 +206,10 @@ function sectionFixture(
       (node, index) =>
         (node.source ?? `preview_source_${index + 1}`) === source.handle,
     );
-    const choiceLayout = referencedChoiceLayout(packageItem, expand?.using);
+    const choiceLayout = referencedChoiceLayout(
+      packageItem,
+      expand?.using ?? choiceLayoutHandle,
+    );
     const choiceNodes = choiceLayout ? walk(choiceLayout.root) : [];
     for (let index = 0; index < 2; index += 1) {
       choiceNumber += 1;
@@ -215,6 +230,13 @@ function sectionFixture(
   const activeChoiceHandles = choices.map((choice) => choice.handle);
 
   const directTargets = uniqueTargets(nodes, "choice");
+  const directChoiceLayout = referencedChoiceLayout(
+    packageItem,
+    choiceLayoutHandle,
+  );
+  const directChoiceNodes = directChoiceLayout
+    ? walk(directChoiceLayout.root)
+    : [];
   const directChoices = directTargets.map((target, index) => {
     choiceNumber += 1;
     const handle = `preview_direct_choice_${index + 1}`;
@@ -224,9 +246,9 @@ function sectionFixture(
         translate("ui.editorWorkspace.layoutPreview.directChoiceName", {
           number: index + 1,
         }),
+        directChoiceNodes,
         [],
-        [],
-        undefined,
+        directChoiceLayout?.handle,
         placeholder,
       ),
     );
@@ -255,7 +277,10 @@ function sectionFixture(
   };
   return {
     kind: "section-layout",
-    packageItem: previewPackage(packageItem, [section], choices, placeholder),
+    packageItem: {
+      ...previewPackage(packageItem, [section], choices, placeholder),
+      defaultChoiceLayout: choiceLayoutHandle,
+    },
     section,
     activeChoiceHandles,
   };
@@ -316,11 +341,12 @@ export function createLayoutPreviewFixture(
   packageItem: CanonicalJumpPackage,
   layout: JumpLayout,
   placeholderCharacterLimit: number | null = null,
+  choiceLayoutHandle?: string,
 ): LayoutPreviewFixture {
   const placeholder = placeholderText(placeholderCharacterLimit);
   if (layout.kind === "choice-layout")
     return choiceFixture(packageItem, layout, placeholder);
   if (layout.kind === "trait-layout")
     return traitFixture(packageItem, layout, placeholder);
-  return sectionFixture(packageItem, layout, placeholder);
+  return sectionFixture(packageItem, layout, placeholder, choiceLayoutHandle);
 }

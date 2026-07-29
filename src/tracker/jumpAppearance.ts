@@ -29,6 +29,21 @@ const borderWidths = {
 
 type AppearanceStyle = CSSProperties & Record<`--jump-${string}`, string>;
 
+export const defaultCostAppearanceColors = {
+  "cost-background": "#fffdf7",
+  "cost-text": "#5c4500",
+  "cost-border": "#d8cfb6",
+  "cost-benefit-background": "#dcebdc",
+  "cost-benefit-text": "#173c25",
+  "cost-benefit-border": "#8eb99a",
+  "cost-award-background": "#dcebdc",
+  "cost-award-text": "#173c25",
+  "cost-award-border": "#8eb99a",
+  "cost-pending-background": "#30302d",
+  "cost-pending-text": "#d5d1c8",
+  "cost-pending-border": "#77736b",
+} as const;
+
 export function resolveAppearanceColor(
   value: string | undefined,
   packageItem: Pick<CanonicalJumpPackage, "themes">,
@@ -234,43 +249,73 @@ export function resolvedJumpAppearance(
       "cost-background",
       "surface",
       "background",
-      "#fffdf7",
+      defaultCostAppearanceColors["cost-background"],
     ),
-    costText: color("cost-text", "surface", "text", "#5c4500"),
-    costBorder: color("cost-border", "surface", "border", "#d8cfb6"),
+    costText: color(
+      "cost-text",
+      "surface",
+      "text",
+      defaultCostAppearanceColors["cost-text"],
+    ),
+    costBorder: color(
+      "cost-border",
+      "surface",
+      "border",
+      defaultCostAppearanceColors["cost-border"],
+    ),
     costBenefitBackground: color(
       "cost-benefit-background",
       "cost",
       "background",
-      "#dcebdc",
+      defaultCostAppearanceColors["cost-benefit-background"],
     ),
-    costBenefitText: color("cost-benefit-text", "cost", "text", "#173c25"),
+    costBenefitText: color(
+      "cost-benefit-text",
+      "cost",
+      "text",
+      defaultCostAppearanceColors["cost-benefit-text"],
+    ),
     costBenefitBorder: color(
       "cost-benefit-border",
       "cost",
       "border",
-      "#8eb99a",
+      defaultCostAppearanceColors["cost-benefit-border"],
     ),
     costAwardBackground: color(
       "cost-award-background",
       "cost",
       "background",
-      "#dceaf0",
+      defaultCostAppearanceColors["cost-award-background"],
     ),
-    costAwardText: color("cost-award-text", "cost", "text", "#17394a"),
-    costAwardBorder: color("cost-award-border", "cost", "border", "#91b5c5"),
+    costAwardText: color(
+      "cost-award-text",
+      "cost",
+      "text",
+      defaultCostAppearanceColors["cost-award-text"],
+    ),
+    costAwardBorder: color(
+      "cost-award-border",
+      "cost",
+      "border",
+      defaultCostAppearanceColors["cost-award-border"],
+    ),
     costPendingBackground: color(
       "cost-pending-background",
       "cost",
       "background",
-      "#30302d",
+      defaultCostAppearanceColors["cost-pending-background"],
     ),
-    costPendingText: color("cost-pending-text", "cost", "text", "#d5d1c8"),
+    costPendingText: color(
+      "cost-pending-text",
+      "cost",
+      "text",
+      defaultCostAppearanceColors["cost-pending-text"],
+    ),
     costPendingBorder: color(
       "cost-pending-border",
       "cost",
       "border",
-      "#77736b",
+      defaultCostAppearanceColors["cost-pending-border"],
     ),
     tooltipBackground: color(
       "tooltip-background",

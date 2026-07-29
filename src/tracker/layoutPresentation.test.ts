@@ -21,6 +21,24 @@ function node(
 }
 
 describe("layout presentation styles", () => {
+  it("applies direct-choice boundary padding, background, and alignment", () => {
+    expect(
+      layoutLeafPresentationStyle(
+        node("choice", {
+          padding: "sm",
+          background: "surface",
+          align: "end",
+        }),
+        packageThemes,
+        "stack",
+      ),
+    ).toMatchObject({
+      padding: ".5rem",
+      backgroundColor: "#123456",
+      alignSelf: "end",
+    });
+  });
+
   it("applies the Format 1 container defaults", () => {
     expect(
       layoutContainerPresentationStyle(node("stack"), packageThemes),
@@ -90,6 +108,41 @@ describe("layout presentation styles", () => {
       fontSize: ".9rem",
     });
   });
+
+  it.each(["control", "roll"])(
+    "aligns %s content inside its leaf without applying text styling",
+    (target) => {
+      const control = {
+        ...node("slot", {
+          padding: "sm",
+          background: "surface",
+          align: "end",
+          textAlign: "center",
+          textSize: "2xl",
+          textColor: "red",
+        }),
+        target,
+      };
+
+      expect(
+        layoutLeafPresentationStyle(control, packageThemes, "inline"),
+      ).toEqual({
+        padding: ".5rem",
+        backgroundColor: "#123456",
+        display: "flex",
+        justifyContent: "center",
+        alignSelf: undefined,
+        justifySelf: undefined,
+      });
+      expect(layoutInlineChildAreaStyle(control)).toEqual({
+        justifyContent: "flex-start",
+        marginInlineStart: "auto",
+        marginInlineEnd: undefined,
+        inlineSize: "min(20rem, 100%)",
+        maxInlineSize: "100%",
+      });
+    },
+  );
 
   it.each([
     ["start", "flex-start", undefined, undefined, "min(20rem, 100%)"],

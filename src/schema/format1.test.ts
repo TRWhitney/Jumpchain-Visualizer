@@ -33,9 +33,20 @@ describe("unreleased Format 1 identity amendment", () => {
     expect(schema.layoutNodes.choice).toMatchObject({
       kind: "leaf",
       compact: "choice: <target>",
-      compactOnly: true,
+      blockFields: "choiceLeafPresentation",
       allowedLayouts: ["section-layout"],
       targetNamespace: "choice-placement",
+    });
+    expect(schemaJson.fieldSets.choiceLeafPresentation).toEqual({
+      target: {
+        type: "handleReference:choice-placement",
+        min: 1,
+        max: 1,
+        required: true,
+      },
+      padding: { type: "spacing", min: 0, max: 1, default: "none" },
+      background: { type: "color", min: 0, max: 1 },
+      align: { type: "align", min: 0, max: 1 },
     });
   });
 

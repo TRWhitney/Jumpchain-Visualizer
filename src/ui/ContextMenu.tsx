@@ -50,7 +50,8 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
 
   const openContextMenu = useCallback(
     (event: ReactMouseEvent<Element>, request: ContextMenuRequest) => {
-      if (allowsNativeContextMenu(event.target)) return;
+      if (allowsNativeContextMenu(event.target) && !request.overrideNative)
+        return;
       event.preventDefault();
       event.stopPropagation();
       if (!(event.currentTarget instanceof HTMLElement)) return;

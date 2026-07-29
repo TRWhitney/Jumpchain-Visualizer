@@ -63,12 +63,17 @@
           generic menu on non-text controls such as dropdowns, checkboxes, and
           the standalone color picker. Text-entry fields—including the text
           segment of a compound color control—retain ordinary Cut, Copy, Paste,
-          selection, and spelling behavior.
+          selection, and spelling behavior. One narrow override applies to a
+          misspelled word in an English Structured natural-language field:
+          right-click opens the application's offline dictionary suggestions.
+          Shift+right-click preserves access to the native editing menu.
         </p>
         <p>
           Text inputs, textareas, contenteditable and CodeMirror regions,
           selectable reports, links, images, media, and an active text
-          selection preserve the native menu. Source editors, authored rendered
+          selection preserve the native menu except for that explicit spelling
+          override. Correct words and fields without an application dictionary
+          continue directly to the native menu. Source editors, authored rendered
           content, dialogs, global navigation, Jump choices, inventory and
           companion cards, package-library cards, radar charts, conditional
           variants, and supplement purchases do not receive feature menus.

@@ -18,7 +18,12 @@ import type {
   RichBlock,
   RichInline,
 } from "../markup";
-import { parseRichText, resolveCostAmount } from "../markup";
+import {
+  layoutNodeSupportsTextStyling,
+  layoutNodeUsesControlAlignment,
+  parseRichText,
+  resolveCostAmount,
+} from "../markup";
 import {
   choiceControlRenderContext,
   renderRenderable,
@@ -294,9 +299,14 @@ function CostBadges({
         {view.costs.map((cost) => {
           const suffix =
             evaluation.resources[cost.resource]?.abbreviation ?? cost.resource;
+          const award = cost.originalAmount < 0;
           return (
-            <b key={cost.resource} className="cost-badge is-stacked">
+            <b
+              key={cost.resource}
+              className={`cost-badge is-stacked${award ? " is-award" : ""}`}
+            >
               <strong>
+                {award ? "+" : ""}
                 {Math.abs(cost.originalAmount)} {suffix}
               </strong>
               <span>
@@ -386,11 +396,13 @@ function CostBadges({
       {view?.costs.map((cost) => {
         const resource = evaluation.resources[cost.resource];
         const suffix = resource?.abbreviation ?? cost.resource;
-        const award = cost.resolvedAmount < 0;
         if (cost.mode === "each") {
           const authored = choice.costs.find(
             (item) => item.resource === cost.resource,
           );
+          const award = authored
+            ? resolveCostAmount(authored.amount) < 0
+            : cost.originalAmount < 0 || cost.resolvedAmount < 0;
           const each = authored
             ? Math.abs(resolveCostAmount(authored.amount))
             : Math.abs(cost.originalAmount);
@@ -400,16 +412,18 @@ function CostBadges({
               className={`cost-badge is-ranked${award ? " is-award" : ""}`}
             >
               <span>
+                {award ? "+" : ""}
                 {each} {suffix} {translate("ui.jumpRenderer.text.each")}
               </span>
               <strong>
                 {cost.rankCount === undefined
                   ? "Awaiting ranks"
-                  : `${cost.rankCount} rank${cost.rankCount === 1 ? "" : "s"} · ${Math.abs(cost.resolvedAmount)} ${suffix} total`}
+                  : `${cost.rankCount} rank${cost.rankCount === 1 ? "" : "s"} · ${award ? "+" : ""}${Math.abs(cost.resolvedAmount)} ${suffix} total`}
               </strong>
             </b>
           );
         }
+        const award = cost.originalAmount < 0 || cost.resolvedAmount < 0;
         return (
           <b
             key={cost.resource}
@@ -1262,9 +1276,11 @@ function layoutColorInspectionData(
     "data-layout-color-background": node.presentation.background
       ? "background"
       : undefined,
-    "data-layout-color-text": node.presentation.textColor
-      ? "text-color"
-      : undefined,
+    "data-layout-color-text":
+      node.presentation.textColor &&
+      layoutNodeSupportsTextStyling(node.kind, node.target)
+        ? "text-color"
+        : undefined,
     "data-layout-color-border": node.presentation.borderColor
       ? "border-color"
       : undefined,
@@ -1287,6 +1303,18 @@ function LayoutLeafBoundary({
   packageItem: CanonicalJumpPackage;
   children: ReactNode;
 }) {
+  const controlAlignment = layoutNodeUsesControlAlignment(
+    node.kind,
+    node.target,
+  )
+    ? node.presentation.textAlign
+    : undefined;
+  const controlAdornments = layoutNodeUsesControlAlignment(
+    node.kind,
+    node.target,
+  )
+    ? node.presentation.controlAdornments !== false
+    : undefined;
   return (
     <div
       className="jump-layout-leaf-boundary"
@@ -1295,6 +1323,14 @@ function LayoutLeafBoundary({
       data-layout-bound-kind={node.kind === "slot" ? "slot" : "reference"}
       data-layout-align={node.presentation.align}
       data-layout-text-align={node.presentation.textAlign}
+      data-layout-control-align={controlAlignment}
+      data-layout-control-adornments={
+        controlAdornments === undefined
+          ? undefined
+          : controlAdornments
+            ? "on"
+            : "off"
+      }
       {...layoutColorInspectionData(node, layout, path)}
       style={{
         ...layoutLeafPresentationStyle(node, packageItem, parentKind),

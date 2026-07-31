@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { LayoutNode } from "../markup";
 import {
+  layoutBackgroundImageStyle,
   layoutContainerPresentationStyle,
   layoutImageBoundaryStyle,
   layoutImageStyle,
   layoutInlineChildAreaStyle,
   layoutLeafPresentationStyle,
   layoutRuleStyle,
+  layoutTiledImageStyle,
 } from "./layoutPresentation";
 
 const packageThemes = {
@@ -21,6 +23,62 @@ function node(
 }
 
 describe("layout presentation styles", () => {
+  it.each([
+    [
+      "cover",
+      {
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "cover",
+      },
+    ],
+    [
+      "contain",
+      {
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "contain",
+      },
+    ],
+    [
+      "tile",
+      {
+        backgroundPosition: "0 0",
+        backgroundRepeat: "repeat",
+        backgroundSize: "auto",
+      },
+    ],
+  ] as const)(
+    "maps %s background images without accepting raw CSS",
+    (fit, expected) => {
+      expect(
+        layoutBackgroundImageStyle(
+          node("stack", { backgroundImage: "texture", backgroundFit: fit }),
+          "blob:fixture",
+        ),
+      ).toMatchObject({
+        backgroundImage: 'url("blob:fixture")',
+        ...expected,
+      });
+      expect(layoutBackgroundImageStyle(node("stack"), null)).toEqual({});
+    },
+  );
+
+  it("maps ordinary tiled images to a repeating visual layer", () => {
+    expect(layoutTiledImageStyle("blob:tile")).toEqual({
+      backgroundImage: 'url("blob:tile")',
+      backgroundPosition: "0 0",
+      backgroundRepeat: "repeat",
+      backgroundSize: "auto",
+    });
+    expect(
+      layoutImageStyle(node("image", { width: "xl", fit: "tile" })),
+    ).toMatchObject({
+      width: "100%",
+      objectFit: undefined,
+    });
+  });
+
   it("applies direct-choice boundary padding, background, and alignment", () => {
     expect(
       layoutLeafPresentationStyle(

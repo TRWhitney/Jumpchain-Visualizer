@@ -801,6 +801,8 @@ export function convertLayoutNode(
       [
         "padding",
         "background",
+        "background-image",
+        "background-fit",
         "align",
         "text-align",
         "text-size",

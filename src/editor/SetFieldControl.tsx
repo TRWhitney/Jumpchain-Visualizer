@@ -28,6 +28,9 @@ export function SetFieldControl({
   normalize,
   renderValue,
   renderDetails,
+  emptyDetails,
+  ariaInvalid,
+  ariaDescribedBy,
   onAdd,
   onRemove,
 }: {
@@ -46,6 +49,9 @@ export function SetFieldControl({
   normalize: (value: string) => string;
   renderValue?: (value: string, removeAction: ReactNode) => ReactNode;
   renderDetails?: (value: string, occurrence: number) => ReactNode;
+  emptyDetails?: ReactNode;
+  ariaInvalid?: boolean;
+  ariaDescribedBy?: string;
   onAdd: (value: string) => void;
   onRemove: (occurrence: number) => void;
 }) {
@@ -54,6 +60,10 @@ export function SetFieldControl({
   const pendingFocus = useRef<number | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const normalizedDraft = normalize(draft);
+  const describedBy =
+    [showHelp ? helpId : undefined, ariaDescribedBy]
+      .filter(Boolean)
+      .join(" ") || undefined;
   const duplicate = values.some(
     (value) => normalize(value) === normalizedDraft,
   );
@@ -99,7 +109,8 @@ export function SetFieldControl({
           <SpellingTextInput
             className="editor-set-text-input"
             aria-label={label}
-            aria-describedby={showHelp ? helpId : undefined}
+            aria-invalid={ariaInvalid}
+            aria-describedby={describedBy}
             type="text"
             value={draft}
             placeholder={placeholder}
@@ -118,6 +129,8 @@ export function SetFieldControl({
             suggestions={suggestions}
             placeholder={placeholder}
             spellCheck={false}
+            ariaInvalid={ariaInvalid}
+            ariaDescribedBy={describedBy}
             showSuggestionsLabel={translate(
               "ui.editorWorkspace.combobox.showSuggestionsForField",
               { field: label },
@@ -127,7 +140,6 @@ export function SetFieldControl({
               { field: label },
             )}
             showDescriptions={showHelp}
-            ariaDescribedBy={showHelp ? helpId : undefined}
             onChange={setDraft}
             onSubmit={add}
           />
@@ -136,6 +148,7 @@ export function SetFieldControl({
           {addLabel}
         </button>
       </div>
+      {values.length === 0 && emptyDetails}
       {values.length > 0 && (
         <div
           className="editor-set-pill-list"

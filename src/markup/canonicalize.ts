@@ -593,13 +593,23 @@ function optionRenderables(node: SourceNode) {
     base?: string;
     variants: { condition: string; value: string }[];
   }[] = [];
+  let current:
+    | {
+        base?: string;
+        variants: { condition: string; value: string }[];
+      }
+    | undefined;
   for (const item of fields(node, "option")) {
-    if (!item.condition)
-      result.push({ base: unquote(item.value), variants: [] });
-    else if (result.length)
-      result.at(-1)!.variants.push({
+    const optionValue = unquote(item.value);
+    if (!item.condition) {
+      current = undefined;
+      if (!optionValue.trim()) continue;
+      current = { base: optionValue, variants: [] };
+      result.push(current);
+    } else if (current && optionValue.trim())
+      current.variants.push({
         condition: item.condition,
-        value: unquote(item.value),
+        value: optionValue,
       });
   }
   return result;
@@ -816,16 +826,56 @@ function choice(
       item.handle === "gender" &&
       item.value === undefined,
   );
-  if (
-    result.continuity &&
-    (result.selection !== "select" || copiedGender.length !== 1)
-  )
-    diagnostic(
-      diagnostics,
-      "choice.continuity.domain",
-      "Continuity requires a select choice copying exactly one gender property.",
-      node,
-    );
+  const implicitGender =
+    result.handle === "gender" && result.selection === "select";
+  if (result.continuity) {
+    const continuityField = fields(node, "continuity")[0];
+    const selectionField = fields(node, "selection")[0];
+    const target = {
+      file: node.range.file,
+      declarationFrom: node.range.from,
+      field: "continuity",
+      occurrence: 0,
+      part: "value" as const,
+    };
+    if (result.selection !== "select")
+      diagnostics.push({
+        code: "choice.continuity.domain",
+        severity: "error",
+        messageKey: "diagnostics.choice.continuity.selection",
+        range: continuityField?.valueRange ?? node.range,
+        target,
+        structuredTargets: [
+          target,
+          {
+            file: node.range.file,
+            declarationFrom: node.range.from,
+            field: "selection",
+            occurrence: 0,
+            part: "value",
+          },
+        ],
+      });
+    else if (
+      copiedGender.length > 1 ||
+      (!implicitGender && copiedGender.length === 0)
+    )
+      diagnostics.push({
+        code: "choice.continuity.domain",
+        severity: "error",
+        messageKey:
+          copiedGender.length === 0
+            ? "diagnostics.choice.continuity.propertyMissing"
+            : "diagnostics.choice.continuity.propertyMultiple",
+        parameters:
+          copiedGender.length > 1 ? { count: copiedGender.length } : {},
+        range:
+          continuityField?.valueRange ??
+          selectionField?.valueRange ??
+          node.range,
+        target,
+      });
+  }
   validatePropertyGrants(result.selection, result.grants, node, diagnostics);
   validateMeasureGrants(result.selection, result.grants, node, diagnostics);
   return result;
@@ -924,6 +974,8 @@ function layoutNode(
       gap: value(node, "gap"),
       padding: value(node, "padding"),
       background: value(node, "background"),
+      backgroundImage: value(node, "background-image"),
+      backgroundFit: value(node, "background-fit"),
       align: value(node, "align"),
       justify: value(node, "justify"),
       textAlign: value(node, "text-align"),
@@ -1242,7 +1294,10 @@ function validateRelations(
     ]),
   );
   for (const choiceItem of result.choices)
-    if (!reachableChoices.has(choiceItem.handle))
+    if (
+      choiceItem.groups.length > 0 &&
+      !reachableChoices.has(choiceItem.handle)
+    )
       diagnostic(
         diagnostics,
         "choice.unreachable",

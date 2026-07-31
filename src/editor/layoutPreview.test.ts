@@ -228,6 +228,29 @@ describe("layout preview fixtures", () => {
     expect(fixture.activeChoiceHandles).toEqual([fixture.choice.handle]);
   });
 
+  it("populates background-only image handles for isolated layout previews", () => {
+    const backgroundLayout: JumpLayout = {
+      kind: "choice-layout",
+      handle: "background_card",
+      root: {
+        ...root(leaf("slot", "name")),
+        presentation: {
+          backgroundImage: "texture",
+          backgroundFit: "tile",
+        },
+      },
+    };
+    const fixture = createLayoutPreviewFixture(
+      { ...packageItem, layouts: [...packageItem.layouts, backgroundLayout] },
+      backgroundLayout,
+    );
+    expect(fixture.kind).toBe("choice-layout");
+    if (fixture.kind !== "choice-layout") return;
+    expect(fixture.choice.images.map((image) => image.handle)).toEqual([
+      "texture",
+    ]);
+  });
+
   it("populates trait names, text, and images", () => {
     const fixture = createLayoutPreviewFixture(packageItem, traitLayout);
     expect(fixture.kind).toBe("trait-layout");

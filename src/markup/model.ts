@@ -171,6 +171,8 @@ export type Presentation = {
   gap?: string;
   padding?: string;
   background?: string;
+  backgroundImage?: string;
+  backgroundFit?: string;
   align?: string;
   justify?: string;
   textAlign?: string;

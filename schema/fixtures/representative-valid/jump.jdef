@@ -38,6 +38,11 @@ section
       Choose useful abilities.
       """
 
+  image
+    handle: texture
+    src: "texture.png"
+    alt: "A subtle patterned backdrop."
+
 choice
   handle: starting_gender
   name: "Starting gender"

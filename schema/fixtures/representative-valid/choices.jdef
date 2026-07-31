@@ -16,6 +16,11 @@ choice
       """
     content when flight >= 2: "Flight rank {{flight}} with call sign {{call_sign}}."
 
+  image
+    handle: texture
+    src: "texture.png"
+    alt: "A repeating flight emblem."
+
   input
     handle: call_sign
     selection: text

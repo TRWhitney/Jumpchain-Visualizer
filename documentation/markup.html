@@ -899,9 +899,10 @@ is useful. The root Jump’s concise <code>description</code> remains package me
 cards and package headers rather than rendered section content.</p>
 <h3>Placeholder Direction</h3>
 <p>Placeholder interpolation is supported in renderable string content using
-property handles such as <code>{{companion_name}}</code>. Text owned by a Choice
-may also use that scalar Choice's handle and the handles of its scalar supporting
-Inputs directly.</p>
+property handles such as <code>{{companion_name}}</code>. Optional whitespace
+inside the braces is equivalent, so <code>{{ companion_name }}</code> resolves
+the same property. Text owned by a Choice may also use that scalar Choice's
+handle and the handles of its scalar supporting Inputs directly.</p>
 <p>Current direction:</p>
 <ul>
 <li>placeholders are allowed in user-facing/renderable string values</li>
@@ -914,6 +915,16 @@ Inputs directly.</p>
 <li>if a <code>name</code> contains placeholders, it must not be used for implicit handle
 derivation</li>
 </ul>
+<p>Runtime Jump headers, Section and Choice labels, and the root Jump
+<code>description</code> resolve placeholders through the same actor property
+context as authored Text. The Editor's Jump-level Properties view exposes the
+current value and local Choice/Input writers for each property handle used by a
+placeholder, so an unset property can be distinguished from a rendering
+failure. Compatible reachable Choices using the reserved handles
+<code>gender</code>, <code>age</code>, <code>location</code>, and
+<code>origin</code> write those package properties directly without a redundant
+Property grant. Origin may instead come from the selected member of an Origin
+choice group; that Choice's rendered name becomes the property value.</p>
 <p>This keeps runtime interpolation out of parse-time structural identity.</p>
 <h3><code>image</code> Direction</h3>
 <p>The current direction for <code>image</code> is also intentionally lean:</p>
@@ -1015,8 +1026,8 @@ diagnosed at that Input.</p>
 <li><code>handle</code> is the stable package-local identity used by saved selections, costs, grants, roll results, and references</li>
 <li>the Editor may generate the initial handle from the choice name, but renaming the displayed choice does not automatically change its handle</li>
 <li><code>name</code> should remain required on <code>choice</code></li>
-<li>a choice may declare no groups; it remains valid and available in Editor navigation but is unreachable by v1 section choice sources</li>
-<li>an ungrouped choice produces a warning rather than a package-validity error</li>
+<li>a choice may declare no groups; it remains valid and available in Editor navigation but cannot be reached through a section choice source</li>
+<li>an ungrouped choice produces a warning only when no section-owned direct choice references it; a direct reference makes the choice reachable without group membership</li>
 <li>a choice may belong to multiple distinct groups, but repeating the same canonical group on one choice is an error because membership is set-like</li>
 <li><code>layout</code> remains optional because section expansion usually supplies layout
 context</li>
@@ -1105,9 +1116,15 @@ conventional handles such as <code>visual</code></li>
     handle: species
     value: &quot;Elf&quot;
 </code></pre>
-<p><code>origin</code>, <code>species</code>, <code>location</code>, and <code>gender</code> are strings; <code>age</code> is an integer. Origin, Species, and Location accept quoted literals or compatible string controls. Copied Gender requires <code>selection: select</code>, while copied Age requires <code>selection: integer</code>. Origin and Location never inherit. Age begins with the actor’s previous effective Age until an authored integer choice overrides it; clearing that control restores the derived value. Species resolves from an explicit current-entry property, then an enabled Classic Body Mod Bestial value such as <q>Wolf Demi-Human</q>, then <q>Human</q>.</p>
+<p><code>origin</code>, <code>species</code>, <code>location</code>, and <code>gender</code> are strings; <code>age</code> is an integer. A reachable <code>gender</code> Choice uses <code>selection: select</code>, while <code>age</code> uses <code>selection: integer</code>; their answers write the same-named property automatically. Reachable direct <code>origin</code> and <code>location</code> Choices may use any Selection Type except Integer and do not need to belong to a group. Text and Select use their answer; Toggle and Import Companions use the Choice name. When that name begins with the matching literal form <code>Origin (value)</code> or <code>Location (value)</code>, only <code>value</code> becomes the property. Origin may alternatively use a single-choice Origin group, whose selected Choice name becomes the value under the same parsing rule. Explicit Property grants remain available for fixed values, differently named controls, and other properties. Origin and Location never inherit. Age begins with the actor’s previous effective Age until an authored integer choice overrides it; clearing that control restores the derived value. Species resolves from an explicit current-entry property, then an enabled Classic Body Mod Bestial value such as <q>Wolf Demi-Human</q>, then <q>Human</q>.</p>
 <h3>Gender Continuity</h3>
-<p><code>continuity</code> is valid only on a select choice that directly copies its control into exactly one <code>gender</code> property grant.</p>
+<p><code>continuity</code> is valid only on a select Choice that writes Gender.
+A Choice with the reserved <code>gender</code> handle does so implicitly.
+Differently named Choices require one direct Grant whose Award Type is
+<strong>Property</strong>, Answer Name is <code>gender</code>, and Value is
+empty. Continuity diagnostics attach to Gender Default so an incompatible
+control or missing explicit writer remains visible and actionable without
+switching to Source.</p>
 <ul>
 <li><code>continuity: previous</code> references the actor's preceding effective gender</li>
 <li><code>continuity: original</code> references Earth for the Jumper or acquisition identity for a companion</li>
@@ -1406,7 +1423,9 @@ option: &quot;Other&quot;
 <li>options are renderable quoted strings</li>
 <li>the quoted option text is also its selected and persisted value; options do not require handles, separate values, or block declarations</li>
 <li>one select domain may not repeat an identical option string; an exact duplicate is an error because it almost certainly indicates an authoring mistake</li>
-<li>a select domain may contain zero options as valid WIP structure; it produces a warning, renders as a disabled empty control, and cannot be randomly resolved until at least one option is available</li>
+<li>an empty or whitespace-only option produces a warning targeted to that exact occurrence and is omitted from the canonical selection domain, rendered dropdown, and random-resolution domain</li>
+<li>an empty base option omits its complete option group; an empty conditional option value is ignored so the non-empty base remains available when that condition matches</li>
+<li>a select domain may contain zero non-empty options as valid WIP structure; it produces a warning, renders only its unset state, and cannot be randomly resolved until at least one usable option is available</li>
 <li>options may use <code>when</code> variants just like other renderable text</li>
 <li>select-like properties resolve to strings</li>
 <li><code>when</code> comparisons against those properties use quoted strings</li>
@@ -1535,7 +1554,8 @@ the semantic <code>image</code> declaration</li>
 <li>all three dimension fields accept <code>xs</code> through <code>2xl</code> or
 an exact length such as <code>320px</code> or <code>18rem</code>; arbitrary CSS
 expressions and other units are invalid</li>
-<li><code>fit</code> should remain narrow in v1, using only <code>contain</code> or <code>cover</code></li>
+<li><code>fit</code> uses the shared image-fit vocabulary:
+<code>contain</code>, <code>cover</code>, or <code>tile</code></li>
 <li><code>size</code> should be mutually exclusive with <code>width</code>/<code>height</code></li>
 <li>these controls belong on an <code>image</code> leaf, and would only belong on <code>slot</code> if a future
 built-in slot actually renders visual content</li>
@@ -1556,7 +1576,23 @@ built-in slot actually renders visual content</li>
 <ul>
 <li><code>contain</code></li>
 <li><code>cover</code></li>
+<li><code>tile</code></li>
 </ul>
+<h3>Layout Background Images</h3>
+<p>Every Format 1 layout boundary that accepts <code>background</code> also
+accepts an owner-local Image handle through <code>background-image</code>.
+The two fields are mutually exclusive. Optional <code>background-fit</code>
+defaults to <code>cover</code>, may be authored before an image handle is
+selected, and uses the shared <code>contain</code>, <code>cover</code>, or
+<code>tile</code> vocabulary. Cover and Contain center one non-repeating image;
+Tile repeats the image from the top-left at its intrinsic size.</p>
+<p>A background Image is decorative layout presentation, so it does not add a
+second alternative-text announcement. Handles resolve independently within the
+Section, Choice, or Trait that consumes the layout. A missing handle produces a
+warning and removes only that background layer; it does not suppress the rest
+of the node or its layout. Assets are still resolved through the same safe
+package-asset boundary as ordinary Image leaves. Jump appearance remains a
+color-only cascade and does not accept image fields.</p>
 <h3>Agreed Token Sets</h3>
 <p>Current agreed spacing tokens:</p>
 <ul>
@@ -1625,10 +1661,10 @@ and roll slots also accept the optional boolean
 reserved separator spacing without changing the control itself. Control and
 roll slots do not accept <code>text-size</code> or
 <code>text-color</code>. A text-bearing leaf boundary owns its padding,
-background, alignment, text alignment, text size, and text color, so rich text
+background color or image, alignment, text alignment, text size, and text color, so rich text
 containing multiple paragraphs, lists, or tables receives one coherent
 presentation box. Image leaves are non-text content and therefore expose only
-target, padding, background, align, image dimensions, and fit.</p>
+target, padding, background color or image, align, image dimensions, and fit.</p>
 <p>Direct <code>inline</code> and <code>wrap</code> children participate in one
 source-ordered flex row. Unstretched leaves retain a bounded content area so
 <code>text-align</code> remains independently observable. A stretched leaf grows

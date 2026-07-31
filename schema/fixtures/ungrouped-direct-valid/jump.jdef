@@ -1,0 +1,17 @@
+jump
+  format: 1
+  name: "Ungrouped Direct Choice"
+  author: "Schema Working Group"
+  version: "1.0"
+
+section
+  handle: choices
+  name: "Choices"
+
+  choice
+    handle: direct_choice
+    target: reachable_choice
+
+choice
+  handle: reachable_choice
+  name: "Reachable Choice"

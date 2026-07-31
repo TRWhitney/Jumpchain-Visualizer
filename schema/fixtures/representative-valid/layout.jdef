@@ -11,6 +11,8 @@ section-layout
     columns: 2
     gap: md
     padding: sm
+    background-image: texture
+    background-fit: contain
     slot: name
     text: description
     rule
@@ -32,6 +34,8 @@ choice-layout
   stack
     gap: sm
     padding: xs
+    background-image: texture
+    background-fit: cover
 
     inline
       justify: between
@@ -39,6 +43,10 @@ choice-layout
       slot: cost
 
     text: description
+    image
+      target: texture
+      size: md
+      fit: tile
     slot: control
     slot: roll
     slot: tags

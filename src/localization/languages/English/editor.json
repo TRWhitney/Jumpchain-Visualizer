@@ -114,6 +114,9 @@
     "text": {
       "empty": "This text block has no content and renders nothing."
     },
+    "option": {
+      "empty": "This option is empty and will not be rendered."
+    },
     "image": {
       "src": {
         "missing": "This image has no source and is incomplete for export."
@@ -178,7 +181,10 @@
     },
     "choice": {
       "continuity": {
-        "domain": "Continuity requires a select choice copying exactly one gender property."
+        "domain": "Gender Default is not configured correctly.",
+        "selection": "Gender Default is only valid for Select choices. Change Selection Type to Select, or set Gender Default to Not a gender selection.",
+        "propertyMissing": "Gender Default needs one direct Property award that copies this Choice. Add a Grant, set Award Type to Property and Answer Name to gender, then leave Value empty.",
+        "propertyMultiple": "Gender Default found {{count}} direct Property awards copying gender. Keep exactly one and leave its Value empty."
       },
       "integer": {
         "bounds": "Integer choice bounds are incomplete or invalid."
@@ -203,7 +209,7 @@
         "domain": "Options are valid only when selection is select."
       },
       "group": {
-        "missing": "This choice belongs to no group and may be unreachable.",
+        "missing": "This choice belongs to no group and is not directly referenced, making it unreachable.",
         "invalid": "Choice group “{{value}}” is not a legal handle.",
         "duplicate": "Choice group “{{value}}” is repeated."
       }
@@ -449,6 +455,42 @@
         "showChoicesForField": "Show handle choices for {{field}}",
         "availableHandlesForField": "Available handles for {{field}}"
       },
+      "previewProperties": {
+        "runtimeHeading": "Preview runtime",
+        "basicDataHeading": "Basic data audit",
+        "basicData": "Basic data",
+        "identity": "Identity",
+        "originAndLocation": "Origin and location",
+        "interpolatedValues": "Additional interpolated values",
+        "unset": "Unset",
+        "currentSource": "Current source: {{source}}",
+        "noCurrentSource": "No active value writes this property.",
+        "setByThisJump": "Can be set by this Jump",
+        "noChoiceSetter": "No reachable compatible Choice or Input in this Jump",
+        "missingBasicWriter": {
+          "gender": "Create a reachable select Choice with the handle gender. Its selected option will write Gender automatically.",
+          "age": "Create a reachable integer Choice with the handle age. Its selected number will write Age automatically.",
+          "origin": "Create a reachable non-integer Choice with the handle origin, or an Origin choice group. Text and select answers write Origin directly; other selection types use the Choice name. A name beginning Origin (…) writes only the text inside those parentheses.",
+          "location": "Create a reachable non-integer Choice with the handle location. Text and select answers write Location directly; other selection types use the Choice name. A name beginning Location (…) writes only the text inside those parentheses."
+        },
+        "noInterpolatedValues": "This Jump has no additional property placeholders. Basic data is shown above.",
+        "currentSelectionHeading": "Current preview selection",
+        "selectedAcquisitions": "Selected acquisitions",
+        "perksAndItems": "Perks and items",
+        "perk": "Perk",
+        "item": "Item",
+        "forms": "Forms",
+        "form": "Form",
+        "companions": "Companions",
+        "companion": "Companion",
+        "view": "View",
+        "close": "Close",
+        "viewDetails": "View details for {{name}}",
+        "currentJumpRecord": "Current Jump record",
+        "currentJumpCompanion": "Joined in the current preview",
+        "rankValue": "Rank {{value}}",
+        "noSelectedAcquisitions": "No perks, items, forms, or companions are currently selected."
+      },
       "spelling": {
         "suggestionsFor": "Spelling suggestions for “{{word}}”"
       },
@@ -538,6 +580,13 @@
         "placeInLayout": "Place in layout",
         "placedAnnouncement": "Placed Input “{{input}}” in the Choice layout.",
         "openLayout": "Open layout"
+      },
+      "implicitBasicChoice": {
+        "gender": "Special behavior: because this reachable select Choice has the handle gender, its selected option automatically writes the Gender property.",
+        "age": "Special behavior: because this reachable integer Choice has the handle age, its selected number automatically writes the Age property.",
+        "location": "Special behavior: because this reachable non-integer Choice has the handle location, it automatically writes the Location property. Text and select controls use their answer; other controls use the Choice name, with Location (…) shortened to the text inside the parentheses.",
+        "originChoice": "Special behavior: because this reachable non-integer Choice has the handle origin, it automatically writes the Origin property. Text and select controls use their answer; other controls use the Choice name, with Origin (…) shortened to the text inside the parentheses.",
+        "originGroup": "Special behavior: this Choice belongs to an Origin group. Selecting it automatically writes its name to the Origin property, with Origin (…) shortened to the text inside the parentheses."
       },
       "previewCompanion": {
         "first": "Earlier companion",
@@ -640,7 +689,7 @@
           "minimum": "The lowest allowed number. Minimum and maximum values are inclusive.",
           "maximum": "The highest allowed number. Minimum and maximum values are inclusive.",
           "option": "Add the choices shown in this ordered list. Each option must be unique.",
-          "continuity": "For a Gender Choice, choose which identity supplies the free default when the user has not chosen a value.",
+          "continuity": "For a Gender Choice, choose which identity supplies the free default when the user has not chosen a value. This requires Selection Type Select and exactly one direct Property award whose Answer Name is gender and whose Value is empty.",
           "resolution": "Controls whether the user chooses normally, rolls, or may do either.",
           "choiceSourceMode": "Choose whether the user may select one matching Choice or several.",
           "inputSelection": "Choose the kind of value this supporting input collects.",
@@ -697,6 +746,7 @@
         "justify": "Justify",
         "contain": "Contain",
         "cover": "Cover",
+        "tile": "Tile",
         "solid": "Solid",
         "dashed": "Dashed",
         "dotted": "Dotted",
@@ -1344,6 +1394,8 @@
         "gap": "Gap",
         "padding": "Padding",
         "background": "Background",
+        "background-image": "Background image",
+        "background-fit": "Background fit",
         "align": "Item alignment",
         "justify": "Item distribution",
         "text-align": "Text alignment",
@@ -1373,10 +1425,16 @@
         "text-align": "Controls how text is aligned inside this element.",
         "control-align": "Controls how the control is aligned inside this element.",
         "control-adornments": "Show the decorative rule and spacing around this control group.",
-        "fit": "Contain shows the whole image; Cover fills the available area and may crop it.",
+        "fit": "Contain shows the whole image; Cover fills and may crop it; Tile repeats it at its natural size.",
+        "background-fit": "Contain shows the whole background; Cover fills and may crop it; Tile repeats it at its natural size.",
         "clip": "Hide child content that extends outside this container.",
         "source": "Choose the Choice Source whose matching Choices appear here.",
         "using": "Optionally choose a specific layout for the expanded Choices."
+      },
+      "backgroundMode": {
+        "choose": "Background type",
+        "color": "Color",
+        "image": "Image"
       },
       "layoutOption": {
         "ruleStyle": {

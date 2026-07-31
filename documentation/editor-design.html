@@ -380,8 +380,12 @@
             trait fallback; required <code>format</code> remains blank when
             omitted because omission is a diagnostic rather than a default. A
             boolean shadow label returns whenever toggling restores its omitted
-            default state. The preview stays contextual to the current
-            selection. Selecting a layout renders that layout through the
+            default state. Structured boolean checkboxes use a text-proportional
+            control with the same vertical control lane as neighboring selectors,
+            avoiding undersized native checkbox geometry. A repeatable field uses
+            one shared field heading above its ordered occurrence controls instead
+            of repeating the same heading for every row. The preview stays
+            contextual to the current selection. Selecting a layout renders that layout through the
             canonical renderer with localized representative data for every
             authored slot, text, image, input, expanded choice source, direct
             choice, or trait target. Section, choice, and trait layout
@@ -393,11 +397,14 @@
             grants. This isolated authoring fixture remains
             available when unrelated package diagnostics would otherwise force a
             last-valid package fallback and never enters project source or saved
-            state. A selected Choice likewise overlays its safely parsed current
-            declaration and the current Choice-layout namespace onto a
-            last-valid fallback, so changing or clearing its layout remains
-            visible without admitting unrelated invalid source into the
-            preview. Strip color sits beside Show bounds and removes authored
+            state. Safely parsed current Choice declarations and Choice layouts
+            overlay the last-valid structural package in every package, Section,
+            Choice Source, and direct-Choice preview. Choice names, controls,
+            content, membership, and presentation therefore update immediately
+            inside containers even while an unrelated diagnostic requires
+            last-valid fallback; fallback Sections and layouts remain available
+            wherever the current draft cannot provide a replacement. Strip color
+            sits beside Show bounds and removes authored
             layout backgrounds, text colors, rule colors, and theme resolution
             only from the current preview. It is transient editor UI state and
             never changes source, history, or saved project data. When the
@@ -422,6 +429,54 @@
             the mockup height.
           </p>
           <p>
+            <strong>Continuity diagnostics:</strong> Gender Default validation
+            distinguishes an incompatible Selection Type, a missing copied
+            gender Property award, and duplicate copied gender Property awards.
+            A select Choice using the reserved <code>gender</code> handle is the
+            implicit copied writer and needs no extra award. The localized
+            message explains the corresponding Structured terms and repair for
+            differently named Choices. It attaches directly to Gender Default
+            with the same invalid styling, accessible description, and
+            diagnostic-navigation outline as other field errors, so an author
+            does not need to inspect Source to locate it.
+          </p>
+          <p>
+            <strong>Jump preview runtime:</strong> The Jump-level Properties
+            view observes the same temporary actor session as Preview rather
+            than mounting a second renderer. Switching between those tabs
+            therefore retains manual answers, source selections, and rolls for
+            the editor session. An always-visible basic-data audit groups Gender
+            and Age under Identity and Origin and Location under their own
+            heading. Each row shows the evaluated preview value, active source,
+            and the compatible, Section-reachable Choice, Origin group, Input,
+            or explicit Property grant capable of writing it, so omitted or
+            unreachable setup remains visible even when the Jump does not
+            interpolate that property. Reserved <code>gender</code>,
+            <code>age</code>, <code>location</code>, and <code>origin</code>
+            Choice handles write their matching property without redundant
+            grants. Direct Origin and Location Choices accept every non-integer
+            Selection Type without requiring group membership. Their text or
+            select answer is used when available, while other controls use the
+            Choice name and shorten the matching
+            <code>Origin (value)</code> or <code>Location (value)</code> form to
+            <code>value</code>. An Origin choice group remains an alternative
+            and writes its selected Choice name under the same parsing rule.
+            Structured Choice editing calls out these special behaviors.
+            Missing rows provide the exact compatible handle, selection type,
+            or Origin-group recipe. Additional authored placeholder handles
+            follow in a separate list with the same provenance. An unset value
+            with no local writer makes an incomplete setup explicit.
+            The same view projects currently selected perk, item, form, and
+            companion grants through the Chain Tracker's compact record and
+            profile-card language. Activating a compact entry expands its
+            read-only detail card in place. Preview selection remains
+            intentionally permissive for authoring: a negative point balance is
+            visible but never rejects, clears, or disables a Choice. Jump,
+            Section, and Choice labels and the rendered Jump description all
+            resolve whitespace-tolerant placeholders through this evaluated
+            actor context.
+          </p>
+          <p>
             <strong>Choice metadata controls:</strong> Choice and block-Grant
             tags share one free-text suggestion composer. Authors may type any
             nonblank tag or select a localized primary profile tag, which stores
@@ -439,9 +494,12 @@
             and code-like because groups connect Choices to Choice Sources
             rather than style content. Group suggestions come from groups
             already authored on Choices or Choice Sources. Choice Source retains
-            one editable singular group field with those suggestions. Jump
-            authors use plain text entry because no author suggestion catalog
-            exists. Exact-occurrence removal returns focus to the adjacent
+            one editable singular group field with those suggestions. An empty
+            Choice group is diagnosed only when no Section direct-choice
+            placement references that Choice; the warning attaches to Groups
+            and explains that both reachability paths are absent. Jump authors
+            use plain text entry because no author suggestion catalog exists.
+            Exact-occurrence removal returns focus to the adjacent
             remove action or composer.
           </p>
           <p>
@@ -494,9 +552,11 @@
             item as rank or quantity. Empty controls are disabled without a
             compatible grant, while incompatible source-authored values remain
             visible and clearable. Paired fields stretch to a shared control
-            edge even when help wraps differently. Ordered select options remain
-            individually editable with exact-occurrence diagnostics, and integer
-            Choices retain the shared paired-chevron stepper.
+            edge even when help wraps differently. An ordered select-option list
+            shows one shared Option heading above its individually editable
+            rows. Diagnostics remain attached to the exact occurrence; an empty
+            row warns in place and is omitted from previews and runtime
+            dropdowns. Integer Choices retain the shared paired-chevron stepper.
           </p>
           <p>
             <strong>Choice child-page consistency:</strong> Structured treats
@@ -601,6 +661,13 @@
             bytes, never the layered document. Rename, Trash, Restore, undo,
             redo, and permanent deletion move the sidecar atomically with its
             asset.
+          </p>
+          <p>
+            An Image declaration’s two-column content grid top-aligns
+            <em>Image File</em> and <em>Image Description</em>. Conditional
+            alternative-text controls and diagnostics grow downward from the
+            description column without pushing the file selector toward the
+            bottom of the section.
           </p>
           <p>
             SVG Source is a secure XML editor whose typography, gutter,
@@ -794,14 +861,27 @@
             movement updates the compound field locally and coalesces into one
             authored source/history update when movement settles or the picker
             closes, avoiding repeated document parsing while the native color
-            area tracks the pointer. Compound fields are also interactive drag
-            boundaries: selecting their text or operating a chooser never starts
-            a parent layout-row reorder. Container Align follows the selected
-            flow’s cross-axis. Inline and Wrap keep unstretched children at a
-            bounded content width: Start, Center, and End position those
-            boundaries in available row space, while Stretch grows into the
-            remainder. Multiple stretched siblings divide that remainder equally
-            after unstretched content keeps its space. Text, slot, and input
+            area tracks the pointer. A layout boundary presents this as one
+            Background control with an adjacent Color/Image segmented toggle.
+            Color mode retains the established color widget. Image mode replaces
+            it with an owner-compatible Image-handle combobox, including the
+            established <em>New Image…</em> action, and a Cover, Contain, or Tile
+            selector that remains available before or after choosing a handle,
+            consistent with ordinary Image-node editing. Switching modes clears
+            the opposite authored value, and returning to Color also clears
+            image fit. Jump appearance continues to use its generic
+            color fields and never displays this toggle. Compact controls in the
+            layout-row summary retain their denser height, while every control in
+            an expanded node editor—including Content to display, Padding, and
+            Background—uses one full-size control lane with matching top and
+            bottom edges. Compound fields are also interactive drag boundaries:
+            selecting their text or operating a chooser never starts a parent
+            layout-row reorder. Container Align follows the selected flow’s
+            cross-axis. Inline and Wrap keep unstretched children at a bounded
+            content width: Start, Center, and End position those boundaries in
+            available row space, while Stretch grows into the remainder.
+            Multiple stretched siblings divide that remainder equally after
+            unstretched content keeps its space. Text, slot, and input
             boundaries retain enough internal width for Text Align to move their
             contents independently. Stack and Grid use their corresponding
             available horizontal area. Text align is inherited from containers

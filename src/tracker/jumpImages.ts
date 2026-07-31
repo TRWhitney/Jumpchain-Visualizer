@@ -92,5 +92,20 @@ function waitForPackagedAssetUrls(root: ParentNode) {
 export async function waitForRenderedJumpImages(root: ParentNode) {
   await waitForPackagedAssetUrls(root);
   const images = [...root.querySelectorAll<HTMLImageElement>("img")];
-  await Promise.all(images.map(waitForImage));
+  const backgrounds = [
+    ...new Set(
+      [
+        ...root.querySelectorAll<HTMLElement>("[data-jump-background-image]"),
+      ].flatMap((element) =>
+        element.dataset.jumpBackgroundImage
+          ? [element.dataset.jumpBackgroundImage]
+          : [],
+      ),
+    ),
+  ].map((source) => {
+    const image = new Image();
+    image.src = source;
+    return image;
+  });
+  await Promise.all([...images, ...backgrounds].map(waitForImage));
 }

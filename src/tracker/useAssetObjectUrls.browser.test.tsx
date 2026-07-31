@@ -61,3 +61,14 @@ test("rendered image readiness waits for packaged asset URLs", async () => {
   await readiness;
   expect(resolved).toBe(true);
 });
+
+test("rendered image readiness decodes CSS background sources", async () => {
+  const root = document.createElement("div");
+  const background = document.createElement("span");
+  background.dataset.jumpBackgroundImage =
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'/%3E";
+  root.append(background);
+
+  await waitForRenderedJumpImages(root);
+  expect(background.dataset.jumpBackgroundImage).toContain("image/svg+xml");
+});

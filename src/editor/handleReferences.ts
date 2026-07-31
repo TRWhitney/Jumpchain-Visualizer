@@ -62,7 +62,10 @@ function referenceNamespaces(
   if (symbol.kind === "choice") return new Set(["choice-placement"]);
   if (symbol.kind === "choice-source") return new Set(["choice-source"]);
   if (["text", "image", "input"].includes(symbol.kind))
-    return new Set(["owner-local-content"]);
+    return new Set([
+      "owner-local-content",
+      ...(symbol.kind === "image" ? ["owner-local-image"] : []),
+    ]);
   if (symbol.kind !== "grant") return new Set<string>();
   const kind = readSourceField(files[symbol.file] ?? "", symbol, "kind");
   if (kind === "form") return new Set(["form"]);
@@ -187,6 +190,7 @@ function sameLocalNamespace(
     "choice-placement",
     "choice-source",
     "owner-local-content",
+    "owner-local-image",
   ]);
   const sharedNamespaces = [...referenceNamespaces(files, left)].filter(
     (namespace) => referenceNamespaces(files, right).has(namespace),

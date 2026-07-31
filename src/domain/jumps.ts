@@ -8,7 +8,12 @@ import type {
   RichBlock,
   RichInline,
 } from "../markup";
-import { parseRichText, resolveCostAmount } from "../markup";
+import {
+  implicitNamedBasicChoiceValue,
+  namedBasicValueFromChoiceName,
+  parseRichText,
+  resolveCostAmount,
+} from "../markup";
 import { evaluateConditionExpression } from "../markup";
 
 export type ChoiceValue = boolean | string | number | readonly string[] | null;
@@ -477,9 +482,74 @@ function collectProperties(
     current.push({ value, label });
     writers.set(handle, current);
   };
+  const originGroups = new Set(["origin", "origins"]);
+  const belongsToOriginSource = (choice: JumpChoice) =>
+    choice.groups.some((group) => originGroups.has(group)) ||
+    packageItem.sections.some((section) =>
+      section.sources.some(
+        (source) =>
+          source.handle === "origin" &&
+          source.group !== undefined &&
+          choice.groups.includes(source.group),
+      ),
+    );
+  const isReachable = (choice: JumpChoice) =>
+    packageItem.sections.some(
+      (section) =>
+        section.directChoices.some(
+          (placement) => placement.target === choice.handle,
+        ) ||
+        section.sources.some(
+          (source) =>
+            source.group !== undefined && choice.groups.includes(source.group),
+        ),
+    );
   for (const choice of packageItem.choices) {
     const evaluation = choices[choice.handle];
     if (!evaluation?.active) continue;
+    const implicitReachable = isReachable(choice);
+    const originGroupChoice =
+      implicitReachable && belongsToOriginSource(choice);
+    const explicitPropertyHandles = new Set(
+      choice.grants.flatMap((grant) =>
+        grant.kind === "property" && grant.handle ? [grant.handle] : [],
+      ),
+    );
+    const choiceName = display(choice.name, choice.handle);
+    const implicitValue =
+      implicitReachable &&
+      choice.handle === "gender" &&
+      choice.selection === "select"
+        ? evaluation.value
+        : implicitReachable &&
+            choice.handle === "age" &&
+            choice.selection === "integer"
+          ? evaluation.value
+          : implicitReachable &&
+              (choice.handle === "origin" || choice.handle === "location")
+            ? implicitNamedBasicChoiceValue(
+                choice.handle,
+                choice.selection,
+                evaluation.value,
+                choiceName,
+              )
+            : originGroupChoice
+              ? namedBasicValueFromChoiceName("origin", choiceName)
+              : undefined;
+    const implicitHandle =
+      originGroupChoice || choice.handle === "origin"
+        ? "origin"
+        : ["gender", "age", "location"].includes(choice.handle)
+          ? choice.handle
+          : undefined;
+    if (
+      implicitHandle &&
+      !explicitPropertyHandles.has(implicitHandle) &&
+      (typeof implicitValue === "string" ||
+        typeof implicitValue === "number" ||
+        typeof implicitValue === "boolean")
+    )
+      write(implicitHandle, implicitValue, choiceName);
     for (const item of choice.grants) {
       if (item.kind !== "property" || !item.handle) continue;
       const propertyValue = item.value ?? evaluation.value;
@@ -1128,7 +1198,7 @@ export function renderRichTextRenderable(
   );
   const substitutions: string[] = [];
   const masked = (selected?.value ?? value.base ?? "").replace(
-    /\{\{([a-z0-9_]+)}}/g,
+    /\{\{\s*([a-z_][a-z0-9_]*)\s*\}\}/g,
     (_, handle: string) => {
       const index = substitutions.push(String(context[handle] ?? "")) - 1;
       return `\uE000${index}\uE001`;
@@ -1160,8 +1230,9 @@ function interpolate(
   value: string,
   context: Readonly<Record<string, string | number | boolean | undefined>>,
 ) {
-  return value.replace(/\{\{([a-z0-9_]+)}}/g, (_, handle: string) =>
-    String(context[handle] ?? ""),
+  return value.replace(
+    /\{\{\s*([a-z_][a-z0-9_]*)\s*\}\}/g,
+    (_, handle: string) => String(context[handle] ?? ""),
   );
 }
 

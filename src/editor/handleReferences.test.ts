@@ -71,6 +71,7 @@ section
 
   stack
     text: body
+    background-image: body
     image
       target: body
 `,
@@ -89,6 +90,51 @@ section
 
     expect(renamed["layout.jdef"]).toContain("text: renamed_body");
     expect(renamed["layout.jdef"]).toContain("target: body");
+    expect(renamed["layout.jdef"]).toContain("background-image: body");
+  });
+
+  it("renames owner-local image background references with image handles", () => {
+    const files = {
+      "jump.jdef": `jump
+  format: 1
+  name: "Test"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+  layout: card
+  image
+    handle: renamed_texture
+    src: "texture.png"
+`,
+      "layout.jdef": `section-layout
+  handle: card
+
+  stack
+    background-image: texture
+    image: texture
+`,
+    };
+    const image = service
+      .analyze(files)
+      .symbols.find(
+        (symbol) =>
+          symbol.kind === "image" && symbol.handle === "renamed_texture",
+      )!;
+
+    const renamed = renameDocumentHandleReferences(
+      files,
+      image,
+      "texture",
+      "renamed_texture",
+    );
+
+    expect(renamed["layout.jdef"]).toContain(
+      "background-image: renamed_texture",
+    );
+    expect(renamed["layout.jdef"]).toContain("image: renamed_texture");
   });
 
   it("rejects invalid and duplicate final handles before propagation", () => {

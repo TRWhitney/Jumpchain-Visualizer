@@ -175,6 +175,45 @@ test("optional help is associated with the composer only while enabled", async (
   await expect.element(composer).not.toHaveAttribute("aria-describedby");
 });
 
+test("an empty set field exposes its inline diagnostic to the composer", async () => {
+  render(
+    <SetFieldControl
+      kind="group"
+      label="Groups"
+      help="Groups connect choices to sources."
+      values={[]}
+      suggestions={[]}
+      placeholder="Type a group."
+      addLabel="Add group"
+      addedListLabel="Added groups"
+      emptyValueLabel="Empty group"
+      removeLabel={(value) => `Remove group ${value}`}
+      normalize={(value) => value}
+      ariaInvalid
+      ariaDescribedBy="groups-diagnostic"
+      emptyDetails={
+        <small id="groups-diagnostic">
+          This choice has no reachability path.
+        </small>
+      }
+      onAdd={() => undefined}
+      onRemove={() => undefined}
+    />,
+  );
+
+  const composer = page.getByRole("combobox", { name: "Groups" });
+  await expect.element(composer).toHaveAttribute("aria-invalid", "true");
+  const describedBy =
+    composer.element().getAttribute("aria-describedby")?.split(" ") ?? [];
+  expect(describedBy).toContain("groups-diagnostic");
+  expect(
+    describedBy.map((id) => document.getElementById(id)?.textContent),
+  ).toContain("This choice has no reachability path.");
+  await expect
+    .element(page.getByText("This choice has no reachability path."))
+    .toBeVisible();
+});
+
 test("author composer is a plain text field with no suggestion affordance", async () => {
   const additions: string[] = [];
 

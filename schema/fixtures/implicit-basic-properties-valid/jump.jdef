@@ -1,0 +1,64 @@
+jump
+  format: 1
+  name: "Implicit basic properties"
+  description: "{{ gender }}, age {{ age }}, from {{ origin }} at {{ location }}"
+  author: "Schema"
+  version: "1"
+
+section
+  handle: identity
+  name: "Identity"
+
+  choice
+    handle: gender_field
+    target: gender
+
+  choice
+    handle: age_field
+    target: age
+
+  choice
+    handle: location_field
+    target: location
+
+  choice
+    handle: origin_field
+    target: origin
+
+  choice-source
+    handle: origin
+    group: backgrounds
+    mode: single
+
+choice
+  handle: gender
+  name: "Gender"
+  selection: select
+  option: "Male"
+  option: "Female"
+
+choice
+  handle: age
+  name: "Age"
+  selection: integer
+  min: 1
+
+choice
+  handle: location
+  name: "Location (Poolside)"
+  selection: toggle
+
+choice
+  handle: origin
+  name: "Origin (Local)"
+  selection: toggle
+
+choice
+  handle: roadborn
+  name: "Roadborn"
+  group: backgrounds
+
+choice
+  handle: scholar
+  name: "Scholar"
+  group: backgrounds

@@ -2939,8 +2939,8 @@ test("control slots align their leaf and inner control independently", async ({
   await expect(adornments).toBeChecked();
   const adornmentsBox = await adornments.boundingBox();
   expect(adornmentsBox).not.toBeNull();
-  expect(adornmentsBox!.width).toBeLessThanOrEqual(20);
-  expect(adornmentsBox!.height).toBeLessThanOrEqual(20);
+  expect(adornmentsBox!.width).toBeGreaterThanOrEqual(24);
+  expect(adornmentsBox!.height).toBeGreaterThanOrEqual(24);
 
   const preview = editor.locator(".editor-real-preview");
   const boundary = preview.locator(
@@ -4185,6 +4185,31 @@ test("Structured controls and Source palette shortcuts use consistent precise co
   await expect(gauntlet).not.toBeChecked();
   await gauntlet.click();
   await expect(gauntlet).toBeChecked();
+  const gauntletLabel = gauntletField
+    .locator(".editor-field-occurrence > span")
+    .first();
+  const [formatBox, gauntletBox, gauntletLabelFontSize] = await Promise.all([
+    format.boundingBox(),
+    gauntlet.boundingBox(),
+    gauntletLabel.evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).fontSize),
+    ),
+  ]);
+  expect(formatBox).not.toBeNull();
+  expect(gauntletBox).not.toBeNull();
+  expect(
+    Math.abs(
+      gauntletBox!.y +
+        gauntletBox!.height / 2 -
+        (formatBox!.y + formatBox!.height / 2),
+    ),
+  ).toBeLessThanOrEqual(1);
+  expect(gauntletBox!.height).toBeGreaterThanOrEqual(gauntletLabelFontSize);
+  expect(gauntletBox!.height).toBeGreaterThanOrEqual(24);
+  await gauntletField.locator("..").screenshot({
+    path: testInfo.outputPath("jump-settings-checkbox-aligned.png"),
+    animations: "disabled",
+  });
   await attachProductionState(
     testInfo,
     "editor-structured-controls-production",
@@ -4662,6 +4687,103 @@ test("Structured section references and handles show live localized diagnostics"
   );
 });
 
+test("Gender Default explains and exposes its missing copied-property award in Structured", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1640, height: 1230 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("jump.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Reflecting Pool"
+  description: "Choose an identity."
+  author: "Tester"
+  version: "1"
+
+section
+  handle: identity
+  name: "Identity"
+
+  choice
+    handle: gender_field
+    target: gender_control
+
+choice
+  handle: gender_control
+  name: "Gender"
+  selection: select
+  continuity: previous
+  option: "Male"
+  option: "Female"
+`);
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "gender_control", exact: true })
+    .click();
+
+  const continuity = editor.getByRole("combobox", {
+    name: "Gender default",
+    exact: true,
+  });
+  const continuityField = editor.locator(
+    '[data-structured-field="continuity"]',
+  );
+  const message =
+    "Gender Default needs one direct Property award that copies this Choice. Add a Grant, set Award Type to Property and Answer Name to gender, then leave Value empty.";
+  await expect(continuity).toHaveAttribute("aria-invalid", "true");
+  await expect(continuity).toHaveAttribute("aria-describedby", /diagnostics$/);
+  await expect(continuityField.locator(".editor-field-diagnostics")).toHaveText(
+    message,
+  );
+  await expect(continuityField.locator(".editor-field-occurrence")).toHaveClass(
+    /is-error/,
+  );
+  await page.screenshot({
+    path: testInfo.outputPath("gender-default-inline-diagnostic.png"),
+    fullPage: true,
+    animations: "disabled",
+  });
+
+  await editor
+    .getByRole("button", { name: "Diagnostics", exact: true })
+    .click();
+  await editor
+    .locator(".editor-diagnostics-details button")
+    .filter({ hasText: message })
+    .click();
+  await expect(continuityField.locator(".editor-field-occurrence")).toHaveClass(
+    /is-editor-inspected/,
+  );
+  await editor
+    .getByRole("button", { name: "Diagnostics", exact: true })
+    .click();
+
+  await openContentAndEffects(editor);
+  await editor.getByRole("button", { name: "+ Grant", exact: true }).click();
+  const awardType = editor.getByRole("combobox", {
+    name: "Award type",
+    exact: true,
+  });
+  await awardType.click();
+  await editor.getByRole("option", { name: /^Property(?:\.|$)/ }).click();
+  await editor.getByRole("textbox", { name: "Answer name" }).fill("gender");
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "gender_control", exact: true })
+    .click();
+  await expect(continuity).toHaveAttribute("aria-invalid", "false");
+  await expect(
+    continuityField.locator(".editor-field-diagnostics"),
+  ).toHaveCount(0);
+  await expect(editor.locator(".editor-diagnostics-summary")).not.toContainText(
+    "Gender Default",
+  );
+});
+
 test("Direct Choice targets use only package Choice handles, not placement handles", async ({
   page,
 }) => {
@@ -4700,6 +4822,89 @@ test("Direct Choice targets use only package Choice handles, not placement handl
     .click();
   await expect(target).toHaveValue("canonical_choice");
   await expect(target).not.toHaveAttribute("aria-invalid", "true");
+});
+
+test("ungrouped Choice reachability follows direct Section references", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("jump.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Direct reachability"
+  description: "A Choice may be reached without a group."
+  author: "Tester"
+  version: "1"
+
+section
+  handle: identity
+  name: "Identity"
+
+choice
+  handle: identity_choice
+  name: "Identity Choice"
+`);
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  const outline = editor.locator(".editor-outline-scroll");
+  await outline
+    .getByRole("button", { name: "identity_choice", exact: true })
+    .click();
+  const groupField = editor.locator('[data-structured-field="group"]');
+  const warning =
+    "This choice belongs to no group and is not directly referenced, making it unreachable.";
+  await expect(groupField.locator(".editor-field-diagnostics")).toHaveText(
+    warning,
+  );
+  await page.screenshot({
+    path: testInfo.outputPath("ungrouped-choice-unreachable.png"),
+    fullPage: true,
+    animations: "disabled",
+  });
+
+  await outline.getByRole("button", { name: "identity", exact: true }).click();
+  await editor
+    .getByRole("button", { name: "+ Direct choice", exact: true })
+    .click();
+  await editor.getByLabel("Handle", { exact: true }).fill("identity_field");
+  const target = editor.getByLabel("Choice to display", { exact: true });
+  await target.fill("identity_choice");
+  await outline
+    .getByRole("button", { name: "identity_choice", exact: true })
+    .click();
+  await expect(groupField.locator(".editor-field-diagnostics")).toHaveCount(0);
+  await expect(editor.locator(".editor-diagnostics-summary")).not.toContainText(
+    warning,
+  );
+
+  await outline.getByRole("button", { name: "identity", exact: true }).click();
+  await openContentAndEffects(editor);
+  await editor
+    .locator(".editor-child-list")
+    .getByRole("button", { name: "identity_field Choice", exact: true })
+    .click();
+  await target.fill("");
+  await outline
+    .getByRole("button", { name: "identity_choice", exact: true })
+    .click();
+  await expect(groupField.locator(".editor-field-diagnostics")).toHaveText(
+    warning,
+  );
+
+  await outline.getByRole("button", { name: "identity", exact: true }).click();
+  await openContentAndEffects(editor);
+  await editor
+    .locator(".editor-child-list")
+    .getByRole("button", { name: "identity_field Choice", exact: true })
+    .click();
+  await target.fill("identity_choice");
+  await outline
+    .getByRole("button", { name: "identity_choice", exact: true })
+    .click();
+  await expect(groupField.locator(".editor-field-diagnostics")).toHaveCount(0);
 });
 
 test("Structured choice-source groups distinguish missing, unmatched, and illegal handles", async ({
@@ -6795,7 +7000,8 @@ test("asset explorers show the byte-derived canonical file extension", async ({
 
 test("Structured authors representative Format 1 fields, children, repeats, and variants", async ({
   page,
-}) => {
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
   const editor = await openCreatedEditor(page);
 
   await editor.getByRole("button", { name: "Add", exact: true }).click();
@@ -6820,6 +7026,25 @@ test("Structured authors representative Format 1 fields, children, repeats, and 
     .click();
   await editor.getByRole("button", { name: "+ Add option" }).click();
   await editor.getByRole("textbox", { name: "Option 1" }).fill("First option");
+  const optionField = editor.locator(".editor-schema-field").filter({
+    has: page.getByRole("button", { name: "+ Add option" }),
+  });
+  await optionField.getByRole("button", { name: "+ Add option" }).click();
+  await optionField
+    .getByRole("textbox", { name: "Option 2" })
+    .fill("Second option");
+  await expect(
+    optionField.locator(".editor-field-occurrence > span").filter({
+      hasText: /^Option$/,
+    }),
+  ).toHaveCount(1);
+  await expect(
+    optionField.getByRole("textbox", { name: /^Option \d+$/ }),
+  ).toHaveCount(2);
+  await optionField.screenshot({
+    path: testInfo.outputPath("repeated-options-single-heading.png"),
+    animations: "disabled",
+  });
   await editor.getByRole("combobox", { name: "Tags" }).fill("audit-tag");
   await editor.getByRole("button", { name: "Add tag" }).click();
 
@@ -6859,8 +7084,62 @@ test("Structured authors representative Format 1 fields, children, repeats, and 
     'option: "First option"',
   );
   await expect(editor.getByLabel("choices.jdef source")).toContainText(
+    'option: "Second option"',
+  );
+  await expect(editor.getByLabel("choices.jdef source")).toContainText(
     "audit-tag",
   );
+});
+
+test("empty Structured options warn on their occurrence and stay out of Select rendering", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1365, height: 768 });
+  const editor = await openCreatedEditor(page);
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor.getByRole("button", { name: "Choice", exact: true }).click();
+  await editor
+    .getByRole("combobox", { name: "Selection type", exact: true })
+    .click();
+  await editor.getByRole("option", { name: "Select", exact: true }).click();
+
+  const optionField = editor.locator(".editor-schema-field").filter({
+    has: page.getByRole("button", { name: "+ Add option" }),
+  });
+  await optionField.getByRole("button", { name: "+ Add option" }).click();
+  await optionField.getByRole("textbox", { name: "Option 1" }).fill("Male");
+  await optionField.getByRole("button", { name: "+ Add option" }).click();
+  await optionField.getByRole("textbox", { name: "Option 2" }).fill("Female");
+  await optionField.getByRole("button", { name: "+ Add option" }).click();
+
+  const emptyOption = optionField.getByRole("textbox", { name: "Option 3" });
+  await expect(emptyOption).toHaveAttribute("aria-invalid", "true");
+  await expect(
+    optionField
+      .locator(".editor-field-occurrence")
+      .nth(2)
+      .locator(".editor-field-diagnostics"),
+  ).toHaveText("This option is empty and will not be rendered.");
+  await expect(
+    optionField.locator(".editor-field-occurrence > span").filter({
+      hasText: /^Option$/,
+    }),
+  ).toHaveCount(1);
+
+  const renderedSelect = editor
+    .locator(".editor-real-preview")
+    .getByRole("combobox");
+  await expect(renderedSelect.locator("option")).toHaveText([
+    "Unset",
+    "Male",
+    "Female",
+  ]);
+  await optionField.screenshot({
+    path: testInfo.outputPath("empty-option-targeted-diagnostic.png"),
+    animations: "disabled",
+  });
 });
 
 test("conditional property choices dismiss and honor reduced motion", async ({
@@ -9159,6 +9438,349 @@ test("Structured declaration breadcrumbs space hierarchy separators consistently
   for (const gap of gaps) expect(gap).toBeGreaterThanOrEqual(4);
 });
 
+test("Format 1 layout backgrounds switch organically between color and tiled images", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("jump.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Background image test"
+  author: "Tester"
+  version: "1"
+  section-layout: card
+
+jump-appearance
+  background: white
+
+section
+  handle: content
+  name: "Content"
+  layout: card
+
+  image
+    handle: texture
+    src: "texture.svg"
+    alt: "A geometric texture."
+
+section-layout
+  handle: card
+
+  stack
+    padding: md
+    background: white
+
+    image
+      target: texture
+      size: md
+      fit: contain
+
+    slot: name
+`);
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: /^card/ })
+    .click();
+
+  const builder = editor.locator(".editor-layout-builder");
+  await builder
+    .getByRole("button", { name: "Edit Stack presentation fields" })
+    .click();
+  const background = builder.locator(
+    '.editor-layout-background-field[data-layout-field="background"]',
+  );
+  await expect(
+    background.getByLabel("Background", { exact: true }),
+  ).toHaveValue("white");
+  await background.getByRole("button", { name: "Image", exact: true }).click();
+  const backgroundImage = background.getByRole("combobox", {
+    name: "Background image",
+    exact: true,
+  });
+  const backgroundFit = background.getByRole("combobox", {
+    name: "Background fit",
+    exact: true,
+  });
+  await expect(backgroundImage).toHaveValue("");
+  await expect(backgroundFit).toBeEnabled();
+  await expect(backgroundFit).toHaveValue("cover");
+  await backgroundFit.click();
+  await backgroundFit.press("End");
+  await backgroundFit.press("Enter");
+  await expect(backgroundFit).toHaveValue("tile");
+  await backgroundFit.click();
+  await backgroundFit.press("Home");
+  await backgroundFit.press("ArrowDown");
+  await backgroundFit.press("Enter");
+  await expect(backgroundFit).toHaveValue("cover");
+  await backgroundFit.press("Tab");
+  await background
+    .getByRole("button", {
+      name: "Show handle choices for Background image",
+    })
+    .click();
+  await background.getByRole("option", { name: "New Image…" }).click();
+  const createImageDialog = page.getByRole("dialog", { name: "Create Image" });
+  await createImageDialog
+    .getByRole("button", { name: "Create and use Image" })
+    .click();
+  await expect(
+    editor.getByRole("heading", { name: "new_image", exact: true }),
+  ).toBeVisible();
+  await editor.getByRole("button", { name: "Back to card" }).click();
+  await builder
+    .getByRole("button", { name: "Edit Stack presentation fields" })
+    .click();
+  const reopenedBackground = builder.locator(
+    '.editor-layout-background-field[data-layout-field="background"]',
+  );
+  const reopenedBackgroundImage = reopenedBackground.getByRole("combobox", {
+    name: "Background image",
+    exact: true,
+  });
+  await expect(reopenedBackgroundImage).toHaveValue("new_image");
+  await reopenedBackgroundImage.press("Tab");
+  await editor.getByRole("tab", { name: "Source" }).click();
+  await expect(source).toContainText("background-image: new_image");
+  await editor.getByRole("button", { name: "Undo" }).click();
+  await expect(source).not.toContainText("background-image: new_image");
+  await expect(source).not.toContainText("handle: new_image");
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: /^card/ })
+    .click();
+  await builder
+    .getByRole("button", { name: "Edit Stack presentation fields" })
+    .click();
+  const selectableBackground = builder.locator(
+    '.editor-layout-background-field[data-layout-field="background"]',
+  );
+  await selectableBackground
+    .getByRole("button", { name: "Image", exact: true })
+    .click();
+  await selectableBackground
+    .getByRole("button", {
+      name: "Show handle choices for Background image",
+    })
+    .click();
+  await selectableBackground
+    .getByRole("option", { name: "texture", exact: true })
+    .click();
+  await expect(
+    selectableBackground.getByRole("combobox", {
+      name: "Background image",
+      exact: true,
+    }),
+  ).toHaveValue("texture");
+  const reopenedBackgroundFit = selectableBackground.getByRole("combobox", {
+    name: "Background fit",
+    exact: true,
+  });
+  const [paddingBox, backgroundImageBox, backgroundFitBox] = await Promise.all([
+    builder.getByLabel("Padding", { exact: true }).boundingBox(),
+    selectableBackground.locator(".editor-handle-combobox").boundingBox(),
+    reopenedBackgroundFit.boundingBox(),
+  ]);
+  expect(paddingBox).not.toBeNull();
+  expect(backgroundImageBox).not.toBeNull();
+  expect(backgroundFitBox).not.toBeNull();
+  expect(Math.abs(backgroundImageBox!.y - paddingBox!.y)).toBeLessThanOrEqual(
+    1,
+  );
+  expect(Math.abs(backgroundFitBox!.y - paddingBox!.y)).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(backgroundImageBox!.height - paddingBox!.height),
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(backgroundFitBox!.height - paddingBox!.height),
+  ).toBeLessThanOrEqual(1);
+  await page.screenshot({
+    path: testInfo.outputPath("layout-background-controls-aligned.png"),
+    fullPage: false,
+    animations: "disabled",
+  });
+  await expect(reopenedBackgroundFit).toBeEnabled();
+  await expect(reopenedBackgroundFit).toHaveValue("cover");
+  await reopenedBackgroundFit.click();
+  await reopenedBackgroundFit.press("End");
+  await reopenedBackgroundFit.press("Enter");
+  await expect(reopenedBackgroundFit).toHaveValue("tile");
+  await reopenedBackgroundFit.press("Tab");
+  const previewBackground = editor
+    .locator(
+      '.editor-real-preview [data-layout-kind="stack"][data-jump-background-image]',
+    )
+    .first();
+  await expect(previewBackground).toHaveCSS("background-repeat", "repeat");
+  await expect(previewBackground).toHaveCSS("background-size", "auto");
+
+  const imageRow = builder.locator(
+    '.editor-layout-row[data-layout-node-kind="image"]',
+  );
+  await imageRow
+    .getByRole("button", { name: "Edit Image presentation fields" })
+    .click();
+  const imageFit = imageRow.getByRole("combobox", {
+    name: "Image fit",
+    exact: true,
+  });
+  await imageFit.selectOption("tile");
+  await expect(imageFit).toHaveValue("tile");
+  await expect(
+    editor.locator(".editor-real-preview .jump-tiled-image"),
+  ).toBeVisible();
+  await expect(
+    editor.locator(".editor-real-preview .jump-tiled-image img"),
+  ).toHaveCount(1);
+  await attachProductionState(
+    testInfo,
+    "editor-layout-background-image-tile-production",
+    editor,
+  );
+
+  await editor.getByRole("tab", { name: "Source" }).click();
+  await expect(source).toContainText("background-image: texture");
+  await expect(source).toContainText("background-fit: tile");
+  await expect(source).toContainText("fit: tile");
+  await expect
+    .poll(async () => {
+      const sourceText = await source.innerText();
+      return sourceText.match(/background: white/g)?.length ?? 0;
+    })
+    .toBe(1);
+
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "Jump appearance", exact: true })
+    .click();
+  await expect(editor.getByLabel("Background", { exact: true })).toBeVisible();
+  await expect(
+    editor.getByLabel("Background image", { exact: true }),
+  ).toHaveCount(0);
+});
+
+test("expanded Choice layout fields share one control height", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1365, height: 768 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("jump.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Choice field alignment"
+  author: "Tester"
+  version: "1"
+  section-layout: card
+
+section
+  handle: content
+  name: "Content"
+  layout: card
+
+  choice
+    handle: location
+    target: location_choice
+
+choice
+  handle: location_choice
+  name: "Location"
+
+section-layout
+  handle: card
+
+  stack
+    choice: location
+`);
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: /^card/ })
+    .click();
+
+  const choiceRow = editor
+    .locator(".editor-layout-builder")
+    .locator('[data-layout-node-kind="choice"]');
+  await choiceRow
+    .getByRole("button", { name: "Edit Choice presentation fields" })
+    .click();
+  const expandedFields = choiceRow.locator(".editor-layout-row-node-fields");
+  const content = expandedFields.getByLabel("Content to display", {
+    exact: true,
+  });
+  const contentControl = expandedFields.locator(
+    '[data-layout-field="target"] .editor-handle-combobox',
+  );
+  const padding = expandedFields.getByLabel("Padding", { exact: true });
+  const [contentBox, paddingBox] = await Promise.all([
+    contentControl.boundingBox(),
+    padding.boundingBox(),
+  ]);
+  expect(contentBox).not.toBeNull();
+  expect(paddingBox).not.toBeNull();
+  expect(Math.abs(contentBox!.y - paddingBox!.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(contentBox!.height - paddingBox!.height)).toBeLessThanOrEqual(
+    1,
+  );
+  expect(
+    Math.abs(
+      contentBox!.y + contentBox!.height - (paddingBox!.y + paddingBox!.height),
+    ),
+  ).toBeLessThanOrEqual(1);
+  await expandedFields
+    .getByRole("button", {
+      name: "Show handle choices for Content to display",
+    })
+    .click();
+  await expandedFields
+    .getByRole("option", { name: "location", exact: true })
+    .click();
+  await expect(content).toHaveValue("location");
+  await choiceRow.screenshot({
+    path: testInfo.outputPath("choice-layout-fields-one-control-height.png"),
+    animations: "disabled",
+  });
+});
+
+test("Image File remains top-aligned with conditional Image Description", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1341, height: 881 });
+  const editor = await openCreatedEditor(page);
+  await editor
+    .getByRole("button", { name: "introduction", exact: true })
+    .click();
+  await editor.getByRole("button", { name: "+ Image", exact: true }).click();
+
+  const imageFile = editor.getByLabel("Image file", { exact: true });
+  const imageDescription = editor.getByLabel("Image description", {
+    exact: true,
+  });
+  const [fileBox, descriptionBox] = await Promise.all([
+    imageFile.boundingBox(),
+    imageDescription.boundingBox(),
+  ]);
+  expect(fileBox).not.toBeNull();
+  expect(descriptionBox).not.toBeNull();
+  expect(Math.abs(fileBox!.y - descriptionBox!.y)).toBeLessThanOrEqual(1);
+
+  await page.screenshot({
+    path: testInfo.outputPath("image-fields-top-aligned.png"),
+    fullPage: false,
+    animations: "disabled",
+  });
+});
+
 test("Structured contextual additions open editable fields without redesigning the workspace", async ({
   page,
 }, testInfo) => {
@@ -11453,6 +12075,498 @@ trait-layout
   await expect(
     editor.getByRole("option", { name: "trait_copy", exact: true }),
   ).toHaveCount(0);
+});
+
+test("Choice changes update container previews during last-valid fallback", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const editor = await openCreatedEditor(page);
+  const preview = editor.locator(".editor-real-preview");
+  const replaceSource = async (source: string) => {
+    await editor.getByRole("tab", { name: "Source" }).click();
+    const sourceEditor = editor.getByLabel("jump.jdef source");
+    await sourceEditor.press(
+      process.platform === "darwin" ? "Meta+a" : "Control+a",
+    );
+    await page.keyboard.insertText(source);
+  };
+  const source = (name: string, invalid = false) => `jump
+  format: 1
+  name: "Container preview"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+  layout: card
+
+  choice
+    handle: featured
+    target: featured_choice
+
+choice
+  handle: featured_choice
+  name: "${name}"
+${invalid ? "  unsupported: true\n" : ""}  selection: toggle
+
+section-layout
+  handle: card
+
+  stack
+    choice: featured
+`;
+
+  await replaceSource(source("Before update"));
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "content", exact: true })
+    .click();
+  await expect(
+    preview.getByText("Before update", { exact: true }),
+  ).toBeVisible();
+
+  await replaceSource(source("After update", true));
+  await expect(editor.locator(".editor-preview-toolbar small")).toHaveText(
+    "Last valid preview",
+  );
+  await expect(
+    preview.getByText("After update", { exact: true }),
+  ).toBeVisible();
+  await expect(preview.getByText("Before update", { exact: true })).toHaveCount(
+    0,
+  );
+  await preview.screenshot({
+    path: testInfo.outputPath("container-choice-live-last-valid-preview.png"),
+    animations: "disabled",
+  });
+});
+
+test("Jump Properties explains interpolation and preserves permissive preview selections", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const sourceEditor = editor.getByLabel("jump.jdef source");
+  await sourceEditor.press(
+    process.platform === "darwin" ? "Meta+a" : "Control+a",
+  );
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Property preview"
+  description: "{{title}}: {{gender}}, age {{age}}, from {{origin}} at {{location}}"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: selections
+  name: "Selections"
+  layout: property_section
+
+  text
+    handle: introduction
+    content: "I can tell you're a smart {{ gender }} so you've probably read the setup."
+
+  choice
+    handle: gender_field
+    target: gender
+
+  choice
+    handle: age_field
+    target: age
+
+  choice
+    handle: origin_field
+    target: origin
+
+  choice
+    handle: location_field
+    target: location
+
+  choice
+    handle: title_field
+    target: title_choice
+
+  choice
+    handle: perk_field
+    target: expensive_perk
+
+  choice
+    handle: item_field
+    target: travel_item
+
+  choice
+    handle: form_field
+    target: prism_form
+
+  choice
+    handle: companion_field
+    target: preview_companion
+
+choice
+  handle: gender
+  name: "Gender"
+  selection: select
+  option: "Male"
+  option: "Female"
+
+choice
+  handle: age
+  name: "Age"
+  selection: integer
+  min: 1
+
+choice
+  handle: origin
+  name: "Origin (Scholar)"
+  selection: toggle
+
+choice
+  handle: location
+  name: "Location (Poolside)"
+  selection: toggle
+
+choice
+  handle: title_choice
+  name: "Title choice"
+  selection: text
+
+  grant
+    kind: property
+    handle: title
+
+choice
+  handle: expensive_perk
+  name: "Expensive perk"
+
+  cost
+    resource: jump_points
+    amount: 1200
+
+  grant
+    kind: perk
+    name: "Budget Breaker"
+
+    text
+      handle: description
+      content: "A deliberately over-budget preview perk."
+
+choice
+  handle: travel_item
+  name: "Travel item"
+
+  grant
+    kind: item
+    name: "Field Kit"
+
+choice
+  handle: prism_form
+  name: "Prism form"
+
+  grant
+    kind: form
+    handle: prism_form
+    name: "Prism Form"
+
+choice
+  handle: preview_companion
+  name: "Preview companion"
+
+  grant
+    kind: companion
+    handle: preview_companion
+    name: "Aster"
+
+section-layout
+  handle: property_section
+
+  stack
+    slot: name
+    text: introduction
+    choice: gender_field
+    choice: age_field
+    choice: origin_field
+    choice: location_field
+    choice: title_field
+    choice: perk_field
+    choice: item_field
+    choice: form_field
+    choice: companion_field
+`);
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "gender", exact: true })
+    .click();
+  await expect(
+    editor.getByRole("status").filter({
+      hasText: "because this reachable select Choice has the handle gender",
+    }),
+  ).toBeVisible();
+  await expect(
+    editor.getByRole("combobox", { name: "Gender default" }),
+  ).toHaveValue("");
+  await expect(
+    editor.getByText("Not a gender selection", { exact: true }),
+  ).toHaveCount(0);
+  await editor.screenshot({
+    path: testInfo.outputPath("implicit-gender-choice-guidance.png"),
+    animations: "disabled",
+  });
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "location", exact: true })
+    .click();
+  await expect(
+    editor.getByRole("status").filter({
+      hasText: "this reachable non-integer Choice has the handle location",
+    }),
+  ).toContainText(
+    "with Location (…) shortened to the text inside the parentheses",
+  );
+  await editor.screenshot({
+    path: testInfo.outputPath("implicit-toggle-location-choice-guidance.png"),
+    animations: "disabled",
+  });
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "origin", exact: true })
+    .click();
+  await expect(
+    editor.getByRole("status").filter({
+      hasText: "this reachable non-integer Choice has the handle origin",
+    }),
+  ).toContainText(
+    "with Origin (…) shortened to the text inside the parentheses",
+  );
+  await editor.screenshot({
+    path: testInfo.outputPath("implicit-toggle-origin-choice-guidance.png"),
+    animations: "disabled",
+  });
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "Jump details", exact: true })
+    .click();
+  const preview = editor.locator(".editor-real-preview");
+  const properties = editor.locator(".editor-properties-panel");
+  const property = (handle: string) =>
+    properties.locator(`[data-property-handle="${handle}"]`);
+  await preview
+    .getByRole("combobox", { name: "Gender" })
+    .selectOption("Female");
+  await expect(
+    preview.getByText(
+      "I can tell you're a smart Female so you've probably read the setup.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await editor.screenshot({
+    path: testInfo.outputPath("implicit-gender-interpolation.png"),
+    animations: "disabled",
+  });
+  await editor.getByRole("tab", { name: "Properties" }).click();
+  for (const [handle, setter] of [
+    ["origin", "Origin (Scholar)"],
+    ["location", "Location (Poolside)"],
+  ] as const) {
+    await expect(property(handle).getByRole("status")).toHaveText("Unset");
+    await expect(property(handle)).toContainText(
+      "No active value writes this property.",
+    );
+    await expect(property(handle)).toContainText(setter);
+  }
+  await property("location").scrollIntoViewIfNeeded();
+  await properties.screenshot({
+    path: testInfo.outputPath("implicit-basic-toggles-unselected.png"),
+    animations: "disabled",
+  });
+  await editor.getByRole("tab", { name: "Preview" }).click();
+  await preview.getByRole("spinbutton", { name: "Age" }).fill("24");
+  await preview
+    .getByRole("checkbox", { name: "Take Origin (Scholar)" })
+    .check();
+  await preview
+    .getByRole("checkbox", { name: "Take Location (Poolside)" })
+    .check();
+  await preview.getByRole("textbox", { name: "Title choice" }).fill("Traveler");
+  await expect(
+    preview.getByText("Traveler: Female, age 24, from Scholar at Poolside", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  for (const name of [
+    "Take Expensive perk",
+    "Take Travel item",
+    "Take Prism form",
+    "Take Preview companion",
+  ])
+    await preview.getByRole("checkbox", { name }).check();
+  await expect(preview.locator(".tracker-budget output")).toContainText(
+    "-200 CP",
+  );
+
+  await editor.getByRole("tab", { name: "Properties" }).click();
+  await expect(
+    properties.getByRole("heading", { name: "Identity" }),
+  ).toBeVisible();
+  await expect(
+    properties.getByRole("heading", { name: "Origin and location" }),
+  ).toBeVisible();
+  for (const [handle, value, setter] of [
+    ["gender", "Female", "Gender"],
+    ["age", "24", "Age"],
+    ["origin", "Scholar", "Origin (Scholar)"],
+    ["location", "Poolside", "Location (Poolside)"],
+    ["title", "Traveler", "Title choice"],
+  ] as const) {
+    await expect(property(handle).getByRole("status")).toHaveText(value);
+    await expect(property(handle)).toContainText(setter);
+  }
+  await expect(
+    properties.getByRole("heading", {
+      name: "Additional interpolated values",
+    }),
+  ).toBeVisible();
+  for (const name of ["Budget Breaker", "Field Kit", "Prism Form", "Aster"])
+    await expect(properties.getByText(name, { exact: true })).toBeVisible();
+  await properties.evaluate((element) => {
+    element.scrollTop = 0;
+  });
+  await properties.screenshot({
+    path: testInfo.outputPath("jump-preview-interpolated-values.png"),
+    animations: "disabled",
+  });
+  await property("location").scrollIntoViewIfNeeded();
+  await properties.screenshot({
+    path: testInfo.outputPath("jump-preview-origin-location.png"),
+    animations: "disabled",
+  });
+
+  await properties
+    .getByRole("button", { name: "View details for Budget Breaker" })
+    .click();
+  await expect(
+    properties.getByText("A deliberately over-budget preview perk.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await properties
+    .getByRole("button", { name: "View details for Prism Form" })
+    .click();
+  await expect(
+    properties.locator(".editor-preview-record-detail h5"),
+  ).toHaveText("Prism Form");
+  await properties
+    .getByRole("button", { name: "View details for Aster" })
+    .click();
+  await expect(
+    properties.locator(".editor-preview-record-detail h5"),
+  ).toHaveText("Aster");
+  await properties.screenshot({
+    path: testInfo.outputPath("jump-preview-expanded-companion.png"),
+    animations: "disabled",
+  });
+
+  await editor.getByRole("tab", { name: "Preview" }).click();
+  await expect(preview.getByRole("combobox", { name: "Gender" })).toHaveValue(
+    "Female",
+  );
+  await expect(preview.getByRole("spinbutton", { name: "Age" })).toHaveValue(
+    "24",
+  );
+  await expect(
+    preview.getByRole("checkbox", { name: "Take Origin (Scholar)" }),
+  ).toBeChecked();
+  await expect(
+    preview.getByRole("checkbox", { name: "Take Location (Poolside)" }),
+  ).toBeChecked();
+  await expect(
+    preview.getByRole("textbox", { name: "Title choice" }),
+  ).toHaveValue("Traveler");
+  await expect(
+    preview.getByRole("checkbox", { name: "Take Expensive perk" }),
+  ).toBeChecked();
+  await expect(
+    preview.getByText("Traveler: Female, age 24, from Scholar at Poolside", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await preview
+    .getByRole("checkbox", { name: "Take Location (Poolside)" })
+    .uncheck();
+  await editor.getByRole("tab", { name: "Properties" }).click();
+  await expect(property("location").getByRole("status")).toHaveText("Unset");
+  await expect(property("location")).toContainText(
+    "No active value writes this property.",
+  );
+  await expect(property("location")).toContainText("Location (Poolside)");
+  await property("location").scrollIntoViewIfNeeded();
+  await properties.screenshot({
+    path: testInfo.outputPath("implicit-location-cleared.png"),
+    animations: "disabled",
+  });
+  await editor.getByRole("tab", { name: "Preview" }).click();
+  const genderCard = preview
+    .locator("article.default-choice-card")
+    .filter({ hasText: "Gender" });
+  await genderCard.getByRole("button", { name: "Clear" }).click();
+  await expect(
+    preview.getByText(
+      "I can tell you're a smart so you've probably read the setup.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await editor.getByRole("tab", { name: "Properties" }).click();
+  await expect(property("gender").getByRole("status")).toHaveText("Unset");
+  await expect(property("gender")).toContainText(
+    "No active value writes this property.",
+  );
+
+  await editor.getByRole("tab", { name: "Source" }).click();
+  await sourceEditor.press(
+    process.platform === "darwin" ? "Meta+a" : "Control+a",
+  );
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Missing basic data"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+`);
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "Jump details", exact: true })
+    .click();
+  await editor.getByRole("tab", { name: "Properties" }).click();
+  await expect(property("gender")).toContainText(
+    "Create a reachable select Choice with the handle gender.",
+  );
+  await expect(property("age")).toContainText(
+    "Create a reachable integer Choice with the handle age.",
+  );
+  await expect(property("origin")).toContainText(
+    "Create a reachable non-integer Choice with the handle origin",
+  );
+  await expect(property("origin")).toContainText("or an Origin choice group.");
+  await expect(property("location")).toContainText(
+    "Create a reachable non-integer Choice with the handle location.",
+  );
+  await properties.screenshot({
+    path: testInfo.outputPath("jump-preview-missing-basic-data-help.png"),
+    animations: "disabled",
+  });
+  await property("origin").scrollIntoViewIfNeeded();
+  await properties.screenshot({
+    path: testInfo.outputPath("jump-preview-missing-origin-help.png"),
+    animations: "disabled",
+  });
 });
 
 test("a selected Choice keeps its current custom layout during last-valid fallback", async ({

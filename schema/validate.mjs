@@ -33,6 +33,23 @@ if (choice?.formsByContext?.["top-level"]?.fields?.species)
   errors.push("format-1 choice.species must be replaced by property grants");
 if (!schema.layoutNodes.choice?.blockFields)
   errors.push("format-1 section choice layout leaf must define block presentation fields");
+if (
+  JSON.stringify(schema.types.imageFit?.enum) !==
+  JSON.stringify(["contain", "cover", "tile"])
+)
+  errors.push("format-1 image fit values must include contain, cover, and tile");
+for (const fieldSet of [
+  "containerPresentation",
+  "contentLeafPresentation",
+  "slotLeafPresentation",
+  "imageLeafPresentation",
+  "choiceLeafPresentation",
+])
+  if (
+    !schema.fieldSets[fieldSet]?.["background-image"] ||
+    !schema.fieldSets[fieldSet]?.["background-fit"]
+  )
+    errors.push(`${fieldSet} must define background image presentation`);
 if (!choice?.formsByContext?.["top-level"]?.fields?.form)
   errors.push("format-1 choice shorthand must define form targeting");
 if (!choice?.formsByContext?.["top-level"]?.fields?.measure)

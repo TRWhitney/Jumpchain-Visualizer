@@ -882,4 +882,62 @@ section
       "rounded",
     ]);
   });
+
+  it("adds background fit after a created background image on a populated layout container", () => {
+    const files = {
+      "jump.jdef": `${source}
+  image
+    handle: new_image
+    alt: ""
+
+section-layout
+  handle: card
+
+  stack
+    padding: md
+    image
+      target: new_image
+    slot: name
+    background-image: new_image
+`,
+    };
+    const stack = service
+      .analyze(files)
+      .symbols.find((symbol) => symbol.kind === "stack")!;
+    const result = setDocumentField(files, stack, "background-fit", "tile");
+    expect(result.changed).toBe(true);
+    expect(result.files["jump.jdef"]).toContain("background-fit: tile");
+  });
+
+  it("adds a background image after fit on a populated layout container", () => {
+    const files = {
+      "jump.jdef": `${source}
+  image
+    handle: new_image
+    alt: ""
+
+section-layout
+  handle: card
+
+  stack
+    padding: md
+    image
+      target: new_image
+    slot: name
+    background-fit: tile
+`,
+    };
+    const stack = service
+      .analyze(files)
+      .symbols.find((symbol) => symbol.kind === "stack")!;
+    const result = setDocumentField(
+      files,
+      stack,
+      "background-image",
+      "new_image",
+    );
+    expect(result.changed).toBe(true);
+    expect(result.files["jump.jdef"]).toContain("background-image: new_image");
+    expect(result.files["jump.jdef"]).toContain("background-fit: tile");
+  });
 });

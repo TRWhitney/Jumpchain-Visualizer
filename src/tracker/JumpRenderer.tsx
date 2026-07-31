@@ -41,12 +41,14 @@ import { sourceOptionGroupName } from "./sourceOptionGroup";
 import { translate } from "../localization";
 import { useOptionalSettings } from "../settings/SettingsContext";
 import {
+  layoutBackgroundImageStyle,
   layoutContainerPresentationStyle,
   layoutImageBoundaryStyle,
   layoutImageStyle,
   layoutInlineChildAreaStyle,
   layoutLeafPresentationStyle,
   layoutRuleStyle,
+  layoutTiledImageStyle,
 } from "./layoutPresentation";
 import { jumpAppearanceStyle } from "./jumpAppearance";
 import { choiceRollDomain } from "./choiceRoll";
@@ -65,17 +67,32 @@ export function RenderedJumpImage({
   source,
   alternativeText,
   style,
+  tiled = false,
 }: {
   source: string;
   alternativeText: string;
   style?: CSSProperties;
+  tiled?: boolean;
 }) {
   const settingsContext = useOptionalSettings();
   const showAltTextOnHover =
     settingsContext?.settings.accessibility.imageAltTextHover ?? true;
   return (
     <>
-      <img src={source} alt={alternativeText} style={style} />
+      {tiled ? (
+        <span
+          className="jump-tiled-image"
+          style={layoutTiledImageStyle(source)}
+        >
+          <img
+            src={source}
+            alt={alternativeText}
+            style={{ ...style, opacity: 0 }}
+          />
+        </span>
+      ) : (
+        <img src={source} alt={alternativeText} style={style} />
+      )}
       {alternativeText && showAltTextOnHover && (
         <span className="jump-image-alt-tooltip" role="tooltip">
           {alternativeText}
@@ -226,6 +243,17 @@ function choiceContentContext(choice: JumpChoice, props: Props) {
     ...choiceMeasureContext(choice, props),
   };
 }
+
+const resolvedChoice = (
+  value: Renderable,
+  choice: JumpChoice,
+  props: Props,
+  fallback = "",
+) =>
+  renderRenderable(
+    value,
+    rendererContext(props, choiceContentContext(choice, props)),
+  ) || fallback;
 
 const resolvedChoiceRichText = (
   value: Renderable,
@@ -523,7 +551,7 @@ function CompanionChoiceControl({
         ref={input}
         type="search"
         role="combobox"
-        aria-label={label(choice.name, choice.handle)}
+        aria-label={resolvedChoice(choice.name, choice, props, choice.handle)}
         aria-autocomplete="list"
         aria-controls={listboxId}
         aria-expanded={open}
@@ -700,13 +728,15 @@ function ChoiceControl({
           />
           <span>
             {translate("ui.jumpRenderer.text.take")}
-            {label(choice.name, choice.handle)}
+            {resolvedChoice(choice.name, choice, props, choice.handle)}
           </span>
         </label>
       )}
       {showControl && showManual && choice.selection === "text" && (
         <label>
-          <span className="sr-only">{label(choice.name)}</span>
+          <span className="sr-only">
+            {resolvedChoice(choice.name, choice, props)}
+          </span>
           <input
             type="text"
             placeholder={
@@ -723,7 +753,7 @@ function ChoiceControl({
       {showControl && showManual && choice.selection === "integer" && (
         <>
           <NumberStepper
-            label={label(choice.name)}
+            label={resolvedChoice(choice.name, choice, props)}
             min={choice.min}
             max={choice.max}
             value={typeof value === "number" ? value : null}
@@ -743,7 +773,9 @@ function ChoiceControl({
       )}
       {showControl && showManual && choice.selection === "select" && (
         <label>
-          <span className="sr-only">{label(choice.name)}</span>
+          <span className="sr-only">
+            {resolvedChoice(choice.name, choice, props)}
+          </span>
           <select
             value={typeof value === "string" ? value : ""}
             disabled={formDependencyUnavailable}
@@ -996,13 +1028,13 @@ function SourceOptionControl({
         <span>
           {source.resolution === "random"
             ? translate("ui.jumpRenderer.text.sourceResult", {
-                choice: label(choice.name),
+                choice: resolvedChoice(choice.name, choice, props),
               })
             : translate(
                 source.mode === "single"
                   ? "ui.jumpRenderer.text.chooseChoice"
                   : "ui.jumpRenderer.text.takeChoice",
-                { choice: label(choice.name) },
+                { choice: resolvedChoice(choice.name, choice, props) },
               )}
         </span>
       </label>
@@ -1074,7 +1106,9 @@ function DefaultChoice({
       }
     >
       <div className="default-choice-heading">
-        <strong>{label(choice.name, choice.handle)}</strong>
+        <strong>
+          {resolvedChoice(choice.name, choice, props, choice.handle)}
+        </strong>
         <CostBadges
           choice={choice}
           evaluation={props.evaluation}
@@ -1288,12 +1322,25 @@ function layoutColorInspectionData(
   };
 }
 
+function layoutBackgroundImageSource(
+  node: LayoutNode,
+  images: readonly ImageBlock[],
+  resolveAsset?: JumpAssetResolver,
+) {
+  const handle = node.presentation.backgroundImage;
+  if (!handle) return null;
+  const image = images.find((candidate) => candidate.handle === handle);
+  return resolveJumpImageSource(image?.src, resolveAsset);
+}
+
 function LayoutLeafBoundary({
   node,
   path,
   parentKind,
   layout,
   packageItem,
+  ownerImages,
+  resolveAsset,
   children,
 }: {
   node: LayoutNode;
@@ -1301,6 +1348,8 @@ function LayoutLeafBoundary({
   parentKind?: LayoutNode["kind"];
   layout: JumpLayout;
   packageItem: CanonicalJumpPackage;
+  ownerImages: readonly ImageBlock[];
+  resolveAsset?: JumpAssetResolver;
   children: ReactNode;
 }) {
   const controlAlignment = layoutNodeUsesControlAlignment(
@@ -1315,6 +1364,11 @@ function LayoutLeafBoundary({
   )
     ? node.presentation.controlAdornments !== false
     : undefined;
+  const backgroundSource = layoutBackgroundImageSource(
+    node,
+    ownerImages,
+    resolveAsset,
+  );
   return (
     <div
       className="jump-layout-leaf-boundary"
@@ -1331,9 +1385,11 @@ function LayoutLeafBoundary({
             ? "on"
             : "off"
       }
+      data-jump-background-image={backgroundSource ?? undefined}
       {...layoutColorInspectionData(node, layout, path)}
       style={{
         ...layoutLeafPresentationStyle(node, packageItem, parentKind),
+        ...layoutBackgroundImageStyle(node, backgroundSource),
         ...(node.kind === "image"
           ? layoutImageBoundaryStyle(node, parentKind)
           : {}),
@@ -1389,6 +1445,10 @@ function Layout({
   props: Props;
 }): ReactNode {
   const structuralPath = path ?? `${node.kind}[1]`;
+  const section = props.packageItem.sections.find(
+    (item) => item.handle === sectionHandle,
+  );
+  const ownerImages = choice?.images ?? section?.images ?? [];
   const bound = (children: ReactNode) => (
     <LayoutLeafBoundary
       node={node}
@@ -1396,13 +1456,17 @@ function Layout({
       parentKind={parentKind}
       layout={layout}
       packageItem={props.packageItem}
+      ownerImages={ownerImages}
+      resolveAsset={props.resolveAsset}
     >
       {children}
     </LayoutLeafBoundary>
   );
   if (node.kind === "slot" && choice) {
     if (node.target === "name")
-      return bound(<strong>{label(choice.name)}</strong>);
+      return bound(
+        <strong>{resolvedChoice(choice.name, choice, props)}</strong>,
+      );
     if (node.target === "cost")
       return bound(
         <CostBadges
@@ -1437,21 +1501,15 @@ function Layout({
           );
   }
   if (node.kind === "slot" && node.target === "name") {
-    const section = props.packageItem.sections.find(
-      (item) => item.handle === sectionHandle,
-    );
     return section
       ? bound(
           <h5 className="jump-section-layout-name">
-            {label(section.name, section.handle)}
+            {resolved(section.name, props, section.handle)}
           </h5>,
         )
       : null;
   }
   if (node.kind === "slot" && node.target === "roll") {
-    const section = props.packageItem.sections.find(
-      (item) => item.handle === sectionHandle,
-    );
     return section?.sources.length === 1
       ? bound(
           <SourceRollControls
@@ -1463,12 +1521,7 @@ function Layout({
       : null;
   }
   if (node.kind === "text") {
-    const owner =
-      choice?.text ??
-      props.packageItem.sections.find(
-        (section) => section.handle === sectionHandle,
-      )?.text ??
-      [];
+    const owner = choice?.text ?? section?.text ?? [];
     const content = owner.find((item) => item.handle === node.target)?.content;
     return content
       ? bound(
@@ -1489,13 +1542,7 @@ function Layout({
       <InputControls choice={choice} props={props} target={node.target} />,
     );
   if (node.kind === "image") {
-    const owner =
-      choice?.images ??
-      props.packageItem.sections.find(
-        (section) => section.handle === sectionHandle,
-      )?.images ??
-      [];
-    const item = owner.find((image) => image.handle === node.target);
+    const item = ownerImages.find((image) => image.handle === node.target);
     if (!item) return null;
     const source = resolveJumpImageSource(item.src, props.resolveAsset);
     return source
@@ -1504,6 +1551,7 @@ function Layout({
             source={source}
             alternativeText={resolved(item.alt, props)}
             style={layoutImageStyle(node, parentKind)}
+            tiled={node.presentation.fit === "tile"}
           />,
         )
       : null;
@@ -1520,9 +1568,6 @@ function Layout({
       : null;
   }
   if (node.kind === "expand") {
-    const section = props.packageItem.sections.find(
-      (item) => item.handle === sectionHandle,
-    );
     const source = node.source
       ? section?.sources.find((item) => item.handle === node.source)
       : section?.sources.length === 1
@@ -1574,10 +1619,19 @@ function Layout({
   );
   if (!children.some((child) => child !== null && child !== undefined))
     return null;
+  const backgroundSource = layoutBackgroundImageSource(
+    node,
+    ownerImages,
+    props.resolveAsset,
+  );
   return (
     <Tag
       className={`jump-layout-${node.kind}`}
-      style={layoutContainerPresentationStyle(node, props.packageItem)}
+      style={{
+        ...layoutContainerPresentationStyle(node, props.packageItem),
+        ...layoutBackgroundImageStyle(node, backgroundSource),
+      }}
+      data-jump-background-image={backgroundSource ?? undefined}
       data-layout-bound={structuralPath}
       data-layout-kind={node.kind}
       data-layout-bound-kind="container"
@@ -1674,7 +1728,7 @@ function JumpSectionView({
       ) : (
         <div className="jump-default-section">
           <h5 className="jump-section-layout-name">
-            {label(section.name, section.handle)}
+            {resolved(section.name, props, section.handle)}
           </h5>
           {section.members.map((member) => {
             if (member.kind === "source") {
@@ -1726,6 +1780,7 @@ function TraitLayoutNode({
   props: Props;
 }): ReactNode {
   const structuralPath = path ?? `${node.kind}[1]`;
+  const ownerImages = trait.images ?? [];
   const bound = (children: ReactNode) => (
     <LayoutLeafBoundary
       node={node}
@@ -1733,6 +1788,8 @@ function TraitLayoutNode({
       parentKind={parentKind}
       layout={layout}
       packageItem={props.packageItem}
+      ownerImages={ownerImages}
+      resolveAsset={props.resolveAsset}
     >
       {children}
     </LayoutLeafBoundary>
@@ -1772,6 +1829,7 @@ function TraitLayoutNode({
             source={source}
             alternativeText={resolved(item.alt, props)}
             style={layoutImageStyle(node, parentKind)}
+            tiled={node.presentation.fit === "tile"}
           />,
         )
       : null;
@@ -1779,10 +1837,19 @@ function TraitLayoutNode({
   if (node.kind === "rule")
     return bound(<hr style={layoutRuleStyle(node, props.packageItem)} />);
   if (!["stack", "inline", "wrap", "grid"].includes(node.kind)) return null;
+  const backgroundSource = layoutBackgroundImageSource(
+    node,
+    ownerImages,
+    props.resolveAsset,
+  );
   return (
     <div
       className={`jump-layout-${node.kind}`}
-      style={layoutContainerPresentationStyle(node, props.packageItem)}
+      style={{
+        ...layoutContainerPresentationStyle(node, props.packageItem),
+        ...layoutBackgroundImageStyle(node, backgroundSource),
+      }}
+      data-jump-background-image={backgroundSource ?? undefined}
       data-layout-bound={structuralPath}
       data-layout-kind={node.kind}
       data-layout-bound-kind="container"
@@ -1971,8 +2038,16 @@ export function JumpRenderer(props: Props) {
         <header>
           <div>
             <p>{props.gauntletActive ? "Gauntlet" : "Current Jump"}</p>
-            <h4>{label(props.packageItem.name)}</h4>
-            <span>{props.packageItem.description}</span>
+            <h4>{resolved(props.packageItem.name, props)}</h4>
+            <span>
+              {renderRenderable(
+                {
+                  base: props.packageItem.description,
+                  variants: [],
+                },
+                rendererContext(props),
+              )}
+            </span>
           </div>
           <div className="tracker-budget">
             <span>{translate("ui.jumpRenderer.text.available")}</span>

@@ -1,0 +1,24 @@
+jump
+  format: 1
+  name: "Empty options WIP"
+  author: "Conformance"
+  version: "1"
+
+section
+  handle: options
+  name: "Options"
+
+  choice
+    handle: example
+    target: example
+
+choice
+  handle: example
+  name: "Example"
+  selection: select
+  option: ""
+
+  input
+    handle: supporting
+    selection: select
+    option: "   "

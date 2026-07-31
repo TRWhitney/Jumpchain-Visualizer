@@ -1,0 +1,26 @@
+jump
+  format: 1
+  name: "Preview properties"
+  description: "Selected gender: {{gender}}"
+  author: "Schema Working Group"
+  version: "1.0"
+
+section
+  handle: identity
+  name: "Identity"
+
+  choice
+    handle: gender_field
+    target: gender_choice
+
+choice
+  handle: gender_choice
+  name: "Gender choice"
+  group: identity
+  selection: select
+  option: "Male"
+  option: "Female"
+
+  grant
+    kind: property
+    handle: gender

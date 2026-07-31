@@ -1,4 +1,8 @@
 import type { ParsedFormatFile, SourceNode } from "./model";
+import {
+  namedBasicChoiceSelectionIsCompatible,
+  namedBasicValueFromChoiceName,
+} from "./basicProperties";
 
 export type ConditionPropertyType =
   "boolean" | "integer" | "string" | "unknown";
@@ -254,6 +258,93 @@ export function collectConditionProperties(entries: readonly NodeEntry[]) {
       values: type === "boolean" ? [true, false] : [],
       mayBeUnset: !["gauntlet", "rank", "count"].includes(handle),
     });
+
+  const originGroups = new Set([
+    "origin",
+    "origins",
+    ...entries.flatMap(({ node }) =>
+      node.kind === "choice-source" &&
+      unquote(field(node, "handle")) === "origin" &&
+      field(node, "group")
+        ? [unquote(field(node, "group"))]
+        : [],
+    ),
+  ]);
+  const reachableChoiceHandles = new Set(
+    entries.flatMap(({ node, parent }) =>
+      node.kind === "choice" &&
+      parent?.kind === "section" &&
+      field(node, "target")
+        ? [unquote(field(node, "target"))]
+        : [],
+    ),
+  );
+  const reachableChoiceGroups = new Set(
+    entries.flatMap(({ node }) =>
+      node.kind === "choice-source" && field(node, "group")
+        ? [unquote(field(node, "group"))]
+        : [],
+    ),
+  );
+  for (const { node } of entries) {
+    if (node.kind !== "choice") continue;
+    const handle = unquote(field(node, "handle"));
+    const selection = unquote(field(node, "selection")) || "toggle";
+    const groups = node.fields
+      .filter((candidate) => candidate.name === "group")
+      .map((candidate) => unquote(candidate.value));
+    const reachable =
+      reachableChoiceHandles.has(handle) ||
+      groups.some((group) => reachableChoiceGroups.has(group));
+    if (!reachable) continue;
+    const originGroupChoice = groups.some((group) => originGroups.has(group));
+    const implicitHandle = originGroupChoice ? "origin" : handle;
+    const compatible =
+      originGroupChoice ||
+      (implicitHandle === "gender" && selection === "select") ||
+      (implicitHandle === "age" && selection === "integer") ||
+      (["origin", "location"].includes(implicitHandle) &&
+        namedBasicChoiceSelectionIsCompatible(selection));
+    if (!compatible) continue;
+    add({
+      handle: implicitHandle,
+      type: implicitHandle === "age" ? "integer" : "string",
+      category: "package",
+      origins: [
+        {
+          kind: "control",
+          ownerKind: "choice",
+          ownerHandle: handle,
+          file: node.range.file,
+          line: node.range.line,
+        },
+      ],
+      values: originGroupChoice
+        ? [
+            namedBasicValueFromChoiceName(
+              "origin",
+              unquote(field(node, "name")) || handle,
+            ),
+          ]
+        : (implicitHandle === "origin" || implicitHandle === "location") &&
+            !["text", "select"].includes(selection)
+          ? [
+              namedBasicValueFromChoiceName(
+                implicitHandle,
+                unquote(field(node, "name")) || handle,
+              ),
+            ]
+          : selection === "select"
+            ? node.fields
+                .filter((candidate) => candidate.name === "option")
+                .map((candidate) => unquote(candidate.value))
+                .filter(Boolean)
+            : [],
+      minimum: selection === "integer" ? integerField(node, "min") : undefined,
+      maximum: selection === "integer" ? integerField(node, "max") : undefined,
+      mayBeUnset: true,
+    });
+  }
 
   for (const { node, parent } of entries) {
     if (node.kind !== "grant" || unquote(field(node, "kind")) !== "property")

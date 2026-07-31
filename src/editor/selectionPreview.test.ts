@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { CanonicalJumpPackage, JumpChoice, JumpLayout } from "../markup";
-import { selectedChoicePreviewPackage } from "./selectionPreview";
+import {
+  currentChoicesPreviewPackage,
+  selectedChoicePreviewPackage,
+} from "./selectionPreview";
 
 const choice = (handle: string, layout?: string): JumpChoice => ({
   handle,
@@ -54,7 +57,50 @@ const packageItem = (
   diagnostics: [],
 });
 
-describe("selected Choice preview package", () => {
+describe("Choice preview packages", () => {
+  it("overlays current Choices and Choice layouts without replacing the fallback container structure", () => {
+    const fallback = {
+      ...packageItem([choice("featured"), choice("stable")], [layout("stale")]),
+      sections: [
+        {
+          handle: "content",
+          name: { base: "Content", variants: [] },
+          sources: [],
+          directChoices: [{ handle: "featured_placement", target: "featured" }],
+          members: [{ kind: "choice" as const, handle: "featured_placement" }],
+          text: [],
+          images: [],
+        },
+      ],
+    };
+    const updatedFeatured = {
+      ...choice("featured", "current"),
+      name: { base: "Updated", variants: [] },
+    };
+    const updated = {
+      ...packageItem(
+        [updatedFeatured, choice("new_choice")],
+        [layout("current")],
+      ),
+      themes: { accent: "#112233" },
+    };
+
+    const preview = currentChoicesPreviewPackage(fallback, updated);
+
+    expect(preview.sections).toBe(fallback.sections);
+    expect(preview.choices).toEqual([
+      expect.objectContaining({
+        handle: "featured",
+        name: { base: "Updated", variants: [] },
+        layout: "current",
+      }),
+      choice("stable"),
+      choice("new_choice"),
+    ]);
+    expect(preview.layouts).toEqual([layout("stale"), layout("current")]);
+    expect(preview.themes).toEqual({ accent: "#112233" });
+  });
+
   it("overlays the current Choice and Choice-layout namespace on a valid fallback", () => {
     const fallback = packageItem(
       [choice("dropin"), choice("stable")],

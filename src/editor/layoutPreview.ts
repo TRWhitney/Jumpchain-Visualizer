@@ -86,7 +86,17 @@ function imageBlocks(
   nodes: readonly LayoutNode[],
   placeholder: PlaceholderText,
 ): readonly ImageBlock[] {
-  return uniqueTargets(nodes, "image").map((target) => ({
+  const targets = [
+    ...new Set([
+      ...uniqueTargets(nodes, "image"),
+      ...nodes.flatMap((node) =>
+        node.presentation.backgroundImage
+          ? [node.presentation.backgroundImage]
+          : [],
+      ),
+    ]),
+  ];
+  return targets.map((target) => ({
     handle: target,
     src: layoutPreviewImagePath,
     alt: renderable(

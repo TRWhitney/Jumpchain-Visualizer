@@ -1,4 +1,5 @@
 export * from "./canonicalize";
+export * from "./basicProperties";
 export * from "./conditionExpression";
 export * from "./conditionProperties";
 export * from "./layoutSemantics";

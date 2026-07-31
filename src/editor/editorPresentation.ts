@@ -183,6 +183,7 @@ export function editorLayoutFieldPresentation(
     "text-align",
     "control-adornments",
     "fit",
+    "background-fit",
     "clip",
     "source",
     "using",

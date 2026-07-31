@@ -63,6 +63,34 @@ function layoutColor(token: string | undefined, packageItem: PackageThemes) {
     : format1BuiltInColors[candidate as keyof typeof format1BuiltInColors];
 }
 
+function cssImage(source: string) {
+  return `url(${JSON.stringify(source)})`;
+}
+
+export function layoutBackgroundImageStyle(
+  node: LayoutNode,
+  source: string | null | undefined,
+): CSSProperties {
+  if (!source) return {};
+  const fit = node.presentation.backgroundFit ?? "cover";
+  return {
+    backgroundImage: cssImage(source),
+    backgroundPosition: fit === "tile" ? "0 0" : "center",
+    backgroundRepeat: fit === "tile" ? "repeat" : "no-repeat",
+    backgroundSize:
+      fit === "tile" ? "auto" : fit === "contain" ? "contain" : "cover",
+  };
+}
+
+export function layoutTiledImageStyle(source: string): CSSProperties {
+  return {
+    backgroundImage: cssImage(source),
+    backgroundPosition: "0 0",
+    backgroundRepeat: "repeat",
+    backgroundSize: "auto",
+  };
+}
+
 function sharedPresentationStyle(
   node: LayoutNode,
   packageItem: PackageThemes,

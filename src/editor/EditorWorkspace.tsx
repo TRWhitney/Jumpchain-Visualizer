@@ -28,6 +28,7 @@ import {
   conditionNodeEntries,
   conditionPropertyCatalog,
   layoutNodeUsesControlAlignment,
+  namedBasicChoiceSelectionIsCompatible,
   packageIsValid,
   type ConditionPropertyDescriptor,
   type DiagnosticTarget,
@@ -56,7 +57,12 @@ import {
   type KeybindingAction,
   type KeybindingChord,
 } from "../settings/model";
-import { JumpPreview, type LayoutBoundHover } from "./JumpPreview";
+import {
+  JumpPreview,
+  type JumpPreviewSnapshot,
+  type LayoutBoundHover,
+} from "./JumpPreview";
+import { PreviewPropertiesPanel } from "./PreviewPropertiesPanel";
 import { layoutPreviewAcceptsChoiceLayout } from "./layoutPreview";
 import { FreeTextSuggestionCombobox } from "./FreeTextSuggestionCombobox";
 import { HandleFieldControl } from "./HandleFieldControl";
@@ -73,6 +79,7 @@ import {
   type EditorWorkspaceSnapshot,
 } from "./model";
 import { createSelectControlModel } from "./selectControl";
+import { currentChoicesPreviewPackage } from "./selectionPreview";
 import { insertJumpAppearanceSource } from "./appearanceSource";
 import {
   addDocumentField,
@@ -121,6 +128,7 @@ import {
   setLayoutNodeTarget,
   type LayoutEditResult,
   type LayoutEditorNode,
+  type LayoutKind,
   type LayoutNodeRef,
 } from "./layoutEditor";
 import {
@@ -928,6 +936,8 @@ export function EditorWorkspace({
   const [assetEditingTab, setAssetEditingTab] =
     useState<EditingTab>("structured");
   const [contextTab, setContextTab] = useState<ContextTab>("preview");
+  const [jumpPreviewSnapshot, setJumpPreviewSnapshot] =
+    useState<JumpPreviewSnapshot | null>(null);
   const [advancedViewsOpen, setAdvancedViewsOpen, advancedViewsSettingChanged] =
     useSettingDefaultedState(
       settings.editor.collapseAdvancedViews,
@@ -1214,11 +1224,21 @@ export function EditorWorkspace({
   );
   const currentValid = packageIsValid(analysis.packageItem);
   const recoveredValid = packageIsValid(recoveredAnalysis.packageItem);
-  const previewPackage = currentValid
+  const previewFallbackPackage = currentValid
     ? analysis.packageItem
     : recoveredValid
       ? recoveredAnalysis.packageItem
       : lastValid;
+  const previewPackage = useMemo(
+    () =>
+      currentValid
+        ? previewFallbackPackage
+        : currentChoicesPreviewPackage(
+            previewFallbackPackage,
+            analysis.packageItem,
+          ),
+    [analysis.packageItem, currentValid, previewFallbackPackage],
+  );
   const layoutPackageItem =
     previewSelection.kind === "layout"
       ? [analysis.packageItem, recoveredAnalysis.packageItem, lastValid].find(
@@ -4010,299 +4030,326 @@ export function EditorWorkspace({
         </div>
         {selectedTrash ? (
           <TrashContextPanel entry={selectedTrash} tab={contextTab} />
-        ) : contextTab === "preview" &&
-          navigationTab === "content" &&
-          selectedAsset &&
-          selectedAssetBytes ? (
-          <AssetContextPreview
-            path={selectedAsset}
-            bytes={selectedAssetBytes}
-          />
-        ) : contextTab === "preview" ? (
-          <div
-            className="editor-preview-panel"
-            data-tour-target="editor-preview"
-          >
-            <div className="editor-preview-toolbar">
-              <span>
-                <strong>
-                  {translate("ui.editorWorkspace.text.livePreview")}
-                </strong>
-                <small>{previewStatus}</small>
-              </span>
+        ) : (
+          <>
+            {navigationTab === "content" &&
+            selectedAsset &&
+            selectedAssetBytes ? (
+              contextTab === "preview" && (
+                <AssetContextPreview
+                  path={selectedAsset}
+                  bytes={selectedAssetBytes}
+                />
+              )
+            ) : (
               <div
-                className={`editor-preview-toggles${previewSelection.kind === "appearance" ? " is-appearance" : ""}`}
+                className="editor-preview-panel"
+                data-tour-target="editor-preview"
+                hidden={contextTab !== "preview"}
               >
-                {previewSelection.kind === "appearance" && (
-                  <span
-                    className="editor-preview-mode"
-                    role="group"
-                    aria-label={translate(
-                      "ui.editorWorkspace.ariaLabel.appearancePreviewMode",
-                    )}
-                  >
-                    {(["jump", "components"] as const).map((mode) => (
-                      <button
-                        type="button"
-                        aria-pressed={appearancePreviewMode === mode}
-                        key={mode}
-                        onClick={() => setAppearancePreviewMode(mode)}
-                      >
-                        {translate(
-                          `ui.editorWorkspace.text.appearancePreview${mode === "jump" ? "Jump" : "Components"}`,
-                        )}
-                      </button>
-                    ))}
+                <div className="editor-preview-toolbar">
+                  <span>
+                    <strong>
+                      {translate("ui.editorWorkspace.text.livePreview")}
+                    </strong>
+                    <small>{previewStatus}</small>
                   </span>
-                )}
-                {settings.editor.collapsePreviewInspectionTools ? (
-                  <button
-                    className="editor-preview-tools-toggle"
-                    type="button"
-                    aria-expanded={previewInspectionToolsOpen}
-                    aria-controls="editor-preview-inspection-tools"
-                    onClick={() =>
-                      setPreviewInspectionToolsOpen(!previewInspectionToolsOpen)
-                    }
-                  >
-                    <span>
-                      {translate("ui.editorWorkspace.text.previewTools")}
-                    </span>
-                    <Chevron
-                      direction={previewInspectionToolsOpen ? "down" : "right"}
-                    />
-                  </button>
-                ) : (
-                  previewInspectionControls
-                )}
-              </div>
-            </div>
-            {previewChoiceLayoutKey &&
-              previewChoiceLayoutOptions.length > 0 && (
-                <div className="editor-layout-preview-composition">
-                  <label>
-                    <span>
-                      {translate(
-                        "ui.editorWorkspace.layoutPreview.choiceLayout",
-                      )}
-                      <small>
-                        {translate(
-                          "ui.editorWorkspace.layoutPreview.choiceLayoutHelp",
-                        )}
-                      </small>
-                    </span>
-                    <select
-                      aria-label={translate(
-                        "ui.editorWorkspace.layoutPreview.choiceLayout",
-                      )}
-                      value={previewChoiceLayout}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        setLayoutPreviewChoiceLayouts((current) => ({
-                          ...current,
-                          [previewChoiceLayoutKey]: value,
-                        }));
-                      }}
-                    >
-                      <option value="">
-                        {translate(
-                          "ui.editorWorkspace.layoutPreview.builtInChoiceLayout",
-                        )}
-                      </option>
-                      {previewChoiceLayoutOptions.map((handle) => (
-                        <option value={handle} key={handle}>
-                          {handle}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-              )}
-            {settings.editor.collapsePreviewInspectionTools &&
-              previewInspectionToolsOpen && (
-                <div
-                  id="editor-preview-inspection-tools"
-                  className="editor-preview-inspection-tools"
-                >
-                  {previewInspectionControls}
-                </div>
-              )}
-            <div className="editor-bounds-tools" hidden={!showBounds}>
-              {previewSelection.kind === "appearance" ? (
-                <>
                   <div
-                    className="editor-bounds-legend editor-appearance-color-legend"
-                    aria-label={translate(
-                      "ui.editorWorkspace.ariaLabel.appearanceColorLegend",
-                    )}
+                    className={`editor-preview-toggles${previewSelection.kind === "appearance" ? " is-appearance" : ""}`}
                   >
-                    {(["background", "text", "border", "accent"] as const).map(
-                      (kind) => (
-                        <span className={`is-${kind}`} key={kind}>
+                    {previewSelection.kind === "appearance" && (
+                      <span
+                        className="editor-preview-mode"
+                        role="group"
+                        aria-label={translate(
+                          "ui.editorWorkspace.ariaLabel.appearancePreviewMode",
+                        )}
+                      >
+                        {(["jump", "components"] as const).map((mode) => (
+                          <button
+                            type="button"
+                            aria-pressed={appearancePreviewMode === mode}
+                            key={mode}
+                            onClick={() => setAppearancePreviewMode(mode)}
+                          >
+                            {translate(
+                              `ui.editorWorkspace.text.appearancePreview${mode === "jump" ? "Jump" : "Components"}`,
+                            )}
+                          </button>
+                        ))}
+                      </span>
+                    )}
+                    {settings.editor.collapsePreviewInspectionTools ? (
+                      <button
+                        className="editor-preview-tools-toggle"
+                        type="button"
+                        aria-expanded={previewInspectionToolsOpen}
+                        aria-controls="editor-preview-inspection-tools"
+                        onClick={() =>
+                          setPreviewInspectionToolsOpen(
+                            !previewInspectionToolsOpen,
+                          )
+                        }
+                      >
+                        <span>
+                          {translate("ui.editorWorkspace.text.previewTools")}
+                        </span>
+                        <Chevron
+                          direction={
+                            previewInspectionToolsOpen ? "down" : "right"
+                          }
+                        />
+                      </button>
+                    ) : (
+                      previewInspectionControls
+                    )}
+                  </div>
+                </div>
+                {previewChoiceLayoutKey &&
+                  previewChoiceLayoutOptions.length > 0 && (
+                    <div className="editor-layout-preview-composition">
+                      <label>
+                        <span>
                           {translate(
-                            `ui.editorWorkspace.text.appearanceColorKind${kind[0].toLocaleUpperCase()}${kind.slice(1)}`,
+                            "ui.editorWorkspace.layoutPreview.choiceLayout",
+                          )}
+                          <small>
+                            {translate(
+                              "ui.editorWorkspace.layoutPreview.choiceLayoutHelp",
+                            )}
+                          </small>
+                        </span>
+                        <select
+                          aria-label={translate(
+                            "ui.editorWorkspace.layoutPreview.choiceLayout",
+                          )}
+                          value={previewChoiceLayout}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setLayoutPreviewChoiceLayouts((current) => ({
+                              ...current,
+                              [previewChoiceLayoutKey]: value,
+                            }));
+                          }}
+                        >
+                          <option value="">
+                            {translate(
+                              "ui.editorWorkspace.layoutPreview.builtInChoiceLayout",
+                            )}
+                          </option>
+                          {previewChoiceLayoutOptions.map((handle) => (
+                            <option value={handle} key={handle}>
+                              {handle}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                  )}
+                {settings.editor.collapsePreviewInspectionTools &&
+                  previewInspectionToolsOpen && (
+                    <div
+                      id="editor-preview-inspection-tools"
+                      className="editor-preview-inspection-tools"
+                    >
+                      {previewInspectionControls}
+                    </div>
+                  )}
+                <div className="editor-bounds-tools" hidden={!showBounds}>
+                  {previewSelection.kind === "appearance" ? (
+                    <>
+                      <div
+                        className="editor-bounds-legend editor-appearance-color-legend"
+                        aria-label={translate(
+                          "ui.editorWorkspace.ariaLabel.appearanceColorLegend",
+                        )}
+                      >
+                        {(
+                          ["background", "text", "border", "accent"] as const
+                        ).map((kind) => (
+                          <span className={`is-${kind}`} key={kind}>
+                            {translate(
+                              `ui.editorWorkspace.text.appearanceColorKind${kind[0].toLocaleUpperCase()}${kind.slice(1)}`,
+                            )}
+                          </span>
+                        ))}
+                        <span className="is-layout-override">
+                          {translate(
+                            "ui.editorWorkspace.text.appearanceColorLayoutOverride",
                           )}
                         </span>
-                      ),
-                    )}
-                    <span className="is-layout-override">
-                      {translate(
-                        "ui.editorWorkspace.text.appearanceColorLayoutOverride",
-                      )}
-                    </span>
-                  </div>
-                  <output
-                    className="editor-bound-readout"
-                    data-appearance-color-kind={hoveredAppearanceColor?.kind}
-                    data-appearance-color-owner={
-                      hoveredAppearanceColor?.layout
-                        ? "layout"
-                        : hoveredAppearanceColor
-                          ? "appearance"
-                          : undefined
+                      </div>
+                      <output
+                        className="editor-bound-readout"
+                        data-appearance-color-kind={
+                          hoveredAppearanceColor?.kind
+                        }
+                        data-appearance-color-owner={
+                          hoveredAppearanceColor?.layout
+                            ? "layout"
+                            : hoveredAppearanceColor
+                              ? "appearance"
+                              : undefined
+                        }
+                        aria-label={translate(
+                          "ui.editorWorkspace.ariaLabel.appearanceColorReadout",
+                        )}
+                        aria-live="polite"
+                      >
+                        <i aria-hidden="true" />
+                        <span>
+                          {hoveredAppearanceColor
+                            ? hoveredAppearanceColor.layout
+                              ? translate(
+                                  "ui.editorWorkspace.text.appearanceLayoutColorReadout",
+                                  {
+                                    kind: translate(
+                                      `ui.editorWorkspace.text.${hoveredAppearanceColor.layout.kind === "section-layout" ? "sectionLayout" : hoveredAppearanceColor.layout.kind === "choice-layout" ? "choiceLayout" : "traitLayout"}`,
+                                    ),
+                                    handle:
+                                      hoveredAppearanceColor.layout.handle,
+                                    field: translate(
+                                      `ui.editorWorkspace.layoutField.${hoveredAppearanceColor.field}`,
+                                    ),
+                                  },
+                                )
+                              : translate(
+                                  "ui.editorWorkspace.text.appearanceColorReadout",
+                                  {
+                                    field: translate(
+                                      `ui.editorWorkspace.appearanceField.${hoveredAppearanceColor.field}`,
+                                    ),
+                                  },
+                                )
+                            : translate(
+                                "ui.editorWorkspace.text.appearanceColorReadoutIdle",
+                              )}
+                        </span>
+                      </output>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className="editor-bounds-legend"
+                        aria-label={translate(
+                          "ui.editorWorkspace.ariaLabel.layoutBoundsLegend",
+                        )}
+                      >
+                        <span className="is-container">
+                          {translate("ui.editorWorkspace.text.container")}
+                        </span>
+                        <span className="is-slot">
+                          {translate("ui.editorWorkspace.text.slot")}
+                        </span>
+                        <span className="is-reference">
+                          {translate("ui.editorWorkspace.text.reference")}
+                        </span>
+                      </div>
+                      <output
+                        className="editor-bound-readout"
+                        data-layout-bound-kind={hoveredBound?.kind}
+                        aria-label={translate(
+                          "ui.editorWorkspace.ariaLabel.layoutBoundReadout",
+                        )}
+                        aria-live="polite"
+                      >
+                        <i aria-hidden="true" />
+                        <span>
+                          {hoveredBound
+                            ? translate(
+                                "ui.editorWorkspace.text.layoutBoundReadout",
+                                {
+                                  kind: translate(
+                                    `ui.editorWorkspace.text.${hoveredBound.kind}`,
+                                  ),
+                                  path: hoveredBound.path,
+                                },
+                              )
+                            : translate(
+                                "ui.editorWorkspace.text.layoutBoundReadoutIdle",
+                              )}
+                        </span>
+                      </output>
+                    </>
+                  )}
+                </div>
+                <div className="editor-preview-scroll">
+                  <JumpPreview
+                    packageItem={previewPackage}
+                    layoutPackageItem={layoutPackageItem}
+                    choicePackageItem={choicePackageItem}
+                    assets={workspace.assets}
+                    tags={tags}
+                    selection={previewSelection}
+                    showBounds={showBounds}
+                    stripColor={stripColor}
+                    layoutPreviewPlaceholderCharacterLimit={
+                      settings.editor.layoutPreviewPlaceholderCharacterLimit
                     }
-                    aria-label={translate(
-                      "ui.editorWorkspace.ariaLabel.appearanceColorReadout",
-                    )}
-                    aria-live="polite"
-                  >
-                    <i aria-hidden="true" />
-                    <span>
-                      {hoveredAppearanceColor
-                        ? hoveredAppearanceColor.layout
-                          ? translate(
-                              "ui.editorWorkspace.text.appearanceLayoutColorReadout",
-                              {
-                                kind: translate(
-                                  `ui.editorWorkspace.text.${hoveredAppearanceColor.layout.kind === "section-layout" ? "sectionLayout" : hoveredAppearanceColor.layout.kind === "choice-layout" ? "choiceLayout" : "traitLayout"}`,
-                                ),
-                                handle: hoveredAppearanceColor.layout.handle,
-                                field: translate(
-                                  `ui.editorWorkspace.layoutField.${hoveredAppearanceColor.field}`,
-                                ),
-                              },
-                            )
-                          : translate(
-                              "ui.editorWorkspace.text.appearanceColorReadout",
-                              {
-                                field: translate(
-                                  `ui.editorWorkspace.appearanceField.${hoveredAppearanceColor.field}`,
-                                ),
-                              },
-                            )
-                        : translate(
-                            "ui.editorWorkspace.text.appearanceColorReadoutIdle",
-                          )}
-                    </span>
-                  </output>
-                </>
-              ) : (
-                <>
-                  <div
-                    className="editor-bounds-legend"
-                    aria-label={translate(
-                      "ui.editorWorkspace.ariaLabel.layoutBoundsLegend",
-                    )}
-                  >
-                    <span className="is-container">
-                      {translate("ui.editorWorkspace.text.container")}
-                    </span>
-                    <span className="is-slot">
-                      {translate("ui.editorWorkspace.text.slot")}
-                    </span>
-                    <span className="is-reference">
-                      {translate("ui.editorWorkspace.text.reference")}
-                    </span>
-                  </div>
-                  <output
-                    className="editor-bound-readout"
-                    data-layout-bound-kind={hoveredBound?.kind}
-                    aria-label={translate(
-                      "ui.editorWorkspace.ariaLabel.layoutBoundReadout",
-                    )}
-                    aria-live="polite"
-                  >
-                    <i aria-hidden="true" />
-                    <span>
-                      {hoveredBound
-                        ? translate(
-                            "ui.editorWorkspace.text.layoutBoundReadout",
-                            {
-                              kind: translate(
-                                `ui.editorWorkspace.text.${hoveredBound.kind}`,
-                              ),
-                              path: hoveredBound.path,
-                            },
-                          )
-                        : translate(
-                            "ui.editorWorkspace.text.layoutBoundReadoutIdle",
-                          )}
-                    </span>
-                  </output>
-                </>
-              )}
-            </div>
-            <div className="editor-preview-scroll">
-              <JumpPreview
-                packageItem={previewPackage}
-                layoutPackageItem={layoutPackageItem}
-                choicePackageItem={choicePackageItem}
-                assets={workspace.assets}
-                tags={tags}
-                selection={previewSelection}
-                showBounds={showBounds}
-                stripColor={stripColor}
-                layoutPreviewPlaceholderCharacterLimit={
-                  settings.editor.layoutPreviewPlaceholderCharacterLimit
+                    layoutPreviewChoiceLayout={previewChoiceLayout || undefined}
+                    hoveredBound={hoveredBound}
+                    onHoveredBoundChange={setHoveredBound}
+                    onBoundActivate={inspectLayoutBound}
+                    hoveredAppearanceColor={hoveredAppearanceColor}
+                    onHoveredAppearanceColorChange={setHoveredAppearanceColor}
+                    onAppearanceColorActivate={inspectAppearanceColor}
+                    onSnapshotChange={
+                      contextTab === "properties"
+                        ? setJumpPreviewSnapshot
+                        : undefined
+                    }
+                  />
+                </div>
+              </div>
+            )}
+            {contextTab === "properties" && (
+              <PropertiesPanel
+                summary={summary}
+                symbol={resolvedSelectedSymbol}
+                symbolLine={
+                  resolvedSelectedSymbol
+                    ? sourceLine(
+                        workspace.files[resolvedSelectedSymbol.file] ?? "",
+                        resolvedSelectedSymbol.from,
+                      )
+                    : undefined
                 }
-                layoutPreviewChoiceLayout={previewChoiceLayout || undefined}
-                hoveredBound={hoveredBound}
-                onHoveredBoundChange={setHoveredBound}
-                onBoundActivate={inspectLayoutBound}
-                hoveredAppearanceColor={hoveredAppearanceColor}
-                onHoveredAppearanceColorChange={setHoveredAppearanceColor}
-                onAppearanceColorActivate={inspectAppearanceColor}
+                asset={selectedAsset}
+                assetMetadata={selectedAssetMetadata}
+                assetReferenceCount={selectedAssetReferences.length}
+                selectedFile={
+                  navigationTab === "files" && !selectedAsset ? file : null
+                }
+                selectedFileBytes={
+                  navigationTab === "files" && !selectedAsset
+                    ? new TextEncoder().encode(workspace.files[file] ?? "")
+                        .byteLength
+                    : undefined
+                }
+                selectedFileDiagnosticCount={
+                  navigationTab === "files" && !selectedAsset
+                    ? analysis.diagnostics.filter(
+                        (diagnostic) => diagnostic.range?.file === file,
+                      ).length
+                    : undefined
+                }
+                symbolOwner={
+                  resolvedSelectedSymbol
+                    ? structuredContext(workspace.files, resolvedSelectedSymbol)
+                        ?.parent
+                    : undefined
+                }
+                previewSnapshot={
+                  previewSelection.kind === "package" &&
+                  jumpPreviewSnapshot?.selectionKind === "package"
+                    ? jumpPreviewSnapshot
+                    : undefined
+                }
+                previewFiles={workspace.files}
+                previewTags={tags}
               />
-            </div>
-          </div>
-        ) : (
-          <PropertiesPanel
-            summary={summary}
-            symbol={resolvedSelectedSymbol}
-            symbolLine={
-              resolvedSelectedSymbol
-                ? sourceLine(
-                    workspace.files[resolvedSelectedSymbol.file] ?? "",
-                    resolvedSelectedSymbol.from,
-                  )
-                : undefined
-            }
-            asset={selectedAsset}
-            assetMetadata={selectedAssetMetadata}
-            assetReferenceCount={selectedAssetReferences.length}
-            selectedFile={
-              navigationTab === "files" && !selectedAsset ? file : null
-            }
-            selectedFileBytes={
-              navigationTab === "files" && !selectedAsset
-                ? new TextEncoder().encode(workspace.files[file] ?? "")
-                    .byteLength
-                : undefined
-            }
-            selectedFileDiagnosticCount={
-              navigationTab === "files" && !selectedAsset
-                ? analysis.diagnostics.filter(
-                    (diagnostic) => diagnostic.range?.file === file,
-                  ).length
-                : undefined
-            }
-            symbolOwner={
-              resolvedSelectedSymbol
-                ? structuredContext(workspace.files, resolvedSelectedSymbol)
-                    ?.parent
-                : undefined
-            }
-          />
+            )}
+          </>
         )}
       </aside>
 
@@ -4478,12 +4525,235 @@ export function EditorWorkspace({
   );
 }
 
+export function LayoutBackgroundField({
+  diagnostics,
+  files,
+  symbol,
+  showExplanatoryText,
+  onEndFieldEdit,
+  onCreateImage,
+  onCreateTheme,
+  onModeChange,
+  onUpdate,
+}: {
+  diagnostics: readonly PackageDiagnostic[];
+  files: Readonly<Record<string, string>>;
+  symbol: FormatSymbol;
+  showExplanatoryText: boolean;
+  onEndFieldEdit: () => void;
+  onCreateImage?: () => void;
+  onCreateTheme: (field: string, color: string) => void;
+  onModeChange: (mode: "color" | "image") => void;
+  onUpdate: (field: string, value: string) => void;
+}) {
+  const context = structuredContext(files, symbol);
+  const symbols = service.analyze(files).symbols;
+  const color = readSourceField(files[symbol.file], symbol, "background");
+  const backgroundImage = readSourceField(
+    files[symbol.file],
+    symbol,
+    "background-image",
+  );
+  const backgroundFit = readSourceField(
+    files[symbol.file],
+    symbol,
+    "background-fit",
+  );
+  const identity = `${symbol.file}:${symbol.from}`;
+  const [preferredMode, setPreferredMode] = useState<{
+    identity: string;
+    mode: "color" | "image";
+  } | null>(null);
+  const authoredMode =
+    backgroundImage || backgroundFit ? "image" : color ? "color" : null;
+  const mode =
+    authoredMode ??
+    (preferredMode?.identity === identity ? preferredMode.mode : "color");
+  if (
+    !context?.layout ||
+    !["section-layout", "choice-layout", "trait-layout"].includes(
+      context.layout,
+    )
+  )
+    return null;
+
+  const imageHandles = layoutContentTargetHandles(
+    files,
+    context.layout as LayoutKind,
+    "image",
+  );
+  const colorChoices = editorColorChoices(files, symbols);
+  const fitDefinition = context.fields["background-fit"];
+  const fitControl = createSelectControlModel(
+    backgroundFit,
+    { kind: "value", value: fitDefinition.default ?? "cover" },
+    fieldValues(fitDefinition),
+  );
+  const activeFields =
+    mode === "image"
+      ? new Set(["background-image", "background-fit"])
+      : new Set(["background"]);
+  const matchingDiagnostics = diagnostics.filter(
+    (diagnostic) =>
+      diagnostic.target?.file === symbol.file &&
+      diagnostic.target.declarationFrom === symbol.from &&
+      activeFields.has(diagnostic.target.field ?? ""),
+  );
+  const fieldSeverity = (["error", "warning", "info"] as const).find(
+    (severity) =>
+      matchingDiagnostics.some(
+        (diagnostic) => diagnostic.severity === severity,
+      ),
+  );
+  const diagnosticId = matchingDiagnostics.length
+    ? `layout-${symbol.from}-background-diagnostics`
+    : undefined;
+  const fitHelp =
+    showExplanatoryText && mode === "image"
+      ? editorLayoutFieldPresentation("background-fit").help
+      : undefined;
+  const fitHelpId = fitHelp
+    ? `layout-${symbol.from}-background-fit-help`
+    : undefined;
+  const switchMode = (nextMode: "color" | "image") => {
+    if (nextMode === mode) return;
+    setPreferredMode({ identity, mode: nextMode });
+    onModeChange(nextMode);
+  };
+
+  return (
+    <div
+      className="editor-schema-field editor-layout-background-field"
+      data-layout-field="background"
+      data-editor-drag-boundary
+      draggable={false}
+      onDragStartCapture={(event) => event.preventDefault()}
+    >
+      <div
+        className={`editor-field-occurrence${fieldSeverity ? ` is-${fieldSeverity}` : ""}`}
+      >
+        <span className="editor-layout-background-heading">
+          {translate("ui.editorWorkspace.layoutField.background")}
+          <span
+            className="editor-layout-background-mode"
+            role="group"
+            aria-label={translate("ui.editorWorkspace.backgroundMode.choose")}
+          >
+            {(["color", "image"] as const).map((candidate) => (
+              <button
+                type="button"
+                aria-pressed={mode === candidate}
+                key={candidate}
+                onClick={() => switchMode(candidate)}
+              >
+                {translate(`ui.editorWorkspace.backgroundMode.${candidate}`)}
+              </button>
+            ))}
+          </span>
+        </span>
+        {mode === "color" ? (
+          <ColorFieldControl
+            label={translate("ui.editorWorkspace.layoutField.background")}
+            value={color}
+            choices={colorChoices}
+            allowTokens
+            ariaInvalid={matchingDiagnostics.length > 0}
+            ariaDescribedBy={diagnosticId}
+            onChange={(value) => onUpdate("background", value)}
+            onCreateTheme={(displayedColor, resolvedColor) =>
+              onCreateTheme(
+                "background",
+                normalizeFormat1HexColor(displayedColor) ??
+                  colorChoices.find((choice) => choice.value === displayedColor)
+                    ?.color ??
+                  (displayedColor ? resolvedColor : undefined) ??
+                  "#68707C",
+              )
+            }
+            onBlur={onEndFieldEdit}
+          />
+        ) : (
+          <div className="editor-layout-background-image-controls">
+            <HandleFieldControl
+              label={translate(
+                "ui.editorWorkspace.layoutField.background-image",
+              )}
+              value={backgroundImage}
+              options={imageHandles}
+              ariaInvalid={matchingDiagnostics.length > 0}
+              ariaDescribedBy={diagnosticId}
+              createLabel={
+                onCreateImage
+                  ? translate(
+                      "ui.editorWorkspace.text.newDeclarationEllipsis",
+                      { declaration: editorDeclarationLabel("image") },
+                    )
+                  : undefined
+              }
+              onChange={(value) => onUpdate("background-image", value)}
+              onCreate={onCreateImage}
+              onBlur={onEndFieldEdit}
+            />
+            <label>
+              <select
+                aria-label={translate(
+                  "ui.editorWorkspace.layoutField.background-fit",
+                )}
+                draggable={false}
+                aria-describedby={
+                  [fitHelpId, diagnosticId].filter(Boolean).join(" ") ||
+                  undefined
+                }
+                value={fitControl.value}
+                onChange={(event) =>
+                  onUpdate(
+                    "background-fit",
+                    fitControl.authoredValue(event.target.value),
+                  )
+                }
+                onBlur={onEndFieldEdit}
+              >
+                {fitControl.options.map((option) => (
+                  <option value={option} key={option}>
+                    {
+                      editorOptionPresentation(
+                        symbol.kind,
+                        "background-fit",
+                        option,
+                      ).label
+                    }
+                  </option>
+                ))}
+              </select>
+              {fitHelp && <small id={fitHelpId}>{fitHelp}</small>}
+            </label>
+          </div>
+        )}
+        {matchingDiagnostics.length > 0 && (
+          <span className="editor-field-diagnostics" id={diagnosticId}>
+            {matchingDiagnostics.map((diagnostic, index) => (
+              <small
+                className={`is-${diagnostic.severity}`}
+                key={`${diagnostic.code}:${index}`}
+              >
+                {translateDiagnostic(diagnostic)}
+              </small>
+            ))}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function LayoutNodeFields({
   assets,
   diagnostics,
   files,
   symbol,
   onEndFieldEdit,
+  onBackgroundModeChange,
+  onCreateImage,
   onCreateTheme,
   onUpdate,
   fields,
@@ -4495,6 +4765,11 @@ function LayoutNodeFields({
   files: Readonly<Record<string, string>>;
   symbol: FormatSymbol;
   onEndFieldEdit: () => void;
+  onBackgroundModeChange: (
+    symbol: FormatSymbol,
+    mode: "color" | "image",
+  ) => void;
+  onCreateImage?: (symbol: FormatSymbol) => void;
   onCreateTheme: (symbol: FormatSymbol, field: string, color: string) => void;
   onUpdate: (
     symbol: FormatSymbol,
@@ -4510,7 +4785,12 @@ function LayoutNodeFields({
   if (!context) return null;
   const symbols = service.analyze(files).symbols;
   const visibleFields = fields
-    ? context.visibleFields.filter((field) => fields.includes(field))
+    ? context.visibleFields.filter(
+        (field) =>
+          fields.includes(field) ||
+          (fields.includes("background") &&
+            ["background-image", "background-fit"].includes(field)),
+      )
     : context.visibleFields;
   return (
     <div className="editor-form-grid editor-layout-node-fields">
@@ -4522,6 +4802,27 @@ function LayoutNodeFields({
         </strong>
       )}
       {visibleFields.map((fieldName) => {
+        if (fieldName === "background-image" || fieldName === "background-fit")
+          return null;
+        if (fieldName === "background")
+          return (
+            <LayoutBackgroundField
+              key={fieldName}
+              diagnostics={diagnostics}
+              files={files}
+              symbol={symbol}
+              showExplanatoryText={showExplanatoryText}
+              onEndFieldEdit={onEndFieldEdit}
+              onCreateImage={
+                onCreateImage ? () => onCreateImage(symbol) : undefined
+              }
+              onCreateTheme={(field, color) =>
+                onCreateTheme(symbol, field, color)
+              }
+              onModeChange={(mode) => onBackgroundModeChange(symbol, mode)}
+              onUpdate={(field, value) => onUpdate(symbol, field, value)}
+            />
+          );
         const definition = context.fields[fieldName];
         const value = readSourceField(files[symbol.file], symbol, fieldName);
         const options = fieldValues(definition);
@@ -4703,6 +5004,7 @@ function LayoutNodeFields({
               ) : options.length &&
                 [
                   "enum",
+                  "imageFit",
                   "spacing",
                   "size",
                   "align",
@@ -4960,6 +5262,7 @@ type LayoutDropTarget = {
 type LayoutContentCreationRequest = {
   kind: "text" | "image" | "input";
   node: LayoutNodeRef | null;
+  field?: "background-image";
 };
 
 function LayoutNodeKindControl({
@@ -5261,17 +5564,44 @@ function LayoutTreeEditor({
   ) => {
     const created = insertDocumentChild(files, owner, request.kind);
     if (!created.changed || !created.target?.handle) return false;
-    const layoutResult = request.node
-      ? setLayoutNodeTarget(
-          created.files,
-          layout,
-          request.node,
-          created.target.handle,
-        )
-      : selectedRef
-        ? insertLayoutChild(created.files, layout, selectedRef, request.kind, {
-            target: created.target.handle,
-          })
+    const requestNode = resolve(request.node);
+    const currentLayout = resolveDocumentSymbol(
+      service.analyze(created.files).symbols,
+      layout,
+    );
+    const currentTree = createLayoutEditorTree(created.files, currentLayout);
+    const currentRequestNode =
+      requestNode && currentTree
+        ? layoutNodeForPath(currentTree, requestNode.path)
+        : undefined;
+    const currentSelected =
+      selected && currentTree
+        ? layoutNodeForPath(currentTree, selected.path)
+        : undefined;
+    const layoutResult = currentRequestNode
+      ? request.field
+        ? setDocumentField(
+            created.files,
+            layoutNodeSymbol(currentLayout, currentRequestNode),
+            request.field,
+            created.target.handle,
+          )
+        : setLayoutNodeTarget(
+            created.files,
+            currentLayout,
+            layoutNodeReference(currentRequestNode),
+            created.target.handle,
+          )
+      : currentSelected
+        ? insertLayoutChild(
+            created.files,
+            currentLayout,
+            layoutNodeReference(currentSelected),
+            request.kind,
+            {
+              target: created.target.handle,
+            },
+          )
         : { changed: false, files: created.files };
     if (!layoutResult.changed) return false;
     onApply(
@@ -5313,12 +5643,56 @@ function LayoutTreeEditor({
         if (removal.changed) result = removal;
       }
     }
+    if (value && field === "background") {
+      const removal = removeDocumentFields(
+        result.files,
+        nodeSymbol,
+        "background-fit",
+      );
+      if (removal.changed) result = removal;
+    }
     onApply(
       { changed: true, files: result.files },
       announce("layoutNodeUpdated", nodeSymbol.kind),
       true,
     );
   };
+  const changeLayoutBackgroundMode = (
+    nodeSymbol: FormatSymbol,
+    mode: "color" | "image",
+  ) => {
+    const removedFields =
+      mode === "color"
+        ? ["background-image", "background-fit"]
+        : ["background"];
+    let nextFiles = { ...files };
+    let changed = false;
+    for (const field of removedFields) {
+      const removal = removeDocumentFields(nextFiles, nodeSymbol, field);
+      if (!removal.changed) continue;
+      nextFiles = removal.files;
+      changed = true;
+    }
+    if (!changed) return;
+    onApply(
+      { changed: true, files: nextFiles },
+      announce("layoutNodeUpdated", nodeSymbol.kind),
+    );
+  };
+  const createLayoutBackgroundImage =
+    compatibleContentOwners("image").length > 0
+      ? (nodeSymbol: FormatSymbol) =>
+          setContentCreation({
+            kind: "image",
+            node: {
+              file: nodeSymbol.file,
+              from: nodeSymbol.from,
+              kind: nodeSymbol.kind,
+              compact: false,
+            },
+            field: "background-image",
+          })
+      : undefined;
   const removeInvalidLayoutField = (
     nodeSymbol: FormatSymbol,
     field: string,
@@ -5571,6 +5945,8 @@ function LayoutTreeEditor({
                 files={files}
                 symbol={layoutNodeSymbol(layout, selected)}
                 onEndFieldEdit={onEndFieldEdit}
+                onBackgroundModeChange={changeLayoutBackgroundMode}
+                onCreateImage={createLayoutBackgroundImage}
                 onCreateTheme={(node, field, color) =>
                   onCreateReference(node, field, 0, "theme", { color }, layout)
                 }
@@ -5605,6 +5981,8 @@ function LayoutTreeEditor({
                     files={files}
                     symbol={layoutNodeSymbol(layout, selected)}
                     onEndFieldEdit={onEndFieldEdit}
+                    onBackgroundModeChange={changeLayoutBackgroundMode}
+                    onCreateImage={createLayoutBackgroundImage}
                     onCreateTheme={(node, field, color) =>
                       onCreateReference(
                         node,
@@ -6249,6 +6627,8 @@ function LayoutTreeEditor({
                         files={files}
                         symbol={layoutNodeSymbol(layout, node)}
                         onEndFieldEdit={onEndFieldEdit}
+                        onBackgroundModeChange={changeLayoutBackgroundMode}
+                        onCreateImage={createLayoutBackgroundImage}
                         onCreateTheme={(nodeSymbol, field, color) =>
                           onCreateReference(
                             nodeSymbol,
@@ -6828,6 +7208,66 @@ function StructuredPanel({
   const childKinds = resolvedContext?.childKinds ?? [];
   const structuredAnalysis = service.analyze(files);
   const symbols = structuredAnalysis.symbols;
+  const structuredChoice =
+    symbol.kind === "choice"
+      ? structuredAnalysis.packageItem.choices.find(
+          (choice) => choice.handle === handle,
+        )
+      : undefined;
+  const choiceWritesGender =
+    structuredChoice?.selection === "select" &&
+    (structuredChoice.handle === "gender" ||
+      structuredChoice.grants.some(
+        (grant) =>
+          grant.kind === "property" &&
+          grant.handle === "gender" &&
+          grant.value === undefined,
+      ));
+  const choiceGroups =
+    symbol.kind === "choice"
+      ? readSourceFields(files[symbol.file], symbol, "group")
+      : [];
+  const originSourceGroups = new Set(
+    structuredAnalysis.packageItem.sections.flatMap((section) =>
+      section.sources.flatMap((choiceSource) =>
+        choiceSource.handle === "origin" && choiceSource.group
+          ? [choiceSource.group]
+          : [],
+      ),
+    ),
+  );
+  const choiceIsReachable =
+    symbol.kind === "choice" &&
+    structuredAnalysis.packageItem.sections.some(
+      (section) =>
+        section.directChoices.some((choice) => choice.target === handle) ||
+        section.sources.some(
+          (choiceSource) =>
+            choiceSource.group !== undefined &&
+            choiceGroups.includes(choiceSource.group),
+        ),
+    );
+  const implicitBasicChoiceKind =
+    symbol.kind !== "choice" || !choiceIsReachable
+      ? null
+      : choiceGroups.some(
+            (group) =>
+              group === "origin" ||
+              group === "origins" ||
+              originSourceGroups.has(group),
+          )
+        ? "originGroup"
+        : handle === "gender" && choiceSelection === "select"
+          ? "gender"
+          : handle === "age" && choiceSelection === "integer"
+            ? "age"
+            : handle === "location" &&
+                namedBasicChoiceSelectionIsCompatible(choiceSelection)
+              ? "location"
+              : handle === "origin" &&
+                  namedBasicChoiceSelectionIsCompatible(choiceSelection)
+                ? "originChoice"
+                : null;
   const inputOwner =
     symbol.kind === "input"
       ? [...(resolvedContext?.ancestors ?? [])]
@@ -7019,7 +7459,9 @@ function StructuredPanel({
       (symbol.kind === "choice" &&
       fieldName === "continuity" &&
       field("selection") === "select"
-        ? translate("ui.editorWorkspace.defaultValue.notGenderSelection")
+        ? choiceWritesGender
+          ? translate("ui.editorWorkspace.text.notSet")
+          : translate("ui.editorWorkspace.defaultValue.notGenderSelection")
         : ["choice", "input"].includes(symbol.kind) && fieldName === "min"
           ? translate("ui.editorWorkspace.defaultValue.unboundedMinimum")
           : ["choice", "input"].includes(symbol.kind) && fieldName === "max"
@@ -7154,7 +7596,9 @@ function StructuredPanel({
     );
     const displayed = values.length ? values : [""];
     const alignFieldRows =
-      !definition?.repeatable && !definition?.conditionalVariants;
+      !definition?.repeatable &&
+      !definition?.conditionalVariants &&
+      !(symbol.kind === "image" && fieldName === "src");
     const setKind =
       fieldName === "tag" && ["choice", "grant"].includes(symbol.kind)
         ? ("tag" as const)
@@ -7173,6 +7617,29 @@ function StructuredPanel({
           (diagnostic.target.occurrence ?? 0) === occurrence,
       );
     if (setKind) {
+      const renderSetDiagnostics = (
+        matching: readonly PackageDiagnostic[],
+        occurrence: number,
+      ) =>
+        matching.length ? (
+          <span
+            className="editor-field-diagnostics"
+            id={`${listId}-${occurrence}-diagnostics`}
+          >
+            {matching.map((diagnostic, diagnosticIndex) => (
+              <small
+                className={`is-${diagnostic.severity}`}
+                key={`${diagnostic.code}:${diagnosticIndex}`}
+              >
+                {translateDiagnostic(diagnostic)}
+              </small>
+            ))}
+          </span>
+        ) : null;
+      const emptyDiagnostics = values.length ? [] : fieldDiagnostics(0);
+      const emptyDiagnosticId = emptyDiagnostics.length
+        ? `${listId}-0-diagnostics`
+        : undefined;
       const setLabel = translate(
         `ui.editorWorkspace.setFields.${setKind}.label`,
       );
@@ -7248,24 +7715,12 @@ function StructuredPanel({
                 )
               : undefined
           }
+          ariaInvalid={emptyDiagnostics.length > 0}
+          ariaDescribedBy={emptyDiagnosticId}
+          emptyDetails={renderSetDiagnostics(emptyDiagnostics, 0)}
           renderDetails={(_, occurrence) => {
             const matching = fieldDiagnostics(occurrence);
-            if (!matching.length) return null;
-            return (
-              <span
-                className="editor-field-diagnostics"
-                id={`${listId}-${occurrence}-diagnostics`}
-              >
-                {matching.map((diagnostic, diagnosticIndex) => (
-                  <small
-                    className={`is-${diagnostic.severity}`}
-                    key={`${diagnostic.code}:${diagnosticIndex}`}
-                  >
-                    {translateDiagnostic(diagnostic)}
-                  </small>
-                ))}
-              </span>
-            );
+            return renderSetDiagnostics(matching, occurrence);
           }}
           onAdd={(value) => onUpdate(symbol, fieldName, value, values.length)}
           onRemove={(occurrence) => onUpdate(symbol, fieldName, "", occurrence)}
@@ -7356,9 +7811,7 @@ function StructuredPanel({
             const diagnosticId = matchingDiagnostics.length
               ? `${listId}-${occurrence}-diagnostics`
               : undefined;
-            const helpId = effectiveFieldHelp
-              ? `${listId}-${occurrence}-help`
-              : undefined;
+            const helpId = effectiveFieldHelp ? `${listId}-0-help` : undefined;
             const describedBy =
               [helpId, diagnosticId].filter(Boolean).join(" ") || undefined;
             const accessibility = {
@@ -7391,21 +7844,25 @@ function StructuredPanel({
                     inherited: value === "",
                   }
                 : undefined;
+            const showFieldHeading =
+              !definition?.repeatable || occurrence === 0;
             return (
               <div
                 className={`editor-field-occurrence${fieldSeverity ? ` is-${fieldSeverity}` : ""}${measureUnavailable ? " is-unavailable" : ""}`}
                 data-structured-occurrence={occurrence}
                 key={`${fieldName}:${occurrence}`}
               >
-                <span>
-                  {fieldLabel}
-                  {fieldRequired && (
-                    <small>
-                      {translate("ui.editorWorkspace.text.required")}
-                    </small>
-                  )}
-                </span>
-                {effectiveFieldHelp && (
+                {showFieldHeading && (
+                  <span>
+                    {fieldLabel}
+                    {fieldRequired && (
+                      <small>
+                        {translate("ui.editorWorkspace.text.required")}
+                      </small>
+                    )}
+                  </span>
+                )}
+                {showFieldHeading && effectiveFieldHelp && (
                   <small
                     className={`editor-field-help${measureUnavailable ? " is-unavailable" : ""}`}
                     id={helpId}
@@ -7548,6 +8005,7 @@ function StructuredPanel({
                   ) : enumValues.length > 0 &&
                     [
                       "enum",
+                      "imageFit",
                       "spacing",
                       "size",
                       "align",
@@ -7611,6 +8069,7 @@ function StructuredPanel({
                   ) : enumValues.length > 0 &&
                     [
                       "enum",
+                      "imageFit",
                       "spacing",
                       "size",
                       "align",
@@ -8229,6 +8688,13 @@ function StructuredPanel({
                         </button>
                       )}
                     </div>
+                  )}
+                  {symbol.kind === "choice" && implicitBasicChoiceKind && (
+                    <p className="editor-choice-special-property" role="status">
+                      {translate(
+                        `ui.editorWorkspace.implicitBasicChoice.${implicitBasicChoiceKind}`,
+                      )}
+                    </p>
                   )}
                   <div className="editor-form-grid editor-detail-fields">
                     {ordinaryDetailFields.map(renderField)}
@@ -8886,6 +9352,9 @@ function PropertiesPanel({
   selectedFile,
   selectedFileBytes,
   selectedFileDiagnosticCount,
+  previewSnapshot,
+  previewFiles,
+  previewTags,
 }: {
   summary: ReturnType<typeof summarizeWorkspace>;
   symbol: FormatSymbol | null;
@@ -8897,6 +9366,9 @@ function PropertiesPanel({
   selectedFile: string | null;
   selectedFileBytes?: number;
   selectedFileDiagnosticCount?: number;
+  previewSnapshot?: JumpPreviewSnapshot;
+  previewFiles: Readonly<Record<string, string>>;
+  previewTags: Readonly<Record<string, TagDefinition>>;
 }) {
   const title = asset
     ? assetBasename(asset)
@@ -9027,6 +9499,13 @@ function PropertiesPanel({
           </>
         )}
       </dl>
+      {previewSnapshot && (
+        <PreviewPropertiesPanel
+          snapshot={previewSnapshot}
+          files={previewFiles}
+          tags={previewTags}
+        />
+      )}
       <p className="editor-property-note">
         {translate("ui.editorWorkspace.asset.propertiesReadOnly")}
       </p>

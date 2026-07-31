@@ -125,6 +125,17 @@ const unquote = (value: string) =>
     ? value.slice(1, -1)
     : value;
 
+const optionValueIsEmpty = (raw: string) => {
+  const value = raw.trim();
+  if (value.startsWith('"') && value.endsWith('"'))
+    try {
+      return String(JSON.parse(value)).trim().length === 0;
+    } catch {
+      return value.slice(1, -1).trim().length === 0;
+    }
+  return value.length === 0;
+};
+
 const normalizedContext = (parent: SourceNode | undefined) => {
   if (!parent) return "top-level";
   if (parent.kind !== "grant") return parent.kind;
@@ -972,6 +983,11 @@ function validateAuthoringWarnings(
 ) {
   const entries = parsed.flatMap((file) => walk(file.tree));
   const assetPaths = new Set(options.assetPaths ?? []);
+  const directlyReferencedChoices = new Set(
+    packageItem.sections.flatMap((section) =>
+      section.directChoices.map((choice) => choice.target),
+    ),
+  );
   for (const { node, parent } of entries) {
     const layoutContentNode = Boolean(
       parent && ["stack", "inline", "wrap", "grid"].includes(parent.kind),
@@ -1049,7 +1065,14 @@ function validateAuthoringWarnings(
     }
     if (node.kind === "choice") {
       const topLevel = parsed.some((file) => file.tree.includes(node));
-      if (topLevel && !node.fields.some((field) => field.name === "group"))
+      const handle = node.fields.find(
+        (field) => field.name === "handle",
+      )?.value;
+      if (
+        topLevel &&
+        !node.fields.some((field) => field.name === "group") &&
+        !directlyReferencedChoices.has(unquote(handle ?? ""))
+      )
         add(
           diagnostics,
           "choice.group.missing",
@@ -1058,6 +1081,7 @@ function validateAuthoringWarnings(
           undefined,
           0,
           "warning",
+          "group",
         );
     }
   }
@@ -1255,18 +1279,36 @@ function validateAuthoringWarnings(
             );
         }
       for (const { node } of walk(declaration.children)) {
-        if (!["text", "image", "input"].includes(node.kind)) continue;
-        const target = node.fields.find((field) => field.name === "target");
-        if (!target) continue;
-        const value = unquote(target.value);
+        if (["text", "image", "input"].includes(node.kind)) {
+          const target = node.fields.find((field) => field.name === "target");
+          if (target) {
+            const value = unquote(target.value);
+            for (const owner of owners)
+              if (!owner.handles[node.kind].has(value))
+                add(
+                  diagnostics,
+                  "layout.typedTarget.missing",
+                  { kind: node.kind, target: value, owner: owner.label },
+                  node,
+                  target,
+                  0,
+                  "warning",
+                );
+          }
+        }
+        const background = node.fields.find(
+          (field) => field.name === "background-image",
+        );
+        if (!background) continue;
+        const value = unquote(background.value);
         for (const owner of owners)
-          if (!owner.handles[node.kind].has(value))
+          if (!owner.handles.image.has(value))
             add(
               diagnostics,
               "layout.typedTarget.missing",
-              { kind: node.kind, target: value, owner: owner.label },
+              { kind: "image", target: value, owner: owner.label },
               node,
-              target,
+              background,
               0,
               "warning",
             );
@@ -1658,7 +1700,22 @@ function validateSemanticFields(
       if (selection !== "select" && optionsFields.length)
         for (const option of optionsFields)
           add(diagnostics, "choice.option.domain", {}, node, option);
-      if (selection === "select" && !optionsFields.length)
+      optionsFields.forEach((option, occurrence) => {
+        if (optionValueIsEmpty(option.value))
+          add(
+            diagnostics,
+            "option.empty",
+            {},
+            node,
+            option,
+            occurrence,
+            "warning",
+          );
+      });
+      if (
+        selection === "select" &&
+        !optionsFields.some((option) => !optionValueIsEmpty(option.value))
+      )
         add(
           diagnostics,
           "choice.select.options",
@@ -1840,7 +1897,22 @@ function validateSemanticFields(
       if (selection !== "select" && optionsFields.length)
         for (const option of optionsFields)
           add(diagnostics, "input.option.domain", { selection }, node, option);
-      if (selection === "select" && !optionsFields.length)
+      optionsFields.forEach((option, occurrence) => {
+        if (optionValueIsEmpty(option.value))
+          add(
+            diagnostics,
+            "option.empty",
+            {},
+            node,
+            option,
+            occurrence,
+            "warning",
+          );
+      });
+      if (
+        selection === "select" &&
+        !optionsFields.some((option) => !optionValueIsEmpty(option.value))
+      )
         add(
           diagnostics,
           "input.option.empty",

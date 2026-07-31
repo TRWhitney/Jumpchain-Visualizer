@@ -57,6 +57,7 @@
       "enum": ["xs", "sm", "md", "lg", "xl", "2xl"],
       "syntax": "a named size token, a non-negative pixel length, or a non-negative rem length"
     },
+    "imageFit": { "enum": ["contain", "cover", "tile"] },
     "align": { "enum": ["start", "center", "end", "stretch"] },
     "justify": { "enum": ["start", "center", "end", "between"] },
     "textAlign": { "enum": ["start", "center", "end", "justify"] },
@@ -362,7 +363,9 @@
     "containerPresentation": {
       "gap": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
       "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
-      "background": { "type": "color", "min": 0, "max": 1 },
+      "background": { "type": "color", "min": 0, "max": 1, "exclusiveWith": ["background-image"] },
+      "background-image": { "type": "handleReference:owner-local-image", "min": 0, "max": 1, "exclusiveWith": ["background"] },
+      "background-fit": { "type": "imageFit", "min": 0, "max": 1, "default": "cover" },
       "align": { "type": "align", "min": 0, "max": 1, "default": "stretch" },
       "justify": { "type": "justify", "min": 0, "max": 1, "default": "start" },
       "text-align": { "type": "textAlign", "min": 0, "max": 1, "default": "start" },
@@ -377,7 +380,9 @@
     "contentLeafPresentation": {
       "target": { "type": "handleReference:owner-local-content", "min": 1, "max": 1, "required": true },
       "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
-      "background": { "type": "color", "min": 0, "max": 1 },
+      "background": { "type": "color", "min": 0, "max": 1, "exclusiveWith": ["background-image"] },
+      "background-image": { "type": "handleReference:owner-local-image", "min": 0, "max": 1, "exclusiveWith": ["background"] },
+      "background-fit": { "type": "imageFit", "min": 0, "max": 1, "default": "cover" },
       "align": { "type": "align", "min": 0, "max": 1 },
       "text-align": { "type": "textAlign", "min": 0, "max": 1 },
       "text-size": { "type": "size", "min": 0, "max": 1 },
@@ -386,7 +391,9 @@
     "slotLeafPresentation": {
       "target": { "type": "handleReference:owner-local-content", "min": 1, "max": 1, "required": true },
       "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
-      "background": { "type": "color", "min": 0, "max": 1 },
+      "background": { "type": "color", "min": 0, "max": 1, "exclusiveWith": ["background-image"] },
+      "background-image": { "type": "handleReference:owner-local-image", "min": 0, "max": 1, "exclusiveWith": ["background"] },
+      "background-fit": { "type": "imageFit", "min": 0, "max": 1, "default": "cover" },
       "align": { "type": "align", "min": 0, "max": 1 },
       "text-align": { "type": "textAlign", "min": 0, "max": 1 },
       "control-adornments": { "type": "boolean", "min": 0, "max": 1, "default": true, "appliesWhen": { "target": ["control", "roll"] } },
@@ -396,13 +403,17 @@
     "imageLeafPresentation": {
       "target": { "type": "handleReference:owner-local-content", "min": 1, "max": 1, "required": true },
       "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
-      "background": { "type": "color", "min": 0, "max": 1 },
+      "background": { "type": "color", "min": 0, "max": 1, "exclusiveWith": ["background-image"] },
+      "background-image": { "type": "handleReference:owner-local-image", "min": 0, "max": 1, "exclusiveWith": ["background"] },
+      "background-fit": { "type": "imageFit", "min": 0, "max": 1, "default": "cover" },
       "align": { "type": "align", "min": 0, "max": 1 }
     },
     "choiceLeafPresentation": {
       "target": { "type": "handleReference:choice-placement", "min": 1, "max": 1, "required": true },
       "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
-      "background": { "type": "color", "min": 0, "max": 1 },
+      "background": { "type": "color", "min": 0, "max": 1, "exclusiveWith": ["background-image"] },
+      "background-image": { "type": "handleReference:owner-local-image", "min": 0, "max": 1, "exclusiveWith": ["background"] },
+      "background-fit": { "type": "imageFit", "min": 0, "max": 1, "default": "cover" },
       "align": { "type": "align", "min": 0, "max": 1 }
     }
   },
@@ -428,7 +439,7 @@
         "size": { "type": "imageDimension", "exclusiveWith": ["width", "height"] },
         "width": { "type": "imageDimension", "exclusiveWith": ["size"] },
         "height": { "type": "imageDimension", "exclusiveWith": ["size"] },
-        "fit": { "type": "enum", "values": ["contain", "cover"] }
+        "fit": { "type": "imageFit" }
       }
     },
     "rule": {
@@ -468,7 +479,7 @@
     { "code": "section.choice.unique_target", "rule": "one section may associate a top-level choice at most once" },
     { "code": "choice.continuity.domain", "rule": "continuity is valid only on selection select with exactly one direct property grant to gender whose value is omitted" },
     { "code": "choice.integer.bounds", "rule": "integer min must not exceed max; random/either requires both finite bounds" },
-    { "code": "choice.select.options", "rule": "option is valid only for selection select; zero options is a warning" },
+    { "code": "choice.select.options", "rule": "option is valid only for selection select; empty option values warn and are omitted; zero non-empty options is a warning" },
     { "code": "choice.resolution.domain", "rule": "choice resolution is valid only for integer or select" },
     { "code": "cost.unique_resource", "rule": "a choice has at most one cost per resolved resource" },
     { "code": "cost.each.integer_only", "rule": "mode each requires selection integer and explicit min >= 0" },
@@ -477,7 +488,7 @@
     { "code": "choice.companions.shorthand", "rule": "a companion-selection choice cannot use scalar companion shorthand because both would claim the owning choice handle" },
     { "code": "choice.placeholder.domain", "rule": "choice placeholder is invalid for toggle because no empty field is rendered" },
     { "code": "input.bounds", "rule": "min/max are valid only for integer inputs" },
-    { "code": "input.options", "rule": "option is valid only for selection select" },
+    { "code": "input.options", "rule": "option is valid only for selection select; empty option values warn and are omitted; zero non-empty options is a warning" },
     { "code": "grant.resource.fields", "rule": "kind resource requires resource and amount and permits neither to be omitted" },
     { "code": "grant.property.fields", "rule": "kind property requires handle; omitted value copies the owning control" },
     { "code": "grant.property.reserved_types", "rule": "origin, species, location, and gender resolve to strings; age resolves to an integer; copied origin, species, and location require compatible string controls; copied gender requires a select choice and copied age requires an integer choice" },
@@ -494,7 +505,7 @@
     { "code": "grant.measure.integer_only", "rule": "measure is valid only for a visible grant owned by an integer choice or input; omission defaults such grants to rank" },
     { "code": "grant.measure.shorthand", "rule": "choice-level measure requires exactly one scalar perk or item grant and targets only that grant" },
     { "code": "grant.visible.fields", "rule": "name and tag are valid only for perk, item, form, companion, and trait; ordinary visible grants accept one owner-local text handle named description; trait grants may additionally expose owner-local text and image content through a trait layout; layout is valid only for trait; form is valid only on perk; companion is valid only on perk and resource; measure is valid only on perk, item, and trait" },
-    { "code": "layout.typed_target", "rule": "typed leaves resolve only in the matching owner-local namespace; absent targets warn and collapse" },
+    { "code": "layout.typed_target", "rule": "typed leaves and background-image presentation resolve only in the matching owner-local namespace; absent targets warn; leaves collapse while a missing background omits only its image layer" },
     { "code": "layout.choice.target", "rule": "a compact choice leaf resolves one choice-placement owned by the rendered section and each placement may appear at most once" },
     { "code": "layout.expand.source", "rule": "expand source resolves in the rendered section and each source may be expanded at most once" },
     { "code": "package.asset_path", "rule": "authored asset paths are relative to the implicit assets root, use portable forward slashes, remain within that root, and resolve to supported graphical files" }

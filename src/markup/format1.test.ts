@@ -146,6 +146,119 @@ section
     ]);
     expect(packageIsValid(packageItem)).toBe(true);
   });
+
+  it("targets Gender Default with an actionable continuity diagnostic", () => {
+    const source = `jump
+  format: 1
+  name: "Continuity"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: identity
+  name: "Identity"
+
+choice
+  handle: gender_control
+  name: "Gender"
+  selection: select
+  continuity: previous
+  option: "Male"
+  option: "Female"
+`;
+    const invalid = canonicalizePackage({
+      id: "continuity-invalid",
+      exactHash: "d".repeat(64),
+      files: { "jump.jdef": source },
+    });
+    const diagnostic = invalid.diagnostics.find(
+      (item) => item.code === "choice.continuity.domain",
+    );
+    expect(diagnostic).toMatchObject({
+      messageKey: "diagnostics.choice.continuity.propertyMissing",
+      target: {
+        file: "jump.jdef",
+        field: "continuity",
+        occurrence: 0,
+        part: "value",
+      },
+    });
+    expect(source.slice(diagnostic?.range?.from, diagnostic?.range?.to)).toBe(
+      "previous",
+    );
+    expect(translateDiagnostic(diagnostic!)).toContain(
+      "Add a Grant, set Award Type to Property and Answer Name to gender",
+    );
+
+    const valid = canonicalizePackage({
+      id: "continuity-valid",
+      exactHash: "e".repeat(64),
+      files: {
+        "jump.jdef": `${source}
+  grant
+    kind: property
+    handle: gender
+`,
+      },
+    });
+    expect(
+      valid.diagnostics.some(
+        (item) => item.code === "choice.continuity.domain",
+      ),
+    ).toBe(false);
+
+    const implicit = canonicalizePackage({
+      id: "continuity-implicit-valid",
+      exactHash: "i".repeat(64),
+      files: {
+        "jump.jdef": source.replace("gender_control", "gender"),
+      },
+    });
+    expect(
+      implicit.diagnostics.some(
+        (item) => item.code === "choice.continuity.domain",
+      ),
+    ).toBe(false);
+  });
+
+  it("explains when Gender Default uses an incompatible Selection Type", () => {
+    const packageItem = canonicalizePackage({
+      id: "continuity-selection-invalid",
+      exactHash: "f".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Continuity"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: identity
+  name: "Identity"
+
+choice
+  handle: gender
+  name: "Gender"
+  selection: toggle
+  continuity: previous
+`,
+      },
+    });
+    const diagnostic = packageItem.diagnostics.find(
+      (item) => item.code === "choice.continuity.domain",
+    );
+    expect(diagnostic?.messageKey).toBe(
+      "diagnostics.choice.continuity.selection",
+    );
+    expect(diagnostic?.structuredTargets).toEqual([
+      expect.objectContaining({ field: "continuity" }),
+      expect.objectContaining({ field: "selection" }),
+    ]);
+    expect(translateDiagnostic(diagnostic!)).toContain(
+      "Change Selection Type to Select",
+    );
+  });
+
   it("uses verified SHA-256 package identities", () => {
     expect(sha256("")).toBe(
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -904,6 +1017,103 @@ choice
     );
   });
 
+  it("targets and omits empty Choice and Input options", () => {
+    const source = `jump
+  format: 1
+  name: "Empty options"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+
+  choice
+    handle: route
+    target: route
+
+choice
+  handle: route
+  name: "Route"
+  selection: select
+  option: "Alpha"
+  option when gauntlet = true: ""
+  option: ""
+  option when gauntlet = true: "Orphaned variant"
+  option: "   "
+  option: "Omega"
+
+  input
+    handle: detail
+    selection: select
+    option: "North"
+    option: ""
+    option: "South"
+
+choice
+  handle: unusable
+  name: "Unusable"
+  selection: select
+  option: ""
+`;
+    const packageItem = canonicalizePackage({
+      id: "empty-options",
+      exactHash: "0".repeat(64),
+      files: { "jump.jdef": source },
+    });
+    const route = packageItem.choices.find(
+      (choice) => choice.handle === "route",
+    )!;
+
+    expect(route.options).toEqual([
+      { base: "Alpha", variants: [] },
+      { base: "Omega", variants: [] },
+    ]);
+    expect(route.inputs[0]?.options).toEqual([
+      { base: "North", variants: [] },
+      { base: "South", variants: [] },
+    ]);
+    expect(
+      packageItem.diagnostics
+        .filter((diagnostic) => diagnostic.code === "option.empty")
+        .map((diagnostic) => diagnostic.target),
+    ).toEqual([
+      expect.objectContaining({
+        field: "option",
+        occurrence: 1,
+      }),
+      expect.objectContaining({
+        field: "option",
+        occurrence: 2,
+      }),
+      expect.objectContaining({
+        field: "option",
+        occurrence: 4,
+      }),
+      expect.objectContaining({
+        field: "option",
+        occurrence: 1,
+      }),
+      expect.objectContaining({
+        field: "option",
+        occurrence: 0,
+      }),
+    ]);
+    expect(
+      packageItem.diagnostics.filter(
+        (diagnostic) =>
+          diagnostic.code === "choice.select.options" &&
+          diagnostic.target?.declarationFrom ===
+            source.indexOf("\nchoice\n  handle: unusable") + 1,
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        severity: "warning",
+        target: expect.objectContaining({ field: "option" }),
+      }),
+    ]);
+  });
+
   it("reports a removed layout name through the generic unknown-field rule", () => {
     const source = `jump
   format: 1
@@ -971,6 +1181,69 @@ theme
     expect(source.slice(diagnostic!.range!.from, diagnostic!.range!.to)).toBe(
       '"No longer valid"',
     );
+  });
+
+  it("treats an ungrouped Choice as reachable when a Section directly references it", () => {
+    const unreachableSource = `jump
+  format: 1
+  name: "Direct reachability"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: identity
+  name: "Identity"
+
+choice
+  handle: identity_choice
+  name: "Identity Choice"
+`;
+    const unreachable = canonicalizePackage({
+      id: "ungrouped-unreachable",
+      exactHash: "3".repeat(64),
+      files: { "jump.jdef": unreachableSource },
+    });
+    const warning = unreachable.diagnostics.find(
+      (diagnostic) => diagnostic.code === "choice.group.missing",
+    );
+    expect(warning).toMatchObject({
+      severity: "warning",
+      target: {
+        field: "group",
+        occurrence: 0,
+        part: "declaration",
+      },
+    });
+    expect(translateDiagnostic(warning!)).toBe(
+      "This choice belongs to no group and is not directly referenced, making it unreachable.",
+    );
+    expect(
+      unreachable.diagnostics.some(
+        (diagnostic) => diagnostic.code === "choice.unreachable",
+      ),
+    ).toBe(false);
+
+    const reachableSource = unreachableSource.replace(
+      '  name: "Identity"\n',
+      `  name: "Identity"
+
+  choice
+    handle: identity_field
+    target: identity_choice
+`,
+    );
+    const reachable = canonicalizePackage({
+      id: "ungrouped-reachable",
+      exactHash: "4".repeat(64),
+      files: { "jump.jdef": reachableSource },
+    });
+    expect(
+      reachable.diagnostics.filter((diagnostic) =>
+        ["choice.group.missing", "choice.unreachable"].includes(
+          diagnostic.code,
+        ),
+      ),
+    ).toEqual([]);
   });
 
   it("canonicalizes direct-choice leaf presentation", () => {
@@ -1740,6 +2013,130 @@ trait-layout
         String(diagnostic.parameters?.target).includes("trait_description"),
       ),
     ).toBe(false);
+  });
+
+  it("canonicalizes owner-local background images and validates their field relationships", () => {
+    const packageItem = canonicalizePackage(
+      {
+        id: "layout-backgrounds",
+        exactHash: "b".repeat(64),
+        files: {
+          "jump.jdef": `jump
+  format: 1
+  name: "Backgrounds"
+  author: "Tester"
+  version: "1"
+  section-layout: card
+
+section
+  handle: content
+  name: "Content"
+  image
+    handle: texture
+    src: "texture.png"
+    alt: ""
+
+section-layout
+  handle: card
+
+  stack
+    background-image: texture
+    background-fit: tile
+    slot: name
+
+    inline
+      background: white
+      background-image: texture
+      slot: name
+
+    inline
+      background-fit: contain
+      slot: name
+`,
+        },
+      },
+      {
+        profile: "editor",
+        assetPaths: ["texture.png"],
+        warnings: { missingLayoutTargets: true },
+      },
+    );
+
+    expect(packageItem.layouts[0].root.presentation).toMatchObject({
+      backgroundImage: "texture",
+      backgroundFit: "tile",
+    });
+    expect(packageItem.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "schema.field.exclusive" }),
+    );
+    expect(packageItem.layouts[0].root.children[2].presentation).toMatchObject({
+      backgroundFit: "contain",
+    });
+    expect(
+      packageItem.diagnostics.filter(
+        (diagnostic) => diagnostic.code === "layout.typedTarget.missing",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("warns only for layout consumers missing an owner-local background image", () => {
+    const packageItem = canonicalizePackage(
+      {
+        id: "layout-background-consumers",
+        exactHash: "c".repeat(64),
+        files: {
+          "jump.jdef": `jump
+  format: 1
+  name: "Background consumers"
+  author: "Tester"
+  version: "1"
+  section-layout: card
+
+section
+  handle: illustrated
+  name: "Illustrated"
+  image
+    handle: texture
+    src: "texture.png"
+    alt: ""
+
+section
+  handle: plain
+  name: "Plain"
+
+section-layout
+  handle: card
+
+  stack
+    background-image: texture
+    slot: name
+`,
+        },
+      },
+      {
+        profile: "editor",
+        assetPaths: ["texture.png"],
+        warnings: { missingLayoutTargets: true },
+      },
+    );
+
+    expect(packageItem.layouts[0].root.presentation.backgroundImage).toBe(
+      "texture",
+    );
+    expect(
+      packageItem.diagnostics.filter(
+        (diagnostic) => diagnostic.code === "layout.typedTarget.missing",
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        severity: "warning",
+        parameters: expect.objectContaining({
+          kind: "image",
+          target: "texture",
+          owner: "section plain",
+        }),
+      }),
+    ]);
   });
 
   it("checks Trait layout targets against the Trait grant that uses the layout", () => {

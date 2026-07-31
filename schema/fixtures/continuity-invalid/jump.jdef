@@ -1,0 +1,22 @@
+jump
+  format: 1
+  name: "Invalid continuity"
+  description: "Demonstrates an incomplete Gender Default."
+  author: "Schema Working Group"
+  version: "1.0"
+
+section
+  handle: identity
+  name: "Identity"
+
+  choice
+    handle: gender_field
+    target: gender_control
+
+choice
+  handle: gender_control
+  name: "Gender"
+  selection: select
+  continuity: previous
+  option: "Male"
+  option: "Female"

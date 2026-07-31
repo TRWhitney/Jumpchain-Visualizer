@@ -1,5 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { evaluateChain } from "../domain";
+import {
+  evaluateChain,
+  type ActorEntryState,
+  type ChainEvaluation,
+} from "../domain";
 import type { CanonicalJumpPackage, JumpChoice } from "../markup";
 import {
   JumpChoiceRendererScope,
@@ -207,6 +211,13 @@ export type LayoutBoundHover = {
   kind: "container" | "slot" | "reference";
 };
 
+export type JumpPreviewSnapshot = {
+  packageItem: CanonicalJumpPackage;
+  actorState: ActorEntryState;
+  evaluation: ChainEvaluation;
+  selectionKind: PreviewSelection["kind"];
+};
+
 export function JumpPreview({
   packageItem,
   layoutPackageItem,
@@ -224,6 +235,7 @@ export function JumpPreview({
   hoveredAppearanceColor,
   onHoveredAppearanceColorChange,
   onAppearanceColorActivate,
+  onSnapshotChange,
 }: {
   packageItem: CanonicalJumpPackage;
   layoutPackageItem?: CanonicalJumpPackage;
@@ -243,6 +255,7 @@ export function JumpPreview({
     value: AppearanceColorInspection | null,
   ) => void;
   onAppearanceColorActivate?: (value: AppearanceColorInspection) => void;
+  onSnapshotChange?: (snapshot: JumpPreviewSnapshot) => void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const activeInspectionRef = useRef<HTMLElement | null>(null);
@@ -344,6 +357,20 @@ export function JumpPreview({
       }),
     [actorState, renderedPackage],
   );
+  useEffect(() => {
+    onSnapshotChange?.({
+      packageItem: renderedPackage,
+      actorState,
+      evaluation,
+      selectionKind: selection.kind,
+    });
+  }, [
+    actorState,
+    evaluation,
+    onSnapshotChange,
+    renderedPackage,
+    selection.kind,
+  ]);
   const assetUrls = useAssetObjectUrls(assets, true);
   const previewCompanions = [
     {
@@ -407,7 +434,7 @@ export function JumpPreview({
       warnUpstreamChanges: true,
       allowMultiplePackageVersions: false,
       allowDuplicateJumps: false,
-      allowNegativePointBalances: false,
+      allowNegativePointBalances: true,
       allowRerolls: false,
       includeItemTagsInRadar: false,
       aggregateSimilarInventory: true,

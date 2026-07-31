@@ -411,7 +411,8 @@ choice
     image
       target: portrait
       padding: xs
-      background: surface
+      background-image: portrait
+      background-fit: tile
       align: end
       text-align: center
       text-size: sm
@@ -445,7 +446,8 @@ choice
     expect(images[0].fieldNames).toEqual([
       "target",
       "padding",
-      "background",
+      "background-image",
+      "background-fit",
       "align",
       "text-align",
       "text-size",

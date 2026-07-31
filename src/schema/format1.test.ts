@@ -45,9 +45,55 @@ describe("unreleased Format 1 identity amendment", () => {
         required: true,
       },
       padding: { type: "spacing", min: 0, max: 1, default: "none" },
-      background: { type: "color", min: 0, max: 1 },
+      background: {
+        type: "color",
+        min: 0,
+        max: 1,
+        exclusiveWith: ["background-image"],
+      },
+      "background-image": {
+        type: "handleReference:owner-local-image",
+        min: 0,
+        max: 1,
+        exclusiveWith: ["background"],
+      },
+      "background-fit": {
+        type: "imageFit",
+        min: 0,
+        max: 1,
+        default: "cover",
+      },
       align: { type: "align", min: 0, max: 1 },
     });
+  });
+
+  it("shares image fitting and background-image presentation across eligible layout nodes", () => {
+    expect(schemaJson.types.imageFit.enum).toEqual([
+      "contain",
+      "cover",
+      "tile",
+    ]);
+    expect(schemaJson.layoutNodes.image.additionalFields.fit).toEqual({
+      type: "imageFit",
+    });
+    for (const fieldSet of [
+      "containerPresentation",
+      "contentLeafPresentation",
+      "slotLeafPresentation",
+      "imageLeafPresentation",
+      "choiceLeafPresentation",
+    ] as const)
+      expect(schemaJson.fieldSets[fieldSet]).toMatchObject({
+        background: { exclusiveWith: ["background-image"] },
+        "background-image": {
+          type: "handleReference:owner-local-image",
+          exclusiveWith: ["background"],
+        },
+        "background-fit": {
+          type: "imageFit",
+          default: "cover",
+        },
+      });
   });
 
   it("accepts continuity only on the top-level choice form", () => {

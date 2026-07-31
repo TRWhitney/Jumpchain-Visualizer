@@ -86,6 +86,7 @@ choice
     selection: select
     placeholder: "Route response"
     option: "North"
+    option: ""
     option: "South"
 `,
   },
@@ -231,6 +232,114 @@ test("rendered images disclose authored alternative text on hover", async () => 
   expect(document.querySelectorAll(".jump-image-alt-tooltip")).toHaveLength(1);
 });
 
+test("tiled images repeat visually while retaining one semantic image", async () => {
+  render(
+    <div className="jump-layout-leaf-boundary" data-layout-kind="image">
+      <RenderedJumpImage
+        source="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='24'/%3E"
+        alternativeText="A tiled route marker"
+        style={{ width: "12rem", height: "6rem" }}
+        tiled
+      />
+      <RenderedJumpImage
+        source="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'/%3E"
+        alternativeText=""
+        tiled
+      />
+    </div>,
+  );
+
+  const semanticImage = page.getByAltText("A tiled route marker");
+  await expect.element(semanticImage).toBeInTheDocument();
+  expect(getComputedStyle(semanticImage.element()).opacity).toBe("0");
+  const tile = semanticImage.element().parentElement!;
+  expect(tile.classList.contains("jump-tiled-image")).toBe(true);
+  expect(getComputedStyle(tile).backgroundRepeat).toBe("repeat");
+  expect(getComputedStyle(tile).backgroundPosition).toBe("0px 0px");
+  expect(tile.getBoundingClientRect().width).toBeCloseTo(192);
+  expect(tile.getBoundingClientRect().height).toBeCloseTo(96);
+  expect(document.querySelectorAll(".jump-tiled-image img")).toHaveLength(2);
+  expect(
+    document.querySelectorAll(
+      '.jump-tiled-image img[alt="A tiled route marker"]',
+    ),
+  ).toHaveLength(1);
+  expect(
+    document.querySelectorAll('.jump-tiled-image img[alt=""]'),
+  ).toHaveLength(1);
+  await userEvent.hover(tile);
+  await expect
+    .element(page.getByRole("tooltip"))
+    .toHaveTextContent("A tiled route marker");
+});
+
+test("Jump, Section, and Choice labels interpolate evaluated properties", async () => {
+  const fixture = createDenseTrackerFixture();
+  const state = {
+    ...emptyActorEntryState(),
+    choices: { prompt: "Ready" },
+  };
+  const packageItem = {
+    ...controlPackage,
+    name: { base: "Control {{gender}}", variants: [] },
+    description: "Description for {{gender}}",
+    sections: controlPackage.sections.map((section) => ({
+      ...section,
+      name: { base: "Choices for {{gender}}", variants: [] },
+    })),
+    choices: controlPackage.choices.map((choice) =>
+      choice.handle === "prompt"
+        ? {
+            ...choice,
+            name: { base: "{{gender}} prompt", variants: [] },
+          }
+        : choice,
+    ),
+  };
+  const evaluated = evaluateChain({
+    order: ["entry"],
+    packageIdByEntry: { entry: packageItem.id },
+    packages: { [packageItem.id]: packageItem },
+    jumpState: {
+      entry: { actors: { jumper: state }, appliedGauntlet: [] },
+    },
+    jumperName: "Tester",
+    initialIdentity: {
+      gender: { value: "Female", sourceLabel: "Preview identity" },
+    },
+  }).runtime.entry.actors.jumper;
+
+  render(
+    <JumpRenderer
+      packageItem={packageItem}
+      entryId="entry"
+      actorId="jumper"
+      state={state}
+      evaluation={evaluated}
+      preferences={fixture.preferences}
+      tags={fixture.tags}
+      companions={[]}
+      gauntletActive={false}
+      dispatch={() => undefined}
+    />,
+  );
+
+  await expect
+    .element(page.getByRole("heading", { name: "Control Female" }))
+    .toBeVisible();
+  await expect
+    .element(page.getByText("Description for Female", { exact: true }))
+    .toBeVisible();
+  await expect
+    .element(page.getByRole("heading", { name: "Choices for Female" }))
+    .toBeVisible();
+  expect(
+    [...document.querySelectorAll(".default-choice-heading strong")].map(
+      (element) => element.textContent,
+    ),
+  ).toContain("Female prompt");
+});
+
 test("the accessibility preference suppresses only the visual image alt tooltip", async () => {
   const settings = defaultSettings(createDefaultTagProfile());
   settings.accessibility.imageAltTextHover = false;
@@ -264,6 +373,15 @@ test("choice and supporting Input placeholders render through the shared rendere
   await expect
     .element(page.getByRole("combobox", { name: "Route" }))
     .toHaveValue("");
+  expect(
+    [
+      ...(
+        page
+          .getByRole("combobox", { name: "Route" })
+          .element() as HTMLSelectElement
+      ).options,
+    ].map((option) => option.textContent),
+  ).toEqual(["Route response", "North", "South"]);
   expect(
     [...document.querySelectorAll(".jump-nested-inputs > label > strong")].map(
       (label) => label.textContent,

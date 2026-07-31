@@ -149,6 +149,87 @@ choice
     ]);
   });
 
+  it("catalogs implicit named basics and Origin group values as package properties", () => {
+    const parsed = parseFormatFile(
+      "identity.jdef",
+      `section
+  handle: identity
+  name: "Identity"
+
+  choice
+    handle: gender_field
+    target: gender
+
+  choice
+    handle: age_field
+    target: age
+
+  choice
+    handle: location_field
+    target: location
+
+  choice
+    handle: origin_field
+    target: origin
+
+  choice-source
+    handle: origin
+    group: backgrounds
+    mode: single
+
+choice
+  handle: gender
+  name: "Gender"
+  selection: select
+  option: "Male"
+  option: "Female"
+
+choice
+  handle: age
+  name: "Age"
+  selection: integer
+  min: 1
+
+choice
+  handle: location
+  name: "Location (Poolside)"
+  selection: toggle
+
+choice
+  handle: origin
+  name: "Origin (Local)"
+  selection: toggle
+
+choice
+  handle: roadborn
+  name: "Roadborn"
+  group: backgrounds
+`,
+    );
+    const properties = conditionPropertyCatalog([parsed]);
+
+    expect(properties.find((item) => item.handle === "gender")).toMatchObject({
+      type: "string",
+      values: ["Male", "Female"],
+    });
+    expect(properties.find((item) => item.handle === "age")).toMatchObject({
+      type: "integer",
+      minimum: 1,
+    });
+    expect(properties.find((item) => item.handle === "location")).toMatchObject(
+      {
+        type: "string",
+        category: "package",
+        values: ["Poolside"],
+      },
+    );
+    expect(properties.find((item) => item.handle === "origin")).toMatchObject({
+      type: "string",
+      category: "package",
+      values: ["Local", "Roadborn"],
+    });
+  });
+
   it.each([
     ["grant: perk", "rank"],
     ["grant: item\n  measure: quantity", "count"],

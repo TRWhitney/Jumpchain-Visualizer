@@ -4,6 +4,7 @@ import {
   emptyActorEntryState,
   emptyJumpEntryState,
   evaluateChain,
+  renderRenderable,
   renderRichTextRenderable,
   type ActorEntryState,
   type JumpRuntimeState,
@@ -77,7 +78,7 @@ describe("Format 1 chain evaluation", () => {
   it("keeps interpolated author answers literal inside rich text", () => {
     const blocks = renderRichTextRenderable(
       {
-        base: "Answer: {{answer}}",
+        base: "Answer: {{ answer }}",
         variants: [],
       },
       { answer: "**not bold**\n- not a list" },
@@ -88,6 +89,162 @@ describe("Format 1 chain evaluation", () => {
         content: [{ text: "Answer: **not bold**\n- not a list" }],
       },
     ]);
+  });
+
+  it("interpolates whitespace-tolerant placeholders in plain renderables", () => {
+    expect(
+      renderRenderable(
+        {
+          base: "I can tell you're a smart {{ gender }}.",
+          variants: [],
+        },
+        { gender: "Male" },
+      ),
+    ).toBe("I can tell you're a smart Male.");
+  });
+
+  it("derives reserved basic properties from named Choices and an Origin group", () => {
+    const packageItem = canonicalizePackage({
+      id: "implicit-basic-properties",
+      exactHash: "i".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Implicit basics"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: identity
+  name: "Identity"
+
+  choice
+    handle: gender_field
+    target: gender
+
+  choice
+    handle: age_field
+    target: age
+
+  choice
+    handle: location_field
+    target: location
+
+  choice-source
+    handle: origin
+    group: backgrounds
+    mode: single
+
+choice
+  handle: gender
+  name: "Gender"
+  selection: select
+  option: "Male"
+  option: "Female"
+
+choice
+  handle: age
+  name: "Age"
+  selection: integer
+
+choice
+  handle: location
+  name: "Location (Poolside)"
+  selection: toggle
+
+choice
+  handle: roadborn
+  name: "Roadborn"
+  group: backgrounds
+
+choice
+  handle: scholar
+  name: "Scholar"
+  group: backgrounds
+`,
+      },
+    });
+    const evaluated = evaluateChain({
+      order: ["entry"],
+      packageIdByEntry: { entry: packageItem.id },
+      packages: { [packageItem.id]: packageItem },
+      jumpState: {
+        entry: {
+          actors: {
+            jumper: {
+              ...emptyActorEntryState(),
+              choices: {
+                gender: "Female",
+                age: 24,
+                location: true,
+              },
+              sourceSelections: {
+                "identity:origin": ["roadborn"],
+              },
+            },
+          },
+          appliedGauntlet: [],
+        },
+      },
+      jumperName: "Tester",
+    }).runtime.entry.actors.jumper;
+
+    expect(evaluated.properties).toMatchObject({
+      gender: { value: "Female", sourceLabel: "Gender" },
+      age: { value: 24, sourceLabel: "Age" },
+      origin: { value: "Roadborn", sourceLabel: "Roadborn" },
+      location: { value: "Poolside", sourceLabel: "Location (Poolside)" },
+    });
+  });
+
+  it("derives Origin from an ungrouped direct non-integer Choice", () => {
+    const packageItem = canonicalizePackage({
+      id: "implicit-direct-origin",
+      exactHash: "o".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Implicit direct Origin"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: identity
+  name: "Identity"
+
+  choice
+    handle: origin_field
+    target: origin
+
+choice
+  handle: origin
+  name: "Origin (Local)"
+  selection: toggle
+`,
+      },
+    });
+    const evaluated = evaluateChain({
+      order: ["entry"],
+      packageIdByEntry: { entry: packageItem.id },
+      packages: { [packageItem.id]: packageItem },
+      jumpState: {
+        entry: {
+          actors: {
+            jumper: {
+              ...emptyActorEntryState(),
+              choices: { origin: true },
+            },
+          },
+          appliedGauntlet: [],
+        },
+      },
+      jumperName: "Tester",
+    }).runtime.entry.actors.jumper;
+
+    expect(evaluated.properties.origin).toEqual({
+      value: "Local",
+      sourceLabel: "Origin (Local)",
+    });
   });
 
   it("provides deterministic fixture randomness through an injected port", () => {

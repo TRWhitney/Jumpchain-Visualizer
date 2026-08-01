@@ -281,9 +281,12 @@ interactive correction proxy runs in a dedicated worker while a separate worker
 produces and validates the full-resolution commit. Updating asset bytes does not
 repeat source analysis unless the set of asset paths changes; Image blocks and
 layout backgrounds receive the correction proxy immediately, followed by the
-validated full-resolution result when the commit completes. Validated raster
-metadata is reused for that handoff, unchanged asset URLs are retained, and
-browser or desktop project serialization runs outside the foreground editor.</p>
+validated full-resolution bytes as the persisted and exported asset when the
+commit completes. The bounded proxy remains the shared on-screen source for the
+active authoring session so decoding the large flattened asset cannot interrupt
+canvas input. Validated raster metadata is reused for that handoff, unchanged
+asset URLs are retained, and desktop serialization crosses Tauri IPC as a
+transferable raw payload rather than foreground JSON.</p>
 <h3>Current File Roles</h3>
 <h4><code>jump.jdef</code></h4>
 <p>Required.</p>

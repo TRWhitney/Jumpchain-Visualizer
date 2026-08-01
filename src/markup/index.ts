@@ -9,3 +9,4 @@ export * from "./parseSource";
 export * from "./packageSources";
 export * from "./sha256";
 export * from "./validateFormat1";
+export * from "./validationDiagnostics";

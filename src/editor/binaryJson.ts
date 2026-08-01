@@ -84,3 +84,7 @@ export function stringifyBinaryJson(value: unknown) {
     candidate instanceof Uint8Array ? encodeBytesForJson(candidate) : candidate,
   );
 }
+
+export function encodeBinaryJson(value: unknown) {
+  return new TextEncoder().encode(stringifyBinaryJson(value));
+}

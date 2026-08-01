@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+
 import type { CanonicalJumpPackage, LayoutNode } from "../markup";
 import { format1BuiltInColors } from "../markup/format1Colors";
 import {

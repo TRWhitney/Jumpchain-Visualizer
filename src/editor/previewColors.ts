@@ -1,5 +1,5 @@
 import type { CanonicalJumpPackage, LayoutNode, Presentation } from "../markup";
-import { defaultCostAppearanceColors } from "../tracker/jumpAppearance";
+import { defaultCostAppearanceColors } from "../renderer/jumpAppearance";
 
 function stripPresentationColors(presentation: Presentation): Presentation {
   const stripped = { ...presentation };

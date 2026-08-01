@@ -1,6 +1,5 @@
 import type {
   CanonicalJumpPackage,
-  DiagnosticSeverity,
   PackageDiagnostic,
   PackageValidationOptions,
   ParsedFormatFile,
@@ -32,11 +31,12 @@ import {
   type FieldRule,
 } from "./format1Schema";
 import { closestSuggestion } from "./closestSuggestion";
-
-const unquote = (value: string) =>
-  value.length >= 2 && value.startsWith('"') && value.endsWith('"')
-    ? value.slice(1, -1)
-    : value;
+import {
+  appendDiagnostic as add,
+  diagnosticFieldTarget as fieldTarget,
+  diagnosticScalarRange as scalarRange,
+  unquote,
+} from "./validationDiagnostics";
 
 const optionValueIsEmpty = (raw: string) => {
   const value = raw.trim();
@@ -121,53 +121,6 @@ function rulesFor(node: SourceNode, parent: SourceNode | undefined) {
     context: parent?.kind ?? "layout",
     layout: true,
   };
-}
-
-function fieldTarget(node: SourceNode, field?: SourceField, occurrence = 0) {
-  return {
-    file: node.range.file,
-    declarationFrom: node.range.from,
-    field: field?.name,
-    occurrence,
-    part: field ? ("value" as const) : ("declaration" as const),
-  };
-}
-
-function scalarRange(node: SourceNode) {
-  const scalar = node.scalar ?? "";
-  const to = node.range.to;
-  return {
-    ...node.range,
-    column: Math.max(
-      node.range.column,
-      node.range.column + node.kind.length + 2,
-    ),
-    from: Math.max(node.range.from, to - scalar.length),
-    to,
-  };
-}
-
-function add(
-  diagnostics: PackageDiagnostic[],
-  code: string,
-  parameters: Record<string, string | number>,
-  node: SourceNode,
-  field?: SourceField,
-  occurrence = 0,
-  severity: DiagnosticSeverity = "error",
-  targetField?: string,
-) {
-  diagnostics.push({
-    code,
-    severity,
-    messageKey: `diagnostics.${code}`,
-    parameters,
-    range: field?.valueRange ?? node.range,
-    target: {
-      ...fieldTarget(node, field, occurrence),
-      field: targetField ?? field?.name,
-    },
-  });
 }
 
 function valueIsValid(

@@ -16,6 +16,7 @@ export type AssetSourceCommit = {
   bytes: Uint8Array;
   document: AssetEditorDocument | null;
   historyLabel: string;
+  preview?: Blob;
 };
 
 export function AssetSourceWorkspace({
@@ -78,6 +79,7 @@ export function AssetSourceWorkspace({
     nextBytes: Uint8Array,
     nextDocument: AssetEditorDocument | null,
     historyLabel: string,
+    preview?: Blob,
   ) => {
     const generation = ++validationGeneration.current;
     if (nextDocument?.kind === "svg") {
@@ -98,6 +100,7 @@ export function AssetSourceWorkspace({
         bytes: nextBytes,
         document: nextDocument,
         historyLabel,
+        preview,
       });
       return;
     }
@@ -177,8 +180,13 @@ export function AssetSourceWorkspace({
           }
           readOnly={readOnly}
           keybindings={keybindings}
-          onCommit={(nextBytes, nextDocument, historyLabel) =>
-            void validateAndCommit(nextBytes, nextDocument, historyLabel)
+          onCommit={(nextBytes, nextDocument, historyLabel, preview) =>
+            void validateAndCommit(
+              nextBytes,
+              nextDocument,
+              historyLabel,
+              preview,
+            )
           }
           onPreview={publishPreview}
           onStatus={reportStatus}

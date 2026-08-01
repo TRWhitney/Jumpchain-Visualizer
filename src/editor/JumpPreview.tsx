@@ -12,8 +12,10 @@ import {
   JumpRenderer,
   JumpSectionRendererScope,
   JumpTraitRendererScope,
+  createRendererActions,
   type JumpRendererProps,
-} from "../tracker/JumpRenderer";
+  type RendererMutation,
+} from "../renderer";
 import {
   createLayoutPreviewFixture,
   layoutPreviewImagePath,
@@ -37,6 +39,8 @@ import {
 const layoutPreviewImageUrl = `data:image/svg+xml,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180"><rect width="320" height="180" fill="#d8d3c6"/><path d="M24 142l72-72 48 48 42-42 110 66" fill="none" stroke="#6f766f" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><circle cx="246" cy="48" r="22" fill="#b58b37"/></svg>',
 )}`;
+
+const noPreviewAssets: Readonly<Record<string, Uint8Array>> = {};
 
 function appearancePreviewPackage(
   packageItem: CanonicalJumpPackage,
@@ -230,8 +234,10 @@ export function JumpPreview({
   layoutPackageItem,
   choicePackageItem,
   assets,
+  resolvedAssetUrls,
   assetUrlOverrides,
   tags,
+  imageAltTextHover,
   selection,
   showBounds,
   stripColor,
@@ -249,8 +255,10 @@ export function JumpPreview({
   layoutPackageItem?: CanonicalJumpPackage;
   choicePackageItem?: CanonicalJumpPackage;
   assets: Readonly<Record<string, Uint8Array>>;
+  resolvedAssetUrls?: Readonly<Record<string, string>>;
   assetUrlOverrides?: Readonly<Record<string, string>>;
   tags: JumpRendererProps["tags"];
+  imageAltTextHover: boolean;
   selection: PreviewSelection;
   showBounds: boolean;
   stripColor: boolean;
@@ -380,10 +388,14 @@ export function JumpPreview({
     renderedPackage,
     selection.kind,
   ]);
-  const storedAssetUrls = useAssetObjectUrls(assets, true);
+  const storedAssetUrls = useAssetObjectUrls(
+    resolvedAssetUrls ? noPreviewAssets : assets,
+    true,
+  );
   const assetUrls = useMemo(
     () => ({
       ...storedAssetUrls,
+      ...resolvedAssetUrls,
       ...Object.fromEntries(
         Object.entries(assetUrlOverrides ?? {}).map(([path, url]) => [
           assetRelativePath(path),
@@ -391,7 +403,7 @@ export function JumpPreview({
         ]),
       ),
     }),
-    [assetUrlOverrides, storedAssetUrls],
+    [assetUrlOverrides, resolvedAssetUrls, storedAssetUrls],
   );
   const previewCompanions = [
     {
@@ -438,6 +450,15 @@ export function JumpPreview({
     showBounds,
     stripColor,
   ]);
+  const applyRendererMutation = (action: RendererMutation) =>
+    setPreviewActor((current) => {
+      const state =
+        current.key === previewActorKey ? current.state : initialActorState;
+      return {
+        key: previewActorKey,
+        state: reducePreviewActorState(state, action),
+      };
+    });
   const rendererProps: JumpRendererProps = {
     packageItem: renderedPackage,
     entryId: "preview-entry",
@@ -452,15 +473,9 @@ export function JumpPreview({
       diagnostics: [],
     },
     preferences: {
-      warnUpstreamChanges: true,
-      allowMultiplePackageVersions: false,
-      allowDuplicateJumps: false,
-      allowNegativePointBalances: true,
       allowRerolls: false,
-      includeItemTagsInRadar: false,
-      aggregateSimilarInventory: true,
       showAdditionalJumpInformation: false,
-      showMockData: false,
+      imageAltTextHover,
     },
     tags:
       selection.kind === "appearance" && selection.mode === "components"
@@ -483,15 +498,7 @@ export function JumpPreview({
     gauntletActive: renderedPackage.nativeGauntlet,
     resolveAsset: (path) =>
       path === layoutPreviewImagePath ? layoutPreviewImageUrl : assetUrls[path],
-    dispatch: (action) =>
-      setPreviewActor((current) => {
-        const state =
-          current.key === previewActorKey ? current.state : initialActorState;
-        return {
-          key: previewActorKey,
-          state: reducePreviewActorState(state, action),
-        };
-      }),
+    actions: createRendererActions(applyRendererMutation),
   };
   const section = renderedPackage.sections.find(
     (item) => item.handle === selectionHandle,

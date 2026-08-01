@@ -289,7 +289,15 @@ fn save_editor_workspace(
     payload: String,
     state: State<'_, PersistenceState>,
 ) -> CommandResult<()> {
-    let value = validate_editor_workspace_payload(&payload)?;
+    persist_editor_workspace_payload(&app, &payload, &state)
+}
+
+fn persist_editor_workspace_payload(
+    app: &tauri::AppHandle,
+    payload: &str,
+    state: &PersistenceState,
+) -> CommandResult<()> {
+    let value = validate_editor_workspace_payload(payload)?;
     save_external_workspace(&value)?;
     let id = value
         .get("id")
@@ -319,6 +327,21 @@ fn save_editor_workspace(
     store
         .save("editor-workspaces", 1, &encoded)
         .map_err(|_| CommandError::from("Editor registry write failed"))
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn save_editor_workspace_binary(
+    app: tauri::AppHandle,
+    request: tauri::ipc::Request<'_>,
+    state: State<'_, PersistenceState>,
+) -> CommandResult<()> {
+    let tauri::ipc::InvokeBody::Raw(payload) = request.body() else {
+        return Err(CommandError::from("Editor payload is not binary"));
+    };
+    let payload = std::str::from_utf8(payload)
+        .map_err(|_| CommandError::from("Editor payload is invalid JSON"))?;
+    persist_editor_workspace_payload(&app, payload, &state)
 }
 
 #[tauri::command]
@@ -569,6 +592,7 @@ pub fn run() {
             list_editor_workspaces,
             load_editor_workspace,
             save_editor_workspace,
+            save_editor_workspace_binary,
             remove_editor_workspace,
             open_editor_project_folder,
             scan_editor_project_folder,

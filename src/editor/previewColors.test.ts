@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CanonicalJumpPackage, LayoutNode } from "../markup";
-import { defaultCostAppearanceColors } from "../tracker/jumpAppearance";
+import { defaultCostAppearanceColors } from "../renderer/jumpAppearance";
 import { stripPreviewColors } from "./previewColors";
 
 const packageItem: CanonicalJumpPackage = {

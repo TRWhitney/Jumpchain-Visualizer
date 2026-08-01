@@ -26,10 +26,7 @@ const featureModules = new Set([
   "tour",
   "tracker",
 ]);
-const integrationAdapters = new Set([
-  "supplements/TrackerSupplements.tsx",
-  "tracker/JumpRenderer.tsx",
-]);
+const integrationAdapters = new Set(["supplements/TrackerSupplements.tsx"]);
 
 function sourceFiles(folder: string): string[] {
   return readdirSync(folder).flatMap((name) => {

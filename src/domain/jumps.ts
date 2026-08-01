@@ -3,7 +3,6 @@ import type {
   JumpChoice,
   JumpGrant,
   TextBlock,
-  ImageBlock,
   Renderable,
 } from "../markup";
 import {
@@ -12,186 +11,42 @@ import {
   resolveCostAmount,
 } from "../markup";
 import { renderRenderable } from "./rendering";
+import type {
+  ActorEntryState,
+  ChainEvaluation,
+  EvaluateChainInput,
+  EvaluatedActor,
+  EvaluatedActorJump,
+  EvaluatedChoice,
+  EvaluatedCompanion,
+  EvaluatedGauntletStatus,
+  EvaluatedForm,
+  EvaluatedGrantMeasure,
+  EvaluatedGrantRecord,
+  EvaluatedJumpRuntime,
+  EvaluatedProperty,
+  EvaluatedResource,
+  JumpEntryState,
+} from "./evaluationTypes";
+import {
+  choicePlacement,
+  choiceStateIsActive,
+  choiceWasRolledBySource,
+  evaluatedChoiceCosts,
+} from "./choiceEvaluation";
+
+export type * from "./evaluationTypes";
+export {
+  choicesForSource,
+  choiceStateIsActive,
+  choiceValueIsActive,
+} from "./choiceEvaluation";
 
 export {
   evaluateCondition,
   renderRenderable,
   renderRichTextRenderable,
 } from "./rendering";
-
-export type ChoiceValue = boolean | string | number | readonly string[] | null;
-export type InputValue = string | number | null;
-
-export type RollRecord = {
-  result: string | number;
-  sequence: number;
-};
-
-export type ActorEntryState = {
-  choices: Record<string, ChoiceValue>;
-  inputs: Record<string, Record<string, InputValue>>;
-  sourceSelections: Record<string, readonly string[]>;
-  choiceRolls: Record<string, RollRecord>;
-  sourceRolls: Record<string, RollRecord>;
-};
-
-export type AppliedGauntletSource = {
-  id: string;
-  kind: "user" | "supplement";
-  label: string;
-};
-
-export type JumpEntryState = {
-  actors: Record<string, ActorEntryState>;
-  appliedGauntlet: readonly AppliedGauntletSource[];
-};
-
-export type JumpRuntimeState = Record<string, JumpEntryState>;
-
-export type EvaluatedProperty = {
-  value: string | number | boolean;
-  sourceLabel: string;
-  description?: string;
-};
-
-export type EvaluatedGauntletStatus = {
-  active: boolean;
-  native: boolean;
-  sources: readonly {
-    id: string;
-    kind: "package" | "user" | "supplement";
-    label: string;
-  }[];
-  startingPointContribution: number;
-};
-
-export type EvaluatedResource = {
-  handle: string;
-  name: string;
-  abbreviation: string;
-  starting: number;
-  spent: number;
-  granted: number;
-  balance: number;
-};
-
-export type EvaluatedCost = {
-  resource: string;
-  originalAmount: number;
-  resolvedAmount: number;
-  mode: "flat" | "each";
-  rankCount?: number;
-  rolledAllowance?: number;
-};
-
-export type EvaluatedChoice = {
-  handle: string;
-  value: ChoiceValue;
-  active: boolean;
-  costs: readonly EvaluatedCost[];
-  rolledResult?: string | number;
-  rolledBySource: boolean;
-  freeByRoll: boolean;
-  continuityBaseline?: string | number;
-  continuityFreeValues: readonly (string | number)[];
-  derivedContinuity: boolean;
-};
-
-export type EvaluatedActorJump = {
-  balance: number;
-  resources: Readonly<Record<string, EvaluatedResource>>;
-  properties: Partial<
-    Record<
-      "origin" | "species" | "location" | "gender" | "age" | string,
-      EvaluatedProperty
-    >
-  >;
-  choices: Readonly<Record<string, EvaluatedChoice>>;
-  traits: readonly EvaluatedGrantRecord[];
-  diagnostics: readonly string[];
-};
-
-export type EvaluatedJumpEntry = {
-  gauntlet: EvaluatedGauntletStatus;
-  actors: Record<string, EvaluatedActorJump>;
-};
-
-export type EvaluatedJumpRuntime = Record<string, EvaluatedJumpEntry>;
-
-export type EvaluatedActor = {
-  id: string;
-  name: string;
-  role: "Jumper" | "Companion";
-  acquisitionGender?: string;
-  acquisitionAge?: number;
-  joinedEntryId?: string;
-  initials: string;
-  summary: string;
-};
-
-export type EvaluatedGrantMeasure = {
-  kind: "rank" | "quantity";
-  value: number;
-};
-
-export type EvaluatedGrantRecord = {
-  id: string;
-  kind: "perk" | "item" | "trait";
-  name: string;
-  sourceEntryId: string;
-  ownerActorId?: string;
-  ownerFormId?: string;
-  grantHandle: string;
-  sourcePackageId: string;
-  sourcePackageExactHash: string;
-  tags: readonly string[];
-  description: string;
-  measure?: EvaluatedGrantMeasure;
-  layout?: string;
-  text?: readonly TextBlock[];
-  images?: readonly ImageBlock[];
-};
-
-export type EvaluatedForm = {
-  id: string;
-  handle: string;
-  name: string;
-  sourceEntryId: string;
-  ownerActorId: "jumper";
-  description: string;
-  initials: string;
-  tags: readonly string[];
-  perkRecordIds: readonly string[];
-};
-
-export type EvaluatedCompanion = {
-  actorId: string;
-  sourceEntryId: string;
-  tags: readonly string[];
-  perkRecordIds: readonly string[];
-  itemRecordIds: readonly string[];
-  importedEntryIds: readonly string[];
-};
-
-export type ChainEvaluation = {
-  runtime: EvaluatedJumpRuntime;
-  actors: Record<string, EvaluatedActor>;
-  records: readonly EvaluatedGrantRecord[];
-  forms: readonly EvaluatedForm[];
-  companions: readonly EvaluatedCompanion[];
-};
-
-export type EvaluateChainInput = {
-  order: readonly string[];
-  packageIdByEntry: Readonly<Record<string, string>>;
-  packages: Readonly<Record<string, CanonicalJumpPackage>>;
-  jumpState: JumpRuntimeState;
-  jumperName: string;
-  bodyModSpecies?: string;
-  supplementPointGrants?: Readonly<Record<string, number>>;
-  startingPointOverrides?: Readonly<Record<string, number>>;
-  initialIdentity?: Partial<Record<string, EvaluatedProperty>>;
-};
 
 export const emptyActorEntryState = (): ActorEntryState => ({
   choices: {},
@@ -208,128 +63,6 @@ export const emptyJumpEntryState = (): JumpEntryState => ({
 
 function display(value: Renderable | undefined, fallback = "") {
   return value?.base ?? value?.variants[0]?.value ?? fallback;
-}
-
-export function choiceValueIsActive(choice: JumpChoice, value: ChoiceValue) {
-  if (choice.selection === "toggle") return value === true;
-  if (choice.selection === "text")
-    return typeof value === "string" && value.trim().length > 0;
-  if (choice.selection === "companions")
-    return (
-      Array.isArray(value) &&
-      value.length >= (choice.min ?? 1) &&
-      value.length <= (choice.max ?? 1)
-    );
-  return value !== null && value !== undefined && value !== "";
-}
-
-function sourceKey(sectionHandle: string, sourceHandle: string) {
-  return `${sectionHandle}:${sourceHandle}`;
-}
-
-function choicePlacement(
-  packageItem: CanonicalJumpPackage,
-  state: ActorEntryState,
-  choice: JumpChoice,
-) {
-  const direct = packageItem.sections.some((section) =>
-    section.directChoices.some(
-      (placement) => placement.target === choice.handle,
-    ),
-  );
-  const sources = packageItem.sections.flatMap((section) =>
-    section.sources
-      .filter(
-        (source) =>
-          source.group !== undefined && choice.groups.includes(source.group),
-      )
-      .map((source) => sourceKey(section.handle, source.handle)),
-  );
-  return {
-    direct,
-    hasSource: sources.length > 0,
-    selectedBySource: sources.some((key) =>
-      state.sourceSelections[key]?.includes(choice.handle),
-    ),
-  };
-}
-
-export function choiceStateIsActive(
-  packageItem: CanonicalJumpPackage,
-  state: ActorEntryState,
-  choice: JumpChoice,
-  value: ChoiceValue = state.choices[choice.handle] ?? null,
-) {
-  const placement = choicePlacement(packageItem, state, choice);
-  const resolvedValue =
-    choice.selection === "toggle" && placement.selectedBySource ? true : value;
-  return (
-    choiceValueIsActive(choice, resolvedValue) &&
-    (placement.direct || !placement.hasSource || placement.selectedBySource)
-  );
-}
-
-export function choicesForSource(
-  packageItem: CanonicalJumpPackage,
-  sectionHandle: string,
-  sourceHandle: string,
-) {
-  const section = packageItem.sections.find(
-    (item) => item.handle === sectionHandle,
-  );
-  const source = section?.sources.find((item) => item.handle === sourceHandle);
-  return source?.group
-    ? packageItem.choices.filter((choice) =>
-        choice.groups.includes(source.group!),
-      )
-    : [];
-}
-
-function rolledBySource(
-  packageItem: CanonicalJumpPackage,
-  state: ActorEntryState,
-  choiceHandle: string,
-) {
-  return packageItem.sections.some((section) =>
-    section.sources.some(
-      (source) =>
-        state.sourceRolls[sourceKey(section.handle, source.handle)]?.result ===
-        choiceHandle,
-    ),
-  );
-}
-
-function evaluatedCosts(
-  choice: JumpChoice,
-  value: ChoiceValue,
-  choiceRoll: RollRecord | undefined,
-  sourceRolled: boolean,
-) {
-  const integerValue =
-    typeof value === "number" ? Math.max(0, value) : undefined;
-  const allowance =
-    choiceRoll && typeof choiceRoll.result === "number"
-      ? choiceRoll.result
-      : undefined;
-  const exactRoll = choiceRoll?.result === value;
-  return choice.costs.map((cost): EvaluatedCost => {
-    const amount = resolveCostAmount(cost.amount);
-    let resolved = amount;
-    if (sourceRolled || exactRoll) resolved = 0;
-    else if (cost.mode === "each") {
-      const paidRanks = Math.max(0, (integerValue ?? 0) - (allowance ?? 0));
-      resolved = amount * paidRanks;
-    }
-    return {
-      resource: cost.resource,
-      originalAmount:
-        cost.mode === "each" ? amount * (integerValue ?? 0) : amount,
-      resolvedAmount: resolved,
-      mode: cost.mode,
-      rankCount: cost.mode === "each" ? integerValue : undefined,
-      rolledAllowance: cost.mode === "each" ? allowance : undefined,
-    };
-  });
 }
 
 function normalizeTag(value: string) {
@@ -638,7 +371,11 @@ function evaluateActor(
       choice,
       selected,
     );
-    const sourceRolled = rolledBySource(packageItem, actorState, choice.handle);
+    const sourceRolled = choiceWasRolledBySource(
+      packageItem,
+      actorState,
+      choice.handle,
+    );
     const choiceRoll = actorState.choiceRolls[choice.handle];
     const continuityFreeValues: (string | number)[] = choice.continuity
       ? choice.selection === "select" &&
@@ -655,8 +392,8 @@ function evaluateActor(
       continuityFreeValues.includes(selected);
     const costs = (
       active
-        ? evaluatedCosts(choice, selected, choiceRoll, sourceRolled)
-        : evaluatedCosts(choice, selected, choiceRoll, sourceRolled).map(
+        ? evaluatedChoiceCosts(choice, selected, choiceRoll, sourceRolled)
+        : evaluatedChoiceCosts(choice, selected, choiceRoll, sourceRolled).map(
             (cost) => ({
               ...cost,
               resolvedAmount: 0,

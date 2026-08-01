@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   decodeBytesFromJson,
+  encodeBinaryJson,
   encodeBytesForJson,
   stringifyBinaryJson,
 } from "./binaryJson";
@@ -17,6 +18,15 @@ describe("binary JSON persistence", () => {
     const serialized = stringifyBinaryJson({ assets: { image: bytes } });
     expect(serialized).toContain('"$jumpchainBytes":"base64"');
     expect(serialized).not.toContain('"69999":');
+  });
+
+  it("encodes the binary JSON payload as transferable UTF-8 bytes", () => {
+    const bytes = Uint8Array.from([0, 1, 127, 255]);
+    const payload = encodeBinaryJson({ assets: { image: bytes } });
+    expect(payload).toBeInstanceOf(Uint8Array);
+    expect(JSON.parse(new TextDecoder().decode(payload))).toEqual(
+      JSON.parse(stringifyBinaryJson({ assets: { image: bytes } })),
+    );
   });
 
   it("rejects malformed and over-limit encoded bytes before allocation", () => {

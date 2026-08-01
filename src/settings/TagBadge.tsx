@@ -1,1 +1,5 @@
-export { CanonicalTagBadge, CanonicalTrackerTagBadge } from "../ui/TagBadge";
+export {
+  CanonicalTagBadge,
+  CanonicalTagDefinitionBadge,
+  CanonicalTrackerTagBadge,
+} from "../ui/TagBadge";

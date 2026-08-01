@@ -101,7 +101,7 @@ export function CanonicalTagBadge({
   );
 }
 
-export function CanonicalTrackerTagBadge({
+export function CanonicalTagDefinitionBadge({
   tag,
   surface,
   trailingAction,
@@ -126,8 +126,10 @@ export function CanonicalTrackerTagBadge({
   );
 }
 
+export const CanonicalTrackerTagBadge = CanonicalTagDefinitionBadge;
+
 export function TagBadge({ tag }: { tag: TagDefinition }) {
-  return <CanonicalTrackerTagBadge tag={tag} />;
+  return <CanonicalTagDefinitionBadge tag={tag} />;
 }
 
 function AnimatedTagText({

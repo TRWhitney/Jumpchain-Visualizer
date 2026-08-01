@@ -1,4 +1,22 @@
 import { translate } from "../localization";
+import type { FormatSymbol } from "./languageService";
+
+const handleIdentityDeclarations = new Set([
+  "theme",
+  "section-layout",
+  "choice-layout",
+  "trait-layout",
+]);
+
+export function editorSymbolUsesHandleAsIdentity(symbol: FormatSymbol) {
+  return handleIdentityDeclarations.has(symbol.kind);
+}
+
+export function editorSymbolLabel(symbol: FormatSymbol) {
+  if (editorSymbolUsesHandleAsIdentity(symbol))
+    return symbol.handle || editorDeclarationLabel(symbol.kind);
+  return symbol.name || symbol.handle || editorDeclarationLabel(symbol.kind);
+}
 
 export type EditorOptionPresentation = {
   value: string;

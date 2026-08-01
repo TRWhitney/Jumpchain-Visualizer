@@ -1,19 +1,9 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-  type Dispatch,
-  type CSSProperties,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SettingsSurface } from "../settings/SettingsSurface";
 import { useOptionalSettings, useSettings } from "../settings/SettingsContext";
 import {
   applyInterfaceExperience,
   effectivePackageSizeLimits,
-  type SettingsCategory,
 } from "../settings/model";
 import { SettingsProvider } from "../settings/SettingsProvider";
 import { MemorySettingsRepository } from "../settings/repository";
@@ -21,42 +11,8 @@ import { isTauriRuntime } from "../platform/runtime";
 import { projectTagDefinitions } from "../settings/tagProfile";
 import { SupplementProviders } from "../supplements/TrackerSupplements";
 import { ChainTracker } from "../tracker/ChainTracker";
-import {
-  createBlankTrackerFixture,
-  createDenseTrackerFixture,
-  DEMONSTRATION_CHAIN_ID,
-  reconcileDemonstrationPackageBindings,
-} from "../tracker/fixtures";
-import { StaticTagRadar } from "../tracker/TagRadar";
-import {
-  tagCategories,
-  radarCounts,
-  trackerReducer,
-  choiceMutationWasBlocked,
-  type TrackerAction,
-  type TagDefinition,
-} from "../tracker/model";
 import { routeFromPath, titleForRoute, workspaceForRoute } from "./routes";
 import {
-  chainRegistryReducer,
-  chainsVisibleWithMockSetting,
-  createChainRegistryFixture,
-  filterSavedChains,
-  normalizeChainName,
-  orderedChains,
-  primaryTagForChain,
-  type SavedChain,
-} from "./chainRegistry";
-import {
-  aggregateFromTracker,
-  applyAggregate,
-  createPlatformChainRepository,
-} from "../tracker/repository";
-import type { TrackerState } from "../tracker/model";
-import { evaluateTracker, projectEvaluation } from "../tracker/evaluateTracker";
-import {
-  createPlatformEditorWorkspaceRepository,
-  createStarterWorkspace,
   EditorHub,
   EditorWorkspace,
   exactHashForFiles,
@@ -65,14 +21,9 @@ import {
   summarizeWorkspace,
   type EditorWorkspaceSnapshot,
 } from "../editor";
-import {
-  JumpPackageImportService,
-  PackageSecurityError,
-  type PackageImportReview,
-} from "../archive";
+import { type PackageImportReview } from "../archive";
 import { ConfirmationDialog } from "../ui/ConfirmationDialog";
 import { useContextMenu } from "../ui";
-import { mockChainDefinition } from "../fixtures/mockData";
 import "../../documentation/styles.css";
 import "../../documentation/application-design.css";
 import "../../documentation/chain-tracker-design.css";
@@ -90,30 +41,25 @@ import "../tracker/review.css";
 import "./shell.css";
 import "../editor/editor.css";
 import "./light-theme.css";
-import {
-  isStructuredCommandError,
-  translate,
-  translateDiagnostic,
-  translateError,
-} from "../localization";
+import { translate, translateError } from "../localization";
 import {
   WelcomeTourOverlay,
-  backWelcomeTour,
-  completeWelcomeTourBranch,
   createWelcomeTourSession,
-  nextWelcomeTourStep,
-  satisfyWelcomeTourStep,
   stageWelcomeTourSession,
-  transitionWelcomeTour,
-  welcomeTourActionComplete,
-  type WelcomeTourBranch,
   useWelcomeTourPersistence,
+  useWelcomeTourTransitions,
 } from "../tour";
 import { type ShellHistoryState, useShellHistory } from "./useShellHistory";
-
-type DeletionTarget =
-  | { kind: "chain"; id: string; name: string }
-  | { kind: "editor"; id: string; name: string };
+import { EditorExportReview } from "./EditorExportReview";
+import { RecoveryView } from "./RecoveryView";
+import { ChainHub, RecentChain } from "./ChainSurfaces";
+import {
+  type DeletionTarget,
+  useDeletionController,
+} from "./useDeletionController";
+import { useEditorWorkspaceController } from "./useEditorWorkspaceController";
+import { useChainController } from "./useChainController";
+import { useSettingsOverlayController } from "./useSettingsOverlayController";
 
 export function AppShell() {
   const context = useOptionalSettings();
@@ -140,8 +86,6 @@ function AppShellContent() {
     pushHistory,
     replaceHistory,
   } = useShellHistory();
-  const [settingsCategory, setSettingsCategory] =
-    useState<SettingsCategory>("general");
   const {
     repository: tourRepository,
     session: tourSession,
@@ -150,29 +94,6 @@ function AppShellContent() {
     saveQueue: tourSaveQueue,
     persist: persistTourSession,
   } = useWelcomeTourPersistence(logger);
-  const [chainRegistry, chainRegistryDispatch] = useReducer(
-    chainRegistryReducer,
-    undefined,
-    createChainRegistryFixture,
-  );
-  const editorRepository = useMemo(
-    () => createPlatformEditorWorkspaceRepository(),
-    [],
-  );
-  const [editorWorkspaces, setEditorWorkspaces] = useState<
-    Record<string, EditorWorkspaceSnapshot>
-  >({});
-  const editorWorkspacesRef = useRef(editorWorkspaces);
-  const persistedEditorWorkspacesRef = useRef<
-    Record<string, EditorWorkspaceSnapshot>
-  >({});
-  const [editorLoading, setEditorLoading] = useState(true);
-  const [editorError, setEditorError] = useState<string | null>(null);
-  const [editorSaveState, setEditorSaveState] = useState<
-    "saved" | "saving" | "unsaved" | "failed"
-  >("saved");
-  const editorSaveTimer = useRef<number | null>(null);
-  const editorSavingIndicatorTimer = useRef<number | null>(null);
   const [pendingEditorNavigation, setPendingEditorNavigation] = useState<{
     path: string;
     state: Partial<ShellHistoryState>;
@@ -186,30 +107,7 @@ function AppShellContent() {
     disk: EditorWorkspaceSnapshot;
     file: string;
   } | null>(null);
-  const chainRepository = useMemo(() => createPlatformChainRepository(), []);
-  const chainInitializationRef = useRef<Promise<void>>(Promise.resolve());
-  const [chainStates, setChainStates] = useState<Record<string, TrackerState>>(
-    () =>
-      Object.fromEntries(
-        Object.values(createChainRegistryFixture().chains).map((chain) => [
-          chain.id,
-          { ...createDenseTrackerFixture(), chainName: chain.name },
-        ]),
-      ),
-  );
-  const chainStatesRef = useRef(chainStates);
-  const [chainSaveError, setChainSaveError] = useState<string | null>(null);
-  const [deletionTarget, setDeletionTarget] = useState<DeletionTarget | null>(
-    null,
-  );
-  const [deletionError, setDeletionError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [lastActiveChainId, setLastActiveChainId] = useState(
-    DEMONSTRATION_CHAIN_ID,
-  );
   const mainRef = useRef<HTMLElement>(null);
-  const settingsButtonRef = useRef<HTMLButtonElement>(null);
-  const restoreSettingsFocus = useRef(false);
   const previousPathname = useRef(pathname);
   const route = useMemo(() => routeFromPath(pathname), [pathname]);
   const backgroundRoute = useMemo(
@@ -283,63 +181,8 @@ function AppShellContent() {
     return () => window.cancelAnimationFrame(frame);
   }, [setPathname, setSettingsBackgroundPath, tourSession]);
 
-  const activeEditorWorkspace =
-    backgroundRoute.kind === "editor-workspace"
-      ? editorWorkspaces[backgroundRoute.workspaceId]
-      : undefined;
   const workspace =
     tourSession?.activeBranch ?? workspaceForRoute(backgroundRoute);
-  const allSavedChains = useMemo(
-    () =>
-      orderedChains(chainRegistry).map((chain) => {
-        const value = chainStates[chain.id];
-        if (!value) return chain;
-        const evaluation = evaluateTracker(
-          value,
-          value.enabledSupplements["body-mod"] ? value.bodyMod : null,
-        );
-        const projected = projectEvaluation(
-          {
-            ...value,
-            preferences: {
-              ...value.preferences,
-              includeItemTagsInRadar: settings.chain.includeItemTagsInRadar,
-            },
-          },
-          evaluation,
-        );
-        const tagCounts = radarCounts(projected);
-        return {
-          ...chain,
-          jumpCount: value.order.filter(
-            (entryId) => value.entries[entryId]?.kind === "jump",
-          ).length,
-          tagCounts,
-        };
-      }),
-    [chainRegistry, chainStates, settings.chain.includeItemTagsInRadar],
-  );
-  const savedChains = useMemo(
-    () =>
-      chainsVisibleWithMockSetting(
-        allSavedChains,
-        settings.developer.showMockData,
-      ),
-    [allSavedChains, settings.developer.showMockData],
-  );
-  const savedEditorWorkspaces = useMemo(
-    () => orderedEditorWorkspaces(Object.values(editorWorkspaces)),
-    [editorWorkspaces],
-  );
-  const activeChain =
-    backgroundRoute.kind === "chain-workspace"
-      ? chainRegistry.chains[backgroundRoute.chainId]
-      : undefined;
-  const activeChainId = activeChain?.id ?? lastActiveChainId;
-  const trackerState = reconcileDemonstrationPackageBindings(
-    chainStates[activeChainId] ?? createBlankTrackerFixture(activeChain?.name),
-    activeChainId,
-  );
   const projectedTags = useMemo(
     () => projectTagDefinitions(settings.tags.profile, settings.language.tag),
     [settings.tags.profile, settings.language.tag],
@@ -363,155 +206,47 @@ function AppShellContent() {
       settings.developer.showMockData,
     ],
   );
-  const effectiveTrackerState = useMemo(
-    () => ({
-      ...trackerState,
-      tags: projectedTags,
-      preferences: trackerPreferences,
-    }),
-    [projectedTags, trackerPreferences, trackerState],
+  const editor = useEditorWorkspaceController(settings.editor.saveMode);
+  const {
+    workspaces: editorWorkspaces,
+    loading: editorLoading,
+    error: editorError,
+    saveState: editorSaveState,
+  } = editor;
+  const activeEditorWorkspace =
+    backgroundRoute.kind === "editor-workspace"
+      ? editorWorkspaces[backgroundRoute.workspaceId]
+      : undefined;
+  const savedEditorWorkspaces = useMemo(
+    () => orderedEditorWorkspaces(Object.values(editorWorkspaces)),
+    [editorWorkspaces],
   );
-
-  useEffect(() => {
-    let live = true;
-    void editorRepository
-      .list()
-      .then((stored) => {
-        if (!live) return;
-        const storedById = Object.fromEntries(
-          stored.map((workspace) => [workspace.id, workspace]),
-        );
-        const indexed = { ...storedById, ...editorWorkspacesRef.current };
-        editorWorkspacesRef.current = indexed;
-        persistedEditorWorkspacesRef.current = indexed;
-        setEditorWorkspaces(indexed);
-        setEditorError(null);
-        setEditorLoading(false);
-      })
-      .catch(() => {
-        if (!live) return;
-        setEditorError(translate("errors.EDITOR_PROJECTS_LOAD_FAILED"));
-        setEditorLoading(false);
-      });
-    return () => {
-      live = false;
-    };
-  }, [editorRepository]);
-
-  useEffect(() => {
-    editorWorkspacesRef.current = editorWorkspaces;
-  }, [editorWorkspaces]);
-
-  useEffect(() => {
-    let live = true;
-    const initialize = Promise.all([
-      chainRepository.list(),
-      chainRepository.isInitialized(),
-    ])
-      .then(async ([stored, initialized]) => {
-        if (!live) return;
-        if (!initialized) {
-          await Promise.all(
-            Object.entries(chainStates).map(([id, value]) =>
-              chainRepository.save(
-                aggregateFromTracker(id, value, chainRegistry.chains[id]),
-              ),
-            ),
-          );
-          return;
-        }
-        chainRegistryDispatch({ type: "clear" });
-        for (const aggregate of stored)
-          chainRegistryDispatch({
-            type: "hydrate",
-            id: aggregate.id,
-            name: aggregate.name,
-            description: aggregate.description,
-            lastOpenedSequence: aggregate.lastOpenedSequence,
-            lastOpenedLabel: aggregate.lastOpenedLabel,
-            starred: aggregate.starred ?? false,
-          });
-        const next = Object.fromEntries(
-          stored.map((aggregate) => {
-            const base =
-              chainStates[aggregate.id] ??
-              createBlankTrackerFixture(aggregate.name);
-            return [
-              aggregate.id,
-              reconcileDemonstrationPackageBindings(
-                applyAggregate(base, aggregate),
-                aggregate.id,
-              ),
-            ];
-          }),
-        );
-        chainStatesRef.current = next;
-        setChainStates(next);
-      })
-      .catch(() =>
-        setChainSaveError(translate("errors.SAVED_CHAINS_LOAD_FAILED")),
-      );
-    chainInitializationRef.current = initialize;
-    return () => {
-      live = false;
-    };
-    // The initial seed is intentionally captured once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chainRepository]);
-
-  useEffect(() => {
-    if (!activeChain) return;
-    const timeout = window.setTimeout(() => {
-      void chainRepository
-        .save(
-          aggregateFromTracker(
-            activeChain.id,
-            {
-              ...trackerState,
-              chainName: activeChain.name,
-            },
-            activeChain,
-          ),
-        )
-        .then(() => setChainSaveError(null))
-        .catch(() =>
-          setChainSaveError(
-            translate("errors.AUTOSAVE_FAILED_MEMORY_RETAINED"),
-          ),
-        );
-    }, 250);
-    return () => window.clearTimeout(timeout);
-  }, [activeChain, chainRepository, trackerState]);
-
-  useEffect(() => {
-    document.title =
-      route.kind === "editor-workspace" && activeEditorWorkspace
-        ? `${summarizeWorkspace(activeEditorWorkspace).name} · Editor`
-        : titleForRoute(route, activeChain?.name);
-    if (previousPathname.current === pathname) return;
-    previousPathname.current = pathname;
-    if (route.kind === "settings") return;
-    window.requestAnimationFrame(() => {
-      mainRef.current
-        ?.querySelector<HTMLElement>(
-          '[data-active-route="true"] [data-route-heading]',
-        )
-        ?.focus();
-      if (restoreSettingsFocus.current) {
-        restoreSettingsFocus.current = false;
-        settingsButtonRef.current?.focus();
-      }
-    });
-  }, [activeChain?.name, activeEditorWorkspace, pathname, route]);
+  const chain = useChainController({
+    routeChainId:
+      backgroundRoute.kind === "chain-workspace"
+        ? backgroundRoute.chainId
+        : null,
+    tags: projectedTags,
+    preferences: trackerPreferences,
+    showMockData: settings.developer.showMockData,
+    logger,
+  });
+  const {
+    savedChains,
+    activeChain,
+    effectiveState: effectiveTrackerState,
+    dispatch: effectiveTrackerDispatch,
+    saveError: chainSaveError,
+  } = chain;
 
   const performNavigation = useCallback(
     (nextPath: string, extraState: Partial<ShellHistoryState> = {}) => {
       if (window.location.pathname === nextPath) return;
       if (backgroundRoute.kind === "chain-workspace")
-        setLastActiveChainId(backgroundRoute.chainId);
+        chain.commands.rememberActive(backgroundRoute.chainId);
       pushHistory(nextPath, extraState);
     },
-    [backgroundRoute, pushHistory],
+    [backgroundRoute, chain.commands, pushHistory],
   );
 
   const navigate = useCallback(
@@ -537,6 +272,41 @@ function AppShellContent() {
       settings.editor.saveMode,
     ],
   );
+  const {
+    category: settingsCategory,
+    buttonRef: settingsButtonRef,
+    commands: settingsCommands,
+  } = useSettingsOverlayController({
+    routeIsSettings: route.kind === "settings",
+    pathname,
+    backgroundPath: settingsBackgroundPath,
+    historyIndex,
+    navigate,
+  });
+
+  useEffect(() => {
+    document.title =
+      route.kind === "editor-workspace" && activeEditorWorkspace
+        ? `${summarizeWorkspace(activeEditorWorkspace).name} · Editor`
+        : titleForRoute(route, activeChain?.name);
+    if (previousPathname.current === pathname) return;
+    previousPathname.current = pathname;
+    if (route.kind === "settings") return;
+    window.requestAnimationFrame(() => {
+      mainRef.current
+        ?.querySelector<HTMLElement>(
+          '[data-active-route="true"] [data-route-heading]',
+        )
+        ?.focus();
+      settingsCommands.restoreAfterNavigation();
+    });
+  }, [
+    activeChain?.name,
+    activeEditorWorkspace,
+    pathname,
+    route,
+    settingsCommands,
+  ]);
 
   const isActive = (kind: typeof backgroundRoute.kind) =>
     tourSession
@@ -554,217 +324,54 @@ function AppShellContent() {
   const missingChain =
     backgroundRoute.kind === "chain-workspace" && activeChain === undefined;
 
-  const openSettings = () => {
-    if (route.kind === "settings") return;
-    navigate("/settings", { settingsBackgroundPath: pathname });
-  };
-  const closeSettings = () => {
-    restoreSettingsFocus.current = Boolean(settingsBackgroundPath);
-    if (settingsBackgroundPath && historyIndex > 0) window.history.back();
-    else navigate("/");
-  };
-  const toggleSettings = () => {
-    if (route.kind === "settings") closeSettings();
-    else openSettings();
-  };
-
-  const persistEditorWorkspace = useCallback(
-    async (workspace: EditorWorkspaceSnapshot, updateSaveState = true) => {
-      try {
-        await editorRepository.save(workspace);
-        persistedEditorWorkspacesRef.current = {
-          ...persistedEditorWorkspacesRef.current,
-          [workspace.id]: workspace,
-        };
-        if (updateSaveState) setEditorSaveState("saved");
-        setEditorError(null);
-        return true;
-      } catch {
-        if (updateSaveState) {
-          setEditorSaveState("failed");
-          setEditorError(
-            translate("errors.EDITOR_AUTOSAVE_FAILED_MEMORY_RETAINED"),
-          );
-        }
-        return false;
-      }
-    },
-    [editorRepository],
-  );
-
-  const changeEditorWorkspace = useCallback(
-    (next: EditorWorkspaceSnapshot) => {
-      const nextWorkspaces = {
-        ...editorWorkspacesRef.current,
-        [next.id]: next,
-      };
-      editorWorkspacesRef.current = nextWorkspaces;
-      setEditorWorkspaces(nextWorkspaces);
-      setEditorSaveState("unsaved");
-      if (settings.editor.saveMode !== "autosave") return;
-      if (editorSaveTimer.current) window.clearTimeout(editorSaveTimer.current);
-      if (editorSavingIndicatorTimer.current)
-        window.clearTimeout(editorSavingIndicatorTimer.current);
-      editorSaveTimer.current = window.setTimeout(() => {
-        const saving = editorWorkspacesRef.current[next.id];
-        editorSavingIndicatorTimer.current = window.setTimeout(() => {
-          if (
-            editorWorkspacesRef.current[next.id]?.revision === saving.revision
-          )
-            setEditorSaveState("saving");
-        }, 150);
-        void persistEditorWorkspace(saving, false)
-          .then((saved) => {
-            if (
-              editorWorkspacesRef.current[next.id]?.revision !== saving.revision
-            )
-              return;
-            if (saved) {
-              setEditorSaveState("saved");
-              setEditorError(null);
-            } else {
-              setEditorSaveState("failed");
-              setEditorError(
-                translate("errors.EDITOR_AUTOSAVE_FAILED_MEMORY_RETAINED"),
-              );
-            }
-          })
-          .finally(() => {
-            if (editorSavingIndicatorTimer.current)
-              window.clearTimeout(editorSavingIndicatorTimer.current);
-            editorSavingIndicatorTimer.current = null;
-          });
-      }, 500);
-    },
-    [persistEditorWorkspace, settings.editor.saveMode],
-  );
-
   const saveActiveEditor = useCallback(async () => {
     if (backgroundRoute.kind !== "editor-workspace") return false;
-    const current = editorWorkspacesRef.current[backgroundRoute.workspaceId];
-    if (!current) return false;
-    setEditorSaveState("saving");
-    return persistEditorWorkspace(current);
-  }, [backgroundRoute, persistEditorWorkspace]);
+    return editor.commands.save(backgroundRoute.workspaceId);
+  }, [backgroundRoute, editor.commands]);
 
   const createEditorProject = useCallback(() => {
-    const created = createStarterWorkspace();
-    const next = { ...editorWorkspacesRef.current, [created.id]: created };
-    editorWorkspacesRef.current = next;
-    setEditorWorkspaces(next);
-    setEditorSaveState("saved");
-    void persistEditorWorkspace(created);
+    const created = editor.commands.create();
     logger.emit("editor.project.created", {
       attributes: { location: created.location },
     });
     navigate(`/editor/${encodeURIComponent(created.id)}`);
-  }, [logger, navigate, persistEditorWorkspace]);
+  }, [editor.commands, logger, navigate]);
 
   const openEditorProject = useCallback(
     (workspace: EditorWorkspaceSnapshot) => {
-      const opened = {
-        ...workspace,
-        lastOpenedAt: new Date().toISOString(),
-      };
-      const next = { ...editorWorkspacesRef.current, [opened.id]: opened };
-      editorWorkspacesRef.current = next;
-      setEditorWorkspaces(next);
-      setEditorSaveState("saved");
-      void persistEditorWorkspace(opened);
+      const opened = editor.commands.open(workspace);
       navigate(`/editor/${encodeURIComponent(opened.id)}`);
     },
-    [navigate, persistEditorWorkspace],
+    [editor.commands, navigate],
   );
 
   const toggleEditorStar = useCallback(
     (workspace: EditorWorkspaceSnapshot) => {
-      const nextWorkspace = { ...workspace, starred: !workspace.starred };
-      const next = {
-        ...editorWorkspacesRef.current,
-        [workspace.id]: nextWorkspace,
-      };
-      editorWorkspacesRef.current = next;
-      setEditorWorkspaces(next);
-      void persistEditorWorkspace(nextWorkspace);
+      const nextWorkspace = editor.commands.toggleStar(workspace);
       logger.emit(
         nextWorkspace.starred ? "editor.starred" : "editor.unstarred",
       );
     },
-    [logger, persistEditorWorkspace],
+    [editor.commands, logger],
   );
 
-  const confirmDeletion = useCallback(async () => {
-    const target = deletionTarget;
-    if (!target || deleting) return;
-    setDeleting(true);
-    setDeletionError(null);
-    try {
+  const performDeletion = useCallback(
+    async (target: DeletionTarget) => {
       if (target.kind === "editor") {
-        if (editorSaveTimer.current) {
-          window.clearTimeout(editorSaveTimer.current);
-          editorSaveTimer.current = null;
-        }
-        if (editorSavingIndicatorTimer.current) {
-          window.clearTimeout(editorSavingIndicatorTimer.current);
-          editorSavingIndicatorTimer.current = null;
-        }
-        await editorRepository.remove(target.id);
-        const next = { ...editorWorkspacesRef.current };
-        delete next[target.id];
-        editorWorkspacesRef.current = next;
-        setEditorWorkspaces(next);
-        const persisted = { ...persistedEditorWorkspacesRef.current };
-        delete persisted[target.id];
-        persistedEditorWorkspacesRef.current = persisted;
-        setEditorError(null);
+        await editor.commands.remove(target.id);
         logger.emit("editor.project.deleted");
-      } else {
-        await chainInitializationRef.current;
-        await chainRepository.remove(target.id);
-        chainRegistryDispatch({ type: "remove", id: target.id });
-        const next = { ...chainStatesRef.current };
-        delete next[target.id];
-        chainStatesRef.current = next;
-        setChainStates(next);
-        setLastActiveChainId((current) =>
-          current === target.id ? (Object.keys(next)[0] ?? "") : current,
-        );
-        setChainSaveError(null);
-        logger.emit("chain.deleted");
+        return;
       }
-      setDeletionTarget(null);
-    } catch {
-      setDeletionError(
-        target.kind === "editor"
-          ? "The project could not be deleted. Nothing was removed."
-          : "The chain could not be deleted. Nothing was removed.",
-      );
-    } finally {
-      setDeleting(false);
-    }
-  }, [chainRepository, deleting, deletionTarget, editorRepository, logger]);
+      await chain.commands.remove(target.id);
+    },
+    [chain.commands, editor.commands, logger],
+  );
+  const deletion = useDeletionController(performDeletion);
+  const deletionTarget = deletion.target;
 
   const importEditorProject = useCallback(
     (review: PackageImportReview) => {
-      const now = new Date().toISOString();
-      const imported: EditorWorkspaceSnapshot = {
-        schemaVersion: 1,
-        id: globalThis.crypto.randomUUID(),
-        location: "imported",
-        files: { ...review.files.definitions },
-        assets: { ...review.files.assets },
-        assetEditorDocuments: {},
-        trash: [],
-        starred: false,
-        createdAt: now,
-        updatedAt: now,
-        lastOpenedAt: now,
-        revision: 0,
-      };
-      const next = { ...editorWorkspacesRef.current, [imported.id]: imported };
-      editorWorkspacesRef.current = next;
-      setEditorWorkspaces(next);
-      void persistEditorWorkspace(imported);
+      const imported = editor.commands.importReview(review);
       logger.emit("editor.package.imported", {
         attributes: {
           warningOverride: review.status === "warning",
@@ -774,7 +381,7 @@ function AppShellContent() {
       });
       navigate(`/editor/${encodeURIComponent(imported.id)}`);
     },
-    [logger, navigate, persistEditorWorkspace],
+    [editor.commands, logger, navigate],
   );
 
   const openEditorFolder = useCallback(() => {
@@ -788,8 +395,10 @@ function AppShellContent() {
       .then((opened) => {
         if (opened) openEditorProject(opened);
       })
-      .catch((error: unknown) => setEditorError(translateError(error)));
-  }, [openEditorProject, settings.developer]);
+      .catch((error: unknown) =>
+        editor.commands.reportError(translateError(error)),
+      );
+  }, [editor.commands, openEditorProject, settings.developer]);
 
   useEffect(() => {
     if (
@@ -823,13 +432,7 @@ function AppShellContent() {
         )
           return;
         if (editorSaveState === "saved") {
-          const next = { ...editorWorkspacesRef.current, [disk.id]: disk };
-          editorWorkspacesRef.current = next;
-          setEditorWorkspaces(next);
-          persistedEditorWorkspacesRef.current = {
-            ...persistedEditorWorkspacesRef.current,
-            [disk.id]: disk,
-          };
+          editor.commands.acceptExternal(disk);
           return;
         }
         const file =
@@ -839,7 +442,7 @@ function AppShellContent() {
         setExternalEditorConflict({ disk, file });
       } catch {
         if (live)
-          setEditorError(
+          editor.commands.reportError(
             translate("errors.DESKTOP_EDITOR_FOLDER_PERMISSION_LOST"),
           );
       }
@@ -852,277 +455,36 @@ function AppShellContent() {
     };
   }, [
     activeEditorWorkspace,
+    editor.commands,
     editorSaveState,
     externalEditorConflict,
     settings.developer,
   ]);
 
   const openChain = useCallback(
-    (chain: SavedChain) => {
-      setLastActiveChainId(chain.id);
-      chainRegistryDispatch({ type: "open", id: chain.id });
-      navigate(`/chain/${chain.id}`);
+    (chainItem: (typeof savedChains)[number]) => {
+      chain.commands.open(chainItem);
+      navigate(`/chain/${chainItem.id}`);
     },
-    [navigate],
+    [chain.commands, navigate],
   );
 
   const createChain = useCallback(
     (name: string) => {
-      const normalized = normalizeChainName(name);
-      if (!normalized) return false;
-      const id = `ch-new-${chainRegistry.nextSerial}`;
-      const nextState = createBlankTrackerFixture(normalized);
-      const nextStates = {
-        ...chainStatesRef.current,
-        [id]: nextState,
-      };
-      setLastActiveChainId(id);
-      chainRegistryDispatch({ type: "create", id, name: normalized });
-      chainStatesRef.current = nextStates;
-      setChainStates(nextStates);
-      void chainInitializationRef.current
-        .then(() =>
-          chainRepository.save(
-            aggregateFromTracker(id, nextState, {
-              description: "A new chain ready for its first Jump.",
-              lastOpenedSequence: chainRegistry.nextSequence,
-              lastOpenedLabel: "Opened just now",
-              starred: false,
-            }),
-          ),
-        )
-        .then(() => setChainSaveError(null))
-        .catch(() =>
-          setChainSaveError(
-            translate("errors.AUTOSAVE_FAILED_MEMORY_RETAINED"),
-          ),
-        );
-      logger.emit("chain.created", { attributes: { jumpCount: 0 } });
+      const id = chain.commands.create(name);
+      if (!id) return false;
       navigate(`/chain/${id}`);
       return true;
     },
-    [
-      chainRegistry.nextSequence,
-      chainRegistry.nextSerial,
-      chainRepository,
-      logger,
-      navigate,
-    ],
+    [chain.commands, navigate],
   );
 
-  const setChainStarred = useCallback(
-    (chain: SavedChain, starred: boolean) => {
-      chainRegistryDispatch({ type: "set-starred", id: chain.id, starred });
-      const current = chainStatesRef.current[chain.id];
-      if (current)
-        void chainRepository
-          .save(
-            aggregateFromTracker(chain.id, current, {
-              description: chain.description,
-              lastOpenedSequence: chain.lastOpenedSequence,
-              lastOpenedLabel: chain.lastOpenedLabel,
-              starred,
-            }),
-          )
-          .then(() => setChainSaveError(null))
-          .catch(() =>
-            setChainSaveError(
-              translate("errors.AUTOSAVE_FAILED_MEMORY_RETAINED"),
-            ),
-          );
-      logger.emit(starred ? "chain.starred" : "chain.unstarred");
-    },
-    [chainRepository, logger],
-  );
-
-  const trackerDispatchRef = useRef<Dispatch<TrackerAction>>(() => undefined);
-  const effectiveTrackerDispatch = useCallback<Dispatch<TrackerAction>>(
-    (action) => {
-      const currentState =
-        chainStatesRef.current[activeChainId] ?? trackerState;
-      const effectiveCurrentState = {
-        ...reconcileDemonstrationPackageBindings(currentState, activeChainId),
-        tags: projectedTags,
-        preferences: trackerPreferences,
-      };
-      const nextState = trackerReducer(effectiveCurrentState, action);
-      if (
-        choiceMutationWasBlocked(effectiveCurrentState, nextState, action) &&
-        "entryId" in action &&
-        "actorId" in action
-      )
-        logger.emit("chain.choice.overspend_blocked", {
-          attributes: {
-            entryId: action.entryId,
-            actorId: action.actorId,
-          },
-        });
-      if (action.type === "add-package") {
-        const packageItem = effectiveCurrentState.packages[action.packageId];
-        const exact = effectiveCurrentState.order.some(
-          (id) =>
-            effectiveCurrentState.entries[id].packageExactHash ===
-            packageItem?.exactHash,
-        );
-        const parallel =
-          packageItem &&
-          effectiveCurrentState.order.some(
-            (id) =>
-              effectiveCurrentState.packages[
-                effectiveCurrentState.entries[id].packageId
-              ]?.logicalId === packageItem.logicalId,
-          );
-        if (exact && !effectiveCurrentState.preferences.allowDuplicateJumps) {
-          // Opening an existing exact version is navigation, not a mutation.
-        } else if (
-          parallel &&
-          !exact &&
-          !effectiveCurrentState.preferences.allowMultiplePackageVersions
-        ) {
-          logger.emit("chain.package.blocked", {
-            attributes: { reason: "parallel-version-disabled" },
-          });
-        } else if (
-          packageItem &&
-          nextState.order.length > effectiveCurrentState.order.length
-        ) {
-          logger.emit("chain.package.added", {
-            attributes: {
-              source: packageItem.source,
-              parallelVersion: Boolean(parallel),
-            },
-          });
-        }
-      }
-      if (
-        action.type !== "undo" &&
-        action.type !== "dismiss-undo" &&
-        nextState.order !== effectiveCurrentState.order &&
-        nextState.order.join("\0") !== effectiveCurrentState.order.join("\0")
-      ) {
-        const removed =
-          nextState.order.length < effectiveCurrentState.order.length;
-        logger.emit(removed ? "chain.removed" : "chain.reordered", {
-          attributes: {
-            dependencyReview: Boolean(effectiveCurrentState.pending),
-          },
-          toast: nextState.undo
-            ? {
-                action: {
-                  label: "Undo",
-                  invoke: () => trackerDispatchRef.current({ type: "undo" }),
-                },
-                onDismiss: () =>
-                  trackerDispatchRef.current({ type: "dismiss-undo" }),
-              }
-            : undefined,
-        });
-      }
-      const nextStates = {
-        ...chainStatesRef.current,
-        [activeChainId]: nextState,
-      };
-      chainStatesRef.current = nextStates;
-      setChainStates(nextStates);
-    },
-    [activeChainId, logger, projectedTags, trackerPreferences, trackerState],
-  );
-
-  useEffect(() => {
-    trackerDispatchRef.current = effectiveTrackerDispatch;
-  }, [effectiveTrackerDispatch]);
-
-  useEffect(() => {
-    chainStatesRef.current = chainStates;
-  }, [chainStates]);
-
-  const changeTourEditorWorkspace = useCallback(
-    (workspace: EditorWorkspaceSnapshot) => {
-      if (!tourSession) return;
-      persistTourSession({
-        ...tourSession,
-        revision: tourSession.revision + 1,
-        editorWorkspace: workspace,
-      });
-    },
-    [persistTourSession, tourSession],
-  );
-
-  const tourTrackerDispatch = useCallback<Dispatch<TrackerAction>>(
-    (action) => {
-      const current = tourSessionRef.current;
-      if (!current) return;
-      const openedBodyMod =
-        action.type === "set-supplement-page" && action.value === "body-mod";
-      persistTourSession({
-        ...current,
-        revision: current.revision + 1,
-        trackerState: trackerReducer(current.trackerState, action),
-        navigation: {
-          ...current.navigation,
-          trackerBodyModOpened:
-            current.navigation.trackerBodyModOpened || openedBodyMod,
-        },
-      });
-    },
-    [persistTourSession, tourSessionRef],
-  );
-
-  const tourActionComplete = useMemo(
-    () => (tourSession ? welcomeTourActionComplete(tourSession) : false),
-    [tourSession],
-  );
-
-  const continueTour = useCallback(() => {
-    if (!tourSession || !tourActionComplete) return;
-    persistTourSession(nextWelcomeTourStep(tourSession));
-  }, [persistTourSession, tourActionComplete, tourSession]);
-
-  const skipTourStep = useCallback(() => {
-    if (!tourSession) return;
-    const satisfied = satisfyWelcomeTourStep(tourSession);
-    persistTourSession(nextWelcomeTourStep(satisfied));
-  }, [persistTourSession, tourSession]);
-
-  const chooseTourBranch = useCallback(
-    (branch: WelcomeTourBranch) => {
-      if (!tourSession) return;
-      persistTourSession(
-        transitionWelcomeTour(
-          tourSession,
-          branch === "editor" ? "editor-overview" : "tracker-overview",
-          { branch },
-        ),
-      );
-    },
-    [persistTourSession, tourSession],
-  );
-
-  const chooseAdvancedTour = useCallback(
-    (advanced: boolean) => {
-      if (!tourSession) return;
-      const next = { ...tourSession, advancedEditor: advanced };
-      persistTourSession(
-        transitionWelcomeTour(
-          next,
-          advanced ? "editor-advanced-toggle" : "editor-summary",
-        ),
-      );
-    },
-    [persistTourSession, tourSession],
-  );
-
-  const exitTour = useCallback(() => {
-    if (!tourSession) return;
-    persistTourSession({
-      ...transitionWelcomeTour(tourSession, "mode-choice", {
-        branch: null,
-        resetHistory: true,
-      }),
-      pendingOutcome: "dismissed",
-    });
-  }, [persistTourSession, tourSession]);
-
+  const setChainStarred = chain.commands.setStarred;
+  const tourTransitions = useWelcomeTourTransitions({
+    session: tourSession,
+    sessionRef: tourSessionRef,
+    persist: persistTourSession,
+  });
   const chooseTourMode = useCallback(
     (mode: "advanced" | "beginner-friendly" | "keep-current") => {
       if (!tourSession?.pendingOutcome) return;
@@ -1214,39 +576,7 @@ function AppShellContent() {
     startFreshWelcomeTour,
   ]);
 
-  const resetMockData = useCallback(async () => {
-    const restored = createDenseTrackerFixture();
-    const aggregate = aggregateFromTracker(
-      mockChainDefinition.id,
-      restored,
-      mockChainDefinition,
-    );
-    try {
-      await chainInitializationRef.current;
-      await chainRepository.save(aggregate);
-      chainRegistryDispatch({
-        type: "hydrate",
-        id: mockChainDefinition.id,
-        name: mockChainDefinition.name,
-        description: mockChainDefinition.description,
-        lastOpenedSequence: mockChainDefinition.lastOpenedSequence,
-        lastOpenedLabel: mockChainDefinition.lastOpenedLabel,
-        starred: mockChainDefinition.starred,
-      });
-      const next = {
-        ...chainStatesRef.current,
-        [mockChainDefinition.id]: restored,
-      };
-      chainStatesRef.current = next;
-      setChainStates(next);
-      setChainSaveError(null);
-      logger.emit("mock_data.reset");
-      return true;
-    } catch {
-      logger.emit("mock_data.reset_failed");
-      return false;
-    }
-  }, [chainRepository, logger]);
+  const resetMockData = chain.commands.resetMockData;
 
   return (
     <SupplementProviders
@@ -1307,7 +637,7 @@ function AppShellContent() {
             type="button"
             aria-pressed={route.kind === "settings"}
             onClick={() => {
-              if (!tourSession) toggleSettings();
+              if (!tourSession) settingsCommands.toggle();
             }}
           >
             {translate("ui.appShell.text.settings")}
@@ -1453,8 +783,7 @@ function AppShellContent() {
                           danger: true,
                           separatorBefore: true,
                           onAction: () => {
-                            setDeletionError(null);
-                            setDeletionTarget({
+                            deletion.request({
                               kind: "editor",
                               id: workspace.id,
                               name: summary.name,
@@ -1537,8 +866,7 @@ function AppShellContent() {
                         setChainStarred(chain, !chain.starred)
                       }
                       onDelete={() => {
-                        setDeletionError(null);
-                        setDeletionTarget({
+                        deletion.request({
                           kind: "chain",
                           id: chain.id,
                           name: chain.name,
@@ -1591,39 +919,16 @@ function AppShellContent() {
                 )}
                 tags={projectedTags}
                 saveState="saved"
-                onChange={changeTourEditorWorkspace}
+                onChange={tourTransitions.commands.changeEditorWorkspace}
                 onSave={() => undefined}
                 onExport={() => undefined}
                 onFeedback={(eventName) => logger.emit(eventName)}
                 tour={{
                   stepId: tourSession.stepId,
                   advancedOpen: tourSession.editorAdvancedOpen,
-                  onAdvancedOpenChange: (advancedOpen) =>
-                    persistTourSession({
-                      ...tourSession,
-                      revision: tourSession.revision + 1,
-                      editorAdvancedOpen: advancedOpen,
-                    }),
-                  onNavigate: (destination) =>
-                    persistTourSession({
-                      ...tourSession,
-                      revision: tourSession.revision + 1,
-                      navigation: {
-                        ...tourSession.navigation,
-                        editorDetailsOpened:
-                          tourSession.navigation.editorDetailsOpened ||
-                          destination === "details",
-                        editorSectionOpened:
-                          tourSession.navigation.editorSectionOpened ||
-                          destination === "section",
-                        editorFilesOpened:
-                          tourSession.navigation.editorFilesOpened ||
-                          destination === "files",
-                        editorAppearanceOpened:
-                          tourSession.navigation.editorAppearanceOpened ||
-                          destination === "appearance",
-                      },
-                    }),
+                  onAdvancedOpenChange:
+                    tourTransitions.commands.setEditorAdvancedOpen,
+                  onNavigate: tourTransitions.commands.recordEditorNavigation,
                 }}
               />
             )}
@@ -1639,7 +944,7 @@ function AppShellContent() {
             {tourSession?.activeBranch === "tracker" && (
               <ChainTracker
                 state={tourSession.trackerState}
-                dispatch={tourTrackerDispatch}
+                dispatch={tourTransitions.commands.trackerDispatch}
                 showApplicationHeader={false}
                 active
               />
@@ -1665,8 +970,7 @@ function AppShellContent() {
               onToggleStar={toggleEditorStar}
               onExport={setExportWorkspace}
               onDelete={(workspace) => {
-                setDeletionError(null);
-                setDeletionTarget({
+                deletion.request({
                   kind: "editor",
                   id: workspace.id,
                   name: summarizeWorkspace(workspace).name,
@@ -1692,7 +996,7 @@ function AppShellContent() {
                   settings={settings}
                   tags={projectedTags}
                   saveState={editorSaveState}
-                  onChange={changeEditorWorkspace}
+                  onChange={editor.commands.change}
                   onSave={() => void saveActiveEditor()}
                   onExport={() => setExportWorkspace(activeEditorWorkspace)}
                   onFeedback={(eventName) => logger.emit(eventName)}
@@ -1725,52 +1029,13 @@ function AppShellContent() {
               onOpen={openChain}
               onToggleStar={(chain) => setChainStarred(chain, !chain.starred)}
               onDelete={(chain) => {
-                setDeletionError(null);
-                setDeletionTarget({
+                deletion.request({
                   kind: "chain",
                   id: chain.id,
                   name: chain.name,
                 });
               }}
-              onUpdateDetails={(id, name, description) => {
-                const normalizedName = normalizeChainName(name);
-                chainRegistryDispatch({
-                  type: "update-details",
-                  id,
-                  name: normalizedName,
-                  description,
-                });
-                const current = chainStatesRef.current[id];
-                const metadata = chainRegistry.chains[id];
-                if (current && metadata) {
-                  const nextState = {
-                    ...current,
-                    chainName: normalizedName,
-                  };
-                  const nextStates = {
-                    ...chainStatesRef.current,
-                    [id]: nextState,
-                  };
-                  chainStatesRef.current = nextStates;
-                  setChainStates(nextStates);
-                  void chainRepository
-                    .save(
-                      aggregateFromTracker(id, nextState, {
-                        description: description.trim(),
-                        lastOpenedSequence: metadata.lastOpenedSequence,
-                        lastOpenedLabel: metadata.lastOpenedLabel,
-                        starred: metadata.starred,
-                      }),
-                    )
-                    .then(() => setChainSaveError(null))
-                    .catch(() =>
-                      setChainSaveError(
-                        translate("errors.AUTOSAVE_FAILED_MEMORY_RETAINED"),
-                      ),
-                    );
-                }
-                logger.emit("chain.details.updated");
-              }}
+              onUpdateDetails={chain.commands.updateDetails}
             />
           </section>
 
@@ -1803,18 +1068,7 @@ function AppShellContent() {
                 <span>{chainSaveError}</span>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!activeChain) return;
-                    void chainRepository
-                      .save(
-                        aggregateFromTracker(
-                          activeChain.id,
-                          effectiveTrackerState,
-                          activeChain,
-                        ),
-                      )
-                      .then(() => setChainSaveError(null));
-                  }}
+                  onClick={() => void chain.commands.retrySave()}
                 >
                   {translate("ui.appShell.text.retry")}
                 </button>
@@ -1867,14 +1121,10 @@ function AppShellContent() {
                 ? "Delete chain"
                 : "Delete project"
             }
-            busy={deleting}
-            error={deletionError}
-            onCancel={() => {
-              if (deleting) return;
-              setDeletionTarget(null);
-              setDeletionError(null);
-            }}
-            onConfirm={() => void confirmDeletion()}
+            busy={deletion.deleting}
+            error={deletion.error}
+            onCancel={deletion.cancel}
+            onConfirm={() => void deletion.confirm()}
           >
             {translate("ui.appShell.text.areYouSureYouWantToDelete")}
             {deletionTarget.name}
@@ -1889,12 +1139,12 @@ function AppShellContent() {
             aria-label={translate("ui.appShell.ariaLabel.applicationSettings")}
           >
             <SettingsSurface
-              onClose={closeSettings}
+              onClose={settingsCommands.close}
               onResetMockData={resetMockData}
               onRestartWelcomeTour={restartWelcomeTour}
               direct={!settingsBackgroundPath}
               category={settingsCategory}
-              onCategoryChange={setSettingsCategory}
+              onCategoryChange={settingsCommands.setCategory}
             />
           </div>
         )}
@@ -1935,22 +1185,11 @@ function AppShellContent() {
                   type="button"
                   onClick={() => {
                     const pending = pendingEditorNavigation;
-                    if (backgroundRoute.kind === "editor-workspace") {
-                      const saved =
-                        persistedEditorWorkspacesRef.current[
-                          backgroundRoute.workspaceId
-                        ];
-                      if (saved) {
-                        const next = {
-                          ...editorWorkspacesRef.current,
-                          [saved.id]: saved,
-                        };
-                        editorWorkspacesRef.current = next;
-                        setEditorWorkspaces(next);
-                      }
-                    }
+                    if (backgroundRoute.kind === "editor-workspace")
+                      editor.commands.restorePersisted(
+                        backgroundRoute.workspaceId,
+                      );
                     setPendingEditorNavigation(null);
-                    setEditorSaveState("saved");
                     const restart = pendingTourRestart;
                     setPendingTourRestart(null);
                     performNavigation(pending.path, pending.state);
@@ -2043,19 +1282,8 @@ function AppShellContent() {
                   type="button"
                   onClick={() => {
                     const disk = externalEditorConflict.disk;
-                    const next = {
-                      ...editorWorkspacesRef.current,
-                      [disk.id]: disk,
-                    };
-                    editorWorkspacesRef.current = next;
-                    persistedEditorWorkspacesRef.current = {
-                      ...persistedEditorWorkspacesRef.current,
-                      [disk.id]: disk,
-                    };
-                    setEditorWorkspaces(next);
-                    setEditorSaveState("saved");
+                    editor.commands.acceptExternal(disk, true);
                     setExternalEditorConflict(null);
-                    void editorRepository.save(disk);
                   }}
                 >
                   {translate("ui.appShell.text.useDiskVersion")}
@@ -2074,735 +1302,18 @@ function AppShellContent() {
         {tourSession && (
           <WelcomeTourOverlay
             session={tourSession}
-            actionComplete={tourActionComplete}
-            onContinue={continueTour}
-            onBack={() => persistTourSession(backWelcomeTour(tourSession))}
-            onSkip={skipTourStep}
-            onExit={exitTour}
-            onChooseBranch={chooseTourBranch}
-            onChooseAdvanced={chooseAdvancedTour}
-            onFinishBranch={(nextBranch) =>
-              persistTourSession(
-                completeWelcomeTourBranch(tourSession, nextBranch),
-              )
-            }
+            actionComplete={tourTransitions.actionComplete}
+            onContinue={tourTransitions.commands.continue}
+            onBack={tourTransitions.commands.back}
+            onSkip={tourTransitions.commands.skip}
+            onExit={tourTransitions.commands.exit}
+            onChooseBranch={tourTransitions.commands.chooseBranch}
+            onChooseAdvanced={tourTransitions.commands.chooseAdvanced}
+            onFinishBranch={tourTransitions.commands.finishBranch}
             onChooseMode={chooseTourMode}
           />
         )}
       </div>
     </SupplementProviders>
-  );
-}
-
-function EditorExportReview({
-  workspace,
-  settings,
-  onClose,
-  onOverrideUse,
-}: {
-  workspace: EditorWorkspaceSnapshot;
-  settings: ReturnType<typeof useSettings>["settings"];
-  onClose: () => void;
-  onOverrideUse: () => void;
-}) {
-  const [error, setError] = useState<string | null>(null);
-  const [exporting, setExporting] = useState(false);
-  const limits = effectivePackageSizeLimits(settings.developer);
-  const summary = summarizeWorkspace(workspace);
-  const perform = async () => {
-    setExporting(true);
-    setError(null);
-    try {
-      const blockedAsset = Object.entries(workspace.assetEditorDocuments).find(
-        ([, document]) =>
-          document.kind === "svg" ||
-          (document.kind === "raster" && document.validationError),
-      );
-      if (blockedAsset)
-        throw new Error(
-          `${blockedAsset[0].replace(/^assets\//, "")} has an unresolved local editor draft. Fix it before export.`,
-        );
-      const archive = await new JumpPackageImportService().export(
-        { definitions: workspace.files, assets: workspace.assets },
-        limits,
-      );
-      if (settings.developer.useCustomPackageSizeLimits) onOverrideUse();
-      const safeName =
-        summary.name
-          .toLocaleLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "") || "jump-package";
-      if (isTauriRuntime()) {
-        const { invoke } = await import("@tauri-apps/api/core");
-        await invoke("save_editor_package", {
-          suggestedName: `${safeName}.jmp`,
-          bytes: [...archive],
-          limits,
-        });
-      } else {
-        const url = URL.createObjectURL(new Blob([archive.slice().buffer]));
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = `${safeName}.jmp`;
-        anchor.click();
-        URL.revokeObjectURL(url);
-      }
-      onClose();
-    } catch (caught) {
-      setError(
-        caught instanceof PackageSecurityError
-          ? translate(`packageErrors.${caught.code}`, {
-              ...caught.parameters,
-              ...(caught.diagnostic
-                ? { value0: translateDiagnostic(caught.diagnostic) }
-                : {}),
-            })
-          : isStructuredCommandError(caught)
-            ? translateError(caught)
-            : caught instanceof Error
-              ? caught.message
-              : translate("errors.EXPORT_FAILED"),
-      );
-      setExporting(false);
-    }
-  };
-  return (
-    <div className="editor-departure-backdrop">
-      <section
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="editor-export-heading"
-      >
-        <p>{translate("ui.appShell.text.preflightAndExport")}</p>
-        <h2 id="editor-export-heading">
-          {translate("ui.appShell.text.export")}
-          {summary.name} {translate("ui.appShell.text.asJmp")}
-        </h2>
-        <p>
-          {translate(
-            "ui.appShell.text.everySourceFileAndAssetWillBeValidatedBefore",
-          )}
-        </p>
-        <div className="editor-export-limits">
-          <strong>{translate("ui.appShell.text.effectiveLimits")}</strong>
-          <span>
-            {translate("ui.appShell.text.archive")}
-            {limits.maxArchiveMiB} {translate("ui.appShell.text.mib")}
-          </span>
-          <span>
-            {translate("ui.appShell.text.definition")}
-            {limits.maxDefinitionFileMiB} {translate("ui.appShell.text.mib")}
-          </span>
-          <span>
-            {translate("ui.appShell.text.asset")}
-            {limits.maxAssetFileMiB} {translate("ui.appShell.text.mib")}
-          </span>
-          <span>
-            {translate("ui.appShell.text.expanded")}
-            {limits.maxExpandedPackageMiB} {translate("ui.appShell.text.mib")}
-          </span>
-        </div>
-        {settings.developer.useCustomPackageSizeLimits && (
-          <p className="editor-export-risk">
-            <strong>{translate("ui.appShell.text.atYourOwnRisk")}</strong>{" "}
-            {translate(
-              "ui.appShell.text.customPackageByteBudgetsAreActiveMandatorySecurityChecks",
-            )}
-          </p>
-        )}
-        {error && (
-          <p className="editor-export-error" role="alert">
-            {error}
-          </p>
-        )}
-        <div>
-          <button
-            type="button"
-            disabled={exporting}
-            onClick={() => void perform()}
-          >
-            {exporting ? "Exporting…" : "Export Package"}
-          </button>
-          <button
-            autoFocus
-            type="button"
-            disabled={exporting}
-            onClick={onClose}
-          >
-            {translate("ui.appShell.text.cancel")}
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function ChainStarButton({
-  chain,
-  onToggle,
-}: {
-  chain: SavedChain;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="app-chain-star"
-      aria-label={`${chain.starred ? "Unstar" : "Star"} ${chain.name}`}
-      aria-pressed={chain.starred}
-      title={`${chain.starred ? "Unstar" : "Star"} ${chain.name}`}
-      onClick={onToggle}
-    >
-      <span aria-hidden="true">{chain.starred ? "★" : "☆"}</span>
-    </button>
-  );
-}
-
-function RecentChain({
-  chain,
-  tags,
-  colorNameByPrimaryTag,
-  onOpen,
-  onToggleStar,
-  onDelete,
-}: {
-  chain: SavedChain;
-  tags: Record<string, TagDefinition>;
-  colorNameByPrimaryTag: boolean;
-  onOpen: () => void;
-  onToggleStar: () => void;
-  onDelete: () => void;
-}) {
-  const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
-  const primaryTag = primaryTagForChain(chain);
-  const primaryTagDefinition = primaryTag ? tags[primaryTag] : null;
-  const menu = {
-    label: translate("ui.appShell.ariaLabel.chainActions", {
-      chain: chain.name,
-    }),
-    actions: [
-      {
-        id: "open",
-        label: translate("common.open"),
-        onAction: onOpen,
-      },
-      {
-        id: "star",
-        label: translate(chain.starred ? "common.unstar" : "common.star"),
-        onAction: onToggleStar,
-      },
-      {
-        id: "delete",
-        label: translate("common.deleteChain"),
-        danger: true,
-        separatorBefore: true,
-        onAction: onDelete,
-      },
-    ],
-  };
-  return (
-    <div
-      className="app-recent-work"
-      onContextMenu={(event) => openContextMenu(event, menu)}
-    >
-      <span>
-        <strong
-          className={
-            colorNameByPrimaryTag && primaryTagDefinition
-              ? "is-primary-tag-colored"
-              : undefined
-          }
-          style={
-            colorNameByPrimaryTag && primaryTagDefinition
-              ? ({
-                  "--chain-name-color": primaryTagDefinition.color,
-                } as CSSProperties)
-              : undefined
-          }
-        >
-          {chain.name}
-        </strong>
-        <small>
-          {chain.jumpCount} {chain.jumpCount === 1 ? "jump" : "jumps"} ·{" "}
-          {chain.lastOpenedLabel.toLocaleLowerCase()}
-        </small>
-      </span>
-      <div className="app-recent-actions">
-        {chain.starred && (
-          <span
-            className="app-chain-star-indicator"
-            role="img"
-            aria-label={`${chain.name} is starred`}
-          >
-            ★
-          </span>
-        )}
-        <button
-          type="button"
-          aria-haspopup="menu"
-          onKeyDown={(event) => openContextMenuFromKeyboard(event, menu)}
-          onClick={onOpen}
-        >
-          {translate("ui.appShell.text.resume")}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ChainHub({
-  active,
-  chains,
-  tags,
-  colorNamesByPrimaryTag,
-  includeItemTags,
-  onCreate,
-  onOpen,
-  onToggleStar,
-  onDelete,
-  onUpdateDetails,
-}: {
-  active: boolean;
-  chains: readonly SavedChain[];
-  tags: Record<string, TagDefinition>;
-  colorNamesByPrimaryTag: boolean;
-  includeItemTags: boolean;
-  onCreate: (name: string) => boolean;
-  onOpen: (chain: SavedChain) => void;
-  onToggleStar: (chain: SavedChain) => void;
-  onDelete: (chain: SavedChain) => void;
-  onUpdateDetails: (id: string, name: string, description: string) => void;
-}) {
-  const [newName, setNewName] = useState("");
-  const [search, setSearch] = useState("");
-  const visibleChains = useMemo(
-    () => filterSavedChains(chains, search),
-    [chains, search],
-  );
-  return (
-    <div className="app-chain-hub-content">
-      <header className="app-chain-hub-heading">
-        <div>
-          <p className="app-mock-kicker">
-            {translate("ui.appShell.text.chainTracker")}
-          </p>
-          <h1
-            id="app-chain-heading"
-            className="app-route-heading"
-            data-route-heading
-            tabIndex={-1}
-          >
-            {translate("ui.appShell.text.yourChains")}
-          </h1>
-          <p>
-            {translate(
-              "ui.appShell.text.resumeAJourneyUpdateItsDetailsOrSetOut",
-            )}
-          </p>
-        </div>
-        <span>
-          <strong>{chains.length}</strong>
-          <small>{translate("ui.appShell.text.savedChains")}</small>
-        </span>
-      </header>
-
-      <form
-        className="app-new-chain"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (onCreate(newName)) setNewName("");
-        }}
-      >
-        <span className="app-entry-icon" aria-hidden="true">
-          +
-        </span>
-        <div>
-          <label htmlFor="new-chain-name">
-            {translate("ui.appShell.text.startANewChain")}
-          </label>
-          <p>
-            {translate("ui.appShell.text.nameItNowYouCanEditItsDetailsFrom")}
-          </p>
-        </div>
-        <input
-          id="new-chain-name"
-          spellCheck
-          value={newName}
-          onChange={(event) => setNewName(event.target.value)}
-          placeholder={translate("ui.appShell.placeholder.chainName")}
-          maxLength={80}
-          required
-        />
-        <button type="submit">
-          {translate("ui.appShell.text.startChain")}
-        </button>
-      </form>
-
-      <section
-        className="app-saved-chains"
-        aria-labelledby="saved-chains-heading"
-      >
-        <div className="app-saved-chains-heading">
-          <div>
-            <h2 id="saved-chains-heading">
-              {translate("ui.appShell.text.allSavedChains")}
-            </h2>
-            <p>
-              {translate(
-                "ui.appShell.text.starredChainsFirstThenByWhenYouLastOpened",
-              )}
-            </p>
-          </div>
-          <label className="app-chain-search">
-            <span>{translate("ui.appShell.text.searchSavedChains")}</span>
-            <input
-              type="search"
-              spellCheck={false}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={translate(
-                "ui.appShell.placeholder.nameOrDescription",
-              )}
-            />
-          </label>
-          <span>
-            {visibleChains.length === chains.length
-              ? `${chains.length} total`
-              : `${visibleChains.length} of ${chains.length}`}
-          </span>
-        </div>
-        <div className="app-chain-card-list" tabIndex={0}>
-          {visibleChains.map((chain) => (
-            <ChainCard
-              key={`${chain.id}:${active ? "active" : "inactive"}`}
-              chain={chain}
-              tags={tags}
-              colorNameByPrimaryTag={colorNamesByPrimaryTag}
-              includeItemTags={includeItemTags}
-              onOpen={() => onOpen(chain)}
-              onToggleStar={() => onToggleStar(chain)}
-              onDelete={() => onDelete(chain)}
-              onUpdateDetails={(name, description) =>
-                onUpdateDetails(chain.id, name, description)
-              }
-            />
-          ))}
-          {!visibleChains.length && (
-            <div className="app-chain-empty" role="status">
-              <strong>
-                {translate("ui.appShell.text.noSavedChainsMatch")}
-                {search.trim()}”.
-              </strong>
-              <span>
-                {translate(
-                  "ui.appShell.text.tryAChainNameOrWordsFromItsDescription",
-                )}
-              </span>
-            </div>
-          )}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function ChainCard({
-  chain,
-  tags,
-  colorNameByPrimaryTag,
-  includeItemTags,
-  onOpen,
-  onToggleStar,
-  onDelete,
-  onUpdateDetails,
-}: {
-  chain: SavedChain;
-  tags: Record<string, TagDefinition>;
-  colorNameByPrimaryTag: boolean;
-  includeItemTags: boolean;
-  onOpen: () => void;
-  onToggleStar: () => void;
-  onDelete: () => void;
-  onUpdateDetails: (name: string, description: string) => void;
-}) {
-  const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(chain.name);
-  const [description, setDescription] = useState(chain.description);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const avatarRef = useRef<HTMLDivElement>(null);
-  const [summaryPosition, setSummaryPosition] = useState<CSSProperties | null>(
-    null,
-  );
-  const primaryTag = primaryTagForChain(chain);
-  const primaryTagDefinition = primaryTag ? tags[primaryTag] : null;
-  const totalTagged = tagCategories.reduce(
-    (sum, category) => sum + chain.tagCounts[category],
-    0,
-  );
-  const summaryId = `chain-summary-${chain.id}`;
-
-  useEffect(() => {
-    if (editing) inputRef.current?.select();
-  }, [editing]);
-
-  const menu = {
-    label: translate("ui.appShell.ariaLabel.chainActions", {
-      chain: chain.name,
-    }),
-    actions: [
-      {
-        id: "open",
-        label: translate("common.open"),
-        onAction: onOpen,
-      },
-      {
-        id: "edit",
-        label: translate("common.editDetails"),
-        onAction: () => setEditing(true),
-      },
-      {
-        id: "star",
-        label: translate(chain.starred ? "common.unstar" : "common.star"),
-        onAction: onToggleStar,
-      },
-      {
-        id: "delete",
-        label: translate("common.deleteChain"),
-        danger: true,
-        separatorBefore: true,
-        onAction: onDelete,
-      },
-    ],
-  };
-
-  const positionSummary = () => {
-    const trigger = avatarRef.current?.getBoundingClientRect();
-    if (!trigger) return;
-    const gutter = 12;
-    const width = 18 * 16;
-    const estimatedHeight = 17.5 * 16;
-    const openLeft = trigger.left > window.innerWidth / 2;
-    setSummaryPosition({
-      position: "fixed",
-      left: Math.max(
-        gutter,
-        Math.min(
-          window.innerWidth - width - gutter,
-          openLeft ? trigger.left - width - gutter : trigger.right + gutter,
-        ),
-      ),
-      top: Math.max(
-        gutter,
-        Math.min(trigger.top, window.innerHeight - estimatedHeight - gutter),
-      ),
-    });
-  };
-
-  return (
-    <article
-      className={`app-chain-card${editing ? " is-editing" : ""}`}
-      onContextMenu={(event) => openContextMenu(event, menu)}
-    >
-      <div
-        ref={avatarRef}
-        className="app-chain-card-avatar"
-        onMouseEnter={positionSummary}
-      >
-        <button
-          className="app-chain-card-mark"
-          type="button"
-          aria-describedby={summaryId}
-          aria-label={`Show ${chain.name} tag summary`}
-          onFocus={positionSummary}
-        >
-          {chain.name.slice(0, 1).toUpperCase()}
-        </button>
-        <div
-          id={summaryId}
-          className="app-chain-tag-summary"
-          role="tooltip"
-          style={summaryPosition ?? undefined}
-        >
-          <header>
-            <div>
-              <span>
-                {includeItemTags ? "Perk and item profile" : "Perk profile"}
-              </span>
-              <strong>{chain.name}</strong>
-            </div>
-            <span>
-              {totalTagged} {translate("ui.appShell.text.tagged")}
-              {includeItemTags ? "records" : "perks"}
-            </span>
-          </header>
-          <StaticTagRadar
-            counts={chain.tagCounts}
-            tags={tags}
-            label={`${chain.name} ${includeItemTags ? "perk and item" : "perk"} category radar`}
-            unitLabel={includeItemTags ? "records" : "perks"}
-          />
-          <p>
-            {primaryTagDefinition
-              ? `Strongest category: ${primaryTagDefinition.label} with ${chain.tagCounts[primaryTag!]} ${includeItemTags ? "records" : "perks"}.`
-              : `No tagged ${includeItemTags ? "records" : "perks"} yet.`}
-          </p>
-        </div>
-      </div>
-      <div className="app-chain-card-copy">
-        {editing ? (
-          <form
-            className="app-edit-chain"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const normalized = normalizeChainName(name);
-              if (!normalized) return;
-              onUpdateDetails(normalized, description);
-              setName(normalized);
-              setEditing(false);
-            }}
-          >
-            <label htmlFor={`rename-${chain.id}`}>
-              {translate("ui.appShell.text.chainName")}
-            </label>
-            <input
-              ref={inputRef}
-              id={`rename-${chain.id}`}
-              value={name}
-              spellCheck
-              onChange={(event) => setName(event.target.value)}
-              maxLength={80}
-              required
-            />
-            <label htmlFor={`description-${chain.id}`}>
-              {translate("ui.appShell.text.description")}
-            </label>
-            <textarea
-              id={`description-${chain.id}`}
-              value={description}
-              spellCheck
-              onChange={(event) => setDescription(event.target.value)}
-              maxLength={240}
-              rows={2}
-              placeholder={translate(
-                "ui.appShell.placeholder.describeThisChain",
-              )}
-            />
-            <button type="submit">{translate("ui.appShell.text.save")}</button>
-            <button
-              type="button"
-              onClick={() => {
-                setName(chain.name);
-                setDescription(chain.description);
-                setEditing(false);
-              }}
-            >
-              {translate("ui.appShell.text.cancel")}
-            </button>
-          </form>
-        ) : (
-          <>
-            <h3
-              data-primary-tag={primaryTag ?? undefined}
-              style={
-                colorNameByPrimaryTag && primaryTagDefinition
-                  ? ({
-                      "--chain-name-color": primaryTagDefinition.color,
-                    } as CSSProperties)
-                  : undefined
-              }
-              className={
-                colorNameByPrimaryTag && primaryTagDefinition
-                  ? "is-primary-tag-colored"
-                  : undefined
-              }
-            >
-              {chain.name}
-            </h3>
-            <p>{chain.description}</p>
-          </>
-        )}
-        <small>{chain.lastOpenedLabel}</small>
-      </div>
-      <dl>
-        <div>
-          <dt>{translate("ui.appShell.text.jumps")}</dt>
-          <dd>{chain.jumpCount}</dd>
-        </div>
-      </dl>
-      <button
-        type="button"
-        className="app-card-delete"
-        aria-label={`Delete ${chain.name}`}
-        title={`Delete ${chain.name}`}
-        onClick={onDelete}
-      >
-        {translate("ui.appShell.text.delete")}
-      </button>
-      {!editing && (
-        <div className="app-chain-card-actions">
-          <button
-            type="button"
-            aria-haspopup="menu"
-            onKeyDown={(event) => openContextMenuFromKeyboard(event, menu)}
-            onClick={onOpen}
-          >
-            {translate("ui.appShell.text.open")}
-          </button>
-          <button
-            type="button"
-            className="app-chain-secondary-action"
-            aria-label={`Edit ${chain.name}`}
-            onClick={() => setEditing(true)}
-          >
-            {translate("ui.appShell.text.editDetails")}
-          </button>
-          <ChainStarButton chain={chain} onToggle={onToggleStar} />
-        </div>
-      )}
-    </article>
-  );
-}
-
-function RecoveryView({
-  type,
-  hidden,
-  returnLabel,
-  onReturn,
-}: {
-  type: "Editor workspace" | "Chain";
-  hidden: boolean;
-  returnLabel: string;
-  onReturn: () => void;
-}) {
-  return (
-    <section
-      hidden={hidden}
-      inert={hidden || undefined}
-      data-active-route={!hidden}
-      aria-labelledby={`app-${type === "Chain" ? "chain" : "editor"}-recovery-heading`}
-    >
-      <p className="app-mock-kicker">
-        {translate("ui.appShell.text.recovery")}
-      </p>
-      <h1
-        id={`app-${type === "Chain" ? "chain" : "editor"}-recovery-heading`}
-        className="app-route-heading"
-        data-route-heading
-        tabIndex={-1}
-      >
-        {type} {translate("ui.appShell.text.unavailable")}
-      </h1>
-      <p>
-        {translate(
-          "ui.appShell.text.theRequestedLocalRecordCouldNotBeRestoredIts",
-        )}
-      </p>
-      <div className="app-route-actions">
-        <button type="button" onClick={onReturn}>
-          {returnLabel}
-        </button>
-      </div>
-    </section>
   );
 }

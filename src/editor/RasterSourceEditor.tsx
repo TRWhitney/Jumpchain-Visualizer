@@ -47,6 +47,14 @@ import {
 } from "../settings/model";
 import { RangeField, RasterNumberInput } from "./RasterFieldControls";
 import { transformStrokes, translateStrokes } from "./rasterGeometry";
+import {
+  duplicateRasterLayer,
+  removeRasterLayer,
+  renameRasterLayer,
+  reorderRasterLayer,
+  updateRasterLayer,
+} from "./rasterLayerOperations";
+import { RasterRenderCoordinator } from "./rasterRenderCoordinator";
 
 type RasterTool =
   | "select"
@@ -428,6 +436,7 @@ export function RasterSourceEditor({
     bytes: Uint8Array,
     document: RasterAssetEditorDocument,
     historyLabel: string,
+    preview?: Blob,
   ) => void;
   onPreview: (preview: Blob | null, sourceBytes: Uint8Array) => void;
   onStatus: (status: string, invalid: boolean) => void;
@@ -474,14 +483,17 @@ export function RasterSourceEditor({
   } | null>(null);
   const renderClient = useRef<RasterRenderClient | null>(null);
   const previewSourceBytes = useRef(bytes);
+  const latestPreview = useRef<Blob | null>(null);
   const publishPreview = useCallback(
-    (preview: Blob | null) => onPreview(preview, previewSourceBytes.current),
+    (preview: Blob | null) => {
+      latestPreview.current = preview;
+      onPreview(preview, previewSourceBytes.current);
+    },
     [onPreview],
   );
   const [proxyRenderClient, setProxyRenderClient] =
     useState<RasterRenderClient | null>(null);
-  const renderAbort = useRef<AbortController | null>(null);
-  const renderGeneration = useRef(0);
+  const renderCoordinator = useRef<RasterRenderCoordinator | null>(null);
   const textTimer = useRef<number | null>(null);
   const transformer = useRef<Konva.Transformer>(null);
   const stage = useRef<Konva.Stage>(null);
@@ -555,14 +567,19 @@ export function RasterSourceEditor({
   }, [draft]);
 
   useEffect(() => {
-    renderClient.current = new RasterRenderClient();
+    const fullResolutionClient = new RasterRenderClient();
+    renderClient.current = fullResolutionClient;
+    renderCoordinator.current = new RasterRenderCoordinator(
+      fullResolutionClient,
+    );
     const proxyClient = new RasterRenderClient();
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setProxyRenderClient(proxyClient);
     return () => {
       if (textTimer.current) window.clearTimeout(textTimer.current);
-      renderAbort.current?.abort();
-      renderClient.current?.dispose();
+      renderCoordinator.current?.cancel();
+      renderCoordinator.current = null;
+      fullResolutionClient.dispose();
       renderClient.current = null;
       proxyClient.dispose();
     };
@@ -626,27 +643,26 @@ export function RasterSourceEditor({
     historyLabel: string,
   ) => {
     previewSourceBytes.current = bytes;
-    onPreview(null, bytes);
+    latestPreview.current = null;
     const renderDocument = { ...next, validationError: undefined };
     setDraft(renderDocument);
-    renderAbort.current?.abort();
-    const controller = new AbortController();
-    renderAbort.current = controller;
-    const generation = ++renderGeneration.current;
     setRendering(true);
     setError(null);
     onStatus(
       translate("ui.editorWorkspace.asset.editor.renderingFullResolution"),
       false,
     );
-    try {
-      const result = await renderClient.current!.render(
+    const outcome = await renderCoordinator.current!.render(renderDocument);
+    if (outcome.status === "stale") return;
+    if (outcome.status === "complete") {
+      const { result } = outcome;
+      previewSourceBytes.current = result.bytes;
+      onCommit(
+        result.bytes,
         renderDocument,
-        controller.signal,
+        historyLabel,
+        latestPreview.current ?? undefined,
       );
-      if (generation !== renderGeneration.current || controller.signal.aborted)
-        return;
-      onCommit(result.bytes, renderDocument, historyLabel);
       onStatus(
         translate("ui.editorWorkspace.asset.editor.previewUpdated", {
           width: result.width,
@@ -654,9 +670,8 @@ export function RasterSourceEditor({
         }),
         false,
       );
-    } catch (nextError) {
-      if (controller.signal.aborted) return;
-      console.error("Raster rendering failed.", nextError);
+    } else {
+      console.error("Raster rendering failed.", outcome.error);
       const message = translate(
         "ui.editorWorkspace.asset.editor.renderingFailed",
       );
@@ -674,9 +689,8 @@ export function RasterSourceEditor({
         }),
         true,
       );
-    } finally {
-      if (generation === renderGeneration.current) setRendering(false);
     }
+    setRendering(false);
   };
 
   const updateSelected = (
@@ -692,16 +706,7 @@ export function RasterSourceEditor({
     update: (layer: RasterLayer) => RasterLayer,
     label: string,
   ) => {
-    void commit(
-      {
-        ...draft,
-        layers: draft.layers.map((layer) =>
-          layer.id === id ? update(layer) : layer,
-        ),
-        selectedLayerId: id,
-      },
-      label,
-    );
+    void commit(updateRasterLayer(draft, id, update), label);
   };
 
   const selectTool = (nextTool: RasterTool) => {
@@ -1279,12 +1284,7 @@ export function RasterSourceEditor({
     setRenamingLayerId(null);
     if (!name) return;
     void commit(
-      {
-        ...current,
-        layers: current.layers.map((layer) =>
-          layer.id === renamingLayerId ? { ...layer, name } : layer,
-        ),
-      },
+      renameRasterLayer(current, renamingLayerId, name),
       "Rename layer",
     );
   };
@@ -2844,48 +2844,20 @@ export function RasterSourceEditor({
                   "Toggle layer lock",
                 );
               const move = (direction: 1 | -1) => {
-                const layers = [...draft.layers];
-                [layers[index], layers[index + direction]] = [
-                  layers[index + direction],
-                  layers[index],
-                ];
                 void commit(
-                  { ...draft, layers, selectedLayerId: layer.id },
+                  reorderRasterLayer(draft, layer.id, direction),
                   "Reorder layer",
                 );
               };
               const duplicate = () => {
-                const copy = structuredClone(layer);
-                copy.id = layerId();
-                copy.name = `${layer.name} copy`;
                 void commit(
-                  {
-                    ...draft,
-                    layers: [
-                      ...draft.layers.slice(0, index + 1),
-                      copy,
-                      ...draft.layers.slice(index + 1),
-                    ],
-                    selectedLayerId: copy.id,
-                  },
+                  duplicateRasterLayer(draft, layer.id, layerId()),
                   "Duplicate layer",
                 );
               };
               const remove = () => {
                 setTooltip(null);
-                void commit(
-                  {
-                    ...draft,
-                    layers: draft.layers.filter(
-                      (candidate) => candidate.id !== layer.id,
-                    ),
-                    selectedLayerId:
-                      draft.selectedLayerId === layer.id
-                        ? null
-                        : draft.selectedLayerId,
-                  },
-                  "Delete layer",
-                );
+                void commit(removeRasterLayer(draft, layer.id), "Delete layer");
               };
               const menu = {
                 label: translate(

@@ -1,5 +1,5 @@
 import type { ActorEntryState } from "../domain";
-import type { TrackerAction } from "../tracker/model";
+import type { RendererMutation } from "../renderer";
 
 export const createPreviewActorState = (): ActorEntryState => ({
   choices: {},
@@ -11,15 +11,8 @@ export const createPreviewActorState = (): ActorEntryState => ({
 
 export function reducePreviewActorState(
   state: ActorEntryState,
-  action: TrackerAction,
+  action: RendererMutation,
 ): ActorEntryState {
-  if (
-    !("entryId" in action) ||
-    action.entryId !== "preview-entry" ||
-    !("actorId" in action) ||
-    action.actorId !== "jumper"
-  )
-    return state;
   if (action.type === "set-choice")
     return {
       ...state,

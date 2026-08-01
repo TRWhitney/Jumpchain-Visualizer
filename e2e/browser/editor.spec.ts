@@ -10,6 +10,7 @@ import { PNG } from "pngjs";
 import { unzipSync, zipSync } from "fflate";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import {
   captureReviewScreenshot,
   reviewArtifactsEnabled,
@@ -10192,30 +10193,38 @@ test("a correction preset keeps a referenced layout asset responsive @chromium-o
   await page.emulateMedia({ colorScheme: "dark" });
   await page.setViewportSize({ width: 1400, height: 900 });
   const editor = await openCreatedEditor(page);
-  const image = new PNG({ width: 2400, height: 1700 });
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Developer" }).click();
+  await page.getByLabel("Use custom package limits").click();
+  await page.getByRole("button", { name: "I understand, enable" }).click();
+  await page.getByRole("spinbutton", { name: /Asset file/ }).fill("64");
+  await page.getByRole("button", { name: "Close Settings" }).click();
+  const image = new PNG({ width: 4800, height: 4000 });
   let random = 0x12345678;
-  for (let offset = 0; offset < image.data.length; offset += 4) {
-    random ^= random << 13;
-    random ^= random >>> 17;
-    random ^= random << 5;
-    image.data[offset] = random & 0xff;
-    image.data[offset + 1] = (random >>> 8) & 0xff;
-    image.data[offset + 2] = (random >>> 16) & 0xff;
-    image.data[offset + 3] = 255;
+  for (let y = 0; y < image.height; y += 1) {
+    for (let x = 0; x < image.width; x += 1) {
+      random ^= random << 13;
+      random ^= random >>> 17;
+      random ^= random << 5;
+      const offset = (y * image.width + x) * 4;
+      image.data[offset] = random & 0xff;
+      image.data[offset + 1] = (random >>> 8) & 0xff;
+      image.data[offset + 2] = (random >>> 16) & 0xff;
+      image.data[offset + 3] = 255;
+    }
   }
   const imageBytes = PNG.sync.write(image);
-  expect(imageBytes.byteLength).toBeGreaterThan(12 * 1024 * 1024);
+  const originalDigest = createHash("sha256").update(imageBytes).digest("hex");
+  expect(image.width * image.height).toBe(19_200_000);
+  expect(imageBytes.byteLength).toBeGreaterThan(50 * 1024 * 1024);
+  expect(imageBytes.byteLength).toBeLessThan(64 * 1024 * 1024);
+  const imagePath = testInfo.outputPath("referenced-profile.png");
+  await writeFile(imagePath, imageBytes);
 
   await editor.getByRole("button", { name: "Add", exact: true }).click();
   const chooserPromise = page.waitForEvent("filechooser");
   await editor.getByRole("button", { name: "Asset…" }).click();
-  await (
-    await chooserPromise
-  ).setFiles({
-    name: "referenced-profile.png",
-    mimeType: "image/png",
-    buffer: imageBytes,
-  });
+  await (await chooserPromise).setFiles(imagePath);
   await expect(
     editor.getByRole("heading", {
       name: "referenced-profile.png",
@@ -10280,6 +10289,9 @@ choice-layout
       frames: 0,
       lastFrame: performance.now(),
       maxFrameGap: 0,
+      gaps: [] as Array<{ at: number; duration: number }>,
+      events: [] as Array<{ at: number; name: string; value: string | null }>,
+      observers: [] as MutationObserver[],
     };
     Object.assign(window, { __assetCorrectionMeasure: measure });
     const frame = (now: number) => {
@@ -10288,10 +10300,36 @@ choice-layout
         measure.maxFrameGap,
         now - measure.lastFrame,
       );
+      if (now - measure.lastFrame > 40)
+        measure.gaps.push({ at: now, duration: now - measure.lastFrame });
       measure.lastFrame = now;
       measure.frames += 1;
       requestAnimationFrame(frame);
     };
+    for (const [selector, name, attribute] of [
+      [".asset-source-workspace-status", "status", null],
+      [".editor-save-state", "save", null],
+      [".editor-asset-preview-panel img", "asset-src", "src"],
+    ] as const) {
+      const target = document.querySelector(selector);
+      if (!target) continue;
+      const observer = new MutationObserver(() => {
+        measure.events.push({
+          at: performance.now(),
+          name,
+          value: attribute
+            ? target.getAttribute(attribute)
+            : target.textContent,
+        });
+      });
+      observer.observe(target, {
+        attributes: Boolean(attribute),
+        attributeFilter: attribute ? [attribute] : undefined,
+        childList: !attribute,
+        subtree: !attribute,
+      });
+      measure.observers.push(observer);
+    }
     requestAnimationFrame(frame);
   });
   const correctionStarted = Date.now();
@@ -10304,8 +10342,51 @@ choice-layout
     .poll(() => assetPreview.evaluate((image) => image.naturalWidth))
     .toBe(1024);
   const previewLatency = Date.now() - correctionStarted;
+  await expect(editor.locator(".asset-raster-editor")).toHaveAttribute(
+    "aria-busy",
+    "true",
+  );
+  const inputStarted = Date.now();
+  await editor.getByRole("button", { name: "Inspector", exact: true }).click();
+  await expect(
+    editor.getByRole("complementary", { name: "Tool inspector" }),
+  ).toBeHidden();
+  const inputLatency = Date.now() - inputStarted;
+  await editor.getByRole("button", { name: "Inspector", exact: true }).click();
+  const canvas = editor.locator(".asset-raster-stage");
+  await canvas.hover();
+  for (let index = 0; index < 15; index += 1) await page.mouse.wheel(0, 100);
+  await expect(canvas).toHaveAttribute("aria-label", /Zoom 25 percent/);
+  const zoomInputStarted = Date.now();
+  await page.mouse.wheel(0, -100);
+  await expect(canvas).toHaveAttribute("aria-label", /Zoom 28 percent/);
+  const zoomInputLatency = Date.now() - zoomInputStarted;
+  expect(zoomInputLatency).toBeLessThan(750);
   await expect(status).toContainText("Preview updated", { timeout: 30_000 });
-  await expect(editor.locator(".editor-save-state")).toHaveText("Unsaved");
+  const inspectorButton = editor.getByRole("button", {
+    name: "Inspector",
+    exact: true,
+  });
+  const boundaryInputLatencies: number[] = [];
+  const boundaryDeadline = Date.now() + 3_000;
+  while (Date.now() < boundaryDeadline) {
+    const outStarted = Date.now();
+    await page.mouse.wheel(0, 100);
+    await expect(canvas).toHaveAttribute("aria-label", /Zoom 25 percent/);
+    boundaryInputLatencies.push(Date.now() - outStarted);
+    const inStarted = Date.now();
+    await page.mouse.wheel(0, -100);
+    await expect(canvas).toHaveAttribute("aria-label", /Zoom 28 percent/);
+    boundaryInputLatencies.push(Date.now() - inStarted);
+  }
+  const inputProbeStarted = Date.now();
+  await inspectorButton.click();
+  await expect(
+    editor.getByRole("complementary", { name: "Tool inspector" }),
+  ).toBeHidden();
+  const postCommitInputLatency = Date.now() - inputProbeStarted;
+  expect(postCommitInputLatency).toBeLessThan(750);
+  await inspectorButton.click();
   await expect(editor.locator(".editor-save-state")).toHaveText("Saved", {
     timeout: 60_000,
   });
@@ -10314,7 +10395,7 @@ choice-layout
     .not.toBe(proxyPreviewSource);
   await expect
     .poll(() => assetPreview.evaluate((image) => image.naturalWidth))
-    .toBe(2400);
+    .toBe(1024);
   await page.evaluate(
     () =>
       new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
@@ -10327,11 +10408,21 @@ choice-layout
           active: boolean;
           frames: number;
           maxFrameGap: number;
+          gaps: Array<{ at: number; duration: number }>;
+          events: Array<{ at: number; name: string; value: string | null }>;
+          observers: MutationObserver[];
         };
       }
     ).__assetCorrectionMeasure;
     measure.active = false;
-    return measure;
+    for (const observer of measure.observers) observer.disconnect();
+    return {
+      active: measure.active,
+      frames: measure.frames,
+      maxFrameGap: measure.maxFrameGap,
+      gaps: measure.gaps,
+      events: measure.events,
+    };
   });
   const responsivenessArtifact = testInfo.outputPath(
     "asset-correction-responsiveness.json",
@@ -10339,7 +10430,15 @@ choice-layout
   await writeFile(
     responsivenessArtifact,
     JSON.stringify(
-      { previewLatency, correctionLatency, ...responsiveness },
+      {
+        previewLatency,
+        inputLatency,
+        zoomInputLatency,
+        boundaryInputLatencies,
+        postCommitInputLatency,
+        correctionLatency,
+        ...responsiveness,
+      },
       null,
       2,
     ),
@@ -10349,8 +10448,35 @@ choice-layout
     contentType: "application/json",
   });
   expect(responsiveness.frames).toBeGreaterThan(2);
-  expect(responsiveness.maxFrameGap).toBeLessThan(250);
-  expect(previewLatency).toBeLessThan(750);
+  expect(responsiveness.maxFrameGap).toBeLessThan(150);
+  expect(previewLatency).toBeLessThan(1_500);
+  expect(inputLatency).toBeLessThan(750);
+  expect(Math.max(...boundaryInputLatencies)).toBeLessThan(750);
+
+  const storedDigest = await page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("jumpchain-visualizer", 4);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+    });
+    const workspace = await new Promise<{
+      assets: Record<string, Uint8Array>;
+    }>((resolve, reject) => {
+      const transaction = database.transaction("editor-workspaces", "readonly");
+      const request = transaction.objectStore("editor-workspaces").getAll();
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result[0]);
+      transaction.oncomplete = () => database.close();
+    });
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      workspace.assets["assets/referenced-profile.png"],
+    );
+    return [...new Uint8Array(digest)]
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+  });
+  expect(storedDigest).not.toBe(originalDigest);
 
   await editor
     .locator(".editor-outline-scroll")

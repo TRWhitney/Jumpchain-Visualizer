@@ -7,7 +7,10 @@ import {
   editorLayoutFieldPresentation,
   editorLayoutNodePresentation,
   editorOptionPresentation,
+  editorSymbolLabel,
+  editorSymbolUsesHandleAsIdentity,
 } from "./editorPresentation";
+import type { FormatSymbol } from "./languageService";
 
 type FieldDefinition = {
   values?: readonly (string | boolean)[];
@@ -89,6 +92,30 @@ const valuesFor = (definition: FieldDefinition) => {
 };
 
 describe("Editor field presentation catalog", () => {
+  it("preserves handle-first explorer identity for appearance declarations", () => {
+    const symbol = (values: Partial<FormatSymbol>): FormatSymbol => ({
+      kind: "choice",
+      file: "jump.jdef",
+      from: 0,
+      to: 1,
+      depth: 0,
+      ...values,
+    });
+    expect(
+      editorSymbolLabel(
+        symbol({ kind: "choice-layout", handle: "cards", name: "Ignored" }),
+      ),
+    ).toBe("cards");
+    expect(
+      editorSymbolUsesHandleAsIdentity(symbol({ kind: "choice-layout" })),
+    ).toBe(true);
+    expect(
+      editorSymbolLabel(
+        symbol({ kind: "choice", handle: "identity", name: "Identity" }),
+      ),
+    ).toBe("Identity");
+  });
+
   it("covers every Structured declaration and layout field", () => {
     for (const [kind, declaration] of Object.entries(schema.declarations)) {
       expect(editorDeclarationLabel(kind), kind).not.toBe(kind);

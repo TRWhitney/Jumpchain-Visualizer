@@ -8,18 +8,18 @@ import { ClonedMapStore } from "../platform/memoryStore";
 import { isTauriRuntime } from "../platform/runtime";
 import { runOneShotWorker } from "../platform/workerRequest";
 import { hydrateEditorWorkspace, type EditorWorkspaceSnapshot } from "./model";
-import { stringifyBinaryJson } from "./binaryJson";
+import { encodeBinaryJson } from "./binaryJson";
 
 function serializeEditorWorkspace(workspace: EditorWorkspaceSnapshot) {
   if (typeof Worker === "undefined")
-    return Promise.resolve(stringifyBinaryJson(workspace));
+    return Promise.resolve(encodeBinaryJson(workspace));
   return runOneShotWorker(
     new Worker(
       new URL("./editorWorkspaceSerialize.worker.ts", import.meta.url),
       { type: "module", name: "editor-workspace-serializer" },
     ),
     { workspace },
-    (response: { payload?: string; error?: string }) => {
+    (response: { payload?: Uint8Array; error?: string }) => {
       if (response.payload) return response.payload;
       throw new Error(
         response.error ?? "Editor workspace serialization failed.",
@@ -135,9 +135,7 @@ export class TauriEditorWorkspaceRepository implements EditorWorkspaceRepository
   }
   async save(workspace: EditorWorkspaceSnapshot) {
     const payload = await serializeEditorWorkspace(workspace);
-    await invoke("save_editor_workspace", {
-      payload,
-    });
+    await invoke("save_editor_workspace_binary", payload);
   }
   async remove(id: string) {
     await invoke("remove_editor_workspace", { id });

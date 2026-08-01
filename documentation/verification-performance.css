@@ -1,0 +1,86 @@
+.performance-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.8rem;
+  margin: 1.5rem 0;
+}
+
+.performance-summary article,
+.strategy-card {
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+}
+
+.performance-summary strong {
+  display: block;
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.performance-summary span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.strategy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 1rem;
+  margin: 1.3rem 0 1.8rem;
+}
+
+.strategy-card h3 {
+  margin-top: 0;
+}
+
+.strategy-card dl {
+  margin-bottom: 0;
+}
+
+.strategy-card dt {
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.strategy-card dd {
+  margin-left: 0;
+}
+
+.catalog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.catalog-actions button {
+  padding: 0.65rem 0.9rem;
+  color: #171717;
+  background: #d4af37;
+  border: 2px solid #171717;
+  border-radius: 0.25rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.catalog-actions button:hover {
+  background: #f0d66d;
+}
+
+.catalog-actions button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.catalog-status {
+  color: var(--muted);
+  font-size: 0.9rem;
+}

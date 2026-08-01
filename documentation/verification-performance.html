@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Measured verification-performance and Rust artifact-management strategies for Jumpchain Visualizer.">
+  <title>Verification Performance | Jumpchain Visualizer</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="decision-document.css">
+  <link rel="stylesheet" href="verification-performance.css">
+  <script src="verification-performance.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home"><span class="site-mark" aria-hidden="true">JV</span><span>Jumpchain Visualizer <small>Documentation</small></span></a>
+    <nav class="site-nav" aria-label="Documentation"><a href="index.html">Overview</a><a href="architecture.html">Architecture</a><a href="verification-performance.html" aria-current="page">Verification performance</a></nav>
+  </header>
+
+  <main id="content" class="decision-document" tabindex="-1">
+    <header class="documentation-hero">
+      <p class="eyebrow">Living engineering playbook</p>
+      <h1>Fast feedback without weaker evidence</h1>
+      <p class="lede">Reduce wall time by exposing safe parallelism, reusing validated work, and measuring the actual critical path. Coverage, browser intent, observable acceptance criteria, and the no-retry rule remain fixed guardrails.</p>
+      <p class="status-note"><strong>Decision:</strong> remove duplicated browser-engine work instead of adding workers. Every product behavior runs in Chromium; a contract-protected engine-risk matrix runs in Firefox and WebKit. Unit work is isolated from browser-component and Rust work on WSL. Production rendering is unchanged.</p>
+    </header>
+
+    <section>
+      <h2>Outcome and measurement</h2>
+      <div class="performance-summary" aria-label="Verification performance targets">
+        <article><strong>≤ 27 s</strong><span>Warm everyday gate target</span></article>
+        <article><strong>≤ 3 m 15 s</strong><span>Warm full gate target</span></article>
+        <article><strong>≤ 5 m 15 s</strong><span>Warm exhaustive target</span></article>
+        <article><strong>≤ 90 s</strong><span>Cold everyday gate budget</span></article>
+        <article><strong>≤ 10 GiB</strong><span>Rust cache warning threshold</span></article>
+      </div>
+      <table>
+        <thead><tr><th>Workflow</th><th>Baseline</th><th>Implemented result</th><th>Interpretation</th></tr></thead>
+        <tbody>
+          <tr><td><code>typecheck</code></td><td>7.41 s warm through <code>tsc -b</code></td><td data-result="typecheck">1.84 s warm median; 1.83–1.89 s range</td><td>The no-emit projects now use their build information instead of being rebuilt because absent JavaScript outputs look stale.</td></tr>
+          <tr><td>Unit tests</td><td>9.51 s at 4 workers</td><td data-result="unit">6.05 s warm median; 6.03–6.10 s range</td><td>Eight workers are the measured knee; 12 workers improved the probe by only another 0.10 seconds.</td></tr>
+          <tr><td><code>test:browser</code></td><td>37.7 s</td><td data-result="browser">6.15 s warm median; 6.10–9.06 s range</td><td>All three measured 20-file, 78-test runs stayed below 10 seconds, including the reserved 8-worker mixed-wave configuration.</td></tr>
+          <tr><td>Chromium non-slow journey set</td><td>306 s at 3 workers; then 115.8 s after worker tuning</td><td data-result="chromium">87.51 s median at 9 workers; 87.29–87.66 s range</td><td>All three final-state runs passed 191 product tests plus one setup test, a further 24.4% reduction without changing product assignments.</td></tr>
+          <tr><td>Prepared-editor experiment</td><td>801.9 s verifier wall; 2,229 summed test-seconds</td><td>Rejected: 768.1 s failed wall; 2,092 summed test-seconds</td><td>The 6.1% work reduction missed its 10% retention threshold, so the snapshot and fixture interface were removed.</td></tr>
+          <tr><td><code>pnpm check</code></td><td>Approximately 67 s warm; then 20.0 s with a fragile mixed wave</td><td data-result="check">24.7 s verifier; 25.02 s shell</td><td>All gates pass. Isolating the six-second unit runner prevents recurrent 40–79 second Node/V8 crash failures while retaining the 35-second warm budget.</td></tr>
+          <tr><td><code>pnpm check:full</code></td><td>Approximately 7 m 20 s warm</td><td data-result="full">151.0 s prior median; focused engine matrix unchanged</td><td>Full already used focused Firefox/WebKit evidence. The stability wave adds about four seconds while remaining within 3 minutes 15 seconds.</td></tr>
+          <tr><td><code>pnpm check:exhaustive</code></td><td>801.9 s verifier wall; 565 product assignments plus setup; 2,229 summed test-seconds</td><td>299.88 s browser-matrix wall; 226/226; 780.9 summed test-seconds</td><td>Assignments fall 60% to 197 Chromium behaviors plus 14 Firefox and 14 WebKit engine contracts. Navigation fell from 773 to 429.6 summed seconds and context count from 566 to 226.</td></tr>
+          <tr><td>Rust <code>target/</code></td><td>19 GiB allocated; 20.7 GiB logical</td><td data-result="rust-cache">2.3 GiB ordinary rebuild; 3.2 GiB including opt-in debug-profile check</td><td>Lean ordinary debug information plus explicit maintenance.</td></tr>
+        </tbody>
+      </table>
+      <p>Baselines were captured on Linux under WSL with 32 available CPUs, 94 GiB RAM, Node 24.18.0, pnpm 11.11.0, and Rust/Cargo 1.89.0. A warm measurement reuses compiler and formatter caches; a cold measurement begins after the relevant cache has been removed. Compare timings, test counts, and failures—not one favorable run. WSL repeatedly crashed Node workers when unit, browser-component, and Rust pools overlapped, even after a WSL restart and after moving from child-process forks to worker threads. The accepted verifier therefore isolates unit execution in its own wave.</p>
+      <p>A follow-up <code>tsc -b --verbose</code> inspection showed that the earlier TypeScript strategy only wrote build metadata: both no-emit projects were still declared out of date on every invocation because <code>src/main.js</code> and <code>playwright.config.js</code> intentionally do not exist. Independent <code>tsc -p</code> invocations with <code>incremental</code> enabled preserve the same strict project coverage and reduced the measured warm median from 7.41 seconds to 1.84 seconds. A temporary-project contract changes a previously clean source into a type error after the first run, proving the cache invalidates instead of hiding new diagnostics.</p>
+      <p>The first finished-code exhaustive tier passed all 565 product tests at 3 workers in 14.4 minutes. After reusable state, the exhaustive verifier passed the same 565 assignments plus its setup test in 801.9 seconds, or 13.2 minutes of Playwright execution and 802.17 seconds including package-manager startup. The sustained Chromium suite previously produced a retained 12-worker target crash after 190 of 191 tests and an 8-worker pass that missed the full-gate budget by 1.3 seconds. A Firefox screenshot also exposed locale hydration rather than a missing menu: the menu was visible in English before persisted Arabic state loaded, so the exact path now waits for observable <code>lang="ar"</code> and <code>dir="rtl"</code> state. No retry converted any failed run into a pass.</p>
+      <p>The reusable-state stress campaign retained one instructive failure instead of retrying it away. The first snapshot included a 2.2 MB pretty-printed payload with an encoded Morgan demonstration chain that ordinary onboarding state did not need; after three green runs, a fourth context failed while restoring that large IndexedDB value. The setup now keeps the UI-produced settings record, preserves every object-store definition, and removes unrelated records before writing the 290 KB ephemeral snapshot. Home, mock-data gating, and Morgan behavior remained green, followed by three complete 192-test Chromium passes at 87.29–87.66 seconds.</p>
+      <p>The next investigation separated test-harness cost from product architecture. A deterministic prepared-editor snapshot removed repeated Open Editor/Create Project actions, but its exhaustive candidate reduced summed work only from 2,229 to 2,092 seconds and failed two WebKit assertions. Because the 6.1% improvement missed the 10% acceptance threshold, the snapshot and fixture option were removed. Success-only diagnostic captures remain artifact-mode-only, while screenshots used by assertions and automatic failure evidence remain.</p>
+      <p>A production route-splitting probe reduced the generated entry bundle but broke rendering. It was reverted immediately, the production source and Vite configuration were verified identical to the prior commit, and the original client was rebuilt before browser verification continued. This establishes a hard boundary for future work: a verification optimization must not change production rendering unless the product change is independently justified, specified, and verified.</p>
+      <p>The substantial reduction came from questioning engine duplication. The old exhaustive tier reran almost every ordinary application scenario in all three engines: 197 Chromium, 184 Firefox, and 184 WebKit assignments. The accepted matrix runs all 197 behaviors in Chromium and 14 contract-selected engine risks in each secondary engine, covering history/focus, persisted chain creation, responsive layout, image decoding, drag-and-drop, source keyboard handling, canvas, radio controls, IndexedDB, RTL, Settings overflow, review layout, module keyboard behavior, and welcome-tour persistence. This reduces the authoritative Playwright listing from 566 results to 226 without raising the three-worker cap.</p>
+      <p>The final matrix passed all 226 results in 299.88 seconds. Its ignored performance report recorded 780.9 summed test-seconds, 429.6 navigation seconds, 18.3 context seconds, 17.3 page seconds, and 0.4 screenshot seconds. Against the 801.9-second verifier baseline, the browser wall fell by 62.6%; against 2,229 summed test-seconds, executed work fell by 65.0%. This is a coverage-allocation change, not a cached result: every product test still executes in Chromium on every exhaustive run.</p>
+    </section>
+
+    <section>
+      <h2>Strategies already in use</h2>
+      <div class="strategy-grid">
+        <article class="strategy-card"><h3>Verification tiers</h3><p>The everyday, full, exhaustive, and release gates add evidence according to risk rather than running the packaged application for every edit.</p><dl><dt>Guardrail</dt><dd>The contract test enumerates every gate so a performance refactor cannot silently omit one.</dd></dl></article>
+        <article class="strategy-card"><h3>Focused browser intent</h3><p>Chromium carries every product behavior. Firefox and WebKit carry an explicit engine-risk contract in both full and exhaustive verification instead of duplicating ordinary application scenarios.</p><dl><dt>Guardrail</dt><dd>A contract inventories all 14 secondary-engine behaviors and fails if a required <code>@cross-browser</code> assignment disappears.</dd></dl></article>
+        <article class="strategy-card"><h3>Build reuse</h3><p>The verifier proves the production client build once, then sets <code>E2E_SKIP_BUILD=1</code> for Playwright tails.</p><dl><dt>Guardrail</dt><dd>Native release verification owns its separate packaged build.</dd></dl></article>
+        <article class="strategy-card"><h3>Observable acceptance</h3><p>GUI tests exercise the reported target, action, and post-action state. Screenshots and direct assertions outrank implementation proxies.</p><dl><dt>Guardrail</dt><dd>Retries never convert an unstable result into a pass.</dd></dl></article>
+        <article class="strategy-card"><h3>Incremental compilation</h3><p>TypeScript no-emit projects retain semantic build state through <code>tsc -p</code>, while Rust keeps its incremental artifacts. Both make repeated local gates cheaper without caching a test result.</p><dl><dt>Guardrail</dt><dd>Caches improve execution only; they never decide what receives coverage, and a changed-source contract proves TypeScript invalidation.</dd></dl></article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Execution improvements adopted</h2>
+      <div class="strategy-grid">
+        <article class="strategy-card"><h3>Expose browser file parallelism</h3><p>Vitest Browser Mode runs explicitly headless. Without that explicit state, the browser pool serialized files and left most CPUs idle.</p><dl><dt>Accept</dt><dd>All 78 tests pass repeatedly with a median below 10 seconds.</dd><dt>Rollback</dt><dd>Remove the headless flag if browser-provider correctness changes or file isolation fails.</dd></dl></article>
+        <article class="strategy-card"><h3>Scale Playwright workers</h3><p>Local workers never exceed available CPUs or 12. The short Chromium smoke path may use 12, sustained Chromium uses the measured stable cap of 9, focused Firefox/WebKit uses 8, and exhaustive execution retains 3. CI also remains at 3 to respect shared-runner constraints.</p><dl><dt>Accept</dt><dd>Repeated suites remain stable and materially beat the 3-worker baseline where the browser and workload support it.</dd><dt>Rollback</dt><dd>Lower a browser or workload cap if failures correlate with resource saturation after observable waits are correct; the retained 12-worker target crash is why one cap need not fit every workload.</dd></dl></article>
+        <article class="strategy-card"><h3>Make no-emit state effective</h3><p>Run independent no-emit TypeScript projects with <code>tsc -p</code> and explicit incremental state. Build mode is appropriate when emitted project-reference outputs exist; it was not an up-to-date check for these intentionally output-free projects.</p><dl><dt>Accept</dt><dd>Warm typechecking stays below 2.5 seconds and a post-cache source error is still reported.</dd><dt>Rollback</dt><dd>Return to a single invocation if the projects gain real declaration dependencies or cache invalidation becomes unsound.</dd></dl></article>
+        <article class="strategy-card"><h3>Isolate the unit pool</h3><p>The 547 unit tests retain eight worker threads but run in their own verifier wave. <a href="https://main.vitest.dev/config/pool">Vitest documents</a> that threads use worker contexts while the default forks pool uses child processes. Isolation avoids the WSL kernel failure repeatedly triggered when unit, browser-component, and Rust pools overlapped.</p><dl><dt>Accept</dt><dd>The suite remains near six seconds and the complete everyday gate exits cleanly.</dd><dt>Rollback</dt><dd>Merge waves only after the actual host kernel/toolchain combination proves repeated mixed-wave stability.</dd></dl></article>
+        <article class="strategy-card"><h3>Reuse browser storage state</h3><p>A Playwright setup project dismisses onboarding and selects the Advanced interface through the real UI once, then captures cookies, local storage, and IndexedDB beneath ignored test output. Each product test receives an isolated copy; the three first-launch tests explicitly request empty state.</p><dl><dt>Guardrail</dt><dd>The snapshot is regenerated every invocation, contains no cookies or non-local origins, adds one setup test, and never replaces the real welcome-tour journeys.</dd><dt>Rollback</dt><dd>Restore per-test setup if any engine cannot load the state or Chromium improves by less than ten percent.</dd></dl></article>
+        <article class="strategy-card"><h3>Rejected: prepared editor state</h3><p>A UI-derived blank workspace was technically isolated and portable, but reduced exhaustive summed work by only 6.1% and complicated empty-state intent.</p><dl><dt>Decision</dt><dd>The implementation was removed because it missed the predefined 10% category threshold.</dd><dt>Lesson</dt><dd>Measure the complete workload before institutionalizing fixture complexity.</dd></dl></article>
+        <article class="strategy-card"><h3>Capture diagnostics on demand</h3><p>Ordinary passing runs no longer write screenshots whose pixels are never asserted. Pixel checks, Playwright failure screenshots, and the explicit artifact workflow remain unchanged.</p><dl><dt>Accept</dt><dd>Normal screenshot time and output fall while failure and review evidence remain available.</dd><dt>Rollback</dt><dd>Restore a capture when it is an actual assertion input or required review artifact.</dd></dl></article>
+        <article class="strategy-card"><h3>Measure browser work categories</h3><p>A lightweight reporter records ignored project, file, test, navigation, context, page, screenshot, and action timings without source or application state.</p><dl><dt>Use</dt><dd>Distinguish repeated harness work from product execution before choosing an optimization.</dd></dl></article>
+        <article class="strategy-card"><h3>Keep reports non-blocking</h3><p>The HTML report is still generated but uses <code>open: "never"</code>. Developers open it deliberately with <code>pnpm test:e2e:report</code>.</p><dl><dt>Accept</dt><dd>A failed Playwright command exits and releases its process group instead of serving a report indefinitely.</dd><dt>Rollback</dt><dd>Automatic opening may return only if it cannot hold verification open.</dd></dl></article>
+        <article class="strategy-card"><h3>Cache content checks</h3><p>ESLint and Prettier cache by file content. Warm formatting and linting skip unchanged inputs; ESLint concurrency stays disabled because its cold memory cost outweighed the gain.</p><dl><dt>Guardrail</dt><dd>Content hashing prevents timestamps alone from declaring a changed file clean.</dd></dl></article>
+        <article class="strategy-card"><h3>Model dependencies and resources</h3><p>Static checks run first, unit tests run alone, then build, browser components, and Rust checks share a bounded wave. Playwright tails start only after the validated production build exists.</p><dl><dt>Guardrail</dt><dd>Treat repeated worker crashes and teardown stalls as scheduling evidence; do not recover them with retries or repeated WSL restarts.</dd></dl></article>
+        <article class="strategy-card"><h3>Print the critical path</h3><p>Every verifier run reports command, wave, critical-path, failure, and total elapsed time.</p><dl><dt>Use</dt><dd>Optimize the longest command in each sequential wave; shortening non-critical siblings may not change wall time.</dd></dl></article>
+        <article class="strategy-card"><h3>Wait for readiness, not time</h3><p>The Settings journey polls visible section identifiers after tab changes, waits for persisted locale attributes after navigation, and waits for the tour's actual dialog lifecycle before yielding shared setup.</p><dl><dt>Guardrail</dt><dd>No sleeps and no retries; failure still identifies an unmet observable state.</dd></dl></article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Diagnostic decision tree</h2>
+      <table>
+        <thead><tr><th>Observed symptom</th><th>Evidence to collect</th><th>First strategy</th><th>Do not do</th></tr></thead>
+        <tbody>
+          <tr><td>One command dominates</td><td>Verifier critical path and framework report</td><td>Profile inside that runner; expose supported file or worker parallelism.</td><td>Parallelize unrelated short commands and claim a wall-time win.</td></tr>
+          <tr><td>CPU mostly idle</td><td>CPU utilization, worker count, per-file timeline</td><td>Look for a disabled headless/parallel pool or serialized project configuration.</td><td>Add arbitrary process wrappers before understanding the runner.</td></tr>
+          <tr><td>Failures appear only at higher workers</td><td>Exact failed assertion, trace, screenshot, CPU and memory</td><td>Separate missing readiness waits from genuine resource saturation.</td><td>Add sleeps, retries, or reduce workers without diagnosing the symptom.</td></tr>
+          <tr><td>Assertions pass but workers crash or never exit</td><td>Process tree, isolated-suite result, runner stderr, signal, and host kernel log</td><td>Stop load, terminate only verified stale process groups, and restart the VM or WSL instance after an uninterruptible kernel fault.</td><td>Count the run as passing, loop retries, broadly kill process names, or continue stress after a process enters uninterruptible sleep.</td></tr>
+          <tr><td>Repeated unchanged checks stay slow</td><td>Cold and warm timings plus cache hit behavior</td><td>Use content-addressed formatter/linter caches.</td><td>Cache test outcomes as a substitute for execution.</td></tr>
+          <tr><td>TypeScript writes build state but remains slow</td><td><code>tsc -b --verbose</code> up-to-date reason and expected outputs</td><td>For independent no-emit projects, use incremental <code>tsc -p</code> checks and test changed-source invalidation.</td><td>Assume that a <code>.tsbuildinfo</code> file proves the cache is effective.</td></tr>
+          <tr><td>Every browser test repeats the same setup journey</td><td>Fixture timeline, persisted-state boundary, and isolation requirements</td><td>Generate storage state once through the real UI and clone it into isolated contexts.</td><td>Share one mutable browser context or commit a secret-bearing snapshot.</td></tr>
+          <tr><td>Most scenarios run identically in every browser engine</td><td>Per-project assignments, failures that found engine differences, and browser-sensitive feature inventory</td><td>Run every behavior in the primary engine and contract-protect a focused secondary-engine risk matrix.</td><td>Keep blanket engine duplication merely because it is already configured.</td></tr>
+          <tr><td>Most time is reported as navigation</td><td>Per-route navigation totals, application readiness, and a direct rendering artifact</td><td>Profile the product separately and require an independently justified product change.</td><td>Restructure production rendering solely to improve test time.</td></tr>
+          <tr><td>A failed browser command never returns</td><td>Process tree and listening report-server port</td><td>Generate the HTML report with automatic opening disabled and expose an explicit viewer command.</td><td>Use broad process-name termination that can kill unrelated work.</td></tr>
+          <tr><td>The same build repeats</td><td>Process tree and build logs</td><td>Pass a verified-build signal to downstream consumers.</td><td>Skip the build before any gate has proved it.</td></tr>
+          <tr><td>Disk grows while warm Rust stays fast</td><td><code>rust:cache:status</code> category totals</td><td>Reduce debug information and clean explicitly when storage outweighs cold-build cost.</td><td>Disable incremental compilation or delete caches during every gate.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Rust artifact policy</h2>
+      <p>The original cache accumulated many hashed dependency variants, build-script outputs, and workspace incremental states in about two weeks. No intentional <code>cdylib</code>, <code>rlib</code>, or Tauri <code>staticlib</code> target is removed.</p>
+      <pre><code>[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.debugging]
+inherits = "dev"
+debug = "full"</code></pre>
+      <p>One explicit <code>cargo clean</code> removed 20.7 GiB of accumulated workspace artifacts. The representative ordinary rebuild settled at 2.3 GiB; compiling the opt-in full-debug profile brought the complete cache to 3.2 GiB and took 30.5 seconds. Warm Rust verification remains about one second. Ordinary builds retain file-and-line backtraces while avoiding dependency debug data. Incremental compilation remains enabled because its disk use purchases fast rebuilds. If native variable inspection is required, run <code>cargo build --workspace --all-features --profile debugging</code>.</p>
+      <p><code>pnpm rust:cache:status</code> reads Cargo metadata, scans without following symbolic links, reports categories, and warns above 10 GiB without failing. <code>pnpm rust:cache:clean</code> delegates deletion to Cargo and is never called by verification. Cleaning is a deliberate exchange: reclaimed disk now for a cold Rust build next time.</p>
+      <p>This follows Cargo's guidance to <a href="https://doc.rust-lang.org/cargo/guide/build-performance.html#reduce-amount-of-generated-debug-information">reduce development debug information</a>. Cargo documents that <a href="https://doc.rust-lang.org/cargo/reference/profiles.html#incremental">incremental compilation stores extra target data to improve recompilation</a> and that the workspace <a href="https://doc.rust-lang.org/stable/cargo/reference/build-cache.html">target directory contains both final and intermediate artifacts</a>. Stable automatic global-cache cleanup does not bound workspace target artifacts, so this repository keeps deletion explicit.</p>
+    </section>
+
+    <section>
+      <h2>Portability and failure boundaries</h2>
+      <ul>
+        <li>Treat worker numbers as host-specific evidence, not universal constants. Re-measure inside the actual container, VM, WSL distribution, or CI runner because advertised CPUs can exceed sustainable browser capacity.</li>
+        <li>Keep short smoke, sustained single-browser, focused cross-browser, and exhaustive workloads independently tunable. Browser engines and long-lived processes reach different limits.</li>
+        <li>Regenerate browser storage state per invocation beneath ignored output. Treat authentication state as sensitive in other repositories even though this fixture asserts that it contains no cookies and only the local test origin.</li>
+        <li>On Windows, terminate the direct child using native process semantics; on Unix-like hosts, isolate and terminate the complete process group so a failed parallel wave does not leave servers or workers behind.</li>
+        <li>Under WSL, distinguish a runner defect from a host-kernel fault. A process stuck in uninterruptible kernel cleanup cannot be repaired by test retries or <code>SIGKILL</code>; restart WSL before collecting more timing evidence.</li>
+        <li>If Cargo metadata reports a custom target directory, scan and clean that directory through Cargo. A missing target is an empty cache, and symbolic links are never traversed.</li>
+        <li>Accept an optimization only when test assignments, zero retries, tracked artifacts, and failure diagnostics remain intact. Revert it when a repeated target crash, stale UI state, cache invalidation error, or storage/debugging cost outweighs the measured gain.</li>
+        <li>Treat generated bundle size as an implementation signal, not proof of rendering correctness. If a performance refactor changes the direct browser artifact, restore rendering before continuing test work.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Measurement and rollback protocol</h2>
+      <ol>
+        <li>Record toolchain, CPU, memory, command, test count, cache state, and working-tree state.</li>
+        <li>Define the sample count before measuring, report the median and range, and retain failed samples as evidence. Prefer at least three warm samples; this playbook's long full gate used the two samples required by its acceptance plan. Capture a cold sample when changing cache or compiler policy.</li>
+        <li>Confirm the same tests and browser projects ran. A faster command with less evidence is a coverage change, not a performance result.</li>
+        <li>Inspect failures at the highest tested concurrency. Fix observable readiness races; lower concurrency only for demonstrated saturation.</li>
+        <li>Revert a strategy when its stability, memory, debugging, or maintenance cost exceeds the measured wall-time benefit.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Skill seed export</h2>
+      <p>The catalog below separates reusable diagnosis and guardrails from repository-specific commands. A future skill can ask for the target repository's runner, tiers, machine capacity, timing baseline, and coverage contract, then apply only strategies whose evidence matches.</p>
+      <div class="catalog-actions">
+        <button id="download-strategy-catalog" type="button">Download JSON</button>
+        <button id="copy-strategy-catalog" type="button">Copy JSON</button>
+        <span id="catalog-status" class="catalog-status" role="status" aria-live="polite"></span>
+      </div>
+      <script id="strategy-catalog" type="application/json">
+{
+  "schemaVersion": 1,
+  "strategies": [
+    {
+      "id": "tier-by-risk",
+      "symptom": "Every change pays for release-level verification.",
+      "evidence": "Gate inventory and change-risk taxonomy.",
+      "action": "Define additive everyday, full, exhaustive, and release tiers.",
+      "guardrails": "Contract-test every gate and define escalation rules before optimizing.",
+      "measurement": "Compare wall time and enumerate identical required coverage per tier.",
+      "rollback": "Merge tiers when contributors routinely choose the wrong one or risk cannot be classified."
+    },
+    {
+      "id": "focused-engine-contract-matrix",
+      "symptom": "An exhaustive suite reruns ordinary application scenarios in every browser engine despite little engine-specific evidence.",
+      "evidence": "Per-project assignment counts, historical engine-specific failures, and an inventory of browser-sensitive behaviors.",
+      "action": "Run every behavior in a primary engine and select secondary-engine tests for persistence, navigation, input, layout, decoding, canvas, drag-and-drop, RTL, and other engine risks.",
+      "guardrails": "Contract-test the risk inventory, retain zero retries, and add a secondary assignment whenever a defect demonstrates a new engine boundary.",
+      "measurement": "Assignment count, complete matrix wall time, per-project summed duration, and engine-specific defect detection.",
+      "rollback": "Broaden the matrix when an unassigned scenario exposes an engine-specific defect that the risk contract did not represent."
+    },
+    {
+      "id": "isolate-unstable-runner-pools",
+      "symptom": "Fast suites crash or hang only when independent worker pools overlap, converting seconds of work into long failure timeouts.",
+      "evidence": "Isolated green runs, mixed-wave crashes, process signals, kernel logs, and per-wave timing.",
+      "action": "Place the unstable runner in its own bounded wave while retaining its internally measured worker configuration.",
+      "guardrails": "Do not hide the failure with retries, and do not reduce test coverage; record the wall-time cost of serialization.",
+      "measurement": "Complete-gate pass rate, failure-exit latency, isolated suite time, and total critical path.",
+      "rollback": "Merge waves only after the target host and toolchain repeatedly prove mixed execution stable."
+    },
+    {
+      "id": "reuse-verified-build",
+      "symptom": "Downstream browser journeys rebuild an already validated client.",
+      "evidence": "Repeated build log entries in one verification run.",
+      "action": "Build once and pass an explicit verified-build signal to downstream runners.",
+      "guardrails": "At least one upstream gate must prove the exact build consumed downstream.",
+      "measurement": "Count builds and compare tail startup time.",
+      "rollback": "Remove reuse if downstream configuration can produce a materially different build."
+    },
+    {
+      "id": "enable-runner-parallelism",
+      "symptom": "Many independent test files run with low CPU utilization.",
+      "evidence": "Runner timeline, CPU utilization, and worker configuration.",
+      "action": "Enable the framework's supported file pool; for Vitest Browser Mode, make headless execution explicit.",
+      "guardrails": "Preserve isolation and run the complete suite repeatedly.",
+      "measurement": "Median suite wall time, test count, CPU use, and failure rate.",
+      "rollback": "Disable the pool if test isolation or browser-provider behavior is invalid."
+    },
+    {
+      "id": "scale-browser-workers",
+      "symptom": "A fully parallel browser suite is saturated at a low fixed worker count.",
+      "evidence": "Accumulated test duration greatly exceeds wall time and workers stay occupied.",
+      "action": "Scale local workers to available CPUs with measured per-browser caps; keep a conservative CI value.",
+      "guardrails": "Use zero retries, test each browser family, and distinguish readiness races from memory or CPU saturation.",
+      "measurement": "Repeated full-suite wall time, target crashes, assertion failures, CPU, and peak memory at candidate caps.",
+      "rollback": "Lower only the unstable browser cap when demonstrated saturation produces instability or worse wall time."
+    },
+    {
+      "id": "wait-for-observable-readiness",
+      "symptom": "Higher concurrency exposes empty or stale UI state immediately after navigation.",
+      "evidence": "The failed assertion precedes a trace or screenshot showing the expected state.",
+      "action": "Poll the user-observable state or use an auto-waiting assertion.",
+      "guardrails": "Do not use fixed sleeps or retries; assert the exact target state.",
+      "measurement": "Repeat the exact interaction at maximum supported concurrency.",
+      "rollback": "Use an event-driven readiness signal if polling obscures a real lifecycle defect."
+    },
+    {
+      "id": "content-cache-static-checks",
+      "symptom": "Unchanged formatting or lint inputs are reprocessed on every run.",
+      "evidence": "Warm runs remain close to cold runs and the tool supports safe caching.",
+      "action": "Enable content-based caches for deterministic static checks.",
+      "guardrails": "Do not cache tests or rely only on timestamps when content can change independently.",
+      "measurement": "Cold and warm wall time, cache invalidation after a real edit, and peak memory.",
+      "rollback": "Disable caching if invalidation is unsound or cache maintenance exceeds the gain."
+    },
+    {
+      "id": "incremental-no-emit-typecheck",
+      "symptom": "A no-emit TypeScript command writes build information but remains nearly as slow when unchanged.",
+      "evidence": "Verbose up-to-date reasons report missing JavaScript or declaration outputs that the project intentionally never emits.",
+      "action": "Run independent no-emit projects with incremental tsc -p invocations and distinct build-info files.",
+      "guardrails": "Keep strictness and file inclusion unchanged, and prove that a source edit after a clean cached pass still reports new diagnostics.",
+      "measurement": "Cold and warm typecheck medians, cache files, included project list, and changed-source invalidation.",
+      "rollback": "Use build mode again when projects gain real emitted references or incremental invalidation becomes unsound."
+    },
+    {
+      "id": "scale-unit-workers",
+      "symptom": "The unit suite is the mixed-wave critical command while aggregate worker demand leaves CPU capacity unused.",
+      "evidence": "Isolated worker-count sweep plus the complete mixed-wave timing and stability record.",
+      "action": "Raise unit workers to the measured knee while keeping aggregate heavy-runner allocation below available parallelism.",
+      "guardrails": "Preserve every test, leave operating-system and orchestration headroom, and evaluate the full wave rather than isolated timing alone.",
+      "measurement": "Unit median, wave critical path, aggregate configured workers, CPU use, and failure rate.",
+      "rollback": "Reduce the unit allocation when repeated mixed-wave runs show contention, instability, or no wall-time improvement."
+    },
+    {
+      "id": "reuse-browser-storage-state",
+      "symptom": "Most isolated browser tests repeat the same expensive UI setup only to establish identical persisted state.",
+      "evidence": "Fixture action timeline, test count using the default state, persistence mechanism, and tests that require a genuinely empty state.",
+      "action": "Create state once through the real UI, capture local storage and IndexedDB, and load an isolated copy into each test context.",
+      "guardrails": "Regenerate every run, keep the real setup journey tested, explicitly opt empty-state tests out, and never commit secret-bearing state.",
+      "measurement": "Setup count, unchanged product-test assignments, per-browser suite median, state-leak checks, and snapshot origin/cookie audit.",
+      "rollback": "Restore per-test setup if browser portability, isolation, freshness, or the required wall-time improvement fails."
+    },
+    {
+      "id": "ui-derived-workspace-fixtures",
+      "symptom": "Tests repeatedly create the same blank workspace before exercising unrelated editor behavior.",
+      "evidence": "Repeated setup action count, summed action duration, persistence schema, and inventory of tests that require genuine empty state.",
+      "action": "Create one deterministic workspace through the real UI, sanitize it to the minimum persisted records, and clone it into isolated test contexts.",
+      "guardrails": "Regenerate every invocation, retain dedicated creation journeys, keep empty-state tests explicit, and exclude cookies, unrelated origins, and unrelated records.",
+      "measurement": "Open/Create action totals, snapshot audit, unchanged test assignments, per-browser pass rate, and complete-suite wall time.",
+      "rollback": "Return affected tests to empty state when preloading changes their subject, leaks state, or does not reduce the measured setup category."
+    },
+    {
+      "id": "capture-diagnostics-on-demand",
+      "symptom": "Passing tests write screenshots whose pixels are never consumed by an assertion.",
+      "evidence": "Screenshot call inventory, output volume, reporter step duration, and distinction between assertion, failure, and review artifacts.",
+      "action": "Capture success-only diagnostics only in the explicit artifact workflow while retaining pixel assertions and automatic failure evidence.",
+      "guardrails": "Never suppress an assertion input, failure screenshot, trace, or required review artifact.",
+      "measurement": "Ordinary screenshot count and duration, artifact-workflow output, and failure-report completeness.",
+      "rollback": "Restore a capture when developers use it as required evidence rather than optional diagnostics."
+    },
+    {
+      "id": "replace-fixed-waits-with-observable-state",
+      "symptom": "A test sleeps for a debounce, transition, or asynchronous state change even when the result is directly observable.",
+      "evidence": "Fixed-wait inventory and the DOM or persisted state that actually defines readiness.",
+      "action": "Remove the sleep and wait for the exact heading, target class, outline entry, persisted value, or lifecycle state.",
+      "guardrails": "Do not add retries or substitute an implementation-only signal for the user-visible result.",
+      "measurement": "Removed fixed delay, repeated exact-path stability, and failure messages that identify the unmet state.",
+      "rollback": "Use a stable event or persistence boundary if the observable poll cannot distinguish readiness from a product defect."
+    },
+    {
+      "id": "route-scoped-code-loading",
+      "symptom": "Isolated browser contexts repeatedly parse code for product routes they never exercise.",
+      "evidence": "Navigation timing, bundle graph, route payloads, and direct rendering artifacts for every affected route.",
+      "action": "Consider route-scoped loading only as an independently justified product-performance change, not as a test-harness shortcut.",
+      "guardrails": "Preserve rendering, focus, history, state retention, direct URLs, error handling, and accessibility before using test time as secondary evidence.",
+      "measurement": "Product startup metrics, exact visual and interaction paths, bundle graph, and verification wall time.",
+      "rollback": "Revert immediately when rendering or product behavior changes; this repository rejected and restored such a probe."
+    },
+    {
+      "id": "nonblocking-test-reports",
+      "symptom": "A failed automated test command remains alive serving or opening its rich report.",
+      "evidence": "Idle test-runner process tree, open report-server port, and reporter automatic-open configuration.",
+      "action": "Generate the rich report without opening it automatically and provide an explicit viewer command.",
+      "guardrails": "Preserve failure artifacts and terminate only verified stale process groups, never broad process-name matches.",
+      "measurement": "Failure exit latency, remaining processes and ports, report availability, and verifier failure output.",
+      "rollback": "Restore automatic display only if the reporter can open without holding the verification command alive."
+    },
+    {
+      "id": "schedule-by-dependencies",
+      "symptom": "Sequential orchestration leaves safe work idle or starts consumers before prerequisites.",
+      "evidence": "Command dependency graph and per-command resource profile.",
+      "action": "Run compatible commands in bounded waves, serialize only true dependencies, and reserve substantial CPU headroom for orchestration, helper processes, and the operating system.",
+      "guardrails": "Avoid concurrent writers to shared compiler state, reserve orchestration and operating-system headroom, and terminate complete sibling process trees after failure.",
+      "measurement": "Wave critical path versus summed command time, aggregate configured workers, CPU saturation, and compiler stability.",
+      "rollback": "Separate commands that contend for memory, CPU, ports, or mutable caches."
+    },
+    {
+      "id": "measure-critical-path",
+      "symptom": "Individual commands improve but total verification time does not.",
+      "evidence": "Per-command, per-wave, and total elapsed times.",
+      "action": "Report the longest command in each sequential wave as the critical path.",
+      "guardrails": "Include failures and orchestration overhead rather than timing only successful commands.",
+      "measurement": "Critical-path sum and total wall time before and after each change.",
+      "rollback": "Replace the model if hidden setup or teardown dominates outside reported commands."
+    },
+    {
+      "id": "bound-rust-debug-data",
+      "symptom": "Cargo target artifacts grow rapidly while ordinary work rarely uses a native debugger.",
+      "evidence": "Target categories, artifact kinds, debug profile, and debugger requirements.",
+      "action": "Use line tables for workspace development, omit dependency debug symbols, and provide an opt-in full-debug profile.",
+      "guardrails": "Keep file-and-line backtraces and preserve intentional crate types.",
+      "measurement": "Clean rebuild time, target size, warm rebuild time, and debugger suitability.",
+      "rollback": "Restore fuller symbols if debugger use is frequent enough to outweigh storage and link costs."
+    },
+    {
+      "id": "explicit-rust-cache-maintenance",
+      "symptom": "Incremental and hashed Cargo artifacts grow without a stable workspace-target garbage collector.",
+      "evidence": "Cache size, growth rate, free disk, and cold rebuild cost.",
+      "action": "Provide a read-only status command, a warning threshold, and an explicit Cargo clean command.",
+      "guardrails": "Never delete during verification, never follow symlinks, and resolve the target through Cargo.",
+      "measurement": "Size before clean, size after representative rebuild, and cold rebuild duration.",
+      "rollback": "Raise or remove the warning if normal representative builds legitimately exceed it."
+    }
+  ]
+}
+      </script>
+      <noscript><p>JavaScript is required only for Copy and Download; the catalog remains embedded in this document as JSON.</p></noscript>
+    </section>
+  </main>
+</body>
+</html>

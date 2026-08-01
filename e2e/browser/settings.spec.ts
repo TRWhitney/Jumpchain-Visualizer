@@ -560,11 +560,9 @@ test("General, Editor, and Chain Tracker disclosures retain session state and re
     for (const id of ids) await expect(section(id)).toHaveAttribute("open", "");
   };
 
-  expect(await visibleSectionIds()).toEqual([
-    "general-essentials",
-    "general-interface",
-    "general-welcome",
-  ]);
+  await expect
+    .poll(visibleSectionIds)
+    .toEqual(["general-essentials", "general-interface", "general-welcome"]);
   await expectExpanded(
     "general-essentials",
     "general-interface",
@@ -585,22 +583,18 @@ test("General, Editor, and Chain Tracker disclosures retain session state and re
   ).not.toBeVisible();
 
   await page.getByRole("tab", { name: "Editor" }).click();
-  expect(await visibleSectionIds()).toEqual([
-    "editor-workflow",
-    "editor-display",
-    "editor-warnings",
-  ]);
+  await expect
+    .poll(visibleSectionIds)
+    .toEqual(["editor-workflow", "editor-display", "editor-warnings"]);
   await expectExpanded("editor-workflow", "editor-display", "editor-warnings");
   await section("editor-warnings").locator("summary").click();
   await expect(section("editor-warnings")).not.toHaveAttribute("open", "");
   await expect(page.getByLabel("Show accessibility warning")).not.toBeVisible();
 
   await page.getByRole("tab", { name: "Chain Tracker" }).click();
-  expect(await visibleSectionIds()).toEqual([
-    "chain-controls",
-    "chain-inventory",
-    "chain-warnings",
-  ]);
+  await expect
+    .poll(visibleSectionIds)
+    .toEqual(["chain-controls", "chain-inventory", "chain-warnings"]);
   await expectExpanded("chain-controls", "chain-inventory", "chain-warnings");
   await section("chain-inventory").locator("summary").click();
   await expect(section("chain-inventory")).not.toHaveAttribute("open", "");
@@ -761,6 +755,8 @@ test(
     }
 
     await page.goto("/review/chain-tracker");
+    await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     const earth = page.locator(".chain-jump-entry.is-earth");
     await earth.click({ button: "right" });
     const rtlMenu = page.getByRole("menu", {

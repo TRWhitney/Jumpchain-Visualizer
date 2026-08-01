@@ -7,7 +7,10 @@ import {
 } from "./support/fixtures";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { shouldCaptureReviewArtifacts } from "./support/reviewArtifacts";
+import {
+  reviewArtifactsEnabled,
+  shouldCaptureReviewArtifacts,
+} from "./support/reviewArtifacts";
 
 test.describe.configure({ timeout: 60_000 });
 
@@ -378,17 +381,19 @@ test("native Gauntlet costs, awards, replacement rolls, and companion Choice ren
   await picker.press("Escape");
   await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
   await expect(page.locator("html")).toHaveAttribute("data-app-theme", "dark");
-  await companions.screenshot({
-    path: testInfo.outputPath("companion-choice-dark.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await companions.screenshot({
+      path: testInfo.outputPath("companion-choice-dark.png"),
+      animations: "disabled",
+    });
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await page.setViewportSize({ width: 700, height: 900 });
   await expect(page.locator("html")).toHaveAttribute("data-app-theme", "light");
-  await companions.screenshot({
-    path: testInfo.outputPath("companion-choice-light-narrow.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await companions.screenshot({
+      path: testInfo.outputPath("companion-choice-light-narrow.png"),
+      animations: "disabled",
+    });
   await attachFullRenderer(
     testInfo,
     "native-gauntlet-multi-resource-companions",

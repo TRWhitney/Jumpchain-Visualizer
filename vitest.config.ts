@@ -1,6 +1,13 @@
+import { availableParallelism } from "node:os";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
+
+const requestedWorkers = Number(process.env.VITEST_MAX_WORKERS);
+const configuredWorkers =
+  Number.isInteger(requestedWorkers) && requestedWorkers > 0
+    ? requestedWorkers
+    : undefined;
 
 export default defineConfig({
   plugins: [react()],
@@ -18,7 +25,8 @@ export default defineConfig({
         test: {
           name: "unit",
           environment: "node",
-          maxWorkers: 8,
+          pool: "threads",
+          maxWorkers: configuredWorkers ?? 8,
           include: ["src/**/*.test.{ts,tsx}"],
           exclude: ["src/**/*.browser.test.{ts,tsx}"],
         },
@@ -26,6 +34,7 @@ export default defineConfig({
       {
         test: {
           name: "browser",
+          maxWorkers: configuredWorkers ?? Math.min(16, availableParallelism()),
           include: ["src/**/*.browser.test.{ts,tsx}"],
           browser: {
             enabled: true,

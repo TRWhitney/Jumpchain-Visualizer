@@ -4,9 +4,11 @@ export const PLAYWRIGHT_MODES = Object.freeze({
   },
   chromium: {
     arguments: ["--project=chromium", "--grep-invert", "@slow"],
+    environment: { E2E_FULL_CHROMIUM: "1" },
   },
   "cross-browser": {
     arguments: ["--project=firefox", "--project=webkit"],
+    environment: { E2E_CROSS_BROWSER: "1" },
   },
   exhaustive: {
     arguments: [],
@@ -27,9 +29,15 @@ export const VERIFICATION_MODES = Object.freeze([
 ]);
 
 export const CORE_VERIFICATION_WAVES = Object.freeze([
-  ["format:check", "lint", "typecheck"],
+  [
+    "format:check",
+    "lint",
+    "typecheck",
+    "test:verification",
+    "rust:cache:status",
+  ],
+  ["test"],
   ["build:client", "test:browser", "check:rust"],
-  ["test", "test:verification"],
 ]);
 
 export function verificationTail(mode) {
@@ -45,4 +53,13 @@ export function verificationTail(mode) {
 export function supportsVerificationRuntime(version) {
   const [major, minor] = version.split(".").map(Number);
   return major === 24 && minor >= 18;
+}
+
+export function verificationWorkerBudget(availableWorkers) {
+  if (!Number.isInteger(availableWorkers) || availableWorkers < 1)
+    throw new RangeError("availableWorkers must be a positive integer.");
+  const unit = Math.max(1, Math.min(8, Math.floor(availableWorkers / 4)));
+  const browser = Math.max(1, Math.min(8, Math.floor(availableWorkers / 4)));
+  const rust = Math.max(1, Math.min(8, Math.floor(availableWorkers / 4)));
+  return Object.freeze({ unit, browser, rust });
 }

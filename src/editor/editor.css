@@ -941,6 +941,7 @@
   font-weight: 700;
 }
 .editor-form-card :is(input, select, textarea) {
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
   min-height: 2.25rem;
@@ -949,6 +950,9 @@
   background: #20201e;
   border: 1px solid #52524c;
   border-radius: 0.2rem;
+}
+.editor-form-card select {
+  height: 2.25rem;
 }
 .production-editor input[type="text"][list] {
   appearance: none;

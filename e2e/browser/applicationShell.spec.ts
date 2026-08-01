@@ -639,7 +639,7 @@ test("the Chain Tracker hub lists all chains and supports create and rename flow
   );
 });
 
-test("starred chains lead both lists while each group retains recency order", async ({
+test("starred chains lead both lists while each group retains recency order @cross-browser", async ({
   page,
 }, testInfo) => {
   await page.getByRole("button", { name: "Open Chain Tracker" }).click();
@@ -647,8 +647,9 @@ test("starred chains lead both lists while each group retains recency order", as
   const createChain = async (name: string, id: string) => {
     await page.getByLabel("Start a new chain").fill(name);
     await page.getByRole("button", { name: "Start Chain" }).click();
-    await expect(page).toHaveTitle(`${name} · Chain Tracker`);
     await expectStoredChain(page, id);
+    await expect(page).toHaveURL(new RegExp(`/chain/${id}$`));
+    await expect(page).toHaveTitle(`${name} · Chain Tracker`);
     await page
       .getByRole("button", { name: "Chain Tracker", exact: true })
       .click();

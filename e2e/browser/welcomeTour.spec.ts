@@ -19,7 +19,52 @@ async function reachBranchChooser(page: Page) {
   ).toBeVisible();
 }
 
-test("first launch completes the Editor lesson, resumes exact input, and tours advanced navigation", async ({
+async function waitForPersistedTourEditorText(page: Page, expected: string[]) {
+  await expect
+    .poll(() =>
+      page.evaluate((fragments) => {
+        const staged = localStorage.getItem(
+          "jumpchain-visualizer:welcome-tour-pending",
+        );
+        if (staged) {
+          try {
+            const source = Object.values(
+              JSON.parse(staged)?.editorWorkspace?.files ?? {},
+            ).join("\n");
+            if (fragments.every((fragment) => source.includes(fragment)))
+              return true;
+          } catch {
+            // The durable IndexedDB record remains authoritative.
+          }
+        }
+        return new Promise<boolean>((resolve, reject) => {
+          const open = indexedDB.open("jumpchain-visualizer", 4);
+          open.onerror = () => reject(open.error);
+          open.onsuccess = () => {
+            const database = open.result;
+            const request = database
+              .transaction("welcome-tour", "readonly")
+              .objectStore("welcome-tour")
+              .get("active");
+            request.onerror = () => {
+              database.close();
+              reject(request.error);
+            };
+            request.onsuccess = () => {
+              database.close();
+              const source = Object.values(
+                request.result?.editorWorkspace?.files ?? {},
+              ).join("\n");
+              resolve(fragments.every((fragment) => source.includes(fragment)));
+            };
+          };
+        });
+      }, expected),
+    )
+    .toBe(true);
+}
+
+test("first launch completes the Editor lesson, resumes exact input, and tours advanced navigation @cross-browser", async ({
   page,
 }) => {
   await reachBranchChooser(page);
@@ -42,6 +87,10 @@ test("first launch completes the Editor lesson, resumes exact input, and tours a
   await page
     .getByRole("textbox", { name: "Name", exact: true })
     .fill("Road Companion");
+  await waitForPersistedTourEditorText(page, [
+    "handle: road_companion",
+    'name: "Road Companion"',
+  ]);
   await page.reload();
   await expect(
     page.getByRole("heading", {
@@ -148,7 +197,6 @@ test("Tracker navigation reveals its generated Inventory records and Body Mod pa
   await tracker
     .getByRole("button", { name: "Add to chain", exact: true })
     .click();
-  await page.waitForTimeout(900);
   await expect(
     page.getByRole("heading", {
       name: "The Crossroads is now in your chain",
@@ -201,7 +249,6 @@ test("Tracker navigation reveals its generated Inventory records and Body Mod pa
   await bodyModCard.locator('input[type="checkbox"]').check();
   await page.getByRole("button", { name: "Continue" }).click();
   await bodyModCard.getByRole("button", { name: "Open page" }).click();
-  await page.waitForTimeout(900);
   await expect(
     page.getByRole("heading", { name: "Classic Body Mod is open" }),
   ).toBeVisible();

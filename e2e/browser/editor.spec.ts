@@ -133,11 +133,12 @@ test("optional Structured form sections initialize once and retain session state
     editor.getByLabel("Starting points", { exact: true }),
   ).not.toBeVisible();
   await jumpSettings.scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: testInfo.outputPath("jump-settings-collapsed.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("jump-settings-collapsed.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
   const jumpPreviewBefore = await editor
     .locator(".editor-preview-scroll")
     .textContent();
@@ -171,11 +172,12 @@ test("optional Structured form sections initialize once and retain session state
   await expect(
     editor.getByRole("button", { name: "+ Text", exact: true }),
   ).not.toBeVisible();
-  await page.screenshot({
-    path: testInfo.outputPath("structured-optional-sections-collapsed.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("structured-optional-sections-collapsed.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
 
   const sectionPreviewBefore = await editor
     .locator(".editor-preview-scroll")
@@ -213,17 +215,19 @@ test("optional Structured form sections initialize once and retain session state
   await expect(restoredContentAndEffects).toHaveAttribute("open", "");
 
   await page.emulateMedia({ colorScheme: "dark" });
-  await page.screenshot({
-    path: testInfo.outputPath("structured-optional-sections-open.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("structured-optional-sections-open.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
   await page.setViewportSize({ width: 680, height: 900 });
-  await page.screenshot({
-    path: testInfo.outputPath("structured-optional-sections-narrow.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("structured-optional-sections-narrow.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
   await page.setViewportSize({ width: 1440, height: 900 });
 
   await restoredSectionPresentation
@@ -470,24 +474,27 @@ test("Jump appearance cascades through the real preview without styling user tag
     .getByRole("heading", { name: "Surfaces", exact: true })
     .click();
   await expect(surfacesGroup).toHaveAttribute("open", "");
-  await page.screenshot({
-    path: testInfo.outputPath("jump-appearance-sections-dark.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("jump-appearance-sections-dark.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
   await page.setViewportSize({ width: 680, height: 900 });
-  await page.screenshot({
-    path: testInfo.outputPath("jump-appearance-sections-narrow.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("jump-appearance-sections-narrow.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ colorScheme: "light" });
-  await page.screenshot({
-    path: testInfo.outputPath("jump-appearance-sections-light.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("jump-appearance-sections-light.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
   await page.emulateMedia({ colorScheme: "dark" });
   await expect(editor.getByText(/^Inherited: /).first()).toBeVisible();
   await expect(
@@ -535,10 +542,11 @@ test("Jump appearance cascades through the real preview without styling user tag
     editor.getByText("User-managed tag", { exact: true }),
   ).toHaveCount(0);
   await tag.scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: testInfo.outputPath("jump-appearance-example-tag.png"),
-    fullPage: false,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("jump-appearance-example-tag.png"),
+      fullPage: false,
+    });
   const tagBefore = await tag.evaluate((element) => {
     const style = getComputedStyle(element);
     return [style.color, style.backgroundColor, style.borderColor];
@@ -604,10 +612,11 @@ test("Jump appearance cascades through the real preview without styling user tag
   expect(createThemeBox).not.toBeNull();
   expect(createThemeBox!.height).toBeLessThanOrEqual(30);
   expect(createThemeFontSize).toBeLessThanOrEqual(10);
-  await page.screenshot({
-    path: testInfo.outputPath("jump-appearance-color-controls-dark.png"),
-    fullPage: false,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("jump-appearance-color-controls-dark.png"),
+      fullPage: false,
+    });
   await backgroundChoices.press("Escape");
   await expect(createThemeColor).toHaveCount(0);
 
@@ -695,10 +704,11 @@ test("Jump appearance cascades through the real preview without styling user tag
     return [style.color, style.backgroundColor, style.borderColor];
   });
   await expect(pendingRoll.locator("[data-roll-output]")).toHaveText(/^[1-6]$/);
-  await page.screenshot({
-    path: testInfo.outputPath("jump-appearance-toolbar-dark.png"),
-    fullPage: true,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("jump-appearance-toolbar-dark.png"),
+      fullPage: true,
+    });
   await page.emulateMedia({ colorScheme: "light" });
   expect(
     await renderer.evaluate((element) => {
@@ -706,10 +716,11 @@ test("Jump appearance cascades through the real preview without styling user tag
       return [style.color, style.backgroundColor, style.borderColor];
     }),
   ).toEqual(authoredPixels);
-  await page.screenshot({
-    path: testInfo.outputPath("jump-appearance-toolbar-light.png"),
-    fullPage: true,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("jump-appearance-toolbar-light.png"),
+      fullPage: true,
+    });
 });
 
 test("isolated layout, section, and choice previews share the jump appearance cascade", async ({
@@ -810,9 +821,10 @@ choice
     "color",
     "rgb(221, 238, 255)",
   );
-  await preview.screenshot({
-    path: testInfo.outputPath("section-preview-inherits-jump-colors.png"),
-  });
+  if (reviewArtifactsEnabled)
+    await preview.screenshot({
+      path: testInfo.outputPath("section-preview-inherits-jump-colors.png"),
+    });
 
   await outline
     .getByRole("button", { name: "inherited_choice", exact: true })
@@ -825,9 +837,10 @@ choice
   await expect(
     isolatedChoice.locator(".default-choice-heading > strong"),
   ).toHaveCSS("color", "rgb(254, 220, 186)");
-  await preview.screenshot({
-    path: testInfo.outputPath("choice-preview-inherits-jump-colors.png"),
-  });
+  if (reviewArtifactsEnabled)
+    await preview.screenshot({
+      path: testInfo.outputPath("choice-preview-inherits-jump-colors.png"),
+    });
 
   await outline.getByRole("button", { name: "inherited_card" }).click();
   const layoutChoice = preview.locator(".default-choice-card");
@@ -838,11 +851,12 @@ choice
     "background-color",
     "rgb(52, 86, 120)",
   );
-  await preview.screenshot({
-    path: testInfo.outputPath(
-      "layout-preview-inherits-with-local-override.png",
-    ),
-  });
+  if (reviewArtifactsEnabled)
+    await preview.screenshot({
+      path: testInfo.outputPath(
+        "layout-preview-inherits-with-local-override.png",
+      ),
+    });
 });
 
 test("Jump appearance color inspection links both previews to exact Structured controls", async ({
@@ -941,12 +955,13 @@ test("Jump appearance color inspection links both previews to exact Structured c
   expect(mutedTextFieldBox!.y + mutedTextFieldBox!.height).toBeLessThanOrEqual(
     structuredScrollBox!.y + structuredScrollBox!.height - 8,
   );
-  await page.screenshot({
-    path: testInfo.outputPath(
-      "jump-appearance-components-color-inspection.png",
-    ),
-    fullPage: true,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath(
+        "jump-appearance-components-color-inspection.png",
+      ),
+      fullPage: true,
+    });
 
   await editor.getByRole("button", { name: "Jump", exact: true }).click();
   const jumpTitle = editor.locator(".shared-jump-renderer > header h4");
@@ -974,10 +989,11 @@ test("Jump appearance color inspection links both previews to exact Structured c
   expect(
     headerTitleFieldBox!.y + headerTitleFieldBox!.height,
   ).toBeLessThanOrEqual(jumpScrollBox!.y + jumpScrollBox!.height - 8);
-  await page.screenshot({
-    path: testInfo.outputPath("jump-appearance-jump-color-inspection.png"),
-    fullPage: true,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("jump-appearance-jump-color-inspection.png"),
+      fullPage: true,
+    });
 
   await editor.getByLabel("Inspect colors").uncheck();
   await expect(editor.locator("[data-appearance-color-field]")).toHaveCount(0);
@@ -1036,12 +1052,13 @@ test("contrast diagnostics reuse color inspection for both exact Structured fiel
       "xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' editor-schema-field ')]",
     );
   await expect(surfaceBackground).toHaveClass(/is-editor-inspected/);
-  await page.screenshot({
-    path: testInfo.outputPath(
-      "contrast-diagnostic-exact-structured-destination.png",
-    ),
-    fullPage: true,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath(
+        "contrast-diagnostic-exact-structured-destination.png",
+      ),
+      fullPage: true,
+    });
 });
 
 test("Jump appearance inspection identifies section and choice layout color overrides", async ({
@@ -1111,12 +1128,13 @@ section-layout
   await expect(readout).toContainText(
     "Section layout inspect_section · Background · click to edit override",
   );
-  await page.screenshot({
-    path: testInfo.outputPath(
-      "jump-appearance-section-layout-override-inspection.png",
-    ),
-    fullPage: true,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath(
+        "jump-appearance-section-layout-override-inspection.png",
+      ),
+      fullPage: true,
+    });
   await sectionOverride.click({ position: { x: 4, y: 4 } });
   const sectionBackground = editor.locator(
     '[data-layout-container-editor-path="stack[1]"] [data-layout-field="background"]',
@@ -1149,12 +1167,13 @@ section-layout
   await expect(
     choiceText.getByLabel("Text color", { exact: true }),
   ).not.toBeFocused();
-  await page.screenshot({
-    path: testInfo.outputPath(
-      "jump-appearance-choice-layout-override-destination.png",
-    ),
-    fullPage: true,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath(
+        "jump-appearance-choice-layout-override-destination.png",
+      ),
+      fullPage: true,
+    });
 });
 
 test("Jump appearance Source uses the complete current syntax highlighting", async ({
@@ -1197,10 +1216,11 @@ test("Jump appearance Source uses the complete current syntax highlighting", asy
     editor.locator(".cm-foldGutter .cm-gutterElement").filter({ hasText: "▾" }),
   ).not.toHaveCount(0);
 
-  await page.screenshot({
-    path: testInfo.outputPath("jump-appearance-source-syntax.png"),
-    fullPage: true,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("jump-appearance-source-syntax.png"),
+      fullPage: true,
+    });
 });
 
 test("Jump appearance insertion and Format add the conventional declaration separator", async ({
@@ -2301,7 +2321,12 @@ test("Structured handle renames debounce reference updates and retain invalid li
 
   const handle = editor.getByLabel("Handle", { exact: true });
   await handle.fill("Not a valid handle");
-  await page.waitForTimeout(650);
+  await expect(
+    outline.getByRole("button", {
+      name: "Not a valid handle section",
+      exact: true,
+    }),
+  ).toBeVisible();
   await editor.getByRole("button", { name: "Back to jump" }).click();
   await expect(defaultLayout).toHaveValue("new_section_layout");
 
@@ -2343,7 +2368,12 @@ test("Structured handle renames debounce reference updates and retain invalid li
     })
     .click();
   await editor.getByLabel("Handle", { exact: true }).fill("Still not valid");
-  await page.waitForTimeout(650);
+  await expect(
+    outline.getByRole("button", {
+      name: "Still not valid section",
+      exact: true,
+    }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Editor", exact: true }).click();
   await page
     .locator(".editor-project-card")
@@ -2360,7 +2390,11 @@ test("Structured handle renames debounce reference updates and retain invalid li
     })
     .click();
   await editor.getByLabel("Handle", { exact: true }).fill("after_reopening");
-  await page.waitForTimeout(650);
+  await expect(
+    editor
+      .locator(".editor-outline-scroll")
+      .getByRole("button", { name: "after_reopening section", exact: true }),
+  ).toBeVisible();
   await editor
     .getByRole("button", { name: "Jump details", exact: true })
     .click();
@@ -3008,10 +3042,11 @@ test("control slots align their leaf and inner control independently", async ({
     width: checkboxBox!.width,
     height: checkboxBox!.height,
   });
-  await editor.screenshot({
-    path: testInfo.outputPath("control-slot-without-adornments.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("control-slot-without-adornments.png"),
+      animations: "disabled",
+    });
   await adornments.check();
   await expect(boundary).toHaveAttribute(
     "data-layout-control-adornments",
@@ -3127,10 +3162,11 @@ choice
   await locationRow
     .getByLabel("Item alignment", { exact: true })
     .selectOption("end");
-  await editor.screenshot({
-    path: testInfo.outputPath("direct-choice-alignment-control.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("direct-choice-alignment-control.png"),
+      animations: "disabled",
+    });
   await editor.getByRole("tab", { name: "Source" }).click();
   await expect(layoutSource).toContainText(`choice
       target: location_field
@@ -3151,10 +3187,11 @@ choice
   expect(locationBoundaryBox!.x).toBeGreaterThan(
     ageBoundaryBox!.x + ageBoundaryBox!.width,
   );
-  await editor.screenshot({
-    path: testInfo.outputPath("direct-choice-aligned-right.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("direct-choice-aligned-right.png"),
+      animations: "disabled",
+    });
 
   await locationRow
     .getByRole("button", { name: "Edit Choice presentation fields" })
@@ -3258,10 +3295,11 @@ choice
   expect(
     Math.abs(rolledClearanceAboveBadge - rolledClearanceBeforeDivider),
   ).toBeLessThanOrEqual(2);
-  await editor.screenshot({
-    path: testInfo.outputPath("direct-choice-alignment-and-controls.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("direct-choice-alignment-and-controls.png"),
+      animations: "disabled",
+    });
 });
 
 test("layout presentation controls render complete leaf and flow alignment semantics", async ({
@@ -3960,13 +3998,14 @@ test("Editor retains mock proportions at desktop, two-pane, and single-column vi
   page,
 }, testInfo) => {
   await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const editor = await openCreatedEditor(page);
   for (const [name, viewport] of [
     ["desktop", { width: 1440, height: 900 }],
     ["two-pane", { width: 900, height: 800 }],
     ["single-column", { width: 600, height: 760 }],
   ] as const) {
     await page.setViewportSize(viewport);
-    const editor = await openCreatedEditor(page);
     const bounds = await editor.boundingBox();
     expect(bounds).not.toBeNull();
     if (name === "desktop") {
@@ -3983,26 +4022,6 @@ test("Editor retains mock proportions at desktop, two-pane, and single-column vi
     );
     await attachComparison(testInfo, `editor-responsive-${name}`, mock, editor);
     await reference.close();
-    await page.evaluate(
-      () =>
-        new Promise<void>((resolve, reject) => {
-          const open = indexedDB.open("jumpchain-visualizer", 4);
-          open.onerror = () => reject(open.error);
-          open.onsuccess = () => {
-            const database = open.result;
-            const transaction = database.transaction(
-              "editor-workspaces",
-              "readwrite",
-            );
-            transaction.objectStore("editor-workspaces").clear();
-            transaction.onerror = () => reject(transaction.error);
-            transaction.oncomplete = () => {
-              database.close();
-              resolve();
-            };
-          };
-        }),
-    );
   }
 });
 
@@ -4206,10 +4225,11 @@ test("Structured controls and Source palette shortcuts use consistent precise co
   ).toBeLessThanOrEqual(1);
   expect(gauntletBox!.height).toBeGreaterThanOrEqual(gauntletLabelFontSize);
   expect(gauntletBox!.height).toBeGreaterThanOrEqual(24);
-  await gauntletField.locator("..").screenshot({
-    path: testInfo.outputPath("jump-settings-checkbox-aligned.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await gauntletField.locator("..").screenshot({
+      path: testInfo.outputPath("jump-settings-checkbox-aligned.png"),
+      animations: "disabled",
+    });
   await attachProductionState(
     testInfo,
     "editor-structured-controls-production",
@@ -4742,11 +4762,12 @@ choice
   await expect(continuityField.locator(".editor-field-occurrence")).toHaveClass(
     /is-error/,
   );
-  await page.screenshot({
-    path: testInfo.outputPath("gender-default-inline-diagnostic.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("gender-default-inline-diagnostic.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
 
   await editor
     .getByRole("button", { name: "Diagnostics", exact: true })
@@ -4859,11 +4880,12 @@ choice
   await expect(groupField.locator(".editor-field-diagnostics")).toHaveText(
     warning,
   );
-  await page.screenshot({
-    path: testInfo.outputPath("ungrouped-choice-unreachable.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("ungrouped-choice-unreachable.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
 
   await outline.getByRole("button", { name: "identity", exact: true }).click();
   await editor
@@ -5118,10 +5140,11 @@ test("Text keeps its ordinary Structured editor when its handle is description",
   ).toBeVisible();
   await expect(handle).toHaveValue("description");
   await expect(content).toBeVisible();
-  await editor.screenshot({
-    path: testInfo.outputPath("description-handle-ordinary-text-editor.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("description-handle-ordinary-text-editor.png"),
+      animations: "disabled",
+    });
   await content.fill("Still an ordinary text item.");
 
   await handle.fill("renamed_text");
@@ -5607,12 +5630,13 @@ section-layout
     editor.getByRole("button", { name: "contextual.png" }),
   ).toBeVisible();
   await expect(renderedImage).toBeVisible();
-  await page.screenshot({
-    path: testInfo.outputPath(
-      "editor-image-src-contextual-asset-import-production.png",
-    ),
-    fullPage: true,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath(
+        "editor-image-src-contextual-asset-import-production.png",
+      ),
+      fullPage: true,
+    });
   await editor.getByRole("button", { name: "Undo" }).click();
   await expect(srcSelect).toHaveValue("art/icons/hero.png");
   await expect(
@@ -7041,10 +7065,11 @@ test("Structured authors representative Format 1 fields, children, repeats, and 
   await expect(
     optionField.getByRole("textbox", { name: /^Option \d+$/ }),
   ).toHaveCount(2);
-  await optionField.screenshot({
-    path: testInfo.outputPath("repeated-options-single-heading.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await optionField.screenshot({
+      path: testInfo.outputPath("repeated-options-single-heading.png"),
+      animations: "disabled",
+    });
   await editor.getByRole("combobox", { name: "Tags" }).fill("audit-tag");
   await editor.getByRole("button", { name: "Add tag" }).click();
 
@@ -7136,10 +7161,11 @@ test("empty Structured options warn on their occurrence and stay out of Select r
     "Male",
     "Female",
   ]);
-  await optionField.screenshot({
-    path: testInfo.outputPath("empty-option-targeted-diagnostic.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await optionField.screenshot({
+      path: testInfo.outputPath("empty-option-targeted-diagnostic.png"),
+      animations: "disabled",
+    });
 });
 
 test("conditional property choices dismiss and honor reduced motion", async ({
@@ -7178,10 +7204,11 @@ test("conditional property choices dismiss and honor reduced motion", async ({
     "style",
     "transform: rotate(270deg);",
   );
-  await editor.screenshot({
-    path: testInfo.outputPath("conditional-property-picker-open.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("conditional-property-picker-open.png"),
+      animations: "disabled",
+    });
 
   const operator = editor.locator(
     ".editor-condition-draft .editor-condition-rule-row > select",
@@ -7196,10 +7223,11 @@ test("conditional property choices dismiss and honor reduced motion", async ({
     "style",
     "transform: rotate(90deg);",
   );
-  await editor.screenshot({
-    path: testInfo.outputPath("conditional-property-picker-dismissed.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("conditional-property-picker-dismissed.png"),
+      animations: "disabled",
+    });
 });
 
 test("Choice and Input placeholders, contextual answers, and caret insertion use the real preview", async ({
@@ -7321,11 +7349,12 @@ test("Choice and Input placeholders, contextual answers, and caret insertion use
   await inputConditionVariant
     .getByRole("button", { name: "Insert value…" })
     .scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: testInfo.outputPath("insert-value-toolbar-light.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("insert-value-toolbar-light.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
 
   await editor.getByRole("tab", { name: "Source" }).click();
   await expect(source).toContainText(
@@ -7359,17 +7388,19 @@ test("Choice and Input placeholders, contextual answers, and caret insertion use
   await inputConditionVariant
     .getByRole("button", { name: "Insert value…" })
     .scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: testInfo.outputPath("insert-value-toolbar-dark.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("insert-value-toolbar-dark.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
   await editor.getByRole("tab", { name: "Source" }).click();
-  await page.screenshot({
-    path: testInfo.outputPath("choice-input-controls-dark.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("choice-input-controls-dark.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
   await page.getByRole("button", { name: "Settings" }).click();
   await page.getByRole("tab", { name: "General" }).click();
   await page.locator("#theme").selectOption("light");
@@ -7384,11 +7415,12 @@ test("Choice and Input placeholders, contextual answers, and caret insertion use
   await editor
     .getByLabel("Placeholder", { exact: true })
     .scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: testInfo.outputPath("choice-input-controls-light-narrow.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("choice-input-controls-light-narrow.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
 });
 
 test("Choice Text directly exposes its Choice and supporting Input answers", async ({
@@ -7460,11 +7492,12 @@ test("Choice Text directly exposes its Choice and supporting Input answers", asy
   ).toBeVisible();
   await expect(menu.getByRole("menuitem", { name: /^detail\b/ })).toBeVisible();
   await expect(menu.getByRole("group", { name: "This Choice" })).toBeVisible();
-  await page.screenshot({
-    path: testInfo.outputPath("choice-text-contextual-values.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("choice-text-contextual-values.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
   await page.keyboard.press("Escape");
 
   await editor
@@ -7663,11 +7696,12 @@ test("Import companions is authored as a Choice control and remains distinct fro
   await expect(source).not.toContainText("max:");
   await editor.getByRole("tab", { name: "Structured" }).click();
   await maximum.scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: testInfo.outputPath("companion-choice-default-bounds.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("companion-choice-default-bounds.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
   await maximum.fill("0");
   await expect(
     editor.getByText("Maximum must be a positive integer.", { exact: true }),
@@ -7679,11 +7713,12 @@ test("Import companions is authored as a Choice control and remains distinct fro
   expect(invalidMinimumBox).not.toBeNull();
   expect(invalidMaximumBox).not.toBeNull();
   expect(Math.abs(invalidMinimumBox!.y - invalidMaximumBox!.y)).toBeLessThan(1);
-  await page.screenshot({
-    path: testInfo.outputPath("companion-choice-invalid-bounds.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("companion-choice-invalid-bounds.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
   await maximum.fill("");
   await maximum.fill("2");
   await editor
@@ -7895,11 +7930,12 @@ test("Jump authors use plain text entry without an empty suggestions menu", asyn
   ).toBeVisible();
   await expect(authorComposer).toHaveValue("");
 
-  await page.screenshot({
-    path: testInfo.outputPath("plain-author-composer.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("plain-author-composer.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
 
   await editor.getByRole("tab", { name: "Source" }).click();
   await expect(editor.getByLabel("jump.jdef source")).toContainText(
@@ -7947,11 +7983,12 @@ test("Choice metadata composers and shorthand details preserve exact source sema
       name: "Toggle. An on/off choice. In a single-choice group, it appears as a radio button.",
     }),
   ).toBeVisible();
-  await page.screenshot({
-    path: testInfo.outputPath("choice-selection-described-options.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("choice-selection-described-options.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
   await selectionType.press("Escape");
   await expect(shorthand).toHaveAttribute("open", "");
   await expect(
@@ -7992,11 +8029,12 @@ test("Choice metadata composers and shorthand details preserve exact source sema
     ),
   ).toBeVisible();
   await shorthand.scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: testInfo.outputPath("choice-award-section.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("choice-award-section.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
 
   const tagComposer = editor.getByRole("combobox", { name: "Tags" });
   await expect(tagComposer).toHaveAttribute(
@@ -8326,11 +8364,12 @@ test("Choice metadata composers and shorthand details preserve exact source sema
         pillColor:
           scheme === "light" ? "rgb(52, 52, 48)" : "rgb(208, 208, 202)",
       });
-    await page.screenshot({
-      path: testInfo.outputPath(`${name}.png`),
-      fullPage: true,
-      animations: "disabled",
-    });
+    if (reviewArtifactsEnabled)
+      await page.screenshot({
+        path: testInfo.outputPath(`${name}.png`),
+        fullPage: true,
+        animations: "disabled",
+      });
   }
 });
 
@@ -8388,11 +8427,12 @@ test("Choice child pages share recipient, measure, description, and conditional 
   expect(maximumBox).not.toBeNull();
   expect(Math.abs(selectionBox!.y - resolutionBox!.y)).toBeLessThan(1);
   expect(Math.abs(minimumBox!.y - maximumBox!.y)).toBeLessThan(1);
-  await page.screenshot({
-    path: testInfo.outputPath("choice-integer-alignment.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("choice-integer-alignment.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
 
   await selection.click();
   await editor.getByRole("option", { name: /^Select/ }).click();
@@ -8411,11 +8451,12 @@ test("Choice child pages share recipient, measure, description, and conditional 
   expect(selectModeBox).not.toBeNull();
   expect(continuityBox).not.toBeNull();
   expect(Math.abs(selectModeBox!.y - continuityBox!.y)).toBeLessThan(1);
-  await page.screenshot({
-    path: testInfo.outputPath("choice-select-alignment.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("choice-select-alignment.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
 
   await selection.click();
   await editor.getByRole("option", { name: /^Integer/ }).click();
@@ -8464,11 +8505,12 @@ test("Choice child pages share recipient, measure, description, and conditional 
   expect(grantCompanionBox).not.toBeNull();
   expect(Math.abs(grantFormBox!.y - grantCompanionBox!.y)).toBeLessThan(1);
   await grantDetails.scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: testInfo.outputPath("grant-recipient-alignment.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("grant-recipient-alignment.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
   await grantMeasure.click();
   await page.getByRole("option", { name: /^Quantity\./ }).click();
   await grantFormRecipient.fill("future_form");
@@ -8577,11 +8619,12 @@ test("Choice child pages share recipient, measure, description, and conditional 
     ),
   ).toBeVisible();
   await grantDetails.scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: testInfo.outputPath("grant-measure-unavailable.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("grant-measure-unavailable.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
 
   const awardType = editor.getByRole("combobox", {
     name: "Award type",
@@ -8619,11 +8662,12 @@ test("Choice child pages share recipient, measure, description, and conditional 
     ),
   ).toBeVisible();
 
-  await page.screenshot({
-    path: testInfo.outputPath("choice-child-control-audit.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("choice-child-control-audit.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
 });
 
 test("Input and Cost subpages share owning-Choice applicability and bound defaults", async ({
@@ -8751,10 +8795,11 @@ test("Use simple value repairs an invalid shorthand-compatible Cost", async ({
     exact: true,
   });
   await expect(useSimpleValue).toBeVisible();
-  await editor.screenshot({
-    path: testInfo.outputPath("invalid-cost-can-use-simple-value.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("invalid-cost-can-use-simple-value.png"),
+      animations: "disabled",
+    });
 
   await useSimpleValue.click();
   await expect(
@@ -8778,10 +8823,11 @@ test("Use simple value repairs an invalid shorthand-compatible Cost", async ({
       };
     }),
   ).toEqual(freeBadgeColors);
-  await editor.screenshot({
-    path: testInfo.outputPath("cost-award-badge.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("cost-award-badge.png"),
+      animations: "disabled",
+    });
   await repairedAmount.fill("add_small");
   await expect(previewBadge).toHaveText("+200 CP");
   await repairedAmount.fill("-1000");
@@ -8808,10 +8854,11 @@ test("Use simple value repairs an invalid shorthand-compatible Cost", async ({
     editor.getByRole("heading", { name: "Needs attention" }),
   ).toHaveCount(0);
   await childList.scrollIntoViewIfNeeded();
-  await editor.screenshot({
-    path: testInfo.outputPath("simple-cost-remains-a-choice-child.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("simple-cost-remains-a-choice-child.png"),
+      animations: "disabled",
+    });
   await childList
     .getByRole("button", { name: "Cost Cost", exact: true })
     .click();
@@ -8880,11 +8927,12 @@ test("Editor explanations toggle live without changing source, history, or previ
   ] as const) {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
-    await page.screenshot({
-      path: testInfo.outputPath(`${name}.png`),
-      fullPage: true,
-      animations: "disabled",
-    });
+    if (reviewArtifactsEnabled)
+      await page.screenshot({
+        path: testInfo.outputPath(`${name}.png`),
+        fullPage: true,
+        animations: "disabled",
+      });
   }
 });
 
@@ -9600,11 +9648,12 @@ section-layout
   expect(
     Math.abs(backgroundFitBox!.height - paddingBox!.height),
   ).toBeLessThanOrEqual(1);
-  await page.screenshot({
-    path: testInfo.outputPath("layout-background-controls-aligned.png"),
-    fullPage: false,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("layout-background-controls-aligned.png"),
+      fullPage: false,
+      animations: "disabled",
+    });
   await expect(reopenedBackgroundFit).toBeEnabled();
   await expect(reopenedBackgroundFit).toHaveValue("cover");
   await reopenedBackgroundFit.click();
@@ -9745,10 +9794,11 @@ section-layout
     .getByRole("option", { name: "location", exact: true })
     .click();
   await expect(content).toHaveValue("location");
-  await choiceRow.screenshot({
-    path: testInfo.outputPath("choice-layout-fields-one-control-height.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await choiceRow.screenshot({
+      path: testInfo.outputPath("choice-layout-fields-one-control-height.png"),
+      animations: "disabled",
+    });
 });
 
 test("Image File remains top-aligned with conditional Image Description", async ({
@@ -9774,11 +9824,12 @@ test("Image File remains top-aligned with conditional Image Description", async 
   expect(descriptionBox).not.toBeNull();
   expect(Math.abs(fileBox!.y - descriptionBox!.y)).toBeLessThanOrEqual(1);
 
-  await page.screenshot({
-    path: testInfo.outputPath("image-fields-top-aligned.png"),
-    fullPage: false,
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath("image-fields-top-aligned.png"),
+      fullPage: false,
+      animations: "disabled",
+    });
 });
 
 test("Structured contextual additions open editable fields without redesigning the workspace", async ({
@@ -10188,12 +10239,13 @@ test("package reference controls create and assign layouts, content, choices, an
   await expect(
     jumpFields.getByRole("option", { name: "New Choice layout…" }),
   ).toHaveCount(0);
-  await page.screenshot({
-    path: testInfo.outputPath(
-      "editor-contextual-handle-dropdown-production.png",
-    ),
-    fullPage: false,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath(
+        "editor-contextual-handle-dropdown-production.png",
+      ),
+      fullPage: false,
+    });
   await jumpFields.getByRole("option", { name: "New Section layout…" }).click();
   await expect(
     editor.getByRole("heading", {
@@ -10264,23 +10316,25 @@ test("package reference controls create and assign layouts, content, choices, an
   await targetChoices.click();
   const newTextOption = addRow.getByRole("option", { name: "New Text…" });
   await expect(newTextOption).toBeVisible();
-  await page.screenshot({
-    path: testInfo.outputPath(
-      "editor-layout-contextual-add-row-production.png",
-    ),
-    fullPage: false,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath(
+        "editor-layout-contextual-add-row-production.png",
+      ),
+      fullPage: false,
+    });
   await newTextOption.click();
   const contentDialog = page.getByRole("dialog", { name: "Create Text" });
   await expect(
     contentDialog.getByLabel("Add to").locator("option:checked"),
   ).toHaveText("introduction");
-  await page.screenshot({
-    path: testInfo.outputPath(
-      "editor-layout-content-owner-dialog-production.png",
-    ),
-    fullPage: true,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath(
+        "editor-layout-content-owner-dialog-production.png",
+      ),
+      fullPage: true,
+    });
   await contentDialog.getByRole("button", { name: "Cancel" }).click();
   await expect(contentDialog).toHaveCount(0);
   await expect(
@@ -10323,12 +10377,13 @@ test("package reference controls create and assign layouts, content, choices, an
       name: "Show color choices for background",
     })
     .click();
-  await page.screenshot({
-    path: testInfo.outputPath(
-      "editor-contextual-theme-color-action-production.png",
-    ),
-    fullPage: true,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath(
+        "editor-contextual-theme-color-action-production.png",
+      ),
+      fullPage: true,
+    });
   await backgroundField.getByRole("button", { name: "New Theme…" }).click();
   await expect(
     editor.getByRole("heading", { name: "new_theme", exact: true }),
@@ -10371,12 +10426,13 @@ test("package reference controls create and assign layouts, content, choices, an
   await expect(
     editor.getByLabel("Choice to display", { exact: true }),
   ).toHaveValue("new_choice");
-  await page.screenshot({
-    path: testInfo.outputPath(
-      "editor-contextual-package-reference-creation-production.png",
-    ),
-    fullPage: true,
-  });
+  if (reviewArtifactsEnabled)
+    await page.screenshot({
+      path: testInfo.outputPath(
+        "editor-contextual-package-reference-creation-production.png",
+      ),
+      fullPage: true,
+    });
   await editor.getByRole("button", { name: "Undo" }).click();
   await expect(
     editor.getByLabel("Choice to display", { exact: true }),
@@ -11821,10 +11877,11 @@ section-layout
   );
   await expect(preview.locator(".authored-choice-layout")).toHaveCount(3);
   await directChoice.scrollIntoViewIfNeeded();
-  await editor.screenshot({
-    path: testInfo.outputPath("section-layout-composed-choice-preview.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("section-layout-composed-choice-preview.png"),
+      animations: "disabled",
+    });
   await generatedChoiceLayout.selectOption("");
   await expect(directChoice).not.toHaveClass(/authored-choice-layout/);
   await expect(preview.locator(".authored-choice-layout")).toHaveCount(2);
@@ -12016,10 +12073,11 @@ trait-layout
     "editor-choice-layout-colliding-handle-preview-production",
     editor,
   );
-  await editor.screenshot({
-    path: testInfo.outputPath("choice-layout-placeholder-preview.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("choice-layout-placeholder-preview.png"),
+      animations: "disabled",
+    });
 
   await layoutButton("trait").click();
   await expect(preview).toContainText("Example trait");
@@ -12051,10 +12109,11 @@ trait-layout
     "editor-trait-layout-colliding-handle-preview-production",
     editor,
   );
-  await editor.screenshot({
-    path: testInfo.outputPath("trait-layout-placeholder-preview.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("trait-layout-placeholder-preview.png"),
+      animations: "disabled",
+    });
 
   await layoutButton("section").click();
   await expect(preview).toContainText("Example section");
@@ -12138,10 +12197,11 @@ section-layout
   await expect(preview.getByText("Before update", { exact: true })).toHaveCount(
     0,
   );
-  await preview.screenshot({
-    path: testInfo.outputPath("container-choice-live-last-valid-preview.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await preview.screenshot({
+      path: testInfo.outputPath("container-choice-live-last-valid-preview.png"),
+      animations: "disabled",
+    });
 });
 
 test("Jump Properties explains interpolation and preserves permissive preview selections", async ({
@@ -12312,10 +12372,11 @@ section-layout
   await expect(
     editor.getByText("Not a gender selection", { exact: true }),
   ).toHaveCount(0);
-  await editor.screenshot({
-    path: testInfo.outputPath("implicit-gender-choice-guidance.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("implicit-gender-choice-guidance.png"),
+      animations: "disabled",
+    });
   await editor
     .locator(".editor-outline-scroll")
     .getByRole("button", { name: "location", exact: true })
@@ -12327,10 +12388,11 @@ section-layout
   ).toContainText(
     "with Location (…) shortened to the text inside the parentheses",
   );
-  await editor.screenshot({
-    path: testInfo.outputPath("implicit-toggle-location-choice-guidance.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("implicit-toggle-location-choice-guidance.png"),
+      animations: "disabled",
+    });
   await editor
     .locator(".editor-outline-scroll")
     .getByRole("button", { name: "origin", exact: true })
@@ -12342,10 +12404,11 @@ section-layout
   ).toContainText(
     "with Origin (…) shortened to the text inside the parentheses",
   );
-  await editor.screenshot({
-    path: testInfo.outputPath("implicit-toggle-origin-choice-guidance.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("implicit-toggle-origin-choice-guidance.png"),
+      animations: "disabled",
+    });
   await editor
     .locator(".editor-outline-scroll")
     .getByRole("button", { name: "Jump details", exact: true })
@@ -12363,10 +12426,11 @@ section-layout
       { exact: true },
     ),
   ).toBeVisible();
-  await editor.screenshot({
-    path: testInfo.outputPath("implicit-gender-interpolation.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("implicit-gender-interpolation.png"),
+      animations: "disabled",
+    });
   await editor.getByRole("tab", { name: "Properties" }).click();
   for (const [handle, setter] of [
     ["origin", "Origin (Scholar)"],
@@ -12379,10 +12443,11 @@ section-layout
     await expect(property(handle)).toContainText(setter);
   }
   await property("location").scrollIntoViewIfNeeded();
-  await properties.screenshot({
-    path: testInfo.outputPath("implicit-basic-toggles-unselected.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await properties.screenshot({
+      path: testInfo.outputPath("implicit-basic-toggles-unselected.png"),
+      animations: "disabled",
+    });
   await editor.getByRole("tab", { name: "Preview" }).click();
   await preview.getByRole("spinbutton", { name: "Age" }).fill("24");
   await preview
@@ -12435,15 +12500,17 @@ section-layout
   await properties.evaluate((element) => {
     element.scrollTop = 0;
   });
-  await properties.screenshot({
-    path: testInfo.outputPath("jump-preview-interpolated-values.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await properties.screenshot({
+      path: testInfo.outputPath("jump-preview-interpolated-values.png"),
+      animations: "disabled",
+    });
   await property("location").scrollIntoViewIfNeeded();
-  await properties.screenshot({
-    path: testInfo.outputPath("jump-preview-origin-location.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await properties.screenshot({
+      path: testInfo.outputPath("jump-preview-origin-location.png"),
+      animations: "disabled",
+    });
 
   await properties
     .getByRole("button", { name: "View details for Budget Breaker" })
@@ -12465,10 +12532,11 @@ section-layout
   await expect(
     properties.locator(".editor-preview-record-detail h5"),
   ).toHaveText("Aster");
-  await properties.screenshot({
-    path: testInfo.outputPath("jump-preview-expanded-companion.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await properties.screenshot({
+      path: testInfo.outputPath("jump-preview-expanded-companion.png"),
+      animations: "disabled",
+    });
 
   await editor.getByRole("tab", { name: "Preview" }).click();
   await expect(preview.getByRole("combobox", { name: "Gender" })).toHaveValue(
@@ -12504,10 +12572,11 @@ section-layout
   );
   await expect(property("location")).toContainText("Location (Poolside)");
   await property("location").scrollIntoViewIfNeeded();
-  await properties.screenshot({
-    path: testInfo.outputPath("implicit-location-cleared.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await properties.screenshot({
+      path: testInfo.outputPath("implicit-location-cleared.png"),
+      animations: "disabled",
+    });
   await editor.getByRole("tab", { name: "Preview" }).click();
   const genderCard = preview
     .locator("article.default-choice-card")
@@ -12558,15 +12627,17 @@ section
   await expect(property("location")).toContainText(
     "Create a reachable non-integer Choice with the handle location.",
   );
-  await properties.screenshot({
-    path: testInfo.outputPath("jump-preview-missing-basic-data-help.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await properties.screenshot({
+      path: testInfo.outputPath("jump-preview-missing-basic-data-help.png"),
+      animations: "disabled",
+    });
   await property("origin").scrollIntoViewIfNeeded();
-  await properties.screenshot({
-    path: testInfo.outputPath("jump-preview-missing-origin-help.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await properties.screenshot({
+      path: testInfo.outputPath("jump-preview-missing-origin-help.png"),
+      animations: "disabled",
+    });
 });
 
 test("a selected Choice keeps its current custom layout during last-valid fallback", async ({
@@ -12650,12 +12721,13 @@ test("a selected Choice keeps its current custom layout during last-valid fallba
   await expect(preview.locator(".authored-choice-layout")).toHaveCount(1);
   await expect(preview.locator('[data-layout-kind="grid"]')).toBeVisible();
   await expect(preview).toContainText("Current Choice content");
-  await editor.screenshot({
-    path: testInfo.outputPath(
-      "choice-current-custom-layout-last-valid-preview.png",
-    ),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath(
+        "choice-current-custom-layout-last-valid-preview.png",
+      ),
+      animations: "disabled",
+    });
 
   await editor.getByRole("tab", { name: "Structured" }).click();
   const layout = editor.getByLabel("Layout", { exact: true });
@@ -12666,10 +12738,11 @@ test("a selected Choice keeps its current custom layout during last-valid fallba
   await expect(preview.locator(".default-choice-heading")).toContainText(
     "Drop-In",
   );
-  await editor.screenshot({
-    path: testInfo.outputPath("choice-cleared-layout-last-valid-preview.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await editor.screenshot({
+      path: testInfo.outputPath("choice-cleared-layout-last-valid-preview.png"),
+      animations: "disabled",
+    });
 });
 
 test("diagnostics reproduce the mock icons and open upward", async ({

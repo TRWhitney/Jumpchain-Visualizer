@@ -5,7 +5,10 @@ import {
   type Page,
   type TestInfo,
 } from "./support/fixtures";
-import { shouldCaptureReviewArtifacts } from "./support/reviewArtifacts";
+import {
+  reviewArtifactsEnabled,
+  shouldCaptureReviewArtifacts,
+} from "./support/reviewArtifacts";
 import { waitForStoredSetting } from "./support/storedSettings";
 
 test.describe.configure({ timeout: 60_000 });
@@ -1165,10 +1168,11 @@ test("Earth remains immutable and drives previous continuity into Jump 1", async
     "no-repeat",
   );
   await attachScreenshot(testInfo, "earth-dark-appearance", earthRenderer);
-  await earthRenderer.screenshot({
-    path: testInfo.outputPath("earth-dark-appearance.png"),
-    animations: "disabled",
-  });
+  if (reviewArtifactsEnabled)
+    await earthRenderer.screenshot({
+      path: testInfo.outputPath("earth-dark-appearance.png"),
+      animations: "disabled",
+    });
   await tracker.getByLabel("Earth gender").selectOption("Male");
   await tracker.getByLabel("Earth age").fill("31");
   await earth.click({ button: "right" });

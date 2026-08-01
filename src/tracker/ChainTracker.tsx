@@ -16,7 +16,12 @@ import {
   dropIndexForTarget,
   type DropEdge,
 } from "../ui/dragReorder";
-import { Chevron, useContextMenu, useSettingDefaultedState } from "../ui";
+import {
+  Chevron,
+  handleRovingTabKeyDown,
+  useContextMenu,
+  useSettingDefaultedState,
+} from "../ui";
 import {
   TrackerSupplementContext,
   SupplementProviders,
@@ -27,7 +32,8 @@ import {
   type EnabledModules,
   type ModuleId,
 } from "../supplements/model";
-import { TagBadge, TagRadar } from "./TagRadar";
+import { TagRadar } from "./TagRadar";
+import { TagBadge } from "../ui/TagBadge";
 import { JumpRenderer } from "./JumpRenderer";
 import type { RandomIndexSource } from "../domain";
 import { EarthJumpRenderer } from "./EarthJumpRenderer";
@@ -36,7 +42,7 @@ import {
   PackageSecurityError,
   type PackageImportReview,
 } from "../archive";
-import { PackageReview } from "../editor/EditorHub";
+import { PackageReview } from "../ui/PackageReview";
 import { useOptionalSettings } from "../settings/SettingsContext";
 import {
   effectivePackageSizeLimits,
@@ -158,22 +164,11 @@ function MainTabs({ state, dispatch }: TrackerProps) {
       className="chain-main-tabs"
       role="tablist"
       aria-label={translate("ui.chainTracker.ariaLabel.chainWorkspacePage")}
-      onKeyDown={(event) => {
-        const index = trackerPages.indexOf(state.page);
-        let next = index;
-        if (event.key === "ArrowRight")
-          next = (index + 1) % trackerPages.length;
-        else if (event.key === "ArrowLeft")
-          next = (index - 1 + trackerPages.length) % trackerPages.length;
-        else if (event.key === "Home") next = 0;
-        else if (event.key === "End") next = trackerPages.length - 1;
-        else return;
-        event.preventDefault();
-        dispatch({ type: "set-page", page: trackerPages[next] });
-        requestAnimationFrame(() =>
-          (event.currentTarget.children[next] as HTMLElement)?.focus(),
-        );
-      }}
+      onKeyDown={(event) =>
+        handleRovingTabKeyDown(event, trackerPages, state.page, (page) =>
+          dispatch({ type: "set-page", page }),
+        )
+      }
     >
       {trackerPages.map((page) => (
         <button

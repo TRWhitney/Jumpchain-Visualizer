@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { isTauriRuntime } from "../settings/repository";
+import { isTauriRuntime } from "../platform/runtime";
 
 export type ScreenColorSample =
   | { status: "selected"; color: string }

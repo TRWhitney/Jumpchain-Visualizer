@@ -30,3 +30,38 @@ export function openApplicationDatabase() {
     request.onsuccess = () => resolve(request.result);
   });
 }
+
+type StorageError = (cause: DOMException | null) => Error;
+
+export async function requestObjectStore<T>(
+  storeName: string,
+  mode: IDBTransactionMode,
+  operation: (store: IDBObjectStore) => IDBRequest<T>,
+  error: StorageError,
+) {
+  const database = await openApplicationDatabase();
+  return new Promise<T>((resolve, reject) => {
+    const transaction = database.transaction(storeName, mode);
+    const request = operation(transaction.objectStore(storeName));
+    request.onerror = () => reject(error(request.error));
+    request.onsuccess = () => resolve(request.result);
+    transaction.oncomplete = () => database.close();
+  });
+}
+
+export async function completeObjectStoreTransaction(
+  storeName: string,
+  operation: (store: IDBObjectStore) => void,
+  error: StorageError,
+) {
+  const database = await openApplicationDatabase();
+  return new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(storeName, "readwrite");
+    operation(transaction.objectStore(storeName));
+    transaction.onerror = () => reject(error(transaction.error));
+    transaction.oncomplete = () => {
+      database.close();
+      resolve();
+    };
+  });
+}

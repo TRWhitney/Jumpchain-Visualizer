@@ -13,8 +13,11 @@ import type { ChainEvaluation } from "../domain";
 import { evaluateTracker } from "./evaluateTracker";
 import {
   CHAINS_STORE_NAME,
-  openApplicationDatabase,
+  completeObjectStoreTransaction,
+  requestObjectStore,
 } from "../platform/indexedDb";
+import { ClonedMapStore } from "../platform/memoryStore";
+import { isTauriRuntime } from "../platform/runtime";
 
 export const CHAIN_SCHEMA_VERSION = 3 as const;
 
@@ -222,26 +225,25 @@ export function isChainAggregate(value: unknown): value is ChainAggregate {
 }
 
 export class MemoryChainRepository implements ChainRepository {
-  private readonly values = new Map<string, ChainAggregate>();
+  private readonly values: ClonedMapStore<ChainAggregate>;
   private initialized: boolean;
   constructor(seed: readonly ChainAggregate[] = []) {
-    seed.forEach((item) => this.values.set(item.id, structuredClone(item)));
+    this.values = new ClonedMapStore(seed, (item) => item.id);
     this.initialized = seed.length > 0;
   }
   async list() {
-    return [...this.values.values()].map((item) => structuredClone(item));
+    return this.values.list();
   }
   async isInitialized() {
     return this.initialized;
   }
   async load(id: string) {
-    const item = this.values.get(id);
-    return item ? structuredClone(item) : null;
+    return this.values.get(id);
   }
   async save(value: ChainAggregate) {
     if (!isChainAggregate(value)) throw new Error("Invalid chain aggregate.");
     this.initialized = true;
-    this.values.set(value.id, structuredClone(value));
+    this.values.set(value.id, value);
   }
   async remove(id: string) {
     this.initialized = true;
@@ -254,15 +256,12 @@ export class IndexedDbChainRepository implements ChainRepository {
     mode: IDBTransactionMode,
     operation: (store: IDBObjectStore) => IDBRequest<T>,
   ) {
-    const database = await openApplicationDatabase();
-    return new Promise<T>((resolve, reject) => {
-      const transaction = database.transaction(CHAINS_STORE_NAME, mode);
-      const request = operation(transaction.objectStore(CHAINS_STORE_NAME));
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () =>
-        reject(new Error("Chain storage operation failed."));
-      transaction.oncomplete = () => database.close();
-    });
+    return requestObjectStore(
+      CHAINS_STORE_NAME,
+      mode,
+      operation,
+      () => new Error("Chain storage operation failed."),
+    );
   }
   async list() {
     const values = await this.request<unknown[]>("readonly", (store) =>
@@ -287,19 +286,14 @@ export class IndexedDbChainRepository implements ChainRepository {
     await this.request<IDBValidKey>("readwrite", (store) => store.put(value));
   }
   async remove(id: string) {
-    const database = await openApplicationDatabase();
-    return new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(CHAINS_STORE_NAME, "readwrite");
-      const store = transaction.objectStore(CHAINS_STORE_NAME);
-      store.delete(id);
-      store.put({ id: CHAIN_REGISTRY_SENTINEL_ID });
-      transaction.onerror = () =>
-        reject(transaction.error ?? new Error("Chain could not be removed."));
-      transaction.oncomplete = () => {
-        database.close();
-        resolve();
-      };
-    });
+    return completeObjectStoreTransaction(
+      CHAINS_STORE_NAME,
+      (store) => {
+        store.delete(id);
+        store.put({ id: CHAIN_REGISTRY_SENTINEL_ID });
+      },
+      (cause) => cause ?? new Error("Chain could not be removed."),
+    );
   }
 }
 
@@ -324,7 +318,7 @@ export class TauriChainRepository implements ChainRepository {
 }
 
 export function createPlatformChainRepository(): ChainRepository {
-  return "__TAURI_INTERNALS__" in window
+  return isTauriRuntime()
     ? new TauriChainRepository()
     : new IndexedDbChainRepository();
 }

@@ -1,4 +1,3 @@
-import format1Schema from "../../schema/format-1.json";
 import type {
   CanonicalJumpPackage,
   DiagnosticSeverity,
@@ -25,100 +24,14 @@ import {
   layoutNodeSupportsTextStyling,
   layoutNodeUsesControlAlignment,
 } from "./layoutSemantics";
-
-type FieldRule = {
-  type?: string;
-  values?: readonly string[];
-  min?: number;
-  max?: number;
-  minimum?: number;
-  maximum?: number;
-  required?: boolean;
-  repeatable?: boolean;
-  const?: string | number | boolean;
-  default?: string | number | boolean;
-  conditionalVariants?: boolean;
-  exactDuplicate?: string;
-  exclusiveWith?: readonly string[];
-};
-
-type DeclarationRule = {
-  contexts?: readonly string[];
-  fields?: Record<string, FieldRule>;
-  children?: Record<
-    string,
-    {
-      min?: number;
-      max?: number;
-      repeatable?: boolean;
-      ownerLocalHandleNamespace?: string;
-      appliesWhen?: Readonly<Record<string, readonly string[]>>;
-    }
-  >;
-  fieldSet?: string;
-  forms?: {
-    scalar?: FieldRule;
-    block?: {
-      fields?: Record<string, FieldRule>;
-      children?: DeclarationRule["children"];
-    };
-  };
-  formsByContext?: Record<
-    string,
-    {
-      fields?: Record<string, FieldRule>;
-      children?: DeclarationRule["children"];
-    }
-  >;
-};
-
-type ChildRule = NonNullable<DeclarationRule["children"]>[string];
-
-type Schema = {
-  lexical: { handlePattern: string; integerPattern: string };
-  files: Record<string, { topLevel: readonly string[] }>;
-  types: Record<
-    string,
-    {
-      enum?: readonly (string | boolean)[];
-      oneOf?: readonly string[];
-      builtInTokens?: readonly string[];
-      costTokens?: readonly string[];
-      awardTokens?: readonly string[];
-      grantTokens?: readonly string[];
-    }
-  >;
-  conditionalFields: { allowed: readonly string[] };
-  declarations: Record<string, DeclarationRule>;
-  fieldSets: Record<string, Record<string, FieldRule>>;
-  layoutNodes: Record<
-    string,
-    {
-      kind: string;
-      fields?: string | Record<string, FieldRule>;
-      blockFields?: string;
-      additionalFields?: Record<string, FieldRule>;
-      compact?: string;
-      compactOnly?: boolean;
-      children?: string | false;
-      allowedLayouts?: readonly string[];
-      targetNamespace?: string;
-      targetsByLayout?: Record<string, readonly string[]>;
-    }
-  >;
-  roots: Record<
-    string,
-    {
-      exactlyOne?: boolean;
-      allowed?: readonly string[];
-      descendants?: readonly string[];
-    }
-  >;
-};
-
-const schema = format1Schema as unknown as Schema;
-const handlePattern = new RegExp(schema.lexical.handlePattern);
-const integerPattern = new RegExp(schema.lexical.integerPattern);
+import {
+  format1HandlePattern as handlePattern,
+  format1IntegerPattern as integerPattern,
+  format1SchemaDefinition as schema,
+  type ChildRule,
+  type FieldRule,
+} from "./format1Schema";
+import { closestSuggestion } from "./closestSuggestion";
 
 const unquote = (value: string) =>
   value.length >= 2 && value.startsWith('"') && value.endsWith('"')
@@ -141,34 +54,6 @@ const normalizedContext = (parent: SourceNode | undefined) => {
   if (parent.kind !== "grant") return parent.kind;
   const kind = parent.fields.find((field) => field.name === "kind");
   return `grant:${kind ? unquote(kind.value) : ""}`;
-};
-
-function editDistance(left: string, right: string) {
-  const rows = Array.from({ length: left.length + 1 }, (_, index) => index);
-  for (let column = 1; column <= right.length; column += 1) {
-    let previous = rows[0];
-    rows[0] = column;
-    for (let row = 1; row <= left.length; row += 1) {
-      const current = rows[row];
-      rows[row] = Math.min(
-        rows[row] + 1,
-        rows[row - 1] + 1,
-        previous + (left[row - 1] === right[column - 1] ? 0 : 1),
-      );
-      previous = current;
-    }
-  }
-  return rows[left.length];
-}
-
-const suggestion = (value: string, candidates: readonly string[]) => {
-  const ranked = candidates
-    .map((candidate) => [candidate, editDistance(value, candidate)] as const)
-    .sort((left, right) => left[1] - right[1]);
-  const selected = ranked[0];
-  return selected && selected[1] <= Math.max(2, Math.floor(value.length / 3))
-    ? selected[0]
-    : undefined;
 };
 
 function rulesFor(node: SourceNode, parent: SourceNode | undefined) {
@@ -380,7 +265,7 @@ function validateNode(
     const candidates = parent
       ? Object.keys(rulesFor(parent, undefined)?.children ?? {})
       : Object.keys(schema.declarations);
-    const proposed = suggestion(node.kind, candidates);
+    const proposed = closestSuggestion(node.kind, candidates);
     add(
       diagnostics,
       proposed
@@ -561,7 +446,7 @@ function validateNode(
       .filter((candidate) => candidate.name === sourceField.name)
       .indexOf(sourceField);
     if (!rule) {
-      const proposed = suggestion(sourceField.name, knownFields);
+      const proposed = closestSuggestion(sourceField.name, knownFields);
       add(
         diagnostics,
         proposed ? "schema.field.unknownSuggested" : "schema.field.unknown",

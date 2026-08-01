@@ -16,10 +16,8 @@ import {
   type SettingsCategory,
 } from "../settings/model";
 import { SettingsProvider } from "../settings/SettingsProvider";
-import {
-  isTauriRuntime,
-  MemorySettingsRepository,
-} from "../settings/repository";
+import { MemorySettingsRepository } from "../settings/repository";
+import { isTauriRuntime } from "../platform/runtime";
 import { projectTagDefinitions } from "../settings/tagProfile";
 import { SupplementProviders } from "../supplements/TrackerSupplements";
 import { ChainTracker } from "../tracker/ChainTracker";
@@ -103,29 +101,19 @@ import {
   backWelcomeTour,
   completeWelcomeTourBranch,
   createWelcomeTourSession,
-  createWelcomeTourSessionRepository,
   nextWelcomeTourStep,
   satisfyWelcomeTourStep,
   stageWelcomeTourSession,
   transitionWelcomeTour,
   welcomeTourActionComplete,
   type WelcomeTourBranch,
-  type WelcomeTourSessionV1,
+  useWelcomeTourPersistence,
 } from "../tour";
-
-type ShellHistoryState = {
-  jvIndex?: number;
-  settingsBackgroundPath?: string;
-} & Record<string, unknown>;
+import { type ShellHistoryState, useShellHistory } from "./useShellHistory";
 
 type DeletionTarget =
   | { kind: "chain"; id: string; name: string }
   | { kind: "editor"; id: string; name: string };
-
-const currentHistoryIndex = () => {
-  const value = (window.history.state as ShellHistoryState | null)?.jvIndex;
-  return typeof value === "number" ? value : 0;
-};
 
 export function AppShell() {
   const context = useOptionalSettings();
@@ -142,29 +130,26 @@ export function AppShell() {
 function AppShellContent() {
   const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const { settings, logger, update, replace } = useSettings();
-  const [pathname, setPathname] = useState(window.location.pathname);
-  const [settingsBackgroundPath, setSettingsBackgroundPath] = useState<
-    string | null
-  >(() => {
-    const state = window.history.state as ShellHistoryState | null;
-    return window.location.pathname === "/settings" &&
-      typeof state?.settingsBackgroundPath === "string"
-      ? state.settingsBackgroundPath
-      : null;
-  });
+  const {
+    pathname,
+    setPathname,
+    settingsBackgroundPath,
+    setSettingsBackgroundPath,
+    historyIndex,
+    historyMaximum,
+    pushHistory,
+    replaceHistory,
+  } = useShellHistory();
   const [settingsCategory, setSettingsCategory] =
     useState<SettingsCategory>("general");
-  const [historyIndex, setHistoryIndex] = useState(currentHistoryIndex);
-  const [historyMaximum, setHistoryMaximum] = useState(currentHistoryIndex);
-  const tourRepository = useMemo(
-    () => createWelcomeTourSessionRepository(),
-    [],
-  );
-  const [tourSession, setTourSession] = useState<WelcomeTourSessionV1 | null>(
-    null,
-  );
-  const tourSessionRef = useRef<WelcomeTourSessionV1 | null>(null);
-  const tourSaveQueue = useRef(Promise.resolve());
+  const {
+    repository: tourRepository,
+    session: tourSession,
+    setSession: setTourSession,
+    sessionRef: tourSessionRef,
+    saveQueue: tourSaveQueue,
+    persist: persistTourSession,
+  } = useWelcomeTourPersistence(logger);
   const [chainRegistry, chainRegistryDispatch] = useReducer(
     chainRegistryReducer,
     undefined,
@@ -234,27 +219,6 @@ function AppShellContent() {
         : route,
     [route, settingsBackgroundPath],
   );
-  const persistTourSession = useCallback(
-    (next: WelcomeTourSessionV1) => {
-      stageWelcomeTourSession(next);
-      tourSessionRef.current = next;
-      setTourSession(next);
-      tourSaveQueue.current = tourSaveQueue.current
-        .catch(() => undefined)
-        .then(() => tourRepository.save(next))
-        .catch((error: unknown) => {
-          logger.emit("storage.write_failed", {
-            attributes: {
-              aggregate: "welcome-tour",
-              errorCode: "WELCOME_TOUR_WRITE_FAILED",
-            },
-            error,
-          });
-        });
-    },
-    [logger, tourRepository],
-  );
-
   useEffect(() => {
     const status = settings.onboarding.welcomeTourStatus;
     if (status === "completed" || status === "dismissed") {
@@ -317,7 +281,7 @@ function AppShellContent() {
       setSettingsBackgroundPath(null);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [tourSession]);
+  }, [setPathname, setSettingsBackgroundPath, tourSession]);
 
   const activeEditorWorkspace =
     backgroundRoute.kind === "editor-workspace"
@@ -520,29 +484,6 @@ function AppShellContent() {
   }, [activeChain, chainRepository, trackerState]);
 
   useEffect(() => {
-    const state = (window.history.state as ShellHistoryState | null) ?? {};
-    if (typeof state.jvIndex !== "number")
-      window.history.replaceState({ ...state, jvIndex: 0 }, "");
-    const onPopState = (event: PopStateEvent) => {
-      const nextIndex =
-        typeof (event.state as ShellHistoryState | null)?.jvIndex === "number"
-          ? (event.state as ShellHistoryState).jvIndex!
-          : 0;
-      setHistoryIndex(nextIndex);
-      setPathname(window.location.pathname);
-      const nextState = event.state as ShellHistoryState | null;
-      setSettingsBackgroundPath(
-        window.location.pathname === "/settings" &&
-          typeof nextState?.settingsBackgroundPath === "string"
-          ? nextState.settingsBackgroundPath
-          : null,
-      );
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-
-  useEffect(() => {
     document.title =
       route.kind === "editor-workspace" && activeEditorWorkspace
         ? `${summarizeWorkspace(activeEditorWorkspace).name} · Editor`
@@ -568,23 +509,9 @@ function AppShellContent() {
       if (window.location.pathname === nextPath) return;
       if (backgroundRoute.kind === "chain-workspace")
         setLastActiveChainId(backgroundRoute.chainId);
-      const nextIndex = historyIndex + 1;
-      window.history.pushState(
-        { jvIndex: nextIndex, ...extraState },
-        "",
-        nextPath,
-      );
-      setHistoryIndex(nextIndex);
-      setHistoryMaximum(nextIndex);
-      setPathname(nextPath);
-      setSettingsBackgroundPath(
-        nextPath === "/settings" &&
-          typeof extraState.settingsBackgroundPath === "string"
-          ? extraState.settingsBackgroundPath
-          : null,
-      );
+      pushHistory(nextPath, extraState);
     },
-    [backgroundRoute, historyIndex],
+    [backgroundRoute, pushHistory],
   );
 
   const navigate = useCallback(
@@ -1112,7 +1039,7 @@ function AppShellContent() {
         },
       });
     },
-    [persistTourSession],
+    [persistTourSession, tourSessionRef],
   );
 
   const tourActionComplete = useMemo(
@@ -1197,13 +1124,19 @@ function AppShellContent() {
       setTourSession(null);
       void tourSaveQueue.current.finally(() => tourRepository.clear());
       const nextIndex = historyIndex + 1;
-      window.history.replaceState({ jvIndex: nextIndex }, "", returnPath);
-      setHistoryIndex(nextIndex);
-      setHistoryMaximum(nextIndex);
-      setPathname(returnPath);
-      setSettingsBackgroundPath(null);
+      replaceHistory(returnPath, nextIndex);
     },
-    [historyIndex, replace, settings, tourRepository, tourSession],
+    [
+      historyIndex,
+      replace,
+      replaceHistory,
+      setTourSession,
+      settings,
+      tourRepository,
+      tourSaveQueue,
+      tourSession,
+      tourSessionRef,
+    ],
   );
 
   const startFreshWelcomeTour = useCallback(
@@ -1224,7 +1157,13 @@ function AppShellContent() {
         "onboarding.welcomeTourStatus",
       );
     },
-    [persistTourSession, tourRepository, update],
+    [
+      persistTourSession,
+      setTourSession,
+      tourRepository,
+      tourSessionRef,
+      update,
+    ],
   );
 
   const restartWelcomeTour = useCallback(() => {

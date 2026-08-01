@@ -40,10 +40,10 @@ import {
   type ImageHeaderMetadata,
   type PackageAssetMetadata,
 } from "../archive";
-import { NumberStepperButtons } from "../tracker/NumberStepper";
+import { NumberStepperButtons } from "../ui/NumberStepper";
 import { inheritedAppearanceValue } from "../tracker/jumpAppearance";
 import type { TagDefinition } from "../tracker/model";
-import { CanonicalTrackerTagBadge } from "../settings/TagBadge";
+import { CanonicalTrackerTagBadge } from "../ui/TagBadge";
 import { primaryTagIds } from "../settings/builtinTags";
 import { normalizeTag } from "../settings/tagProfile";
 import { integerFieldControl } from "./integerField";
@@ -153,7 +153,7 @@ import {
   editorOptionPresentation,
   editorSectionLabel,
 } from "./editorPresentation";
-import { useAssetObjectUrl } from "../tracker/useAssetObjectUrls";
+import { useAssetObjectUrl } from "../ui/useAssetObjectUrls";
 import { ConfirmationDialog } from "../ui";
 import type { AppearanceColorInspection } from "./appearanceInspection";
 import {

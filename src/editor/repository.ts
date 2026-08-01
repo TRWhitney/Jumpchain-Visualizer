@@ -1,81 +1,48 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
+  completeObjectStoreTransaction,
   EDITOR_WORKSPACES_STORE_NAME,
-  openApplicationDatabase,
+  requestObjectStore,
 } from "../platform/indexedDb";
-import { isTauriRuntime } from "../settings/repository";
+import { ClonedMapStore } from "../platform/memoryStore";
+import { isTauriRuntime } from "../platform/runtime";
+import { runOneShotWorker } from "../platform/workerRequest";
 import { hydrateEditorWorkspace, type EditorWorkspaceSnapshot } from "./model";
 import { stringifyBinaryJson } from "./binaryJson";
 
 function serializeEditorWorkspace(workspace: EditorWorkspaceSnapshot) {
   if (typeof Worker === "undefined")
     return Promise.resolve(stringifyBinaryJson(workspace));
-  return new Promise<string>((resolve, reject) => {
-    const worker = new Worker(
+  return runOneShotWorker(
+    new Worker(
       new URL("./editorWorkspaceSerialize.worker.ts", import.meta.url),
       { type: "module", name: "editor-workspace-serializer" },
-    );
-    const finish = () => worker.terminate();
-    worker.addEventListener(
-      "message",
-      (event: MessageEvent<{ payload?: string; error?: string }>) => {
-        finish();
-        if (event.data.payload) resolve(event.data.payload);
-        else
-          reject(
-            new Error(
-              event.data.error ?? "Editor workspace serialization failed.",
-            ),
-          );
-      },
-      { once: true },
-    );
-    worker.addEventListener(
-      "error",
-      () => {
-        finish();
-        reject(new Error("Editor workspace serialization failed."));
-      },
-      { once: true },
-    );
-    worker.postMessage({ workspace });
-  });
+    ),
+    { workspace },
+    (response: { payload?: string; error?: string }) => {
+      if (response.payload) return response.payload;
+      throw new Error(
+        response.error ?? "Editor workspace serialization failed.",
+      );
+    },
+    "Editor workspace serialization failed.",
+  );
 }
 
 function persistEditorWorkspaceInWorker(workspace: EditorWorkspaceSnapshot) {
   if (typeof Worker === "undefined") return null;
-  return new Promise<void>((resolve, reject) => {
-    const worker = new Worker(
-      new URL("./editorWorkspacePersist.worker.ts", import.meta.url),
-      { type: "module", name: "editor-workspace-persistence" },
-    );
-    const finish = () => worker.terminate();
-    worker.addEventListener(
-      "message",
-      (
-        event: MessageEvent<{ type: "complete" | "error"; message?: string }>,
-      ) => {
-        finish();
-        if (event.data.type === "complete") resolve();
-        else
-          reject(
-            new Error(
-              event.data.message ?? "Editor project could not be saved.",
-            ),
-          );
-      },
-      { once: true },
-    );
-    worker.addEventListener(
-      "error",
-      () => {
-        finish();
-        reject(new Error("Editor project could not be saved."));
-      },
-      { once: true },
-    );
-    worker.postMessage({ workspace });
-  });
+  return runOneShotWorker(
+    new Worker(new URL("./editorWorkspacePersist.worker.ts", import.meta.url), {
+      type: "module",
+      name: "editor-workspace-persistence",
+    }),
+    { workspace },
+    (response: { type: "complete" | "error"; message?: string }) => {
+      if (response.type === "complete") return;
+      throw new Error(response.message ?? "Editor project could not be saved.");
+    },
+    "Editor project could not be saved.",
+  );
 }
 
 export interface EditorWorkspaceRepository {
@@ -86,24 +53,22 @@ export interface EditorWorkspaceRepository {
 }
 
 export class MemoryEditorWorkspaceRepository implements EditorWorkspaceRepository {
-  #workspaces = new Map<string, EditorWorkspaceSnapshot>();
+  readonly #workspaces: ClonedMapStore<EditorWorkspaceSnapshot>;
 
   constructor(initial: readonly EditorWorkspaceSnapshot[] = []) {
-    for (const workspace of initial)
-      this.#workspaces.set(workspace.id, structuredClone(workspace));
+    this.#workspaces = new ClonedMapStore(initial, (workspace) => workspace.id);
   }
 
   async list() {
-    return [...this.#workspaces.values()].map((item) => structuredClone(item));
+    return this.#workspaces.list();
   }
 
   async load(id: string) {
-    const workspace = this.#workspaces.get(id);
-    return workspace ? structuredClone(workspace) : null;
+    return this.#workspaces.get(id);
   }
 
   async save(workspace: EditorWorkspaceSnapshot) {
-    this.#workspaces.set(workspace.id, structuredClone(workspace));
+    this.#workspaces.set(workspace.id, workspace);
   }
 
   async remove(id: string) {
@@ -113,86 +78,44 @@ export class MemoryEditorWorkspaceRepository implements EditorWorkspaceRepositor
 
 export class IndexedDbEditorWorkspaceRepository implements EditorWorkspaceRepository {
   async list() {
-    const database = await openApplicationDatabase();
-    return new Promise<EditorWorkspaceSnapshot[]>((resolve, reject) => {
-      const transaction = database.transaction(
-        EDITOR_WORKSPACES_STORE_NAME,
-        "readonly",
-      );
-      const request = transaction
-        .objectStore(EDITOR_WORKSPACES_STORE_NAME)
-        .getAll();
-      request.onerror = () =>
-        reject(
-          request.error ?? new Error("Editor projects could not be read."),
-        );
-      request.onsuccess = () =>
-        resolve(
-          request.result.flatMap((value) => {
-            const hydrated = hydrateEditorWorkspace(value);
-            return hydrated ? [hydrated] : [];
-          }),
-        );
-      transaction.oncomplete = () => database.close();
+    const values = await requestObjectStore<unknown[]>(
+      EDITOR_WORKSPACES_STORE_NAME,
+      "readonly",
+      (store) => store.getAll(),
+      (cause) => cause ?? new Error("Editor projects could not be read."),
+    );
+    return values.flatMap((value) => {
+      const hydrated = hydrateEditorWorkspace(value);
+      return hydrated ? [hydrated] : [];
     });
   }
 
   async load(id: string) {
-    const database = await openApplicationDatabase();
-    return new Promise<EditorWorkspaceSnapshot | null>((resolve, reject) => {
-      const transaction = database.transaction(
-        EDITOR_WORKSPACES_STORE_NAME,
-        "readonly",
-      );
-      const request = transaction
-        .objectStore(EDITOR_WORKSPACES_STORE_NAME)
-        .get(id);
-      request.onerror = () =>
-        reject(request.error ?? new Error("Editor project could not be read."));
-      request.onsuccess = () => resolve(hydrateEditorWorkspace(request.result));
-      transaction.oncomplete = () => database.close();
-    });
+    const value = await requestObjectStore(
+      EDITOR_WORKSPACES_STORE_NAME,
+      "readonly",
+      (store) => store.get(id),
+      (cause) => cause ?? new Error("Editor project could not be read."),
+    );
+    return hydrateEditorWorkspace(value);
   }
 
   async save(workspace: EditorWorkspaceSnapshot) {
     const workerSave = persistEditorWorkspaceInWorker(workspace);
     if (workerSave) return workerSave;
-    const database = await openApplicationDatabase();
-    return new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(
-        EDITOR_WORKSPACES_STORE_NAME,
-        "readwrite",
-      );
-      transaction.objectStore(EDITOR_WORKSPACES_STORE_NAME).put(workspace);
-      transaction.onerror = () =>
-        reject(
-          transaction.error ?? new Error("Editor project could not be saved."),
-        );
-      transaction.oncomplete = () => {
-        database.close();
-        resolve();
-      };
-    });
+    return completeObjectStoreTransaction(
+      EDITOR_WORKSPACES_STORE_NAME,
+      (store) => store.put(workspace),
+      (cause) => cause ?? new Error("Editor project could not be saved."),
+    );
   }
 
   async remove(id: string) {
-    const database = await openApplicationDatabase();
-    return new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(
-        EDITOR_WORKSPACES_STORE_NAME,
-        "readwrite",
-      );
-      transaction.objectStore(EDITOR_WORKSPACES_STORE_NAME).delete(id);
-      transaction.onerror = () =>
-        reject(
-          transaction.error ??
-            new Error("Editor project could not be removed."),
-        );
-      transaction.oncomplete = () => {
-        database.close();
-        resolve();
-      };
-    });
+    return completeObjectStoreTransaction(
+      EDITOR_WORKSPACES_STORE_NAME,
+      (store) => store.delete(id),
+      (cause) => cause ?? new Error("Editor project could not be removed."),
+    );
   }
 }
 

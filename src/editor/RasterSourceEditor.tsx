@@ -39,7 +39,7 @@ import {
 import { RasterRenderClient } from "./rasterRenderClient";
 import { extractSafeImageMetadata } from "./safeImageMetadata";
 import { translate } from "../localization";
-import { NumberStepperButtons } from "../tracker/NumberStepper";
+import { NumberStepperButtons } from "../ui/NumberStepper";
 import { useContextMenu } from "../ui";
 import {
   keybindingDisplay,

@@ -19,7 +19,7 @@ import {
   layoutPreviewImagePath,
 } from "./layoutPreview";
 import { selectedChoicePreviewPackage } from "./selectionPreview";
-import { useAssetObjectUrls } from "../tracker/useAssetObjectUrls";
+import { useAssetObjectUrls } from "../ui/useAssetObjectUrls";
 import { assetRelativePath } from "../markup/assetPath";
 import type { PreviewSelection } from "./previewSelection";
 import { stripPreviewColors } from "./previewColors";

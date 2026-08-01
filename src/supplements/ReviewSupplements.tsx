@@ -3,6 +3,7 @@ import { ModulePage } from "./ModulePages";
 import { SupplementDialog } from "./Dialogs";
 import { BodyModProvider } from "./BodyModContext";
 import { SupplementStateProvider } from "./SupplementStateContext";
+import { handleRovingTabKeyDown } from "../ui/rovingTabs";
 import {
   hasEnabledSupplements,
   initialEnabled,
@@ -482,21 +483,14 @@ function WorkspaceScenario({
             className="supplement-tabs"
             role="tablist"
             aria-label="Supplement pages"
-            onKeyDown={(event) => {
-              const index = pages.findIndex((item) => item.id === page);
-              let next = index;
-              if (event.key === "ArrowRight") next = (index + 1) % pages.length;
-              else if (event.key === "ArrowLeft")
-                next = (index - 1 + pages.length) % pages.length;
-              else if (event.key === "Home") next = 0;
-              else if (event.key === "End") next = pages.length - 1;
-              else return;
-              event.preventDefault();
-              activate(pages[next].id);
-              requestAnimationFrame(() =>
-                (event.currentTarget.children[next] as HTMLElement)?.focus(),
-              );
-            }}
+            onKeyDown={(event) =>
+              handleRovingTabKeyDown(
+                event,
+                pages.map((item) => item.id),
+                page,
+                activate,
+              )
+            }
           >
             {pages.map((item) => (
               <button

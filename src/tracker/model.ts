@@ -1,56 +1,20 @@
 import type { EvaluatedGrantMeasure } from "../domain";
+import {
+  tagCategories,
+  type TagCategory,
+  type TagDefinition,
+} from "../domain/tags";
+import type { TrackerPage } from "./constants";
 
-export const trackerPages = [
-  "jump",
-  "inventory",
-  "forms",
-  "companions",
-  "supplements",
-] as const;
-export type TrackerPage = (typeof trackerPages)[number];
-
-export const tagCategories = [
-  "social",
-  "mental",
-  "spiritual",
-  "magic",
-  "meta",
-  "stealth",
-  "physical",
-  "combat",
-  "defense",
-  "crafting",
-  "technology",
-  "miscellaneous",
-] as const;
-export type TagCategory = (typeof tagCategories)[number];
-
-export type TagDefinition = {
-  id: string;
-  label: string;
-  parent?: string;
-  aliases: readonly string[];
-  color: string;
-  to: string;
-  style: "solid" | "soft" | "outline" | "gradient";
-  presentation?: {
-    background: "solid" | "gradient" | "transparent";
-    colors: readonly string[];
-    positions: readonly number[];
-    angle: number;
-    borderColor: string;
-    borderWidth: "none" | "thin" | "medium";
-    corners: "pill" | "rounded" | "square";
-    padding: "compact" | "standard" | "roomy";
-    textMode: "auto" | "custom";
-    textColor: string;
-    weight: "normal" | "medium" | "bold";
-    fontStyle: "normal" | "italic";
-    decoration: "none" | "underline" | "strike";
-    textEffect: "none" | "outline" | "shadow" | "glow";
-    animation: "none" | "rainbow" | "marquee" | "ghost" | "bounce";
-  };
-};
+export { tagCategories } from "../domain/tags";
+export type { TagCategory, TagDefinition } from "../domain/tags";
+export {
+  EARTH_ENTRY_ID,
+  EARTH_ENTRY_STATUS,
+  EARTH_PACKAGE_ID,
+  trackerPages,
+} from "./constants";
+export type { TrackerPage } from "./constants";
 
 export type InstalledPackage = {
   id: string;
@@ -86,10 +50,6 @@ export type Actor = {
   initials: string;
   summary: string;
 };
-
-export const EARTH_ENTRY_ID = "entry-earth";
-export const EARTH_PACKAGE_ID = "system-earth";
-export const EARTH_ENTRY_STATUS = "The Beginning";
 
 export type IdentityProperty =
   "origin" | "species" | "location" | "gender" | "age";

@@ -1,69 +1,25 @@
 use std::{
     collections::HashSet,
-    io::Cursor,
     path::{Path, PathBuf},
-    sync::Mutex,
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use archive_core::{EffectivePackageSizeLimits, inspect_archive, validate_image};
+use archive_core::{EffectivePackageSizeLimits, validate_image};
+use command::{CommandError, CommandResult, PersistenceState};
+use export_commands::{save_diagnostic_report, save_editor_package};
 use persistence::AggregateStore;
+use platform_commands::{sample_screen_color, screen_color_sampler_available};
 use tauri::{Manager, State};
 use tauri_plugin_dialog::DialogExt;
+use validation::{
+    safe_workspace_id, validate_chain_payload, validate_settings_payload,
+    validate_welcome_tour_payload,
+};
 
-struct PersistenceState(Mutex<AggregateStore>);
-
-#[derive(Debug, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct CommandError {
-    code: String,
-    parameters: serde_json::Value,
-}
-
-impl CommandError {
-    fn from_message(message: &str) -> Self {
-        let code = message
-            .chars()
-            .map(|character| {
-                if character.is_ascii_alphanumeric() {
-                    character.to_ascii_uppercase()
-                } else {
-                    '_'
-                }
-            })
-            .collect::<String>()
-            .split('_')
-            .filter(|part| !part.is_empty())
-            .collect::<Vec<_>>()
-            .join("_");
-        Self {
-            code,
-            parameters: serde_json::json!({}),
-        }
-    }
-}
-
-impl From<String> for CommandError {
-    fn from(message: String) -> Self {
-        Self::from_message(&message)
-    }
-}
-
-impl From<&str> for CommandError {
-    fn from(message: &str) -> Self {
-        Self::from_message(message)
-    }
-}
-
-type CommandResult<T> = Result<T, CommandError>;
-
-fn safe_workspace_id(id: &str) -> bool {
-    !id.is_empty()
-        && id.len() <= 200
-        && id
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
-}
+mod command;
+mod export_commands;
+mod platform_commands;
+mod validation;
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
@@ -91,97 +47,6 @@ fn save_settings(payload: String, state: State<'_, PersistenceState>) -> Command
         .map_err(|_| "settings database lock failed")?
         .save("settings", 1, &payload)
         .map_err(|_| CommandError::from("settings write failed"))
-}
-
-fn validate_welcome_tour_payload(payload: &str) -> Result<(), String> {
-    const STEP_IDS: &[&str] = &[
-        "welcome",
-        "home-navigation",
-        "home-workspaces",
-        "choose-branch",
-        "editor-overview",
-        "editor-open-details",
-        "editor-metadata",
-        "editor-add-choice",
-        "editor-configure-choice",
-        "editor-open-section",
-        "editor-place-choice",
-        "editor-preview",
-        "editor-advanced-offer",
-        "editor-advanced-toggle",
-        "editor-advanced-tabs",
-        "editor-advanced-appearance",
-        "editor-advanced-export",
-        "editor-summary",
-        "tracker-overview",
-        "tracker-library",
-        "tracker-add-jump",
-        "tracker-route-choice",
-        "tracker-perk-choice",
-        "tracker-item-choice",
-        "tracker-reorder",
-        "tracker-inventory",
-        "tracker-inventory-result",
-        "tracker-supplements",
-        "tracker-enable-body-mod",
-        "tracker-open-body-mod",
-        "tracker-use-body-mod",
-        "tracker-summary",
-        "mode-choice",
-    ];
-    const EDITOR_FILES: &[&str] = &["jump.jdef", "choices.jdef", "layout.jdef"];
-    const PACKAGE_IDS: &[&str] = &[
-        "system-earth",
-        "welcome-tour-trailhead",
-        "welcome-tour-crossroads",
-    ];
-    if payload.len() > 2 * 1024 * 1024 {
-        return Err("welcome tour payload exceeds the application limit".to_owned());
-    }
-    let value: serde_json::Value =
-        serde_json::from_str(payload).map_err(|_| "welcome tour payload is invalid JSON")?;
-    if value
-        .get("schemaVersion")
-        .and_then(serde_json::Value::as_u64)
-        != Some(1)
-    {
-        return Err("welcome tour schema version is unsupported".to_owned());
-    }
-    if !value
-        .get("stepId")
-        .and_then(serde_json::Value::as_str)
-        .is_some_and(|step| STEP_IDS.contains(&step))
-    {
-        return Err("welcome tour step is invalid".to_owned());
-    }
-    let editor = value
-        .get("editorWorkspace")
-        .and_then(serde_json::Value::as_object)
-        .ok_or_else(|| "welcome tour Editor workspace is invalid".to_owned())?;
-    if editor.get("id").and_then(serde_json::Value::as_str) != Some("welcome-tour-editor") {
-        return Err("welcome tour Editor identity is invalid".to_owned());
-    }
-    let files = editor
-        .get("files")
-        .and_then(serde_json::Value::as_object)
-        .ok_or_else(|| "welcome tour Editor files are invalid".to_owned())?;
-    if files.len() != EDITOR_FILES.len()
-        || !files
-            .iter()
-            .all(|(name, source)| EDITOR_FILES.contains(&name.as_str()) && source.is_string())
-    {
-        return Err("welcome tour Editor files are invalid".to_owned());
-    }
-    let packages = value
-        .pointer("/trackerState/packages")
-        .and_then(serde_json::Value::as_object)
-        .ok_or_else(|| "welcome tour Tracker packages are invalid".to_owned())?;
-    if packages.len() != PACKAGE_IDS.len()
-        || !packages.keys().all(|id| PACKAGE_IDS.contains(&id.as_str()))
-    {
-        return Err("welcome tour Tracker packages are invalid".to_owned());
-    }
-    Ok(())
 }
 
 #[tauri::command]
@@ -366,7 +231,7 @@ fn load_editor_workspace(
         }))
 }
 
-fn atomic_write(path: &Path, content: &[u8]) -> Result<(), String> {
+pub(crate) fn atomic_write(path: &Path, content: &[u8]) -> Result<(), String> {
     let name = path
         .file_name()
         .and_then(|value| value.to_str())
@@ -672,178 +537,6 @@ fn scan_editor_project_folder(
     Ok(serde_json::json!({ "files": files, "assets": assets }))
 }
 
-fn validate_chain_payload(payload: &str) -> Result<serde_json::Value, String> {
-    if payload.len() > 16 * 1024 * 1024 {
-        return Err("chain payload exceeds the application limit".to_owned());
-    }
-    let value: serde_json::Value =
-        serde_json::from_str(payload).map_err(|_| "chain payload is invalid JSON")?;
-    if value
-        .get("schemaVersion")
-        .and_then(serde_json::Value::as_u64)
-        != Some(3)
-    {
-        return Err("chain schema version is unsupported".to_owned());
-    }
-    let valid_id = value
-        .get("id")
-        .and_then(serde_json::Value::as_str)
-        .is_some_and(|id| !id.is_empty() && id.len() <= 200);
-    if !valid_id {
-        return Err("chain id is invalid".to_owned());
-    }
-    Ok(value)
-}
-
-fn validate_settings_payload(payload: &str) -> Result<(), String> {
-    if payload.len() > 2 * 1024 * 1024 {
-        return Err("settings payload exceeds the application limit".to_owned());
-    }
-    let value: serde_json::Value =
-        serde_json::from_str(payload).map_err(|_| "settings payload is invalid JSON")?;
-    if value
-        .get("schemaVersion")
-        .and_then(serde_json::Value::as_u64)
-        != Some(5)
-    {
-        return Err("settings schema version is unsupported".to_owned());
-    }
-    Ok(())
-}
-
-fn sanitize_suggested_name(suggested_name: &str) -> String {
-    suggested_name
-        .chars()
-        .filter(|character| {
-            character.is_ascii_alphanumeric() || ['-', '_', '.'].contains(character)
-        })
-        .take(100)
-        .collect()
-}
-
-#[cfg(target_os = "linux")]
-fn portal_color_to_hex(red: f64, green: f64, blue: f64) -> CommandResult<String> {
-    fn channel(value: f64) -> CommandResult<u8> {
-        if !value.is_finite() || !(0.0..=1.0).contains(&value) {
-            return Err(CommandError::from(
-                "screen color sampler returned an invalid channel",
-            ));
-        }
-        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        let byte = (value * 255.0).round() as u8;
-        Ok(byte)
-    }
-
-    Ok(format!(
-        "#{:02X}{:02X}{:02X}",
-        channel(red)?,
-        channel(green)?,
-        channel(blue)?
-    ))
-}
-
-#[tauri::command]
-async fn screen_color_sampler_available() -> bool {
-    #[cfg(target_os = "linux")]
-    {
-        ashpd::desktop::screenshot::ScreenshotProxy::new()
-            .await
-            .is_ok()
-    }
-
-    #[cfg(not(target_os = "linux"))]
-    false
-}
-
-#[tauri::command]
-async fn sample_screen_color() -> CommandResult<Option<String>> {
-    #[cfg(target_os = "linux")]
-    {
-        use ashpd::{
-            Error,
-            desktop::{Color, ResponseError},
-        };
-
-        let request = Color::pick()
-            .send()
-            .await
-            .map_err(|_| CommandError::from("screen color sampler could not start"))?;
-        let color = match request.response() {
-            Ok(color) => color,
-            Err(Error::Response(ResponseError::Cancelled)) => return Ok(None),
-            Err(Error::Response(ResponseError::Other)) => {
-                return Err(CommandError::from("screen color sampler failed"));
-            }
-            Err(_) => return Err(CommandError::from("screen color sampler failed")),
-        };
-        portal_color_to_hex(color.red(), color.green(), color.blue()).map(Some)
-    }
-
-    #[cfg(not(target_os = "linux"))]
-    Err(CommandError::from("screen color sampler is unavailable"))
-}
-
-#[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-fn save_diagnostic_report(
-    app: tauri::AppHandle,
-    suggested_name: String,
-    content: String,
-) -> CommandResult<&'static str> {
-    if content.len() > 4 * 1024 * 1024 {
-        return Err(CommandError::from(
-            "diagnostic report exceeds the application limit",
-        ));
-    }
-    let safe_name = sanitize_suggested_name(&suggested_name);
-    let selected = app
-        .dialog()
-        .file()
-        .set_file_name(if safe_name.is_empty() {
-            "jumpchain-visualizer-report.txt"
-        } else {
-            &safe_name
-        })
-        .blocking_save_file();
-    let Some(selected) = selected else {
-        return Ok("cancelled");
-    };
-    let path = selected
-        .into_path()
-        .map_err(|_| "the selected report destination is not a local path")?;
-    std::fs::write(path, content).map_err(|_| "diagnostic report write failed")?;
-    Ok("saved")
-}
-
-#[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-fn save_editor_package(
-    app: tauri::AppHandle,
-    suggested_name: String,
-    bytes: Vec<u8>,
-    limits: EffectivePackageSizeLimits,
-) -> CommandResult<&'static str> {
-    inspect_archive(Cursor::new(&bytes), limits).map_err(|error| error.to_string())?;
-    let safe_name = sanitize_suggested_name(&suggested_name);
-    let selected = app
-        .dialog()
-        .file()
-        .set_file_name(if safe_name.is_empty() {
-            "jump-package.jmp"
-        } else {
-            &safe_name
-        })
-        .blocking_save_file();
-    let Some(selected) = selected else {
-        return Ok("cancelled");
-    };
-    let path = selected
-        .into_path()
-        .map_err(|_| "the selected package destination is not a local path")?;
-    atomic_write(&path, &bytes)?;
-    Ok("saved")
-}
-
 /// Starts the desktop application shell.
 ///
 /// # Panics
@@ -860,7 +553,7 @@ pub fn run() {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
             let store = AggregateStore::open(data_dir.join("jumpchain-visualizer.sqlite"))?;
-            app.manage(PersistenceState(Mutex::new(store)));
+            app.manage(PersistenceState(std::sync::Mutex::new(store)));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -897,12 +590,15 @@ mod tests {
 
     use super::{
         CommandError, EffectivePackageSizeLimits, atomic_write, read_project_folder,
-        safe_workspace_id, sanitize_suggested_name, save_external_workspace,
-        validate_chain_payload, validate_settings_payload, validate_welcome_tour_payload,
+        save_external_workspace,
+    };
+    use crate::validation::{
+        safe_workspace_id, sanitize_suggested_name, validate_chain_payload,
+        validate_settings_payload, validate_welcome_tour_payload,
     };
 
     #[cfg(target_os = "linux")]
-    use super::portal_color_to_hex;
+    use crate::platform_commands::portal_color_to_hex;
 
     fn limits() -> EffectivePackageSizeLimits {
         EffectivePackageSizeLimits {

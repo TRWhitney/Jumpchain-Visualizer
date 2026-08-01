@@ -1,4 +1,6 @@
-import { type KeyboardEvent, type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useRef } from "react";
+import { handleRovingTabKeyDown } from "./rovingTabs";
+import { useFocusTrap } from "./useFocusTrap";
 
 export function Tabs<T extends string>({
   labels,
@@ -13,27 +15,13 @@ export function Tabs<T extends string>({
   className: string;
   label: string;
 }) {
-  const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const current = labels.findIndex((item) => item.id === value);
-    let next = current;
-    if (event.key === "ArrowRight") next = (current + 1) % labels.length;
-    else if (event.key === "ArrowLeft")
-      next = (current - 1 + labels.length) % labels.length;
-    else if (event.key === "Home") next = 0;
-    else if (event.key === "End") next = labels.length - 1;
-    else return;
-    event.preventDefault();
-    onChange(labels[next].id);
-    requestAnimationFrame(() =>
-      (event.currentTarget.children[next] as HTMLElement | undefined)?.focus(),
-    );
-  };
+  const ids = labels.map((item) => item.id);
   return (
     <div
       className={className}
       role="tablist"
       aria-label={label}
-      onKeyDown={keyDown}
+      onKeyDown={(event) => handleRovingTabKeyDown(event, ids, value, onChange)}
     >
       {labels.map((item) => (
         <button
@@ -67,42 +55,7 @@ export function Modal({
   children: ReactNode;
 }) {
   const layer = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (embedded) return;
-    const previous = document.activeElement as HTMLElement | null;
-    const root = layer.current;
-    const focusable = () => [
-      ...(root?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ) ?? []),
-    ];
-    focusable()[0]?.focus();
-    const keydown = (event: globalThis.KeyboardEvent) => {
-      if (!root?.isConnected) return;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-      if (event.key !== "Tab") return;
-      const items = focusable();
-      const first = items[0];
-      const last = items.at(-1);
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last?.focus();
-      }
-      if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first?.focus();
-      }
-    };
-    document.addEventListener("keydown", keydown);
-    return () => {
-      document.removeEventListener("keydown", keydown);
-      previous?.focus();
-    };
-  }, [embedded, onClose]);
+  useFocusTrap(layer, !embedded, onClose);
   if (embedded)
     return (
       <section

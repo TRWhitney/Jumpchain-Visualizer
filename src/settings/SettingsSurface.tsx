@@ -32,7 +32,7 @@ import {
 } from "./model";
 import { createDefaultTagProfile } from "./tagProfile";
 import { changeLanguage, translate, translationCatalog } from "../localization";
-import { NumberStepper } from "../tracker/NumberStepper";
+import { NumberStepper } from "../ui/NumberStepper";
 
 const categoriesFor = (): { id: SettingsCategory; label: string }[] => {
   return [

@@ -1,9 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { ApplicationSettings } from "./model";
 import {
-  openApplicationDatabase,
+  completeObjectStoreTransaction,
+  requestObjectStore,
   SETTINGS_STORE_NAME,
 } from "../platform/indexedDb";
+import { ClonedValueStore } from "../platform/memoryStore";
+import { isTauriRuntime } from "../platform/runtime";
+
+export { isTauriRuntime } from "../platform/runtime";
 
 export interface SettingsRepository {
   load(): Promise<unknown | null>;
@@ -11,44 +16,35 @@ export interface SettingsRepository {
 }
 
 export class MemorySettingsRepository implements SettingsRepository {
-  constructor(private value: unknown | null = null) {}
+  readonly #store: ClonedValueStore<unknown | null>;
+  constructor(value: unknown | null = null) {
+    this.#store = new ClonedValueStore(value);
+  }
   async load() {
-    return structuredClone(this.value);
+    return this.#store.read();
   }
   async save(settings: ApplicationSettings) {
-    this.value = structuredClone(settings);
+    this.#store.write(settings);
   }
 }
 
 export class IndexedDbSettingsRepository implements SettingsRepository {
   async load() {
-    const database = await openApplicationDatabase();
-    return new Promise<unknown | null>((resolve, reject) => {
-      const transaction = database.transaction(SETTINGS_STORE_NAME, "readonly");
-      const request = transaction
-        .objectStore(SETTINGS_STORE_NAME)
-        .get("settings");
-      request.onerror = () =>
-        reject(request.error ?? new Error("Settings could not be read."));
-      request.onsuccess = () => resolve(request.result ?? null);
-      transaction.oncomplete = () => database.close();
-    });
+    return (
+      (await requestObjectStore(
+        SETTINGS_STORE_NAME,
+        "readonly",
+        (store) => store.get("settings"),
+        (cause) => cause ?? new Error("Settings could not be read."),
+      )) ?? null
+    );
   }
   async save(settings: ApplicationSettings) {
-    const database = await openApplicationDatabase();
-    return new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(
-        SETTINGS_STORE_NAME,
-        "readwrite",
-      );
-      transaction.objectStore(SETTINGS_STORE_NAME).put(settings, "settings");
-      transaction.onerror = () =>
-        reject(transaction.error ?? new Error("Settings could not be saved."));
-      transaction.oncomplete = () => {
-        database.close();
-        resolve();
-      };
-    });
+    return completeObjectStoreTransaction(
+      SETTINGS_STORE_NAME,
+      (store) => store.put(settings, "settings"),
+      (cause) => cause ?? new Error("Settings could not be saved."),
+    );
   }
 }
 
@@ -61,7 +57,6 @@ export class TauriSettingsRepository implements SettingsRepository {
   }
 }
 
-export const isTauriRuntime = () => "__TAURI_INTERNALS__" in window;
 export const createSettingsRepository = (): SettingsRepository =>
   isTauriRuntime()
     ? new TauriSettingsRepository()

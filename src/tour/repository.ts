@@ -1,9 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
-  openApplicationDatabase,
+  completeObjectStoreTransaction,
+  requestObjectStore,
   WELCOME_TOUR_STORE_NAME,
 } from "../platform/indexedDb";
-import { isTauriRuntime } from "../settings/repository";
+import { ClonedValueStore } from "../platform/memoryStore";
+import { isTauriRuntime } from "../platform/runtime";
 import { isWelcomeTourSession, type WelcomeTourSessionV1 } from "./model";
 
 const TOUR_SESSION_KEY = "active";
@@ -51,93 +53,61 @@ export function stageWelcomeTourSession(session: WelcomeTourSessionV1) {
 }
 
 export class MemoryWelcomeTourSessionRepository implements WelcomeTourSessionRepository {
-  constructor(private value: WelcomeTourSessionV1 | null = null) {}
+  readonly #store: ClonedValueStore<WelcomeTourSessionV1 | null>;
+  constructor(value: WelcomeTourSessionV1 | null = null) {
+    this.#store = new ClonedValueStore(value);
+  }
 
   async load() {
-    return this.value ? structuredClone(this.value) : null;
+    return this.#store.read();
   }
 
   async save(session: WelcomeTourSessionV1) {
     const checked = checkedSession(session);
     if (!checked) throw new Error("Welcome tour session is invalid.");
-    this.value = structuredClone(checked);
+    this.#store.write(checked);
   }
 
   async clear() {
-    this.value = null;
+    this.#store.write(null);
   }
 }
 
 export class IndexedDbWelcomeTourSessionRepository implements WelcomeTourSessionRepository {
   async load() {
-    const database = await openApplicationDatabase();
-    return new Promise<WelcomeTourSessionV1 | null>((resolve, reject) => {
-      const transaction = database.transaction(
-        WELCOME_TOUR_STORE_NAME,
-        "readonly",
-      );
-      const request = transaction
-        .objectStore(WELCOME_TOUR_STORE_NAME)
-        .get(TOUR_SESSION_KEY);
-      request.onerror = () =>
-        reject(request.error ?? new Error("Welcome tour could not be read."));
-      request.onsuccess = () => {
-        const stored = checkedSession(request.result);
-        const pending = pendingBrowserSession();
-        resolve(
-          pending && (!stored || pending.revision > stored.revision)
-            ? pending
-            : stored,
-        );
-      };
-      transaction.oncomplete = () => database.close();
-    });
+    const value = await requestObjectStore(
+      WELCOME_TOUR_STORE_NAME,
+      "readonly",
+      (store) => store.get(TOUR_SESSION_KEY),
+      (cause) => cause ?? new Error("Welcome tour could not be read."),
+    );
+    const stored = checkedSession(value);
+    const pending = pendingBrowserSession();
+    return pending && (!stored || pending.revision > stored.revision)
+      ? pending
+      : stored;
   }
 
   async save(session: WelcomeTourSessionV1) {
     const checked = checkedSession(session);
     if (!checked) throw new Error("Welcome tour session is invalid.");
-    const database = await openApplicationDatabase();
-    return new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(
-        WELCOME_TOUR_STORE_NAME,
-        "readwrite",
-      );
-      transaction
-        .objectStore(WELCOME_TOUR_STORE_NAME)
-        .put(checked, TOUR_SESSION_KEY);
-      transaction.onerror = () =>
-        reject(
-          transaction.error ?? new Error("Welcome tour could not be saved."),
-        );
-      transaction.oncomplete = () => {
-        database.close();
-        const pending = pendingBrowserSession();
-        if (pending && pending.revision <= checked.revision)
-          localStorage.removeItem(TOUR_SESSION_PENDING_MIRROR_KEY);
-        resolve();
-      };
-    });
+    await completeObjectStoreTransaction(
+      WELCOME_TOUR_STORE_NAME,
+      (store) => store.put(checked, TOUR_SESSION_KEY),
+      (cause) => cause ?? new Error("Welcome tour could not be saved."),
+    );
+    const pending = pendingBrowserSession();
+    if (pending && pending.revision <= checked.revision)
+      localStorage.removeItem(TOUR_SESSION_PENDING_MIRROR_KEY);
   }
 
   async clear() {
     localStorage.removeItem(TOUR_SESSION_PENDING_MIRROR_KEY);
-    const database = await openApplicationDatabase();
-    return new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(
-        WELCOME_TOUR_STORE_NAME,
-        "readwrite",
-      );
-      transaction.objectStore(WELCOME_TOUR_STORE_NAME).delete(TOUR_SESSION_KEY);
-      transaction.onerror = () =>
-        reject(
-          transaction.error ?? new Error("Welcome tour could not be cleared."),
-        );
-      transaction.oncomplete = () => {
-        database.close();
-        resolve();
-      };
-    });
+    return completeObjectStoreTransaction(
+      WELCOME_TOUR_STORE_NAME,
+      (store) => store.delete(TOUR_SESSION_KEY),
+      (cause) => cause ?? new Error("Welcome tour could not be cleared."),
+    );
   }
 }
 

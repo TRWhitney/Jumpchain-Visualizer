@@ -16,12 +16,10 @@ import {
   type TrackerAction,
   type TrackerState,
 } from "./model";
-import { CanonicalTrackerTagBadge } from "../settings/TagBadge";
+import { TagBadge } from "../ui/TagBadge";
 import { translate } from "../localization";
 
-export function TagBadge({ tag }: { tag: TagDefinition }) {
-  return <CanonicalTrackerTagBadge tag={tag} />;
-}
+export { TagBadge } from "../ui/TagBadge";
 
 const pointAt = (index: number, distance: number) => {
   const angle = (Math.PI * 2 * index) / tagCategories.length - Math.PI / 2;

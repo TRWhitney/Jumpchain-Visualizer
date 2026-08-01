@@ -6,5 +6,6 @@ export * from "./layoutSemantics";
 export * from "./richText";
 export * from "./model";
 export * from "./parseSource";
+export * from "./packageSources";
 export * from "./sha256";
 export * from "./validateFormat1";

@@ -4,3 +4,4 @@ export * from "./fixtures";
 export * from "./steps";
 export * from "./WelcomeTourOverlay";
 export * from "./controller";
+export * from "./useWelcomeTourPersistence";

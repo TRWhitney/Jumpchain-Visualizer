@@ -20,6 +20,7 @@ import {
 import type { BodyModState } from "./bodyMod";
 import type { SupplementAction, SupplementState } from "./supplementState";
 import { translate } from "../localization";
+import { handleRovingTabKeyDown } from "../ui/rovingTabs";
 
 export type SupplementPageId = "manage" | ModuleId;
 
@@ -133,21 +134,14 @@ export function TrackerSupplementWorkspace({
         aria-label={translate(
           "ui.trackerSupplements.ariaLabel.supplementPages",
         )}
-        onKeyDown={(event) => {
-          const index = pages.findIndex((item) => item.id === page);
-          let next = index;
-          if (event.key === "ArrowRight") next = (index + 1) % pages.length;
-          else if (event.key === "ArrowLeft")
-            next = (index - 1 + pages.length) % pages.length;
-          else if (event.key === "Home") next = 0;
-          else if (event.key === "End") next = pages.length - 1;
-          else return;
-          event.preventDefault();
-          onPageChange(pages[next].id);
-          requestAnimationFrame(() =>
-            (event.currentTarget.children[next] as HTMLElement)?.focus(),
-          );
-        }}
+        onKeyDown={(event) =>
+          handleRovingTabKeyDown(
+            event,
+            pages.map((item) => item.id),
+            page,
+            onPageChange,
+          )
+        }
       >
         {pages.map((item) => (
           <button

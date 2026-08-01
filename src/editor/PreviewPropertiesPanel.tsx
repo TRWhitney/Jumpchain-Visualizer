@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { translate } from "../localization";
 import type { TagDefinition } from "../tracker/model";
-import { TagBadge } from "../tracker/TagRadar";
+import { TagBadge } from "../ui/TagBadge";
 import type { JumpPreviewSnapshot } from "./JumpPreview";
 import {
   previewBasicDataGroups,

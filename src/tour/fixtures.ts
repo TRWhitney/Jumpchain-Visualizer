@@ -1,8 +1,11 @@
 import { emptyJumpEntryState } from "../domain";
-import { canonicalizePackage, type CanonicalJumpPackage } from "../markup";
+import {
+  canonicalizePackage,
+  exactHashForSourceFiles,
+  type CanonicalJumpPackage,
+} from "../markup";
 import {
   EDITOR_WORKSPACE_SCHEMA_VERSION,
-  exactHashForFiles,
   type EditorWorkspaceSnapshot,
 } from "../editor";
 import { translate } from "../localization";
@@ -32,7 +35,7 @@ function packageFromFiles(
     id,
     logicalId: id,
     source: "builtin",
-    exactHash: exactHashForFiles(files),
+    exactHash: exactHashForSourceFiles(files),
     files,
   });
 }

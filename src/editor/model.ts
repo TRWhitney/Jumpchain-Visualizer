@@ -1,6 +1,6 @@
 import {
   canonicalizePackage,
-  sha256,
+  exactHashForSourceFiles,
   type CanonicalJumpPackage,
   type PackageDiagnostic,
 } from "../markup";
@@ -91,12 +91,7 @@ const display = (value: { base?: string; variants: readonly unknown[] }) =>
   value.base?.trim() || "Untitled Jump";
 
 export function exactHashForFiles(files: Readonly<Record<string, string>>) {
-  return sha256(
-    Object.entries(files)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([file, source]) => `${file}\0${source}`)
-      .join("\0"),
-  );
+  return exactHashForSourceFiles(files);
 }
 
 export function canonicalWorkspace(

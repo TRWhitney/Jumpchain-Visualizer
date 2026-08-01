@@ -26,7 +26,7 @@ import {
   type PackageDiagnostic,
 } from "../markup";
 import { translate, translateDiagnostic } from "../localization";
-import { NumberStepperButtons } from "../tracker/NumberStepper";
+import { NumberStepperButtons } from "../ui/NumberStepper";
 import { Chevron } from "../ui";
 import { ConditionExpressionInput } from "./ConditionExpressionInput";
 import { SpellingTextArea, SpellingTextInput } from "./SpellingTextControl";

@@ -36,7 +36,7 @@ import {
   type EvaluatedGrantRecord,
 } from "../domain";
 import { platformRandomIndex, type RandomIndexSource } from "../domain";
-import { CanonicalTrackerTagBadge } from "../settings/TagBadge";
+import { CanonicalTrackerTagBadge } from "../ui/TagBadge";
 import type { TagDefinition, TrackerAction, TrackerPreferences } from "./model";
 import { NumberStepper } from "./NumberStepper";
 import { resolveJumpImageSource, type JumpAssetResolver } from "./jumpImages";

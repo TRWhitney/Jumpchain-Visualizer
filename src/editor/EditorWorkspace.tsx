@@ -194,6 +194,8 @@ import {
   type AssetWorkspaceHistoryState,
 } from "./assetHistory";
 import type { WelcomeTourStepId } from "../tour/model";
+import { editorFieldControlKind } from "./fieldControlDispatch";
+import { editableSnippetSelection, sourceLine } from "./sourceSelection";
 
 type SaveState = "saved" | "saving" | "unsaved" | "failed";
 type NavigationTab = "content" | "files";
@@ -895,21 +897,6 @@ function layoutContentOwnerLabel(
   return `${explorerSymbolLabel(ancestor ?? owner)} · ${grantName || translate("ui.editorWorkspace.text.traitGrant")}`;
 }
 
-function sourceLine(source: string, offset: number) {
-  return source.slice(0, offset).split("\n").length;
-}
-
-function editableSnippetSelection(snippet: string) {
-  const field = /:\s*("([^"]*)"|([^\n]*))/.exec(snippet);
-  if (!field || field.index === undefined)
-    return { from: snippet.length, to: snippet.length };
-  const rawValue = field[1];
-  const valueFrom = field.index + field[0].indexOf(rawValue);
-  return rawValue.startsWith('"')
-    ? { from: valueFrom + 1, to: valueFrom + rawValue.length - 1 }
-    : { from: valueFrom, to: valueFrom + rawValue.length };
-}
-
 const addDeclarationKinds = [
   "jump appearance",
   "resource",
@@ -977,6 +964,14 @@ export function EditorWorkspace({
     null,
   );
   const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
+  const workspaceRef = useRef(workspace);
+  useEffect(() => {
+    if (
+      workspace.id !== workspaceRef.current.id ||
+      workspace.revision >= workspaceRef.current.revision
+    )
+      workspaceRef.current = workspace;
+  }, [workspace]);
   const [assetPreviewOverrides, setAssetPreviewOverrides] = useState<
     Record<string, { url: string; sourceBytes: Uint8Array }>
   >({});
@@ -1486,25 +1481,29 @@ export function EditorWorkspace({
     continuous = false,
     preserveRedo = false,
     historyGroup = "continuous",
-    nextTrash = workspace.trash,
-    nextAssetEditorDocuments = workspace.assetEditorDocuments,
+    nextTrash = workspaceRef.current.trash,
+    nextAssetEditorDocuments = workspaceRef.current.assetEditorDocuments,
   ) => {
+    const currentWorkspace = workspaceRef.current;
     if (
-      Object.keys(nextFiles).length === Object.keys(workspace.files).length &&
+      Object.keys(nextFiles).length ===
+        Object.keys(currentWorkspace.files).length &&
       Object.entries(nextFiles).every(
-        ([path, source]) => workspace.files[path] === source,
+        ([path, source]) => currentWorkspace.files[path] === source,
       ) &&
-      Object.keys(nextAssets).length === Object.keys(workspace.assets).length &&
+      Object.keys(nextAssets).length ===
+        Object.keys(currentWorkspace.assets).length &&
       Object.entries(nextAssets).every(
-        ([path, bytes]) => workspace.assets[path] === bytes,
+        ([path, bytes]) => currentWorkspace.assets[path] === bytes,
       ) &&
       Object.keys(nextAssetEditorDocuments).length ===
-        Object.keys(workspace.assetEditorDocuments).length &&
+        Object.keys(currentWorkspace.assetEditorDocuments).length &&
       Object.entries(nextAssetEditorDocuments).every(
-        ([path, document]) => workspace.assetEditorDocuments[path] === document,
+        ([path, document]) =>
+          currentWorkspace.assetEditorDocuments[path] === document,
       ) &&
-      nextTrash.length === workspace.trash.length &&
-      nextTrash.every((entry, index) => workspace.trash[index] === entry)
+      nextTrash.length === currentWorkspace.trash.length &&
+      nextTrash.every((entry, index) => currentWorkspace.trash[index] === entry)
     )
       return false;
     if (!preserveRedo) {
@@ -1544,18 +1543,17 @@ export function EditorWorkspace({
           historyGroupTimer.current = null;
         }, 750);
     }
-    onChange(
-      {
-        ...workspace,
-        files: nextFiles,
-        assets: nextAssets,
-        assetEditorDocuments: nextAssetEditorDocuments,
-        trash: nextTrash,
-        updatedAt: new Date().toISOString(),
-        revision: workspace.revision + 1,
-      },
-      continuous,
-    );
+    const nextWorkspace = {
+      ...currentWorkspace,
+      files: nextFiles,
+      assets: nextAssets,
+      assetEditorDocuments: nextAssetEditorDocuments,
+      trash: nextTrash,
+      updatedAt: new Date().toISOString(),
+      revision: currentWorkspace.revision + 1,
+    };
+    workspaceRef.current = nextWorkspace;
+    onChange(nextWorkspace, continuous);
     return true;
   };
 
@@ -1574,7 +1572,7 @@ export function EditorWorkspace({
   ) =>
     commitWorkspace(
       nextFiles,
-      workspace.assets,
+      workspaceRef.current.assets,
       continuous,
       preserveRedo,
       historyGroup,
@@ -3428,25 +3426,35 @@ export function EditorWorkspace({
                 onUpdate={(symbol, field, value, occurrence = 0) => {
                   const historyGroup = `field:${symbol.file}:${symbol.from}:${field}:${occurrence}`;
                   const handleRenameKey = `${symbol.file}:${symbol.from}:${symbol.kind}`;
+                  const currentFiles = workspaceRef.current.files;
+                  const currentSymbol =
+                    service
+                      .analyze(currentFiles)
+                      .symbols.find(
+                        (candidate) =>
+                          candidate.file === symbol.file &&
+                          candidate.kind === symbol.kind &&
+                          candidate.from === symbol.from,
+                      ) ?? symbol;
                   if (
                     field === "handle" &&
-                    symbol.handle &&
+                    currentSymbol.handle &&
                     !handleReferenceLineageRef.current.has(handleRenameKey)
                   )
                     handleReferenceLineageRef.current.set(
                       handleRenameKey,
-                      symbol.handle,
+                      currentSymbol.handle,
                     );
                   let result = setDocumentField(
-                    workspace.files,
-                    symbol,
+                    currentFiles,
+                    currentSymbol,
                     field,
                     value,
                     occurrence,
                   );
                   if (!result.changed) return;
                   if (
-                    ["choice", "grant"].includes(symbol.kind) &&
+                    ["choice", "grant"].includes(currentSymbol.kind) &&
                     value &&
                     ["form", "companion"].includes(field)
                   ) {
@@ -3454,14 +3462,14 @@ export function EditorWorkspace({
                       field === "form" ? "companion" : "form";
                     const exclusiveRemoval = setDocumentField(
                       result.files,
-                      symbol,
+                      currentSymbol,
                       exclusiveField,
                       "",
                     );
                     if (exclusiveRemoval.changed) result = exclusiveRemoval;
                   }
                   if (
-                    symbol.kind === "image" &&
+                    currentSymbol.kind === "image" &&
                     ["fade-edges", "rounded-corners"].includes(field) &&
                     !value
                   ) {
@@ -3471,7 +3479,7 @@ export function EditorWorkspace({
                         : "rounded-intensity";
                     const intensityRemoval = setDocumentField(
                       result.files,
-                      symbol,
+                      currentSymbol,
                       intensityField,
                       "",
                     );
@@ -3484,14 +3492,14 @@ export function EditorWorkspace({
                       .symbols.find(
                         (candidate) =>
                           candidate.file === symbol.file &&
-                          candidate.kind === symbol.kind &&
+                          candidate.kind === currentSymbol.kind &&
                           candidate.from === symbol.from,
-                      ) ?? symbol;
+                      ) ?? currentSymbol;
                   setSelectedSymbol(nextSymbol);
                   if (field === "handle")
                     setPendingHandleRename({
                       key: handleRenameKey,
-                      symbol,
+                      symbol: currentSymbol,
                       expectedHandle: value,
                       historyGroup,
                       historyIndex: historyIndexRef.current,
@@ -7877,6 +7885,18 @@ function StructuredPanel({
               defaultValue,
               enumValues,
             );
+            const controlKind = editorFieldControlKind({
+              declarationKind: symbol.kind,
+              fieldName,
+              fieldType: definition?.type,
+              hasEnumValues: enumValues.length > 0,
+              enumHasDescriptions: selectControl.options.some(
+                (option) =>
+                  editorOptionPresentation(symbol.kind, fieldName, option)
+                    .description,
+              ),
+              hasReference: Boolean(referenceKind),
+            });
             const measureUnavailable =
               !value && fieldName === "measure"
                 ? symbol.kind === "choice"
@@ -8006,7 +8026,7 @@ function StructuredPanel({
                   </span>
                 )}
                 <span className="editor-schema-field-control">
-                  {definition?.type === "boolean" ? (
+                  {controlKind === "boolean" ? (
                     <>
                       <input
                         type="checkbox"
@@ -8034,10 +8054,7 @@ function StructuredPanel({
                         </small>
                       )}
                     </>
-                  ) : symbol.kind === "image" &&
-                    ["rounded-intensity", "fade-intensity"].includes(
-                      fieldName,
-                    ) ? (
+                  ) : controlKind === "image-effect-range" ? (
                     <span className="editor-image-effect-slider">
                       <input
                         id={`${listId}-range`}
@@ -8067,7 +8084,7 @@ function StructuredPanel({
                         {value || String(definition?.default ?? 25)}%
                       </output>
                     </span>
-                  ) : ["color", "hexColor"].includes(definition?.type ?? "") ? (
+                  ) : controlKind === "color" ? (
                     <ColorFieldControl
                       label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
                       value={value}
@@ -8098,7 +8115,7 @@ function StructuredPanel({
                       }}
                       onBlur={onEndFieldEdit}
                     />
-                  ) : definition?.type === "quotedString:assetRelativePath" ? (
+                  ) : controlKind === "asset" ? (
                     <select
                       autoFocus={fieldName === focusField && occurrence === 0}
                       aria-label={`${controlLabel}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
@@ -8139,7 +8156,7 @@ function StructuredPanel({
                         )}
                       </option>
                     </select>
-                  ) : definition?.type === "imageDimension" ? (
+                  ) : controlKind === "image-dimension" ? (
                     <ImageDimensionFieldControl
                       label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
                       value={value}
@@ -8152,21 +8169,7 @@ function StructuredPanel({
                       }
                       onBlur={onEndFieldEdit}
                     />
-                  ) : enumValues.length > 0 &&
-                    [
-                      "enum",
-                      "imageFit",
-                      "spacing",
-                      "size",
-                      "align",
-                      "justify",
-                      "textAlign",
-                    ].includes(definition?.type ?? "") &&
-                    selectControl.options.some(
-                      (option) =>
-                        editorOptionPresentation(symbol.kind, fieldName, option)
-                          .description,
-                    ) ? (
+                  ) : controlKind === "described-enum" ? (
                     <FreeTextSuggestionCombobox
                       label={controlLabel}
                       value={selectControl.value}
@@ -8216,16 +8219,7 @@ function StructuredPanel({
                       }
                       onBlur={onEndFieldEdit}
                     />
-                  ) : enumValues.length > 0 &&
-                    [
-                      "enum",
-                      "imageFit",
-                      "spacing",
-                      "size",
-                      "align",
-                      "justify",
-                      "textAlign",
-                    ].includes(definition?.type ?? "") ? (
+                  ) : controlKind === "enum" ? (
                     <select
                       autoFocus={fieldName === focusField && occurrence === 0}
                       aria-label={`${controlLabel}${definition.repeatable ? ` ${occurrence + 1}` : ""}`}
@@ -8260,8 +8254,7 @@ function StructuredPanel({
                         </option>
                       ))}
                     </select>
-                  ) : ["description", "content"].includes(fieldName) ||
-                    definition?.type === "richText" ? (
+                  ) : controlKind === "rich-text" ? (
                     <InterpolatedTextArea
                       autoFocus={fieldName === focusField && occurrence === 0}
                       label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
@@ -8276,8 +8269,7 @@ function StructuredPanel({
                       }
                       onBlur={onEndFieldEdit}
                     />
-                  ) : definition?.type === "integer" ||
-                    definition?.type === "number" ? (
+                  ) : controlKind === "number" ? (
                     <span className="number-stepper editor-number-stepper is-fluid">
                       <input
                         autoFocus={fieldName === focusField && occurrence === 0}
@@ -8336,7 +8328,7 @@ function StructuredPanel({
                         }}
                       />
                     </span>
-                  ) : referenceKind ? (
+                  ) : controlKind === "reference" ? (
                     <HandleFieldControl
                       label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
                       value={value}
@@ -8378,8 +8370,7 @@ function StructuredPanel({
                       }
                       onBlur={onEndFieldEdit}
                     />
-                  ) : symbol.kind === "choice-source" &&
-                    fieldName === "group" ? (
+                  ) : controlKind === "choice-source-group" ? (
                     <HandleFieldControl
                       label={controlLabel}
                       value={value}
@@ -8396,7 +8387,7 @@ function StructuredPanel({
                       }
                       onBlur={onEndFieldEdit}
                     />
-                  ) : ["author", "name", "title"].includes(fieldName) ? (
+                  ) : controlKind === "spelling-text" ? (
                     <SpellingTextInput
                       autoFocus={fieldName === focusField && occurrence === 0}
                       aria-label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}

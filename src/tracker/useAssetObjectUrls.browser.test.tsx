@@ -2,8 +2,8 @@ import { StrictMode } from "react";
 import { expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import { waitForRenderedJumpImages } from "./jumpImages";
-import { useAssetObjectUrls } from "./useAssetObjectUrls";
+import { waitForRenderedJumpImages } from "../renderer/jumpImages";
+import { useAssetObjectUrls } from "../ui/useAssetObjectUrls";
 
 const png = Uint8Array.from(
   atob(

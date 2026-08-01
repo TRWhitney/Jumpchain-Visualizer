@@ -97,8 +97,10 @@ function ControlHarness({
     { id: "lyra", name: "Lyra" },
     { id: "aster", name: "Aster" },
   ],
+  actionLog,
 }: {
   companions?: readonly { id: string; name: string }[];
+  actionLog?: TrackerAction[];
 }) {
   const fixture = createDenseTrackerFixture();
   const [state, dispatch] = useReducer(
@@ -141,6 +143,10 @@ function ControlHarness({
     },
     jumperName: "Tester",
   }).runtime.entry.actors.jumper;
+  const loggedDispatch = (action: TrackerAction) => {
+    actionLog?.push(action);
+    dispatch(action);
+  };
   return (
     <JumpRenderer
       packageItem={controlPackage}
@@ -152,7 +158,7 @@ function ControlHarness({
       tags={fixture.tags}
       companions={companions}
       gauntletActive={false}
-      dispatch={dispatch}
+      dispatch={loggedDispatch}
     />
   );
 }
@@ -548,6 +554,37 @@ test("choice and supporting Input placeholders render through the shared rendere
   await expect.element(primary).toBeVisible();
   await page.getByRole("button", { name: "Clear" }).last().click();
   await expect.element(primary).toHaveValue("");
+});
+
+test("renderer controls preserve mutation callback ordering and payloads", async () => {
+  const actions: TrackerAction[] = [];
+  render(<ControlHarness actionLog={actions} />);
+
+  await userEvent.fill(page.getByPlaceholder("Primary response"), "Answer");
+  await userEvent.fill(page.getByPlaceholder("Follow-up response"), "Detail");
+  const promptCard = page
+    .getByPlaceholder("Primary response")
+    .element()
+    .closest(".default-choice-card");
+  const clear = promptCard?.querySelector<HTMLButtonElement>(
+    "button.secondary-control",
+  );
+  expect(clear).toBeDefined();
+  await userEvent.click(clear!);
+
+  expect(
+    actions.map((action) =>
+      action.type === "set-choice"
+        ? [action.type, action.choiceHandle, action.value]
+        : action.type === "set-input"
+          ? [action.type, action.choiceHandle, action.inputHandle, action.value]
+          : [action.type],
+    ),
+  ).toEqual([
+    ["set-choice", "prompt", "Answer"],
+    ["set-input", "prompt", "follow_up", "Detail"],
+    ["set-choice", "prompt", null],
+  ]);
 });
 
 test("Text, Integer, and Select Input answers drive conditions and literal interpolation", async () => {

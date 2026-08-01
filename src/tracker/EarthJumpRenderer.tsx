@@ -1,7 +1,7 @@
 import type { Dispatch } from "react";
 import type { EvaluatedActorJump } from "../domain";
 import { EARTH_ENTRY_ID, type TrackerAction, type TrackerState } from "./model";
-import { NumberStepper } from "./NumberStepper";
+import { NumberStepper } from "../ui/NumberStepper";
 import { translate } from "../localization";
 
 export const EARTH_EXPLANATION =

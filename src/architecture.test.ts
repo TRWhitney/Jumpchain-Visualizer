@@ -60,20 +60,26 @@ describe("module boundaries", () => {
       const source = readFileSync(importer, "utf8");
       for (const match of source.matchAll(/\bfrom\s+["']([^"']+)["']/g)) {
         const target = resolveImport(importer, match[1]);
-        if (!target || extname(target) !== ".tsx") continue;
+        if (!target) continue;
         const targetModule = moduleName(target);
         const targetRelative = normalize(relative(sourceRoot, target))
           .split(sep)
           .join("/");
-        const importsFeaturePresentation = featureModules.has(targetModule);
+        const importsFeatureImplementation = featureModules.has(targetModule);
+        const importsFeaturePresentation =
+          importsFeatureImplementation && extname(target) === ".tsx";
         const crossesFeatureBoundary =
           featureModules.has(importerModule) &&
           importsFeaturePresentation &&
           importerModule !== targetModule;
-        const coreImportsFeaturePresentation =
-          coreModules.has(importerModule) && importsFeaturePresentation;
+        const coreImportsFeatureImplementation =
+          coreModules.has(importerModule) && importsFeatureImplementation;
+        const featureImportsCompositionRoot =
+          featureModules.has(importerModule) && targetModule === "app";
         if (
-          (crossesFeatureBoundary || coreImportsFeaturePresentation) &&
+          (crossesFeatureBoundary ||
+            coreImportsFeatureImplementation ||
+            featureImportsCompositionRoot) &&
           !integrationAdapters.has(targetRelative)
         )
           violations.push(
@@ -81,6 +87,29 @@ describe("module boundaries", () => {
           );
       }
     }
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps application composition out of shared and feature modules", () => {
+    const violations = sourceFiles(sourceRoot)
+      .filter(
+        (importer) =>
+          moduleName(importer) !== "app" &&
+          relative(sourceRoot, importer) !== "main.tsx",
+      )
+      .flatMap((importer) => {
+        const source = readFileSync(importer, "utf8");
+        return [...source.matchAll(/\bfrom\s+["']([^"']+)["']/g)].flatMap(
+          (match) => {
+            const target = resolveImport(importer, match[1]);
+            return target && moduleName(target) === "app"
+              ? [
+                  `${relative(sourceRoot, importer)} -> ${relative(sourceRoot, target)}`,
+                ]
+              : [];
+          },
+        );
+      });
     expect(violations).toEqual([]);
   });
 });

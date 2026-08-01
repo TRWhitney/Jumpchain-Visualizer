@@ -113,31 +113,35 @@ Desktop adapters                 Browser adapters
   native dialogs                   file inputs and downloads
   app-data filesystem              browser archive bridge
 </code></pre>
-      <p>Contract tests run against every adapter. Environment checks do not spread through feature code; only the composition root knows which runtime is active.</p>
+      <p>Contract tests run against every adapter. Runtime detection is owned by <code>platform/runtime.ts</code>; repositories consult that boundary instead of repeating browser-global checks. The same platform layer owns typed IndexedDB request/transaction completion, one-shot worker request cleanup, and clone-backed memory stores, so feature repositories retain their existing contracts without duplicating lifecycle code.</p>
 
       <h2>Module Boundaries</h2>
       <pre><code class="language-text">src/
-  app/           routes, startup, composition, workspace registry
+  app/           routes, startup, composition, history and persistence controllers
   domain/        chains, actors, choices, costs, grants, tags, commands
-  markup/        Lezer integration, AST, schema, validator, formatter
-  renderer/      layouts, controls, rich content, preview sandbox
-  editor/        project navigation, structured/source editing, diagnostics
-  tracker/       chain workspace, history views, inventory, companions
-  supplements/   application-owned module contracts and datasets
+  markup/        Lezer integration, format schema, AST, diagnostics, formatter
+  renderer/      neutral rich-content projection and Jump image lifecycle
+  editor/        project navigation, field dispatch, layout/source/raster editing
+  tracker/       canonical Jump/layout presentation and Tracker state adapters
+  supplements/   application-owned module contracts, shared tools, and datasets
   localization/  validated bundled language packs, i18next catalogue, locale helpers
-  platform/      TypeScript ports and browser adapters
-  ui/            accessible unstyled primitives and application styling
+  platform/      runtime, IndexedDB, worker, memory, and browser adapters
+  ui/            markup-neutral controls, focus, roving tabs, and styling
 
 crates/
   archive-core/  bounded ZIP inspection, paths, hashes; native and WASM
   persistence/   SQLite repositories and migrations
 
-src-tauri/
-  commands/      narrow capability-checked desktop entry points
-  capabilities/  explicit Tauri permissions
-  application/   window lifecycle and adapter composition
+src-tauri/src/
+  command.rs            shared command state and structured errors
+  validation.rs         bounded IDs, payloads, and safe filenames
+  export_commands.rs    diagnostic and package export entry points
+  platform_commands.rs  bounded platform-specific integrations
+  lib.rs                persistence/workspace commands and handler composition
+
+src-tauri/capabilities/ explicit Tauri permissions
 </code></pre>
-      <p>Dependencies point inward: UI and adapters depend on application/domain contracts; domain code never imports React, Tauri, SQLite, browser globals, or filesystem APIs.</p>
+      <p>Dependencies point inward: UI and adapters depend on application/domain contracts; domain code never imports React, Tauri, SQLite, browser globals, or filesystem APIs. An executable import-boundary test prevents core, platform, and shared UI modules from importing feature presentation, prevents sibling features from importing one another’s React surfaces except for the documented preview adapters, and keeps <code>app</code> as the composition root.</p>
       <p>Localization initializes English before React mounts, then applies the validated persisted language before the application surface is shown. Bundled JSON packs are untrusted text resources subject to the schema, bounds, known-key, and token-parity policy in <a href="localization.html">Localization Resources</a>.</p>
 
       <h2>Domain State and Commands</h2>
@@ -165,7 +169,7 @@ src-tauri/
         <li>The same renderer executes in Editor preview and Chain Tracker; preview swaps persistent state for a disposable sandbox.</li>
         <li>Renderable text is tokenized into an allowlisted model. Imported text never reaches <code>dangerouslySetInnerHTML</code>, raw CSS, or executable browser content.</li>
       </ul>
-      <p><strong>Current implementation:</strong> generated first-run <code>.jdef</code> sources pass through this complete boundary into immutable exact-hash package models. The Chain Tracker uses the same layout and control renderer contract intended for the Editor; the Editor supplies disposable preview state when its UI is implemented.</p>
+      <p><strong>Current implementation:</strong> generated first-run <code>.jdef</code> sources pass through this complete boundary into immutable exact-hash package models. Chain Tracker and Editor preview mount the same canonical Jump/layout presentation with different state adapters. Neutral rich-content projection and image resolution, decode waiting, and packaged-asset readiness live in <code>renderer</code>; Tracker-specific selection, roll, inventory, and Settings adapters remain outside that boundary. The Editor supplies a disposable preview state and never persists preview selections.</p>
 
       <h3>Evaluated Gauntlet Boundary</h3>
       <p>Gauntlet behavior is a derived entry condition shared by the renderer, resource ledger, Chain Tracker, and supplements. Consumers never infer it from a package name, tag, displayed balance, or the presence of a particular drawback.</p>

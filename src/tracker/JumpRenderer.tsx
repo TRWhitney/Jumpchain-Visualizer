@@ -29,8 +29,6 @@ import {
 } from "../markup";
 import {
   choiceControlRenderContext,
-  renderRenderable,
-  renderRichTextRenderable,
   type ActorEntryState,
   type EvaluatedActorJump,
   type EvaluatedGrantRecord,
@@ -38,8 +36,15 @@ import {
 import { platformRandomIndex, type RandomIndexSource } from "../domain";
 import { CanonicalTrackerTagBadge } from "../ui/TagBadge";
 import type { TagDefinition, TrackerAction, TrackerPreferences } from "./model";
-import { NumberStepper } from "./NumberStepper";
-import { resolveJumpImageSource, type JumpAssetResolver } from "./jumpImages";
+import { NumberStepper } from "../ui/NumberStepper";
+import {
+  renderRenderable,
+  renderRichTextRenderable,
+} from "../renderer/presentation";
+import {
+  resolveJumpImageSource,
+  type JumpAssetResolver,
+} from "../renderer/jumpImages";
 import { sourceOptionGroupName } from "./sourceOptionGroup";
 import { translate } from "../localization";
 import { useOptionalSettings } from "../settings/SettingsContext";

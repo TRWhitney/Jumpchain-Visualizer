@@ -6,7 +6,7 @@ import {
   type CanonicalJumpPackage,
   type PackageDiagnostic,
 } from "../markup";
-import type { PackageSizeLimits } from "../settings/model";
+import type { PackageSizeLimits } from "./packageLimits";
 import { validateSvgBytes } from "./svgAsset";
 import { jpegTechnicalMetadata } from "./jpegTechnicalMetadata";
 import {

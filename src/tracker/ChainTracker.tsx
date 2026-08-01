@@ -7,8 +7,8 @@ import {
   useState,
   type CSSProperties,
   type Dispatch,
-  type Ref,
   type ReactNode,
+  type Ref,
 } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -53,8 +53,9 @@ import {
   jumpPackageImageSources,
   preloadJumpImages,
   waitForRenderedJumpImages,
-} from "./jumpImages";
-import { useAssetObjectUrls } from "./useAssetObjectUrls";
+} from "../renderer/jumpImages";
+import { useAssetObjectUrls } from "../ui/useAssetObjectUrls";
+import { FocusModal } from "./FocusModal";
 import {
   aggregateInventoryRecords,
   filteredInventory,
@@ -223,90 +224,6 @@ function HistoricalSelect({
         })}
       </select>
     </label>
-  );
-}
-
-function FocusModal({
-  label,
-  className,
-  onClose,
-  applicationOverlay = false,
-  inactive = false,
-  children,
-}: {
-  label: string;
-  className: string;
-  onClose: () => void;
-  applicationOverlay?: boolean;
-  inactive?: boolean;
-  children: ReactNode;
-}) {
-  const root = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    const focusable = () => [
-      ...(root.current?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [tabindex="0"]',
-      ) ?? []),
-    ];
-    focusable()[0]?.focus();
-    const keydown = (event: KeyboardEvent) => {
-      const dialogs = [
-        ...document.querySelectorAll<HTMLElement>(
-          '[role="dialog"][aria-modal="true"]',
-        ),
-      ];
-      if (dialogs.at(-1) !== root.current?.querySelector('[role="dialog"]'))
-        return;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-      if (event.key !== "Tab") return;
-      const items = focusable();
-      if (!items.length) return;
-      const first = items[0];
-      const last = items.at(-1);
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last?.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener("keydown", keydown);
-    return () => {
-      document.removeEventListener("keydown", keydown);
-      previous?.focus();
-    };
-  }, [onClose]);
-  const dialogClass =
-    className === "record-detail-layer"
-      ? "record-detail-dialog"
-      : className === "companion-profile-layer"
-        ? "companion-profile-dialog"
-        : "tracker-impact-dialog";
-  return (
-    <div
-      ref={root}
-      className={`${className}${applicationOverlay ? " app-settings-layer is-overlay tracker-dialog-application-layer" : ""}`}
-      inert={inactive || undefined}
-      aria-hidden={inactive || undefined}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <section
-        className={dialogClass}
-        role="dialog"
-        aria-modal="true"
-        aria-label={label}
-      >
-        {children}
-      </section>
-    </div>
   );
 }
 

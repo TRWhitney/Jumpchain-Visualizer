@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { generatedPackageById } from "../fixtures/generatedPackages";
-import { jumpPackageImageSources, resolveJumpImageSource } from "./jumpImages";
+import {
+  jumpPackageImageSources,
+  resolveJumpImageSource,
+} from "../renderer/jumpImages";
 
 describe("Jump image preparation", () => {
   it("collects and deduplicates package-relative section, choice, and grant images", () => {

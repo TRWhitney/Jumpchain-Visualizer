@@ -99,6 +99,24 @@ function firstStepWithoutSupplementPoints() {
 }
 
 describe("Chain Tracker aggregate", () => {
+  it("returns the identical state object for guarded no-op actions", () => {
+    const state = createDenseTrackerFixture();
+    expect(trackerReducer(state, { type: "undo" })).toBe(state);
+    expect(trackerReducer(state, { type: "dismiss-undo" })).toBe(state);
+    expect(
+      trackerReducer(state, {
+        type: "select-entry",
+        entryId: "missing-entry",
+      }),
+    ).toBe(state);
+    expect(
+      trackerReducer(state, {
+        type: "request-remove",
+        entryId: EARTH_ENTRY_ID,
+      }),
+    ).toBe(state);
+  });
+
   it("closes transient tracker dialogs without clearing their selected records", () => {
     const fixture = createDenseTrackerFixture();
     const withDialogs = {

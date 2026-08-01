@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
   type FocusEvent as ReactFocusEvent,
-  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
@@ -39,7 +38,6 @@ import {
 import { RasterRenderClient } from "./rasterRenderClient";
 import { extractSafeImageMetadata } from "./safeImageMetadata";
 import { translate } from "../localization";
-import { NumberStepperButtons } from "../ui/NumberStepper";
 import { useContextMenu } from "../ui";
 import {
   keybindingDisplay,
@@ -47,6 +45,8 @@ import {
   type KeybindingAction,
   type KeybindingChord,
 } from "../settings/model";
+import { RangeField, RasterNumberInput } from "./RasterFieldControls";
+import { transformStrokes, translateStrokes } from "./rasterGeometry";
 
 type RasterTool =
   | "select"
@@ -130,167 +130,6 @@ function useImageSource(bytes: Uint8Array, mime: string) {
     };
   }, [bytes, mime]);
   return image;
-}
-
-function RasterNumberInput({
-  label,
-  value,
-  minimum,
-  maximum,
-  step = 1,
-  autoFocus,
-  onChange,
-  onBlur,
-  onKeyDown,
-}: {
-  label: string;
-  value: number;
-  minimum?: number;
-  maximum?: number;
-  step?: number;
-  autoFocus?: boolean;
-  onChange: (value: number) => void;
-  onBlur?: () => void;
-  onKeyDown?: (event: ReactKeyboardEvent<HTMLInputElement>) => void;
-}) {
-  const setBounded = (next: number) => {
-    const bounded = Math.max(
-      minimum ?? -Infinity,
-      Math.min(maximum ?? Infinity, next),
-    );
-    onChange(Math.round(bounded * 1_000_000) / 1_000_000);
-  };
-  const stepValue = (direction: -1 | 1) => {
-    setBounded(value + step * direction);
-    if (onBlur) window.setTimeout(onBlur, 0);
-  };
-  return (
-    <span className="number-stepper editor-number-stepper asset-raster-number-stepper is-fluid">
-      <input
-        aria-label={label}
-        type="number"
-        min={minimum}
-        max={maximum}
-        step={step}
-        value={value}
-        autoFocus={autoFocus}
-        onChange={(event) => setBounded(Number(event.target.value))}
-        onBlur={onBlur}
-        onKeyDown={onKeyDown}
-      />
-      <NumberStepperButtons
-        label={label}
-        increaseDisabled={maximum !== undefined && value >= maximum}
-        decreaseDisabled={minimum !== undefined && value <= minimum}
-        onIncrease={() => stepValue(1)}
-        onDecrease={() => stepValue(-1)}
-      />
-    </span>
-  );
-}
-
-function RangeField({
-  label,
-  value,
-  minimum,
-  maximum,
-  step = 1,
-  suffix = "",
-  resetValue = 0,
-  onChange,
-  onCommit,
-}: {
-  label: string;
-  value: number;
-  minimum: number;
-  maximum: number;
-  step?: number;
-  suffix?: string;
-  resetValue?: number;
-  onChange: (value: number) => void;
-  onCommit?: () => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const setBounded = (next: number) =>
-    onChange(Math.max(minimum, Math.min(maximum, next)));
-  const finish = () => {
-    setEditing(false);
-    onCommit?.();
-  };
-  return (
-    <div className="asset-raster-range-field">
-      <span>
-        <span>{label}</span>
-        <span className="asset-raster-range-actions">
-          {editing ? (
-            <RasterNumberInput
-              label={translate("ui.editorWorkspace.asset.editor.fieldValue", {
-                field: label,
-              })}
-              minimum={minimum}
-              maximum={maximum}
-              step={step}
-              value={value}
-              autoFocus
-              onChange={setBounded}
-              onBlur={finish}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  event.currentTarget.blur();
-                } else if (event.key === "Escape") {
-                  event.preventDefault();
-                  setEditing(false);
-                }
-              }}
-            />
-          ) : (
-            <button
-              type="button"
-              className="asset-raster-range-value"
-              aria-label={translate(
-                "ui.editorWorkspace.asset.editor.editFieldValue",
-                { field: label },
-              )}
-              onClick={() => setEditing(true)}
-            >
-              {value}
-              {suffix}
-            </button>
-          )}
-          <button
-            type="button"
-            className="asset-raster-range-reset"
-            aria-label={translate(
-              "ui.editorWorkspace.asset.editor.resetField",
-              { field: label },
-            )}
-            title={translate("ui.editorWorkspace.asset.editor.resetField", {
-              field: label,
-            })}
-            disabled={value === resetValue}
-            onClick={() => {
-              setBounded(resetValue);
-              window.setTimeout(() => onCommit?.(), 0);
-            }}
-          >
-            ↺
-          </button>
-        </span>
-      </span>
-      <input
-        aria-label={label}
-        type="range"
-        min={minimum}
-        max={maximum}
-        step={step}
-        value={value}
-        onChange={(event) => setBounded(Number(event.target.value))}
-        onPointerUp={() => onCommit?.()}
-        onKeyUp={() => onCommit?.()}
-      />
-    </div>
-  );
 }
 
 function LayerNode({
@@ -560,54 +399,6 @@ function ErasureLines({
     />
   ));
 }
-
-const translateStrokes = (
-  strokes: RasterStroke[] | undefined,
-  x: number,
-  y: number,
-) =>
-  strokes?.map((stroke) => ({
-    ...stroke,
-    points: stroke.points.map((point) => ({
-      x: point.x + x,
-      y: point.y + y,
-    })),
-  }));
-
-const transformStrokes = (
-  strokes: RasterStroke[] | undefined,
-  originX: number,
-  originY: number,
-  previousRotation: number,
-  x: number,
-  y: number,
-  scaleX: number,
-  scaleY: number,
-  rotation: number,
-) => {
-  const previousRadians = (-previousRotation * Math.PI) / 180;
-  const previousCosine = Math.cos(previousRadians);
-  const previousSine = Math.sin(previousRadians);
-  const radians = (rotation * Math.PI) / 180;
-  const cosine = Math.cos(radians);
-  const sine = Math.sin(radians);
-  return strokes?.map((stroke) => ({
-    ...stroke,
-    size: stroke.size * Math.sqrt(Math.abs(scaleX * scaleY)),
-    points: stroke.points.map((point) => {
-      const translatedX = point.x - originX;
-      const translatedY = point.y - originY;
-      const localX = translatedX * previousCosine - translatedY * previousSine;
-      const localY = translatedX * previousSine + translatedY * previousCosine;
-      const scaledX = localX * scaleX;
-      const scaledY = localY * scaleY;
-      return {
-        x: x + scaledX * cosine - scaledY * sine,
-        y: y + scaledX * sine + scaledY * cosine,
-      };
-    }),
-  }));
-};
 
 export function RasterSourceEditor({
   path,

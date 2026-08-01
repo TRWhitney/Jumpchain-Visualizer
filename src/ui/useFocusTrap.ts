@@ -1,18 +1,29 @@
 import { useEffect, type RefObject } from "react";
-import { focusableElements } from "./focus";
+import { elementsMatching, focusableElements } from "./focus";
+
+export type FocusTrapOptions = {
+  selector?: string;
+  isActive?: (root: HTMLElement) => boolean;
+};
 
 export function useFocusTrap(
   root: RefObject<HTMLElement | null>,
   enabled: boolean,
   onEscape: () => void,
+  options: FocusTrapOptions = {},
 ) {
+  const { isActive, selector } = options;
   useEffect(() => {
     if (!enabled) return;
     const previous = document.activeElement as HTMLElement | null;
-    const focusable = () => focusableElements(root.current);
+    const focusable = () =>
+      selector
+        ? elementsMatching(root.current, selector)
+        : focusableElements(root.current);
     focusable()[0]?.focus();
     const keydown = (event: globalThis.KeyboardEvent) => {
       if (!root.current?.isConnected) return;
+      if (isActive && !isActive(root.current)) return;
       if (event.key === "Escape") {
         event.preventDefault();
         onEscape();
@@ -36,5 +47,5 @@ export function useFocusTrap(
       document.removeEventListener("keydown", keydown);
       previous?.focus();
     };
-  }, [enabled, onEscape, root]);
+  }, [enabled, isActive, onEscape, root, selector]);
 }

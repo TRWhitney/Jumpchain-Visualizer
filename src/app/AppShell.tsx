@@ -871,17 +871,43 @@ function AppShellContent() {
       const normalized = normalizeChainName(name);
       if (!normalized) return false;
       const id = `ch-new-${chainRegistry.nextSerial}`;
+      const nextState = createBlankTrackerFixture(normalized);
+      const nextStates = {
+        ...chainStatesRef.current,
+        [id]: nextState,
+      };
       setLastActiveChainId(id);
       chainRegistryDispatch({ type: "create", id, name: normalized });
-      setChainStates((current) => ({
-        ...current,
-        [id]: createBlankTrackerFixture(normalized),
-      }));
+      chainStatesRef.current = nextStates;
+      setChainStates(nextStates);
+      void chainInitializationRef.current
+        .then(() =>
+          chainRepository.save(
+            aggregateFromTracker(id, nextState, {
+              description: "A new chain ready for its first Jump.",
+              lastOpenedSequence: chainRegistry.nextSequence,
+              lastOpenedLabel: "Opened just now",
+              starred: false,
+            }),
+          ),
+        )
+        .then(() => setChainSaveError(null))
+        .catch(() =>
+          setChainSaveError(
+            translate("errors.AUTOSAVE_FAILED_MEMORY_RETAINED"),
+          ),
+        );
       logger.emit("chain.created", { attributes: { jumpCount: 0 } });
       navigate(`/chain/${id}`);
       return true;
     },
-    [chainRegistry.nextSerial, logger, navigate],
+    [
+      chainRegistry.nextSequence,
+      chainRegistry.nextSerial,
+      chainRepository,
+      logger,
+      navigate,
+    ],
   );
 
   const setChainStarred = useCallback(

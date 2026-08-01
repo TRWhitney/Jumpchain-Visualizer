@@ -75,6 +75,38 @@ const one = (
   });
 
 describe("Format 1 chain evaluation", () => {
+  it("preserves stable entry, actor, choice, and aggregate ordering", () => {
+    const order = ["threshold", "confluence", "trial"];
+    const result = evaluateChain({
+      order,
+      packageIdByEntry: {
+        threshold: "threshold-roads",
+        confluence: "confluence-engine",
+        trial: "last-trial",
+      },
+      packages,
+      jumpState: Object.fromEntries(
+        order.map((entryId) => [entryId, emptyJumpEntryState()]),
+      ),
+      jumperName: "Morgan",
+    });
+
+    expect(Object.keys(result.runtime)).toEqual(order);
+    expect(Object.keys(result.runtime.threshold.actors)).toEqual(["jumper"]);
+    expect(Object.keys(result.runtime.threshold.actors.jumper.choices)).toEqual(
+      packages["threshold-roads"].choices.map((choice) => choice.handle),
+    );
+    expect(result.records.map((record) => record.id)).toEqual([
+      ...new Set(result.records.map((record) => record.id)),
+    ]);
+    expect(result.forms.map((form) => form.id)).toEqual([
+      ...new Set(result.forms.map((form) => form.id)),
+    ]);
+    expect(result.companions.map((companion) => companion.actorId)).toEqual([
+      ...new Set(result.companions.map((companion) => companion.actorId)),
+    ]);
+  });
+
   it("keeps interpolated author answers literal inside rich text", () => {
     const blocks = renderRichTextRenderable(
       {

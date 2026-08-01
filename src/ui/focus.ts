@@ -4,3 +4,7 @@ export const focusableSelector =
 export function focusableElements(root: ParentNode | null) {
   return [...(root?.querySelectorAll<HTMLElement>(focusableSelector) ?? [])];
 }
+
+export function elementsMatching(root: ParentNode | null, selector: string) {
+  return [...(root?.querySelectorAll<HTMLElement>(selector) ?? [])];
+}

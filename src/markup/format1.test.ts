@@ -1632,6 +1632,61 @@ section-layout
     ).toEqual(["text-align", "text-size", "text-color"]);
   });
 
+  it("canonicalizes independent image effects and validates fade intensity", () => {
+    const source = `jump
+  format: 1
+  name: "Image effects"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+
+  image
+    handle: hero
+    src: "hero.png"
+    alt: "A hero"
+    rounded-corners: true
+    rounded-intensity: 80
+    fade-edges: true
+    fade-intensity: 60
+`;
+    const packageItem = canonicalizePackage(
+      {
+        id: "image-effects",
+        exactHash: "e".repeat(64),
+        files: { "jump.jdef": source },
+      },
+      { profile: "editor", assetPaths: ["hero.png"] },
+    );
+
+    expect(packageItem.sections[0].images[0].effects).toEqual({
+      roundedCorners: true,
+      roundedIntensity: 80,
+      fadeEdges: true,
+      fadeIntensity: 60,
+    });
+    expect(packageItem.diagnostics).toEqual([]);
+
+    const invalid = canonicalizePackage({
+      id: "invalid-image-effects",
+      exactHash: "f".repeat(64),
+      files: {
+        "jump.jdef": source.replace(
+          "fade-intensity: 60",
+          "fade-intensity: 101",
+        ),
+      },
+    });
+    expect(invalid.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "schema.value.bounds",
+        target: expect.objectContaining({ field: "fade-intensity" }),
+      }),
+    );
+  });
+
   it("allows inner alignment but rejects text styling on control and roll slots", () => {
     const packageItem = canonicalizePackage({
       id: "slot-text-presentation",

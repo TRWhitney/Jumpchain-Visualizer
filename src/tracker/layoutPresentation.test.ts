@@ -160,6 +160,7 @@ describe("layout presentation styles", () => {
     ).toEqual({
       padding: ".5rem",
       backgroundColor: "#123456",
+      "--jump-layout-background-color": "#123456",
       alignSelf: "end",
       textAlign: "center",
       color: "#8065a8",
@@ -187,6 +188,7 @@ describe("layout presentation styles", () => {
       ).toEqual({
         padding: ".5rem",
         backgroundColor: "#123456",
+        "--jump-layout-background-color": "#123456",
         display: "flex",
         justifyContent: "center",
         alignSelf: undefined,
@@ -385,6 +387,7 @@ describe("layout presentation styles", () => {
     ).toEqual({
       padding: ".5rem",
       backgroundColor: "#123456",
+      "--jump-layout-background-color": "#123456",
       alignSelf: undefined,
       justifySelf: undefined,
     });

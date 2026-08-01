@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { assetRelativePath } from "../markup/assetPath";
 
 type AssetBytes = Uint8Array | readonly number[];
@@ -15,10 +15,15 @@ function assetMimeType(path: string) {
 }
 
 function objectUrl(path: string, bytes: AssetBytes) {
-  const copy = Uint8Array.from(bytes);
-  return URL.createObjectURL(
-    new Blob([copy.buffer], { type: assetMimeType(path) }),
-  );
+  const copy =
+    bytes instanceof Uint8Array && bytes.buffer instanceof ArrayBuffer
+      ? new Uint8Array<ArrayBuffer>(
+          bytes.buffer,
+          bytes.byteOffset,
+          bytes.byteLength,
+        )
+      : Uint8Array.from(bytes);
+  return URL.createObjectURL(new Blob([copy], { type: assetMimeType(path) }));
 }
 
 export function useAssetObjectUrl(path: string, bytes: AssetBytes) {
@@ -42,21 +47,39 @@ export function useAssetObjectUrls(
   rootRelative = false,
 ) {
   const [urls, setUrls] = useState<Record<string, string>>({});
+  const cachedUrls = useRef(
+    new Map<string, { bytes: AssetBytes; url: string }>(),
+  );
   useEffect(() => {
     let active = true;
+    const previous = cachedUrls.current;
+    const next = new Map<string, { bytes: AssetBytes; url: string }>();
     const nextUrls = Object.fromEntries(
-      Object.entries(assets).map(([path, bytes]) => [
-        rootRelative ? assetRelativePath(path) : path,
-        objectUrl(path, bytes),
-      ]),
+      Object.entries(assets).map(([path, bytes]) => {
+        const cached = previous.get(path);
+        const url =
+          cached?.bytes === bytes ? cached.url : objectUrl(path, bytes);
+        next.set(path, { bytes, url });
+        return [rootRelative ? assetRelativePath(path) : path, url];
+      }),
     );
+    for (const [path, cached] of previous)
+      if (next.get(path)?.url !== cached.url) URL.revokeObjectURL(cached.url);
+    cachedUrls.current = next;
     queueMicrotask(() => {
       if (active) setUrls(nextUrls);
     });
     return () => {
       active = false;
-      for (const url of Object.values(nextUrls)) URL.revokeObjectURL(url);
     };
   }, [assets, rootRelative]);
+  useEffect(
+    () => () => {
+      for (const cached of cachedUrls.current.values())
+        URL.revokeObjectURL(cached.url);
+      cachedUrls.current = new Map();
+    },
+    [],
+  );
   return urls;
 }

@@ -609,17 +609,20 @@ function TrashExplorerEntries({
 function AssetImage({
   path,
   bytes,
+  previewSource,
   className,
 }: {
   path: string;
   bytes: Uint8Array;
+  previewSource?: string;
   className: string;
 }) {
   const source = useAssetObjectUrl(path, bytes);
-  return source ? (
+  const displayedSource = previewSource || source;
+  return displayedSource ? (
     <img
       className={className}
-      src={source}
+      src={displayedSource}
       alt={translate("ui.editorWorkspace.asset.selectedAssetAlt", {
         asset: assetRelativePath(path),
       })}
@@ -631,9 +634,28 @@ function AssetImage({
   );
 }
 
+const assetMetadataCache = new WeakMap<
+  Uint8Array,
+  Map<string, PackageAssetMetadata>
+>();
+
+function rememberAssetMetadata(
+  path: string,
+  bytes: Uint8Array,
+  metadata: PackageAssetMetadata,
+) {
+  const byPath = assetMetadataCache.get(bytes) ?? new Map();
+  byPath.set(path, metadata);
+  assetMetadataCache.set(bytes, byPath);
+}
+
 function assetMetadata(path: string, bytes: Uint8Array) {
+  const cached = assetMetadataCache.get(bytes)?.get(path);
+  if (cached) return cached;
   try {
-    return inspectPackageAsset(path, bytes);
+    const metadata = inspectPackageAsset(path, bytes);
+    rememberAssetMetadata(path, bytes, metadata);
+    return metadata;
   } catch {
     return undefined;
   }
@@ -955,6 +977,11 @@ export function EditorWorkspace({
     null,
   );
   const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
+  const [assetPreviewOverrides, setAssetPreviewOverrides] = useState<
+    Record<string, { url: string; sourceBytes: Uint8Array }>
+  >({});
+  const assetPreviewOverridesRef = useRef(assetPreviewOverrides);
+  const workspaceAssetsRef = useRef(workspace.assets);
   const [selectedTrashId, setSelectedTrashId] = useState<string | null>(null);
   const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const [collapseOptionalSectionsInitially] = useState(
@@ -1072,6 +1099,59 @@ export function EditorWorkspace({
     () => service.analyze(workspace.files).packageItem,
   );
   const sourceRef = useRef<SourceCodeEditorHandle>(null);
+  useEffect(() => {
+    workspaceAssetsRef.current = workspace.assets;
+  }, [workspace.assets]);
+  const publishAssetPreview = useCallback(
+    (path: string, preview: Blob | null, sourceBytes: Uint8Array) => {
+      setAssetPreviewOverrides((current) => {
+        if (preview && workspaceAssetsRef.current[path] !== sourceBytes)
+          return current;
+        if (current[path]) URL.revokeObjectURL(current[path].url);
+        const next = { ...current };
+        if (preview)
+          next[path] = {
+            url: URL.createObjectURL(preview),
+            sourceBytes,
+          };
+        else delete next[path];
+        assetPreviewOverridesRef.current = next;
+        return next;
+      });
+    },
+    [],
+  );
+  useEffect(() => {
+    setAssetPreviewOverrides((current) => {
+      let changed = false;
+      const next = { ...current };
+      for (const [path, override] of Object.entries(current))
+        if (workspace.assets[path] !== override.sourceBytes) {
+          URL.revokeObjectURL(override.url);
+          delete next[path];
+          changed = true;
+        }
+      if (changed) assetPreviewOverridesRef.current = next;
+      return changed ? next : current;
+    });
+  }, [workspace.assets]);
+  useEffect(
+    () => () => {
+      for (const override of Object.values(assetPreviewOverridesRef.current))
+        URL.revokeObjectURL(override.url);
+    },
+    [],
+  );
+  const assetPreviewUrls = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(assetPreviewOverrides).map(([path, override]) => [
+          path,
+          override.url,
+        ]),
+      ),
+    [assetPreviewOverrides],
+  );
   if (advancedViewsSettingChanged && settings.editor.collapseAdvancedViews) {
     setNavigationTab("content");
     setEditingTab("structured");
@@ -1153,10 +1233,19 @@ export function EditorWorkspace({
       ) as Record<KeybindingAction, string>,
     [sourceKeybindings],
   );
+  const archiveAssetPathKey = Object.keys(workspace.assets).join("\0");
+  const archiveAssetPaths = useMemo(
+    () => (archiveAssetPathKey ? archiveAssetPathKey.split("\0") : []),
+    [archiveAssetPathKey],
+  );
+  const analyzedAssetPaths = useMemo(
+    () => archiveAssetPaths.map(assetRelativePath),
+    [archiveAssetPaths],
+  );
   const analysis = useMemo(
     () =>
       service.analyze(workspace.files, {
-        assetPaths: Object.keys(workspace.assets).map(assetRelativePath),
+        assetPaths: analyzedAssetPaths,
         warnings: {
           missingImageAlt: settings.editor.warnMissingImageAlt,
           missingLayoutTargets: settings.editor.warnMissingLayoutTargets,
@@ -1165,7 +1254,7 @@ export function EditorWorkspace({
     [
       settings.editor.warnMissingImageAlt,
       settings.editor.warnMissingLayoutTargets,
-      workspace.assets,
+      analyzedAssetPaths,
       workspace.files,
     ],
   );
@@ -1209,7 +1298,7 @@ export function EditorWorkspace({
   const recoveredAnalysis = useMemo(
     () =>
       service.analyze(service.recover(workspace.files), {
-        assetPaths: Object.keys(workspace.assets).map(assetRelativePath),
+        assetPaths: analyzedAssetPaths,
         warnings: {
           missingImageAlt: settings.editor.warnMissingImageAlt,
           missingLayoutTargets: settings.editor.warnMissingLayoutTargets,
@@ -1218,7 +1307,7 @@ export function EditorWorkspace({
     [
       settings.editor.warnMissingImageAlt,
       settings.editor.warnMissingLayoutTargets,
-      workspace.assets,
+      analyzedAssetPaths,
       workspace.files,
     ],
   );
@@ -1304,10 +1393,6 @@ export function EditorWorkspace({
         ? translate("ui.editorWorkspace.previewStatus.sourceRecovered")
         : translate("ui.editorWorkspace.previewStatus.sourceLastValid");
   const summary = summarizeWorkspace(workspace);
-  const archiveAssetPaths = useMemo(
-    () => Object.keys(workspace.assets),
-    [workspace.assets],
-  );
   const assetCanonicalExtensions = useMemo(
     () =>
       Object.fromEntries(
@@ -1770,6 +1855,18 @@ export function EditorWorkspace({
     historyLabel,
   }: AssetSourceCommit) => {
     if (!workspace.assets[path]) return;
+    if (document?.kind === "raster") {
+      const previousMetadata = assetMetadata(path, workspace.assets[path]);
+      if (previousMetadata)
+        rememberAssetMetadata(path, bytes, {
+          ...previousMetadata,
+          bytes: bytes.byteLength,
+          canonicalExtension: document.format,
+          format: document.format === "jpg" ? "JPEG" : "PNG",
+          width: document.transform.outputWidth,
+          height: document.transform.outputHeight,
+        });
+    }
     const nextDocuments = { ...workspace.assetEditorDocuments };
     if (document) nextDocuments[path] = document;
     else delete nextDocuments[path];
@@ -3363,6 +3460,23 @@ export function EditorWorkspace({
                     );
                     if (exclusiveRemoval.changed) result = exclusiveRemoval;
                   }
+                  if (
+                    symbol.kind === "image" &&
+                    ["fade-edges", "rounded-corners"].includes(field) &&
+                    !value
+                  ) {
+                    const intensityField =
+                      field === "fade-edges"
+                        ? "fade-intensity"
+                        : "rounded-intensity";
+                    const intensityRemoval = setDocumentField(
+                      result.files,
+                      symbol,
+                      intensityField,
+                      "",
+                    );
+                    if (intensityRemoval.changed) result = intensityRemoval;
+                  }
                   commitFiles(result.files, true, false, historyGroup);
                   const nextSymbol =
                     service
@@ -3569,6 +3683,7 @@ export function EditorWorkspace({
             readOnly={false}
             keybindings={sourceKeybindings}
             onCommit={commitAssetSource}
+            onPreview={publishAssetPreview}
             onUndo={undo}
             onRedo={redo}
           />
@@ -4039,6 +4154,7 @@ export function EditorWorkspace({
                 <AssetContextPreview
                   path={selectedAsset}
                   bytes={selectedAssetBytes}
+                  previewSource={assetPreviewUrls[selectedAsset]}
                 />
               )
             ) : (
@@ -4279,6 +4395,7 @@ export function EditorWorkspace({
                     layoutPackageItem={layoutPackageItem}
                     choicePackageItem={choicePackageItem}
                     assets={workspace.assets}
+                    assetUrlOverrides={assetPreviewUrls}
                     tags={tags}
                     selection={previewSelection}
                     showBounds={showBounds}
@@ -7917,6 +8034,39 @@ function StructuredPanel({
                         </small>
                       )}
                     </>
+                  ) : symbol.kind === "image" &&
+                    ["rounded-intensity", "fade-intensity"].includes(
+                      fieldName,
+                    ) ? (
+                    <span className="editor-image-effect-slider">
+                      <input
+                        id={`${listId}-range`}
+                        type="range"
+                        min={definition?.minimum ?? 1}
+                        max={definition?.maximum ?? 100}
+                        step={1}
+                        autoFocus={fieldName === focusField && occurrence === 0}
+                        aria-label={controlLabel}
+                        aria-valuetext={`${value || String(definition?.default ?? 25)}%`}
+                        value={value || String(definition?.default ?? 25)}
+                        {...accessibility}
+                        onChange={(event) => {
+                          const nextValue = event.target.value;
+                          onUpdate(
+                            symbol,
+                            fieldName,
+                            Number(nextValue) === definition?.default
+                              ? ""
+                              : nextValue,
+                            occurrence,
+                          );
+                        }}
+                        onBlur={onEndFieldEdit}
+                      />
+                      <output htmlFor={`${listId}-range`}>
+                        {value || String(definition?.default ?? 25)}%
+                      </output>
+                    </span>
                   ) : ["color", "hexColor"].includes(definition?.type ?? "") ? (
                     <ColorFieldControl
                       label={`${controlLabel}${definition?.repeatable ? ` ${occurrence + 1}` : ""}`}
@@ -9278,9 +9428,11 @@ function AssetBinarySourcePanel({
 function AssetContextPreview({
   path,
   bytes,
+  previewSource,
 }: {
   path: string;
   bytes: Uint8Array;
+  previewSource?: string;
 }) {
   return (
     <div className="editor-preview-panel editor-asset-preview-panel">
@@ -9291,7 +9443,12 @@ function AssetContextPreview({
         </span>
       </div>
       <div className="editor-preview-scroll editor-asset-image-stage">
-        <AssetImage path={path} bytes={bytes} className="editor-asset-image" />
+        <AssetImage
+          path={path}
+          bytes={bytes}
+          previewSource={previewSource}
+          className="editor-asset-image"
+        />
       </div>
     </div>
   );

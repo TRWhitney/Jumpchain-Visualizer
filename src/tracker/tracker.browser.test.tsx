@@ -273,6 +273,163 @@ test("tiled images repeat visually while retaining one semantic image", async ()
     .toHaveTextContent("A tiled route marker");
 });
 
+test("image effects apply independently to visible and tiled images", async () => {
+  render(
+    <div>
+      <RenderedJumpImage
+        source="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='48'/%3E"
+        alternativeText="Rounded route marker"
+        effects={{
+          roundedCorners: true,
+          roundedIntensity: 100,
+          fadeEdges: false,
+          fadeIntensity: 25,
+        }}
+      />
+      <RenderedJumpImage
+        source="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='48'/%3E"
+        alternativeText="Faded route marker"
+        effects={{
+          roundedCorners: false,
+          roundedIntensity: 25,
+          fadeEdges: true,
+          fadeIntensity: 60,
+        }}
+      />
+      <RenderedJumpImage
+        source="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'/%3E"
+        alternativeText="Tiled effects marker"
+        effects={{
+          roundedCorners: true,
+          roundedIntensity: 50,
+          fadeEdges: true,
+          fadeIntensity: 40,
+        }}
+        tiled
+      />
+    </div>,
+  );
+
+  const roundedLocator = page.getByAltText("Rounded route marker");
+  await expect.element(roundedLocator).toBeInTheDocument();
+  const rounded = roundedLocator.element();
+  expect(getComputedStyle(rounded).borderRadius).toBe("24px");
+  expect(getComputedStyle(rounded).maskImage).toBe("none");
+
+  const fadedLocator = page.getByAltText("Faded route marker");
+  await expect.element(fadedLocator).toBeInTheDocument();
+  const faded = fadedLocator.element();
+  expect(getComputedStyle(faded).borderRadius).toBe("0px");
+  expect(getComputedStyle(faded).maskImage).toContain("data:image/svg+xml");
+  expect(getComputedStyle(faded).maskImage).toContain("feGaussianBlur");
+  expect(getComputedStyle(faded).maskSize).toBe("100% 100%");
+  expect(getComputedStyle(faded).maskRepeat).toBe("no-repeat");
+
+  const tiledLocator = page.getByAltText("Tiled effects marker");
+  await expect.element(tiledLocator).toBeInTheDocument();
+  const tiled = tiledLocator.element().parentElement!;
+  expect(getComputedStyle(tiled).borderRadius).toBe("2px");
+  expect(getComputedStyle(tiled).maskImage).toContain("feGaussianBlur");
+});
+
+test("layout backgrounds preserve image effects without masking choice content", async () => {
+  const packageItem = canonicalizePackage(
+    {
+      id: "background-effects-browser",
+      exactHash: "b".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Background effects"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+
+  choice
+    handle: card_placement
+    target: card
+
+choice
+  handle: card
+  name: "Effect card"
+  layout: effect_card
+  selection: toggle
+
+  image
+    handle: backdrop
+    src: "backdrop.svg"
+    alt: "Blue backdrop"
+    rounded-corners: true
+    rounded-intensity: 100
+    fade-edges: true
+    fade-intensity: 80
+
+choice-layout
+  handle: effect_card
+
+  stack
+    background-image: backdrop
+    background-fit: cover
+    slot: name
+    slot: control
+`,
+      },
+    },
+    { assetPaths: ["backdrop.svg"] },
+  );
+  const fixture = createDenseTrackerFixture();
+  const state = emptyActorEntryState();
+  const evaluation = evaluateChain({
+    order: ["entry"],
+    packageIdByEntry: { entry: packageItem.id },
+    packages: { [packageItem.id]: packageItem },
+    jumpState: {
+      entry: { actors: { jumper: state }, appliedGauntlet: [] },
+    },
+    jumperName: "Tester",
+  }).runtime.entry.actors.jumper;
+  render(
+    <JumpRenderer
+      packageItem={packageItem}
+      entryId="entry"
+      actorId="jumper"
+      state={state}
+      evaluation={evaluation}
+      preferences={fixture.preferences}
+      tags={fixture.tags}
+      companions={[]}
+      gauntletActive={false}
+      resolveAsset={() =>
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='100'%3E%3Cpath fill='%232369be' d='M0 0h160v100H0z'/%3E%3C/svg%3E"
+      }
+      dispatch={() => undefined}
+    />,
+  );
+
+  await expect
+    .element(page.getByText("Effect card", { exact: true }))
+    .toBeVisible();
+  await expect.element(page.getByRole("checkbox")).toBeVisible();
+  const background = document.querySelector<HTMLElement>(
+    ".jump-layout-authored-background",
+  );
+  expect(background).not.toBeNull();
+  expect(getComputedStyle(background!).backgroundImage).toContain(
+    "data:image/svg+xml",
+  );
+  expect(getComputedStyle(background!).maskImage).toContain("feGaussianBlur");
+  expect(getComputedStyle(background!).borderRadius).not.toBe("0px");
+  expect(getComputedStyle(background!.parentElement!).backgroundImage).toBe(
+    "none",
+  );
+  expect(getComputedStyle(page.getByRole("checkbox").element()).maskImage).toBe(
+    "none",
+  );
+});
+
 test("Jump, Section, and Choice labels interpolate evaluated properties", async () => {
   const fixture = createDenseTrackerFixture();
   const state = {

@@ -663,6 +663,10 @@
           "content": "Text",
           "src": "Image file",
           "alt": "Image description",
+          "roundedCorners": "Rounded corners",
+          "roundedIntensity": "Corner intensity",
+          "fadeEdges": "Fade out toward edges",
+          "fadeIntensity": "Fade intensity",
           "inputSelection": "Input type",
           "placeholder": "Placeholder",
           "resource": "Currency",
@@ -709,6 +713,10 @@
           "measure": "Treat the selected number as a perk or trait rank, or an item quantity.",
           "imageFile": "Choose an image already in this project, or import a new one.",
           "imageDescription": "Describe the meaningful image content for people who cannot see it.",
+          "roundedCorners": "Round the visible corners everywhere this image block is displayed.",
+          "roundedIntensity": "Choose how strongly the corners are rounded. At 100%, the image reaches its maximum round shape.",
+          "fadeEdges": "Gradually make the image transparent toward every edge.",
+          "fadeIntensity": "Choose how much of the image fades. Higher values create a wider, more aggressive fade.",
           "textContent": "The text displayed wherever this content block is placed."
         }
       },

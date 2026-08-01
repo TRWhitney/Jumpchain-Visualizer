@@ -5,6 +5,78 @@ import {
 } from "../platform/indexedDb";
 import { isTauriRuntime } from "../settings/repository";
 import { hydrateEditorWorkspace, type EditorWorkspaceSnapshot } from "./model";
+import { stringifyBinaryJson } from "./binaryJson";
+
+function serializeEditorWorkspace(workspace: EditorWorkspaceSnapshot) {
+  if (typeof Worker === "undefined")
+    return Promise.resolve(stringifyBinaryJson(workspace));
+  return new Promise<string>((resolve, reject) => {
+    const worker = new Worker(
+      new URL("./editorWorkspaceSerialize.worker.ts", import.meta.url),
+      { type: "module", name: "editor-workspace-serializer" },
+    );
+    const finish = () => worker.terminate();
+    worker.addEventListener(
+      "message",
+      (event: MessageEvent<{ payload?: string; error?: string }>) => {
+        finish();
+        if (event.data.payload) resolve(event.data.payload);
+        else
+          reject(
+            new Error(
+              event.data.error ?? "Editor workspace serialization failed.",
+            ),
+          );
+      },
+      { once: true },
+    );
+    worker.addEventListener(
+      "error",
+      () => {
+        finish();
+        reject(new Error("Editor workspace serialization failed."));
+      },
+      { once: true },
+    );
+    worker.postMessage({ workspace });
+  });
+}
+
+function persistEditorWorkspaceInWorker(workspace: EditorWorkspaceSnapshot) {
+  if (typeof Worker === "undefined") return null;
+  return new Promise<void>((resolve, reject) => {
+    const worker = new Worker(
+      new URL("./editorWorkspacePersist.worker.ts", import.meta.url),
+      { type: "module", name: "editor-workspace-persistence" },
+    );
+    const finish = () => worker.terminate();
+    worker.addEventListener(
+      "message",
+      (
+        event: MessageEvent<{ type: "complete" | "error"; message?: string }>,
+      ) => {
+        finish();
+        if (event.data.type === "complete") resolve();
+        else
+          reject(
+            new Error(
+              event.data.message ?? "Editor project could not be saved.",
+            ),
+          );
+      },
+      { once: true },
+    );
+    worker.addEventListener(
+      "error",
+      () => {
+        finish();
+        reject(new Error("Editor project could not be saved."));
+      },
+      { once: true },
+    );
+    worker.postMessage({ workspace });
+  });
+}
 
 export interface EditorWorkspaceRepository {
   list(): Promise<EditorWorkspaceSnapshot[]>;
@@ -83,6 +155,8 @@ export class IndexedDbEditorWorkspaceRepository implements EditorWorkspaceReposi
   }
 
   async save(workspace: EditorWorkspaceSnapshot) {
+    const workerSave = persistEditorWorkspaceInWorker(workspace);
+    if (workerSave) return workerSave;
     const database = await openApplicationDatabase();
     return new Promise<void>((resolve, reject) => {
       const transaction = database.transaction(
@@ -124,16 +198,22 @@ export class IndexedDbEditorWorkspaceRepository implements EditorWorkspaceReposi
 
 export class TauriEditorWorkspaceRepository implements EditorWorkspaceRepository {
   async list() {
-    return invoke<EditorWorkspaceSnapshot[]>("list_editor_workspaces");
-  }
-  async load(id: string) {
-    return invoke<EditorWorkspaceSnapshot | null>("load_editor_workspace", {
-      id,
+    const values = await invoke<unknown[]>("list_editor_workspaces");
+    return values.flatMap((value) => {
+      const hydrated = hydrateEditorWorkspace(value);
+      return hydrated ? [hydrated] : [];
     });
   }
+  async load(id: string) {
+    const value = await invoke<unknown>("load_editor_workspace", {
+      id,
+    });
+    return hydrateEditorWorkspace(value);
+  }
   async save(workspace: EditorWorkspaceSnapshot) {
+    const payload = await serializeEditorWorkspace(workspace);
     await invoke("save_editor_workspace", {
-      payload: JSON.stringify(workspace),
+      payload,
     });
   }
   async remove(id: string) {

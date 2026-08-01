@@ -13,6 +13,10 @@ export type PreviewSelection =
       handle: string;
       src?: string;
       alt?: string;
+      roundedCorners: boolean;
+      roundedIntensity: number;
+      fadeEdges: boolean;
+      fadeIntensity: number;
       sectionHandle?: string;
     }
   | {
@@ -63,6 +67,24 @@ export function previewSelectionForSymbol(
         readSourceField(files[symbol.file] ?? "", symbol, "src") || undefined,
       alt:
         readSourceField(files[symbol.file] ?? "", symbol, "alt") || undefined,
+      roundedCorners:
+        readSourceField(files[symbol.file] ?? "", symbol, "rounded-corners") ===
+        "true",
+      roundedIntensity:
+        Number(
+          readSourceField(
+            files[symbol.file] ?? "",
+            symbol,
+            "rounded-intensity",
+          ),
+        ) || 25,
+      fadeEdges:
+        readSourceField(files[symbol.file] ?? "", symbol, "fade-edges") ===
+        "true",
+      fadeIntensity:
+        Number(
+          readSourceField(files[symbol.file] ?? "", symbol, "fade-intensity"),
+        ) || 25,
       sectionHandle: section?.handle,
     };
   if (symbol.kind === "choice-source" && section?.handle && symbol.handle)

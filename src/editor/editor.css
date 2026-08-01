@@ -2166,6 +2166,39 @@
   min-height: 1.5rem;
   margin: 0.375rem 0;
 }
+.editor-detail-fields
+  > .editor-schema-field:is(
+    [data-structured-field="rounded-corners"],
+    [data-structured-field="rounded-intensity"]
+  ) {
+  grid-column: 1;
+}
+.editor-detail-fields
+  > .editor-schema-field:is(
+    [data-structured-field="fade-edges"],
+    [data-structured-field="fade-intensity"]
+  ) {
+  grid-column: 2;
+}
+.editor-image-effect-slider {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) 3rem;
+  align-items: center;
+  gap: 0.55rem;
+}
+.editor-form-card .editor-image-effect-slider input[type="range"] {
+  min-height: 2.25rem;
+  padding: 0;
+  accent-color: var(--app-accent-raw);
+  background: transparent;
+  border: 0;
+}
+.editor-image-effect-slider output {
+  color: #c8c8c2;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
 .editor-field-default {
   align-self: center;
   color: #92928d;

@@ -75,10 +75,18 @@ export type TextBlock = {
   content: Renderable;
 };
 
+export type ImageEffects = {
+  roundedCorners: boolean;
+  roundedIntensity: number;
+  fadeEdges: boolean;
+  fadeIntensity: number;
+};
+
 export type ImageBlock = {
   handle: string;
   src?: string;
   alt: Renderable;
+  effects: ImageEffects;
 };
 
 export type SelectionKind =

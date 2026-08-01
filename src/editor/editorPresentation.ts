@@ -29,6 +29,10 @@ const contextualFieldKeys: Readonly<Record<string, string>> = {
   "grant.companion": "companionRecipient",
   "grant.measure": "measure",
   "choice.target": "choiceTarget",
+  "image.rounded-corners": "roundedCorners",
+  "image.rounded-intensity": "roundedIntensity",
+  "image.fade-edges": "fadeEdges",
+  "image.fade-intensity": "fadeIntensity",
 };
 
 const contextualHelpKeys: Readonly<Record<string, string>> = {
@@ -84,6 +88,10 @@ const contextualHelpKeys: Readonly<Record<string, string>> = {
   "grant.measure": "measure",
   "image.src": "imageFile",
   "image.alt": "imageDescription",
+  "image.rounded-corners": "roundedCorners",
+  "image.rounded-intensity": "roundedIntensity",
+  "image.fade-edges": "fadeEdges",
+  "image.fade-intensity": "fadeIntensity",
   "text.content": "textContent",
 };
 

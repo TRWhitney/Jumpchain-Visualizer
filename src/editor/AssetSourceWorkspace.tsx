@@ -28,6 +28,7 @@ export function AssetSourceWorkspace({
   readOnly,
   keybindings,
   onCommit,
+  onPreview,
   onStatus,
   onFocusChange,
   onUndo,
@@ -42,6 +43,11 @@ export function AssetSourceWorkspace({
   readOnly: boolean;
   keybindings: Record<KeybindingAction, KeybindingChord>;
   onCommit: (commit: AssetSourceCommit) => void;
+  onPreview?: (
+    path: string,
+    preview: Blob | null,
+    sourceBytes: Uint8Array,
+  ) => void;
   onStatus?: (status: string, invalid: boolean) => void;
   onFocusChange?: (focused: boolean) => void;
   onUndo: () => void;
@@ -63,19 +69,33 @@ export function AssetSourceWorkspace({
     },
     [onStatus],
   );
+  const publishPreview = useCallback(
+    (preview: Blob | null, sourceBytes: Uint8Array) =>
+      onPreview?.(path, preview, sourceBytes),
+    [onPreview, path],
+  );
   const validateAndCommit = async (
     nextBytes: Uint8Array,
     nextDocument: AssetEditorDocument | null,
     historyLabel: string,
   ) => {
     const generation = ++validationGeneration.current;
-    if (
-      nextDocument?.kind === "svg" ||
-      (nextDocument?.kind === "raster" && nextDocument.validationError)
-    ) {
+    if (nextDocument?.kind === "svg") {
       onCommit({
         path,
         bytes,
+        document: nextDocument,
+        historyLabel,
+      });
+      return;
+    }
+    if (nextDocument?.kind === "raster") {
+      // RasterSourceEditor only supplies output produced by the internal
+      // full-resolution renderer. Revalidating that generated PNG on the UI
+      // thread would repeat its byte-wide CRC pass during every correction.
+      onCommit({
+        path,
+        bytes: nextBytes,
         document: nextDocument,
         historyLabel,
       });
@@ -101,16 +121,6 @@ export function AssetSourceWorkspace({
         }),
         true,
       );
-      if (nextDocument?.kind === "raster")
-        onCommit({
-          path,
-          bytes,
-          document: { ...nextDocument, validationError: message },
-          historyLabel: translate(
-            "ui.editorWorkspace.asset.editor.keepFailedHistory",
-            { action: historyLabel.toLocaleLowerCase() },
-          ),
-        });
     }
   };
 
@@ -170,6 +180,7 @@ export function AssetSourceWorkspace({
           onCommit={(nextBytes, nextDocument, historyLabel) =>
             void validateAndCommit(nextBytes, nextDocument, historyLabel)
           }
+          onPreview={publishPreview}
           onStatus={reportStatus}
           onFocusChange={(focused) => onFocusChange?.(focused)}
           onUndo={onUndo}

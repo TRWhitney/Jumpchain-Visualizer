@@ -104,6 +104,12 @@ function imageBlocks(
         translate("ui.editorWorkspace.layoutPreview.imageAlt", { target }),
       ),
     ),
+    effects: {
+      roundedCorners: false,
+      roundedIntensity: 25,
+      fadeEdges: false,
+      fadeIntensity: 25,
+    },
   }));
 }
 

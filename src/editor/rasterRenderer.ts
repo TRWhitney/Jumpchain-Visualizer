@@ -24,6 +24,17 @@ export type RasterRenderResult = {
   height: number;
 };
 
+export type RasterProxyRenderResult = {
+  bitmap: ImageBitmap;
+  width: number;
+  height: number;
+};
+
+export type RasterProxySource = Pick<
+  RasterAssetEditorDocument,
+  "baseBytes" | "baseHeight" | "baseWidth" | "corrections" | "format"
+>;
+
 type RenderCanvas = HTMLCanvasElement | OffscreenCanvas;
 type RenderContext =
   CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
@@ -184,6 +195,63 @@ export function hasExpectedImageSignature(
         bytes[1] === 0xd8 &&
         bytes.at(-2) === 0xff &&
         bytes.at(-1) === 0xd9;
+}
+
+export async function renderRasterProxy(
+  document: RasterProxySource,
+  width: number,
+  height: number,
+  signal?: AbortSignal,
+): Promise<RasterProxyRenderResult> {
+  signal?.throwIfAborted();
+  const baseBlob = new Blob([document.baseBytes.slice().buffer], {
+    type: document.format === "png" ? "image/png" : "image/jpeg",
+  });
+  const source = await createImageBitmap(baseBlob, {
+    imageOrientation: "from-image",
+    colorSpaceConversion: "default",
+  });
+  try {
+    signal?.throwIfAborted();
+    const proxyWidth = Math.max(1, Math.round(width));
+    const proxyHeight = Math.max(1, Math.round(height));
+    const canvas = createCanvas(proxyWidth, proxyHeight);
+    const context = context2d(canvas);
+    context.drawImage(source, 0, 0, proxyWidth, proxyHeight);
+    const imageData = context.getImageData(0, 0, proxyWidth, proxyHeight);
+    applyRasterCorrections(imageData.data, document.corrections);
+    context.putImageData(imageData, 0, 0);
+    const proxyScale = Math.min(
+      proxyWidth / document.baseWidth,
+      proxyHeight / document.baseHeight,
+    );
+    if (document.corrections.blur > 0) {
+      const blurred = createCanvas(proxyWidth, proxyHeight);
+      const blurredContext = context2d(blurred);
+      blurredContext.filter = `blur(${(document.corrections.blur / 100) * 8 * proxyScale}px)`;
+      blurredContext.drawImage(canvas, 0, 0);
+      context.clearRect(0, 0, proxyWidth, proxyHeight);
+      context.drawImage(blurred, 0, 0);
+    }
+    if (document.corrections.sharpen > 0) {
+      const sharpened = context.getImageData(0, 0, proxyWidth, proxyHeight);
+      applyRasterSharpen(
+        sharpened.data,
+        proxyWidth,
+        proxyHeight,
+        document.corrections.sharpen,
+      );
+      context.putImageData(sharpened, 0, 0);
+    }
+    signal?.throwIfAborted();
+    return {
+      bitmap: await createImageBitmap(canvas),
+      width: proxyWidth,
+      height: proxyHeight,
+    };
+  } finally {
+    source.close();
+  }
 }
 
 export async function renderRasterDocument(

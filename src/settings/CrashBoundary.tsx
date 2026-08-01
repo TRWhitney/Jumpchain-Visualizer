@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { useSettings } from "./SettingsContext";
-import type { EventPipeline } from "./logging";
+import type { EventPipeline, LogEvent } from "./logging";
 import type { ReportExporter } from "./repository";
 import { translate } from "../localization";
 
@@ -15,28 +15,30 @@ type Props = {
   logger: EventPipeline;
   exporter: ReportExporter;
 };
-type State = { error: Error | null };
+type State = { error: Error | null; event: LogEvent | null };
 
 class ReactCrashBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  state: State = { error: null, event: null };
   static getDerivedStateFromError(error: Error) {
-    return { error };
+    return { error, event: null };
   }
   componentDidCatch(error: Error, info: ErrorInfo) {
     if (!error.stack && info.componentStack) error.stack = info.componentStack;
-    this.props.logger.emit("app.crashed", {
+    const event = this.props.logger.emit("app.crashed", {
       attributes: {
         routeKind: window.location.pathname.split("/")[1] || "home",
         errorCode: error.name,
       },
       error,
     });
+    this.setState({ event });
   }
   render() {
     if (this.state.error)
       return (
         <CrashSurface
           error={this.state.error}
+          event={this.state.event}
           logger={this.props.logger}
           exporter={this.props.exporter}
         />
@@ -47,7 +49,7 @@ class ReactCrashBoundary extends Component<Props, State> {
 
 export function CrashBoundary({ children }: { children: ReactNode }) {
   const { logger, reportExporter } = useSettings();
-  const [error, setError] = useState<Error | null>(null);
+  const [crash, setCrash] = useState<State>({ error: null, event: null });
   useEffect(() => {
     const onError = (event: ErrorEvent) => {
       event.preventDefault();
@@ -55,14 +57,14 @@ export function CrashBoundary({ children }: { children: ReactNode }) {
         event.error instanceof Error
           ? event.error
           : new Error(event.message || "Unexpected application error.");
-      logger.emit("app.crashed", {
+      const logged = logger.emit("app.crashed", {
         attributes: {
           routeKind: window.location.pathname.split("/")[1] || "home",
           errorCode: next.name,
         },
         error: next,
       });
-      setError(next);
+      setCrash({ error: next, event: logged });
     };
     const onRejection = (event: PromiseRejectionEvent) => {
       event.preventDefault();
@@ -70,14 +72,14 @@ export function CrashBoundary({ children }: { children: ReactNode }) {
         event.reason instanceof Error
           ? event.reason
           : new Error(String(event.reason));
-      logger.emit("app.crashed", {
+      const logged = logger.emit("app.crashed", {
         attributes: {
           routeKind: window.location.pathname.split("/")[1] || "home",
           errorCode: next.name,
         },
         error: next,
       });
-      setError(next);
+      setCrash({ error: next, event: logged });
     };
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onRejection);
@@ -88,9 +90,14 @@ export function CrashBoundary({ children }: { children: ReactNode }) {
       delete document.documentElement.dataset.crashMonitorReady;
     };
   }, [logger]);
-  if (error)
+  if (crash.error)
     return (
-      <CrashSurface error={error} logger={logger} exporter={reportExporter} />
+      <CrashSurface
+        error={crash.error}
+        event={crash.event}
+        logger={logger}
+        exporter={reportExporter}
+      />
     );
   return (
     <ReactCrashBoundary logger={logger} exporter={reportExporter}>
@@ -101,15 +108,16 @@ export function CrashBoundary({ children }: { children: ReactNode }) {
 
 function CrashSurface({
   error,
+  event,
   logger,
   exporter,
 }: {
   error: Error;
+  event: LogEvent | null;
   logger: EventPipeline;
   exporter: ReportExporter;
 }) {
   const [message, setMessage] = useState("");
-  const event = logger.snapshot().at(-1) ?? null;
   const report = logger.report(event);
   return (
     <main className="app-crash-surface" aria-labelledby="app-crash-heading">

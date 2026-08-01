@@ -204,7 +204,11 @@
       "fields": {
         "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
         "src": { "type": "quotedString:assetRelativePath", "min": 0, "max": 1, "exportRequired": true },
-        "alt": { "type": "renderableScalar", "min": 0, "max": 1, "conditionalVariants": true, "omission": "accessibility warning" }
+        "alt": { "type": "renderableScalar", "min": 0, "max": 1, "conditionalVariants": true, "omission": "accessibility warning" },
+        "rounded-corners": { "type": "boolean", "min": 0, "max": 1, "default": false },
+        "fade-edges": { "type": "boolean", "min": 0, "max": 1, "default": false },
+        "rounded-intensity": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 100, "default": 25, "appliesWhen": { "rounded-corners": ["true"] } },
+        "fade-intensity": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 100, "default": 25, "appliesWhen": { "fade-edges": ["true"] } }
       },
       "children": {}
     },

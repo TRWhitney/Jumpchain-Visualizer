@@ -277,10 +277,16 @@ function SettingsSurfaceHarness({
 }
 
 test("recoverable React failures render the private diagnostic surface", async () => {
+  let savedReport = "";
   render(
     <SettingsProvider
       repository={new MemorySettingsRepository()}
-      reportExporter={exporter}
+      reportExporter={{
+        save: async (_suggestedName, content) => {
+          savedReport = content;
+          return "saved";
+        },
+      }}
     >
       <CrashBoundary>
         <BrokenSurface />
@@ -300,6 +306,10 @@ test("recoverable React failures render the private diagnostic surface", async (
   await expect
     .element(page.getByRole("button", { name: "Copy report" }))
     .toBeVisible();
+  await page.getByRole("button", { name: "Save report" }).click();
+  await expect.poll(() => savedReport).toContain("Event: app.crashed");
+  expect(savedReport).toContain("Deliberate component failure");
+  expect(savedReport).not.toContain("Event: app.started\nSeverity: info");
 });
 
 test("window monitoring signals readiness before failures can be dispatched", async () => {

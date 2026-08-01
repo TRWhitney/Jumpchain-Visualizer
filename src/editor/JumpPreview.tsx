@@ -20,6 +20,7 @@ import {
 } from "./layoutPreview";
 import { selectedChoicePreviewPackage } from "./selectionPreview";
 import { useAssetObjectUrls } from "../tracker/useAssetObjectUrls";
+import { assetRelativePath } from "../markup/assetPath";
 import type { PreviewSelection } from "./previewSelection";
 import { stripPreviewColors } from "./previewColors";
 import { translate } from "../localization";
@@ -85,6 +86,12 @@ function appearancePreviewPackage(
             alt: {
               base: translate("ui.editorWorkspace.appearancePreview.imageAlt"),
               variants: [],
+            },
+            effects: {
+              roundedCorners: false,
+              roundedIntensity: 25,
+              fadeEdges: false,
+              fadeIntensity: 25,
             },
           },
         ],
@@ -223,6 +230,7 @@ export function JumpPreview({
   layoutPackageItem,
   choicePackageItem,
   assets,
+  assetUrlOverrides,
   tags,
   selection,
   showBounds,
@@ -241,6 +249,7 @@ export function JumpPreview({
   layoutPackageItem?: CanonicalJumpPackage;
   choicePackageItem?: CanonicalJumpPackage;
   assets: Readonly<Record<string, Uint8Array>>;
+  assetUrlOverrides?: Readonly<Record<string, string>>;
   tags: JumpRendererProps["tags"];
   selection: PreviewSelection;
   showBounds: boolean;
@@ -371,7 +380,19 @@ export function JumpPreview({
     renderedPackage,
     selection.kind,
   ]);
-  const assetUrls = useAssetObjectUrls(assets, true);
+  const storedAssetUrls = useAssetObjectUrls(assets, true);
+  const assetUrls = useMemo(
+    () => ({
+      ...storedAssetUrls,
+      ...Object.fromEntries(
+        Object.entries(assetUrlOverrides ?? {}).map(([path, url]) => [
+          assetRelativePath(path),
+          url,
+        ]),
+      ),
+    }),
+    [assetUrlOverrides, storedAssetUrls],
+  );
   const previewCompanions = [
     {
       id: "companion:preview-prior:jumper:preview_companion_one:0",
@@ -657,6 +678,12 @@ export function JumpPreview({
             handle: selection.handle,
             src: selection.src,
             alt: { base: selection.alt, variants: [] },
+            effects: {
+              roundedCorners: selection.roundedCorners,
+              roundedIntensity: selection.roundedIntensity,
+              fadeEdges: selection.fadeEdges,
+              fadeIntensity: selection.fadeIntensity,
+            },
           }}
           rendererProps={rendererProps}
         />

@@ -42,6 +42,10 @@ section
     handle: texture
     src: "texture.png"
     alt: "A subtle patterned backdrop."
+    rounded-corners: true
+    rounded-intensity: 70
+    fade-edges: true
+    fade-intensity: 40
 
 choice
   handle: starting_gender

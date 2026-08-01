@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createRasterEditorDocument } from "./assetEditorModel";
 import { renderCorrectedRasterProxy } from "./rasterCorrections";
-import { renderRasterDocument } from "./rasterRenderer";
+import { renderRasterDocument, renderRasterProxy } from "./rasterRenderer";
 import { RasterRenderClient } from "./rasterRenderClient";
 
 async function png(
@@ -73,10 +73,22 @@ describe("full raster renderer pixels", () => {
     );
     bitmap.close();
     const proxyPixels = proxy.getContext("2d")!.getImageData(0, 0, 12, 8).data;
+    const workerProxy = await renderRasterProxy(document, 12, 8);
+    const workerProxyCanvas = globalThis.document.createElement("canvas");
+    workerProxyCanvas.width = workerProxy.width;
+    workerProxyCanvas.height = workerProxy.height;
+    const workerProxyContext = workerProxyCanvas.getContext("2d")!;
+    workerProxyContext.drawImage(workerProxy.bitmap, 0, 0);
+    workerProxy.bitmap.close();
+    const workerProxyPixels = workerProxyContext.getImageData(0, 0, 12, 8).data;
     const rendered = await pixels((await renderRasterDocument(document)).bytes);
     for (let offset = 0; offset < proxyPixels.length; offset += 1)
       expect(
         Math.abs(proxyPixels[offset] - rendered.data[offset]),
+      ).toBeLessThanOrEqual(3);
+    for (let offset = 0; offset < workerProxyPixels.length; offset += 1)
+      expect(
+        Math.abs(workerProxyPixels[offset] - rendered.data[offset]),
       ).toBeLessThanOrEqual(3);
   });
 

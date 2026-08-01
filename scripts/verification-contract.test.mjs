@@ -275,6 +275,7 @@ test("exhaustive coverage runs every behavior in Chromium and focused engine con
     ["chainTracker.spec.ts", "dragging a Jump exposes"],
     ["editor.spec.ts", "source keyboard functions are operable"],
     ["editor.spec.ts", "paint canvas drag, resize"],
+    ["editor.spec.ts", "Image effect controls persist independently"],
     ["jumpRenderer.spec.ts", "radio sources visibly selected"],
     ["settings.spec.ts", "preferences persist through IndexedDB"],
     ["settings.spec.ts", "supports RTL"],

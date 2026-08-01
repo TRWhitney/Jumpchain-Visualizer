@@ -54,6 +54,9 @@ const borderRadii: Readonly<Record<string, string>> = {
 const borderStyles = new Set(["solid", "dashed", "dotted"]);
 
 type PackageThemes = Pick<CanonicalJumpPackage, "themes">;
+type SharedPresentationStyle = CSSProperties & {
+  "--jump-layout-background-color"?: string;
+};
 
 function layoutColor(token: string | undefined, packageItem: PackageThemes) {
   if (!token) return undefined;
@@ -65,6 +68,20 @@ function layoutColor(token: string | undefined, packageItem: PackageThemes) {
 
 function cssImage(source: string) {
   return `url(${JSON.stringify(source)})`;
+}
+
+function layoutBackgroundColorStyle(
+  node: LayoutNode,
+  packageItem: PackageThemes,
+): SharedPresentationStyle {
+  const backgroundColor = layoutColor(
+    node.presentation.background,
+    packageItem,
+  );
+  return {
+    backgroundColor,
+    "--jump-layout-background-color": backgroundColor,
+  };
 }
 
 export function layoutBackgroundImageStyle(
@@ -94,11 +111,11 @@ export function layoutTiledImageStyle(source: string): CSSProperties {
 function sharedPresentationStyle(
   node: LayoutNode,
   packageItem: PackageThemes,
-): CSSProperties {
+): SharedPresentationStyle {
   const presentation = node.presentation;
   return {
     padding: layoutSpacing[presentation.padding ?? "none"],
-    backgroundColor: layoutColor(presentation.background, packageItem),
+    ...layoutBackgroundColorStyle(node, packageItem),
     textAlign: textAlignments.has(presentation.textAlign ?? "")
       ? (presentation.textAlign as CSSProperties["textAlign"])
       : undefined,
@@ -179,18 +196,12 @@ export function layoutLeafPresentationStyle(
     ...(node.kind === "image" || node.kind === "choice"
       ? {
           padding: layoutSpacing[node.presentation.padding ?? "none"],
-          backgroundColor: layoutColor(
-            node.presentation.background,
-            packageItem,
-          ),
+          ...layoutBackgroundColorStyle(node, packageItem),
         }
       : layoutNodeUsesControlAlignment(node.kind, node.target)
         ? {
             padding: layoutSpacing[node.presentation.padding ?? "none"],
-            backgroundColor: layoutColor(
-              node.presentation.background,
-              packageItem,
-            ),
+            ...layoutBackgroundColorStyle(node, packageItem),
             display: "flex",
             justifyContent: controlJustifyContent,
           }

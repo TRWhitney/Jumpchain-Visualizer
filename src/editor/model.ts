@@ -10,6 +10,7 @@ import {
   hydrateAssetEditorDocument,
   type AssetEditorDocument,
 } from "./assetEditorModel";
+import { decodeBytesFromJson } from "./binaryJson";
 
 export const EDITOR_WORKSPACE_SCHEMA_VERSION = 1;
 
@@ -240,6 +241,8 @@ export function hydrateEditorWorkspace(
   const now = new Date().toISOString();
   const hydrateBytes = (value: unknown) => {
     if (value instanceof Uint8Array) return value;
+    const decoded = decodeBytesFromJson(value, 16 * 1024 * 1024);
+    if (decoded) return decoded;
     if (
       Array.isArray(value) &&
       value.every(

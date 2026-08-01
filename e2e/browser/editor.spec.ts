@@ -2529,6 +2529,127 @@ choice-layout
   await expect(editor.locator(".editor-save-state")).toHaveText("Saved");
 });
 
+test("Section layout background paint crosses horizontal padding without moving content and Name color overrides Jump appearance", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("tab", { name: "Source" }).click();
+
+  const jumpSource = editor.getByLabel("jump.jdef source");
+  await jumpSource.press(
+    process.platform === "darwin" ? "Meta+a" : "Control+a",
+  );
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Section presentation"
+  author: "Fixture"
+  version: "1.0"
+  section-layout: full_bleed
+
+section
+  handle: introduction
+  name: "Visible authored name"
+
+  text
+    handle: welcome
+    content: "Section content"
+`);
+
+  await editor.getByRole("tab", { name: "Files" }).click();
+  await editor
+    .getByRole("button", { name: "layout.jdef", exact: true })
+    .click();
+  const layoutSource = editor.getByLabel("layout.jdef source");
+  await layoutSource.press(
+    process.platform === "darwin" ? "Meta+a" : "Control+a",
+  );
+  await page.keyboard.insertText(`jump-appearance
+  section-background: "#F5F1E6"
+  section-heading: black
+  section-padding: xl
+
+section-layout
+  handle: full_bleed
+
+  stack
+    gap: lg
+    background: "#999CC4"
+
+    slot
+      target: name
+      padding: sm
+      background: "#262422"
+      text-color: "#D4AF37"
+
+    text
+      target: welcome
+      background: "#345678"
+`);
+  await editor.getByRole("tab", { name: "Content" }).click();
+  await editor.getByRole("button", { name: "full_bleed" }).click();
+  await expect(editor.locator(".editor-save-state")).toHaveText("Saved", {
+    timeout: 2_000,
+  });
+
+  const preview = editor.locator(".editor-real-preview");
+  const section = preview.locator(".rendered-jump-section");
+  const layout = preview.locator('[data-layout-kind="stack"]');
+  const nameSlot = preview.locator(
+    '[data-layout-kind="slot"][data-layout-color-text="text-color"]',
+  );
+  const text = preview.locator(
+    '[data-layout-kind="text"][data-layout-color-background="background"]',
+  );
+  const [sectionBox, layoutBox, textBox] = await Promise.all([
+    section.boundingBox(),
+    layout.boundingBox(),
+    text.boundingBox(),
+  ]);
+  expect(sectionBox).not.toBeNull();
+  expect(layoutBox).not.toBeNull();
+  expect(textBox).not.toBeNull();
+  for (const contentBox of [layoutBox!, textBox!]) {
+    expect(contentBox.x - sectionBox!.x).toBeCloseTo(24, 0);
+    expect(
+      sectionBox!.x + sectionBox!.width - contentBox.x - contentBox.width,
+    ).toBeCloseTo(24, 0);
+  }
+  expect(
+    await text.evaluate((element) => {
+      const style = getComputedStyle(element, "::before");
+      return {
+        backgroundColor: style.backgroundColor,
+        insetInlineEnd: style.insetInlineEnd,
+        insetInlineStart: style.insetInlineStart,
+      };
+    }),
+  ).toEqual({
+    backgroundColor: "rgb(52, 86, 120)",
+    insetInlineEnd: "-24px",
+    insetInlineStart: "-24px",
+  });
+  const sectionPixels = PNG.sync.read(await section.screenshot());
+  const sampleY = Math.floor(textBox!.y - sectionBox!.y + textBox!.height / 2);
+  for (const sampleX of [12, sectionPixels.width - 12]) {
+    const sampleOffset = (sampleY * sectionPixels.width + sampleX) * 4;
+    expect([
+      ...sectionPixels.data.subarray(sampleOffset, sampleOffset + 4),
+    ]).toEqual([52, 86, 120, 255]);
+  }
+  await expect(nameSlot).toHaveCSS("color", "rgb(212, 175, 55)");
+  await expect(nameSlot.getByRole("heading")).toHaveCSS(
+    "color",
+    "rgb(212, 175, 55)",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-section-layout-background-paint-and-name-color",
+    editor.locator(".editor-context-pane"),
+  );
+});
+
 test("Strip color restores semantic free badges and stacked costs stay centered", async ({
   page,
 }, testInfo) => {
@@ -9830,6 +9951,417 @@ test("Image File remains top-aligned with conditional Image Description", async 
       fullPage: false,
       animations: "disabled",
     });
+});
+
+test("Image effect controls persist independently and update every live preview @cross-browser", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const editor = await openCreatedEditor(page);
+  const image = new PNG({ width: 160, height: 100 });
+  for (let offset = 0; offset < image.data.length; offset += 4) {
+    image.data[offset] = 35;
+    image.data[offset + 1] = 105;
+    image.data[offset + 2] = 190;
+    image.data[offset + 3] = 255;
+  }
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  const chooserPromise = page.waitForEvent("filechooser");
+  await editor.getByRole("button", { name: "Asset…" }).click();
+  await (
+    await chooserPromise
+  ).setFiles({
+    name: "effect-preview.png",
+    mimeType: "image/png",
+    buffer: PNG.sync.write(image),
+  });
+  await editor.getByRole("button", { name: "Jump details" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.locator(".cm-content");
+  await source.click();
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Image effects"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: introduction
+  name: "Introduction"
+
+  choice
+    handle: effect_placement
+    target: effect_choice
+
+choice
+  handle: effect_choice
+  name: "Effect choice"
+  layout: effect_card
+  selection: toggle
+
+  image
+    handle: visual
+    src: "effect-preview.png"
+    alt: "Image effect preview"
+
+choice-layout
+  handle: effect_card
+
+  stack
+    padding: md
+    background-image: visual
+    background-fit: cover
+    slot: name
+    slot: control
+`);
+  await expect(editor.locator(".cm-lintRange-error")).toHaveCount(0);
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "effect_choice", exact: true })
+    .click();
+  await editor.getByRole("button", { name: "visual image" }).click();
+
+  const roundedCorners = editor.getByLabel("Rounded corners", {
+    exact: true,
+  });
+  const fadeEdges = editor.getByLabel("Fade out toward edges", {
+    exact: true,
+  });
+  const renderedImage = editor.locator(
+    '.editor-real-preview img[alt="Image effect preview"]',
+  );
+  await expect(renderedImage).toBeVisible();
+  await expect(roundedCorners).not.toBeChecked();
+  await expect(fadeEdges).not.toBeChecked();
+  await expect(
+    editor.getByLabel("Corner intensity", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    editor.getByLabel("Fade intensity", { exact: true }),
+  ).toHaveCount(0);
+
+  await roundedCorners.check();
+  const cornerIntensity = editor.getByLabel("Corner intensity", {
+    exact: true,
+  });
+  await expect(cornerIntensity).toBeVisible();
+  await expect(cornerIntensity).toHaveValue("25");
+  await cornerIntensity.fill("100");
+  await expect(cornerIntensity).toHaveValue("100");
+  await expect(renderedImage).toHaveCSS("border-radius", "50px");
+  await expect(renderedImage).toHaveCSS("mask-image", "none");
+  const roundedPixels = PNG.sync.read(
+    await renderedImage.screenshot({ animations: "disabled" }),
+  );
+  const roundedEdgeMiddle =
+    (Math.floor(roundedPixels.height / 2) * roundedPixels.width + 1) * 4;
+  const roundedPixelDifference = [0, 1, 2].reduce(
+    (difference, channel) =>
+      difference +
+      Math.abs(
+        roundedPixels.data[channel] -
+          roundedPixels.data[roundedEdgeMiddle + channel],
+      ),
+    0,
+  );
+  expect(roundedPixelDifference).toBeGreaterThan(80);
+
+  await fadeEdges.check();
+  const fadeIntensity = editor.getByLabel("Fade intensity", { exact: true });
+  await expect(fadeIntensity).toBeVisible();
+  await expect(fadeIntensity).toHaveValue("25");
+  await fadeIntensity.fill("94");
+  await expect(fadeIntensity).toHaveValue("94");
+  await expect(editor.getByText("94%", { exact: true })).toBeVisible();
+  const [
+    roundedOptionBox,
+    cornerIntensityBox,
+    fadeOptionBox,
+    fadeIntensityBox,
+  ] = await Promise.all([
+    editor.locator('[data-structured-field="rounded-corners"]').boundingBox(),
+    editor.locator('[data-structured-field="rounded-intensity"]').boundingBox(),
+    editor.locator('[data-structured-field="fade-edges"]').boundingBox(),
+    editor.locator('[data-structured-field="fade-intensity"]').boundingBox(),
+  ]);
+  expect(roundedOptionBox).not.toBeNull();
+  expect(cornerIntensityBox).not.toBeNull();
+  expect(fadeOptionBox).not.toBeNull();
+  expect(fadeIntensityBox).not.toBeNull();
+  expect(Math.abs(roundedOptionBox!.x - cornerIntensityBox!.x)).toBeLessThan(2);
+  expect(Math.abs(fadeOptionBox!.x - fadeIntensityBox!.x)).toBeLessThan(2);
+  await expect(renderedImage).toHaveCSS("mask-image", /data:image\/svg\+xml/);
+
+  await editor.screenshot({
+    path: testInfo.outputPath("image-effects-controls-and-preview.png"),
+    animations: "disabled",
+  });
+
+  await roundedCorners.uncheck();
+  await expect(renderedImage).toHaveCSS("border-radius", "0px");
+  await expect(renderedImage).toHaveAttribute("data-fade-edges", "true");
+  await expect(cornerIntensity).toHaveCount(0);
+  const fadedPixels = PNG.sync.read(
+    await renderedImage.screenshot({ animations: "disabled" }),
+  );
+  const fadedCenter =
+    (Math.floor(fadedPixels.height / 2) * fadedPixels.width +
+      Math.floor(fadedPixels.width / 2)) *
+    4;
+  const fadedEdge =
+    (Math.floor(fadedPixels.height / 2) * fadedPixels.width + 1) * 4;
+  const fadePixelDifference = [0, 1, 2].reduce(
+    (difference, channel) =>
+      difference +
+      Math.abs(
+        fadedPixels.data[fadedCenter + channel] -
+          fadedPixels.data[fadedEdge + channel],
+      ),
+    0,
+  );
+  expect(fadePixelDifference).toBeGreaterThan(80);
+  const centerSourceDifference = [35, 105, 190].reduce(
+    (difference, expected, channel) =>
+      difference + Math.abs(fadedPixels.data[fadedCenter + channel] - expected),
+    0,
+  );
+  expect(centerSourceDifference).toBeLessThan(30);
+  await editor.screenshot({
+    path: testInfo.outputPath("image-fade-without-rounded-corners.png"),
+    animations: "disabled",
+  });
+  await roundedCorners.check();
+  await cornerIntensity.fill("100");
+
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const jumpSource = editor.getByLabel("jump.jdef source");
+  await expect(jumpSource).toContainText("rounded-corners: true");
+  await expect(jumpSource).toContainText("rounded-intensity: 100");
+  await expect(jumpSource).toContainText("fade-edges: true");
+  await expect(jumpSource).toContainText("fade-intensity: 94");
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await expect(roundedCorners).toBeChecked();
+  await expect(cornerIntensity).toHaveValue("100");
+  await expect(fadeEdges).toBeChecked();
+  await expect(fadeIntensity).toHaveValue("94");
+
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "effect_choice", exact: true })
+    .click();
+  const authoredBackground = editor.locator(
+    ".editor-real-preview .jump-layout-authored-background",
+  );
+  await expect(authoredBackground).toBeVisible();
+  await expect(authoredBackground).toHaveAttribute(
+    "data-rounded-corners",
+    "true",
+  );
+  await expect(authoredBackground).toHaveAttribute("data-fade-edges", "true");
+  await expect(authoredBackground).toHaveCSS(
+    "mask-image",
+    /data:image\/svg\+xml/,
+  );
+  const backgroundBounds = await authoredBackground.boundingBox();
+  expect(backgroundBounds).not.toBeNull();
+  const backgroundRadius = await authoredBackground.evaluate((element) =>
+    Number.parseFloat(getComputedStyle(element).borderRadius),
+  );
+  expect(backgroundRadius).toBeCloseTo(
+    Math.min(backgroundBounds!.width, backgroundBounds!.height) / 2,
+    2,
+  );
+  await expect(
+    editor.locator('.editor-real-preview input[type="checkbox"]'),
+  ).toBeVisible();
+
+  await editor.screenshot({
+    path: testInfo.outputPath("image-effects-choice-background-preview.png"),
+    animations: "disabled",
+  });
+});
+
+test("a correction preset keeps a referenced layout asset responsive @chromium-only", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const editor = await openCreatedEditor(page);
+  const image = new PNG({ width: 2400, height: 1700 });
+  let random = 0x12345678;
+  for (let offset = 0; offset < image.data.length; offset += 4) {
+    random ^= random << 13;
+    random ^= random >>> 17;
+    random ^= random << 5;
+    image.data[offset] = random & 0xff;
+    image.data[offset + 1] = (random >>> 8) & 0xff;
+    image.data[offset + 2] = (random >>> 16) & 0xff;
+    image.data[offset + 3] = 255;
+  }
+  const imageBytes = PNG.sync.write(image);
+  expect(imageBytes.byteLength).toBeGreaterThan(12 * 1024 * 1024);
+
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  const chooserPromise = page.waitForEvent("filechooser");
+  await editor.getByRole("button", { name: "Asset…" }).click();
+  await (
+    await chooserPromise
+  ).setFiles({
+    name: "referenced-profile.png",
+    mimeType: "image/png",
+    buffer: imageBytes,
+  });
+  await expect(
+    editor.getByRole("heading", {
+      name: "referenced-profile.png",
+      exact: true,
+    }),
+  ).toBeVisible();
+
+  await editor.getByRole("button", { name: "Jump details" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.locator(".cm-content");
+  await source.click();
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`jump
+  format: 1
+  name: "Responsive corrections"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+
+  choice
+    handle: card_placement
+    target: card
+
+choice
+  handle: card
+  name: "Referenced asset card"
+  layout: card_layout
+  selection: toggle
+
+  image
+    handle: backdrop
+    src: "referenced-profile.png"
+    alt: "A corrected backdrop"
+
+choice-layout
+  handle: card_layout
+
+  stack
+    padding: md
+    background-image: backdrop
+    background-fit: cover
+    slot: name
+    slot: control
+`);
+  await expect(editor.locator(".cm-lintRange-error")).toHaveCount(0);
+  await editor.getByRole("button", { name: "referenced-profile.png" }).click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const status = editor.locator(".asset-source-workspace-status");
+  await expect(status).toContainText("Local editor ready");
+  const assetPreview = editor.locator(".editor-asset-preview-panel img");
+  await expect(assetPreview).toBeVisible();
+  const previousPreviewSource = await assetPreview.getAttribute("src");
+  await expect(editor.locator(".editor-save-state")).toHaveText("Saved", {
+    timeout: 30_000,
+  });
+  await page.evaluate(() => {
+    const measure = {
+      active: true,
+      frames: 0,
+      lastFrame: performance.now(),
+      maxFrameGap: 0,
+    };
+    Object.assign(window, { __assetCorrectionMeasure: measure });
+    const frame = (now: number) => {
+      if (!measure.active) return;
+      measure.maxFrameGap = Math.max(
+        measure.maxFrameGap,
+        now - measure.lastFrame,
+      );
+      measure.lastFrame = now;
+      measure.frames += 1;
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  });
+  const correctionStarted = Date.now();
+  await editor.getByRole("button", { name: "Cool", exact: true }).click();
+  await expect
+    .poll(() => assetPreview.getAttribute("src"), { timeout: 60_000 })
+    .not.toBe(previousPreviewSource);
+  const proxyPreviewSource = await assetPreview.getAttribute("src");
+  await expect
+    .poll(() => assetPreview.evaluate((image) => image.naturalWidth))
+    .toBe(1024);
+  const previewLatency = Date.now() - correctionStarted;
+  await expect(status).toContainText("Preview updated", { timeout: 30_000 });
+  await expect(editor.locator(".editor-save-state")).toHaveText("Unsaved");
+  await expect(editor.locator(".editor-save-state")).toHaveText("Saved", {
+    timeout: 60_000,
+  });
+  await expect
+    .poll(() => assetPreview.getAttribute("src"), { timeout: 60_000 })
+    .not.toBe(proxyPreviewSource);
+  await expect
+    .poll(() => assetPreview.evaluate((image) => image.naturalWidth))
+    .toBe(2400);
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+  );
+  const correctionLatency = Date.now() - correctionStarted;
+  const responsiveness = await page.evaluate(() => {
+    const measure = (
+      window as typeof window & {
+        __assetCorrectionMeasure: {
+          active: boolean;
+          frames: number;
+          maxFrameGap: number;
+        };
+      }
+    ).__assetCorrectionMeasure;
+    measure.active = false;
+    return measure;
+  });
+  const responsivenessArtifact = testInfo.outputPath(
+    "asset-correction-responsiveness.json",
+  );
+  await writeFile(
+    responsivenessArtifact,
+    JSON.stringify(
+      { previewLatency, correctionLatency, ...responsiveness },
+      null,
+      2,
+    ),
+  );
+  await testInfo.attach("asset-correction-responsiveness", {
+    path: responsivenessArtifact,
+    contentType: "application/json",
+  });
+  expect(responsiveness.frames).toBeGreaterThan(2);
+  expect(responsiveness.maxFrameGap).toBeLessThan(250);
+  expect(previewLatency).toBeLessThan(750);
+
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "card", exact: true })
+    .click();
+  await expect(
+    editor.locator(".editor-real-preview .jump-layout-authored-background"),
+  ).toBeVisible();
+  await expect(
+    editor.getByText("Referenced asset card", { exact: true }),
+  ).toBeVisible();
 });
 
 test("Structured contextual additions open editable fields without redesigning the workspace", async ({

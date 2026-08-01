@@ -11,7 +11,11 @@ const png = Uint8Array.from(
   ),
   (character) => character.charCodeAt(0),
 );
-const assets = { "assets/pixel.png": png };
+const paddedPng = new Uint8Array(png.length + 2);
+paddedPng.set(png, 1);
+const assets = {
+  "assets/pixel.png": paddedPng.subarray(1, 1 + png.length),
+};
 
 test("asset object URLs remain live through Strict Mode effect replay", async () => {
   function Harness() {

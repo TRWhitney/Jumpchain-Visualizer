@@ -1,3 +1,5 @@
+import { decodeBytesFromJson } from "./binaryJson";
+
 export const ASSET_EDITOR_DOCUMENT_VERSION = 1;
 
 export type RasterCorrectionName =
@@ -170,6 +172,8 @@ const color = (value: unknown) =>
 
 const bytes = (value: unknown) => {
   if (value instanceof Uint8Array) return value;
+  const decoded = decodeBytesFromJson(value, 16 * 1024 * 1024);
+  if (decoded) return decoded;
   if (
     Array.isArray(value) &&
     value.length <= 16 * 1024 * 1024 &&

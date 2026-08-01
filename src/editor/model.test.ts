@@ -8,6 +8,7 @@ import {
   summarizeWorkspace,
 } from "./model";
 import { createRasterEditorDocument } from "./assetEditorModel";
+import { stringifyBinaryJson } from "./binaryJson";
 import { MemoryEditorWorkspaceRepository } from "./repository";
 
 describe("Editor workspaces", () => {
@@ -74,6 +75,22 @@ describe("Editor workspaces", () => {
     expect([...hydrated!.assets["assets/pixel.png"]]).toEqual([
       137, 80, 78, 71,
     ]);
+  });
+
+  it("hydrates compact desktop JSON assets and raster sidecars", () => {
+    const workspace = createStarterWorkspace("desktop-assets");
+    const bytes = Uint8Array.from([137, 80, 78, 71]);
+    workspace.assets["assets/pixel.png"] = bytes;
+    workspace.assetEditorDocuments["assets/pixel.png"] =
+      createRasterEditorDocument("png", bytes, 1, 1);
+    const hydrated = hydrateEditorWorkspace(
+      JSON.parse(stringifyBinaryJson(workspace)) as unknown,
+    );
+    expect(hydrated?.assets["assets/pixel.png"]).toEqual(bytes);
+    expect(hydrated?.assetEditorDocuments["assets/pixel.png"]).toMatchObject({
+      kind: "raster",
+      baseBytes: bytes,
+    });
   });
 
   it("hydrates recoverable Trash entries without exposing malformed paths", () => {

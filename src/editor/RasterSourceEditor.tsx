@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -36,7 +37,6 @@ import {
   type RasterTextLayer,
 } from "./assetEditorModel";
 import { RasterRenderClient } from "./rasterRenderClient";
-import { renderCorrectedRasterProxy } from "./rasterCorrections";
 import { extractSafeImageMetadata } from "./safeImageMetadata";
 import { translate } from "../localization";
 import { NumberStepperButtons } from "../tracker/NumberStepper";
@@ -451,40 +451,89 @@ function useCorrectedProxyImage(
   document: RasterAssetEditorDocument,
   proxyScale: number,
   showOriginal: boolean,
+  renderClient: RasterRenderClient | null,
+  onPreview: (preview: Blob | null) => void,
 ) {
-  const [corrected, setCorrected] = useState<
-    HTMLImageElement | HTMLCanvasElement | null
-  >(image);
+  const [corrected, setCorrected] = useState<CanvasImageSource | null>(image);
+  const bitmap = useRef<ImageBitmap | null>(null);
+  const proxyDocument = useMemo(
+    () => ({
+      baseBytes: document.baseBytes,
+      baseHeight: document.baseHeight,
+      baseWidth: document.baseWidth,
+      corrections: document.corrections,
+      format: document.format,
+    }),
+    [
+      document.baseBytes,
+      document.baseHeight,
+      document.baseWidth,
+      document.corrections,
+      document.format,
+    ],
+  );
 
   useEffect(() => {
-    if (!image || showOriginal) {
+    if (
+      !image ||
+      showOriginal ||
+      !renderClient ||
+      Object.values(proxyDocument.corrections).every((value) => value === 0)
+    ) {
+      const previousBitmap = bitmap.current;
+      bitmap.current = null;
+      onPreview(null);
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCorrected(image);
+      if (previousBitmap)
+        window.requestAnimationFrame(() => previousBitmap.close());
       return;
     }
-    let cancelled = false;
+    const controller = new AbortController();
     const frame = window.requestAnimationFrame(() => {
-      const next = renderCorrectedRasterProxy(
-        image,
-        document.baseWidth * proxyScale,
-        document.baseHeight * proxyScale,
-        document.corrections,
-        proxyScale,
-      );
-      if (!cancelled) setCorrected(next);
+      void renderClient
+        .renderProxy(
+          proxyDocument,
+          proxyDocument.baseWidth * proxyScale,
+          proxyDocument.baseHeight * proxyScale,
+          controller.signal,
+        )
+        .then((result) => {
+          if (controller.signal.aborted) {
+            result.bitmap.close();
+            return;
+          }
+          const previousBitmap = bitmap.current;
+          bitmap.current = result.bitmap;
+          setCorrected(result.bitmap);
+          if (previousBitmap)
+            window.requestAnimationFrame(() => previousBitmap.close());
+          const canvas = window.document.createElement("canvas");
+          canvas.width = result.width;
+          canvas.height = result.height;
+          canvas.getContext("2d")?.drawImage(result.bitmap, 0, 0);
+          canvas.toBlob((blob) => {
+            if (!controller.signal.aborted && blob) onPreview(blob);
+          }, "image/png");
+        })
+        .catch((error: unknown) => {
+          if (!controller.signal.aborted)
+            console.error("Raster proxy rendering failed.", error);
+        });
     });
     return () => {
-      cancelled = true;
+      controller.abort();
       window.cancelAnimationFrame(frame);
     };
-  }, [
-    document.baseHeight,
-    document.baseWidth,
-    document.corrections,
-    image,
-    proxyScale,
-    showOriginal,
-  ]);
+  }, [image, onPreview, proxyScale, proxyDocument, renderClient, showOriginal]);
+
+  useEffect(
+    () => () => {
+      bitmap.current?.close();
+      bitmap.current = null;
+    },
+    [],
+  );
 
   return corrected;
 }
@@ -570,6 +619,7 @@ export function RasterSourceEditor({
   readOnly,
   keybindings,
   onCommit,
+  onPreview,
   onStatus,
   onFocusChange,
   onUndo,
@@ -588,6 +638,7 @@ export function RasterSourceEditor({
     document: RasterAssetEditorDocument,
     historyLabel: string,
   ) => void;
+  onPreview: (preview: Blob | null, sourceBytes: Uint8Array) => void;
   onStatus: (status: string, invalid: boolean) => void;
   onFocusChange: (focused: boolean) => void;
   onUndo: () => void;
@@ -631,6 +682,13 @@ export function RasterSourceEditor({
     top: number;
   } | null>(null);
   const renderClient = useRef<RasterRenderClient | null>(null);
+  const previewSourceBytes = useRef(bytes);
+  const publishPreview = useCallback(
+    (preview: Blob | null) => onPreview(preview, previewSourceBytes.current),
+    [onPreview],
+  );
+  const [proxyRenderClient, setProxyRenderClient] =
+    useState<RasterRenderClient | null>(null);
   const renderAbort = useRef<AbortController | null>(null);
   const renderGeneration = useRef(0);
   const textTimer = useRef<number | null>(null);
@@ -665,7 +723,7 @@ export function RasterSourceEditor({
     draft.transform.rotation === 90 || draft.transform.rotation === 270;
   const transformWidth = Math.max(1, rotated ? crop.height : crop.width);
   const transformHeight = Math.max(1, rotated ? crop.width : crop.height);
-  const maxProxy = 2_048;
+  const maxProxy = 1_024;
   const proxyScale = Math.min(
     1,
     maxProxy /
@@ -676,6 +734,8 @@ export function RasterSourceEditor({
     draft,
     proxyScale,
     compare,
+    proxyRenderClient,
+    publishPreview,
   );
   const stageScale = proxyScale * zoom;
   const stageWidth = Math.max(
@@ -705,11 +765,15 @@ export function RasterSourceEditor({
 
   useEffect(() => {
     renderClient.current = new RasterRenderClient();
+    const proxyClient = new RasterRenderClient();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setProxyRenderClient(proxyClient);
     return () => {
       if (textTimer.current) window.clearTimeout(textTimer.current);
       renderAbort.current?.abort();
       renderClient.current?.dispose();
       renderClient.current = null;
+      proxyClient.dispose();
     };
   }, []);
 
@@ -770,6 +834,8 @@ export function RasterSourceEditor({
     next: RasterAssetEditorDocument,
     historyLabel: string,
   ) => {
+    previewSourceBytes.current = bytes;
+    onPreview(null, bytes);
     const renderDocument = { ...next, validationError: undefined };
     setDraft(renderDocument);
     renderAbort.current?.abort();

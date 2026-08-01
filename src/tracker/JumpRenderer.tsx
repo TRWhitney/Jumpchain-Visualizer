@@ -3,7 +3,9 @@ import {
   type CSSProperties,
   type Dispatch,
   type ReactNode,
+  useCallback,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -11,6 +13,7 @@ import type {
   CanonicalJumpPackage,
   ChoiceSource,
   ImageBlock,
+  ImageEffects,
   JumpChoice,
   JumpLayout,
   LayoutNode,
@@ -63,26 +66,107 @@ const displayHandle = (handle: string) =>
     .map((part) => `${part.charAt(0).toLocaleUpperCase()}${part.slice(1)}`)
     .join(" ");
 
+function imageEffectStyle(effects: ImageEffects | undefined): CSSProperties {
+  if (!effects) return {};
+  const fadeIntensity = Math.min(100, Math.max(1, effects.fadeIntensity));
+  const fadeInset = 1 + fadeIntensity * 0.29;
+  const blurDeviation = fadeInset / 6;
+  const rectangleInset = fadeInset / 2;
+  const fadeMaskSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><filter id="soft-edge" x="-50" y="-50" width="200" height="200" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="${blurDeviation.toFixed(3)}"/></filter></defs><rect x="${rectangleInset.toFixed(3)}" y="${rectangleInset.toFixed(3)}" width="${(100 - rectangleInset * 2).toFixed(3)}" height="${(100 - rectangleInset * 2).toFixed(3)}" fill="white" filter="url(#soft-edge)"/></svg>`;
+  const fadeMask = effects.fadeEdges
+    ? `url("data:image/svg+xml,${encodeURIComponent(fadeMaskSvg)}")`
+    : undefined;
+  return {
+    maskImage: fadeMask,
+    maskMode: effects.fadeEdges ? "alpha" : undefined,
+    maskPosition: effects.fadeEdges ? "center" : undefined,
+    maskRepeat: effects.fadeEdges ? "no-repeat" : undefined,
+    maskSize: effects.fadeEdges ? "100% 100%" : undefined,
+    WebkitMaskImage: fadeMask,
+    WebkitMaskPosition: effects.fadeEdges ? "center" : undefined,
+    WebkitMaskRepeat: effects.fadeEdges ? "no-repeat" : undefined,
+    WebkitMaskSize: effects.fadeEdges ? "100% 100%" : undefined,
+  };
+}
+
+function useImageCornerRadius(
+  enabled: boolean,
+  intensity: number,
+  tiled: boolean,
+) {
+  const elementRef = useRef<HTMLElement | null>(null);
+  const [cornerRadius, setCornerRadius] = useState<string>();
+  const setElementRef = useCallback((element: HTMLElement | null) => {
+    elementRef.current = element;
+  }, []);
+  useLayoutEffect(() => {
+    const element = elementRef.current;
+    if (!enabled || !element) {
+      setCornerRadius(undefined);
+      return;
+    }
+    const boundedIntensity = Math.min(100, Math.max(1, intensity));
+    const update = () => {
+      const bounds = element.getBoundingClientRect();
+      setCornerRadius(
+        `${((Math.min(bounds.width, bounds.height) * boundedIntensity) / 200).toFixed(3)}px`,
+      );
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [enabled, intensity, tiled]);
+  return { setElementRef, cornerRadius };
+}
+
+function imageEffectAttributes(effects: ImageEffects | undefined) {
+  return {
+    "data-rounded-corners": effects?.roundedCorners ? "true" : undefined,
+    "data-rounded-intensity": effects?.roundedCorners
+      ? effects.roundedIntensity
+      : undefined,
+    "data-fade-edges": effects?.fadeEdges ? "true" : undefined,
+    "data-fade-intensity": effects?.fadeEdges
+      ? effects.fadeIntensity
+      : undefined,
+  };
+}
+
 export function RenderedJumpImage({
   source,
   alternativeText,
   style,
+  effects,
   tiled = false,
 }: {
   source: string;
   alternativeText: string;
   style?: CSSProperties;
+  effects?: ImageEffects;
   tiled?: boolean;
 }) {
   const settingsContext = useOptionalSettings();
   const showAltTextOnHover =
     settingsContext?.settings.accessibility.imageAltTextHover ?? true;
+  const { setElementRef, cornerRadius } = useImageCornerRadius(
+    effects?.roundedCorners ?? false,
+    effects?.roundedIntensity ?? 25,
+    tiled,
+  );
+  const effectStyle = {
+    ...imageEffectStyle(effects),
+    borderRadius: cornerRadius,
+  };
+  const effectAttributes = imageEffectAttributes(effects);
   return (
     <>
       {tiled ? (
         <span
+          ref={setElementRef}
           className="jump-tiled-image"
-          style={layoutTiledImageStyle(source)}
+          style={{ ...layoutTiledImageStyle(source), ...effectStyle }}
+          {...effectAttributes}
         >
           <img
             src={source}
@@ -91,7 +175,13 @@ export function RenderedJumpImage({
           />
         </span>
       ) : (
-        <img src={source} alt={alternativeText} style={style} />
+        <img
+          ref={setElementRef}
+          src={source}
+          alt={alternativeText}
+          style={{ ...style, ...effectStyle }}
+          {...effectAttributes}
+        />
       )}
       {alternativeText && showAltTextOnHover && (
         <span className="jump-image-alt-tooltip" role="tooltip">
@@ -1322,7 +1412,7 @@ function layoutColorInspectionData(
   };
 }
 
-function layoutBackgroundImageSource(
+function resolveLayoutBackgroundImage(
   node: LayoutNode,
   images: readonly ImageBlock[],
   resolveAsset?: JumpAssetResolver,
@@ -1330,7 +1420,38 @@ function layoutBackgroundImageSource(
   const handle = node.presentation.backgroundImage;
   if (!handle) return null;
   const image = images.find((candidate) => candidate.handle === handle);
-  return resolveJumpImageSource(image?.src, resolveAsset);
+  if (!image) return null;
+  const source = resolveJumpImageSource(image.src, resolveAsset);
+  return source ? { image, source } : null;
+}
+
+function LayoutBackgroundImage({
+  node,
+  background,
+}: {
+  node: LayoutNode;
+  background: { image: ImageBlock; source: string } | null;
+}) {
+  const effects = background?.image.effects;
+  const { setElementRef, cornerRadius } = useImageCornerRadius(
+    effects?.roundedCorners ?? false,
+    effects?.roundedIntensity ?? 25,
+    node.presentation.backgroundFit === "tile",
+  );
+  if (!background) return null;
+  return (
+    <span
+      ref={setElementRef}
+      aria-hidden="true"
+      className="jump-layout-authored-background"
+      style={{
+        ...layoutBackgroundImageStyle(node, background.source),
+        ...imageEffectStyle(effects),
+        borderRadius: cornerRadius,
+      }}
+      {...imageEffectAttributes(effects)}
+    />
+  );
 }
 
 function LayoutLeafBoundary({
@@ -1364,7 +1485,7 @@ function LayoutLeafBoundary({
   )
     ? node.presentation.controlAdornments !== false
     : undefined;
-  const backgroundSource = layoutBackgroundImageSource(
+  const background = resolveLayoutBackgroundImage(
     node,
     ownerImages,
     resolveAsset,
@@ -1385,16 +1506,16 @@ function LayoutLeafBoundary({
             ? "on"
             : "off"
       }
-      data-jump-background-image={backgroundSource ?? undefined}
+      data-jump-background-image={background?.source ?? undefined}
       {...layoutColorInspectionData(node, layout, path)}
       style={{
         ...layoutLeafPresentationStyle(node, packageItem, parentKind),
-        ...layoutBackgroundImageStyle(node, backgroundSource),
         ...(node.kind === "image"
           ? layoutImageBoundaryStyle(node, parentKind)
           : {}),
       }}
     >
+      <LayoutBackgroundImage node={node} background={background} />
       {children}
     </div>
   );
@@ -1551,6 +1672,7 @@ function Layout({
             source={source}
             alternativeText={resolved(item.alt, props)}
             style={layoutImageStyle(node, parentKind)}
+            effects={item.effects}
             tiled={node.presentation.fit === "tile"}
           />,
         )
@@ -1619,7 +1741,7 @@ function Layout({
   );
   if (!children.some((child) => child !== null && child !== undefined))
     return null;
-  const backgroundSource = layoutBackgroundImageSource(
+  const background = resolveLayoutBackgroundImage(
     node,
     ownerImages,
     props.resolveAsset,
@@ -1627,16 +1749,14 @@ function Layout({
   return (
     <Tag
       className={`jump-layout-${node.kind}`}
-      style={{
-        ...layoutContainerPresentationStyle(node, props.packageItem),
-        ...layoutBackgroundImageStyle(node, backgroundSource),
-      }}
-      data-jump-background-image={backgroundSource ?? undefined}
+      style={layoutContainerPresentationStyle(node, props.packageItem)}
+      data-jump-background-image={background?.source ?? undefined}
       data-layout-bound={structuralPath}
       data-layout-kind={node.kind}
       data-layout-bound-kind="container"
       {...layoutColorInspectionData(node, layout, structuralPath)}
     >
+      <LayoutBackgroundImage node={node} background={background} />
       {children.map((child, index) => (
         <Fragment
           key={`${structuralPath}/${node.children[index].kind}[${index + 1}]`}
@@ -1829,6 +1949,7 @@ function TraitLayoutNode({
             source={source}
             alternativeText={resolved(item.alt, props)}
             style={layoutImageStyle(node, parentKind)}
+            effects={item.effects}
             tiled={node.presentation.fit === "tile"}
           />,
         )
@@ -1837,7 +1958,7 @@ function TraitLayoutNode({
   if (node.kind === "rule")
     return bound(<hr style={layoutRuleStyle(node, props.packageItem)} />);
   if (!["stack", "inline", "wrap", "grid"].includes(node.kind)) return null;
-  const backgroundSource = layoutBackgroundImageSource(
+  const background = resolveLayoutBackgroundImage(
     node,
     ownerImages,
     props.resolveAsset,
@@ -1845,16 +1966,14 @@ function TraitLayoutNode({
   return (
     <div
       className={`jump-layout-${node.kind}`}
-      style={{
-        ...layoutContainerPresentationStyle(node, props.packageItem),
-        ...layoutBackgroundImageStyle(node, backgroundSource),
-      }}
-      data-jump-background-image={backgroundSource ?? undefined}
+      style={layoutContainerPresentationStyle(node, props.packageItem)}
+      data-jump-background-image={background?.source ?? undefined}
       data-layout-bound={structuralPath}
       data-layout-kind={node.kind}
       data-layout-bound-kind="container"
       {...layoutColorInspectionData(node, layout, structuralPath)}
     >
+      <LayoutBackgroundImage node={node} background={background} />
       {node.children.map((child, index) => {
         const childNode = (
           <TraitLayoutNode
@@ -2017,6 +2136,7 @@ export function JumpImageRendererScope({
           <RenderedJumpImage
             source={source}
             alternativeText={resolved(image.alt, rendererProps)}
+            effects={image.effects}
           />
         </span>
       </article>

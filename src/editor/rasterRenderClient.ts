@@ -1,11 +1,16 @@
 import type { RasterAssetEditorDocument } from "./assetEditorModel";
 import {
   renderRasterDocument,
+  renderRasterProxy,
+  type RasterProxyRenderResult,
+  type RasterProxySource,
   type RasterRenderResult,
 } from "./rasterRenderer";
 
+type WorkerRenderResult = RasterRenderResult | RasterProxyRenderResult;
+
 type PendingRender = {
-  resolve: (result: RasterRenderResult) => void;
+  resolve: (result: WorkerRenderResult) => void;
   reject: (error: Error) => void;
   removeAbort: () => void;
 };
@@ -34,12 +39,16 @@ export class RasterRenderClient {
     event: MessageEvent<{
       type: "complete" | "error";
       generation: number;
-      result?: RasterRenderResult;
+      result?: WorkerRenderResult;
       message?: string;
     }>,
   ) => {
     const pending = this.pending.get(event.data.generation);
-    if (!pending) return;
+    if (!pending) {
+      if (event.data.result && "bitmap" in event.data.result)
+        event.data.result.bitmap.close();
+      return;
+    }
     this.pending.delete(event.data.generation);
     pending.removeAbort();
     if (event.data.type === "complete" && event.data.result)
@@ -47,11 +56,22 @@ export class RasterRenderClient {
     else pending.reject(new Error(event.data.message ?? "Rendering failed."));
   };
 
-  render(document: RasterAssetEditorDocument, signal?: AbortSignal) {
+  private request<Result extends WorkerRenderResult>(
+    message:
+      | { type: "render"; document: RasterAssetEditorDocument }
+      | {
+          type: "render-proxy";
+          document: RasterProxySource;
+          width: number;
+          height: number;
+        },
+    fallback: () => Promise<Result>,
+    signal?: AbortSignal,
+  ) {
     const generation = ++this.generation;
-    if (!this.worker) return renderRasterDocument(document, signal);
+    if (!this.worker) return fallback();
     const worker = this.worker;
-    return new Promise<RasterRenderResult>((resolve, reject) => {
+    return new Promise<Result>((resolve, reject) => {
       const abort = () => {
         worker.postMessage({ type: "cancel", generation });
         const pending = this.pending.get(generation);
@@ -65,12 +85,33 @@ export class RasterRenderClient {
       };
       signal?.addEventListener("abort", abort, { once: true });
       this.pending.set(generation, {
-        resolve,
+        resolve: (result) => resolve(result as Result),
         reject,
         removeAbort: () => signal?.removeEventListener("abort", abort),
       });
-      worker.postMessage({ type: "render", generation, document });
+      worker.postMessage({ ...message, generation });
     });
+  }
+
+  render(document: RasterAssetEditorDocument, signal?: AbortSignal) {
+    return this.request(
+      { type: "render", document },
+      () => renderRasterDocument(document, signal),
+      signal,
+    );
+  }
+
+  renderProxy(
+    document: RasterProxySource,
+    width: number,
+    height: number,
+    signal?: AbortSignal,
+  ) {
+    return this.request(
+      { type: "render-proxy", document, width, height },
+      () => renderRasterProxy(document, width, height, signal),
+      signal,
+    );
   }
 
   dispose() {

@@ -20,6 +20,10 @@ section
     handle: visual
     src: "visual.png"
     alt: "Visual"
+    rounded-corners: true
+    rounded-intensity: 80
+    fade-edges: true
+    fade-intensity: 60
 
   choice-source
     handle: available
@@ -69,6 +73,10 @@ describe("Structured preview selection", () => {
         handle: "visual",
         src: "visual.png",
         alt: "Visual",
+        roundedCorners: true,
+        roundedIntensity: 80,
+        fadeEdges: true,
+        fadeIntensity: 60,
         sectionHandle: "introduction",
       },
     ],

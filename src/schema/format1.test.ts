@@ -96,6 +96,33 @@ describe("unreleased Format 1 identity amendment", () => {
       });
   });
 
+  it("defines independent image effects and bounded fade intensity", () => {
+    expect(schemaJson.declarations.image.fields).toMatchObject({
+      "rounded-corners": {
+        type: "boolean",
+        default: false,
+      },
+      "rounded-intensity": {
+        type: "integer",
+        minimum: 1,
+        maximum: 100,
+        default: 25,
+        appliesWhen: { "rounded-corners": ["true"] },
+      },
+      "fade-edges": {
+        type: "boolean",
+        default: false,
+      },
+      "fade-intensity": {
+        type: "integer",
+        minimum: 1,
+        maximum: 100,
+        default: 25,
+        appliesWhen: { "fade-edges": ["true"] },
+      },
+    });
+  });
+
   it("accepts continuity only on the top-level choice form", () => {
     const choice = schema.declarations.choice;
     expect(choice.formsByContext?.["top-level"].fields.continuity).toEqual({

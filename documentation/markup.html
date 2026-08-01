@@ -276,6 +276,14 @@ Its localized rejection feedback names the single failed rule—unsupported exte
 configured file-size limit, invalid or duplicate path, signature mismatch, decode
 failure, PNG integrity, trailing data, decoded geometry, or decoded-dimension
 mismatch—rather than presenting a list of possible causes.</p>
+<p>The raster Asset Source editor keeps corrections non-destructive. Its bounded
+interactive correction proxy runs in a dedicated worker while a separate worker
+produces and validates the full-resolution commit. Updating asset bytes does not
+repeat source analysis unless the set of asset paths changes; Image blocks and
+layout backgrounds receive the correction proxy immediately, followed by the
+validated full-resolution result when the commit completes. Validated raster
+metadata is reused for that handoff, unchanged asset URLs are retained, and
+browser or desktop project serialization runs outside the foreground editor.</p>
 <h3>Current File Roles</h3>
 <h4><code>jump.jdef</code></h4>
 <p>Required.</p>
@@ -932,12 +940,19 @@ choice group; that Choice's rendered name becomes the property value.</p>
 <li>required <code>handle</code></li>
 <li>optional WIP <code>src</code></li>
 <li>optional <code>alt</code></li>
+<li>independent optional <code>rounded-corners</code> and <code>fade-edges</code> effects</li>
+<li>optional <code>rounded-intensity</code> from <code>1</code> through <code>100</code> when rounded corners are enabled</li>
+<li>optional <code>fade-intensity</code> from <code>1</code> through <code>100</code> when edge fading is enabled</li>
 </ul>
 <p>Example direction:</p>
 <pre><code class="language-text">image
   handle: banner
   src: &quot;origins.png&quot;
   alt: &quot;A banner for the origins section&quot;
+  rounded-corners: true
+  rounded-intensity: 70
+  fade-edges: true
+  fade-intensity: 40
 </code></pre>
 <p>Current rules:</p>
 <ul>
@@ -956,6 +971,9 @@ conditional <code>when</code> variants just like other renderable text fields</l
 <li>a rendered image exposes its active alternative text as a hover tooltip in both
 an isolated image-block preview and any section, choice, or trait layout that contains it;
 an omitted or empty <code>alt</code> produces no tooltip</li>
+<li><code>rounded-corners</code> and <code>fade-edges</code> are independent Boolean effects and both default to <code>false</code>; each follows the Image block wherever it is rendered, including owner-local layout backgrounds. A background receives the effect on a dedicated image layer so overlaid layout text and controls remain sharp and interactive.</li>
+<li><code>rounded-intensity</code> defaults to <code>25</code> and maps from a subtle circular corner radius at <code>1</code> to half the image’s shorter rendered edge at <code>100</code>; this preserves circular corners and produces a capsule rather than an ellipse for a wide image, and the field is applicable only while <code>rounded-corners</code> is <code>true</code></li>
+<li><code>fade-intensity</code> defaults to <code>25</code> and controls a Gaussian-softened inset alpha mask modeled after Office soft edges; only the band from each outer boundary to its intensity-derived inset is softened while the inner fill stays opaque, the rectangular image boundary remains distinct from corner rounding, and the field is applicable only while <code>fade-edges</code> is <code>true</code></li>
 <li>image sizing belongs in layout/presentation, not in the semantic <code>image</code>
 declaration</li>
 </ul>
@@ -1663,7 +1681,11 @@ roll slots do not accept <code>text-size</code> or
 <code>text-color</code>. A text-bearing leaf boundary owns its padding,
 background color or image, alignment, text alignment, text size, and text color, so rich text
 containing multiple paragraphs, lists, or tables receives one coherent
-presentation box. Image leaves are non-text content and therefore expose only
+presentation box. In a Section layout, an authored background color continues
+as paint through the Section's horizontal appearance padding without changing
+the node's box, width, padding, alignment, bounds, or content position. An authored
+layout <code>text-color</code>, including one on the Section's Name slot,
+overrides the corresponding Jump appearance text role. Image leaves are non-text content and therefore expose only
 target, padding, background color or image, align, image dimensions, and fit.</p>
 <p>Direct <code>inline</code> and <code>wrap</code> children participate in one
 source-ordered flex row. Unstretched leaves retain a bounded content area so

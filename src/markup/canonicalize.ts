@@ -331,6 +331,12 @@ function imageBlock(
     ),
     src,
     alt: renderable(node, "alt"),
+    effects: {
+      roundedCorners: boolean(node, "rounded-corners") ?? false,
+      roundedIntensity: integer(node, "rounded-intensity") ?? 25,
+      fadeEdges: boolean(node, "fade-edges") ?? false,
+      fadeIntensity: integer(node, "fade-intensity") ?? 25,
+    },
   };
 }
 

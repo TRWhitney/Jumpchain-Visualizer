@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A repeatable agent playbook for converting source Jump PDFs into validated Format 1 .jmp packages.">
+  <title>Jump Conversion Guide | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="documentation.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home">
+      <span class="site-mark" aria-hidden="true">JV</span>
+      <span>Jumpchain Visualizer <small>Documentation</small></span>
+    </a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html">Overview</a>
+      <a href="markup.html">Markup</a>
+      <a href="tags-design.html">Tags</a>
+      <a href="editor-design.html">Editor design</a>
+      <a href="choice-rendering-design.html">Controls</a>
+      <a href="jump-conversion-guide.html" aria-current="page">Conversion</a>
+    </nav>
+  </header>
+
+  <div class="page-shell">
+    <aside class="sidebar" aria-labelledby="contents-heading">
+      <div class="sidebar-inner">
+        <h2 id="contents-heading">On this page</h2>
+        <nav id="table-of-contents" aria-label="Jump conversion guide sections">
+          <p class="toc-fallback">Section links appear when JavaScript is available.</p>
+        </nav>
+      </div>
+    </aside>
+
+    <main id="content" class="document" tabindex="-1">
+      <article>
+        <p class="eyebrow">Living agent playbook</p>
+        <h1>PDF-to-<code>.jmp</code> Conversion Guide</h1>
+        <p class="lede">A decision-oriented workflow for reproducing the content, mechanics, artwork, color, and composition of an existing Jump without hiding what Format 1 cannot express.</p>
+
+        <div class="status-note" role="note">
+          <strong>Status: reference workflow established.</strong> The supplied source is authoritative, semantic and visual fidelity are separate hard gates, and every approximation must be explicit and traceable. Apply the companion <a href="jump-conversion-visual-fidelity.html">visual-fidelity protocol</a> to every conversion.
+        </div>
+
+        <h2>Conversion contract</h2>
+        <p>A complete conversion delivers an editable project, a validated <code>.jmp</code>, extracted graphical assets, and a ledger connecting every source block to its representation. It is not complete merely because the archive imports.</p>
+        <ul>
+          <li><strong>Content fidelity:</strong> every heading, instruction, option, cost, award, description, and outcome is transcribed or deliberately marked uncertain.</li>
+          <li><strong>Semantic fidelity:</strong> selections, costs, grants, properties, rolls, quantities, and ownership behave like the source wherever the format supports them.</li>
+          <li><strong>Interaction fidelity:</strong> controls, roll affordances, cost badges, and clearing behavior remain understandable and reachable.</li>
+          <li><strong>Visual fidelity:</strong> measured source silhouettes, major bounds, artwork, palette, hierarchy, density, and column rhythm pass an equal-width comparison or are explicitly marked blocked.</li>
+          <li><strong>Traceability:</strong> unsupported behavior is named in prose and the ledger instead of being approximated invisibly.</li>
+        </ul>
+
+        <h2>Working-area structure</h2>
+        <p>Conversion inputs and copyrighted source assets belong in an ignored scratch tree. Only reusable process documentation and gap decisions belong in the repository.</p>
+        <pre><code class="language-text">scratch/conversion-name/
+  source/                 # authoritative PDF and supplied references
+  extracted/pages/        # lossless page renders used for comparison
+  extracted/assets/       # reusable crops with source coordinates
+  project/
+    jump.jdef
+    choices.jdef
+    layout.jdef
+    assets/
+  conversion-ledger.json
+  converted-jump.jmp
+  extract_pdf.py
+  build.mjs</code></pre>
+        <p>Never place the source PDF inside a <code>.jmp</code>. The archive accepts definition files and validated graphical assets only, and its limits and path rules remain a security boundary rather than a conversion inconvenience.</p>
+
+        <h2>Phase 1: establish source truth</h2>
+        <ol>
+          <li>Record the exact supplied filename, page count, page dimensions, visible title, author, edition, and whether a selectable text layer exists.</li>
+          <li>Hash or retain the original bytes unchanged. A web copy may clarify text but must not silently replace the supplied edition.</li>
+          <li>Render every page losslessly. For an image-only PDF, inspect the embedded image streams before introducing resampling.</li>
+          <li>Transcribe once from enlarged renders and a second time while comparing each block directly with its page.</li>
+          <li>Mark each ledger entry <code>verified</code>, <code>uncertain</code>, or <code>externally-corroborated</code>. Never use “verified” for a guess.</li>
+        </ol>
+        <p>Secondary sources are evidence only. Record the source and the exact uncertainty they resolved; retain the PDF wording when sources disagree.</p>
+
+        <h2>Phase 2: build the semantic inventory</h2>
+        <p>Inventory source concepts before writing declarations. Separate rules prose from actionable controls, and separate a thing's acquisition from its presentation.</p>
+        <table>
+          <thead><tr><th>Source concept</th><th>Preferred Format 1 representation</th><th>Key check</th></tr></thead>
+          <tbody>
+            <tr><td>Informational prose</td><td>Section-owned <code>text</code></td><td>Does no user action or state depend on it?</td></tr>
+            <tr><td>Independent purchase</td><td>Direct Choice placement</td><td>May it be selected without affecting sibling membership?</td></tr>
+            <tr><td>Choose one or choose many</td><td><code>choice-source</code> with <code>single</code> or <code>multi</code></td><td>Is membership semantic rather than merely visual?</td></tr>
+            <tr><td>Roll or pay to choose</td><td><code>resolution: either</code> plus normal costs</td><td>Does a rolled value become free?</td></tr>
+            <tr><td>Repeatable purchase</td><td>Integer Choice, <code>min: 0</code>, <code>cost mode: each</code></td><td>Does the numeric measure represent units or purchase batches?</td></tr>
+            <tr><td>Identity value</td><td>Property grant</td><td>Is it engine state rather than acquired inventory?</td></tr>
+            <tr><td>Durable ability</td><td>Perk grant</td><td>Does it remain useful beyond this Jump?</td></tr>
+            <tr><td>Durable possession</td><td>Item grant</td><td>Is it owned rather than merely available locally?</td></tr>
+            <tr><td>Person or creature joining the chain</td><td>Companion grant with stable handle</td><td>Can later grants target this companion?</td></tr>
+            <tr><td>Current-Jump status, history, restriction, or drawback</td><td>Trait grant</td><td>Should it disappear from chain-wide perk/item inventory after the Jump?</td></tr>
+            <tr><td>Point or secondary currency change</td><td>Cost or resource grant</td><td>Is a negative primary cost the concise drawback award?</td></tr>
+          </tbody>
+        </table>
+        <p>Traits are the user-visible catchall for Jump-local circumstances. They render in the current Jump evaluation but are intentionally excluded from accumulated perk and item records. Do not convert a temporary biography, legal status, local curse, or insertion condition into a durable perk merely to make it visible.</p>
+
+        <h2>Phase 3: choose stable authoring identities</h2>
+        <ul>
+          <li>Generate lower-snake-case handles from semantic names, then resolve collisions deliberately. A renamed display label must not force a handle change.</li>
+          <li>Use one package-wide group label for true shared membership. Do not use groups as layout columns.</li>
+          <li>Use direct placement handles when individually selectable cards need an authored grid.</li>
+          <li>Give companions and forms explicit stable handles before authoring targeted perks, resources, or ownership.</li>
+          <li>Keep source order unless the source itself states another ordering rule.</li>
+        </ul>
+
+        <h2>Phase 4: assign tags</h2>
+        <p>Tags describe searchable effects. They do not encode mechanics.</p>
+        <ul>
+          <li>Prefer one to three concrete built-in tags such as <code>survival</code>, <code>repair</code>, <code>telekinesis</code>, <code>communications</code>, or <code>wealth</code>.</li>
+          <li>Add a narrow setting tag such as <code>pokemon</code> only when it materially improves search.</li>
+          <li>Put shared tags on the Choice so ordinary grants inherit them. Put tags on a block grant when one Choice creates records with different meanings.</li>
+          <li>Do not tag a cost, discount, prerequisite, rarity, source page, section name, or unsupported rule.</li>
+          <li>Avoid redundant <code>perk</code>, <code>item</code>, and <code>companion</code> tags when record kind already communicates the distinction.</li>
+        </ul>
+        <p>The application's canonicalization and user-owned tag relationships remain authoritative. A converter must not invent author-controlled hierarchy or badge styling.</p>
+
+        <h2>Phase 5: extract and place images</h2>
+        <p>Images preserve irreducible artwork, not authoring work. Before creating any crop that contains meaningful text, cost, rules, borders, or card composition, complete a semantic expressibility audit against the available section and choice layout nodes.</p>
+        <ol>
+          <li>Retain lossless full-page renders for verification.</li>
+          <li>Crop only coherent graphical units that cannot reasonably be authored: logos, maps, individual sprites, character art, and textures. Record each crop's page and pixel bounds.</li>
+          <li>Rebuild labels, descriptions, rules, costs, separators, backgrounds, and card structure with live Text, Slot, Rule, Stack, Inline, Wrap, and Grid nodes wherever those primitives can express them.</li>
+          <li>Split mixed source strips into artwork-only crops and live text. For example, crop the six Starting Kit sprites separately and author their labels and descriptions in a six-column grid.</li>
+          <li>Remove neither attribution nor meaningful labels when the crop depends on them for interpretation.</li>
+          <li>Use PNG for source raster art unless a supported lossless format provides a material size benefit. Do not trace source raster art into invented SVG.</li>
+          <li>Provide concise semantic alternative text. Decorative layout backgrounds must still originate from a validated Image block, but are not announced twice.</li>
+          <li>Check per-image, package-pixel, expanded-byte, and compression-ratio limits before polishing layouts.</li>
+        </ol>
+
+        <h2>Phase 6: reproduce layout and color</h2>
+        <p>First create the machine-readable visual specification required by the <a href="jump-conversion-visual-fidelity.html">visual-fidelity protocol</a>. Measure aspect ratios, major bounds, typography hierarchy, art anchoring, gaps, rules, and occupied-to-empty-area ratio before choosing layouts. Then sample exact source colors and map them to semantic appearance roles. A page's color is not automatically a safe control or focus color; contrast diagnostics must remain clean.</p>
+        <ul>
+          <li>Cluster repeated source cards into measured archetypes, then use section layouts for major hierarchy and choice layouts for the repeated anatomy.</li>
+          <li>Match silhouette and major bounds before hierarchy and styling. Do not substitute a conventional name/art/prose stack when the source is a horizontal strip or asymmetrical display composition.</li>
+          <li>Place cost and action controls at the source's natural action edge. Re-measure after adding controls because an otherwise correct card can fail when a control rail changes its height.</li>
+          <li>Live semantic name, cost, artwork, prose, rules, and controls are the primary presentation. A text-bearing facsimile is a separate fallback mode, never a substitute for attempting the semantic layout.</li>
+          <li>Use responsive two- or three-column grids only when individual direct choices occupy the cells. An <code>expand</code> is a single layout node and does not expose authored columns for its child cards.</li>
+          <li>Use rules, backgrounds, borders, spacing, text-size tokens, and image sizing before declaring a gap, then cite the exact schema or renderer constraint for anything marked blocked.</li>
+        </ul>
+
+        <h3>Presentation variants</h3>
+        <p>When exact source pixels are useful, preserve two explicit outputs rather than blending their claims:</p>
+        <ul>
+          <li><strong>Semantic mode:</strong> live reflowable text, live costs and controls, artwork-only crops, and the closest declarative layout.</li>
+          <li><strong>Facsimile mode:</strong> measured source panels for pixel reference, backed by the same semantic Choice data and clearly marked accessibility and dynamic-state limitations.</li>
+        </ul>
+        <p>Format 1 currently has no package-level presentation profiles or user preference for switching between these modes. Until that capability exists, retain separate scratch builds and make semantic mode the conversion's primary acceptance target.</p>
+
+        <h2>Unsupported-mechanics policy</h2>
+        <p>Never counterfeit a source rule. Use the nearest valid control, preserve source prose and base values, and attach a stable gap ID.</p>
+        <table>
+          <thead><tr><th>Unsupported behavior</th><th>Permitted fallback</th><th>Forbidden fallback</th></tr></thead>
+          <tbody>
+            <tr><td>Conditional discount or free entitlement</td><td>Charge the listed base price and disclose the unenforced entitlement</td><td>Hard-code one assumed Origin's price</td></tr>
+            <tr><td>Automatic free grant</td><td>Explicit zero-cost claim control</td><td>Hide an untracked promise in prose</td></tr>
+            <tr><td>Required choice or maximum count</td><td>Use the nearest source mode and state the missing constraint</td><td>Claim the archive enforces it</td></tr>
+            <tr><td>Prerequisite, conflict, or override</td><td>Preserve the rule and report the dependency gap</td><td>Use tags as pseudo-validation</td></tr>
+            <tr><td>Jump ending or lifecycle action</td><td>Record an ordinary property selection</td><td>Imply the Tracker executed retention or chain termination</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Conversion ledger contract</h2>
+        <p>The ledger is working data, not a second Jump definition. Each entry records a stable ID, source page and pixel bounds, transcription status, target file and handles, semantic kinds, tags, fidelity result, and gap IDs. Its top level records source authority, page geometry, policy, gap definitions, and verification results.</p>
+        <pre><code class="language-json">{
+  "id": "choice:example",
+  "source": { "page": 4, "bounds": [0, 255, 1920, 300] },
+  "transcription": { "status": "verified", "authority": "supplied-pdf" },
+  "target": { "file": "choices.jdef", "handles": ["example"] },
+  "tags": ["survival"],
+  "fidelity": "transparent-approximation",
+  "gaps": ["GAP-001"]
+}</code></pre>
+
+        <h2>Verification and acceptance</h2>
+        <ol>
+          <li>Canonicalize using the distribution profile and the exact asset path set. Resolve every error and warning.</li>
+          <li>Build the archive and inspect it through the secure package import service. Require <code>ready</code>, not a partially reviewed hand-built ZIP.</li>
+          <li>Import through the real Editor UI and inspect every section at desktop and narrow viewport widths.</li>
+          <li>Exercise every distinct mechanic: manual and rolled selection, continuity, single and multi groups, text/select/integer controls, flat and repeated costs, awards, properties, every grant kind, and ownership targets.</li>
+          <li>Capture rendered evidence after images settle. Compare every archetype to its source at equal content width.</li>
+          <li>Require aspect ratio and major bounds within 10%, matching direction, art anchoring, casing, hierarchy, line count, exact palette, and no large unmatched whitespace. Controls must not silently displace the composition.</li>
+          <li>List the five largest perceptual differences, fix every authoring defect, and label each residual difference <code>blocked</code> with the exact missing capability. When an artifact disagrees with expected behavior, trust the artifact and continue.</li>
+          <li>Update ledger verification only after the exact path passes. Leave known gaps open and named.</li>
+        </ol>
+
+        <h2>Handoff checklist</h2>
+        <ul>
+          <li>Original source remains unchanged and ignored.</li>
+          <li>Every source block has a ledger entry and a second transcription pass.</li>
+          <li>Every referenced image exists, validates, and has appropriate alternative text.</li>
+          <li>Definition diagnostics and secure archive diagnostics are empty.</li>
+          <li>The built <code>.jmp</code> imports and exercises successfully.</li>
+          <li>Equal-width visual evidence covers every source page and every card archetype, with an explicit pass, fail, or blocked result.</li>
+          <li>Known gaps appear in both the ledger and a persistent audit when they reveal reusable format limitations.</li>
+          <li>No scratch source, extracted asset, or converted archive enters the repository commit.</li>
+        </ul>
+      </article>
+      <a class="back-to-top" href="#content">Back to top</a>
+    </main>
+  </div>
+</body>
+</html>

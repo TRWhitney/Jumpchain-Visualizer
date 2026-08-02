@@ -326,6 +326,20 @@ pre code {
   font-size: inherit;
 }
 
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table-scroll:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.table-scroll table {
+  min-width: 42rem;
+}
+
 .back-to-top {
   display: inline-block;
   margin-top: 4rem;

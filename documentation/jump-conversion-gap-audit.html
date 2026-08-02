@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Pokémon Trainer PDF conversion case study and Format 1 reproduction gap audit.">
+  <title>Pokémon Conversion Gap Audit | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="documentation.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home">
+      <span class="site-mark" aria-hidden="true">JV</span>
+      <span>Jumpchain Visualizer <small>Documentation</small></span>
+    </a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html">Overview</a>
+      <a href="markup.html">Markup</a>
+      <a href="tags-design.html">Tags</a>
+      <a href="choice-rendering-design.html">Controls</a>
+      <a href="jump-conversion-guide.html">Conversion</a>
+      <a href="jump-conversion-gap-audit.html" aria-current="page">Gap audit</a>
+    </nav>
+  </header>
+
+  <div class="page-shell">
+    <aside class="sidebar" aria-labelledby="contents-heading">
+      <div class="sidebar-inner">
+        <h2 id="contents-heading">On this page</h2>
+        <nav id="table-of-contents" aria-label="Pokémon conversion audit sections">
+          <p class="toc-fallback">Section links appear when JavaScript is available.</p>
+        </nav>
+      </div>
+    </aside>
+
+    <main id="content" class="document" tabindex="-1">
+      <article>
+        <p class="eyebrow">Reference conversion · Format 1 audit</p>
+        <h1>Pokémon Trainer Conversion Gap Audit</h1>
+        <p class="lede">What the seven-page, image-only Generation V Pokémon Trainer CYOA demonstrates about converting real Jump documents into interactive packages.</p>
+
+        <div class="status-note" role="note">
+          <strong>Status: semantic presentation primary; facsimile presentation retained separately.</strong> Text, rules, costs, controls, backgrounds, and card structure are authored in Format 1. The semantic archive uses 20 artwork-only assets and no source-card or source-panel facsimiles. A separate facsimile archive remains available for exact-pixel comparison. This audit proposes capabilities but does not change Format 1.
+        </div>
+
+        <h2>Source and authority</h2>
+        <ul>
+          <li>Title: <cite>Pokémon Trainer CYOA</cite>.</li>
+          <li>Visible author and edition: Quicksilver, Gen V.</li>
+          <li>Physical source: seven PDF pages, each containing one 1920×2160 raster image and no text layer.</li>
+          <li>Authoritative wording: the developer-supplied PDF. Web material is corroboration only, including a <a href="https://jumpchain.wordpress.com/2016/04/18/world-1-pokemon-trainer/">contemporary build narrative</a> and a <a href="https://forum.questionablequesting.com/threads/vessel-of-the-jump-ooc-jumpchain-if-everyone-shares-the-same-pool-canceled-ai-assistance.33611/">secondary flaw transcription</a>.</li>
+          <li>Visual anchors: exact <code>#00ffff</code> cyan and <code>#404040</code> charcoal, square cards, condensed display type, dark rules, map crops, starter art, and item sprites.</li>
+        </ul>
+
+        <h2>Two rejected extremes and the corrective method</h2>
+        <p>The initial Kanto rendering used a conventional vertical card: a small heading, centered map, prose below, detached cost badge, control at the bottom, and substantial empty cyan space. The source is a dense horizontal strip with a place-name lockup at left, prose in the middle, and its map flush right. Archive validity and content presence were incorrectly treated as completion evidence.</p>
+        <p>The next pass reproduced nearly every panel as a source image. That proved a useful facsimile technique but skipped expressible authoring work: the Region introduction can be a Stack of headings and horizontal rules followed by an Inline containing the Roll/Pay Stack and world text; a Region card can be an Inline of its live identity lockup, description, and map. The same mistake affected Skills, Gear, Flaws, Future, and the Starting Kit strip.</p>
+        <p>The corrected semantic presentation performs that decomposition first. The Region header and all location tiles now use live Text, Rule, Stack, Inline, cost, and control slots; only maps and the Free Pick egg remain images. Starting Kit artwork is split into six sprite crops with live labels. All control and roll slots set <code>control-adornments: false</code>. The separately built facsimile presentation is retained as a selectable-mode prototype, not the primary conversion.</p>
+        <p>The persistent process correction is defined in the <a href="jump-conversion-visual-fidelity.html">visual-fidelity protocol</a>: measure, conduct a semantic expressibility audit, compare at equal width, list the five largest differences, and cite exact missing primitives for anything blocked.</p>
+
+        <h2>Page-to-format mapping</h2>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Page-to-format mapping table">
+          <table>
+            <thead><tr><th>Page</th><th>Source content</th><th>Format 1 representation</th><th>Result</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Premise, ten-year terms, 1000 CP, free kit</td><td>Introduction text, 1000 starting points, explicit free kit Choice with item grants and Jump Terms trait</td><td>Content preserved; automatic acquisition requires a claim control</td></tr>
+              <tr><td>2</td><td>1d8 Region or 100 CP manual choice, seven regions, Free Pick</td><td>Single <code>either</code> source; seven fixed property writers and one Select Choice</td><td>Roll economics work; Free Pick requires an internal select after source selection</td></tr>
+              <tr><td>3</td><td>Rolled or paid Age, prior Gender, five Identities</td><td>Integer <code>either</code>, Select continuity, single Origin source, properties, Jump-local history traits</td><td>Controls and base costs work; required completion and entitlements do not</td></tr>
+              <tr><td>4</td><td>Starter species, five price tiers, four upgrades</td><td>Text Choice creates stable companion; single tier source; companion-targeted upgrade perks</td><td>Ownership works; species legality and tier-to-species validation do not</td></tr>
+              <tr><td>5</td><td>Thirteen Skills with Origin discounts and free entitlements</td><td>Two-column direct Choices with base costs and durable perk grants</td><td>Content and base economics work; every conditional price is disclosed but unenforced</td></tr>
+              <tr><td>6</td><td>Twenty-four repeatable Gear purchases and Moneybags pricing</td><td>Three-column integer Choices, per-purchase costs, quantity-measured item grants</td><td>Repeat purchases work; purchase batches and conditional prices are approximations</td></tr>
+              <tr><td>7</td><td>Nine Flaws, maximum two, overrides, three endings</td><td>Multi source with awards and traits; single Future source writing an outcome property</td><td>Awards and exclusivity work; cap, overrides, retention, and lifecycle actions do not</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Represented capabilities</h2>
+        <ul>
+          <li>Ordinary flat costs, negative-cost drawback awards, and repeatable per-purchase costs.</li>
+          <li>Manual, random, and either resolution with rolled results becoming free.</li>
+          <li>Single and multi sources, direct Choice placements, text, select, and bounded integer controls.</li>
+          <li>Properties for Age, Gender, Origin, Region, starter tier, and selected outcome.</li>
+          <li>Durable perks, items, a companion, companion-owned perks, and Jump-local traits.</li>
+          <li>Inherited and grant-specific tags using the existing searchable vocabulary.</li>
+          <li>Artwork-only logo, sprite, map, and starter crops with live surrounding labels and prose.</li>
+          <li>Reusable semantic layouts, exact palette colors, two- and three-column direct-choice grids, source-order card anatomy, and live dynamic cost badges.</li>
+          <li>Control and roll slots with decorative adornments disabled.</li>
+        </ul>
+
+        <h2>GAP-001: conditional economics</h2>
+        <p><strong>Observed source behavior:</strong> Identities make named Skills free or half price, and Moneybags makes several Gear entries free or discounted.</p>
+        <p><strong>Current loss:</strong> a Cost has one authored amount and cannot depend on an active property or Choice. Conditional renderable text can disclose the rule but cannot affect evaluation or the cost badge.</p>
+        <p><strong>Reference fallback:</strong> charge the visible base price everywhere and append the source entitlement to the description.</p>
+        <p><strong>Future capability:</strong> conditional cost variants evaluated from typed properties and active selections, with overlap diagnostics, deterministic precedence, and the resolved badge showing why a price changed.</p>
+
+        <h2>GAP-002: constraints, dependencies, and overrides</h2>
+        <p><strong>Observed source behavior:</strong> no more than two Flaws; Flaws override incompatible Skills and Identities; Legendaries are forbidden; some equipment and abilities refer to other selections.</p>
+        <p><strong>Current loss:</strong> a multi source has no minimum or maximum, and ordinary Choices cannot declare requirements, conflicts, suppression, or validation predicates. Form dependency is a narrow ownership feature, not a general solution.</p>
+        <p><strong>Reference fallback:</strong> preserve the rule in section and Choice prose. The UI remains permissive and the ledger marks every affected entry.</p>
+        <p><strong>Future capability:</strong> declarative source cardinality plus typed <em>requires</em>, <em>conflicts</em>, and <em>overrides</em> relationships. The design must define whether invalid state is prevented, reviewed, or retained as a diagnostic rather than relying on arbitrary source order.</p>
+
+        <h2>GAP-003: required, default, and automatic state</h2>
+        <p><strong>Observed source behavior:</strong> the starting kit is given automatically; every build needs a Region, Identity, starter, and final outcome; rolled Age and previous Gender provide derived defaults.</p>
+        <p><strong>Current loss:</strong> choices can always return to unset, groups are not required, and grants activate only from an active Choice or Input.</p>
+        <p><strong>Reference fallback:</strong> expose a free Starting Kit claim and allow incomplete build states. Age and Gender use existing roll and continuity behavior where available.</p>
+        <p><strong>Future capability:</strong> explicit automatic grants, default values distinguishable from user choices, and required completion constraints that can participate in export/build review without making the Editor unable to represent work in progress.</p>
+
+        <h2>GAP-004: first-class options and linked configuration</h2>
+        <p><strong>Observed source behavior:</strong> a rolled Free Pick unlocks a second Region choice; starter species, availability tier, hidden ability, and upgrades configure one companion; repeated Gear names fixed-size batches.</p>
+        <p><strong>Current loss:</strong> Select options are strings without handles, images, tags, costs, grants, or dynamic grant targets. A single property can bridge some state, but it cannot express option-specific mechanics or validate a linked configuration.</p>
+        <p><strong>Reference fallback:</strong> use a Select Choice inside Free Pick; create the starter companion from a separate text control; represent tiers and upgrades as sibling Choices; measure Gear by purchase count rather than physical unit count.</p>
+        <p><strong>Future capability:</strong> structured options or another linked-configuration concept with stable identities, per-option presentation and mechanics, typed output, and bounded dynamic grant targeting. Avoid turning option blocks into an unrestricted scripting language.</p>
+
+        <h2>GAP-005: Jump lifecycle and retention outcomes</h2>
+        <p><strong>Observed source behavior:</strong> Homeward Bound, Not Going Back, and The Next Adventure change chain continuation, world residence, time, and which Pokémon or possessions remain.</p>
+        <p><strong>Current loss:</strong> a package describes choices inside a chain entry but cannot terminate, continue, or rewrite the chain, and has no retention-limit engine.</p>
+        <p><strong>Reference fallback:</strong> write a current-entry <code>jump_outcome</code> property and state that no lifecycle action occurs.</p>
+        <p><strong>Future capability:</strong> an application-owned completion workflow that interprets standardized outcome records after explicit user confirmation. Packages must not receive arbitrary mutation authority over chains.</p>
+
+        <h2>GAP-006: document-level visual fidelity</h2>
+        <p><strong>Observed source behavior:</strong> seven fixed portrait canvases use a condensed display typeface, extreme size contrast, exact line metrics, asymmetrical boxes, fixed art anchors, spanning cards, page-specific two- and three-column compositions, and controls implied by printed instructions rather than inserted into every card.</p>
+        <p><strong>Current semantic result:</strong> the Region header, location strips, Identities, starter tiers, upgrades, Skills, Gear, Flaws, and Future options are declarative layouts with live content. A separate facsimile build preserves exact source pixels for users who prefer it, but its limitations do not justify using it as the primary output.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Visual fidelity gaps">
+          <table>
+            <thead><tr><th>ID</th><th>Missing capability</th><th>Concrete Pokémon loss</th><th>Reasonable current fallback</th></tr></thead>
+            <tbody>
+              <tr><td>VIS-001</td><td>Packaged fonts and broader typography controls</td><td>No semantic match for the condensed display face, extreme title scale, tracking, exact line height, or paragraph margins; the largest token is <code>1.35rem</code></td><td>Use the strongest available live hierarchy and report the measured drift; use facsimile mode only when exact type is the user's priority</td></tr>
+              <tr><td>VIS-002</td><td>Bounded overlay or reserved control zones</td><td>Controls remain in normal flow; they can be integrated into a live Stack or Inline and stripped of adornments, but cannot occupy measured overlay coordinates</td><td>Place the unadorned control in the closest live action cluster and include it in geometry review</td></tr>
+              <tr><td>VIS-003</td><td>Precise responsive geometry</td><td>No percentage tracks, <code>fr</code> ratios, row or column spans, authored aspect ratio, minimum block size, or arbitrary fixed dimensions; non-stretching Inline children use a fixed maximum rather than source-measured proportions</td><td>Use nested live composition and intrinsic artwork dimensions, then report remaining proportional-track drift</td></tr>
+              <tr><td>VIS-004</td><td>Expanded-source arrangement</td><td>Grouped Region, Identity, starter-tier, Flaw, and Future choices cannot author their children into columns or align three Future controls with the three printed columns</td><td>One-column expansion after a source panel or convert to direct placements only if semantics remain correct</td></tr>
+              <tr><td>VIS-005</td><td>Page and breakpoint modes</td><td>No 1920×2160 page canvas, page breaks, pagination, print geometry, or alternate semantic layout for narrow screens</td><td>Responsive continuous sections; facsimile text becomes progressively smaller on narrow screens</td></tr>
+              <tr><td>VIS-006</td><td>Dynamic visual values inside artwork</td><td>Printed prices in facsimiles cannot reflect a free rolled result, future conditional discount, active state, quantity, or validation status</td><td>Keep a live semantic cost/control rail and disclose that the printed value is source artwork</td></tr>
+              <tr><td>VIS-007</td><td>Semantic facsimile accessibility</td><td>Text inside a crop is not selectable, searchable, reflowable, or individually exposed to assistive technology</td><td>Retain full semantic Choice text in the package, provide meaningful image alt text, and prefer a future live layout when capabilities exist</td></tr>
+              <tr><td>VIS-008</td><td>User-selectable presentation profiles</td><td>A package cannot offer semantic and facsimile layouts for the user to switch between; each owner resolves to one authored layout</td><td>Build separate ignored semantic and facsimile archives while designing a bounded application preference</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Semantic archetype evidence</h3>
+        <p>The reference run compares equal-width source and rendered crops by aspect ratio. This is a coarse silhouette gate, so passing it does not waive typography, anchoring, or content checks. A result outside 10% is <strong>blocked</strong>, not silently accepted.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Semantic archetype comparison table">
+          <table>
+            <thead><tr><th>Archetype</th><th>Source</th><th>Semantic render</th><th>Aspect drift</th><th>Result and cause</th></tr></thead>
+            <tbody>
+              <tr><td>Starting Kit</td><td>1920×365</td><td>1185×337</td><td>33.153%</td><td>Blocked: VIS-001, VIS-002, VIS-003</td></tr>
+              <tr><td>Kanto</td><td>1904×202</td><td>1181×151</td><td>17.023%</td><td>Blocked: VIS-001, VIS-003</td></tr>
+              <tr><td>Drop In</td><td>1888×264</td><td>1165×207</td><td>21.303%</td><td>Blocked: VIS-001, VIS-002, VIS-003</td></tr>
+              <tr><td>Actual Starter</td><td>1870×322</td><td>1165×210</td><td>4.474%</td><td>Pass on silhouette</td></tr>
+              <tr><td>Physical Fitness</td><td>894×274</td><td>589×195</td><td>7.425%</td><td>Pass on silhouette</td></tr>
+              <tr><td>3× Master Balls</td><td>621×223</td><td>390×163</td><td>14.081%</td><td>Blocked: VIS-001, VIS-002</td></tr>
+              <tr><td>Swarmed</td><td>1870×96</td><td>1165×100</td><td>40.193%</td><td>Blocked: VIS-001, VIS-002, VIS-003</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><strong>Conclusion:</strong> substantially more of the source is semantically expressible than either rejected pass demonstrated. Exact condensed typography, proportional tracks, page geometry, expanded-source columns, and overlays remain blocked; the composition itself must still be attempted with live nodes. Facsimile mode is a useful optional presentation, not an excuse to skip that attempt.</p>
+        <p><strong>Future capability:</strong> evaluate safe packaged fonts with rights metadata, bounded type metrics, authored aspect ratios and track sizing, grid spans, group expansion presentation, named control zones or bounded overlays, breakpoint variants, optional document/page modes, and user-selectable semantic/facsimile presentation profiles. These features should remain declarative and must not introduce arbitrary CSS or script execution.</p>
+
+        <h2>GAP-007: source and conversion provenance</h2>
+        <p><strong>Observed need:</strong> the package needs to distinguish Quicksilver's authorship and Gen V source edition from the later conversion, extraction method, authority file, and rights status.</p>
+        <p><strong>Current loss:</strong> <code>author</code>, <code>version</code>, and free-form description cannot represent source edition, converter, source URL or fingerprint, license, extracted-asset provenance, or fidelity status without conflating concepts.</p>
+        <p><strong>Reference fallback:</strong> retain the original author, use an explicit conversion-attempt version suffix, place process data in the ignored ledger, and keep copyrighted source assets out of the repository.</p>
+        <p><strong>Future capability:</strong> bounded package metadata for source identity, edition, converter/tool, source fingerprint, rights or license note, and conversion timestamp. None of it should weaken archive validation or expose the source PDF to rendering.</p>
+
+        <h2>Priority for future design</h2>
+        <ol>
+          <li><strong>Conditional economics and constraints:</strong> these cause incorrect builds, not merely visual differences.</li>
+          <li><strong>Required/default/automatic state:</strong> needed for complete and faithful build review.</li>
+          <li><strong>First-class options and linked targets:</strong> common in configurable companions, forms, items, and tiered purchases.</li>
+          <li><strong>Lifecycle outcomes:</strong> important but should be application-mediated and security-conscious.</li>
+          <li><strong>Provenance metadata:</strong> important for a sustainable conversion library and rights review.</li>
+          <li><strong>Control zones, expanded-source arrangement, and precise geometry:</strong> these are the largest barriers to keeping interaction inside the source composition.</li>
+          <li><strong>Typography and optional page modes:</strong> pursue bounded features that improve interactive documents broadly and preserve package security.</li>
+        </ol>
+
+        <h2>Acceptance boundary</h2>
+        <p>The semantic and facsimile archives both pass package validation. Semantic mode is the primary result and remains visually blocked on exact typography, proportional tracks, fixed pagination, and expanded-source composition. Facsimile mode supplies exact pixels with known accessibility and dynamic-state losses. Neither mode may be called complete without its own explicit evidence and limitations.</p>
+      </article>
+      <a class="back-to-top" href="#content">Back to top</a>
+    </main>
+  </div>
+</body>
+</html>

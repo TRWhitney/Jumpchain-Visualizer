@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A hard-gated visual fidelity workflow for autonomous PDF-to-.jmp conversions.">
+  <title>Jump Conversion Visual Fidelity | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="documentation.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home">
+      <span class="site-mark" aria-hidden="true">JV</span>
+      <span>Jumpchain Visualizer <small>Documentation</small></span>
+    </a>
+    <nav class="site-nav" aria-label="Documentation">
+      <a href="index.html">Overview</a>
+      <a href="markup.html">Markup</a>
+      <a href="jump-conversion-guide.html">Conversion</a>
+      <a href="jump-conversion-visual-fidelity.html" aria-current="page">Visual fidelity</a>
+    </nav>
+  </header>
+
+  <div class="page-shell">
+    <aside class="sidebar" aria-labelledby="contents-heading">
+      <div class="sidebar-inner">
+        <h2 id="contents-heading">On this page</h2>
+        <nav id="table-of-contents" aria-label="Visual fidelity sections">
+          <p class="toc-fallback">Section links appear when JavaScript is available.</p>
+        </nav>
+      </div>
+    </aside>
+
+    <main id="content" class="document" tabindex="-1">
+      <article>
+        <p class="eyebrow">Required conversion gate</p>
+        <h1>Visual Fidelity for Autonomous PDF-to-<code>.jmp</code> Conversion</h1>
+        <p class="lede">The instructions and evidence an agent needs to reproduce a source composition without a human having to notice that the result is visibly wrong.</p>
+
+        <div class="status-note" role="note">
+          <strong>Decision:</strong> visual similarity is a completion requirement, not a preference. A valid archive with accurate prose is still a failed conversion when the rendered composition does not resemble the source.
+        </div>
+
+        <h2>Why the first Pokémon pass failed</h2>
+        <p>The first pass treated a Region as a generic responsive card. The source treated it as a tightly measured horizontal display strip. That was an implementation and review failure before it was a format limitation.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Kanto comparison">
+          <table>
+            <thead><tr><th>Property</th><th>Source</th><th>Rejected first pass</th></tr></thead>
+            <tbody>
+              <tr><td>Silhouette</td><td>Approximately 9.4:1 horizontal strip</td><td>Approximately 4.8:1 card with excessive height</td></tr>
+              <tr><td>Hierarchy</td><td>Huge condensed <em>Kanto</em> display name</td><td>Small conventional heading</td></tr>
+              <tr><td>Composition</td><td>Name left, prose center, map flush right</td><td>Heading top, centered map, prose and control below</td></tr>
+              <tr><td>Density</td><td>Nearly every vertical pixel carries information</td><td>Large unmatched cyan and control whitespace</td></tr>
+              <tr><td>Cost and action</td><td>Cost integrated with source artwork; no source radio</td><td>Detached badge and radio changed the balance</td></tr>
+              <tr><td>Review</td><td>Side-by-side comparison should fail immediately</td><td>Archive validity and content presence were incorrectly accepted as proof</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Required source measurements</h2>
+        <p>Do not author a layout until the source has a machine-readable visual specification. Measure the following in source pixels and normalized percentages so the same specification works at another render width:</p>
+        <ul>
+          <li>page and panel aspect ratios;</li>
+          <li>major bounding boxes for title, prose, art, price, separators, and intentional empty space;</li>
+          <li>layout direction, column count, unequal column proportions, row spans, and overlap;</li>
+          <li>art dimensions, crop, alignment, and distance from each edge;</li>
+          <li>text casing, alignment, line count, relative size, weight, condensation, and line spacing;</li>
+          <li>palette sampled from the source rather than estimated;</li>
+          <li>border width, gutters, card gaps, corner geometry, and occupied-to-empty-area ratio;</li>
+          <li>the natural position and footprint of interactive controls that must be added.</li>
+        </ul>
+        <p>Cluster repeated measurements into named visual archetypes—such as <em>horizontal region strip</em>, <em>two-column skill card</em>, or <em>charcoal flaw row</em>—and define one reusable layout per archetype. Generic cards are prohibited until this clustering is complete.</p>
+
+        <h2>Implementation order</h2>
+        <ol>
+          <li><strong>Reconstruct the source silhouette.</strong> Match aspect ratio, direction, column proportions, and art anchoring before styling text.</li>
+          <li><strong>Reconstruct hierarchy.</strong> Match display-name dominance, casing, line breaks, price emphasis, and description density.</li>
+          <li><strong>Apply exact visual tokens.</strong> Use sampled colors, measured rules, square or rounded geometry, and measured gaps.</li>
+          <li><strong>Add interaction without redesigning the source.</strong> Put controls at an existing action edge, in an existing reserved region, or in the smallest clearly additive rail. Re-run the geometry checks after controls are present.</li>
+          <li><strong>Audit semantic expressibility before any text-bearing crop.</strong> Decompose the panel into Stack, Inline, Wrap, Grid, Rule, Text, Slot, Input, and artwork-only Image nodes. Record which exact primitive blocks each remaining difference.</li>
+          <li><strong>Keep facsimile output as a separate mode.</strong> A cropped source panel may preserve exact typography and composition for comparison, but must not replace the primary semantic attempt. Record its accessibility, reflow, rights, and dynamic-state losses.</li>
+        </ol>
+        <p>A facsimile is a transparent alternate presentation, not evidence that the format can semantically express the design. The underlying Choice must retain verified name, description, cost, tags, and grants. The crop needs meaningful alternative text, and the ledger must identify its source coordinates. The semantic package must not reference the text-bearing crop.</p>
+
+        <h2>Hard visual acceptance gate</h2>
+        <p>Compare source and rendered artifacts at the same content width. Each archetype receives an explicit <strong>pass</strong>, <strong>fail</strong>, or <strong>blocked</strong> result; “recognizable” is not a result.</p>
+        <ul>
+          <li>overall and card aspect ratios differ by no more than 10% unless a named control rail explains the additional dimension;</li>
+          <li>major title, prose, artwork, price, and rule bounds are within 10% of their source positions and dimensions;</li>
+          <li>layout direction, art edge anchoring, casing, dominant type hierarchy, and description line count match;</li>
+          <li>the exact sampled palette is used;</li>
+          <li>no large unmatched whitespace appears;</li>
+          <li>controls do not displace, cover, or reorder source content without a recorded gap;</li>
+          <li>the side-by-side pair reads as the same composition at a glance.</li>
+        </ul>
+        <p>Thresholds are necessary but not sufficient. A renderer can satisfy an aspect ratio while moving the map, shrinking the name, or losing the hierarchy. The final glance comparison remains mandatory.</p>
+
+        <h2>Iteration and evidence loop</h2>
+        <ol>
+          <li>Capture the source panel and rendered panel at equal width.</li>
+          <li>List the five largest visible differences, ordered by perceptual impact.</li>
+          <li>Classify each difference as an authoring defect or a demonstrated format gap.</li>
+          <li>Fix authoring defects and capture again. Never stop merely because a test is green.</li>
+          <li>For a format gap, cite the exact schema or renderer constraint and preserve a minimal reproducer.</li>
+          <li>Retain source crops, screenshots, measured geometry, and the pass/fail/blocked record in ignored scratch evidence.</li>
+        </ol>
+        <p>The screenshot is the authority for a visual claim. If implementation reasoning says the layout should match but the screenshot does not, trust the screenshot and continue.</p>
+
+        <h2>Independent visual critic</h2>
+        <p>When subagents are available, assign a critic that did not author the conversion. Give it only the source crop, rendered crop, measurement specification, and acceptance rubric. Ask it to return:</p>
+        <ul>
+          <li>pass, fail, or blocked for each acceptance check;</li>
+          <li>the five largest perceptual differences;</li>
+          <li>whether each difference is actually prevented by Format 1;</li>
+          <li>the next highest-value change, without editing the project.</li>
+        </ul>
+        <p>The primary agent remains responsible for checking the critic's claims against the schema and for iterating. A critic does not replace direct visual inspection.</p>
+
+        <h2>Blocked versus complete</h2>
+        <p>If the requested fidelity requires capabilities outside the authorized task, stop calling the conversion complete. Report the exact blocked property—for example, “controls cannot overlay an image or reserve absolute coordinates”—and present the best safe fallback. The developer must be able to distinguish:</p>
+        <ul>
+          <li><strong>semantic match:</strong> the renderer recreates the source with live text and layouts;</li>
+          <li><strong>facsimile match:</strong> a separately labeled presentation profile preserves source pixels while live controls remain additive;</li>
+          <li><strong>approximation:</strong> the composition differs but preserves selected visual tokens;</li>
+          <li><strong>blocked:</strong> an acceptance criterion cannot be met without a format or renderer change.</li>
+        </ul>
+
+        <h2>Reusable agent prompt</h2>
+        <pre><code class="language-text">Treat visual similarity as a completion requirement.
+
+Before authoring:
+1. Render every source page losslessly.
+2. Produce a machine-readable visual specification with page/card bounds,
+   normalized proportions, aspect ratios, typography hierarchy, palette,
+   art anchoring, borders, gaps, whitespace ratio, and control locations.
+3. Cluster repeated cards into visual archetypes. Do not use a generic card
+   layout until the archetypes are identified.
+
+During authoring:
+4. Match silhouette and major bounds first, hierarchy second, styling third.
+5. Keep interactive controls additive and at a natural source action edge.
+6. Keep semantic text, costs, tags, grants, rules, and card structure live.
+   Crop only irreducible artwork in the primary presentation.
+7. If useful, build a separately labeled facsimile presentation after the
+   semantic attempt; never use it to bypass expressible layout work.
+
+Verification:
+8. Capture source and render at equal width for every archetype.
+9. Require aspect ratio and major bounds within 10%, matching layout direction,
+   art anchoring, casing, hierarchy, line count, palette, and no unmatched
+   whitespace.
+10. List and fix the five largest visible differences. Repeat until each check
+   passes or is demonstrably blocked by the format.
+11. If blocked, cite the exact missing capability and do not label the visual
+    conversion complete. Preserve screenshots and measurements as evidence.
+
+Use an independent visual critic when available. Trust the rendered artifact
+over implementation intent.</code></pre>
+
+        <h2>Script and future skill boundary</h2>
+        <p>A reusable conversion skill should package deterministic scripts for page rendering, crop generation, color sampling, geometry extraction, contact sheets, equal-width screenshots, aspect/bounds checks, pixel or perceptual comparisons, ledger generation, archive building, and secure import verification. The skill instructions should own the decision gates; scripts should collect evidence and perform mechanical work rather than decide that a composition “looks close.”</p>
+      </article>
+      <a class="back-to-top" href="#content">Back to top</a>
+    </main>
+  </div>
+</body>
+</html>

@@ -206,6 +206,35 @@ function TrackerHarness() {
   );
 }
 
+function ImportedPackageTrackerHarness() {
+  const [state, dispatch] = useReducer(trackerReducer, undefined, () => {
+    const fixture = createDenseTrackerFixture();
+    const packageId = fixture.entries["entry-0"].packageId;
+    return {
+      ...fixture,
+      packages: {
+        ...fixture.packages,
+        [packageId]: {
+          ...fixture.packages[packageId],
+          source: "imported" as const,
+        },
+      },
+    };
+  });
+  return (
+    <SupplementProviders
+      bodyMod={state.bodyMod}
+      onBodyModChange={(value) => dispatch({ type: "set-body-mod", value })}
+      supplementState={state.supplements}
+      supplementDispatch={(action) =>
+        dispatch({ type: "supplement-action", action })
+      }
+    >
+      <ChainTracker state={state} dispatch={dispatch} />
+    </SupplementProviders>
+  );
+}
+
 function UnavailablePackageTrackerHarness() {
   const [state, dispatch] = useReducer(trackerReducer, undefined, () => {
     const fixture = createDenseTrackerFixture();
@@ -1768,6 +1797,56 @@ test("Earth is unnumbered, immutable, and establishes identity continuity", asyn
         .element() as HTMLInputElement
     ).value,
   ).toBe("");
+});
+
+test("an imported package has an adjacent square remove action and a confirmed removal path", async () => {
+  render(<ImportedPackageTrackerHarness />);
+  await page.getByRole("tab", { name: "Library" }).click();
+  const card = page
+    .getByText("Threshold of a Thousand Roads", { exact: false })
+    .element()
+    .closest<HTMLElement>(".chain-library-card")!;
+  const open = card.querySelector<HTMLButtonElement>(
+    ".chain-library-actions > button:first-child",
+  )!;
+  const remove = card.querySelector<HTMLButtonElement>(
+    ".chain-library-remove",
+  )!;
+  const openBounds = open.getBoundingClientRect();
+  const removeBounds = remove.getBoundingClientRect();
+  expect(
+    Math.abs(
+      openBounds.top +
+        openBounds.height / 2 -
+        (removeBounds.top + removeBounds.height / 2),
+    ),
+  ).toBeLessThanOrEqual(1);
+  expect(removeBounds.left).toBeGreaterThan(openBounds.right);
+  expect(
+    Math.abs(removeBounds.width - removeBounds.height),
+  ).toBeLessThanOrEqual(1);
+
+  await page
+    .getByRole("button", {
+      name: "Remove imported package Threshold of a Thousand Roads from the library",
+    })
+    .click();
+  const review = page.getByRole("dialog", {
+    name: "Remove Threshold of a Thousand Roads",
+  });
+  await expect
+    .element(review)
+    .toHaveTextContent("will also remove the 1 chain entity");
+  await review
+    .getByRole("button", { name: "Remove package and 1 chain entity" })
+    .click();
+  await expect.element(card).not.toBeInTheDocument();
+  await page.getByRole("tab", { name: "Chain", exact: true }).click();
+  await expect
+    .element(
+      page.getByRole("button", { name: /Threshold of a Thousand Roads/ }),
+    )
+    .not.toBeInTheDocument();
 });
 
 test("simplified Chain controls retain identity, history, actions, and active tag state", async () => {

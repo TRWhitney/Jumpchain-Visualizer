@@ -5,6 +5,9 @@ import {
   type Page,
   type TestInfo,
 } from "./support/fixtures";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { zipSync } from "fflate";
 import {
   reviewArtifactsEnabled,
   shouldCaptureReviewArtifacts,
@@ -65,6 +68,42 @@ async function holdAssetAfterFirstResponse(page: Page, url: string) {
     });
   });
   return release;
+}
+
+async function writeImportArchive(
+  testInfo: TestInfo,
+  fileName: string,
+  version: string,
+  description: string,
+) {
+  const definition = `jump
+  format: 1
+  name: "Import Identity Fixture"
+  description: "${description}"
+  author: "Fixture Author"
+  version: "${version}"
+
+section
+  handle: introduction
+  name: "Introduction"
+`;
+  await mkdir(testInfo.outputDir, { recursive: true });
+  const path = join(testInfo.outputDir, fileName);
+  await writeFile(
+    path,
+    zipSync({ "jump.jdef": new TextEncoder().encode(definition) }),
+  );
+  return path;
+}
+
+async function importTrackerPackage(page: Page, archivePath: string) {
+  const tracker = trackerFor(page);
+  await tracker
+    .locator('input[type="file"][accept^=".jmp"]')
+    .setInputFiles(archivePath);
+  const review = page.getByRole("alertdialog");
+  await expect(review).toContainText("Secure inspection complete");
+  await review.getByRole("button", { name: "Import Project" }).click();
 }
 
 test(
@@ -212,6 +251,124 @@ test("the Library contains exactly the three canonical packages", async ({
     tracker.locator(".chain-library-card").getByRole("button"),
   ).toHaveText(["Open chain entity", "Open chain entity", "Open chain entity"]);
   await attachScreenshot(testInfo, "three-package-library", tracker);
+});
+
+test("package imports enforce author-name-version identity and expose an adjacent removal action", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/review/chain-tracker?multipleVersions=off");
+  const first = await writeImportArchive(
+    testInfo,
+    "identity-first.jmp",
+    "1.0",
+    "First archive bytes.",
+  );
+  const rebuilt = await writeImportArchive(
+    testInfo,
+    "identity-rebuilt.jmp",
+    "1.0",
+    "Different archive bytes for the same version.",
+  );
+  const secondVersion = await writeImportArchive(
+    testInfo,
+    "identity-second-version.jmp",
+    "2.0",
+    "A genuinely different version.",
+  );
+  const tracker = trackerFor(page);
+  await tracker.getByRole("tab", { name: "Library" }).click();
+
+  await importTrackerPackage(page, first);
+  await expect(
+    tracker.getByText(/Import Identity Fixture · v1\.0/),
+  ).toHaveCount(1);
+
+  await importTrackerPackage(page, rebuilt);
+  let blocked = page.getByRole("alertdialog");
+  await expect(blocked).toContainText("Package already installed");
+  await expect(blocked).toContainText("version 1.0 is already installed");
+  await blocked.getByRole("button", { name: "Close" }).click();
+  await expect(
+    tracker.getByText(/Import Identity Fixture · v1\.0/),
+  ).toHaveCount(1);
+
+  await importTrackerPackage(page, secondVersion);
+  blocked = page.getByRole("alertdialog");
+  await expect(blocked).toContainText("Allow second version is off");
+  await blocked.getByRole("button", { name: "Close" }).click();
+
+  const firstCard = tracker
+    .getByText(/Import Identity Fixture · v1\.0/)
+    .locator("xpath=ancestor::article");
+  await firstCard.getByRole("button", { name: "Add to chain" }).click();
+  await tracker.getByRole("tab", { name: "Library" }).click();
+  const actions = firstCard.locator(".chain-library-actions");
+  const open = actions.getByRole("button", { name: "Open chain entity" });
+  const remove = actions.getByRole("button", {
+    name: "Remove imported package Import Identity Fixture from the library",
+  });
+  const [openBounds, removeBounds] = await Promise.all([
+    open.boundingBox(),
+    remove.boundingBox(),
+  ]);
+  expect(openBounds).not.toBeNull();
+  expect(removeBounds).not.toBeNull();
+  expect(
+    Math.abs(
+      openBounds!.y +
+        openBounds!.height / 2 -
+        (removeBounds!.y + removeBounds!.height / 2),
+    ),
+  ).toBeLessThanOrEqual(1);
+  expect(removeBounds!.x).toBeGreaterThan(openBounds!.x + openBounds!.width);
+  expect(
+    Math.abs(removeBounds!.width - removeBounds!.height),
+  ).toBeLessThanOrEqual(1);
+  await attachScreenshot(
+    testInfo,
+    "imported-package-adjacent-remove",
+    firstCard,
+  );
+
+  await remove.click();
+  const removal = page.getByRole("dialog", {
+    name: "Remove Import Identity Fixture",
+  });
+  await expect(removal).toContainText("will also remove the 1 chain entity");
+  await removal
+    .getByRole("button", { name: "Remove package and 1 chain entity" })
+    .click();
+  await expect(
+    tracker.getByText(/Import Identity Fixture · v1\.0/),
+  ).toHaveCount(0);
+  await expect(
+    tracker.getByText(/Import Identity Fixture · v2\.0/),
+  ).toHaveCount(0);
+});
+
+test("Allow second version permits a different author-and-name package version", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/review/chain-tracker?multipleVersions=on");
+  const first = await writeImportArchive(
+    testInfo,
+    "parallel-first.jmp",
+    "1.0",
+    "First permitted version.",
+  );
+  const second = await writeImportArchive(
+    testInfo,
+    "parallel-second.jmp",
+    "2.0",
+    "Second permitted version.",
+  );
+  const tracker = trackerFor(page);
+  await tracker.getByRole("tab", { name: "Library" }).click();
+  await importTrackerPackage(page, first);
+  await importTrackerPackage(page, second);
+  await expect(
+    tracker.getByText(/Import Identity Fixture · v[12]\.0/),
+  ).toHaveCount(2);
 });
 
 test("renders and captures every canonical Format 1 Jump", async ({

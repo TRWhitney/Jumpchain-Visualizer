@@ -30,13 +30,15 @@ export function ReviewChainTracker() {
   const allowNegativePointBalances =
     parameters.get("negativeBalances") === "on";
   const allowDuplicateJumps = parameters.get("duplicateJumps") === "on";
+  const allowMultiplePackageVersions =
+    parameters.get("multipleVersions") !== "off";
   const aggregateSimilarInventory =
     parameters.get("aggregateSimilar") !== "off";
   const initialEntryId = parameters.get("initialEntry");
   const [state, rawDispatch] = useReducer(trackerReducer, undefined, () => {
     const preferences = {
       warnUpstreamChanges,
-      allowMultiplePackageVersions: true,
+      allowMultiplePackageVersions,
       allowDuplicateJumps,
       allowNegativePointBalances,
       allowRerolls,
@@ -61,6 +63,7 @@ export function ReviewChainTracker() {
       preferences: {
         ...initial.preferences,
         warnUpstreamChanges,
+        allowMultiplePackageVersions,
         allowNegativePointBalances,
         allowRerolls,
         aggregateSimilarInventory,

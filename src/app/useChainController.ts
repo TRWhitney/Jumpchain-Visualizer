@@ -19,6 +19,7 @@ import {
 } from "../tracker/fixtures";
 import {
   choiceMutationWasBlocked,
+  isSamePackageIdentity,
   radarCounts,
   trackerReducer,
   type TagDefinition,
@@ -279,12 +280,15 @@ export function useChainController({
         );
         const parallel =
           packageItem &&
-          effectiveCurrentState.order.some(
-            (id) =>
+          effectiveCurrentState.order.some((id) => {
+            const installed =
               effectiveCurrentState.packages[
                 effectiveCurrentState.entries[id].packageId
-              ]?.logicalId === packageItem.logicalId,
-          );
+              ];
+            return Boolean(
+              installed && isSamePackageIdentity(installed, packageItem),
+            );
+          });
         if (exact && !effectiveCurrentState.preferences.allowDuplicateJumps) {
           // Opening an existing exact version is navigation, not a mutation.
         } else if (

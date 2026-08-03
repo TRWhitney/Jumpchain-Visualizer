@@ -27,6 +27,47 @@ export type { TrackerPage } from "./constants";
 
 const normalize = (value: string) => value.trim().toLocaleLowerCase();
 
+function normalizedPackageAuthors(item: InstalledPackage) {
+  return [...(item.authors ?? [])]
+    .map(normalize)
+    .filter(Boolean)
+    .sort()
+    .join("\0");
+}
+
+export function isSamePackageIdentity(
+  left: InstalledPackage,
+  right: InstalledPackage,
+) {
+  return (
+    normalize(left.name) === normalize(right.name) &&
+    normalizedPackageAuthors(left) === normalizedPackageAuthors(right)
+  );
+}
+
+export type PackageInstallConflict =
+  "same-version" | "parallel-version-disabled";
+
+export function packageInstallConflict(
+  state: Pick<TrackerState, "packages" | "preferences">,
+  packageItem: InstalledPackage,
+): PackageInstallConflict | null {
+  const sameIdentity = Object.values(state.packages).filter((installed) =>
+    isSamePackageIdentity(installed, packageItem),
+  );
+  if (
+    sameIdentity.some(
+      (installed) =>
+        normalize(installed.version) === normalize(packageItem.version),
+    )
+  )
+    return "same-version";
+  return sameIdentity.length > 0 &&
+    !state.preferences.allowMultiplePackageVersions
+    ? "parallel-version-disabled"
+    : null;
+}
+
 export function packageForEntry(
   state: TrackerState,
   entryId: string,
@@ -737,6 +778,7 @@ export function removeDependencyImpacts(state: TrackerState, entryId: string) {
 
 function snapshot(state: TrackerState, label: string): UndoSnapshot {
   return {
+    packages: state.packages,
     entries: state.entries,
     order: state.order,
     selectedEntryId: state.selectedEntryId,
@@ -932,6 +974,22 @@ function applyRemove(state: TrackerState, entryId: string) {
   };
 }
 
+function applyPackageUninstall(state: TrackerState, packageId: string) {
+  const packageItem = state.packages[packageId];
+  if (!packageItem || packageItem.source !== "imported") return state;
+  const entryIds = state.order.filter(
+    (entryId) =>
+      state.entries[entryId]?.packageExactHash === packageItem.exactHash,
+  );
+  const withoutEntries = entryIds.reduce(
+    (candidate, entryId) => applyRemove(candidate, entryId),
+    state,
+  );
+  const packages = { ...withoutEntries.packages };
+  delete packages[packageId];
+  return { ...withoutEntries, packages };
+}
+
 export function trackerReducer(
   state: TrackerState,
   action: TrackerAction,
@@ -988,10 +1046,38 @@ export function trackerReducer(
         pending: { kind: "remove", entryId: action.entryId, impacts },
       };
     }
+    case "request-uninstall-package": {
+      const packageItem = state.packages[action.packageId];
+      if (!packageItem || packageItem.source !== "imported") return state;
+      const entryIds = state.order.filter(
+        (entryId) =>
+          state.entries[entryId]?.packageExactHash === packageItem.exactHash,
+      );
+      const impacts = entryIds.flatMap((entryId) =>
+        removeDependencyImpacts(state, entryId),
+      );
+      return {
+        ...state,
+        pending: {
+          kind: "uninstall-package",
+          packageId: action.packageId,
+          entryIds,
+          impacts,
+        },
+      };
+    }
     case "cancel-mutation":
       return { ...state, pending: null };
     case "commit-mutation": {
       if (!state.pending) return state;
+      if (state.pending.kind === "uninstall-package") {
+        const next = applyPackageUninstall(state, state.pending.packageId);
+        return {
+          ...next,
+          pending: null,
+          undo: snapshot(state, "Remove package"),
+        };
+      }
       if (
         state.pending.kind === "clear-form" ||
         state.pending.kind === "clear-form-source"
@@ -1053,6 +1139,7 @@ export function trackerReducer(
       return state.undo
         ? {
             ...state,
+            packages: state.undo.packages,
             entries: state.undo.entries,
             order: state.undo.order,
             selectedEntryId: state.undo.selectedEntryId,
@@ -1068,7 +1155,10 @@ export function trackerReducer(
       const packageItem = action.packageItem;
       if (
         !packageItem.exactHash ||
-        state.packages[packageItem.id]?.exactHash === packageItem.exactHash
+        Object.values(state.packages).some(
+          (installed) => installed.exactHash === packageItem.exactHash,
+        ) ||
+        packageInstallConflict(state, packageItem)
       )
         return state;
       return {
@@ -1092,11 +1182,12 @@ export function trackerReducer(
           type: "select-entry",
           entryId: existing,
         });
-      const parallel = state.order.find(
-        (id) =>
-          state.packages[state.entries[id].packageId]?.logicalId ===
-          packageItem.logicalId,
-      );
+      const parallel = state.order.find((id) => {
+        const installed = state.packages[state.entries[id].packageId];
+        return Boolean(
+          installed && isSamePackageIdentity(installed, packageItem),
+        );
+      });
       if (
         parallel &&
         !existing &&

@@ -420,6 +420,23 @@
   gap: 0.1rem;
 }
 
+.chain-library-card > .chain-library-actions {
+  grid-template-columns: minmax(0, 1fr) 1.55rem;
+  gap: 0.2rem;
+}
+
+.chain-library-actions > button {
+  min-width: 0;
+}
+
+.chain-library-actions > .chain-library-remove {
+  width: 1.55rem;
+  height: 1.55rem;
+  min-height: 0;
+  align-self: center;
+  padding: 0;
+}
+
 .chain-library-card button:disabled {
   color: #777771;
   cursor: default;

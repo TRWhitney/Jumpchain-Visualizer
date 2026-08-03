@@ -77,7 +77,7 @@
     },
     "chain_allowMultiplePackageVersions": {
       "label": "Add another package version",
-      "aliases": "chain add second package version multiple parallel"
+      "aliases": "chain import install add second package version multiple parallel author name"
     },
     "chain_allowDuplicateJumps": {
       "label": "Allow duplicate jumps",
@@ -478,7 +478,7 @@
         "startFilesSourceAndPropertiesBehindAdvancedViews": "Start Files, Source, and Properties behind the Editor's Advanced views disclosure. Canvas tools remain visible after Source is opened.",
         "startInspectAndStripColorBehindPreviewTools": "Start Inspect and Strip Color behind the Preview tools disclosure while keeping the primary preview mode visible.",
         "showOptionalEditorGuidance": "Show optional guidance beneath Editor fields and descriptions beneath complex choices. Warnings, status, safety information, and required instructions always remain visible.",
-        "allowAddToPlaceASecondInstalledVersionOf": "Allow Add to place a second installed version of a logical Jump package into the current chain.",
+        "allowAddToPlaceASecondInstalledVersionOf": "Allow importing and adding a different version of the same author-and-name Jump. The same version is never installed twice.",
         "allowTheSameExactJumpPackageToBeAdded": "Allow the same exact Jump package to be added to this chain more than once as independent entries.",
         "permitActiveChoiceSelectionsThatWouldMakePrimaryJump": "Permit active choice selections that would make primary Jump points negative. Clearing choices and recalculation are never blocked.",
         "allowARecordedRandomResultToBeReplacedFor": "Allow a recorded random result to be replaced for the same chain entry.",

@@ -20,6 +20,7 @@
         "gender": "Gender",
         "age": "Age",
         "parallelVersionsEnabled": "Parallel versions enabled",
+        "oneVersionPerJump": "One version per Jump",
         "availablePackages": "Available packages",
         "importJmp": "Import .jmp",
         "findAvailableJump": "Find available jump",
@@ -28,6 +29,10 @@
         "inspectingEveryEntry": "Inspecting every entry…",
         "nothingEntersTheImmutablePackageLibraryUntilArchiveImage": "Nothing enters the immutable package library until archive, image, source, schema, reference, and size validation completes.",
         "installationBlocked": "Installation blocked",
+        "packageAlreadyInstalled": "Package already installed",
+        "samePackageVersionAlreadyInstalled": "{{name}} version {{version}} is already installed. Archive-byte differences do not create a second copy.",
+        "anotherPackageVersionAlreadyInstalled": "Another version of {{name}} is already installed and Allow second version is off.",
+        "existingPackageWasNotChanged": "The existing package was not changed and the new archive was not installed.",
         "thisPackageMayBeUnsafeOrMalformed": "This package may be unsafe or malformed",
         "nothingWasInstalledExtractedOrAddedToTheChain": "Nothing was installed, extracted, or added to the chain.",
         "close": "Close",
@@ -71,6 +76,7 @@
         "importedInto": "Imported into",
         "companionHasNotBeenImportedIntoAnyJumps": "Companion has not been imported into any jumps",
         "dependencyReview": "Dependency review",
+        "packageRemoval": "Package removal",
         "affectedDependencies": "Affected dependencies",
         "ownsActive": " owns active",
         "isProvidedBy": " is provided by",
@@ -81,7 +87,13 @@
         "clearStartingAge": "Clear starting age",
         "moveEarlier": "Move earlier",
         "moveLater": "Move later",
-        "removeFromChain": "Remove from chain…"
+        "removeFromChain": "Remove from chain…",
+        "removePackage": "Remove {{name}}",
+        "removingPackageAlsoRemovesOneChainEntity": "Removing this installed package will also remove the 1 chain entity pinned to it, including its choices and Jump-local state.",
+        "removingPackageAlsoRemovesChainEntities": "Removing this installed package will also remove the {{count}} chain entities pinned to it, including their choices and Jump-local state.",
+        "removingPackageDeletesItFromLibrary": "Removing this installed package deletes it from the library.",
+        "removePackageAndOneEntry": "Remove package and 1 chain entity",
+        "removePackageAndEntries": "Remove package and {{count}} chain entities"
       },
       "ariaLabel": {
         "applicationWorkspaceSwitch": "Application workspace switch",
@@ -104,7 +116,8 @@
         "moreActionsForJump": "More actions for {{jump}}",
         "moveJumpLater": "Move {{jump}} later in the chain",
         "moveJumpEarlier": "Move {{jump}} earlier in the chain",
-        "removeJumpFromChain": "Remove {{jump}} from the chain"
+        "removeJumpFromChain": "Remove {{jump}} from the chain",
+        "removePackageFromLibrary": "Remove imported package {{jump}} from the library"
       },
       "title": {
         "dragToReorder": "Drag to reorder",

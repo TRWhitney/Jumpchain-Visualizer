@@ -136,6 +136,12 @@ export type PendingMutation =
       impacts: readonly DependencyImpact[];
     }
   | {
+      kind: "uninstall-package";
+      packageId: string;
+      entryIds: readonly string[];
+      impacts: readonly DependencyImpact[];
+    }
+  | {
       kind: "clear-form";
       entryId: string;
       actorId: string;
@@ -153,6 +159,7 @@ export type PendingMutation =
     };
 
 export type UndoSnapshot = {
+  packages: Record<string, InstalledPackage>;
   entries: Record<string, ChainEntry>;
   order: string[];
   selectedEntryId: string;
@@ -222,6 +229,7 @@ export type TrackerAction =
   | { type: "set-inspection"; entryId: string }
   | { type: "request-move"; entryId: string; toIndex: number }
   | { type: "request-remove"; entryId: string }
+  | { type: "request-uninstall-package"; packageId: string }
   | { type: "cancel-mutation" }
   | { type: "commit-mutation" }
   | { type: "undo" }

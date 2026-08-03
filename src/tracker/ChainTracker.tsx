@@ -60,6 +60,7 @@ import {
   jumpEntryIds,
   jumpNumber,
   packageForEntry,
+  packageInstallConflict,
   visibleCompanions,
   visibleForms,
   visibleAtInspection,
@@ -120,6 +121,12 @@ function ChainRail({
     | { kind: "inspecting" }
     | { kind: "review"; review: PackageImportReview }
     | { kind: "blocked"; code: string; message: string }
+    | {
+        kind: "conflict";
+        reason: "same-version" | "parallel-version-disabled";
+        name: string;
+        version: string;
+      }
   >({ kind: "idle" });
   const requestedActorId = runtime[state.selectedEntryId]?.actors[actorId]
     ? actorId
@@ -568,7 +575,13 @@ function ChainRail({
         <section className="chain-rail-panel" role="tabpanel">
           <header>
             <div>
-              <p>{translate("ui.chainTracker.text.parallelVersionsEnabled")}</p>
+              <p>
+                {translate(
+                  state.preferences.allowMultiplePackageVersions
+                    ? "ui.chainTracker.text.parallelVersionsEnabled"
+                    : "ui.chainTracker.text.oneVersionPerJump",
+                )}
+              </p>
               <strong>
                 {translate("ui.chainTracker.text.availablePackages")}
               </strong>
@@ -714,14 +727,34 @@ function ChainRail({
                       {item.nativeGauntlet && " · Native Gauntlet"}
                     </small>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      dispatch({ type: "add-package", packageId: item.id })
-                    }
-                  >
-                    {actionLabel}
-                  </button>
+                  <div className="chain-library-actions">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        dispatch({ type: "add-package", packageId: item.id })
+                      }
+                    >
+                      {actionLabel}
+                    </button>
+                    {item.source === "imported" && (
+                      <button
+                        type="button"
+                        className="chain-library-remove"
+                        aria-label={translate(
+                          "ui.chainTracker.ariaLabel.removePackageFromLibrary",
+                          { jump: item.name },
+                        )}
+                        onClick={() =>
+                          dispatch({
+                            type: "request-uninstall-package",
+                            packageId: item.id,
+                          })
+                        }
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 </article>
               );
             })}
@@ -784,6 +817,47 @@ function ChainRail({
                     </button>
                   </div>
                 </section>
+              ) : packageImport.kind === "conflict" ? (
+                <section
+                  role="alertdialog"
+                  aria-modal="true"
+                  aria-labelledby="chain-import-conflict-heading"
+                >
+                  <p>{translate("ui.chainTracker.text.installationBlocked")}</p>
+                  <h2 id="chain-import-conflict-heading">
+                    {translate("ui.chainTracker.text.packageAlreadyInstalled")}
+                  </h2>
+                  <p>
+                    {packageImport.reason === "same-version"
+                      ? translate(
+                          "ui.chainTracker.text.samePackageVersionAlreadyInstalled",
+                          {
+                            name: packageImport.name,
+                            version: packageImport.version,
+                          },
+                        )
+                      : translate(
+                          "ui.chainTracker.text.anotherPackageVersionAlreadyInstalled",
+                          { name: packageImport.name },
+                        )}
+                  </p>
+                  <p>
+                    <strong>
+                      {translate(
+                        "ui.chainTracker.text.existingPackageWasNotChanged",
+                      )}
+                    </strong>
+                  </p>
+                  <div>
+                    <button
+                      autoFocus
+                      type="button"
+                      onClick={() => setPackageImport({ kind: "idle" })}
+                    >
+                      {translate("ui.chainTracker.text.close")}
+                    </button>
+                  </div>
+                </section>
               ) : (
                 <PackageReview
                   review={packageImport.review}
@@ -794,23 +868,34 @@ function ChainRail({
                   onCancel={() => setPackageImport({ kind: "idle" })}
                   onImport={() => {
                     const review = packageImport.review;
+                    const packageItem: InstalledPackage = {
+                      id: `imported-${review.hash}`,
+                      logicalId: review.packageItem.logicalId,
+                      exactHash: review.hash,
+                      name: review.name,
+                      version: review.version,
+                      source: "imported",
+                      description: review.packageItem.description,
+                      tags: review.packageItem.tags,
+                      authors: review.packageItem.authors,
+                      nativeGauntlet: review.packageItem.nativeGauntlet,
+                      availability: "library",
+                      document: review.packageItem,
+                      assets: review.files.assets,
+                    };
+                    const conflict = packageInstallConflict(state, packageItem);
+                    if (conflict) {
+                      setPackageImport({
+                        kind: "conflict",
+                        reason: conflict,
+                        name: packageItem.name,
+                        version: packageItem.version,
+                      });
+                      return;
+                    }
                     dispatch({
                       type: "install-package",
-                      packageItem: {
-                        id: `imported-${review.hash}`,
-                        logicalId: review.packageItem.logicalId,
-                        exactHash: review.hash,
-                        name: review.name,
-                        version: review.version,
-                        source: "imported",
-                        description: review.packageItem.description,
-                        tags: review.packageItem.tags,
-                        authors: review.packageItem.authors,
-                        nativeGauntlet: review.packageItem.nativeGauntlet,
-                        availability: "library",
-                        document: review.packageItem,
-                        assets: review.files.assets,
-                      },
+                      packageItem,
                     });
                     settingsContext?.logger.emit("chain.package.installed", {
                       attributes: {
@@ -1988,9 +2073,111 @@ function ProfileImports({
   );
 }
 
+function PackageUninstallModal({
+  state,
+  dispatch,
+  pending,
+}: TrackerProps & {
+  pending: Extract<
+    NonNullable<TrackerState["pending"]>,
+    { kind: "uninstall-package" }
+  >;
+}) {
+  const item = state.packages[pending.packageId];
+  if (!item) return null;
+  const removalLabel = translate("ui.chainTracker.text.removePackage", {
+    name: item.name,
+  });
+  return (
+    <FocusModal
+      label={removalLabel}
+      className="tracker-impact-layer"
+      onClose={() => dispatch({ type: "cancel-mutation" })}
+    >
+      <header>
+        <div>
+          <p>{translate("ui.chainTracker.text.packageRemoval")}</p>
+          <h4>{removalLabel}</h4>
+        </div>
+        <button
+          type="button"
+          aria-label={translate(
+            "ui.chainTracker.ariaLabel.closeDependencyReview",
+          )}
+          onClick={() => dispatch({ type: "cancel-mutation" })}
+        >
+          ×
+        </button>
+      </header>
+      <div className="tracker-impact-body">
+        <p>
+          {pending.entryIds.length > 0
+            ? translate(
+                pending.entryIds.length === 1
+                  ? "ui.chainTracker.text.removingPackageAlsoRemovesOneChainEntity"
+                  : "ui.chainTracker.text.removingPackageAlsoRemovesChainEntities",
+                { count: pending.entryIds.length },
+              )
+            : translate(
+                "ui.chainTracker.text.removingPackageDeletesItFromLibrary",
+              )}
+        </p>
+        {pending.impacts.length > 0 && (
+          <>
+            <h5>{translate("ui.chainTracker.text.affectedDependencies")}</h5>
+            <ul>
+              {pending.impacts.map((impact) => (
+                <li
+                  key={`${impact.kind}:${impact.subjectId}:${impact.providerEntryId}`}
+                >
+                  <strong>{state.actors[impact.subjectId]?.name}</strong>{" "}
+                  {translate("ui.chainTracker.text.isProvidedBy")} {item.name}{" "}
+                  {translate("ui.chainTracker.text.andImportedBy")}{" "}
+                  {impact.consumerEntryIds
+                    .map((entryId) => packageForEntry(state, entryId).name)
+                    .join(", ")}
+                  .
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        <div>
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "cancel-mutation" })}
+          >
+            {translate("ui.chainTracker.text.cancel")}
+          </button>
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "commit-mutation" })}
+          >
+            {translate(
+              pending.entryIds.length === 1
+                ? "ui.chainTracker.text.removePackageAndOneEntry"
+                : "ui.chainTracker.text.removePackageAndEntries",
+              { count: pending.entryIds.length },
+            )}
+          </button>
+        </div>
+      </div>
+    </FocusModal>
+  );
+}
+
 function MutationModal({ state, dispatch }: TrackerProps) {
-  if (!state.pending) return null;
-  const item = packageForEntry(state, state.pending.entryId);
+  const pending = state.pending;
+  if (!pending) return null;
+  if (pending.kind === "uninstall-package")
+    return (
+      <PackageUninstallModal
+        state={state}
+        dispatch={dispatch}
+        pending={pending}
+      />
+    );
+  const item = packageForEntry(state, pending.entryId);
   const choiceName = (handle: string) =>
     item.document?.choices.find((choice) => choice.handle === handle)?.name
       .base ?? handle;
@@ -2002,7 +2189,7 @@ function MutationModal({ state, dispatch }: TrackerProps) {
     )?.name.base ?? handle;
   return (
     <FocusModal
-      label={`Review ${state.pending.kind}`}
+      label={`Review ${pending.kind}`}
       className="tracker-impact-layer"
       onClose={() => dispatch({ type: "cancel-mutation" })}
     >
@@ -2010,11 +2197,11 @@ function MutationModal({ state, dispatch }: TrackerProps) {
         <div>
           <p>{translate("ui.chainTracker.text.dependencyReview")}</p>
           <h4>
-            {state.pending.kind === "move"
+            {pending.kind === "move"
               ? `Reorder ${item.name}`
-              : state.pending.kind === "remove"
+              : pending.kind === "remove"
                 ? `Remove ${item.name}`
-                : `Remove ${formName(state.pending.impacts[0]?.formHandle ?? "form")}`}
+                : `Remove ${formName(pending.impacts[0]?.formHandle ?? "form")}`}
           </h4>
         </div>
         <button
@@ -2029,40 +2216,44 @@ function MutationModal({ state, dispatch }: TrackerProps) {
       </header>
       <div className="tracker-impact-body">
         <p>
-          {state.pending.kind === "move"
+          {pending.kind === "move"
             ? "This reorder would place an active dependency before the Jump that provides it."
-            : state.pending.kind === "remove"
+            : pending.kind === "remove"
               ? "This deletion would remove a provider that a later Jump still imports. The installed package remains in the library."
               : "Removing this form also clears active perks assigned to it."}
         </p>
-        <h5>{translate("ui.chainTracker.text.affectedDependencies")}</h5>
-        <ul>
-          {state.pending.impacts.map((impact) =>
-            impact.kind === "form-perk" ? (
-              <li key={`${impact.kind}:${impact.formHandle}`}>
-                <strong>{formName(impact.formHandle)}</strong>{" "}
-                {translate("ui.chainTracker.text.ownsActive")}{" "}
-                {impact.dependentChoiceHandles
-                  .map((handle) => choiceName(handle))
-                  .join(", ")}
-                .
-              </li>
-            ) : (
-              <li
-                key={`${impact.kind}:${impact.subjectId}:${impact.providerEntryId}`}
-              >
-                <strong>{state.actors[impact.subjectId]?.name}</strong>{" "}
-                {translate("ui.chainTracker.text.isProvidedBy")}{" "}
-                {packageForEntry(state, impact.providerEntryId)?.name}{" "}
-                {translate("ui.chainTracker.text.andImportedBy")}{" "}
-                {impact.consumerEntryIds
-                  .map((entryId) => packageForEntry(state, entryId)?.name)
-                  .join(", ")}
-                .
-              </li>
-            ),
-          )}
-        </ul>
+        {pending.impacts.length > 0 && (
+          <>
+            <h5>{translate("ui.chainTracker.text.affectedDependencies")}</h5>
+            <ul>
+              {pending.impacts.map((impact) =>
+                impact.kind === "form-perk" ? (
+                  <li key={`${impact.kind}:${impact.formHandle}`}>
+                    <strong>{formName(impact.formHandle)}</strong>{" "}
+                    {translate("ui.chainTracker.text.ownsActive")}{" "}
+                    {impact.dependentChoiceHandles
+                      .map((handle) => choiceName(handle))
+                      .join(", ")}
+                    .
+                  </li>
+                ) : (
+                  <li
+                    key={`${impact.kind}:${impact.subjectId}:${impact.providerEntryId}`}
+                  >
+                    <strong>{state.actors[impact.subjectId]?.name}</strong>{" "}
+                    {translate("ui.chainTracker.text.isProvidedBy")}{" "}
+                    {packageForEntry(state, impact.providerEntryId)?.name}{" "}
+                    {translate("ui.chainTracker.text.andImportedBy")}{" "}
+                    {impact.consumerEntryIds
+                      .map((entryId) => packageForEntry(state, entryId)?.name)
+                      .join(", ")}
+                    .
+                  </li>
+                ),
+              )}
+            </ul>
+          </>
+        )}
         <div>
           <button
             type="button"
@@ -2074,9 +2265,9 @@ function MutationModal({ state, dispatch }: TrackerProps) {
             type="button"
             onClick={() => dispatch({ type: "commit-mutation" })}
           >
-            {state.pending.kind === "move"
+            {pending.kind === "move"
               ? "Commit reorder"
-              : state.pending.kind === "remove"
+              : pending.kind === "remove"
                 ? "Remove Jump"
                 : "Remove form and perks"}
           </button>

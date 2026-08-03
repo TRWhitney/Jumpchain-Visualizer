@@ -13,6 +13,7 @@ import {
   jumpNumber,
   moveDependencyImpacts,
   packageForEntry,
+  packageInstallConflict,
   radarCounts,
   removeDependencyImpacts,
   tagCategories,
@@ -1251,5 +1252,147 @@ describe("Chain Tracker aggregate", () => {
     });
     expect(installed.order).toEqual(state.order);
     expect(installed.librarySource).toBe("imported");
+  });
+
+  it("blocks repeated author-and-name imports according to the version setting", () => {
+    const state = createDenseTrackerFixture();
+    const document = Object.values(state.packages).find(
+      (item) => item.document,
+    )!.document!;
+    const first = {
+      id: "imported-first",
+      logicalId: "first-logical-id",
+      exactHash: "first-hash",
+      name: "Shared Jump",
+      version: "1.0",
+      source: "imported" as const,
+      description: "First archive.",
+      tags: [],
+      authors: ["Alice", "Bob"],
+      availability: "library" as const,
+      document,
+    };
+    const installed = trackerReducer(state, {
+      type: "install-package",
+      packageItem: first,
+    });
+    const rebuiltSameVersion = {
+      ...first,
+      id: "imported-rebuilt",
+      logicalId: "unrelated-rebuilt-id",
+      exactHash: "rebuilt-hash",
+      name: " shared jump ",
+      authors: ["bob", "ALICE"],
+    };
+    expect(packageInstallConflict(installed, rebuiltSameVersion)).toBe(
+      "same-version",
+    );
+    expect(
+      trackerReducer(installed, {
+        type: "install-package",
+        packageItem: rebuiltSameVersion,
+      }),
+    ).toBe(installed);
+
+    const secondVersion = {
+      ...rebuiltSameVersion,
+      id: "imported-second-version",
+      exactHash: "second-version-hash",
+      version: "2.0",
+    };
+    expect(packageInstallConflict(installed, secondVersion)).toBe(
+      "parallel-version-disabled",
+    );
+    const enabled = {
+      ...installed,
+      preferences: {
+        ...installed.preferences,
+        allowMultiplePackageVersions: true,
+      },
+    };
+    expect(packageInstallConflict(enabled, secondVersion)).toBeNull();
+    const withSecondVersion = trackerReducer(enabled, {
+      type: "install-package",
+      packageItem: secondVersion,
+    });
+    expect(withSecondVersion.packages[secondVersion.id]).toMatchObject({
+      version: "2.0",
+      exactHash: "second-version-hash",
+    });
+    expect(packageInstallConflict(enabled, rebuiltSameVersion)).toBe(
+      "same-version",
+    );
+
+    const firstAdded = trackerReducer(withSecondVersion, {
+      type: "add-package",
+      packageId: first.id,
+    });
+    const addingSecondDisabled = trackerReducer(
+      {
+        ...firstAdded,
+        preferences: {
+          ...firstAdded.preferences,
+          allowMultiplePackageVersions: false,
+        },
+      },
+      { type: "add-package", packageId: secondVersion.id },
+    );
+    expect(addingSecondDisabled.order).toEqual(firstAdded.order);
+    expect(addingSecondDisabled.selectedEntryId).toBe("entry-3");
+
+    const differentAuthor = {
+      ...secondVersion,
+      id: "different-author",
+      exactHash: "different-author-hash",
+      authors: ["Carol"],
+    };
+    expect(packageInstallConflict(installed, differentAuthor)).toBeNull();
+  });
+
+  it("confirms removal of an imported package and its pinned chain entries", () => {
+    const state = createDenseTrackerFixture();
+    const document = Object.values(state.packages).find(
+      (item) => item.document,
+    )!.document!;
+    const packageItem = {
+      id: "imported-removable",
+      logicalId: "removable",
+      exactHash: "removable-hash",
+      name: "Removable Jump",
+      version: "1.0",
+      source: "imported" as const,
+      description: "Can be uninstalled.",
+      tags: [],
+      authors: ["Fixture"],
+      availability: "library" as const,
+      document,
+    };
+    const installed = trackerReducer(state, {
+      type: "install-package",
+      packageItem,
+    });
+    const added = trackerReducer(installed, {
+      type: "add-package",
+      packageId: packageItem.id,
+    });
+    const requested = trackerReducer(added, {
+      type: "request-uninstall-package",
+      packageId: packageItem.id,
+    });
+    expect(requested.pending).toMatchObject({
+      kind: "uninstall-package",
+      packageId: packageItem.id,
+      entryIds: ["entry-3"],
+    });
+    expect(requested.packages[packageItem.id]).toBe(packageItem);
+
+    const removed = trackerReducer(requested, { type: "commit-mutation" });
+    expect(removed.packages[packageItem.id]).toBeUndefined();
+    expect(removed.entries["entry-3"]).toBeUndefined();
+    expect(removed.order).toEqual(state.order);
+
+    const restored = trackerReducer(removed, { type: "undo" });
+    expect(restored.packages[packageItem.id]).toBe(packageItem);
+    expect(restored.entries["entry-3"]).toBeDefined();
   });
 });

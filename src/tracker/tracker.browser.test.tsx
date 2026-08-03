@@ -8,13 +8,18 @@ import { createDenseTrackerFixture } from "./fixtures";
 import { evaluateTracker, projectEvaluation } from "./evaluateTracker";
 import { TagRadar } from "./TagRadar";
 import { trackerReducer, type TrackerAction } from "./model";
-import { JumpRenderer, RenderedJumpImage } from "./JumpRenderer";
+import {
+  JumpRenderer,
+  JumpTraitRendererScope,
+  RenderedJumpImage,
+} from "./JumpRenderer";
 import { canonicalizePackage } from "../markup";
 import { emptyActorEntryState, evaluateChain } from "../domain";
 import { SettingsProvider } from "../settings/SettingsProvider";
 import { MemorySettingsRepository } from "../settings/repository";
 import { defaultSettings } from "../settings/model";
 import { createDefaultTagProfile } from "../settings/tagProfile";
+import { presentationForTagDefinition, tagTextContrast } from "../domain/tags";
 import { ContextMenuProvider } from "../ui";
 import "../../documentation/styles.css";
 import "../../documentation/chain-tracker-design.css";
@@ -187,6 +192,34 @@ function TrackerHarness() {
     undefined,
     createDenseTrackerFixture,
   );
+  return (
+    <SupplementProviders
+      bodyMod={state.bodyMod}
+      onBodyModChange={(value) => dispatch({ type: "set-body-mod", value })}
+      supplementState={state.supplements}
+      supplementDispatch={(action) =>
+        dispatch({ type: "supplement-action", action })
+      }
+    >
+      <ChainTracker state={state} dispatch={dispatch} />
+    </SupplementProviders>
+  );
+}
+
+function UnavailablePackageTrackerHarness() {
+  const [state, dispatch] = useReducer(trackerReducer, undefined, () => {
+    const fixture = createDenseTrackerFixture();
+    const unavailablePackageId = fixture.entries["entry-2"].packageId;
+    return {
+      ...fixture,
+      packages: Object.fromEntries(
+        Object.entries(fixture.packages).filter(
+          ([id]) => id !== unavailablePackageId,
+        ),
+      ),
+      lastValidatedEvaluation: evaluateTracker(fixture, fixture.bodyMod),
+    };
+  });
   return (
     <SupplementProviders
       bodyMod={state.bodyMod}
@@ -434,6 +467,965 @@ choice-layout
   expect(getComputedStyle(page.getByRole("checkbox").element()).maskImage).toBe(
     "none",
   );
+});
+
+test("authored text alignment uses the full layout boundary", async () => {
+  const packageItem = canonicalizePackage({
+    id: "centered-layout-text-browser",
+    exactHash: "d".repeat(64),
+    files: {
+      "jump.jdef": `jump
+  format: 1
+  name: "Centered layout text"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+  layout: centered_section
+
+  text
+    handle: centered
+    content: "This sentence must be centered across the complete authored layout boundary."
+
+section-layout
+  handle: centered_section
+
+  stack
+    align: stretch
+    text
+      target: centered
+      align: stretch
+      text-align: center
+`,
+    },
+  });
+  const fixture = createDenseTrackerFixture();
+  const state = emptyActorEntryState();
+  const evaluation = evaluateChain({
+    order: ["entry"],
+    packageIdByEntry: { entry: packageItem.id },
+    packages: { [packageItem.id]: packageItem },
+    jumpState: {
+      entry: { actors: { jumper: state }, appliedGauntlet: [] },
+    },
+    jumperName: "Tester",
+  }).runtime.entry.actors.jumper;
+  render(
+    <JumpRenderer
+      packageItem={packageItem}
+      entryId="entry"
+      actorId="jumper"
+      state={state}
+      evaluation={evaluation}
+      preferences={fixture.preferences}
+      tags={fixture.tags}
+      companions={[]}
+      gauntletActive={false}
+      dispatch={() => undefined}
+    />,
+  );
+
+  const text = page.getByText(
+    "This sentence must be centered across the complete authored layout boundary.",
+    { exact: true },
+  );
+  await expect.element(text).toBeVisible();
+  const paragraph = text.element().closest("p")!;
+  const boundary = paragraph.parentElement!;
+  const paragraphBox = paragraph.getBoundingClientRect();
+  const boundaryBox = boundary.getBoundingClientRect();
+  expect(getComputedStyle(paragraph).maxWidth).toBe("none");
+  expect(Math.abs(paragraphBox.width - boundaryBox.width)).toBeLessThanOrEqual(
+    1,
+  );
+  expect(getComputedStyle(paragraph).textAlign).toBe("center");
+});
+
+test("vertical rules and Inline siblings share one block extent", async () => {
+  const packageItem = canonicalizePackage({
+    id: "vertical-rule-browser",
+    exactHash: "v".repeat(64),
+    files: {
+      "jump.jdef": `jump
+  format: 1
+  name: "Vertical rule"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: region
+  name: "Region"
+  layout: region_layout
+
+  text
+    handle: action
+    content: "ROLL 1D8 TO DETERMINE YOUR REGION."
+
+  text
+    handle: world
+    content: "The Pokémon world you are entering has larger cities, longer routes, active civilization, and peaceful authorities ready to intervene."
+
+section-layout
+  handle: region_layout
+
+  inline
+    align: stretch
+    gap: sm
+
+    stack
+      text: action
+
+    rule
+      orientation: vertical
+      color: "#00ffff"
+      thickness: 3
+
+    stack
+      text: world
+`,
+    },
+  });
+  const fixture = createDenseTrackerFixture();
+  const state = emptyActorEntryState();
+  const evaluation = evaluateChain({
+    order: ["entry"],
+    packageIdByEntry: { entry: packageItem.id },
+    packages: { [packageItem.id]: packageItem },
+    jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+    jumperName: "Tester",
+  }).runtime.entry.actors.jumper;
+  render(
+    <JumpRenderer
+      packageItem={packageItem}
+      entryId="entry"
+      actorId="jumper"
+      state={state}
+      evaluation={evaluation}
+      preferences={fixture.preferences}
+      tags={fixture.tags}
+      companions={[]}
+      gauntletActive={false}
+      dispatch={() => undefined}
+    />,
+  );
+
+  await expect
+    .element(
+      page.getByText("ROLL 1D8 TO DETERMINE YOUR REGION.", { exact: true }),
+    )
+    .toBeVisible();
+  const row = document.querySelector<HTMLElement>(".jump-layout-inline")!;
+  const areas = [
+    ...row.querySelectorAll<HTMLElement>(
+      ":scope > .jump-layout-inline-child-area",
+    ),
+  ];
+  expect(areas).toHaveLength(3);
+  const heights = areas.map((area) => area.getBoundingClientRect().height);
+  expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(1);
+  const rule = row.querySelector<HTMLElement>(
+    'hr[aria-orientation="vertical"]',
+  )!;
+  expect(rule.getBoundingClientRect().height).toBeGreaterThanOrEqual(
+    Math.min(...heights) - 1,
+  );
+  expect(getComputedStyle(rule).borderLeftWidth).toBe("3px");
+});
+
+test("semantic fidelity layout fields stretch visible cards and distribute authored space", async () => {
+  await page.viewport(1000, 800);
+  const packageItem = canonicalizePackage({
+    id: "semantic-fidelity-browser",
+    exactHash: "v".repeat(64),
+    files: {
+      "jump.jdef": `jump
+  format: 1
+  name: "Semantic Fidelity"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+  layout: section_grid
+  choice
+    handle: short_field
+    target: short
+  choice
+    handle: long_field
+    target: long
+  choice
+    handle: featured_field
+    target: featured
+  text
+    handle: roll
+    content: "Roll"
+  text
+    handle: pay
+    content: "Pay"
+  text
+    handle: world
+    content: "A neighboring column with enough prose to establish the shared row height over several lines of content."
+  text
+    handle: narrative
+    content:
+      """
+      First line \\
+      second line
+
+      - Alpha
+      - Beta
+      """
+
+choice
+  handle: short
+  name: "Short"
+  layout: card
+  cost: 100
+  text
+    handle: description
+    content: "Short body."
+
+choice
+  handle: long
+  name: "Long"
+  layout: card
+  cost: 100
+  text
+    handle: description
+    content: "A deliberately longer body that wraps over several lines and establishes the Grid row height."
+
+choice
+  handle: featured
+  name: "Featured"
+  layout: card
+  cost: 100
+  text
+    handle: description
+    content: "A full-width final card."
+
+section-layout
+  handle: section_grid
+  stack
+    grid
+      columns: 2
+      column-weight: 2
+      column-weight: 1
+      choice: short_field
+      choice: long_field
+      choice
+        target: featured_field
+        column-span: 2
+    inline
+      stack
+        grow: 1
+        text
+          target: roll
+          grow: 1
+        text
+          target: pay
+          grow: 1
+      text
+        target: world
+        grow: 1
+    text
+      target: narrative
+      list-marker: dash
+      list-indent: sm
+      list-gap: xs
+
+choice-layout
+  handle: card
+  stack
+    padding: sm
+    slot: name
+    slot
+      target: cost
+      cost-density: compact
+    text: description
+    slot
+      target: control
+      control-density: compact
+`,
+    },
+  });
+  const fixture = createDenseTrackerFixture();
+  const state = emptyActorEntryState();
+  const actions: TrackerAction[] = [];
+  const evaluation = evaluateChain({
+    order: ["entry"],
+    packageIdByEntry: { entry: packageItem.id },
+    packages: { [packageItem.id]: packageItem },
+    jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+    jumperName: "Tester",
+  }).runtime.entry.actors.jumper;
+  render(
+    <JumpRenderer
+      packageItem={packageItem}
+      entryId="entry"
+      actorId="jumper"
+      state={state}
+      evaluation={evaluation}
+      preferences={fixture.preferences}
+      tags={fixture.tags}
+      companions={[]}
+      gauntletActive={false}
+      dispatch={(action) => actions.push(action)}
+    />,
+  );
+
+  await expect.element(page.getByText("Short", { exact: true })).toBeVisible();
+  const cards = [
+    ...document.querySelectorAll<HTMLElement>(
+      ".jump-layout-grid > [data-layout-kind='choice'] > article",
+    ),
+  ];
+  expect(cards).toHaveLength(3);
+  const cardHeights = cards
+    .slice(0, 2)
+    .map((card) => card.getBoundingClientRect().height);
+  expect(
+    Math.max(...cardHeights) - Math.min(...cardHeights),
+  ).toBeLessThanOrEqual(1);
+  const grid = document.querySelector<HTMLElement>(".jump-layout-grid")!;
+  const tracks = getComputedStyle(grid)
+    .gridTemplateColumns.split(" ")
+    .map(Number.parseFloat);
+  expect(tracks[0] / tracks[1]).toBeCloseTo(2, 1);
+  expect(cards[2]!.getBoundingClientRect().width).toBeCloseTo(
+    grid.getBoundingClientRect().width,
+    0,
+  );
+
+  const roll = page.getByText("Roll", { exact: true }).element();
+  const pay = page.getByText("Pay", { exact: true }).element();
+  const rollBoundary = roll.closest<HTMLElement>("[data-layout-kind='text']")!;
+  const payBoundary = pay.closest<HTMLElement>("[data-layout-kind='text']")!;
+  expect(
+    Math.abs(
+      rollBoundary.getBoundingClientRect().height -
+        payBoundary.getBoundingClientRect().height,
+    ),
+  ).toBeLessThanOrEqual(1);
+  const narrative = page
+    .getByText(/First line/)
+    .element()
+    .closest<HTMLElement>('[data-layout-kind="text"]')!;
+  expect(narrative.querySelector("br")).not.toBeNull();
+  expect(
+    [...narrative.querySelectorAll("li")].map((item) => item.textContent),
+  ).toEqual(["Alpha", "Beta"]);
+  expect(narrative.querySelector("ul")?.getAttribute("data-list-marker")).toBe(
+    "dash",
+  );
+  const authoredList = narrative.querySelector<HTMLElement>("ul")!;
+  const authoredListItem = authoredList.querySelector<HTMLElement>("li")!;
+  expect(getComputedStyle(authoredList).listStyleType).toBe("none");
+  expect(getComputedStyle(authoredListItem, "::before").content).toBe('"-"');
+  expect(
+    Number.parseFloat(getComputedStyle(authoredListItem).paddingInlineStart),
+  ).toBeGreaterThan(0);
+  expect(authoredListItem.getBoundingClientRect().x).toBeGreaterThanOrEqual(
+    narrative.getBoundingClientRect().x,
+  );
+  authoredList.dataset.listMarker = "disc";
+  expect(getComputedStyle(authoredListItem, "::before").content).toBe('"•"');
+  authoredList.dataset.listMarker = "dash";
+  const shortCard = cards[0]!;
+  expect(
+    shortCard.querySelector('[data-layout-cost-density="compact"]'),
+  ).not.toBeNull();
+  const compactControl = shortCard.querySelector<HTMLElement>(
+    '[data-layout-control-density="compact"]',
+  )!;
+  const checkbox = page.getByRole("checkbox", { name: /Short/ }).element();
+  expect(compactControl.contains(checkbox)).toBe(true);
+  checkbox.focus();
+  await userEvent.keyboard(" ");
+  expect(actions.some((action) => action.type === "set-choice")).toBe(true);
+  const renderer = document.querySelector<HTMLElement>(
+    ".format-one-jump-renderer",
+  )!;
+  renderer.style.width = "30rem";
+  await expect
+    .poll(() => getComputedStyle(grid).gridTemplateColumns.split(" ").length)
+    .toBe(1);
+  expect(cards[2]!.getBoundingClientRect().width).toBeCloseTo(
+    grid.getBoundingClientRect().width,
+    0,
+  );
+  renderer.style.width = "";
+  await page.viewport(414, 800);
+  expect(getComputedStyle(grid).gridTemplateColumns.split(" ")).toHaveLength(1);
+  expect(cards[2]!.getBoundingClientRect().width).toBeCloseTo(
+    grid.getBoundingClientRect().width,
+    0,
+  );
+  expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+    document.documentElement.clientWidth + 1,
+  );
+});
+
+test("authored Trait layouts own their panel while preserving accessible contrast", async () => {
+  const packageItem = canonicalizePackage({
+    id: "authored-trait-browser",
+    exactHash: "t".repeat(64),
+    files: {
+      "jump.jdef": `jump
+  format: 1
+  name: "Authored Trait"
+  author: "Tester"
+  version: "1"
+
+  grant
+    kind: trait
+    name: "Marked"
+    layout: marked_trait
+
+    text
+      handle: description
+      content: "A local criminal group relentlessly hunts you."
+
+section
+  handle: content
+  name: "Content"
+
+trait-layout
+  handle: marked_trait
+
+  stack
+    padding: sm
+    background: "#404040"
+    border-color: "#00ffff"
+    border-width: thin
+    border-style: solid
+    text-color: "#00ffff"
+    slot: name
+    text: description
+`,
+    },
+  });
+  const fixture = createDenseTrackerFixture();
+  const state = emptyActorEntryState();
+  const evaluation = evaluateChain({
+    order: ["entry"],
+    packageIdByEntry: { entry: packageItem.id },
+    packages: { [packageItem.id]: packageItem },
+    jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+    jumperName: "Tester",
+  }).runtime.entry.actors.jumper;
+  const trait = evaluation.traits[0];
+  render(
+    <JumpTraitRendererScope
+      trait={trait}
+      rendererProps={{
+        packageItem,
+        entryId: "entry",
+        actorId: "jumper",
+        state,
+        evaluation,
+        preferences: {
+          allowRerolls: fixture.preferences.allowRerolls,
+          showAdditionalJumpInformation:
+            fixture.preferences.showAdditionalJumpInformation,
+          imageAltTextHover: true,
+        },
+        tags: fixture.tags,
+        companions: [],
+        gauntletActive: false,
+        actions: {
+          setChoice: () => undefined,
+          setInput: () => undefined,
+          setSourceSelections: () => undefined,
+          recordChoiceRoll: () => undefined,
+          recordSourceRoll: () => undefined,
+        },
+      }}
+    />,
+  );
+
+  await expect.element(page.getByText("Marked", { exact: true })).toBeVisible();
+  const article = document.querySelector<HTMLElement>(
+    ".authored-trait-layout",
+  )!;
+  const panel = article.querySelector<HTMLElement>(".jump-layout-stack")!;
+  expect(getComputedStyle(article).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  expect(getComputedStyle(article).borderWidth).toBe("0px");
+  expect(getComputedStyle(panel).backgroundColor).toBe("rgb(64, 64, 64)");
+  expect(getComputedStyle(panel).borderColor).toBe("rgb(0, 255, 255)");
+  expect(getComputedStyle(panel).borderWidth).toBe("1px");
+  expect(getComputedStyle(panel).color).toBe("rgb(0, 255, 255)");
+  expect(tagTextContrast("#00ffff", "#404040")).toBeGreaterThanOrEqual(4.5);
+});
+
+test("authored Choice Text inherits its explicit layout color", async () => {
+  const packageItem = canonicalizePackage({
+    id: "authored-choice-text-color-browser",
+    exactHash: "c".repeat(64),
+    files: {
+      "jump.jdef": `jump
+  format: 1
+  name: "Authored Choice Text color"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+  choice
+    handle: marked_field
+    target: marked
+
+choice
+  handle: marked
+  name: "Marked"
+  layout: marked_card
+
+  text
+    handle: description
+    content: "A local criminal group relentlessly hunts you."
+
+choice-layout
+  handle: marked_card
+
+  inline
+    background: "#404040"
+    text-color: "#00ffff"
+    slot: name
+    text
+      target: description
+      text-color: "#00ffff"
+    slot: control
+`,
+    },
+  });
+  const fixture = createDenseTrackerFixture();
+  const state = emptyActorEntryState();
+  const evaluation = evaluateChain({
+    order: ["entry"],
+    packageIdByEntry: { entry: packageItem.id },
+    packages: { [packageItem.id]: packageItem },
+    jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+    jumperName: "Tester",
+  }).runtime.entry.actors.jumper;
+  render(
+    <JumpRenderer
+      packageItem={packageItem}
+      entryId="entry"
+      actorId="jumper"
+      state={state}
+      evaluation={evaluation}
+      preferences={fixture.preferences}
+      tags={fixture.tags}
+      companions={[]}
+      gauntletActive={false}
+      dispatch={() => undefined}
+    />,
+  );
+
+  const description = page.getByText(
+    "A local criminal group relentlessly hunts you.",
+  );
+  await expect.element(description).toBeVisible();
+  expect(getComputedStyle(description.element()).color).toBe(
+    "rgb(0, 255, 255)",
+  );
+});
+
+test("authored layouts cannot replace the active User Tag profile", async () => {
+  const packageItem = canonicalizePackage({
+    id: "user-tag-profile-browser",
+    exactHash: "u".repeat(64),
+    files: {
+      "jump.jdef": `jump
+  format: 1
+  name: "User Tag profile"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+  choice
+    handle: tagged
+    target: tagged
+
+choice
+  handle: tagged
+  name: "Tagged Choice"
+  tag: pokemon
+  layout: authored_card
+
+choice-layout
+  handle: authored_card
+
+  stack
+    text-size: 2xl
+    text-color: "#ff0000"
+    slot: tags
+`,
+    },
+  });
+  const fixture = createDenseTrackerFixture();
+  const state = {
+    ...emptyActorEntryState(),
+    choices: { tagged: true },
+  };
+  const evaluation = evaluateChain({
+    order: ["entry"],
+    packageIdByEntry: { entry: packageItem.id },
+    packages: { [packageItem.id]: packageItem },
+    jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+    jumperName: "Tester",
+  }).runtime.entry.actors.jumper;
+  const presentation = {
+    ...presentationForTagDefinition("#8a2be2", "#ff1493", "gradient"),
+    corners: "square" as const,
+    weight: "normal" as const,
+    fontStyle: "italic" as const,
+    decoration: "underline" as const,
+    animation: "ghost" as const,
+  };
+  render(
+    <JumpRenderer
+      packageItem={packageItem}
+      entryId="entry"
+      actorId="jumper"
+      state={state}
+      evaluation={evaluation}
+      preferences={fixture.preferences}
+      tags={{
+        ...fixture.tags,
+        pokemon: {
+          id: "pokemon",
+          label: "Profile Pokémon",
+          parent: "miscellaneous",
+          aliases: [],
+          color: "#8a2be2",
+          to: "#ff1493",
+          style: "gradient",
+          presentation,
+        },
+      }}
+      companions={[]}
+      gauntletActive={false}
+      dispatch={() => undefined}
+    />,
+  );
+
+  await expect
+    .element(page.getByText("Profile Pokémon", { exact: true }))
+    .toBeVisible();
+  const badge = document.querySelector<HTMLElement>(".tag-profile-badge")!;
+  expect(badge.textContent).toBe("Profile Pokémon");
+  const style = getComputedStyle(badge);
+  expect(style.backgroundImage).toContain("linear-gradient");
+  expect(style.borderRadius).toBe("0px");
+  expect(style.fontWeight).toBe("400");
+  expect(style.fontStyle).toBe("italic");
+  expect(style.textDecorationLine).toBe("underline");
+  expect(badge.classList).toContain("animation-ghost");
+});
+
+test("Source limits and Section locks expose accessible disabled states", async () => {
+  const packageItem = canonicalizePackage({
+    id: "limit-lock-browser",
+    exactHash: "m".repeat(64),
+    files: {
+      "jump.jdef": `jump
+  format: 1
+  name: "Limits and locks"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: flaws
+  name: "Flaws"
+
+  choice-source
+    handle: choices
+    group: flaws
+    mode: multi
+    max: 1
+
+section
+  handle: restricted
+  name: "Restricted"
+  locked: true
+
+  choice
+    handle: restricted_choice
+    target: restricted_choice
+
+choice
+  handle: first
+  name: "First Flaw"
+  group: flaws
+
+choice
+  handle: second
+  name: "Second Flaw"
+  group: flaws
+
+choice
+  handle: restricted_choice
+  name: "Restricted Choice"
+  cost: 100
+`,
+    },
+  });
+  const fixture = createDenseTrackerFixture();
+  const state = {
+    ...emptyActorEntryState(),
+    sourceSelections: { "flaws:choices": ["first"] },
+    choices: { first: true, restricted_choice: true },
+  };
+  const evaluation = evaluateChain({
+    order: ["entry"],
+    packageIdByEntry: { entry: packageItem.id },
+    packages: { [packageItem.id]: packageItem },
+    jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+    jumperName: "Tester",
+  }).runtime.entry.actors.jumper;
+  render(
+    <JumpRenderer
+      packageItem={packageItem}
+      entryId="entry"
+      actorId="jumper"
+      state={state}
+      evaluation={evaluation}
+      preferences={fixture.preferences}
+      tags={fixture.tags}
+      companions={[]}
+      gauntletActive={false}
+      dispatch={() => undefined}
+    />,
+  );
+
+  await expect
+    .element(page.getByText("Maximum of 1 selections reached", { exact: true }))
+    .toBeVisible();
+  await expect
+    .element(page.getByRole("checkbox", { name: "Second Flaw" }))
+    .toBeDisabled();
+  const restricted = page
+    .getByText("Restricted Choice", { exact: true })
+    .element()
+    .closest<HTMLElement>(".rendered-jump-section")!;
+  expect(restricted.getAttribute("aria-disabled")).toBe("true");
+  expect(
+    restricted.querySelector<HTMLFieldSetElement>("fieldset")!.disabled,
+  ).toBe(true);
+  expect(evaluation.choices.restricted_choice.active).toBe(false);
+  expect(evaluation.balance).toBe(1000);
+});
+
+test("an authored source control keeps its geometry when a pick limit disables it", async () => {
+  const packageItem = canonicalizePackage({
+    id: "authored-limit-browser",
+    exactHash: "l".repeat(64),
+    files: {
+      "jump.jdef": `jump
+  format: 1
+  name: "Authored limits"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: flaws
+  name: "Flaws"
+  layout: flaws_layout
+
+  choice-source
+    handle: choices
+    group: flaws
+    mode: multi
+    max: 1
+
+choice
+  handle: first
+  name: "First Flaw"
+  group: flaws
+
+choice
+  handle: second
+  name: "Second Flaw"
+  group: flaws
+`,
+      "layout.jdef": `section-layout
+  handle: flaws_layout
+
+  stack
+    expand
+      source: choices
+      using: flaw_card
+
+choice-layout
+  handle: flaw_card
+
+  inline
+    gap: xs
+    slot: name
+    slot
+      target: control
+      control-adornments: false
+`,
+    },
+  });
+  const fixture = createDenseTrackerFixture();
+  function AuthoredLimitHarness() {
+    const [state, dispatch] = useReducer(
+      (
+        current: ReturnType<typeof emptyActorEntryState>,
+        action: TrackerAction,
+      ) =>
+        action.type === "set-source-selections"
+          ? {
+              ...current,
+              sourceSelections: {
+                ...current.sourceSelections,
+                [action.sourceKey]: action.value,
+              },
+            }
+          : current,
+      undefined,
+      emptyActorEntryState,
+    );
+    const evaluation = evaluateChain({
+      order: ["entry"],
+      packageIdByEntry: { entry: packageItem.id },
+      packages: { [packageItem.id]: packageItem },
+      jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+      jumperName: "Tester",
+    }).runtime.entry.actors.jumper;
+    return (
+      <JumpRenderer
+        packageItem={packageItem}
+        entryId="entry"
+        actorId="jumper"
+        state={state}
+        evaluation={evaluation}
+        preferences={fixture.preferences}
+        tags={fixture.tags}
+        companions={[]}
+        gauntletActive={false}
+        dispatch={dispatch}
+      />
+    );
+  }
+  render(<AuthoredLimitHarness />);
+
+  const secondControl = page.getByRole("checkbox", { name: "Second Flaw" });
+  await expect.element(secondControl).toBeInTheDocument();
+  const secondActions = secondControl
+    .element()
+    .closest(".default-choice-actions") as HTMLElement;
+  const widthBeforeLimit = secondActions.getBoundingClientRect().width;
+  await userEvent.click(page.getByRole("checkbox", { name: "First Flaw" }));
+
+  const status = page.getByText("Maximum of 1 selections reached", {
+    exact: true,
+  });
+  await expect.element(status).toBeInTheDocument();
+  const statusNode = document.querySelector<HTMLElement>(
+    ".authored-choice-layout .source-option-limit-status",
+  );
+  expect(statusNode?.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+  expect(statusNode?.getBoundingClientRect().height).toBeLessThanOrEqual(1);
+  await expect.element(secondControl).toBeDisabled();
+  const widthAfterLimit = (
+    secondControl.element().closest(".default-choice-actions") as HTMLElement
+  ).getBoundingClientRect().width;
+  expect(Math.abs(widthAfterLimit - widthBeforeLimit)).toBeLessThanOrEqual(1);
+  const actionWidths = [...document.querySelectorAll(".authored-choice-layout")]
+    .map((card) => card.querySelector(".default-choice-actions"))
+    .filter((actions): actions is HTMLElement => actions instanceof HTMLElement)
+    .map((actions) => actions.getBoundingClientRect().width);
+  expect(actionWidths).toHaveLength(2);
+  expect(Math.abs(actionWidths[0] - actionWidths[1])).toBeLessThanOrEqual(1);
+});
+
+test("Cost badges retain base price and discount provenance", async () => {
+  const packageItem = canonicalizePackage({
+    id: "discount-badge-browser",
+    exactHash: "q".repeat(64),
+    files: {
+      "jump.jdef": `jump
+  format: 1
+  name: "Discount badges"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+  choice
+    handle: origin
+    target: origin
+  choice
+    handle: skill
+    target: skill
+
+choice
+  handle: origin
+  name: "Small Town"
+  discount
+    group: skills
+    mode: percent
+    amount: 50
+
+choice
+  handle: skill
+  name: "Physical Fitness"
+  group: skills
+  cost: 100
+`,
+    },
+  });
+  const fixture = createDenseTrackerFixture();
+  const state = {
+    ...emptyActorEntryState(),
+    choices: { origin: true, skill: false },
+  };
+  const evaluation = evaluateChain({
+    order: ["entry"],
+    packageIdByEntry: { entry: packageItem.id },
+    packages: { [packageItem.id]: packageItem },
+    jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+    jumperName: "Tester",
+  }).runtime.entry.actors.jumper;
+  render(
+    <JumpRenderer
+      packageItem={packageItem}
+      entryId="entry"
+      actorId="jumper"
+      state={state}
+      evaluation={evaluation}
+      preferences={fixture.preferences}
+      tags={fixture.tags}
+      companions={[]}
+      gauntletActive={false}
+      dispatch={() => undefined}
+    />,
+  );
+
+  const skillName = page.getByText("Physical Fitness", { exact: true });
+  await expect.element(skillName).toBeVisible();
+  const card = skillName
+    .element()
+    .closest<HTMLElement>(".default-choice-card")!;
+  const badge = card.querySelector<HTMLElement>(".cost-badge")!;
+  expect(badge.textContent).toContain("100 CP");
+  expect(badge.textContent).toContain("50 CP");
+  expect(badge.getAttribute("title")).toBe("Discounted by Small Town");
+  expect(badge.getAttribute("aria-label")).toBe(
+    "Base price 100 CP; resolved price 50 CP. Discounted by Small Town.",
+  );
+  expect(
+    badge.querySelector<HTMLElement>(".cost-badge-original"),
+  ).not.toBeNull();
 });
 
 test("Jump, Section, and Choice labels interpolate evaluated properties", async () => {
@@ -719,6 +1711,27 @@ test("workspace tabs select pages and preserve the bounded frame", async () => {
   const frame = document.querySelector<HTMLElement>(".tracker-review-frame");
   expect(frame).not.toBeNull();
   expect(frame?.clientHeight).toBeGreaterThan(0);
+});
+
+test("a saved entry whose exact package is unavailable renders a recoverable Chain state", async () => {
+  render(<UnavailablePackageTrackerHarness />);
+  await expect
+    .element(
+      page.getByText("Unavailable Jump package", { exact: true }).first(),
+    )
+    .toBeVisible();
+  await expect
+    .element(
+      page.getByText(
+        "This exact package is unavailable. Stored selections are preserved until it is restored.",
+        { exact: true },
+      ),
+    )
+    .toBeVisible();
+  const activeRailEntry = document.querySelector<HTMLButtonElement>(
+    '.chain-jump-select[aria-pressed="true"]',
+  );
+  expect(activeRailEntry?.textContent).toContain("Unavailable Jump package");
 });
 
 test("Earth is unnumbered, immutable, and establishes identity continuity", async () => {

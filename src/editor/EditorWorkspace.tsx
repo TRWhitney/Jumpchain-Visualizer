@@ -4745,11 +4745,20 @@ function LayoutNodeFields({
                     </option>
                   ))}
                 </select>
-              ) : definition.type === "imageDimension" ? (
+              ) : ["imageDimension", "textSize", "layoutDimension"].includes(
+                  definition.type ?? "",
+                ) ? (
                 <ImageDimensionFieldControl
                   label={fieldLabel}
                   value={value}
                   tokens={options}
+                  kind={
+                    definition.type === "textSize"
+                      ? "text"
+                      : definition.type === "layoutDimension"
+                        ? "layout"
+                        : "image"
+                  }
                   ariaInvalid={matchingDiagnostics.length > 0}
                   ariaDescribedBy={describedBy || undefined}
                   onChange={(nextValue) =>
@@ -4757,16 +4766,7 @@ function LayoutNodeFields({
                   }
                   onBlur={onEndFieldEdit}
                 />
-              ) : options.length &&
-                [
-                  "enum",
-                  "imageFit",
-                  "spacing",
-                  "size",
-                  "align",
-                  "justify",
-                  "textAlign",
-                ].includes(definition.type ?? "") ? (
+              ) : options.length ? (
                 <select
                   aria-label={fieldLabel}
                   value={selectControl.value}
@@ -4888,6 +4888,254 @@ function LayoutNodeFields({
               )}
             </div>
           </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const layoutPresentationFieldGroups = [
+  {
+    key: "spacing",
+    fields: ["gap", "padding", "padding-block", "padding-inline"],
+  },
+  {
+    key: "sizing",
+    fields: [
+      "grow",
+      "column-span",
+      "row-span",
+      "min-width",
+      "min-height",
+      "aspect-ratio",
+    ],
+  },
+  { key: "grid", fields: ["column-weight"] },
+  {
+    key: "typography",
+    fields: [
+      "text-align",
+      "text-size",
+      "text-color",
+      "font-family",
+      "font-weight",
+      "line-height",
+      "letter-spacing",
+    ],
+  },
+  {
+    key: "list",
+    fields: ["list-marker", "list-indent", "list-gap"],
+  },
+  {
+    key: "interaction",
+    fields: ["control-adornments", "control-density", "cost-density"],
+  },
+  {
+    key: "appearance",
+    fields: [
+      "background",
+      "align",
+      "justify",
+      "border-color",
+      "border-width",
+      "border-style",
+      "corners",
+      "clip",
+      "size",
+      "width",
+      "height",
+      "fit",
+      "color",
+      "thickness",
+      "style",
+      "orientation",
+      "source",
+      "using",
+    ],
+  },
+] as const;
+
+function LayoutPresentationGroups({
+  assets,
+  diagnostics,
+  files,
+  symbol,
+  parentKind,
+  disclosureKey,
+  disclosureState,
+  collapseInitially,
+  onDisclosureChange,
+  onEndFieldEdit,
+  onBackgroundModeChange,
+  onCreateImage,
+  onCreateTheme,
+  onUpdate,
+  onReplaceRepeated,
+  showExplanatoryText,
+}: {
+  assets: readonly string[];
+  diagnostics: readonly PackageDiagnostic[];
+  files: Readonly<Record<string, string>>;
+  symbol: FormatSymbol;
+  parentKind?: string;
+  disclosureKey: string;
+  disclosureState: Readonly<Record<string, boolean>>;
+  collapseInitially: boolean;
+  onDisclosureChange: (key: string, open: boolean) => void;
+  onEndFieldEdit: () => void;
+  onBackgroundModeChange: (
+    symbol: FormatSymbol,
+    mode: "color" | "image",
+  ) => void;
+  onCreateImage?: (symbol: FormatSymbol) => void;
+  onCreateTheme: (symbol: FormatSymbol, field: string, color: string) => void;
+  onUpdate: (
+    symbol: FormatSymbol,
+    field: string,
+    value: string,
+    occurrence?: number,
+  ) => void;
+  onReplaceRepeated: (
+    symbol: FormatSymbol,
+    field: string,
+    values: readonly string[],
+  ) => void;
+  showExplanatoryText: boolean;
+}) {
+  const context = structuredContext(files, symbol);
+  if (!context) return null;
+  const visible = new Set(context.visibleFields);
+  if (!["stack", "inline"].includes(parentKind ?? "")) visible.delete("grow");
+  if (parentKind !== "grid") {
+    visible.delete("column-span");
+    visible.delete("row-span");
+  }
+  if (symbol.kind !== "grid") visible.delete("column-weight");
+  if (symbol.kind !== "text") {
+    visible.delete("list-marker");
+    visible.delete("list-indent");
+    visible.delete("list-gap");
+  }
+  return (
+    <div className="editor-layout-presentation-groups">
+      {layoutPresentationFieldGroups.map((group) => {
+        const fields = group.fields.filter((field) => visible.has(field));
+        if (!fields.length) return null;
+        const key = `${disclosureKey}:${group.key}`;
+        const open = disclosureState[key] ?? !collapseInitially;
+        const customized = fields.reduce(
+          (count, field) =>
+            count + readSourceFields(files[symbol.file], symbol, field).length,
+          0,
+        );
+        const ordinaryFields = fields.filter(
+          (field) => field !== "column-weight",
+        );
+        const weights = readSourceFields(
+          files[symbol.file],
+          symbol,
+          "column-weight",
+        );
+        const columns = Math.max(
+          1,
+          Number(readSourceField(files[symbol.file], symbol, "columns")) || 1,
+        );
+        return (
+          <details
+            className="editor-layout-presentation-group"
+            data-layout-presentation-group={group.key}
+            key={group.key}
+            open={open}
+            onToggle={(event) =>
+              onDisclosureChange(key, event.currentTarget.open)
+            }
+          >
+            <summary>
+              <span>
+                {translate(
+                  `ui.editorWorkspace.layoutPresentationGroup.${group.key}`,
+                )}
+              </span>
+              {!open && customized > 0 && (
+                <small>
+                  {translate(
+                    "ui.editorWorkspace.layoutPresentationGroup.nonDefault",
+                    { count: customized },
+                  )}
+                </small>
+              )}
+            </summary>
+            {ordinaryFields.length > 0 && (
+              <LayoutNodeFields
+                assets={assets}
+                diagnostics={diagnostics}
+                files={files}
+                symbol={symbol}
+                onEndFieldEdit={onEndFieldEdit}
+                onBackgroundModeChange={onBackgroundModeChange}
+                onCreateImage={onCreateImage}
+                onCreateTheme={onCreateTheme}
+                onUpdate={onUpdate}
+                fields={ordinaryFields}
+                showExplanatoryText={showExplanatoryText}
+                showHeading={false}
+              />
+            )}
+            {fields.includes("column-weight") && (
+              <div className="editor-layout-column-weights">
+                <label>
+                  <span>
+                    {translate(
+                      "ui.editorWorkspace.text.customColumnProportions",
+                    )}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={weights.length > 0}
+                    aria-label={translate(
+                      "ui.editorWorkspace.text.customColumnProportions",
+                    )}
+                    onChange={(event) =>
+                      onReplaceRepeated(
+                        symbol,
+                        "column-weight",
+                        event.target.checked
+                          ? Array.from({ length: columns }, () => "1")
+                          : [],
+                      )
+                    }
+                  />
+                </label>
+                {weights.length > 0 &&
+                  Array.from({ length: columns }, (_, index) => (
+                    <label key={index}>
+                      <span>
+                        {translate(
+                          "ui.editorWorkspace.text.layoutColumnNumber",
+                          { number: index + 1 },
+                        )}
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={12}
+                        value={weights[index] ?? ""}
+                        onChange={(event) => {
+                          const next = Array.from(
+                            { length: columns },
+                            (_, itemIndex) => weights[itemIndex] ?? "1",
+                          );
+                          next[index] = event.target.value;
+                          onReplaceRepeated(symbol, "column-weight", next);
+                        }}
+                        onBlur={onEndFieldEdit}
+                      />
+                    </label>
+                  ))}
+              </div>
+            )}
+          </details>
         );
       })}
     </div>
@@ -5082,6 +5330,7 @@ function LayoutTreeEditor({
   onOpenCreatedContent,
   onCreateReference,
   showExplanatoryText,
+  collapseOptionalSectionsInitially,
 }: {
   assets: readonly string[];
   diagnostics: readonly PackageDiagnostic[];
@@ -5113,6 +5362,7 @@ function LayoutTreeEditor({
     returnTarget?: FormatSymbol,
   ) => void;
   showExplanatoryText: boolean;
+  collapseOptionalSectionsInitially: boolean;
 }) {
   const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
   const tree = useMemo(
@@ -5139,6 +5389,8 @@ function LayoutTreeEditor({
   const dropTargetRef = useRef<LayoutDropTarget | null>(null);
   const [containerPresentationOpen, setContainerPresentationOpen] =
     useState(false);
+  const [presentationDisclosureState, setPresentationDisclosureState] =
+    useState<Readonly<Record<string, boolean>>>({});
   const [contentCreation, setContentCreation] =
     useState<LayoutContentCreationRequest | null>(null);
 
@@ -5413,6 +5665,35 @@ function LayoutTreeEditor({
       true,
     );
   };
+  const replaceRepeatedLayoutField = (
+    nodeSymbol: FormatSymbol,
+    field: string,
+    values: readonly string[],
+  ) => {
+    const result = removeDocumentFields(files, nodeSymbol, field);
+    let nextFiles = result.changed ? result.files : { ...files };
+    let changed = result.changed;
+    for (let index = 0; index < values.length; index += 1) {
+      const update = setDocumentField(
+        nextFiles,
+        nodeSymbol,
+        field,
+        values[index],
+        index,
+      );
+      if (!update.changed) continue;
+      nextFiles = update.files;
+      changed = true;
+    }
+    if (!changed) return;
+    onApply(
+      { changed: true, files: nextFiles },
+      announce("layoutNodeUpdated", nodeSymbol.kind),
+      true,
+    );
+  };
+  const rememberPresentationDisclosure = (key: string, open: boolean) =>
+    setPresentationDisclosureState((current) => ({ ...current, [key]: open }));
   const changeLayoutBackgroundMode = (
     nodeSymbol: FormatSymbol,
     mode: "color" | "image",
@@ -5731,11 +6012,20 @@ function LayoutTreeEditor({
               </button>
               {containerPresentationOpen && (
                 <div className="editor-layout-container-presentation">
-                  <LayoutNodeFields
+                  <LayoutPresentationGroups
                     assets={assets}
                     diagnostics={diagnostics}
                     files={files}
                     symbol={layoutNodeSymbol(layout, selected)}
+                    parentKind={
+                      selected.parentId
+                        ? tree.nodes[selected.parentId]?.kind
+                        : undefined
+                    }
+                    disclosureKey={`${layout.handle ?? layout.from}:${selected.path}`}
+                    disclosureState={presentationDisclosureState}
+                    collapseInitially={collapseOptionalSectionsInitially}
+                    onDisclosureChange={rememberPresentationDisclosure}
                     onEndFieldEdit={onEndFieldEdit}
                     onBackgroundModeChange={changeLayoutBackgroundMode}
                     onCreateImage={createLayoutBackgroundImage}
@@ -5750,21 +6040,8 @@ function LayoutTreeEditor({
                       )
                     }
                     onUpdate={updateLayoutField}
-                    fields={[
-                      "padding",
-                      "background",
-                      "align",
-                      "justify",
-                      "text-align",
-                      "text-size",
-                      "text-color",
-                      "border-color",
-                      "border-width",
-                      "border-style",
-                      "corners",
-                    ]}
+                    onReplaceRepeated={replaceRepeatedLayoutField}
                     showExplanatoryText={showExplanatoryText}
-                    showHeading={false}
                   />
                 </div>
               )}
@@ -6377,11 +6654,20 @@ function LayoutTreeEditor({
                   )}
                   {edited?.id === node.id && !node.compact && (
                     <div className="editor-layout-row-node-fields">
-                      <LayoutNodeFields
+                      <LayoutPresentationGroups
                         assets={assets}
                         diagnostics={diagnostics}
                         files={files}
                         symbol={layoutNodeSymbol(layout, node)}
+                        parentKind={
+                          node.parentId
+                            ? tree.nodes[node.parentId]?.kind
+                            : undefined
+                        }
+                        disclosureKey={`${layout.handle ?? layout.from}:${node.path}`}
+                        disclosureState={presentationDisclosureState}
+                        collapseInitially={collapseOptionalSectionsInitially}
+                        onDisclosureChange={rememberPresentationDisclosure}
                         onEndFieldEdit={onEndFieldEdit}
                         onBackgroundModeChange={changeLayoutBackgroundMode}
                         onCreateImage={createLayoutBackgroundImage}
@@ -6396,6 +6682,7 @@ function LayoutTreeEditor({
                           )
                         }
                         onUpdate={updateLayoutField}
+                        onReplaceRepeated={replaceRepeatedLayoutField}
                         showExplanatoryText={showExplanatoryText}
                       />
                       <LayoutInvalidFields
@@ -6928,8 +7215,13 @@ function StructuredPanel({
         ["form", "companion", "measure"].includes(item),
       )
     : [];
+  const sectionEffectFields =
+    symbol.kind === "choice"
+      ? detailFields.filter((item) => ["lock", "unlock"].includes(item))
+      : [];
   const unorderedOrdinaryDetailFields = detailFields.filter(
-    (item) => !awardDetailFields.includes(item),
+    (item) =>
+      !awardDetailFields.includes(item) && !sectionEffectFields.includes(item),
   );
   const choiceSelection = field("selection") || "toggle";
   const choiceBehaviorFieldOrder =
@@ -7332,7 +7624,7 @@ function StructuredPanel({
     const createsResource =
       referenceKind === "resource" &&
       fieldName === "resource" &&
-      ["cost", "grant"].includes(symbol.kind);
+      ["cost", "grant", "discount"].includes(symbol.kind);
     const createdDeclarationKind = createsResource
       ? "resource"
       : referenceCreationKind;
@@ -8018,6 +8310,23 @@ function StructuredPanel({
                       }
                       onBlur={onEndFieldEdit}
                     />
+                  ) : controlKind === "choice-group" ? (
+                    <HandleFieldControl
+                      label={controlLabel}
+                      value={value}
+                      options={packageGroups}
+                      placeholder={translate(
+                        "ui.editorWorkspace.setFields.discountGroupPlaceholder",
+                      )}
+                      autoFocus={fieldName === focusField && occurrence === 0}
+                      ariaInvalid={matchingDiagnostics.length > 0}
+                      ariaDescribedBy={describedBy}
+                      showDescriptions={showExplanatoryText}
+                      onChange={(nextValue) =>
+                        onUpdate(symbol, fieldName, nextValue, occurrence)
+                      }
+                      onBlur={onEndFieldEdit}
+                    />
                   ) : controlKind === "spelling-text" ? (
                     <SpellingTextInput
                       autoFocus={fieldName === focusField && occurrence === 0}
@@ -8373,6 +8682,7 @@ function StructuredPanel({
           onOpenCreatedContent={onOpenCreatedContent}
           onCreateReference={onCreateReference}
           showExplanatoryText={showExplanatoryText}
+          collapseOptionalSectionsInitially={collapseOptionalSectionsInitially}
         />
       ) : (
         <>
@@ -8510,6 +8820,23 @@ function StructuredPanel({
                 </p>
               )}
               {awardDetailFields.map(renderField)}
+            </CollapsibleFormSection>
+          )}
+          {sectionEffectFields.length > 0 && !scalarForm && (
+            <CollapsibleFormSection
+              className="editor-choice-section-effects"
+              contentClassName="editor-detail-fields"
+              disclosureId="section-locking"
+              open={optionalDisclosureExpanded("section-locking")}
+              onToggle={(expanded) =>
+                onOptionalDisclosureChange("section-locking", expanded)
+              }
+              label={translate("ui.editorWorkspace.sectionEffects.heading")}
+            >
+              {showExplanatoryText && (
+                <p>{translate("ui.editorWorkspace.sectionEffects.help")}</p>
+              )}
+              {sectionEffectFields.map(renderField)}
             </CollapsibleFormSection>
           )}
         </>

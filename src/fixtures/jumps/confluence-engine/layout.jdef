@@ -54,7 +54,7 @@ section-layout
     align: start
     justify: start
     text-align: start
-    text-size: xs
+    text-size: .58rem
     text-color: white
     slot: name
 
@@ -64,7 +64,7 @@ section-layout
       align: center
       justify: center
       text-align: center
-      text-size: sm
+      text-size: .66rem
       background: gray
       text-color: white
 
@@ -150,7 +150,7 @@ section-layout
       align: end
       justify: end
       text-align: end
-      text-size: lg
+      text-size: .9rem
       text: overview
 
     grid
@@ -160,15 +160,15 @@ section-layout
       align: stretch
       justify: between
       text-align: justify
-      text-size: xl
+      text-size: 1.1rem
 
       text
         target: overview
-        text-size: md
+        text-size: .75rem
 
       text
         target: overview
-        text-size: 2xl
+        text-size: 1.35rem
 
       image
         target: engine_mark

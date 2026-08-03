@@ -101,6 +101,7 @@
           </tbody>
         </table>
         <p>Traits are the user-visible catchall for Jump-local circumstances. They render in the current Jump evaluation but are intentionally excluded from accumulated perk and item records. Do not convert a temporary biography, legal status, local curse, or insertion condition into a durable perk merely to make it visible.</p>
+        <p>Create a second, visual source-node inventory beside the semantic inventory. Every visible heading, side note, sentence, list line, price, rule, artwork unit, and deliberate empty region receives one source coordinate and one intended authored node. This catches omissions that a concept-only ledger misses. Source-facing Jump content must contain the source wording, not converter commentary or implementation disclaimers; put those in the ledger and persistent audit.</p>
 
         <h2>Phase 3: choose stable authoring identities</h2>
         <ul>
@@ -120,13 +121,13 @@
           <li>Do not tag a cost, discount, prerequisite, rarity, source page, section name, or unsupported rule.</li>
           <li>Avoid redundant <code>perk</code>, <code>item</code>, and <code>companion</code> tags when record kind already communicates the distinction.</li>
         </ul>
-        <p>The application's canonicalization and user-owned tag relationships remain authoritative. A converter must not invent author-controlled hierarchy or badge styling.</p>
+        <p><strong>Tag appearance is never author-owned.</strong> Authors supply tag strings and choose their layout position; the active User Tag profile always owns badge colors, borders, shape, typography, hierarchy, and animation. Source artwork must never imitate tag badges, authored Tag slots cannot override the profile, and a mismatch between source styling and User Tag rendering is not a conversion gap. Cost badges are a separate authored field.</p>
 
         <h2>Phase 5: extract and place images</h2>
         <p>Images preserve irreducible artwork, not authoring work. Before creating any crop that contains meaningful text, cost, rules, borders, or card composition, complete a semantic expressibility audit against the available section and choice layout nodes.</p>
         <ol>
           <li>Retain lossless full-page renders for verification.</li>
-          <li>Crop only coherent graphical units that cannot reasonably be authored: logos, maps, individual sprites, character art, and textures. Record each crop's page and pixel bounds.</li>
+          <li>Crop only coherent graphical units that cannot reasonably be authored: emblem art, maps, individual sprites, character art, and textures. Record each crop's page and pixel bounds. A logo lockup containing authorable title, edition, or byline text must be split into live text plus its irreducible mark whenever the semantic workflow can express that composition.</li>
           <li>Rebuild labels, descriptions, rules, costs, separators, backgrounds, and card structure with live Text, Slot, Rule, Stack, Inline, Wrap, and Grid nodes wherever those primitives can express them.</li>
           <li>Split mixed source strips into artwork-only crops and live text. For example, crop the six Starting Kit sprites separately and author their labels and descriptions in a six-column grid.</li>
           <li>Remove neither attribution nor meaningful labels when the crop depends on them for interpretation.</li>
@@ -140,30 +141,47 @@
         <ul>
           <li>Cluster repeated source cards into measured archetypes, then use section layouts for major hierarchy and choice layouts for the repeated anatomy.</li>
           <li>Match silhouette and major bounds before hierarchy and styling. Do not substitute a conventional name/art/prose stack when the source is a horizontal strip or asymmetrical display composition.</li>
+          <li>Write the source and authored layout trees explicitly. If the source is <code>Inline(Stack(Roll, Pay), WorldText)</code>, verify that exact parent-child structure in the rendered bounds and then inspect each child's internal distribution separately.</li>
+          <li>Create a relationship ledger for every repeated archetype. Record the source anchor for its name, body, artwork, cost, control, rules, color bands, and deliberate negative space; record which nodes share an edge or action cluster. Treat Cost and Control as first-class parts of that composition, never as fields to append after the prose is finished.</li>
+          <li>Measure Grid cells, direct placement boundaries, Choice articles, authored layout roots, and visible painted surfaces separately. Equal Grid cells do not prove that the visible cards stretch through every wrapper.</li>
+          <li>Use <code>column-weight</code> for measured integer track proportions, spans for source-authored wide cards, and <code>grow</code> for free-space distribution among direct Stack or Inline children. A content-length difference is not evidence that padding is missing, and equal outer Inline heights do not prove that a nested Stack distributes its children correctly.</li>
+          <li>Use <code>padding-block</code>/<code>padding-inline</code>, minimum dimensions, and aspect ratio only after measuring the relevant axis. Omission intentionally retains current intrinsic behavior.</li>
+          <li>Choose a shared <code>text-size</code> token when it closely fits the measured hierarchy. The same field accepts a bounded exact <code>px</code>/<code>rem</code> value when the source falls materially between tokens. Use approved system typography, hard breaks, and semantic-list presentation before declaring type or line composition blocked.</li>
+          <li>Map every source text block exactly once before polishing. Preserve casing, punctuation, heading/subheading distinction, entitlement lines, plus/minus meaning, and list-item boundaries. Do not collapse visibly distinct source lines into a paraphrased sentence merely because the facts survive.</li>
+          <li>Split visually separated paragraphs into separate Text nodes inside a Stack with a measured gap. Do not assume blank lines within one rich-text block will reproduce the source's paragraph rhythm.</li>
+          <li>Verify text alignment and wrapping independently: <code>text-align: center</code> proves centering, but a centered two-line render still fails a centered one-line source.</li>
           <li>Place cost and action controls at the source's natural action edge. Re-measure after adding controls because an otherwise correct card can fail when a control rail changes its height.</li>
-          <li>Live semantic name, cost, artwork, prose, rules, and controls are the primary presentation. A text-bearing facsimile is a separate fallback mode, never a substitute for attempting the semantic layout.</li>
-          <li>Use responsive two- or three-column grids only when individual direct choices occupy the cells. An <code>expand</code> is a single layout node and does not expose authored columns for its child cards.</li>
-          <li>Use rules, backgrounds, borders, spacing, text-size tokens, and image sizing before declaring a gap, then cite the exact schema or renderer constraint for anything marked blocked.</li>
+          <li>Do not create an orphan action rail: a full-width or contrasting strip containing only a control is a failure unless the source contains that strip. Prefer an existing source-aligned corner, pair Cost and Control in the same compact cluster when the source leaves room, and keep equivalent neighboring cards on the same control grammar.</li>
+          <li>Choose control alignment from local visual continuity. Center a control only when the source content it completes establishes a centered axis; keep ordinary tile controls aligned to their own labeled action edge.</li>
+          <li>Make <code>control-adornments</code> explicit on every Control and Roll slot. In an additive facsimile rail, place the live Control, dynamic Cost, and effect Tags together whenever those values exist; source pixels containing a printed price do not replace the live fields.</li>
+          <li>When a text, select, or integer answer names an acquired record, interpolate that answer into the grant name and verify the projected Chain Tracker record. Declare a meaningful property when the grant-name interpolation scope requires one.</li>
+          <li>Treat crop edges as data. Record whether each edge owns a border, then reject accidental neighboring gutters, rules, and partial glyphs with an exact pixel-edge audit.</li>
+          <li>Evaluate contrast from the rendered foreground and nearest effective background, not from authored token names. Small text must reach 4.5:1 and qualifying large text 3:1. If an exact sampled accent is insufficient at the available size, increase hierarchy, add a source-coherent backplate, or record the typography limitation.</li>
+          <li>Test the longest unbreakable word and the densest prose block at every acceptance width. Reject clipping, horizontal overflow, stranded words, implausible line breaks, or a fallback typeface whose width and weight destroy the source hierarchy. A supported condensed family still needs an explicit measured weight and size.</li>
+          <li>Give every fallback control a visible adjacent label. Source text inside an image is not an accessible or spatially reliable label for a detached checkbox or radio.</li>
+          <li>Live semantic name, cost, artwork, prose, rules, and controls define the semantic workflow. A text-bearing facsimile defines a separate workflow and archive; it is never evidence that the semantic workflow exhausted the syntax.</li>
+          <li>Use existing direct Choice and direct source-member associations when a source requires explicit cell placement. Use <code>expand</code> for repeated source order when that order already matches the source; do not report direct member placement as missing.</li>
+          <li>Use rules, backgrounds, borders, axis spacing, growth, weighted tracks, spans, bounded geometry, typography, hard breaks, list presentation, compact interaction slots, and image sizing before declaring a gap. Preserve verified artwork and transcription while making the smallest targeted correction, then cite the exact schema or renderer constraint for anything still blocked.</li>
         </ul>
 
         <h3>Presentation variants</h3>
-        <p>When exact source pixels are useful, preserve two explicit outputs rather than blending their claims:</p>
+        <p>The caller chooses the workflow. When both are requested, build two ordinary, independent <code>.jmp</code> archives rather than adding application profiles or blending their claims:</p>
         <ul>
-          <li><strong>Semantic mode:</strong> live reflowable text, live costs and controls, artwork-only crops, and the closest declarative layout.</li>
-          <li><strong>Facsimile mode:</strong> measured source panels for pixel reference, backed by the same semantic Choice data and clearly marked accessibility and dynamic-state limitations.</li>
+          <li><strong>Semantic workflow:</strong> live reflowable text, live costs and controls, artwork-only crops, and the closest declarative layout.</li>
+          <li><strong>Facsimile workflow:</strong> measured source panels for pixel reference, backed by the same semantic Choice data and clearly marked accessibility and dynamic-state limitations.</li>
         </ul>
-        <p>Format 1 currently has no package-level presentation profiles or user preference for switching between these modes. Until that capability exists, retain separate scratch builds and make semantic mode the conversion's primary acceptance target.</p>
+        <p>This distinction belongs to the conversion process only and must not leak into Format 1 or the application as modes, profiles, preferences, or package metadata. Evaluate each requested archive against its own contract. The facsimile workflow preserves the successful measured-panel process; the semantic workflow must exhaust valid syntax before rasterizing text or card composition.</p>
 
         <h2>Unsupported-mechanics policy</h2>
         <p>Never counterfeit a source rule. Use the nearest valid control, preserve source prose and base values, and attach a stable gap ID.</p>
         <table>
           <thead><tr><th>Unsupported behavior</th><th>Permitted fallback</th><th>Forbidden fallback</th></tr></thead>
           <tbody>
-            <tr><td>Conditional discount or free entitlement</td><td>Charge the listed base price and disclose the unenforced entitlement</td><td>Hard-code one assumed Origin's price</td></tr>
-            <tr><td>Automatic free grant</td><td>Explicit zero-cost claim control</td><td>Hide an untracked promise in prose</td></tr>
-            <tr><td>Required choice or maximum count</td><td>Use the nearest source mode and state the missing constraint</td><td>Claim the archive enforces it</td></tr>
+            <tr><td>Group discount or free entitlement</td><td>Use Choice-granted flat or percentage discounts targeted to semantic Choice groups</td><td>Use Tags, display names, or ad hoc queries as price targets</td></tr>
+            <tr><td>Automatic Jump grant</td><td>Place the grant directly under <code>jump</code>; use Traits for Jump-local circumstances</td><td>Add an artificial claim Choice or turn a local condition into durable inventory</td></tr>
+            <tr><td>Maximum selections</td><td>Use <code>max</code> on a multi Choice Source; omission remains unlimited</td><td>Invent a minimum, required selection, or default</td></tr>
             <tr><td>Prerequisite, conflict, or override</td><td>Preserve the rule and report the dependency gap</td><td>Use tags as pseudo-validation</td></tr>
-            <tr><td>Jump ending or lifecycle action</td><td>Record an ordinary property selection</td><td>Imply the Tracker executed retention or chain termination</td></tr>
+            <tr><td>Jump ending or lifecycle action</td><td>Reproduce source prose and visuals only</td><td>Add controls or imply the Tracker executed retention, residence, or chain termination</td></tr>
           </tbody>
         </table>
 
@@ -183,11 +201,22 @@
         <ol>
           <li>Canonicalize using the distribution profile and the exact asset path set. Resolve every error and warning.</li>
           <li>Build the archive and inspect it through the secure package import service. Require <code>ready</code>, not a partially reviewed hand-built ZIP.</li>
-          <li>Import through the real Editor UI and inspect every section at desktop and narrow viewport widths.</li>
-          <li>Exercise every distinct mechanic: manual and rolled selection, continuity, single and multi groups, text/select/integer controls, flat and repeated costs, awards, properties, every grant kind, and ownership targets.</li>
+          <li>Import through the real Editor UI and inspect every section at desktop and narrow viewport widths, plus a narrow Editor preview inside a wide application window. Responsive evidence follows the rendered Jump container, not only the browser viewport.</li>
+          <li>Exercise every distinct mechanic: manual and rolled selection, continuity, optional single and bounded multi groups, text/select/integer controls, flat and repeated costs, discount policies, locks, Jump grants, properties, every grant kind, and ownership targets.</li>
+          <li>Apply the <a href="jump-conversion-visual-fidelity.html">FAC-001 through FAC-006 interactive facsimile checks</a>: relationship-specific alignment, explicit adornment suppression, projected dynamic names, complete live action rails, clean crop edges, and labeled option controls.</li>
           <li>Capture rendered evidence after images settle. Compare every archetype to its source at equal content width.</li>
-          <li>Require aspect ratio and major bounds within 10%, matching direction, art anchoring, casing, hierarchy, line count, exact palette, and no large unmatched whitespace. Controls must not silently displace the composition.</li>
+          <li>Capture each interactive archetype in its materially different states: unset, selected, disabled, rolled when applicable, and at a source maximum. Selection state must not unexpectedly change card widths, action-cluster bounds, backgrounds, or neighboring alignment.</li>
+          <li>For every repeated-card group, capture the entire group and deterministically sample inter-card gutters. Isolated card captures cannot prove separation, parent-surface ownership, or group rhythm.</li>
+          <li>Run an automated crop-edge audit over all artwork-only assets and a rendered contrast audit over every authored text block. These are rejection gates, not substitutes for direct image comparison.</li>
+          <li>Require aspect ratio and major bounds within 10%, matching direction, art anchoring, casing, hierarchy, line count, paragraph gaps, exact palette, and no large unmatched whitespace. Controls must not silently displace the composition.</li>
+          <li>Capture a bounds-visible rendering and verify the actual layout tree, equal cross-axis bounds for stretched Inline children, stretched Grid card surfaces, proportional allocation, spans, and internal Stack distribution. Do not infer structure solely from where glyphs end.</li>
+          <li>For every source-authored horizontal sequence, measure every direct child's row position at comparison width and assert that the renderer itself has no horizontal overflow. A cropped or horizontally displaced viewport can imitate wrapping; distinguish scroll displacement from an actual row break before changing structure.</li>
           <li>List the five largest perceptual differences, fix every authoring defect, and label each residual difference <code>blocked</code> with the exact missing capability. When an artifact disagrees with expected behavior, trust the artifact and continue.</li>
+          <li>Run the adversarial glance audit: ask whether anything clips, truncates, inverts a source color band, moves a rule to the wrong relationship, merges distinct cards, creates an orphan rail, misanchors Cost or Control, introduces uneven rhythm, or changes geometry after interaction. Any “yes” is a blocking failure, even when all numeric assertions pass.</li>
+          <li>Verify painted relationships, not only node order. When the source specifies text → rule → text, measure the visible surfaces: the first text surface must end where the rule begins and the second must begin where the rule ends. Parent padding, gaps, or backgrounds must not turn a thin rule into a wider color band.</li>
+          <li>Audit repeated cards as a group, not only as isolated cards. Sample every horizontal and vertical gutter, compare it with the source gutter color, and verify that each card owns a distinct painted surface. A correct card on a wrong parent background is still a failed composition.</li>
+          <li>Scan every card edge for painted containment, including pseudo-elements such as list markers. DOM overflow metrics do not account for every painted marker; require each marker's logical start edge to remain inside the card's inner border and keep every gutter free of foreground paint.</li>
+          <li>Maintain a source-style ledger for each text role—family class, weight, size, line height, casing, and color—and inspect computed renderer values. Presence and approximate size do not excuse substituting regular text where the source uses a heavy condensed face.</li>
           <li>Update ledger verification only after the exact path passes. Leave known gaps open and named.</li>
         </ol>
 
@@ -195,6 +224,7 @@
         <ul>
           <li>Original source remains unchanged and ignored.</li>
           <li>Every source block has a ledger entry and a second transcription pass.</li>
+          <li>Every visible source node has exactly one disposition: live authored node, irreducible artwork crop, intentionally additive application control, or demonstrated gap.</li>
           <li>Every referenced image exists, validates, and has appropriate alternative text.</li>
           <li>Definition diagnostics and secure archive diagnostics are empty.</li>
           <li>The built <code>.jmp</code> imports and exercises successfully.</li>

@@ -152,6 +152,26 @@ function valueIsValid(
       (schema.types.imageDimension?.enum ?? []).includes(value) ||
       /^(?:0|[1-9][0-9]*(?:\.[0-9]+)?|0\.[0-9]+)(?:px|rem)$/.test(value)
     );
+  if (type === "textSize") {
+    if ((schema.types.textSize?.enum ?? []).includes(value)) return true;
+    const match = value.match(/^(\d+(?:\.\d+)?|\.\d+)(px|rem)$/);
+    if (!match) return false;
+    const amount = Number(match[1]);
+    return match[2] === "px"
+      ? amount >= 8 && amount <= 512
+      : amount >= 0.5 && amount <= 32;
+  }
+  if (type === "layoutDimension") {
+    if ((schema.types.layoutDimension?.enum ?? []).includes(value)) return true;
+    const match = value.match(/^(\d+(?:\.\d+)?|\.\d+)(px|rem)$/);
+    if (!match) return false;
+    const amount = Number(match[1]);
+    return amount >= 0 && (match[2] === "px" ? amount <= 4096 : amount <= 256);
+  }
+  if (type === "aspectRatio") {
+    const match = value.match(/^([1-9]\d?)\s*\/\s*([1-9]\d?)$/);
+    return Boolean(match);
+  }
   const enumValues = schema.types[type]?.enum?.map(String);
   if (enumValues) return enumValues.includes(value);
   if (type === "costAmount" || type === "grantAmount") {
@@ -244,6 +264,67 @@ function validateNode(
       { node: node.kind, layout: owningLayout },
       node,
     );
+
+  if (resolved.layout && parent) {
+    for (const sourceField of node.fields) {
+      if (
+        sourceField.name === "grow" &&
+        !["stack", "inline"].includes(parent.kind)
+      )
+        add(
+          diagnostics,
+          "layout.grow.parent",
+          { parent: parent.kind },
+          node,
+          sourceField,
+        );
+      if (
+        ["column-span", "row-span"].includes(sourceField.name) &&
+        parent.kind !== "grid"
+      )
+        add(
+          diagnostics,
+          "layout.span.parent",
+          { field: sourceField.name, parent: parent.kind },
+          node,
+          sourceField,
+        );
+      if (
+        ["list-marker", "list-indent", "list-gap"].includes(sourceField.name) &&
+        node.kind !== "text"
+      )
+        add(
+          diagnostics,
+          "layout.list.textOnly",
+          { field: sourceField.name },
+          node,
+          sourceField,
+        );
+    }
+    if (node.kind === "grid") {
+      const columns = Number(
+        unquote(
+          node.fields.find((field) => field.name === "columns")?.value ?? "",
+        ),
+      );
+      const weights = node.fields.filter(
+        (field) => field.name === "column-weight",
+      );
+      if (weights.length > 0 && weights.length !== columns)
+        for (const sourceField of weights.length > columns
+          ? weights.slice(columns)
+          : [node.fields.find((field) => field.name === "columns")].filter(
+              (field): field is SourceField => Boolean(field),
+            ))
+          add(
+            diagnostics,
+            "layout.grid.weightCount",
+            { columns, weights: weights.length },
+            node,
+            sourceField,
+          );
+    }
+  }
 
   if (node.scalar !== undefined) {
     const scalarRule = resolved.declaration?.forms?.scalar;
@@ -370,7 +451,14 @@ function validateNode(
     );
     if (
       node.kind === "slot" &&
-      ((["text-size", "text-color"].includes(sourceField.name) &&
+      (([
+        "text-size",
+        "text-color",
+        "font-family",
+        "font-weight",
+        "line-height",
+        "letter-spacing",
+      ].includes(sourceField.name) &&
         !layoutNodeSupportsTextStyling(node.kind, slotTarget)) ||
         (sourceField.name === "control-adornments" &&
           !layoutNodeUsesControlAlignment(node.kind, slotTarget)))
@@ -535,6 +623,22 @@ function validateNode(
           ),
         );
     if (rule.exactDuplicate) {
+      const seen = new Set<string>();
+      for (const [occurrence, candidate] of matching.entries()) {
+        const normalized = unquote(candidate.value);
+        if (seen.has(normalized))
+          add(
+            diagnostics,
+            "schema.field.exactDuplicate",
+            { field: name, value: normalized },
+            node,
+            candidate,
+            occurrence,
+          );
+        seen.add(normalized);
+      }
+    }
+    if (rule.setLike) {
       const seen = new Set<string>();
       for (const [occurrence, candidate] of matching.entries()) {
         const normalized = unquote(candidate.value);
@@ -1702,6 +1806,10 @@ function validateSemanticFields(
     }
     if (node.kind === "choice-source") {
       const group = node.fields.find((field) => field.name === "group");
+      const mode = unquote(
+        node.fields.find((field) => field.name === "mode")?.value ?? "multi",
+      );
+      const maximum = node.fields.find((field) => field.name === "max");
       if (group && !handlePattern.test(unquote(group.value)))
         add(
           diagnostics,
@@ -1710,6 +1818,8 @@ function validateSemanticFields(
           node,
           group,
         );
+      if (maximum && mode !== "multi")
+        add(diagnostics, "choiceSource.max.domain", {}, node, maximum);
     }
     if (node.kind === "input") {
       const selection = unquote(

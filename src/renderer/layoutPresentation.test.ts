@@ -108,6 +108,9 @@ describe("layout presentation styles", () => {
       textAlign: "start",
       fontSize: ".75rem",
     });
+    expect(
+      layoutContainerPresentationStyle(node("stack"), packageThemes, "grid"),
+    ).toMatchObject({ fontSize: undefined });
   });
 
   it("constrains authored borders, corners, and clipping", () => {
@@ -164,7 +167,7 @@ describe("layout presentation styles", () => {
       alignSelf: "end",
       textAlign: "center",
       color: "#8065a8",
-      fontSize: ".9rem",
+      fontSize: "1.5rem",
     });
   });
 
@@ -483,5 +486,104 @@ describe("layout presentation styles", () => {
       borderTopWidth: undefined,
       borderTopStyle: undefined,
     });
+    expect(
+      layoutRuleStyle(
+        node("rule", {
+          color: "surface",
+          thickness: 2,
+          style: "solid",
+          orientation: "vertical",
+        }),
+        packageThemes,
+      ),
+    ).toMatchObject({
+      width: "2px",
+      height: "100%",
+      borderLeftColor: "#123456",
+      borderLeftWidth: "2px",
+      borderLeftStyle: "solid",
+      borderTopStyle: undefined,
+    });
+  });
+
+  it("maps the strong text scale and bounded exact sizes through one field", () => {
+    for (const [token, size] of Object.entries({
+      xs: ".625rem",
+      sm: ".75rem",
+      md: "1rem",
+      lg: "1.5rem",
+      xl: "2.25rem",
+      "2xl": "3.25rem",
+      "3xl": "4.5rem",
+      "4xl": "6rem",
+    }))
+      expect(
+        layoutLeafPresentationStyle(
+          node("text", { textSize: token }),
+          packageThemes,
+          "stack",
+        ).fontSize,
+      ).toBe(size);
+    for (const size of ["8px", "48px", "512px", ".5rem", "3rem", "32rem"])
+      expect(
+        layoutLeafPresentationStyle(
+          node("text", { textSize: size }),
+          packageThemes,
+          "stack",
+        ).fontSize,
+      ).toBe(size);
+    for (const size of ["7px", "513px", ".49rem", "33rem", "50%", "1vw"])
+      expect(
+        layoutLeafPresentationStyle(
+          node("text", { textSize: size }),
+          packageThemes,
+          "stack",
+        ).fontSize,
+      ).toBeUndefined();
+  });
+
+  it("maps growth, weighted tracks, spans, geometry, and typography", () => {
+    expect(
+      layoutContainerPresentationStyle(
+        node("grid", { columns: 3, columnWeights: [3, 4, 2] }),
+        packageThemes,
+      ).gridTemplateColumns,
+    ).toBe("minmax(0, 3fr) minmax(0, 4fr) minmax(0, 2fr)");
+    expect(
+      layoutContainerPresentationStyle(
+        node("stack", {
+          grow: 2,
+          minWidth: "16rem",
+          minHeight: "48px",
+          aspectRatio: "16/9",
+          fontFamily: "condensed",
+          fontWeight: "black",
+          lineHeight: "tight",
+          letterSpacing: "wide",
+        }),
+        packageThemes,
+        "stack",
+      ),
+    ).toMatchObject({
+      flexGrow: 2,
+      flexBasis: 0,
+      minWidth: "min(16rem, 100%)",
+      minHeight: "48px",
+      aspectRatio: "16 / 9",
+      fontStretch: "condensed",
+      fontWeight: 900,
+      lineHeight: 1.05,
+      letterSpacing: ".05em",
+    });
+    expect(
+      layoutLeafPresentationStyle(
+        node("choice", { columnSpan: 2, rowSpan: 3 }),
+        packageThemes,
+        "grid",
+      ),
+    ).toMatchObject({ gridColumn: "span 2", gridRow: "span 3" });
+    expect(layoutInlineChildAreaStyle(node("text", { grow: 4 })).flex).toBe(
+      "4 1 0",
+    );
   });
 });

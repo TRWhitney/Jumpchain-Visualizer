@@ -11,6 +11,7 @@ export function ImageDimensionFieldControl({
   ariaDescribedBy,
   onChange,
   onBlur,
+  kind = "image",
 }: {
   label: string;
   value: string;
@@ -20,11 +21,18 @@ export function ImageDimensionFieldControl({
   ariaDescribedBy?: string;
   onChange: (value: string) => void;
   onBlur: () => void;
+  kind?: "image" | "text" | "layout";
 }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
-  const listId = `editor-image-dimensions-${useId().replaceAll(":", "-")}`;
+  const listId = `editor-token-length-${useId().replaceAll(":", "-")}`;
+  const translationGroup =
+    kind === "text"
+      ? "textSize"
+      : kind === "layout"
+        ? "layoutDimension"
+        : "imageDimension";
 
   useEffect(() => {
     if (!open) return;
@@ -57,7 +65,7 @@ export function ImageDimensionFieldControl({
           spellCheck={false}
           value={value}
           placeholder={translate(
-            "ui.editorWorkspace.imageDimension.tokenOrExactPlaceholder",
+            `ui.editorWorkspace.${translationGroup}.tokenOrExactPlaceholder`,
           )}
           onChange={(event) => onChange(event.target.value)}
           onBlur={onBlur}
@@ -67,7 +75,7 @@ export function ImageDimensionFieldControl({
           ref={trigger}
           aria-haspopup="listbox"
           aria-label={translate(
-            "ui.editorWorkspace.imageDimension.showChoicesForField",
+            `ui.editorWorkspace.${translationGroup}.showChoicesForField`,
             { field: label },
           )}
           aria-expanded={open}
@@ -86,7 +94,7 @@ export function ImageDimensionFieldControl({
           id={listId}
           role="listbox"
           aria-label={translate(
-            "ui.editorWorkspace.imageDimension.availableTokens",
+            `ui.editorWorkspace.${translationGroup}.availableTokens`,
           )}
         >
           {tokens.map((token) => (

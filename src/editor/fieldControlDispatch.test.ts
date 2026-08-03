@@ -48,6 +48,9 @@ describe("Editor field control dispatch", () => {
     expect(
       classify({ declarationKind: "choice-source", fieldName: "group" }),
     ).toBe("choice-source-group");
+    expect(classify({ declarationKind: "discount", fieldName: "group" })).toBe(
+      "choice-group",
+    );
     expect(classify({ fieldName: "name" })).toBe("spelling-text");
     expect(classify()).toBe("text");
   });

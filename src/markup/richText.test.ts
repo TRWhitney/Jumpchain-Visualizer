@@ -10,4 +10,19 @@ describe("Format 1 rich text", () => {
     expect(JSON.stringify(blocks)).not.toContain("<script>");
     expect(blocks[1]).toMatchObject({ kind: "list" });
   });
+
+  it("keeps ordinary source lines flowing and marks explicit hard breaks", () => {
+    expect(parseRichText("first\nsecond")).toEqual([
+      {
+        kind: "paragraph",
+        content: [{ text: "first" }, { text: " " }, { text: "second" }],
+      },
+    ]);
+    expect(parseRichText("first \\\nsecond")).toEqual([
+      {
+        kind: "paragraph",
+        content: [{ text: "first", breakAfter: true }, { text: "second" }],
+      },
+    ]);
+  });
 });

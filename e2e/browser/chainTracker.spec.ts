@@ -1143,6 +1143,72 @@ test("a stale canonical demo hash rebinds without losing selections or reaching 
   await attachScreenshot(testInfo, "stale-demo-package-rebound", tracker);
 });
 
+test("a route-loaded chain renders a recoverable placeholder when its exact package is not installed", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/chain/ch-92b1");
+  const tracker = trackerFor(page);
+  await expect(tracker).toBeVisible();
+  await expect
+    .poll(async () =>
+      page.evaluate(async () => {
+        const request = indexedDB.open("jumpchain-visualizer", 4);
+        const database = await new Promise<IDBDatabase>((resolve, reject) => {
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const transaction = database.transaction("chains", "readonly");
+        const record = await new Promise<unknown>((resolve, reject) => {
+          const read = transaction.objectStore("chains").get("ch-92b1");
+          read.onsuccess = () => resolve(read.result);
+          read.onerror = () => reject(read.error);
+        });
+        database.close();
+        return Boolean(record);
+      }),
+    )
+    .toBe(true);
+
+  await page.evaluate(async () => {
+    const request = indexedDB.open("jumpchain-visualizer", 4);
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const transaction = database.transaction("chains", "readwrite");
+    const store = transaction.objectStore("chains");
+    type StoredAggregate = {
+      entries: Record<string, { packageId: string }>;
+    };
+    const aggregate = await new Promise<StoredAggregate>((resolve, reject) => {
+      const read = store.get("ch-92b1");
+      read.onsuccess = () => resolve(read.result as StoredAggregate);
+      read.onerror = () => reject(read.error);
+    });
+    aggregate.entries["entry-2"].packageId = "unavailable-imported-package";
+    store.put(aggregate);
+    await new Promise<void>((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+    database.close();
+  });
+
+  await page.reload();
+  await expect(tracker).toBeVisible();
+  await expect(
+    tracker.getByText("Unavailable Jump package", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    tracker.getByText(
+      "This exact package is unavailable. Stored selections are preserved until it is restored.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(page.getByText("Something went wrong")).toHaveCount(0);
+  await attachScreenshot(testInfo, "unavailable-package-recovery", tracker);
+});
+
 test("Earth remains immutable and drives previous continuity into Jump 1", async ({
   page,
 }, testInfo) => {

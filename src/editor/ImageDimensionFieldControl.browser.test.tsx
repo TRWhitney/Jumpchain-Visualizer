@@ -28,3 +28,34 @@ test("size choices use a dropdown chevron and reverse it while open", async () =
   );
   await expect.element(page.getByRole("option", { name: "md" })).toBeVisible();
 });
+
+test("one text-size field exposes every token and accepts an exact value", async () => {
+  const changes: string[] = [];
+  const tokens = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl", "4xl"];
+  render(
+    <ImageDimensionFieldControl
+      kind="text"
+      label="Text size"
+      value=""
+      tokens={tokens}
+      onChange={(value) => changes.push(value)}
+      onBlur={() => undefined}
+    />,
+  );
+
+  await page
+    .getByRole("button", { name: "Show text-size choices for Text size" })
+    .click();
+  expect(
+    page
+      .getByRole("listbox", { name: "Available text-size tokens" })
+      .element()
+      .querySelectorAll('[role="option"]'),
+  ).toHaveLength(tokens.length);
+  await page.getByRole("option", { name: "4xl", exact: true }).click();
+  expect(changes.at(-1)).toBe("4xl");
+  await page
+    .getByRole("textbox", { name: "Text size", exact: true })
+    .fill("48px");
+  expect(changes.at(-1)).toBe("48px");
+});

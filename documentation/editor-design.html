@@ -604,6 +604,28 @@
             visible regardless of the preference.
           </p>
           <p>
+            <strong>Progressive layout presentation:</strong> a layout node’s
+            optional fields are not presented as one expanding flat form.
+            Structured filters contextual nested disclosures for Spacing,
+            Sizing and distribution, Grid tracks, Typography, List
+            presentation, Interaction presentation, and Appearance. They use
+            the same Editor-instance disclosure policy and persistence as other
+            optional sections, and a collapsed group summarizes only its
+            authored non-default values. Grid proportions remain hidden until
+            Custom proportions is enabled; the resulting weight inputs align
+            one per declared column. Spans stay with the child node. Text size
+            remains one control: named tokens are directly discoverable and an
+            exact bounded <code>px</code>/<code>rem</code> value is entered in
+            that same row. Help and diagnostics occupy a separate message row,
+            so changing between token and custom values never offsets the
+            primary control from its neighbors. Temporarily invalid
+            Source-authored values remain visible and removable; permissive
+            preview treats missing or invalid Grid weights as equal without
+            rewriting source. Every label, summary, diagnostic, announcement,
+            and accessible name is localized, keyboard reachable, and rendered
+            coherently in both application themes.
+          </p>
+          <p>
             <strong>Description content:</strong> Choice and visible Grant
             owners expose a dedicated <em>+ Description</em> action in
             Structured and Quick Add. The resulting owner-local Text block keeps
@@ -1484,6 +1506,29 @@
               </p>
             </div>
           </section>
+        </div>
+      </section>
+
+      <section aria-labelledby="gap-closure-editor-heading">
+        <div class="section-heading">
+          <p class="eyebrow">Format 1 mechanics</p>
+          <h2 id="gap-closure-editor-heading">Structured support for grants, limits, discounts, locks, and rules</h2>
+        </div>
+        <div class="research-list">
+          <article>
+            <h3>Every syntax form remains authorable</h3>
+            <p>Jump settings expose discount stacking and floor policies. Jump Content and effects can own every Grant kind. Sections expose initial locking, multi Choice Sources expose an optional maximum, Choices expose repeated Discount children, and Rule presentation exposes orientation. Choice lock/unlock Section references live together in a dedicated <em>Section locking</em> disclosure so they are not confused with ordinary behavior fields.</p>
+            <p>These controls round-trip through Source without normalizing away omitted defaults or temporarily invalid work. Group discounts use package Choice-group suggestions; currencies and Section targets use the existing reference controls and navigation.</p>
+          </article>
+          <article>
+            <h3>Field geometry is a contract</h3>
+            <p>Primary labels and controls share the same aligned grid in light and dark themes. Help, omission defaults, and diagnostics occupy a separate message row and never push one input away from its neighbors. Adding an explanatory paragraph is not permission to offset a checkbox, selector, or number input.</p>
+            <p>Keyboard creation, removal, reference navigation, focus return, invalid previews, and localized accessible names reuse existing Structured child rails and field components. Preview remains permissive: it may diagnose incomplete or stale state but does not delete the author's draft.</p>
+          </article>
+          <article>
+            <h3>Tag and authored-content boundaries remain distinct</h3>
+            <p>Structured authors edit Tag strings and placement only. The active User Tag profile owns badge appearance in both the editor preview and Tracker. Layout controls do not expose Tag text size or color. Cost slots and authored Trait layouts remain independent and may use author presentation where Format 1 permits it.</p>
+          </article>
         </div>
       </section>
 

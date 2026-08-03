@@ -87,7 +87,8 @@
         "duplicate": "Field “{{field}}” may appear only once on {{declaration}}.",
         "exactDuplicate": "Field “{{field}}” repeats the value “{{value}}”.",
         "exclusive": "Fields “{{field}}” and “{{other}}” cannot be used together.",
-        "optionAssociation": "A conditional option must follow the base option it modifies."
+        "optionAssociation": "A conditional option must follow the base option it modifies.",
+        "inapplicable": "Field “{{field}}” is not available on {{declaration}}."
       },
       "value": {
         "handle": "“{{value}}” is not a legal handle. Use lowercase letters, numbers, and single underscores.",
@@ -172,7 +173,17 @@
         "empty": "This layout container is empty and renders nothing."
       },
       "grid": {
-        "columns": "Grid in {{layout}} requires columns from 1 through 12."
+        "columns": "Grid in {{layout}} requires columns from 1 through 12.",
+        "weightCount": "Grid declares {{columns}} columns but provides {{weights}} column weights. Provide one weight per column or remove all weights."
+      },
+      "grow": {
+        "parent": "Growth is available only for a direct Stack or Inline child, not a {{parent}} child."
+      },
+      "span": {
+        "parent": "{{field}} is available only for a direct Grid child, not a {{parent}} child."
+      },
+      "list": {
+        "textOnly": "{{field}} is available only on a Text layout leaf."
       },
       "reference": "{{ownerKind}} layout “{{layout}}” does not exist.",
       "typedTarget": {
@@ -219,7 +230,10 @@
         "missing": "Choice source “{{source}}” has no group and cannot match choices.",
         "invalid": "Choice-source group “{{value}}” is not a legal handle."
       },
-      "empty": "Choice source “{{source}}” matches no choices in group “{{group}}”."
+      "empty": "Choice source “{{source}}” matches no choices in group “{{group}}”.",
+      "max": {
+        "domain": "A Choice Source maximum is available only in multi mode."
+      }
     },
     "choice-source": {
       "group": {
@@ -252,7 +266,8 @@
       },
       "property": {
         "fields": "Property grants require a handle.",
-        "reserved_types": "Property {{property}} is incompatible with its authored value or {{selection}} control."
+        "reserved_types": "Property {{property}} is incompatible with its authored value or {{selection}} control.",
+        "jump_value": "Jump-level Property grants require an explicit value."
       },
       "form": {
         "handle": "Form grants require a unique stable handle.",
@@ -272,6 +287,7 @@
       },
       "measure": {
         "integer_only": "Measure requires an owning integer choice or input.",
+        "jump": "Jump-level grants cannot copy an integer control measure.",
         "kind": "Measure is valid only on perk, item, and trait grants.",
         "shorthand": "Selected number means requires exactly one simple perk or item award on this Choice.",
         "value": "Measure must be rank or quantity."
@@ -317,6 +333,11 @@
         "integer_only": "Per-rank costs require an integer choice with an explicit non-negative min."
       }
     },
+    "discount": {
+      "group": {
+        "empty": "Discount group “{{group}}” matches no Choices."
+      }
+    },
     "resource": {
       "reserved": "jump_points is the engine-owned primary resource.",
       "reference": "{{usage}} resource “{{resource}}” is not declared."
@@ -326,6 +347,9 @@
     },
     "section": {
       "required": "A distributable package requires at least one section.",
+      "effect": {
+        "reference": "Section effect target “{{target}}” does not exist."
+      },
       "choice": {
         "target": {
           "unique": "This section associates choice “{{target}}” more than once."
@@ -511,6 +535,7 @@
         "choiceSourceGroupLabel": "Choice Source group",
         "choiceSourceGroupHelp": "Matches this Choice Source to Choices authored with the same group. Groups connect Choices to Choice Sources; they are not presentation tags.",
         "choiceSourceGroupPlaceholder": "Type a group or choose an existing package group.",
+        "discountGroupPlaceholder": "Choose the Choice group this discount affects.",
         "tag": {
           "label": "Tags",
           "help": "Presentation tags use your current tag profile for badges. Added tags are immutable here; remove and add a tag to change it.",
@@ -571,6 +596,10 @@
         "choiceOwnerHelp": "Description explains this Choice and is the fallback description for every award it grants. Other Text, Image, and Input blocks are presentation content. To create a companion, add a Companion award; Companion recipient only targets one that already exists.",
         "grantOwnerHelp": "Description explains this specific award in Inventory and overrides the owning Choice's Description. Other Text and Image blocks are not used by this award type.",
         "traitOwnerHelp": "Description explains this trait and overrides the owning Choice's Description. Additional Text and Image blocks may be displayed by the trait's selected layout."
+      },
+      "sectionEffects": {
+        "heading": "Section locking",
+        "help": "While this Choice is selected, locks add to and unlocks subtract from each target Section's lock score."
       },
       "input": {
         "supportingControlHelp": "This is a follow-up control used after its parent Choice is selected. Its effects use this answer, and each additional Input creates another separate control.",
@@ -644,20 +673,26 @@
           "starting-points": "Starting points",
           "points-name": "Point name",
           "points-abbreviation": "Point abbreviation",
+          "discountStacking": "Discount stacking",
+          "discountFloor": "Discount floor",
           "section-layout": "Default section layout",
           "choice-layout": "Default Choice layout",
           "trait-layout": "Default trait layout",
           "abbreviation": "Abbreviation",
           "initial": "Initial balance",
           "layout": "Layout",
+          "locked": "Initially locked",
           "group": "Group",
           "choiceSourceMode": "Choices allowed",
+          "sourceMaximum": "Maximum selections",
           "resolution": "How selection is made",
           "tag": "Tag",
           "choiceSelection": "Selection type",
           "continuity": "Gender default",
           "min": "Minimum",
           "max": "Maximum",
+          "lock": "Lock section",
+          "unlock": "Unlock section",
           "option": "Option",
           "choiceTarget": "Choice to display",
           "content": "Text",
@@ -672,6 +707,11 @@
           "resource": "Currency",
           "amount": "Amount",
           "costMode": "Cost calculation",
+          "discountMode": "Discount calculation",
+          "discountGroup": "Discounted group",
+          "discountAmount": "Discount amount",
+          "discountResource": "Discounted currency",
+          "orientation": "Orientation",
           "grantKind": "Award type",
           "formRecipient": "Form recipient",
           "companionRecipient": "Companion recipient",
@@ -689,9 +729,14 @@
           "defaultSectionLayout": "Used by Sections that do not choose their own layout.",
           "defaultChoiceLayout": "Used by Choices that do not receive a more specific layout.",
           "defaultTraitLayout": "Used by awarded traits that do not choose their own layout.",
+          "discountStacking": "Choose whether matching discounts use only the strongest result or stack together.",
+          "discountFloor": "Choose whether discounts stop at zero or may turn costs into awards.",
+          "sectionLocked": "Adds one initial lock to this Section. Active Choice locks and unlocks adjust the final lock score.",
           "layoutOverride": "Choose a specific layout here, or leave it blank to use the surrounding or Jump default.",
           "minimum": "The lowest allowed number. Minimum and maximum values are inclusive.",
           "maximum": "The highest allowed number. Minimum and maximum values are inclusive.",
+          "sourceMaximum": "The greatest number of matching Choices the user may select. Leave blank for no limit.",
+          "sectionEffect": "Choose the Section whose lock score changes while this Choice is selected.",
           "option": "Add the choices shown in this ordered list. Each option must be unique.",
           "continuity": "For a Gender Choice, choose which identity supplies the free default when the user has not chosen a value. This requires Selection Type Select and exactly one direct Property award whose Answer Name is gender and whose Value is empty.",
           "resolution": "Controls whether the user chooses normally, rolls, or may do either.",
@@ -701,6 +746,11 @@
           "costResource": "The currency spent or awarded by this cost.",
           "costAmount": "A positive amount is spent. A negative amount awards that currency.",
           "costMode": "Choose whether the amount applies once or is multiplied by an integer Choice.",
+          "discountGroup": "Apply this discount to Choices carrying the selected group.",
+          "discountMode": "Flat discounts subtract points; percentage discounts operate on the post-flat amount.",
+          "discountAmount": "Enter a non-negative integer. Percentage 50 means fifty percent.",
+          "discountResource": "Limit the discount to selected currencies. With none selected, every currency is affected.",
+          "ruleOrientation": "Choose whether this rule spans horizontally or vertically through its layout row.",
           "grantKind": "Choose what this effect adds or changes when its owning Choice or Input is active.",
           "grantName": "The name shown for this specific award. Leave it blank to use the owning Choice's name.",
           "grantResource": "The currency changed by this award.",
@@ -729,6 +779,13 @@
         "previous": "Previous Jump",
         "original": "Original identity",
         "flat": "Once",
+        "percent": "Percentage",
+        "highest": "Highest only",
+        "stack": "Stack all",
+        "zero": "Stop at zero",
+        "negative": "Allow negative",
+        "horizontal": "Horizontal",
+        "vertical": "Vertical",
         "each": "Per selected number",
         "toggle": "Toggle",
         "text": "Text",
@@ -767,6 +824,25 @@
         "lg": "Large",
         "xl": "Extra large",
         "2xl": "2× extra large",
+        "3xl": "3× extra large",
+        "4xl": "4× extra large",
+        "system": "System interface",
+        "sans": "Sans serif",
+        "serif": "Serif",
+        "monospace": "Monospace",
+        "condensed": "Condensed",
+        "light": "Light",
+        "normal": "Normal",
+        "semibold": "Semibold",
+        "bold": "Bold",
+        "tight": "Tight",
+        "relaxed": "Relaxed",
+        "wide": "Wide",
+        "widest": "Widest",
+        "standard": "Standard",
+        "compact": "Compact",
+        "application": "Application default",
+        "disc": "Disc",
         "pill": "Pill",
         "thin": "Thin",
         "medium": "Medium",
@@ -970,6 +1046,16 @@
         "tokenOrExactPlaceholder": "Size token or exact length",
         "showChoicesForField": "Show size choices for {{field}}",
         "availableTokens": "Available image size tokens"
+      },
+      "textSize": {
+        "tokenOrExactPlaceholder": "Text-size token or exact px/rem length",
+        "showChoicesForField": "Show text-size choices for {{field}}",
+        "availableTokens": "Available text-size tokens"
+      },
+      "layoutDimension": {
+        "tokenOrExactPlaceholder": "Size token or exact px/rem length",
+        "showChoicesForField": "Show size choices for {{field}}",
+        "availableTokens": "Available layout size tokens"
       },
       "previewStatus": {
         "label": "Preview: {{status}}",
@@ -1401,6 +1487,15 @@
         "columns": "Columns",
         "gap": "Gap",
         "padding": "Padding",
+        "padding-block": "Vertical padding",
+        "padding-inline": "Horizontal padding",
+        "grow": "Space share",
+        "column-span": "Column span",
+        "row-span": "Row span",
+        "column-weight": "Column weight",
+        "min-width": "Minimum width",
+        "min-height": "Minimum height",
+        "aspect-ratio": "Aspect ratio",
         "background": "Background",
         "background-image": "Background image",
         "background-fit": "Background fit",
@@ -1410,6 +1505,15 @@
         "control-align": "Control alignment",
         "control-adornments": "Control adornments",
         "text-size": "Text size",
+        "font-family": "Font family",
+        "font-weight": "Font weight",
+        "line-height": "Line height",
+        "letter-spacing": "Letter spacing",
+        "list-marker": "List marker",
+        "list-indent": "List indentation",
+        "list-gap": "List item gap",
+        "control-density": "Control density",
+        "cost-density": "Cost density",
         "text-color": "Text color",
         "border-color": "Border color",
         "border-width": "Border width",
@@ -1424,7 +1528,8 @@
         "using": "Choice layout",
         "color": "Color",
         "thickness": "Thickness",
-        "style": "Style"
+        "style": "Style",
+        "orientation": "Orientation"
       },
       "layoutFieldHelp": {
         "target": "Choose the built-in part or authored content shown at this position.",
@@ -1437,7 +1542,25 @@
         "background-fit": "Contain shows the whole background; Cover fills and may crop it; Tile repeats it at its natural size.",
         "clip": "Hide child content that extends outside this container.",
         "source": "Choose the Choice Source whose matching Choices appear here.",
-        "using": "Optionally choose a specific layout for the expanded Choices."
+        "using": "Optionally choose a specific layout for the expanded Choices.",
+        "orientation": "Horizontal rules span across content. Vertical rules stretch through the shared height of their Inline row.",
+        "grow": "Direct Stack and Inline children divide free space according to their authored shares.",
+        "column-span": "A direct Grid child may cover more than one column.",
+        "row-span": "A direct Grid child may cover more than one row.",
+        "column-weight": "Custom weights divide Grid width proportionally and require one value per column.",
+        "text-size": "Choose a shared token or enter an exact value from 8px to 512px or .5rem to 32rem.",
+        "control-density": "Compact reduces visual chrome while preserving the complete control.",
+        "cost-density": "Compact keeps the price visible and moves verbose status into accessible text."
+      },
+      "layoutPresentationGroup": {
+        "appearance": "Appearance",
+        "spacing": "Spacing",
+        "sizing": "Sizing and distribution",
+        "grid": "Grid tracks",
+        "typography": "Typography",
+        "list": "List presentation",
+        "interaction": "Interaction presentation",
+        "nonDefault": "{{count}} customized"
       },
       "backgroundMode": {
         "choose": "Background type",
@@ -1463,6 +1586,7 @@
         "image": "Image",
         "input": "Input",
         "cost": "Cost",
+        "discount": "Discount",
         "grant": "Grant",
         "section-layout": "Section layout",
         "choice-layout": "Choice layout",
@@ -1606,6 +1730,8 @@
         "layoutNodeCount_other": "{{count}} nodes",
         "layoutItemCount_one": "{{count}} item",
         "layoutItemCount_other": "{{count}} items",
+        "layoutColumnNumber": "Column {{number}}",
+        "customColumnProportions": "Custom proportions",
         "layoutNeedsRoot": "This layout needs one root container.",
         "createRootContainer": "Create root container",
         "layoutStructureUnsafe": "The authored layout structure needs repair in Source before tree operations can be performed safely.",

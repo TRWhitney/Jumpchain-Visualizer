@@ -50,6 +50,33 @@ export function choicePlacement(
   };
 }
 
+export function choicePlacementSections(
+  packageItem: CanonicalJumpPackage,
+  state: ActorEntryState,
+  choice: JumpChoice,
+) {
+  const direct = packageItem.sections.flatMap((section) =>
+    section.directChoices.some(
+      (placement) => placement.target === choice.handle,
+    )
+      ? [section.handle]
+      : [],
+  );
+  const selectedSources = packageItem.sections.flatMap((section) =>
+    section.sources.some(
+      (source) =>
+        source.group !== undefined &&
+        choice.groups.includes(source.group) &&
+        state.sourceSelections[
+          sourceKey(section.handle, source.handle)
+        ]?.includes(choice.handle),
+    )
+      ? [section.handle]
+      : [],
+  );
+  return [...new Set([...direct, ...selectedSources])];
+}
+
 export function choiceStateIsActive(
   packageItem: CanonicalJumpPackage,
   state: ActorEntryState,

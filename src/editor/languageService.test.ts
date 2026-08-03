@@ -31,6 +31,23 @@ describe("Format1LanguageService", () => {
     );
   });
 
+  it("offers every gap-closure field and child from the Format 1 schema", () => {
+    expect(service.completions("jump")).toMatchObject({
+      fields: expect.arrayContaining(["discount-stacking", "discount-floor"]),
+      children: expect.arrayContaining(["grant"]),
+    });
+    expect(service.completions("section").fields).toContain("locked");
+    expect(service.completions("choice-source").fields).toContain("max");
+    expect(service.completions("choice")).toMatchObject({
+      fields: expect.arrayContaining(["lock", "unlock"]),
+      children: expect.arrayContaining(["discount"]),
+    });
+    expect(service.completions("discount").fields).toEqual(
+      expect.arrayContaining(["group", "mode", "amount", "resource"]),
+    );
+    expect(service.completions("rule").fields).toContain("orientation");
+  });
+
   it("renames definitions and references atomically across package files", () => {
     const files = {
       "jump.jdef": `jump\n  format: 1\n  name: "Test"\n  author: "A"\n  version: "1"\n\nsection\n  handle: intro\n  name: "Intro"\n  choice: first_choice\n`,

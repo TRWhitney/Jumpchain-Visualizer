@@ -13,6 +13,7 @@ export type FieldRule = {
   default?: string | number | boolean;
   conditionalVariants?: boolean;
   exactDuplicate?: string;
+  setLike?: boolean;
   exclusiveWith?: readonly string[];
 };
 

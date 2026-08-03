@@ -4,6 +4,7 @@ export type RichInline = {
   italic?: boolean;
   strike?: boolean;
   underline?: boolean;
+  breakAfter?: boolean;
 };
 
 export type RichBlock =
@@ -42,6 +43,23 @@ function inline(source: string): RichInline[] {
   return result.length ? result : [{ text: source }];
 }
 
+function paragraphInlines(lines: readonly string[]): RichInline[] {
+  const result: RichInline[] = [];
+  lines.forEach((line, index) => {
+    const hardBreak = /\\\s*$/.test(line);
+    const content = hardBreak ? line.replace(/\\\s*$/, "") : line;
+    const parsed = inline(content.trim());
+    if (hardBreak && parsed.length)
+      parsed[parsed.length - 1] = {
+        ...parsed[parsed.length - 1],
+        breakAfter: true,
+      };
+    result.push(...parsed);
+    if (!hardBreak && index < lines.length - 1) result.push({ text: " " });
+  });
+  return result;
+}
+
 export function parseRichText(source: string): readonly RichBlock[] {
   const safe = source.slice(0, MAX_RICH_TEXT).replace(/<[^>]*>/g, "");
   const lines = safe.split(/\r?\n/);
@@ -78,7 +96,7 @@ export function parseRichText(source: string): readonly RichBlock[] {
       !/^\s*[-*]\s+/.test(lines[index])
     )
       paragraph.push(lines[index++].trim());
-    blocks.push({ kind: "paragraph", content: inline(paragraph.join(" ")) });
+    blocks.push({ kind: "paragraph", content: paragraphInlines(paragraph) });
   }
   return blocks;
 }

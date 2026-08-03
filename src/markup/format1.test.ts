@@ -1819,6 +1819,167 @@ trait-layout
     ).toMatchObject({ controlAdornments: false });
   });
 
+  it("canonicalizes additive semantic-fidelity presentation fields", () => {
+    const source = `jump
+  format: 1
+  name: "Fidelity"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: intro
+  name: "Intro"
+  layout: fidelity
+  text
+    handle: prose
+    content
+      """
+      First \\
+      Second
+      """
+
+section-layout
+  handle: fidelity
+
+  grid
+    columns: 3
+    column-weight: 3
+    column-weight: 4
+    column-weight: 2
+    stack
+      column-span: 2
+      padding-block: xs
+      padding-inline: lg
+      min-width: 8rem
+      min-height: 48px
+      aspect-ratio: 16/9
+      text
+        target: prose
+        grow: 1
+        text-size: 3rem
+        font-family: condensed
+        font-weight: black
+        line-height: tight
+        letter-spacing: wide
+        list-marker: dash
+        list-indent: sm
+        list-gap: xs
+`;
+    const packageItem = canonicalizePackage({
+      id: "fidelity-presentation",
+      exactHash: "9".repeat(64),
+      files: { "jump.jdef": source },
+    });
+    expect(
+      packageItem.diagnostics.filter((diagnostic) =>
+        ["schema.value.type", "layout.grid.weightCount"].includes(
+          diagnostic.code,
+        ),
+      ),
+    ).toEqual([]);
+    expect(packageItem.layouts[0].root.presentation.columnWeights).toEqual([
+      3, 4, 2,
+    ]);
+    expect(packageItem.layouts[0].root.children[0].presentation).toMatchObject({
+      columnSpan: 2,
+      paddingBlock: "xs",
+      paddingInline: "lg",
+      minWidth: "8rem",
+      minHeight: "48px",
+      aspectRatio: "16/9",
+    });
+    expect(
+      packageItem.layouts[0].root.children[0].children[0].presentation,
+    ).toMatchObject({
+      grow: 1,
+      textSize: "3rem",
+      fontFamily: "condensed",
+      fontWeight: "black",
+      lineHeight: "tight",
+      letterSpacing: "wide",
+      listMarker: "dash",
+      listIndent: "sm",
+      listGap: "xs",
+    });
+  });
+
+  it.each([
+    "xs",
+    "sm",
+    "md",
+    "lg",
+    "xl",
+    "2xl",
+    "3xl",
+    "4xl",
+    "8px",
+    "512px",
+    ".5rem",
+    "32rem",
+  ])("accepts %s through the shared text-size source field", (textSize) => {
+    const packageItem = canonicalizePackage({
+      id: `text-size-${textSize}`,
+      exactHash: "6".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Text size"
+  author: "Tester"
+  version: "1"
+
+section-layout
+  handle: text_size
+  stack
+    text
+      target: prose
+      text-size: ${textSize}
+`,
+      },
+    });
+    expect(
+      packageItem.diagnostics.filter(
+        (diagnostic) => diagnostic.target?.field === "text-size",
+      ),
+    ).toEqual([]);
+    expect(packageItem.layouts[0].root.children[0].presentation.textSize).toBe(
+      textSize,
+    );
+  });
+
+  it("diagnoses invalid fidelity values and placement relationships", () => {
+    const source = `jump
+  format: 1
+  name: "Invalid fidelity"
+  author: "Tester"
+  version: "1"
+
+section-layout
+  handle: invalid
+  grid
+    columns: 2
+    column-weight: 1
+    text
+      target: missing
+      grow: 1
+      text-size: 513px
+      aspect-ratio: 0/1
+`;
+    const packageItem = canonicalizePackage({
+      id: "invalid-fidelity-presentation",
+      exactHash: "8".repeat(64),
+      files: { "jump.jdef": source },
+    });
+    expect(
+      packageItem.diagnostics.map((diagnostic) => diagnostic.code),
+    ).toEqual(
+      expect.arrayContaining([
+        "layout.grid.weightCount",
+        "layout.grow.parent",
+        "schema.value.type",
+      ]),
+    );
+  });
+
   it("uses warning diagnostics in Editor and blocking diagnostics for distribution", () => {
     const source = `jump
   format: 1
@@ -2254,5 +2415,172 @@ trait-layout
       },
       target: expect.objectContaining({ field: "text" }),
     });
+  });
+
+  it("canonicalizes gap-closure mechanics and keeps Tag rendering user-owned", () => {
+    const packageItem = canonicalizePackage({
+      id: "gap-closure",
+      exactHash: "8".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Gap Closure"
+  author: "Tester"
+  version: "1"
+  discount-stacking: stack
+  discount-floor: negative
+  grant
+    kind: trait
+    name: "Terms"
+
+section
+  handle: content
+  name: "Content"
+  locked: true
+  layout: section_layout
+  choice-source
+    handle: flaws
+    group: flaws
+    mode: multi
+    max: 2
+
+choice
+  handle: origin
+  name: "Origin"
+  lock: content
+  unlock: content
+  discount
+    group: flaws
+    mode: percent
+    amount: 50
+
+choice
+  handle: flaw
+  name: "Flaw"
+  group: flaws
+
+section-layout
+  handle: section_layout
+  inline
+    rule
+      orientation: vertical
+    expand
+      source: flaws
+`,
+      },
+    });
+    expect(
+      packageItem.diagnostics.filter((item) => item.severity === "error"),
+    ).toEqual([]);
+    expect(packageItem).toMatchObject({
+      discountStacking: "stack",
+      discountFloor: "negative",
+      grants: [expect.objectContaining({ kind: "trait" })],
+      sections: [
+        expect.objectContaining({
+          locked: true,
+          sources: [expect.objectContaining({ max: 2 })],
+        }),
+      ],
+      choices: [
+        expect.objectContaining({
+          locks: ["content"],
+          unlocks: ["content"],
+          discounts: [expect.objectContaining({ group: "flaws", amount: 50 })],
+        }),
+        expect.anything(),
+      ],
+    });
+
+    const authoredTags = canonicalizePackage({
+      id: "authored-tags",
+      exactHash: "9".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Tags"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+
+choice-layout
+  handle: card
+  stack
+    slot
+      target: tags
+      text-size: 3rem
+      text-color: red
+      font-family: condensed
+      font-weight: black
+      line-height: tight
+      letter-spacing: wide
+`,
+      },
+    });
+    expect(
+      authoredTags.diagnostics
+        .filter((diagnostic) => diagnostic.code === "schema.field.unknown")
+        .map((diagnostic) => diagnostic.target?.field),
+    ).toEqual(
+      expect.arrayContaining([
+        "text-size",
+        "text-color",
+        "font-family",
+        "font-weight",
+        "line-height",
+        "letter-spacing",
+      ]),
+    );
+
+    const invalidMechanics = canonicalizePackage({
+      id: "invalid-gap-closure",
+      exactHash: "7".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Invalid mechanics"
+  author: "Tester"
+  version: "1"
+
+  grant
+    kind: property
+    handle: location
+
+section
+  handle: content
+  name: "Content"
+
+  choice-source
+    handle: choices
+    group: choices
+    mode: single
+    max: 2
+
+choice
+  handle: invalid
+  name: "Invalid"
+  group: choices
+  lock: content
+  lock: content
+
+  discount
+    group: choices
+    mode: flat
+    amount: 10
+    resource: missing_points
+`,
+      },
+    });
+    expect(invalidMechanics.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "grant.property.jump_value" }),
+        expect.objectContaining({ code: "choiceSource.max.domain" }),
+        expect.objectContaining({ code: "schema.field.exactDuplicate" }),
+        expect.objectContaining({ code: "resource.reference" }),
+      ]),
+    );
   });
 });

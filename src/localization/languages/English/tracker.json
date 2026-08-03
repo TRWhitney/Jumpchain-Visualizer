@@ -190,13 +190,17 @@
         "format1EvaluatedPackage": "Format 1 evaluated package",
         "available": "Available",
         "traits": "Traits",
-        "currentJumpTraits": "Current Jump traits"
+        "currentJumpTraits": "Current Jump traits",
+        "sourceMaximumReached": "Maximum of {{maximum}} selections reached",
+        "sectionLocked": "Section locked",
+        "discountedBy": "Discounted by {{choices}}"
       },
       "placeholder": {
         "unset": "Unset",
         "chooseCompanions": "Choose companions from earlier Jumps"
       },
       "aria": {
+        "discountedCost": "Base price {{base}} {{resource}}; resolved price {{resolved}} {{resource}}. {{provenance}}.",
         "selectedCompanions": "Selected companions",
         "availableCompanions": "Available companions",
         "removeSelectedCompanion": "Remove {{companion}}"

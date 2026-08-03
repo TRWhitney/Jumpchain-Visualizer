@@ -222,6 +222,29 @@ describe("Chain Tracker aggregate", () => {
     expect(unavailable.jumpState["entry-2"].actors.jumper).toBe(storedChoices);
   });
 
+  it("represents a missing installed package without discarding its chain entry", () => {
+    const fixture = createDenseTrackerFixture();
+    const packageId = fixture.entries["entry-2"].packageId;
+    const unavailable = {
+      ...fixture,
+      packages: Object.fromEntries(
+        Object.entries(fixture.packages).filter(([id]) => id !== packageId),
+      ),
+    };
+
+    const placeholder = packageForEntry(unavailable, "entry-2");
+    expect(placeholder).toMatchObject({
+      id: packageId,
+      name: "Unavailable Jump package",
+      version: "unavailable",
+      source: "imported",
+      exactHash: fixture.entries["entry-2"].packageExactHash,
+    });
+    expect(placeholder.document).toBeUndefined();
+    expect(unavailable.entries["entry-2"]).toBe(fixture.entries["entry-2"]);
+    expect(unavailable.jumpState["entry-2"]).toBe(fixture.jumpState["entry-2"]);
+  });
+
   it("discards malformed cached runtime and actor maps", () => {
     const fixture = createDenseTrackerFixture();
     const unavailable = {
@@ -941,6 +964,129 @@ describe("Chain Tracker aggregate", () => {
         "multi_manual:electives"
       ],
     ).toEqual(["manual_flight", "manual_arcane"]);
+  });
+
+  it("enforces a Source maximum while allowing stale over-limit recovery", () => {
+    const fixture = createDenseTrackerFixture({
+      allowNegativePointBalances: true,
+    });
+    const packageItem = fixture.packages[fixture.entries["entry-2"].packageId];
+    const document = packageItem.document!;
+    const state = {
+      ...fixture,
+      packages: {
+        ...fixture.packages,
+        [packageItem.id]: {
+          ...packageItem,
+          document: {
+            ...document,
+            sections: document.sections.map((section) => ({
+              ...section,
+              sources: section.sources.map((source) =>
+                section.handle === "multi_manual" &&
+                source.handle === "electives"
+                  ? { ...source, max: 1 }
+                  : source,
+              ),
+            })),
+          },
+        },
+      },
+    };
+    const actor = state.jumpState["entry-2"].actors.jumper;
+    const ordinary = trackerReducer(state, {
+      type: "set-source-selections",
+      entryId: "entry-2",
+      actorId: "jumper",
+      sourceKey: "multi_manual:electives",
+      mode: "multi",
+      value: ["manual_flight", "manual_arcane"],
+    });
+    expect(
+      ordinary.jumpState["entry-2"].actors.jumper.sourceSelections[
+        "multi_manual:electives"
+      ],
+    ).toEqual(actor.sourceSelections["multi_manual:electives"]);
+
+    const stale = {
+      ...state,
+      jumpState: {
+        ...state.jumpState,
+        "entry-2": {
+          ...state.jumpState["entry-2"],
+          actors: {
+            ...state.jumpState["entry-2"].actors,
+            jumper: {
+              ...actor,
+              sourceSelections: {
+                ...actor.sourceSelections,
+                "multi_manual:electives": ["manual_flight", "manual_arcane"],
+              },
+            },
+          },
+        },
+      },
+    };
+    const recovered = trackerReducer(stale, {
+      type: "set-source-selections",
+      entryId: "entry-2",
+      actorId: "jumper",
+      sourceKey: "multi_manual:electives",
+      mode: "multi",
+      value: ["manual_flight"],
+    });
+    expect(
+      recovered.jumpState["entry-2"].actors.jumper.sourceSelections[
+        "multi_manual:electives"
+      ],
+    ).toEqual(["manual_flight"]);
+  });
+
+  it("guards locked Sections from the current selection state", () => {
+    const fixture = createDenseTrackerFixture({
+      allowNegativePointBalances: true,
+    });
+    const packageItem = fixture.packages[fixture.entries["entry-2"].packageId];
+    const document = packageItem.document!;
+    const state = {
+      ...fixture,
+      packages: {
+        ...fixture.packages,
+        [packageItem.id]: {
+          ...packageItem,
+          document: {
+            ...document,
+            sections: document.sections.map((section) =>
+              section.handle === "multi_manual"
+                ? { ...section, locked: true }
+                : section,
+            ),
+            choices: document.choices.map((choice) =>
+              choice.handle === "manual_scholar"
+                ? { ...choice, unlocks: ["multi_manual"] }
+                : choice,
+            ),
+          },
+        },
+      },
+    };
+    const closed = trackerReducer(state, {
+      type: "set-source-selections",
+      entryId: "entry-2",
+      actorId: "jumper",
+      sourceKey: "single_manual:assignment",
+      mode: "single",
+      value: [],
+    });
+    const blocked = trackerReducer(closed, {
+      type: "set-source-selections",
+      entryId: "entry-2",
+      actorId: "jumper",
+      sourceKey: "multi_manual:electives",
+      mode: "multi",
+      value: ["manual_flight"],
+    });
+    expect(blocked).toBe(closed);
   });
 
   it("allows an inactive choice change even when recalculation creates a deficit", () => {

@@ -278,6 +278,122 @@ test("optional Structured form sections initialize once and retain session state
   await expect(editor.getByRole("button", { name: "Undo" })).toBeDisabled();
 });
 
+test("Choice section locking disclosure follows the workspace default and retains only editor-session state", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/settings");
+  await page.getByLabel("Collapse optional sections by default").check();
+  await page.getByRole("tab", { name: "Editor" }).click();
+  await page.getByLabel("Show explanatory text").check();
+  await waitForStoredSetting(
+    page,
+    ["general", "collapseOptionalSectionsByDefault"],
+    true,
+  );
+  await waitForStoredSetting(page, ["editor", "showExplanatoryText"], true);
+
+  const definition = await readFile(
+    join(process.cwd(), "schema/fixtures/gap-closure-valid/jump.jdef"),
+  );
+  const archive = zipSync({ "jump.jdef": new Uint8Array(definition) });
+  const archivePath = join(
+    testInfo.outputDir,
+    "section-locking-disclosure.jmp",
+  );
+  await mkdir(testInfo.outputDir, { recursive: true });
+  await writeFile(archivePath, archive);
+
+  await page.goto("/editor");
+  await page
+    .locator('input[type="file"][accept^=".jmp"]')
+    .setInputFiles(archivePath);
+  const review = page.getByRole("alertdialog");
+  await expect(review).toContainText("Secure inspection complete");
+  await review.getByRole("button", { name: "Import Project" }).click();
+  let editor = page.locator(".production-editor");
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "access", exact: true })
+    .click();
+
+  let sectionLocking = editor.locator(
+    '[data-disclosure-section="section-locking"]',
+  );
+  await expect(
+    sectionLocking.getByRole("heading", { name: "Section locking" }),
+  ).toBeVisible();
+  await expect(sectionLocking).not.toHaveAttribute("open", "");
+  await expect(
+    editor.getByLabel("Lock section 1", { exact: true }),
+  ).not.toBeVisible();
+  await expect(
+    editor.getByLabel("Unlock section 1", { exact: true }),
+  ).not.toBeVisible();
+
+  await sectionLocking
+    .getByRole("heading", { name: "Section locking" })
+    .click();
+  await expect(sectionLocking).toHaveAttribute("open", "");
+  await expect(
+    editor.getByLabel("Lock section 1", { exact: true }),
+  ).toHaveValue("content");
+  await expect(
+    editor.getByLabel("Unlock section 1", { exact: true }),
+  ).toHaveValue("content");
+  await expect(
+    sectionLocking.getByText(
+      "While this Choice is selected, locks add to and unlocks subtract from each target Section's lock score.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  const [lockBox, unlockBox] = await Promise.all([
+    editor.getByLabel("Lock section 1", { exact: true }).boundingBox(),
+    editor.getByLabel("Unlock section 1", { exact: true }).boundingBox(),
+  ]);
+  expect(lockBox).not.toBeNull();
+  expect(unlockBox).not.toBeNull();
+  expect(Math.abs(lockBox!.y - unlockBox!.y)).toBeLessThanOrEqual(1);
+  await expect(
+    editor
+      .locator(".editor-form-card")
+      .filter({ hasText: "Choice behavior" })
+      .getByLabel("Lock section 1", { exact: true }),
+  ).toHaveCount(0);
+  await attachProductionState(
+    testInfo,
+    "editor-choice-section-locking-disclosure-production",
+    sectionLocking,
+  );
+
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "content", exact: true })
+    .click();
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "access", exact: true })
+    .click();
+  sectionLocking = editor.locator(
+    '[data-disclosure-section="section-locking"]',
+  );
+  await expect(sectionLocking).toHaveAttribute("open", "");
+
+  await page
+    .getByRole("button", { name: "Chain Tracker", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/chain$/);
+  await page.goBack();
+  editor = page.locator(".production-editor");
+  await expect(editor).toBeVisible();
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "access", exact: true })
+    .click();
+  await expect(
+    editor.locator('[data-disclosure-section="section-locking"]'),
+  ).not.toHaveAttribute("open", "");
+});
+
 test("new-user interface disclosures preserve advanced editor and raster functionality", async ({
   page,
 }) => {
@@ -3641,7 +3757,7 @@ ${image}
     await expect(leaf).toHaveCSS("background-color", "rgb(18, 52, 86)");
     await expect(leaf).toHaveCSS("justify-self", "end");
     await expect(leaf).toHaveCSS("text-align", "center");
-    await expect(leaf).toHaveCSS("font-size", "14.4px");
+    await expect(leaf).toHaveCSS("font-size", "24px");
     await expect(leaf).toHaveCSS("color", "rgb(255, 255, 255)");
   }
   const presentedImage = preview.locator('[data-layout-kind="image"]');
@@ -3663,6 +3779,98 @@ ${image}
     "editor-layout-complete-leaf-presentation-production",
     editor.locator(".editor-context-pane"),
   );
+});
+
+test("semantic fidelity fields use contextual progressive disclosures and round-trip one text-size field", async ({
+  page,
+}) => {
+  await page.goto("/settings");
+  const collapseOptional = page.getByLabel(
+    "Collapse optional sections by default",
+  );
+  await collapseOptional.check();
+  await waitForStoredSetting(
+    page,
+    ["general", "collapseOptionalSectionsByDefault"],
+    true,
+  );
+  const editor = await openCreatedEditor(page);
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  await editor
+    .getByRole("button", { name: "Choice layout", exact: true })
+    .click();
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("layout.jdef source");
+  await source.press(process.platform === "darwin" ? "Meta+a" : "Control+a");
+  await page.keyboard.insertText(`choice-layout
+  handle: fidelity_fields
+
+  grid
+    columns: 2
+    text
+      target: description
+    slot
+      target: control
+`);
+  await editor
+    .locator('[data-explorer-group="content:layouts"] summary')
+    .click();
+  await editor.getByRole("button", { name: "fidelity_fields" }).click();
+  await editor.getByRole("tab", { name: "Structured" }).click();
+
+  await editor
+    .getByRole("button", { name: "Edit Grid presentation fields" })
+    .click();
+  const gridGroup = editor.locator('[data-layout-presentation-group="grid"]');
+  await expect(gridGroup).not.toHaveAttribute("open", "");
+  await gridGroup.locator("summary").click();
+  await expect(gridGroup).toHaveAttribute("open", "");
+  await gridGroup.getByLabel("Custom proportions").check();
+  const weights = gridGroup.locator('input[type="number"]');
+  await expect(weights).toHaveCount(2);
+  await weights.nth(0).fill("2");
+  await weights.nth(1).fill("1");
+
+  const textRow = editor.locator('[data-layout-node-kind="text"]');
+  await textRow
+    .getByRole("button", { name: "Edit Text presentation fields" })
+    .click();
+  const sizing = textRow.locator('[data-layout-presentation-group="sizing"]');
+  await sizing.locator("summary").click();
+  await sizing.getByLabel("Column span").fill("2");
+  await expect(sizing.getByLabel("Space share")).toHaveCount(0);
+  await expect(
+    textRow.locator('[data-layout-presentation-group="grid"]'),
+  ).toHaveCount(0);
+
+  const typography = textRow.locator(
+    '[data-layout-presentation-group="typography"]',
+  );
+  await typography.locator("summary").click();
+  const textSize = typography.getByLabel("Text size", { exact: true });
+  await textSize.fill("513px");
+  await expect(textSize).toHaveValue("513px");
+  await expect(textSize).toHaveAttribute("aria-invalid", "true");
+  await textSize.fill("48px");
+  await expect(textSize).not.toHaveAttribute("aria-invalid", "true");
+  await expect(
+    editor.locator(".editor-real-preview [data-layout-kind='text']"),
+  ).toHaveCSS("font-size", "48px");
+  await typography.locator("summary").click();
+  await expect(typography).not.toHaveAttribute("open", "");
+  await textRow
+    .getByRole("button", { name: "Edit Text presentation fields" })
+    .click();
+  await textRow
+    .getByRole("button", { name: "Edit Text presentation fields" })
+    .click();
+  await expect(typography).not.toHaveAttribute("open", "");
+
+  await editor.getByRole("tab", { name: "Source" }).click();
+  await expect(source).toContainText("column-weight: 2");
+  await expect(source).toContainText("column-weight: 1");
+  await expect(source).toContainText("column-span: 2");
+  await expect(source).toContainText("text-size: 48px");
 });
 
 test("Inline Text alignment uses the row's visible available space", async ({
@@ -4705,6 +4913,145 @@ test("Structured fields show localized omission defaults from first render and a
     "editor-default-shadowtext-integer-input-fields-production",
     editor.locator(".editor-form-card").filter({ hasText: "Input behavior" }),
   );
+});
+
+test("Structured round-trips gap-closure mechanics in both application themes", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(60_000);
+  await page.emulateMedia({ colorScheme: "dark" });
+  const definition = await readFile(
+    join(process.cwd(), "schema/fixtures/gap-closure-valid/jump.jdef"),
+  );
+  const archive = zipSync({ "jump.jdef": new Uint8Array(definition) });
+  const archivePath = join(testInfo.outputDir, "gap-closure-valid.jmp");
+  await mkdir(testInfo.outputDir, { recursive: true });
+  await writeFile(archivePath, archive);
+
+  await page.goto("/editor");
+  await page
+    .locator('input[type="file"][accept^=".jmp"]')
+    .setInputFiles(archivePath);
+  const review = page.getByRole("alertdialog");
+  await expect(review).toContainText("Secure inspection complete");
+  await review.getByRole("button", { name: "Import Project" }).click();
+  const editor = page.locator(".production-editor");
+  await expect(editor).toBeVisible();
+
+  const stacking = editor.getByLabel("Discount stacking", { exact: true });
+  const floor = editor.getByLabel("Discount floor", { exact: true });
+  await expect(stacking).toHaveValue("stack");
+  await expect(floor).toHaveValue("negative");
+  await stacking.selectOption("highest");
+  await stacking.selectOption("stack");
+  await floor.selectOption("zero");
+  await floor.selectOption("negative");
+
+  const jumpEffects = await openContentAndEffects(editor);
+  await jumpEffects
+    .getByRole("button", { name: "+ Grant", exact: true })
+    .click();
+  const newJumpGrantKind = editor.getByLabel("Award type", { exact: true });
+  await expect(newJumpGrantKind).toBeFocused();
+  await newJumpGrantKind.click();
+  await editor.getByRole("option", { name: "Trait", exact: true }).click();
+  await editor.getByLabel("Name", { exact: true }).fill("Authored Jump Trait");
+  await editor
+    .getByRole("button", { name: "Jump details", exact: true })
+    .click();
+
+  const contentSearch = editor.getByPlaceholder("Search content");
+  await contentSearch.fill("Jump Terms");
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "Grant grant", exact: true })
+    .click();
+  await expect(editor.getByLabel("Award type", { exact: true })).toHaveValue(
+    "Trait",
+  );
+  await expect(editor.getByLabel("Layout", { exact: true })).toHaveValue(
+    "trait_card",
+  );
+  await contentSearch.fill("");
+
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "content", exact: true })
+    .click();
+  const initiallyLocked = editor.getByLabel("Initially locked", {
+    exact: true,
+  });
+  await expect(initiallyLocked).toBeChecked();
+  await initiallyLocked.uncheck();
+  await initiallyLocked.check();
+
+  await editor
+    .locator(".editor-child-list")
+    .getByRole("button", { name: "selections Choice source", exact: true })
+    .click();
+  const maximum = editor.getByRole("spinbutton", {
+    name: "Maximum selections",
+  });
+  await expect(maximum).toHaveValue("2");
+  await maximum.fill("3");
+  await maximum.fill("2");
+
+  await editor
+    .locator(".editor-outline-scroll")
+    .getByRole("button", { name: "access", exact: true })
+    .click();
+  const lockSection = editor.getByLabel("Lock section 1", { exact: true });
+  const unlockSection = editor.getByLabel("Unlock section 1", { exact: true });
+  await expect(lockSection).toHaveValue("content");
+  await expect(unlockSection).toHaveValue("content");
+  await lockSection.fill("");
+  await lockSection.fill("content");
+  await unlockSection.fill("");
+  await unlockSection.fill("content");
+
+  const choiceEffects = await openContentAndEffects(editor);
+  await choiceEffects
+    .getByRole("button", { name: "+ Discount", exact: true })
+    .click();
+  await editor.getByLabel("Discounted group", { exact: true }).fill("content");
+  await expect(
+    editor.getByLabel("Discounted group", { exact: true }),
+  ).toHaveValue("content");
+  await expect(
+    editor.getByLabel("Discount calculation", { exact: true }),
+  ).toHaveValue("percent");
+  const discountAmount = editor.getByRole("spinbutton", {
+    name: "Discount amount",
+  });
+  await discountAmount.fill("40");
+  await discountAmount.fill("50");
+  await expect(
+    editor.getByRole("combobox", { name: "Discounted currency" }),
+  ).toBeVisible();
+
+  await editor.getByRole("tab", { name: "Source" }).click();
+  const source = editor.getByLabel("jump.jdef source");
+  await expect(source).toContainText("discount-stacking: stack");
+  await expect(source).toContainText("discount-floor: negative");
+  await editor.getByRole("tab", { name: "Structured" }).click();
+  await expect(
+    editor.getByRole("spinbutton", { name: "Discount amount" }),
+  ).toHaveValue("50");
+
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(
+    editor.getByLabel("Discounted group", { exact: true }),
+  ).toBeVisible();
+  const groupField = editor.locator(
+    '.editor-schema-field:has(input[aria-label="Discounted group"])',
+  );
+  const [labelBox, inputBox] = await Promise.all([
+    groupField.locator(".editor-field-occurrence > span").first().boundingBox(),
+    editor.getByLabel("Discounted group", { exact: true }).boundingBox(),
+  ]);
+  expect(labelBox).not.toBeNull();
+  expect(inputBox).not.toBeNull();
+  expect(inputBox!.x).toBeGreaterThanOrEqual(labelBox!.x);
 });
 
 test("Structured section references and handles show live localized diagnostics", async ({
@@ -9752,23 +10099,37 @@ section-layout
     name: "Background fit",
     exact: true,
   });
-  const [paddingBox, backgroundImageBox, backgroundFitBox] = await Promise.all([
-    builder.getByLabel("Padding", { exact: true }).boundingBox(),
+  const spacingGroup = builder.locator(
+    '[data-layout-presentation-group="spacing"]',
+  );
+  const [paddingBox, paddingBlockBox, paddingInlineBox] = await Promise.all([
+    spacingGroup.getByLabel("Padding", { exact: true }).boundingBox(),
+    spacingGroup.getByLabel("Vertical padding", { exact: true }).boundingBox(),
+    spacingGroup
+      .getByLabel("Horizontal padding", { exact: true })
+      .boundingBox(),
+  ]);
+  const [backgroundImageBox, backgroundFitBox] = await Promise.all([
     selectableBackground.locator(".editor-handle-combobox").boundingBox(),
     reopenedBackgroundFit.boundingBox(),
   ]);
   expect(paddingBox).not.toBeNull();
+  expect(paddingBlockBox).not.toBeNull();
+  expect(paddingInlineBox).not.toBeNull();
   expect(backgroundImageBox).not.toBeNull();
   expect(backgroundFitBox).not.toBeNull();
-  expect(Math.abs(backgroundImageBox!.y - paddingBox!.y)).toBeLessThanOrEqual(
-    1,
-  );
-  expect(Math.abs(backgroundFitBox!.y - paddingBox!.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(paddingBlockBox!.y - paddingBox!.y)).toBeLessThanOrEqual(1);
   expect(
-    Math.abs(backgroundImageBox!.height - paddingBox!.height),
+    Math.abs(backgroundFitBox!.y - backgroundImageBox!.y),
   ).toBeLessThanOrEqual(1);
   expect(
-    Math.abs(backgroundFitBox!.height - paddingBox!.height),
+    Math.abs(paddingBlockBox!.height - paddingBox!.height),
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(paddingInlineBox!.height - paddingBox!.height),
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(backgroundFitBox!.height - backgroundImageBox!.height),
   ).toBeLessThanOrEqual(1);
   if (reviewArtifactsEnabled)
     await page.screenshot({
@@ -9837,7 +10198,7 @@ section-layout
   ).toHaveCount(0);
 });
 
-test("expanded Choice layout fields share one control height", async ({
+test("progressive Choice layout field rows share one control height", async ({
   page,
 }, testInfo) => {
   await page.emulateMedia({ colorScheme: "dark" });
@@ -9885,37 +10246,36 @@ section-layout
     .getByRole("button", { name: "Edit Choice presentation fields" })
     .click();
   const expandedFields = choiceRow.locator(".editor-layout-row-node-fields");
-  const content = expandedFields.getByLabel("Content to display", {
+  const spacingGroup = expandedFields.locator(
+    '[data-layout-presentation-group="spacing"]',
+  );
+  const padding = spacingGroup.getByLabel("Padding", { exact: true });
+  const paddingBlock = spacingGroup.getByLabel("Vertical padding", {
     exact: true,
   });
-  const contentControl = expandedFields.locator(
-    '[data-layout-field="target"] .editor-handle-combobox',
-  );
-  const padding = expandedFields.getByLabel("Padding", { exact: true });
-  const [contentBox, paddingBox] = await Promise.all([
-    contentControl.boundingBox(),
+  const paddingInline = spacingGroup.getByLabel("Horizontal padding", {
+    exact: true,
+  });
+  const [paddingBox, paddingBlockBox, paddingInlineBox] = await Promise.all([
     padding.boundingBox(),
+    paddingBlock.boundingBox(),
+    paddingInline.boundingBox(),
   ]);
-  expect(contentBox).not.toBeNull();
   expect(paddingBox).not.toBeNull();
-  expect(Math.abs(contentBox!.y - paddingBox!.y)).toBeLessThanOrEqual(1);
-  expect(Math.abs(contentBox!.height - paddingBox!.height)).toBeLessThanOrEqual(
-    1,
-  );
+  expect(paddingBlockBox).not.toBeNull();
+  expect(paddingInlineBox).not.toBeNull();
+  expect(Math.abs(paddingBlockBox!.y - paddingBox!.y)).toBeLessThanOrEqual(1);
   expect(
-    Math.abs(
-      contentBox!.y + contentBox!.height - (paddingBox!.y + paddingBox!.height),
-    ),
+    Math.abs(paddingBlockBox!.height - paddingBox!.height),
   ).toBeLessThanOrEqual(1);
-  await expandedFields
-    .getByRole("button", {
-      name: "Show handle choices for Content to display",
-    })
-    .click();
-  await expandedFields
-    .getByRole("option", { name: "location", exact: true })
-    .click();
-  await expect(content).toHaveValue("location");
+  expect(
+    Math.abs(paddingInlineBox!.height - paddingBox!.height),
+  ).toBeLessThanOrEqual(1);
+  const target = choiceRow.getByRole("combobox", {
+    name: "Choice target",
+    exact: true,
+  });
+  await expect(target).toHaveValue("location");
   if (reviewArtifactsEnabled)
     await choiceRow.screenshot({
       path: testInfo.outputPath("choice-layout-fields-one-control-height.png"),
@@ -11862,6 +12222,18 @@ test("Structured layout tree safely edits hierarchy through the mock-aligned con
   await expect(builder.locator('[data-layout-node-kind="text"]')).toContainText(
     "legal handle reference",
   );
+  const targetDiagnostic = builder
+    .locator('[data-layout-node-kind="text"]')
+    .locator(".editor-layout-inline-diagnostics .is-error");
+  const [invalidTargetBox, targetDiagnosticBox] = await Promise.all([
+    promotedTextTarget.boundingBox(),
+    targetDiagnostic.boundingBox(),
+  ]);
+  expect(invalidTargetBox).not.toBeNull();
+  expect(targetDiagnosticBox).not.toBeNull();
+  expect(targetDiagnosticBox!.y).toBeGreaterThanOrEqual(
+    invalidTargetBox!.y + invalidTargetBox!.height,
+  );
   await builder
     .locator('[data-layout-node-kind="text"]')
     .evaluate((element) => element.scrollIntoView({ block: "center" }));
@@ -11875,36 +12247,32 @@ test("Structured layout tree safely edits hierarchy through the mock-aligned con
     ".editor-layout-row-node-fields",
   );
   await expect(diagnosticPresentation).toBeVisible();
-  await expect(diagnosticPresentation).toContainText("legal handle reference");
   await attachProductionState(
     testInfo,
     "editor-layout-diagnostic-field-row-corrected",
-    diagnosticPresentation,
+    textRow,
   );
-  const expandedTarget = diagnosticPresentation.getByLabel(
-    "Content to display",
-    {
-      exact: true,
-    },
+  const spacingGroup = diagnosticPresentation.locator(
+    '[data-layout-presentation-group="spacing"]',
   );
-  const expandedPadding = diagnosticPresentation.getByLabel("Padding", {
+  const expandedPadding = spacingGroup.getByLabel("Padding", {
     exact: true,
   });
-  const expandedBackground = diagnosticPresentation.getByLabel("Background", {
+  const expandedPaddingBlock = spacingGroup.getByLabel("Vertical padding", {
     exact: true,
   });
-  const [targetBox, paddingBox, backgroundBox] = await Promise.all([
-    expandedTarget.boundingBox(),
+  const expandedPaddingInline = spacingGroup.getByLabel("Horizontal padding", {
+    exact: true,
+  });
+  const [paddingBox, paddingBlockBox, paddingInlineBox] = await Promise.all([
     expandedPadding.boundingBox(),
-    expandedBackground.boundingBox(),
+    expandedPaddingBlock.boundingBox(),
+    expandedPaddingInline.boundingBox(),
   ]);
-  expect(targetBox).not.toBeNull();
   expect(paddingBox).not.toBeNull();
-  expect(backgroundBox).not.toBeNull();
-  // A multiline diagnostic may make the grid row taller, but it must not
-  // stretch neighboring field wrappers and distribute that height internally.
-  expect(Math.abs(paddingBox!.y - targetBox!.y)).toBeLessThanOrEqual(1);
-  expect(Math.abs(backgroundBox!.y - targetBox!.y)).toBeLessThanOrEqual(1);
+  expect(paddingBlockBox).not.toBeNull();
+  expect(paddingInlineBox).not.toBeNull();
+  expect(Math.abs(paddingBlockBox!.y - paddingBox!.y)).toBeLessThanOrEqual(1);
   await textPresentationButton.click();
   await promotedTextTarget.fill("introduction");
   await promotedTextTarget.press("Tab");
@@ -12338,6 +12706,7 @@ test("container children and rules expose inline presentation editors", async ({
   const color = ruleRow.getByLabel("Color", { exact: true });
   const thickness = ruleRow.getByLabel("Thickness", { exact: true });
   const style = ruleRow.getByLabel("Style", { exact: true });
+  const orientation = ruleRow.getByLabel("Orientation", { exact: true });
   const previewRule = editor.locator(
     '.editor-real-preview .jump-layout-leaf-boundary[data-layout-kind="rule"] hr',
   );
@@ -12345,8 +12714,14 @@ test("container children and rules expose inline presentation editors", async ({
   await expect(thickness).toHaveValue("");
   await expect(thickness).toHaveAttribute("placeholder", "Default: 1");
   await expect(style).toHaveValue("solid");
+  await expect(orientation).toHaveValue("horizontal");
+  await orientation.selectOption("vertical");
+  await expect(previewRule).toHaveAttribute("aria-orientation", "vertical");
+  await orientation.selectOption("horizontal");
   await thickness.hover();
-  const thicknessStepper = ruleRow.locator(".editor-number-stepper");
+  const thicknessStepper = ruleRow.locator(
+    '[data-layout-field="thickness"] .editor-number-stepper',
+  );
   expect(
     await thicknessStepper
       .locator(".number-stepper-buttons path")
@@ -12407,6 +12782,7 @@ test("container children and rules expose inline presentation editors", async ({
   await expect(source).toContainText('color: "#C85A71"');
   await expect(source).toContainText("thickness: 10");
   await expect(source).toContainText("style: rounded");
+  await expect(source).not.toContainText("orientation:");
 });
 
 test("layout declarations preview representative content and compose Choice layouts without a valid package fallback", async ({

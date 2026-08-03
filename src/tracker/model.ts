@@ -6,6 +6,7 @@ import {
 import type {
   DependencyImpact,
   FormDependencyImpact,
+  InstalledPackage,
   InventoryRecord,
   TrackerAction,
   TrackerState,
@@ -26,13 +27,90 @@ export type { TrackerPage } from "./constants";
 
 const normalize = (value: string) => value.trim().toLocaleLowerCase();
 
-export function packageForEntry(state: TrackerState, entryId: string) {
+export function packageForEntry(
+  state: TrackerState,
+  entryId: string,
+): InstalledPackage {
   const entry = state.entries[entryId];
   const packageItem = state.packages[entry?.packageId];
-  if (!entry || !packageItem) return packageItem;
+  if (!entry || !packageItem)
+    return {
+      id: entry?.packageId ?? `unavailable:${entryId}`,
+      logicalId: entry?.packageId ?? `unavailable:${entryId}`,
+      name: "Unavailable Jump package",
+      version: "unavailable",
+      source: "imported",
+      description:
+        "The exact package for this chain entry is not currently installed.",
+      tags: [],
+      exactHash: entry?.packageExactHash,
+    };
   return entry.packageExactHash === packageItem.exactHash
     ? packageItem
     : { ...packageItem, document: undefined };
+}
+
+function evaluateCurrentState(state: TrackerState) {
+  const order = state.order.filter((id) => state.entries[id]?.kind === "jump");
+  const supplementInputs = supplementEvaluationInputs(state, order);
+  return evaluateChain({
+    order,
+    packageIdByEntry: Object.fromEntries(
+      order.map((id) => [id, state.entries[id].packageId]),
+    ),
+    packages: Object.fromEntries(
+      Object.values(state.packages)
+        .filter((item) => item.document)
+        .map((item) => [item.id, item.document!]),
+    ),
+    jumpState: supplementInputs.jumpState,
+    jumperName: state.actors.jumper?.name ?? "Jumper",
+    supplementPointGrants: supplementInputs.supplementPointGrants,
+    startingPointOverrides: supplementInputs.startingPointOverrides,
+  });
+}
+
+function sectionIsLocked(
+  state: TrackerState,
+  entryId: string,
+  actorId: string,
+  sectionHandle: string,
+) {
+  return Boolean(
+    evaluateCurrentState(state).runtime[entryId]?.actors[actorId]?.sections?.[
+      sectionHandle
+    ]?.locked,
+  );
+}
+
+function choiceEditingIsLocked(
+  state: TrackerState,
+  entryId: string,
+  actorId: string,
+  choiceHandle: string,
+) {
+  const packageItem = packageForEntry(state, entryId)?.document;
+  const choice = packageItem?.choices.find(
+    (candidate) => candidate.handle === choiceHandle,
+  );
+  if (!packageItem || !choice) return false;
+  const sections = packageItem.sections.flatMap((section) =>
+    section.directChoices.some(
+      (placement) => placement.target === choiceHandle,
+    ) ||
+    section.sources.some(
+      (source) =>
+        source.group !== undefined && choice.groups.includes(source.group),
+    )
+      ? [section.handle]
+      : [],
+  );
+  return (
+    sections.length > 0 &&
+    sections.every((section) =>
+      sectionIsLocked(state, entryId, actorId, section),
+    )
+  );
 }
 
 export function chronologyIndex(state: TrackerState, entryId: string) {
@@ -674,24 +752,9 @@ function evaluatedBalance(
   entryId: string,
   actorId: string,
 ) {
-  const order = state.order.filter((id) => state.entries[id]?.kind === "jump");
-  const supplementInputs = supplementEvaluationInputs(state, order);
-  const result = evaluateChain({
-    order,
-    packageIdByEntry: Object.fromEntries(
-      order.map((id) => [id, state.entries[id].packageId]),
-    ),
-    packages: Object.fromEntries(
-      Object.values(state.packages)
-        .filter((item) => item.document)
-        .map((item) => [item.id, item.document!]),
-    ),
-    jumpState: supplementInputs.jumpState,
-    jumperName: state.actors.jumper?.name ?? "Jumper",
-    supplementPointGrants: supplementInputs.supplementPointGrants,
-    startingPointOverrides: supplementInputs.startingPointOverrides,
-  });
-  return result.runtime[entryId]?.actors[actorId]?.balance ?? 0;
+  return (
+    evaluateCurrentState(state).runtime[entryId]?.actors[actorId]?.balance ?? 0
+  );
 }
 
 function enforceBalancePolicy(
@@ -1135,6 +1198,15 @@ export function trackerReducer(
         pending: null,
       };
     case "set-choice": {
+      if (
+        choiceEditingIsLocked(
+          state,
+          action.entryId,
+          action.actorId,
+          action.choiceHandle,
+        )
+      )
+        return state;
       const entry = state.jumpState[action.entryId];
       if (!entry) return state;
       const actor = entry.actors[action.actorId] ?? emptyActorEntryState();
@@ -1219,6 +1291,15 @@ export function trackerReducer(
     case "set-source-selections": {
       const entry = state.jumpState[action.entryId];
       if (!entry) return state;
+      if (
+        sectionIsLocked(
+          state,
+          action.entryId,
+          action.actorId,
+          action.sourceKey.split(":", 1)[0],
+        )
+      )
+        return state;
       const packageItem = packageForEntry(state, action.entryId)?.document;
       const sourceContext = packageItem?.sections
         .flatMap((section) =>
@@ -1245,7 +1326,15 @@ export function trackerReducer(
       const value =
         sourceContext.source.mode === "single"
           ? uniqueValue.slice(-1)
-          : uniqueValue;
+          : sourceContext.source.max &&
+              uniqueValue.length > sourceContext.source.max
+            ? uniqueValue.length <
+              (actor.sourceSelections[action.sourceKey]?.length ?? 0)
+              ? uniqueValue
+              : (actor.sourceSelections[action.sourceKey] ?? []).filter(
+                  (handle) => allowed.has(handle),
+                )
+            : uniqueValue;
       let candidate: TrackerState = {
         ...state,
         jumpState: {
@@ -1299,6 +1388,15 @@ export function trackerReducer(
       );
     }
     case "set-input": {
+      if (
+        choiceEditingIsLocked(
+          state,
+          action.entryId,
+          action.actorId,
+          action.choiceHandle,
+        )
+      )
+        return state;
       const entry = state.jumpState[action.entryId];
       if (!entry) return state;
       const actor = entry.actors[action.actorId] ?? emptyActorEntryState();
@@ -1392,6 +1490,15 @@ export function trackerReducer(
         supplements: supplementReducer(state.supplements, action.action),
       };
     case "record-choice-roll": {
+      if (
+        choiceEditingIsLocked(
+          state,
+          action.entryId,
+          action.actorId,
+          action.choiceHandle,
+        )
+      )
+        return state;
       const entry = state.jumpState[action.entryId];
       if (!entry) return state;
       const actor = entry.actors[action.actorId] ?? emptyActorEntryState();
@@ -1439,12 +1546,37 @@ export function trackerReducer(
     case "record-source-roll": {
       const entry = state.jumpState[action.entryId];
       if (!entry) return state;
+      if (
+        sectionIsLocked(
+          state,
+          action.entryId,
+          action.actorId,
+          action.sourceKey.split(":", 1)[0],
+        )
+      )
+        return state;
+      const packageItem = packageForEntry(state, action.entryId)?.document;
+      const source = packageItem?.sections
+        .flatMap((section) =>
+          section.sources.map((candidate) => ({
+            key: `${section.handle}:${candidate.handle}`,
+            source: candidate,
+          })),
+        )
+        .find((candidate) => candidate.key === action.sourceKey)?.source;
       const actor = entry.actors[action.actorId] ?? emptyActorEntryState();
       const previousSequence =
         actor.sourceRolls[action.sourceKey]?.sequence ?? 0;
       const previousResult = actor.sourceRolls[action.sourceKey]?.result;
+      if (
+        source?.mode === "multi" &&
+        source.max !== undefined &&
+        !previousResult &&
+        (actor.sourceSelections[action.sourceKey]?.length ?? 0) >= source.max
+      )
+        return state;
       const sourceSelections =
-        action.mode === "single"
+        (source?.mode ?? action.mode) === "single"
           ? [action.result]
           : [
               ...(actor.sourceSelections[action.sourceKey] ?? []).filter(

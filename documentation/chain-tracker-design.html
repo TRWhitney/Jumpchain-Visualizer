@@ -313,10 +313,20 @@
           <li>The application-owned Morgan Mock chain is the sole exception to ordinary exact-version pinning: when a development build replaces one of its three canonical Mock packages under the same stable package identity, the saved entry is rebound to that current fixture while its choices, inputs, and rolls are preserved. Morgan is hidden from saved-chain lists when See Mock Data is off, although an already-open or direct route remains usable. Reset Mock Data recreates a deleted Morgan or replaces it with a fresh canonical filled-in state. User-created chains and non-canonical packages retain strict exact-version recovery behavior.</li>
           <li>In-chain package updating and migration are not supported. To use a different version, the user removes the old entry and adds the separately installed new version, accepting the normal removal impact review and rebuilding its selections.</li>
           <li>Removing a package from the library does not destroy chain entries already based on it; the stored snapshot remains usable.</li>
-          <li>An installed version that becomes unavailable leaves its chain entry recoverable from retained chain data; the application does not silently substitute another installed version.</li>
+          <li>An installed version that becomes unavailable leaves its chain entry recoverable from retained chain data. The Chain rail and Jump header render an explicit unavailable-package placeholder, the content area explains that stored selections are preserved, and the application neither crashes nor silently substitutes another installed version.</li>
           <li>Reordering and deletion are undoable. When <code>chain.warnUpstreamChanges</code> is enabled, a change that would invalidate an explicit active downstream reference receives pre-commit review. Unrelated changes commit without confirmation, and disabling the preference skips review without weakening validation or Undo.</li>
           <li>Removing a jump is also undoable and reports any grants, companion imports, forms, or downstream dependencies that will leave the active chronology.</li>
           <li>Negative balances are ordinary persisted actor state. Turning the setting off does not silently undo choices and does not turn the setting into a general validity gate. It blocks only later active choice selections that would create or worsen a negative primary Jump-point balance; clearing, deselection, rank reduction, and non-choice recalculation remain available.</li>
+        </ul>
+
+        <h2>Jump grants, source limits, discounts, and Section locks</h2>
+        <ul>
+          <li>Jump grants are evaluated automatically for the current entry. Perks, items, forms, companions, resources, and explicit properties project through their ordinary Tracker paths; Traits remain visible only in Current Jump traits and never enter chain-wide Inventory.</li>
+          <li>A multi Choice Source maximum disables additional unselected controls at the cap while preserving deselection. Omitted maximums remain unlimited. Imported stale over-limit state remains visible with a diagnostic and can recover by deselection; the evaluator never silently truncates it.</li>
+          <li>Only active Choices grant discounts. Inactive target Choices still quote their resolved price. Cost accessibility text retains base price, resolved price, and granting-Choice provenance. Roll allowances and continuity pricing resolve before discounts, and each currency is evaluated independently.</li>
+          <li>Section lock score is the initial lock plus active locks minus active unlocks. A positive score disables editing and suspends that Section's ordinary costs, grants, discounts, and projections without deleting selections. Lock effects remain active even when they lock their own Section, and a Choice with another unlocked placement remains active.</li>
+          <li>Locked status uses localized semantic application styling and an accessible status message. It does not inherit arbitrary authored warning chrome.</li>
+          <li>Tag badge appearance always comes from the active User Tag profile, including inside authored layouts. Cost badges and authored Trait cards are separate presentation surfaces.</li>
         </ul>
 
         <h2>Accessibility and Safety</h2>

@@ -61,6 +61,9 @@ describe("Format 1 structured document edits", () => {
         ["jump", "starting-points"],
         ["jump", "points-name"],
         ["jump", "points-abbreviation"],
+        ["jump", "discount-stacking"],
+        ["jump", "discount-floor"],
+        ["section", "locked"],
         ["resource", "initial"],
         ["choice-source", "mode"],
         ["choice-source", "resolution"],
@@ -73,6 +76,9 @@ describe("Format 1 structured document edits", () => {
       ["jump", "starting-points", { kind: "value", value: 1000 }],
       ["jump", "points-name", { kind: "value", value: "Choice Points" }],
       ["jump", "points-abbreviation", { kind: "value", value: "CP" }],
+      ["jump", "discount-stacking", { kind: "value", value: "highest" }],
+      ["jump", "discount-floor", { kind: "value", value: "zero" }],
+      ["section", "locked", { kind: "value", value: false }],
       ["resource", "initial", { kind: "value", value: 0 }],
       ["choice-source", "mode", { kind: "value", value: "multi" }],
       ["choice-source", "resolution", { kind: "value", value: "manual" }],
@@ -569,6 +575,90 @@ section-layout
     ]);
   });
 
+  it("exposes every gap-closure construct through Structured", () => {
+    const files = {
+      "jump.jdef": `jump
+  format: 1
+  name: "Gap closure"
+  author: "Author"
+  version: "1"
+  discount-stacking: stack
+  discount-floor: negative
+
+  grant
+    kind: property
+    handle: location
+    value: "Kanto"
+
+section
+  handle: content
+  name: "Content"
+  locked: true
+
+  choice-source
+    handle: flaws
+    group: flaws
+    mode: multi
+    max: 2
+
+choice
+  handle: origin
+  name: "Origin"
+  lock: content
+  unlock: content
+
+  discount
+    group: flaws
+    mode: percent
+    amount: 50
+    resource: jump_points
+
+section-layout
+  handle: panel
+
+  inline
+    rule
+      orientation: vertical
+`,
+    };
+    const symbols = service.analyze(files).symbols;
+    const byKind = (kind: string) =>
+      symbols.find((symbol) => symbol.kind === kind)!;
+
+    expect(structuredContext(files, byKind("jump"))).toMatchObject({
+      visibleFields: expect.arrayContaining([
+        "discount-stacking",
+        "discount-floor",
+      ]),
+      childKinds: expect.arrayContaining(["grant"]),
+    });
+    expect(
+      structuredContext(files, byKind("section"))?.visibleFields,
+    ).toContain("locked");
+    expect(
+      structuredContext(files, byKind("choice-source"))?.visibleFields,
+    ).toContain("max");
+    expect(structuredContext(files, byKind("choice"))).toMatchObject({
+      visibleFields: expect.arrayContaining(["lock", "unlock"]),
+      childKinds: expect.arrayContaining(["discount"]),
+    });
+    expect(structuredContext(files, byKind("discount"))?.visibleFields).toEqual(
+      ["group", "mode", "amount", "resource"],
+    );
+    expect(structuredContext(files, byKind("rule"))?.visibleFields).toContain(
+      "orientation",
+    );
+
+    const choice = byKind("choice");
+    const inserted = insertDocumentChild(files, choice, "discount");
+    expect(inserted.files["jump.jdef"].match(/\n {2}discount\n/g)).toHaveLength(
+      2,
+    );
+    expect(inserted.files["jump.jdef"]).toContain(
+      "discount\n    group: choice_group\n    mode: percent\n    amount: 50",
+    );
+  });
+
   it("limits ordinary Grant content to Description while retaining trait layout content", () => {
     const files = {
       "jump.jdef": `${source}
@@ -875,6 +965,10 @@ section
       "color",
       "thickness",
       "style",
+      "orientation",
+      "grow",
+      "column-span",
+      "row-span",
     ]);
     expect(structuredContext(files, rule)?.fields.style.values).toEqual([
       "solid",

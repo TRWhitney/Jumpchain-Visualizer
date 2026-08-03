@@ -37,7 +37,7 @@ describe("unreleased Format 1 identity amendment", () => {
       allowedLayouts: ["section-layout"],
       targetNamespace: "choice-placement",
     });
-    expect(schemaJson.fieldSets.choiceLeafPresentation).toEqual({
+    expect(schemaJson.fieldSets.choiceLeafPresentation).toMatchObject({
       target: {
         type: "handleReference:choice-placement",
         min: 1,
@@ -224,5 +224,97 @@ describe("unreleased Format 1 identity amendment", () => {
       "choice",
       "grant:trait",
     ]);
+  });
+
+  it("defines the gap-closure authoring surface without required selections", () => {
+    expect(schemaJson.declarations.jump).toMatchObject({
+      fields: {
+        "discount-stacking": {
+          values: ["highest", "stack"],
+          default: "highest",
+        },
+        "discount-floor": {
+          values: ["zero", "negative"],
+          default: "zero",
+        },
+      },
+      children: { grant: { repeatable: true } },
+    });
+    expect(schemaJson.declarations.section.fields.locked).toMatchObject({
+      type: "boolean",
+      default: false,
+    });
+    expect(schemaJson.declarations["choice-source"].fields.max).toMatchObject({
+      type: "integer",
+      minimum: 1,
+      appliesWhen: { mode: ["multi"] },
+    });
+    expect(schemaJson.declarations["choice-source"].fields).not.toHaveProperty(
+      "min",
+    );
+    expect(
+      schema.declarations.choice.formsByContext?.["top-level"].fields,
+    ).toMatchObject({
+      lock: { type: "handleReference:section", repeatable: true },
+      unlock: { type: "handleReference:section", repeatable: true },
+    });
+    expect(schemaJson.declarations.discount).toMatchObject({
+      contexts: ["choice"],
+      fields: {
+        group: { required: true },
+        mode: { values: ["flat", "percent"], required: true },
+        amount: { type: "integer", minimum: 0, required: true },
+        resource: {
+          type: "handleReference:resource",
+          repeatable: true,
+        },
+      },
+    });
+    expect(schemaJson.declarations.grant.contexts).toContain("jump");
+    expect(schemaJson.layoutNodes.rule.fields.orientation).toMatchObject({
+      values: ["horizontal", "vertical"],
+      default: "horizontal",
+    });
+    expect(schemaJson.fieldSets.slotLeafPresentation["text-color"])
+      .toMatchObject({ appliesWhen: { target: ["name", "cost"] } });
+  });
+
+  it("defines additive semantic-fidelity presentation with compatibility defaults", () => {
+    expect(schemaJson.types.textSize).toMatchObject({
+      enum: ["xs", "sm", "md", "lg", "xl", "2xl", "3xl", "4xl"],
+    });
+    expect(schemaJson.fieldSets.containerPresentation).toMatchObject({
+      grow: { type: "integer", minimum: 1, maximum: 12 },
+      "padding-block": { type: "spacing" },
+      "padding-inline": { type: "spacing" },
+      "min-width": { type: "layoutDimension" },
+      "min-height": { type: "layoutDimension" },
+      "aspect-ratio": { type: "aspectRatio" },
+      "text-size": { type: "textSize", default: "md" },
+      "font-family": { type: "fontFamily" },
+      "font-weight": { type: "fontWeight" },
+      "line-height": { type: "lineHeight" },
+      "letter-spacing": { type: "letterSpacing" },
+    });
+    expect(schemaJson.layoutNodes.grid.additionalFields).toMatchObject({
+      "column-weight": {
+        type: "integer",
+        minimum: 1,
+        maximum: 12,
+        repeatable: true,
+      },
+    });
+    expect(schemaJson.fieldSets.slotLeafPresentation).toMatchObject({
+      "control-density": {
+        type: "density",
+        default: "standard",
+        appliesWhen: { target: ["control", "roll"] },
+      },
+      "cost-density": {
+        type: "density",
+        default: "standard",
+        appliesWhen: { target: ["cost"] },
+      },
+    });
   });
 });

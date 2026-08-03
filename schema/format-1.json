@@ -52,7 +52,22 @@
       "builtInTokens": ["black", "white", "gray", "red", "orange", "yellow", "green", "blue", "purple", "brown", "pink"]
     },
     "spacing": { "enum": ["none", "xs", "sm", "md", "lg", "xl", "2xl"] },
-    "size": { "enum": ["xs", "sm", "md", "lg", "xl", "2xl"] },
+    "size": { "enum": ["xs", "sm", "md", "lg", "xl", "2xl", "3xl", "4xl"] },
+    "textSize": {
+      "enum": ["xs", "sm", "md", "lg", "xl", "2xl", "3xl", "4xl"],
+      "syntax": "a named text-size token, 8px through 512px, or .5rem through 32rem"
+    },
+    "layoutDimension": {
+      "enum": ["xs", "sm", "md", "lg", "xl", "2xl"],
+      "syntax": "a named size token, a bounded pixel length, or a bounded rem length"
+    },
+    "aspectRatio": { "syntax": "two positive integers separated by /" },
+    "fontFamily": { "enum": ["system", "sans", "serif", "monospace", "condensed"] },
+    "fontWeight": { "enum": ["light", "normal", "semibold", "bold", "black"] },
+    "lineHeight": { "enum": ["solid", "tight", "normal", "relaxed"] },
+    "letterSpacing": { "enum": ["tight", "normal", "wide", "widest"] },
+    "listMarker": { "enum": ["application", "disc", "dash", "none"] },
+    "density": { "enum": ["standard", "compact"] },
     "imageDimension": {
       "enum": ["xs", "sm", "md", "lg", "xl", "2xl"],
       "syntax": "a named size token, a non-negative pixel length, or a non-negative rem length"
@@ -106,11 +121,15 @@
         "starting-points": { "type": "integer", "min": 0, "max": 1, "default": 1000 },
         "points-name": { "type": "renderableScalar", "min": 0, "max": 1, "default": "Choice Points" },
         "points-abbreviation": { "type": "renderableScalar", "min": 0, "max": 1, "default": "CP" },
+        "discount-stacking": { "type": "enum", "values": ["highest", "stack"], "min": 0, "max": 1, "default": "highest" },
+        "discount-floor": { "type": "enum", "values": ["zero", "negative"], "min": 0, "max": 1, "default": "zero" },
         "section-layout": { "type": "handleReference:section-layout", "min": 0, "max": 1 },
         "choice-layout": { "type": "handleReference:choice-layout", "min": 0, "max": 1 },
         "trait-layout": { "type": "handleReference:trait-layout", "min": 0, "max": 1 }
       },
-      "children": {}
+      "children": {
+        "grant": { "min": 0, "repeatable": true, "ordered": true }
+      }
     },
     "resource": {
       "contexts": ["top-level"],
@@ -127,7 +146,8 @@
       "fields": {
         "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
         "name": { "type": "renderableScalar", "min": 1, "max": 1, "required": true },
-        "layout": { "type": "handleReference:section-layout", "min": 0, "max": 1 }
+        "layout": { "type": "handleReference:section-layout", "min": 0, "max": 1 },
+        "locked": { "type": "boolean", "min": 0, "max": 1, "default": false }
       },
       "children": {
         "choice-source": { "min": 0, "repeatable": true, "ordered": true },
@@ -142,6 +162,7 @@
         "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
         "group": { "type": "tag", "min": 0, "max": 1 },
         "mode": { "type": "enum", "values": ["single", "multi"], "min": 0, "max": 1, "default": "multi" },
+        "max": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "appliesWhen": { "mode": ["multi"] } },
         "resolution": { "type": "enum", "values": ["random", "either"], "min": 0, "max": 1, "default": "manual" }
       },
       "children": {}
@@ -165,14 +186,17 @@
             "option": { "type": "renderableScalar", "min": 0, "repeatable": true, "ordered": true, "exactDuplicate": "error", "appliesWhen": { "selection": ["select"] } },
             "form": { "type": "handleReference:form", "min": 0, "max": 1, "shorthandTarget": "single scalar perk grant" },
             "companion": { "type": "handleReference:companionTarget", "min": 0, "max": 1, "shorthandTarget": "single scalar perk grant" },
-            "measure": { "type": "enum", "values": ["rank", "quantity"], "min": 0, "max": 1, "defaultForIntegerVisibleGrant": "rank", "shorthandTarget": "single scalar perk or item grant" }
+            "measure": { "type": "enum", "values": ["rank", "quantity"], "min": 0, "max": 1, "defaultForIntegerVisibleGrant": "rank", "shorthandTarget": "single scalar perk or item grant" },
+            "lock": { "type": "handleReference:section", "min": 0, "repeatable": true, "setLike": true },
+            "unlock": { "type": "handleReference:section", "min": 0, "repeatable": true, "setLike": true }
           },
           "children": {
             "text": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "text" },
             "image": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "image" },
             "input": { "min": 0, "repeatable": true, "ownerLocalHandleNamespace": "input" },
             "cost": { "min": 0, "repeatable": true, "uniqueBy": "resolved resource" },
-            "grant": { "min": 0, "repeatable": true, "ordered": true }
+            "grant": { "min": 0, "repeatable": true, "ordered": true },
+            "discount": { "min": 0, "repeatable": true, "ordered": true }
           }
         },
         "section": {
@@ -239,8 +263,18 @@
         }
       }
     },
+    "discount": {
+      "contexts": ["choice"],
+      "fields": {
+        "group": { "type": "tag", "min": 1, "max": 1, "required": true },
+        "mode": { "type": "enum", "values": ["flat", "percent"], "min": 1, "max": 1, "required": true },
+        "amount": { "type": "integer", "min": 1, "max": 1, "required": true, "minimum": 0 },
+        "resource": { "type": "handleReference:resource", "min": 0, "repeatable": true, "setLike": true }
+      },
+      "children": {}
+    },
     "grant": {
-      "contexts": ["choice", "input"],
+      "contexts": ["jump", "choice", "input"],
       "forms": {
         "scalar": { "type": "enum", "values": ["perk", "item", "companion"] },
         "block": {
@@ -367,13 +401,25 @@
     "containerPresentation": {
       "gap": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
       "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
+      "padding-block": { "type": "spacing", "min": 0, "max": 1 },
+      "padding-inline": { "type": "spacing", "min": 0, "max": 1 },
+      "grow": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "column-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "row-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "min-width": { "type": "layoutDimension", "min": 0, "max": 1 },
+      "min-height": { "type": "layoutDimension", "min": 0, "max": 1 },
+      "aspect-ratio": { "type": "aspectRatio", "min": 0, "max": 1 },
       "background": { "type": "color", "min": 0, "max": 1, "exclusiveWith": ["background-image"] },
       "background-image": { "type": "handleReference:owner-local-image", "min": 0, "max": 1, "exclusiveWith": ["background"] },
       "background-fit": { "type": "imageFit", "min": 0, "max": 1, "default": "cover" },
       "align": { "type": "align", "min": 0, "max": 1, "default": "stretch" },
       "justify": { "type": "justify", "min": 0, "max": 1, "default": "start" },
       "text-align": { "type": "textAlign", "min": 0, "max": 1, "default": "start" },
-      "text-size": { "type": "size", "min": 0, "max": 1, "default": "md" },
+      "text-size": { "type": "textSize", "min": 0, "max": 1, "default": "md" },
+      "font-family": { "type": "fontFamily", "min": 0, "max": 1 },
+      "font-weight": { "type": "fontWeight", "min": 0, "max": 1 },
+      "line-height": { "type": "lineHeight", "min": 0, "max": 1 },
+      "letter-spacing": { "type": "letterSpacing", "min": 0, "max": 1 },
       "text-color": { "type": "color", "min": 0, "max": 1 },
       "border-color": { "type": "color", "min": 0, "max": 1 },
       "border-width": { "type": "enum", "values": ["none", "thin", "medium", "thick"], "min": 0, "max": 1 },
@@ -384,29 +430,66 @@
     "contentLeafPresentation": {
       "target": { "type": "handleReference:owner-local-content", "min": 1, "max": 1, "required": true },
       "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
+      "padding-block": { "type": "spacing", "min": 0, "max": 1 },
+      "padding-inline": { "type": "spacing", "min": 0, "max": 1 },
+      "grow": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "column-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "row-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "min-width": { "type": "layoutDimension", "min": 0, "max": 1 },
+      "min-height": { "type": "layoutDimension", "min": 0, "max": 1 },
+      "aspect-ratio": { "type": "aspectRatio", "min": 0, "max": 1 },
       "background": { "type": "color", "min": 0, "max": 1, "exclusiveWith": ["background-image"] },
       "background-image": { "type": "handleReference:owner-local-image", "min": 0, "max": 1, "exclusiveWith": ["background"] },
       "background-fit": { "type": "imageFit", "min": 0, "max": 1, "default": "cover" },
       "align": { "type": "align", "min": 0, "max": 1 },
       "text-align": { "type": "textAlign", "min": 0, "max": 1 },
-      "text-size": { "type": "size", "min": 0, "max": 1 },
+      "text-size": { "type": "textSize", "min": 0, "max": 1 },
+      "font-family": { "type": "fontFamily", "min": 0, "max": 1 },
+      "font-weight": { "type": "fontWeight", "min": 0, "max": 1 },
+      "line-height": { "type": "lineHeight", "min": 0, "max": 1 },
+      "letter-spacing": { "type": "letterSpacing", "min": 0, "max": 1 },
+      "list-marker": { "type": "listMarker", "min": 0, "max": 1, "default": "application" },
+      "list-indent": { "type": "spacing", "min": 0, "max": 1 },
+      "list-gap": { "type": "spacing", "min": 0, "max": 1 },
       "text-color": { "type": "color", "min": 0, "max": 1 }
     },
     "slotLeafPresentation": {
       "target": { "type": "handleReference:owner-local-content", "min": 1, "max": 1, "required": true },
       "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
+      "padding-block": { "type": "spacing", "min": 0, "max": 1 },
+      "padding-inline": { "type": "spacing", "min": 0, "max": 1 },
+      "grow": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "column-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "row-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "min-width": { "type": "layoutDimension", "min": 0, "max": 1 },
+      "min-height": { "type": "layoutDimension", "min": 0, "max": 1 },
+      "aspect-ratio": { "type": "aspectRatio", "min": 0, "max": 1 },
       "background": { "type": "color", "min": 0, "max": 1, "exclusiveWith": ["background-image"] },
       "background-image": { "type": "handleReference:owner-local-image", "min": 0, "max": 1, "exclusiveWith": ["background"] },
       "background-fit": { "type": "imageFit", "min": 0, "max": 1, "default": "cover" },
       "align": { "type": "align", "min": 0, "max": 1 },
       "text-align": { "type": "textAlign", "min": 0, "max": 1 },
       "control-adornments": { "type": "boolean", "min": 0, "max": 1, "default": true, "appliesWhen": { "target": ["control", "roll"] } },
-      "text-size": { "type": "size", "min": 0, "max": 1, "appliesWhen": { "target": ["name", "cost", "tags"] } },
-      "text-color": { "type": "color", "min": 0, "max": 1, "appliesWhen": { "target": ["name", "cost", "tags"] } }
+      "control-density": { "type": "density", "min": 0, "max": 1, "default": "standard", "appliesWhen": { "target": ["control", "roll"] } },
+      "cost-density": { "type": "density", "min": 0, "max": 1, "default": "standard", "appliesWhen": { "target": ["cost"] } },
+      "text-size": { "type": "textSize", "min": 0, "max": 1, "appliesWhen": { "target": ["name", "cost"] } },
+      "font-family": { "type": "fontFamily", "min": 0, "max": 1, "appliesWhen": { "target": ["name", "cost"] } },
+      "font-weight": { "type": "fontWeight", "min": 0, "max": 1, "appliesWhen": { "target": ["name", "cost"] } },
+      "line-height": { "type": "lineHeight", "min": 0, "max": 1, "appliesWhen": { "target": ["name", "cost"] } },
+      "letter-spacing": { "type": "letterSpacing", "min": 0, "max": 1, "appliesWhen": { "target": ["name", "cost"] } },
+      "text-color": { "type": "color", "min": 0, "max": 1, "appliesWhen": { "target": ["name", "cost"] } }
     },
     "imageLeafPresentation": {
       "target": { "type": "handleReference:owner-local-content", "min": 1, "max": 1, "required": true },
       "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
+      "padding-block": { "type": "spacing", "min": 0, "max": 1 },
+      "padding-inline": { "type": "spacing", "min": 0, "max": 1 },
+      "grow": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "column-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "row-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "min-width": { "type": "layoutDimension", "min": 0, "max": 1 },
+      "min-height": { "type": "layoutDimension", "min": 0, "max": 1 },
+      "aspect-ratio": { "type": "aspectRatio", "min": 0, "max": 1 },
       "background": { "type": "color", "min": 0, "max": 1, "exclusiveWith": ["background-image"] },
       "background-image": { "type": "handleReference:owner-local-image", "min": 0, "max": 1, "exclusiveWith": ["background"] },
       "background-fit": { "type": "imageFit", "min": 0, "max": 1, "default": "cover" },
@@ -415,6 +498,14 @@
     "choiceLeafPresentation": {
       "target": { "type": "handleReference:choice-placement", "min": 1, "max": 1, "required": true },
       "padding": { "type": "spacing", "min": 0, "max": 1, "default": "none" },
+      "padding-block": { "type": "spacing", "min": 0, "max": 1 },
+      "padding-inline": { "type": "spacing", "min": 0, "max": 1 },
+      "grow": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "column-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "row-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+      "min-width": { "type": "layoutDimension", "min": 0, "max": 1 },
+      "min-height": { "type": "layoutDimension", "min": 0, "max": 1 },
+      "aspect-ratio": { "type": "aspectRatio", "min": 0, "max": 1 },
       "background": { "type": "color", "min": 0, "max": 1, "exclusiveWith": ["background-image"] },
       "background-image": { "type": "handleReference:owner-local-image", "min": 0, "max": 1, "exclusiveWith": ["background"] },
       "background-fit": { "type": "imageFit", "min": 0, "max": 1, "default": "cover" },
@@ -428,7 +519,10 @@
     "grid": {
       "kind": "container",
       "fields": "containerPresentation",
-      "additionalFields": { "columns": { "type": "integer", "minimum": 1, "maximum": 12, "required": true } },
+      "additionalFields": {
+        "columns": { "type": "integer", "minimum": 1, "maximum": 12, "required": true },
+        "column-weight": { "type": "integer", "minimum": 1, "maximum": 12, "repeatable": true, "max": 12 }
+      },
       "children": "layoutNode*"
     },
     "slot": { "kind": "leaf", "compact": "slot: <target>", "blockFields": "slotLeafPresentation", "targetsByLayout": { "section": ["name", "roll"], "choice": ["name", "cost", "control", "roll", "tags"], "trait": ["name"] } },
@@ -451,7 +545,11 @@
       "fields": {
         "color": { "type": "color", "min": 0, "max": 1 },
         "thickness": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 16, "default": 1 },
-        "style": { "type": "enum", "values": ["solid", "dash", "rounded"], "min": 0, "max": 1, "default": "solid" }
+        "style": { "type": "enum", "values": ["solid", "dash", "rounded"], "min": 0, "max": 1, "default": "solid" },
+        "orientation": { "type": "enum", "values": ["horizontal", "vertical"], "min": 0, "max": 1, "default": "horizontal" },
+        "grow": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+        "column-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 },
+        "row-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 }
       },
       "children": false
     },
@@ -468,6 +566,9 @@
       "fields": {
         "source": { "type": "handleReference:choice-source", "min": 0, "max": 1, "requiredUnless": "rendered section has exactly one choice-source" },
         "using": { "type": "handleReference:choice-layout", "min": 0, "max": 1 }
+        ,"grow": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 }
+        ,"column-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 }
+        ,"row-span": { "type": "integer", "min": 0, "max": 1, "minimum": 1, "maximum": 12 }
       },
       "children": false,
       "uniqueBy": "source"
@@ -481,6 +582,10 @@
   "semanticConstraints": [
     { "code": "section.choice.target", "rule": "a section-owned choice association requires a unique owner-local handle and a target resolving to one top-level choice" },
     { "code": "section.choice.unique_target", "rule": "one section may associate a top-level choice at most once" },
+    { "code": "jump.grant.activation", "rule": "grants directly under jump are unconditional for the entry; property grants require explicit values because no owning control exists" },
+    { "code": "choice-source.max", "rule": "max is an optional positive integer on multi sources, limits simultaneous selections without implying a minimum or default, and omission is unlimited" },
+    { "code": "choice.discount", "rule": "active choices grant flat or percentage discounts to choice groups, optionally limited to repeated resource targets; jump policy controls stacking and the zero or negative floor" },
+    { "code": "section.locking", "rule": "initial locked contributes one, active lock and unlock effects contribute positive and negative one, and a positive total suspends editing and ordinary projections for choices placed only in that section" },
     { "code": "choice.continuity.domain", "rule": "continuity is valid only on selection select with exactly one direct property grant to gender whose value is omitted" },
     { "code": "choice.integer.bounds", "rule": "integer min must not exceed max; random/either requires both finite bounds" },
     { "code": "choice.select.options", "rule": "option is valid only for selection select; empty option values warn and are omitted; zero non-empty options is a warning" },
@@ -497,7 +602,7 @@
     { "code": "grant.property.fields", "rule": "kind property requires handle; omitted value copies the owning control" },
     { "code": "grant.property.reserved_types", "rule": "origin, species, location, and gender resolve to strings; age resolves to an integer; copied origin, species, and location require compatible string controls; copied gender requires a select choice and copied age requires an integer choice" },
     { "code": "grant.property.entry_scope", "rule": "property grants apply only in their owning chain entry; only engine identity continuity may seed gender and age from earlier entries" },
-    { "code": "grant.form.handle", "rule": "kind form is valid only directly under a choice and requires a unique package-wide stable handle" },
+    { "code": "grant.form.handle", "rule": "kind form requires a unique package-wide stable handle" },
     { "code": "grant.form.reference", "rule": "form on a perk grant resolves a package-wide form handle across sections, files, and forward references" },
     { "code": "grant.form.target_kind", "rule": "form ownership is valid only on perk grants; other grant kinds cannot target a form" },
     { "code": "grant.form.shorthand", "rule": "choice-level form requires exactly one scalar perk grant and targets only that grant" },
@@ -511,6 +616,7 @@
     { "code": "grant.visible.fields", "rule": "name and tag are valid only for perk, item, form, companion, and trait; ordinary visible grants accept one owner-local text handle named description; trait grants may additionally expose owner-local text and image content through a trait layout; layout is valid only for trait; form is valid only on perk; companion is valid only on perk and resource; measure is valid only on perk, item, and trait" },
     { "code": "layout.typed_target", "rule": "typed leaves and background-image presentation resolve only in the matching owner-local namespace; absent targets warn; leaves collapse while a missing background omits only its image layer" },
     { "code": "layout.choice.target", "rule": "a compact choice leaf resolves one choice-placement owned by the rendered section and each placement may appear at most once" },
+    { "code": "layout.rule.orientation", "rule": "rules are horizontal by default; vertical rules stretch through the shared block extent of an inline row" },
     { "code": "layout.expand.source", "rule": "expand source resolves in the rendered section and each source may be expanded at most once" },
     { "code": "package.asset_path", "rule": "authored asset paths are relative to the implicit assets root, use portable forward slashes, remain within that root, and resolve to supported graphical files" }
   ]

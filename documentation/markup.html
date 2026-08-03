@@ -537,8 +537,9 @@ typed handled-content leaves, just as prose and visuals are handled in
 <li><code>choice</code> inside a section layout</li>
 <li><code>expand</code></li>
 </ul>
-<p>A <code>grid</code> requires <code>columns</code> as an integer from 1 through 12. This is the authored maximum; responsive rendering may reduce the effective count for narrower space but never exceeds it.</p>
-<p>Each direct grid child occupies one cell in source order. V1 has no row-span or column-span fields; authors compose wider regions with nested containers or a different surrounding layout.</p>
+<p>A <code>grid</code> requires <code>columns</code> as an integer from 1 through 12. This is the authored maximum; responsive rendering may reduce the effective count for narrower space but never exceeds it. Repeated <code>column-weight</code> values from 1 through 12 opt into proportional tracks and must either be absent or supply exactly one value per declared column. Omission retains equal columns.</p>
+<p>Responsive Grid collapse follows the available width of the rendered Jump container, including an Editor preview embedded in a wider application window; it is not gated only by the browser viewport. Spans and custom tracks reset during that collapse.</p>
+<p>Each direct grid child occupies one cell in source order. Optional <code>column-span</code> and <code>row-span</code> values from 1 through 12 let that child span tracks. At the existing narrow-screen collapse, custom tracks and spans reset so source order becomes one overflow-free column.</p>
 </li>
 </ul>
 <h3>Node Shape</h3>
@@ -555,6 +556,7 @@ slot
 
 choice
   target: age_field
+  column-span: 2
   align: end
 </code></pre>
 <p>A horizontal separator is a standalone targetless leaf. Its bare form uses a one-pixel, solid, theme-aware line:</p>
@@ -564,7 +566,7 @@ choice
   color: purple
   thickness: 2
   style: rounded</code></pre>
-<p><code>style</code> accepts <code>solid</code>, <code>dash</code>, or <code>rounded</code>; omission defaults to <code>solid</code>. <code>rounded</code> renders a solid rule with rounded end caps and uses <code>thickness</code> as the bar height. The vocabulary is intentionally extensible so future rule styles can be added without changing the node shape. A rule spans its available layout width and has no target, handle, or child nodes; surrounding containers control its spacing. Other leaf nodes likewise do not have handles or children. A typed leaf’s block form does not create a different semantic node; it only provides room for presentation fields.</p>
+<p><code>style</code> accepts <code>solid</code>, <code>dash</code>, or <code>rounded</code>; omission defaults to <code>solid</code>. <code>orientation</code> accepts <code>horizontal</code> or <code>vertical</code> and defaults to horizontal. A vertical rule stretches through the shared block extent of its Inline row. <code>rounded</code> renders a solid rule with rounded end caps and uses <code>thickness</code> as the bar width or height. A rule has no target, handle, or child nodes; surrounding containers control its spacing. Other leaf nodes likewise do not have handles or children. A typed leaf’s block form does not create a different semantic node; it only provides room for presentation fields.</p>
 <p>The same typed content target or <code>slot</code> target may appear more than once in one layout. Each occurrence is an independent presentation node over the same underlying content or control. The generic <code>ref</code> form is not supported because declaration-kind namespaces allow matching handles.</p>
 <p>A typed content leaf whose target is not present on a particular section, choice, or trait grant is valid and collapses without reserving runtime space. Each layout kind resolves targets only in its matching owner-local namespace; equal handles on another owner kind neither populate the Structured target picker nor satisfy the diagnostic. This permits one authored layout to be reused across content with different optional fields. The Editor warns about an absent target by default and shows the leaf as a structured-authoring placeholder; users may suppress that diagnostic with <code>editor.warnMissingLayoutTargets</code>. A missing target does not make a distributable package invalid.</p>
 <p>Current container-identity rules:</p>
@@ -1554,7 +1556,8 @@ their source context and select the diagnostic range.</p>
 <h3>Tokens vs Raw Values</h3>
 <p>The current agreed value policy is:</p>
 <ul>
-<li><code>gap</code>, <code>padding</code>, and <code>text-size</code> use constrained tokens only</li>
+<li><code>gap</code> and <code>padding</code> use constrained tokens; <code>padding-block</code> and <code>padding-inline</code> optionally override the corresponding axis</li>
+<li><code>text-size</code> is one field accepting either the named text scale or an exact bounded <code>px</code>/<code>rem</code> value; there is no second exact-size property</li>
 <li><code>background</code> and <code>text-color</code> may use either tokens or explicit hex values</li>
 <li>alignment-related fields use constrained keyword sets</li>
 <li>image dimensions accept a named size token or an exact non-negative
@@ -1599,6 +1602,15 @@ built-in slot actually renders visual content</li>
 <li><code>cover</code></li>
 <li><code>tile</code></li>
 </ul>
+<h3>Semantic layout distribution and typography</h3>
+<p>These fields are optional. Omitting them preserves intrinsic sizing, equal Grid tracks, one-cell placement, inherited typography, ordinary rich-text flow, and standard interaction density.</p>
+<ul>
+<li><code>grow</code> accepts 1 through 12 on direct Stack or Inline children. Stack children receive weighted vertical free space; Inline children receive weighted horizontal free space. Content minimums remain intact, so growth never authorizes text to paint through a later action rail.</li>
+<li><code>min-width</code> and <code>min-height</code> accept the image-size tokens or bounded <code>px</code>/<code>rem</code> lengths. Inline minimum width clamps to available width. <code>aspect-ratio</code> accepts a positive integer ratio such as <code>16/9</code>.</li>
+<li><code>font-family</code> is limited to approved system stacks: <code>system</code>, <code>sans</code>, <code>serif</code>, <code>monospace</code>, and <code>condensed</code>. <code>font-weight</code>, <code>line-height</code>, and <code>letter-spacing</code> use bounded keyword sets. Exact source-font identity remains unavailable without a matching installed system face.</li>
+<li>A trailing backslash creates an explicit rich-text hard break. Ordinary source lines continue joining into a reflowable paragraph. <code>list-marker</code>, <code>list-indent</code>, and <code>list-gap</code> alter presentation while retaining semantic <code>ul</code>/<code>li</code> markup. Dash and disc markers use an internal marker column, so <code>list-indent</code> measures the safe inset before the marker and marker paint cannot hang into a card border or gutter.</li>
+<li><code>control-density</code> and <code>cost-density</code> accept <code>standard</code> or <code>compact</code> only on their corresponding slots. Compact presentation does not remove selection, clearing, rolling, rank, validation, discount provenance, keyboard, or accessible-name behavior.</li>
+</ul>
 <h3>Layout Background Images</h3>
 <p>Every Format 1 layout boundary that accepts <code>background</code> also
 accepts an owner-local Image handle through <code>background-image</code>.
@@ -1625,15 +1637,9 @@ color-only cascade and does not accept image fields.</p>
 <li><code>xl</code></li>
 <li><code>2xl</code></li>
 </ul>
-<p>Current agreed text-size tokens:</p>
-<ul>
-<li><code>xs</code></li>
-<li><code>sm</code></li>
-<li><code>md</code></li>
-<li><code>lg</code></li>
-<li><code>xl</code></li>
-<li><code>2xl</code></li>
-</ul>
+<p>Current agreed text-size tokens use an intentionally stronger hierarchy:</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Text size token table"><table><thead><tr><th>Token</th><th>Rendered size</th></tr></thead><tbody><tr><td><code>xs</code></td><td><code>.625rem</code></td></tr><tr><td><code>sm</code></td><td><code>.75rem</code></td></tr><tr><td><code>md</code></td><td><code>1rem</code></td></tr><tr><td><code>lg</code></td><td><code>1.5rem</code></td></tr><tr><td><code>xl</code></td><td><code>2.25rem</code></td></tr><tr><td><code>2xl</code></td><td><code>3.25rem</code></td></tr><tr><td><code>3xl</code></td><td><code>4.5rem</code></td></tr><tr><td><code>4xl</code></td><td><code>6rem</code></td></tr></tbody></table></div>
+<p>The same <code>text-size</code> field accepts exact values from <code>8px</code> through <code>512px</code>, or <code>.5rem</code> through <code>32rem</code>. Percentages, viewport units, calculations, variables, and arbitrary CSS are invalid. Prefer a shared token when it closely represents the hierarchy; use an exact measured value when the source falls materially between tokens. Exact values round-trip unchanged and are unaffected by later token remapping.</p>
 <p>Current agreed alignment tokens:</p>
 <ul>
 <li><code>align</code><ul>
@@ -1698,6 +1704,10 @@ and therefore split that remainder after unstretched content. Positioned
 intrinsic images use their actual intrinsic area. Stretch assigns the remaining
 area to the image leaf; an unsized image fills that allocation, while an image
 with authored dimensions retains those dimensions inside the larger leaf.
+An explicit <code>grow</code> replaces the equal Stretch share for that direct
+Stack or Inline relationship with its authored weight. Equal-growth Stack
+children receive equal visible block allocations when their content fits;
+measure the child boundaries, not only the final glyph positions.
 Stack and Grid apply the same
 start/center/end boundary-placement principle in their available horizontal
 area. These sizing rules are canonical renderer behavior shared by Editor
@@ -2120,6 +2130,46 @@ available without expanding the grant into a block:</p>
 <li>a grant cannot specify both <code>form</code> and <code>companion</code>; forms remain valid targets only for perks and cannot receive currency, items, or other grant kinds</li>
 <li>companion-targeted grants evaluate from the Jumper’s active choice/input context and are not recursively applied while rendering a companion actor</li>
 </ul>
+<h2>Jump grants, discounts, limits, and Section locks</h2>
+<p>Format 1 supports mechanics that are active independently of a claim Choice, group-targeted price changes, optional upper bounds on multi sources, and signed Section locks:</p>
+<pre><code class="language-text">jump
+  discount-stacking: stack
+  discount-floor: negative
+
+  grant
+    kind: trait
+    name: "Jump Terms"
+
+section
+  handle: advanced_training
+  name: "Advanced Training"
+  locked: true
+
+  choice-source
+    handle: flaws
+    group: flaws
+    mode: multi
+    max: 2
+
+choice
+  handle: origin
+  name: "Origin"
+  unlock: advanced_training
+
+  discount
+    group: skills
+    mode: percent
+    amount: 50
+    resource: jump_points</code></pre>
+<ul>
+<li>Repeatable <code>grant</code> children under <code>jump</code> are automatically active. They reuse every existing Grant kind. Property grants require an explicit <code>value</code>; Jump grants cannot copy a Choice measure. Durable grants enter inventory, while Traits remain scoped to the current Jump.</li>
+<li><code>max</code> is a positive integer valid only on <code>mode: multi</code>. Omission means unlimited. It never implies a minimum, required selection, or default. Stale over-limit state is retained with a diagnostic so the user can deselect safely.</li>
+<li>When the maximum is reached, additional controls are disabled without changing authored Choice-layout geometry. The repeated per-option status remains available to assistive technology; the ordinary un-authored source presentation may show the localized status visibly.</li>
+<li>A Choice may own repeated <code>discount</code> blocks. <code>group</code> targets Choice groups only; Tags and display names are never price selectors. <code>mode</code> is <code>flat</code> or <code>percent</code>, <code>amount</code> is a non-negative integer, and omitted <code>resource</code> applies to all currencies.</li>
+<li><code>discount-stacking</code> defaults to <code>highest</code>; <code>stack</code> sums flats first and percentages second. <code>discount-floor</code> defaults to <code>zero</code>; <code>negative</code> permits negative results. Percentage evaluation is sign-aware and the evaluator rounds once, with halves away from zero.</li>
+<li><code>locked: true</code> contributes one initial lock. Active <code>lock</code> fields add one and active <code>unlock</code> fields subtract one. A positive total locks the Section. Locked Sections preserve selections but suspend editing, costs, grants, discounts, and ordinary projections. Lock effects themselves remain active, preventing oscillation; an unlocked placement elsewhere keeps a shared Choice active.</li>
+</ul>
+<p>Tags are outside this author styling model. A layout may position the Tags slot and style its surrounding placement boundary, but the active User Tag profile owns badge color, border, shape, typography, hierarchy, and animation. Tag slots do not accept author text size, text color, font, weight, line height, or letter spacing. Cost presentation remains independently authorable.</p>
 <h2>Amended Pre-Release Format 1 Schema</h2>
 <p>The format 1 field cardinalities, layout grammar, contextual constraints, and
 initial conformance cases are recorded in the machine-readable
@@ -2133,14 +2183,15 @@ an implementation detail.</p>
 <table>
 <thead><tr><th>Declaration</th><th>Required fields</th><th>Repeatable fields or children</th><th>Optional/defaulted fields</th></tr></thead>
 <tbody>
-<tr><td><code>jump</code></td><td><code>format</code>, <code>name</code>, one or more <code>author</code>, <code>version</code></td><td><code>author</code></td><td><code>gauntlet</code> defaults false; point presentation and three default layout references</td></tr>
+<tr><td><code>jump</code></td><td><code>format</code>, <code>name</code>, one or more <code>author</code>, <code>version</code></td><td><code>author</code>, <code>grant</code></td><td><code>gauntlet</code> defaults false; discount policies, point presentation, and three default layout references</td></tr>
 <tr><td><code>resource</code></td><td><code>handle</code>, <code>name</code></td><td>none</td><td><code>abbreviation</code>; <code>initial</code> defaults to 0</td></tr>
-<tr><td><code>section</code></td><td><code>handle</code>, <code>name</code></td><td><code>choice-source</code>, direct <code>choice</code> associations, <code>text</code>, <code>image</code></td><td><code>layout</code></td></tr>
-<tr><td><code>choice-source</code></td><td><code>handle</code></td><td>none</td><td><code>group</code>; <code>mode</code> defaults to multi; omitted resolution is manual</td></tr>
-<tr><td><code>choice</code></td><td><code>handle</code>, <code>name</code></td><td><code>tag</code>, <code>group</code>, <code>option</code>, owned blocks, costs, grants</td><td>layout/control/continuity fields; selection defaults to toggle</td></tr>
+<tr><td><code>section</code></td><td><code>handle</code>, <code>name</code></td><td><code>choice-source</code>, direct <code>choice</code> associations, <code>text</code>, <code>image</code></td><td><code>layout</code>; <code>locked</code> defaults false</td></tr>
+<tr><td><code>choice-source</code></td><td><code>handle</code></td><td>none</td><td><code>group</code>; <code>mode</code> defaults to multi; optional multi <code>max</code>; omitted resolution is manual</td></tr>
+<tr><td><code>choice</code></td><td><code>handle</code>, <code>name</code></td><td><code>tag</code>, <code>group</code>, <code>lock</code>, <code>unlock</code>, <code>option</code>, owned blocks, costs, grants, discounts</td><td>layout/control/continuity fields; selection defaults to toggle</td></tr>
 <tr><td><code>text</code></td><td><code>handle</code></td><td>conditional <code>content</code> variants</td><td>base <code>content</code></td></tr>
 <tr><td><code>image</code></td><td><code>handle</code>; <code>src</code> for export</td><td>conditional <code>alt</code> variants</td><td><code>src</code> during WIP and <code>alt</code> with diagnostics</td></tr>
 <tr><td><code>input</code></td><td><code>handle</code>, <code>selection</code></td><td><code>option</code>, <code>grant</code></td><td>selection-dependent <code>min</code>/<code>max</code></td></tr>
+<tr><td><code>discount</code></td><td><code>group</code>, <code>mode</code>, <code>amount</code></td><td><code>resource</code></td><td>omitted resources target all currencies</td></tr>
 <tr><td><code>theme</code></td><td><code>handle</code>, one <code>color</code></td><td>none</td><td>none</td></tr>
 <tr><td><code>jump-appearance</code></td><td>none</td><td>none</td><td>all shared, family, component, state, and geometry fields</td></tr>
 <tr><td>layout declarations</td><td><code>handle</code>, exactly one container root</td><td>nested layout nodes</td><td>none</td></tr>

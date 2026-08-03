@@ -1,0 +1,113 @@
+jump
+  format: 1
+  name: "Gap Closure"
+  author: "Fixture"
+  version: "1"
+  discount-stacking: stack
+  discount-floor: negative
+
+  grant
+    kind: form
+    handle: alternate_form
+    name: "Alternate Form"
+
+  grant
+    kind: companion
+    handle: guide
+    name: "Guide"
+
+  grant
+    kind: perk
+    name: "Instinct"
+
+  grant
+    kind: perk
+    name: "Alternate Instinct"
+    form: alternate_form
+
+  grant
+    kind: item
+    name: "Field Kit"
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 25
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 100
+    companion: guide
+
+  grant
+    kind: trait
+    name: "Jump Terms"
+    layout: trait_card
+
+    text
+      handle: description
+      content: "This circumstance lasts for the current Jump."
+
+  grant
+    kind: property
+    handle: location
+    value: "Continuum"
+
+section
+  handle: content
+  name: "Content"
+  layout: content_layout
+  locked: true
+
+  choice-source
+    handle: selections
+    group: content
+    mode: multi
+    max: 2
+
+choice
+  handle: access
+  name: "Access"
+  group: content
+  lock: content
+  unlock: content
+
+  discount
+    group: content
+    mode: flat
+    amount: 25
+
+  discount
+    group: content
+    mode: percent
+    amount: 50
+    resource: jump_points
+
+  cost: 100
+  grant: perk
+
+section-layout
+  handle: content_layout
+
+  inline
+    slot: name
+
+    rule
+      orientation: vertical
+      color: accent
+      thickness: 2
+
+    expand
+      source: selections
+
+trait-layout
+  handle: trait_card
+
+  stack
+    slot: name
+    text: description
+
+theme
+  handle: accent
+  color: "#00ffff"

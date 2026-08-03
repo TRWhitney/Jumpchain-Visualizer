@@ -11,6 +11,7 @@
     { "name": "empty-options-wip", "directory": "fixtures/empty-options-wip", "exportValid": true, "diagnostics": ["warning:option.empty", "warning:choice.select.options", "warning:input.option.empty"] },
     { "name": "form-measure-valid", "directory": "fixtures/form-measure-valid", "exportValid": true, "diagnostics": [] },
     { "name": "grant-description-valid", "directory": "fixtures/grant-description-valid", "exportValid": true, "diagnostics": [] },
+    { "name": "gap-closure-valid", "directory": "fixtures/gap-closure-valid", "exportValid": true, "diagnostics": [] },
     { "name": "grant-content-invalid", "directory": "fixtures/grant-content-invalid", "exportValid": false, "diagnostics": ["error:schema.value.const"] },
     { "name": "form-measure-invalid", "directory": "fixtures/form-measure-invalid", "exportValid": false, "diagnostics": ["error:grant.form.handle", "error:grant.form.reference", "error:grant.form.target_kind", "error:grant.measure.integer_only"] },
     { "name": "companion-target-valid", "directory": "fixtures/companion-target-valid", "exportValid": true, "diagnostics": [] },

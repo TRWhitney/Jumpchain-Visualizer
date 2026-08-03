@@ -1,4 +1,4 @@
-const textSlotTargets = new Set(["name", "cost", "tags"]);
+const textSlotTargets = new Set(["name", "cost"]);
 const controlSlotTargets = new Set(["control", "roll"]);
 
 export function layoutNodeSupportsTextStyling(kind: string, target?: string) {

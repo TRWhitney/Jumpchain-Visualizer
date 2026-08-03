@@ -34,11 +34,18 @@ type SchemaDeclaration = {
   >;
 };
 
-const schemaDeclarations = (
-  format1Schema as unknown as {
-    declarations: Record<string, SchemaDeclaration>;
-  }
-).declarations;
+type SchemaLayoutNode = {
+  fields?: string | Record<string, unknown>;
+  blockFields?: string;
+  additionalFields?: Record<string, unknown>;
+};
+
+const languageSchema = format1Schema as unknown as {
+  declarations: Record<string, SchemaDeclaration>;
+  fieldSets: Record<string, Record<string, unknown>>;
+  layoutNodes: Record<string, SchemaLayoutNode>;
+};
+const schemaDeclarations = languageSchema.declarations;
 
 const unquote = (value: string | undefined) => value?.replace(/^"|"$/g, "");
 
@@ -108,6 +115,7 @@ export class Format1LanguageService {
 
   completions(kind: string, fieldsAlreadyPresent: readonly string[] = []) {
     const declaration = schemaDeclarations[kind];
+    const layoutNode = languageSchema.layoutNodes[kind];
     const used = new Set(fieldsAlreadyPresent);
     const contextualForms = Object.values(declaration?.formsByContext ?? {});
     const fields = Object.assign(
@@ -120,8 +128,21 @@ export class Format1LanguageService {
       declaration?.children,
       ...contextualForms.map((form) => form.children ?? {}),
     );
+    const layoutFields = layoutNode
+      ? {
+          ...(typeof layoutNode.fields === "string"
+            ? languageSchema.fieldSets[layoutNode.fields]
+            : layoutNode.fields),
+          ...(layoutNode.blockFields
+            ? languageSchema.fieldSets[layoutNode.blockFields]
+            : undefined),
+          ...layoutNode.additionalFields,
+        }
+      : {};
     return {
-      fields: Object.keys(fields).filter((field) => !used.has(field)),
+      fields: Object.keys({ ...fields, ...layoutFields }).filter(
+        (field) => !used.has(field),
+      ),
       children: Object.keys(children),
     };
   }

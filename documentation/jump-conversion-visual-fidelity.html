@@ -66,42 +66,86 @@
           <li>major bounding boxes for title, prose, art, price, separators, and intentional empty space;</li>
           <li>layout direction, column count, unequal column proportions, row spans, and overlap;</li>
           <li>art dimensions, crop, alignment, and distance from each edge;</li>
-          <li>text casing, alignment, line count, relative size, weight, condensation, and line spacing;</li>
+          <li>text casing, alignment, line count, relative size, weight, condensation, line spacing, paragraph grouping, and inter-paragraph gaps;</li>
           <li>palette sampled from the source rather than estimated;</li>
           <li>border width, gutters, card gaps, corner geometry, and occupied-to-empty-area ratio;</li>
           <li>the natural position and footprint of interactive controls that must be added.</li>
         </ul>
-        <p>Cluster repeated measurements into named visual archetypes—such as <em>horizontal region strip</em>, <em>two-column skill card</em>, or <em>charcoal flaw row</em>—and define one reusable layout per archetype. Generic cards are prohibited until this clustering is complete.</p>
+        <p>Also create a source-node inventory: every visible heading, subheading, side note, prose block, list line, price, rule, artwork unit, and deliberate empty region receives coordinates and one planned disposition. Cluster repeated measurements into named visual archetypes—such as <em>horizontal region strip</em>, <em>two-column skill card</em>, or <em>charcoal flaw row</em>—and define one reusable layout per archetype. Generic cards are prohibited until this clustering is complete.</p>
 
         <h2>Implementation order</h2>
         <ol>
+          <li><strong>Write both layout trees.</strong> Express the source and proposed Format 1 composition in compact notation such as <code>Inline(Stack(Roll, Pay), WorldText)</code>. Every source sibling relationship must have an explicit authored counterpart.</li>
           <li><strong>Reconstruct the source silhouette.</strong> Match aspect ratio, direction, column proportions, and art anchoring before styling text.</li>
           <li><strong>Reconstruct hierarchy.</strong> Match display-name dominance, casing, line breaks, price emphasis, and description density.</li>
           <li><strong>Apply exact visual tokens.</strong> Use sampled colors, measured rules, square or rounded geometry, and measured gaps.</li>
           <li><strong>Add interaction without redesigning the source.</strong> Put controls at an existing action edge, in an existing reserved region, or in the smallest clearly additive rail. Re-run the geometry checks after controls are present.</li>
-          <li><strong>Audit semantic expressibility before any text-bearing crop.</strong> Decompose the panel into Stack, Inline, Wrap, Grid, Rule, Text, Slot, Input, and artwork-only Image nodes. Record which exact primitive blocks each remaining difference.</li>
-          <li><strong>Keep facsimile output as a separate mode.</strong> A cropped source panel may preserve exact typography and composition for comparison, but must not replace the primary semantic attempt. Record its accessibility, reflow, rights, and dynamic-state losses.</li>
+          <li><strong>Audit semantic expressibility before any text-bearing crop in the semantic workflow.</strong> Decompose the panel into Stack, Inline, Wrap, Grid, horizontal or vertical Rule, Text, Slot, Input, and artwork-only Image nodes. Record which exact primitive blocks each remaining difference.</li>
+          <li><strong>Keep facsimile and semantic output as caller-selected workflows.</strong> A cropped source panel may preserve exact typography and composition in an ordinary facsimile archive. It neither replaces nor weakens a requested semantic attempt. Record its accessibility, reflow, rights, and dynamic-state losses.</li>
         </ol>
-        <p>A facsimile is a transparent alternate presentation, not evidence that the format can semantically express the design. The underlying Choice must retain verified name, description, cost, tags, and grants. The crop needs meaningful alternative text, and the ledger must identify its source coordinates. The semantic package must not reference the text-bearing crop.</p>
+        <p>Content fidelity includes visual grammar. A source plus/minus pair is not one summary sentence; three source equipment lines are not one prose paragraph; a main Future heading and its subheading are not interchangeable. Preserve those boundaries as separate Text targets or rich-text blocks before evaluating typography. Do not insert converter notes into the rendered Jump to explain an unsupported mechanic when the source wording already states the rule.</p>
+        <p>A matching tree is necessary but not sufficient. For example, Inline child boundaries may have equal heights while the text inside one child ends much earlier. Verify outer child bounds, then separately verify each child's internal alignment, distribution, wrapping, and occupied area. Do not infer the DOM relationship from glyph extents in a screenshot.</p>
+        <p>For every Grid comparison, measure four boundaries independently: the Grid cell, the direct layout placement, the Choice article, and the authored root or other visible painted surface. A corrected cell height is still a failure when an intermediate wrapper leaves the cyan or charcoal card shorter. Explicit Start, Center, and End are different: they are intentionally content-sized and must visibly reposition whenever free space exists.</p>
+        <p>When the source uses unequal regions, try proportional <code>column-weight</code> tracks before nesting or cropping. Use child spans for cards that cross tracks and direct-child <code>grow</code> weights for Stack/Inline free-space distribution. Verify a nested Stack’s children separately: equal outer Inline height does not establish that “Roll” and “Pay” received equal vertical allocations. At narrow width, verify that weights and spans collapse without horizontal overflow.</p>
+        <p>Typography follows the same minimal-experiment rule. Try the strengthened shared text scale first, then a bounded exact value in the same <code>text-size</code> field, approved system family/weight/line metrics, explicit hard breaks, and semantic list presentation. Exact identity of an unavailable source font is a genuine limitation; ordinary heading scale, tracking, line height, hyphen markers, and measured breaks are not.</p>
+        <p>Likewise, a computed <code>text-align: center</code> value does not prove visible centering. Measure the rendered glyph center against the intended card or column center and confirm that the text boundary occupies the intended width. The Pokémon conversion exposed a global <code>72ch</code> prose cap that made the property technically correct while the result remained visibly left-biased.</p>
+        <p>Use multiple Text nodes inside a Stack when the source has visually separated paragraphs. Blank lines inside one rich-text value preserve semantic paragraphs but do not provide authored inter-paragraph spacing. Give the Stack the measured <code>gap</code>.</p>
+        <p>A facsimile is a transparent conversion workflow, not evidence that the format can semantically express the design. The underlying Choice must retain verified name, description, cost, tags, and grants. The crop needs meaningful alternative text, and the ledger must identify its source coordinates. The separately built semantic archive must not reference the text-bearing crop.</p>
+
+        <h2>Interactive facsimile acceptance contract</h2>
+        <p>A source crop can make a card look correct while its additive interaction remains obviously unfinished. Review each live action rail as part of the composition and require the following observable checks:</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Interactive facsimile acceptance checks">
+          <table>
+            <thead><tr><th>ID</th><th>Required result</th><th>Proof</th></tr></thead>
+            <tbody>
+              <tr><td>FAC-001</td><td>Align a control to the visual axis established by its local source content. Centering is relational, not a default: center the Pokémon transition control beneath its centered “So now…” heading, while tile controls remain aligned to their own action rails. Unconditional Jump grants receive no claim control.</td><td>Compare the rendered control center or edge to the named source-content bound within four pixels.</td></tr>
+              <tr><td>FAC-002</td><td>Every authored Control and Roll slot makes an explicit adornment decision. When the source has no separator or reserved control heading, use <code>control-adornments: false</code>.</td><td>Statically inspect every Control/Roll slot and assert that the rendered conversion contains no unexpected <code>data-layout-control-adornments="on"</code> boundary.</td></tr>
+              <tr><td>FAC-003</td><td>User-entered identity follows the acquired record. A named companion, form, perk, or item must display the entered value in the Chain Tracker rather than a generic placeholder.</td><td>Enter a distinctive value, evaluate the real package, and assert the projected record name that feeds the relevant Tracker tab.</td></tr>
+              <tr><td>FAC-004</td><td>An additive action rail exposes every useful live field the source pixels cannot provide: Control, dynamic Cost, and meaningful effect Tags. Static printed cost text does not satisfy the live Cost requirement. Tags retain User Tag profile styling.</td><td>Assert that the available control, tag badges, and cost badge share the intended action cluster and remain visible at each acceptance viewport.</td></tr>
+              <tr><td>FAC-005</td><td>Artwork crops exclude neighboring rules, gutters, borders, and partial glyphs unless the ledger marks that edge as intentionally owned by the crop.</td><td>Compare exact crop pixels to declared coordinates and test each edge against the adjacent source gutter; retain a contact sheet for visual review.</td></tr>
+              <tr><td>FAC-006</td><td>Every mechanical option control has an adjacent visible label. A row of anonymous radios or checkboxes is a failure even when source artwork above contains the option names. Final Home, Stay, and Next-Jump decisions are prose and visuals only because the application has no lifecycle interaction for them.</td><td>Locate each mechanical label and its associated control in the same rendered row; assert that final-decision panels contain no controls.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>These checks are conversion requirements, not new Format 1 gaps. A gap is recorded only after the smallest valid syntax experiment fails. Centered Control slots, unadorned controls, live Cost slots, User-profile Tag slots, interpolated acquired-record names, clean crops, vertical rules, Jump grants, and labeled mechanical rows are currently authorable. Final-decision columns need no control alignment because the conversion must not create those controls.</p>
 
         <h2>Hard visual acceptance gate</h2>
         <p>Compare source and rendered artifacts at the same content width. Each archetype receives an explicit <strong>pass</strong>, <strong>fail</strong>, or <strong>blocked</strong> result; “recognizable” is not a result.</p>
         <ul>
           <li>overall and card aspect ratios differ by no more than 10% unless a named control rail explains the additional dimension;</li>
           <li>major title, prose, artwork, price, and rule bounds are within 10% of their source positions and dimensions;</li>
+          <li>every claimed Stack, Inline, Wrap, or Grid relationship is verified against the rendered layout tree; direct Inline child boundaries have equal cross-axis extent when stretch-aligned, and stretched Grid cells, placement boundaries, articles, authored roots, and visible surfaces end within one CSS pixel;</li>
+          <li>paragraph gaps, sibling gaps, internal Stack distribution, text alignment, and line wrapping match independently of the outer panel aspect ratio;</li>
           <li>layout direction, art edge anchoring, casing, dominant type hierarchy, and description line count match;</li>
           <li>the exact sampled palette is used;</li>
+          <li>every text run meets 4.5:1 contrast, or 3:1 only when its computed size and weight qualify as large text, against its effective rendered background;</li>
+          <li>artwork-only crops own all four edges and contain no adjacent rule, gutter, border, or partial glyph;</li>
           <li>no large unmatched whitespace appears;</li>
           <li>controls do not displace, cover, or reorder source content without a recorded gap;</li>
+          <li>no full-width or contrasting orphan action rail appears unless the source has the same band; Cost and Control use the source's available edge or a deliberately measured additive cluster;</li>
+          <li>the longest word and densest text block remain inside their bounds at desktop, tablet, phone, and narrow embedded-preview widths without clipping, horizontal overflow, or a hierarchy-breaking wrap;</li>
+          <li>unset, selected, disabled, rolled, and at-limit states preserve card and action-cluster geometry unless the source or application status region deliberately reserves that change;</li>
           <li>the side-by-side pair reads as the same composition at a glance.</li>
         </ul>
         <p>Thresholds are necessary but not sufficient. A renderer can satisfy an aspect ratio while moving the map, shrinking the name, or losing the hierarchy. The final glance comparison remains mandatory.</p>
+
+        <h3>Adversarial glance questions</h3>
+        <p>The reviewing agent must answer every question from the rendered screenshot, at readable scale, rather than from markup or intended behavior. One affirmative answer blocks completion:</p>
+        <ul>
+          <li>Does any text clip, overflow, truncate, strand a word, or wrap into a visibly worse hierarchy than the source?</li>
+          <li>Is any source foreground/background relationship inverted, any rule attached to the wrong pair of blocks, or any distinct source card merged into an undifferentiated band?</li>
+          <li>Does a Cost or Control sit in a generic corner or rail instead of the source's available anchor? Does a control-only strip exist without a source counterpart?</li>
+          <li>Do neighboring cards that serve the same function use visibly different control spacing, alignment, density, or action-cluster anatomy?</li>
+          <li>Are list items, paragraphs, or card interiors too loose or too cramped compared with the source?</li>
+          <li>Does selecting, disabling, rolling, or reaching a maximum resize an action region or disturb neighboring geometry?</li>
+          <li>Even if the measurements pass, is there any jarring artifact that would be obvious in an equal-width side-by-side comparison?</li>
+        </ul>
 
         <h2>Iteration and evidence loop</h2>
         <ol>
           <li>Capture the source panel and rendered panel at equal width.</li>
           <li>List the five largest visible differences, ordered by perceptual impact.</li>
-          <li>Classify each difference as an authoring defect or a demonstrated format gap.</li>
+          <li>Classify each difference as an authoring defect or a demonstrated format gap. Default to authoring defect until a minimal syntax experiment proves otherwise.</li>
           <li>Fix authoring defects and capture again. Never stop merely because a test is green.</li>
           <li>For a format gap, cite the exact schema or renderer constraint and preserve a minimal reproducer.</li>
           <li>Retain source crops, screenshots, measured geometry, and the pass/fail/blocked record in ignored scratch evidence.</li>
@@ -122,7 +166,7 @@
         <p>If the requested fidelity requires capabilities outside the authorized task, stop calling the conversion complete. Report the exact blocked property—for example, “controls cannot overlay an image or reserve absolute coordinates”—and present the best safe fallback. The developer must be able to distinguish:</p>
         <ul>
           <li><strong>semantic match:</strong> the renderer recreates the source with live text and layouts;</li>
-          <li><strong>facsimile match:</strong> a separately labeled presentation profile preserves source pixels while live controls remain additive;</li>
+          <li><strong>facsimile match:</strong> a separately built ordinary archive preserves source pixels while live controls remain additive;</li>
           <li><strong>approximation:</strong> the composition differs but preserves selected visual tokens;</li>
           <li><strong>blocked:</strong> an acceptance criterion cannot be met without a format or renderer change.</li>
         </ul>
@@ -134,26 +178,79 @@ Before authoring:
 1. Render every source page losslessly.
 2. Produce a machine-readable visual specification with page/card bounds,
    normalized proportions, aspect ratios, typography hierarchy, palette,
-   art anchoring, borders, gaps, whitespace ratio, and control locations.
+   art anchoring, borders, sibling and paragraph gaps, whitespace ratio, and
+   control locations.
+   Inventory every visible heading, side note, prose/list line, price, rule,
+   artwork unit, and deliberate empty region exactly once.
 3. Cluster repeated cards into visual archetypes. Do not use a generic card
    layout until the archetypes are identified.
+4. Write the source layout tree and proposed Format 1 tree for every panel.
+   Map every source node to a live Text, Rule, Stack, Inline, Wrap, Grid, Slot,
+   Input, or artwork-only Image node.
+   For each repeated card, also record the anchors and shared edges of its name,
+   body, art, Cost, Control, rules, color bands, and intentional negative space.
 
 During authoring:
-4. Match silhouette and major bounds first, hierarchy second, styling third.
-5. Keep interactive controls additive and at a natural source action edge.
-6. Keep semantic text, costs, tags, grants, rules, and card structure live.
-   Crop only irreducible artwork in the primary presentation.
-7. If useful, build a separately labeled facsimile presentation after the
-   semantic attempt; never use it to bypass expressible layout work.
+5. Match silhouette and major bounds first, hierarchy second, styling third.
+6. Keep interactive controls additive and at a natural source action edge.
+   Align each control to the local source-content axis; do not center controls
+   globally. Make every Control/Roll adornment setting explicit.
+   Never append a generic control-only rail. Use a source-reserved edge or the
+   smallest measured Cost/Control cluster, and use one control grammar for
+   neighboring cards with the same role.
+7. Keep semantic text, costs, tags, grants, rules, and card structure live.
+   Crop only irreducible artwork in the semantic workflow.
+   Split title lockups into live title/edition/byline text and irreducible mark
+   art whenever the syntax can express the composition.
+   In facsimile action rails, include live Control, Cost, and effect Tags when
+   available; printed pixels do not replace dynamic fields.
+8. Represent visually separated paragraphs as separate Text nodes in a Stack
+   with a measured gap. Match text alignment and source line count explicitly.
+   Preserve headings, subheadings, plus/minus lines, entitlement lines, and
+   list-item boundaries; do not paraphrase them into fewer blocks.
+9. Build the caller-selected workflow. If both are requested, emit separate
+   ordinary facsimile and semantic archives. Never add application profiles,
+   and never use facsimile evidence to bypass semantic layout work.
 
 Verification:
-8. Capture source and render at equal width for every archetype.
-9. Require aspect ratio and major bounds within 10%, matching layout direction,
+10. Capture source and render at equal width for every archetype, once normally
+    and once with rendered layout bounds visible. Capture interactive archetypes
+    unset, selected, disabled, rolled when applicable, and at their maximum.
+11. Verify every claimed parent-child relationship. For each Inline, measure
+    direct-child cross-axis bounds, width allocation, internal alignment, and
+    occupied content area separately. Equal outer heights do not prove matching
+    internal distribution.
+12. Require aspect ratio and major bounds within 10%, matching layout direction,
    art anchoring, casing, hierarchy, line count, palette, and no unmatched
    whitespace.
-10. List and fix the five largest visible differences. Repeat until each check
-   passes or is demonstrably blocked by the format.
-11. If blocked, cite the exact missing capability and do not label the visual
+   Reject anonymous mechanical option controls, generic acquired-record names that omit a
+   user-entered identity, unexpected control adornments, hidden action metadata,
+   and crops containing adjacent gutters or rules.
+   Compute actual foreground/background contrast for every authored text block
+   and fail small text below 4.5:1 or qualifying large text below 3:1.
+   Test the longest unbreakable word and densest prose at desktop, tablet, phone,
+   and narrow embedded-preview widths. Reject clipping, overflow, hierarchy-breaking wraps, orphan
+   action rails, misplaced costs or controls, loose list rhythm, inverted color
+   bands, misplaced rules, merged cards, and interaction-driven geometry changes.
+   Node order is not evidence of visual adjacency. For every rule that separates
+   painted surfaces, measure both neighboring surface edges and the rule thickness;
+   reject any parent gap, padding, or background that widens the rule into a band.
+   An isolated card is not evidence for a repeated-card layout. Capture the whole
+   group, sample every row and column gutter, and reject a parent background that
+   merges distinct source cards into a single field. Record the computed family,
+   weight, size, line height, casing, and color for each source text role; do not
+   accept regular text where the source role is heavy and condensed.
+   Scan the complete painted edge of every card, including pseudo-elements. A
+   passing scroll-width check does not prove that an outside list marker remains
+   inside the border. Reject any marker, glyph, badge, control, or artwork pixel
+   that crosses an owned border or enters a gutter without matching source evidence.
+   Reproduce final Home/Stay/Next-Jump choices as prose and visuals only.
+13. List and fix the five largest visible differences. Treat each as an
+    authoring defect until a minimal syntax experiment demonstrates otherwise.
+    Answer every adversarial glance question from the screenshot at readable
+    scale. Any jarring artifact blocks completion. Repeat until each check passes
+    or is demonstrably blocked by the format.
+14. If blocked, cite the exact missing capability and do not label the visual
     conversion complete. Preserve screenshots and measurements as evidence.
 
 Use an independent visual critic when available. Trust the rendered artifact
@@ -161,6 +258,17 @@ over implementation intent.</code></pre>
 
         <h2>Script and future skill boundary</h2>
         <p>A reusable conversion skill should package deterministic scripts for page rendering, crop generation, color sampling, geometry extraction, contact sheets, equal-width screenshots, aspect/bounds checks, pixel or perceptual comparisons, ledger generation, archive building, and secure import verification. The skill instructions should own the decision gates; scripts should collect evidence and perform mechanical work rather than decide that a composition “looks close.”</p>
+        <p>The Pokémon tightening pass adds four mandatory script contracts. Each command exits nonzero on failure and writes its measurements to the ignored ledger or verification directory:</p>
+        <ul>
+          <li><strong>Layout lint:</strong> enumerate every Control and Roll slot, require an explicit adornment value, require named facsimile option rows, and require Control, Cost, and Tags targets for each archetype that declares those live fields.</li>
+          <li><strong>Crop audit:</strong> reproduce every asset byte-for-byte from its declared page coordinates, check intended ownership for all four edges, and reject full-edge neighboring gutters, rules, or borders. Artwork-only and facsimile crops use separate output destinations so regeneration cannot pollute the semantic archive.</li>
+          <li><strong>Projection audit:</strong> enter distinctive text/select/integer values, evaluate the built package, and verify names, descriptions, ownership, quantity or rank, and companion/form targets exactly as the Chain Tracker will consume them.</li>
+          <li><strong>Rendered interaction audit:</strong> import through the real package review path; measure relationship-specific control alignment; assert zero unexpected adorned boundaries; prove live tags and costs are visible beside their controls; and capture labeled fallback rows and representative action rails.</li>
+          <li><strong>Repeated-surface audit:</strong> capture each complete repeated-card group; sample every inter-card gutter and both neighboring card interiors; compare those colors with the source relationship ledger; and reject merged “seas” caused by a transparent Grid over the wrong parent background.</li>
+          <li><strong>Painted-edge audit:</strong> scan all four card-edge bands at native scale, including marker and pseudo-element paint that DOM overflow dimensions can omit; report the exact card, edge, and offending pixel extent.</li>
+          <li><strong>Typography-role audit:</strong> record computed family, weight, size, line height, casing, and color for every named text role and compare them with the measured source-style ledger. Visual intuition from the converting agent is supplementary evidence, never the sole pass condition.</li>
+        </ul>
+        <p>Do not make the scripts silently “repair” ambiguous crops or alignment. They may generate candidate bounds and contact sheets, but the visual specification must record the selected edge ownership and alignment relationship explicitly.</p>
       </article>
       <a class="back-to-top" href="#content">Back to top</a>
     </main>

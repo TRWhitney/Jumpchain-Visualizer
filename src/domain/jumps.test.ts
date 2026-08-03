@@ -555,7 +555,7 @@ choice
     expect(
       evaluation.runtime.trial.actors.jumper.choices.trial_company.costs[0]
         .resolvedAmount,
-    ).toBe(0);
+    ).toBe(100);
     expect(
       evaluation.records.some(
         (record) =>
@@ -570,7 +570,7 @@ choice
     const inactive = one("confluence-engine", dormant).runtime.entry.actors
       .jumper.choices.adaptive_mastery;
     expect(inactive).toMatchObject({ value: 3, active: false });
-    expect(inactive.costs[0].resolvedAmount).toBe(0);
+    expect(inactive.costs[0].resolvedAmount).toBe(150);
 
     dormant.sourceSelections = {
       "measures:measures": ["adaptive_mastery"],
@@ -817,5 +817,515 @@ choice
     ).toMatchObject({
       description: "Your 2 Brass doors answer to the name Homeward.",
     });
+  });
+
+  it("applies unconditional Jump grants without an artificial Choice", () => {
+    const packageItem = canonicalizePackage({
+      id: "jump-grants",
+      exactHash: "g".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Jump Grants"
+  author: "Tester"
+  version: "1"
+
+  grant
+    kind: item
+    name: "Starting Kit"
+
+  grant
+    kind: perk
+    name: "Traveler's Instinct"
+
+  grant
+    kind: form
+    handle: local_form
+    name: "Local Form"
+
+  grant
+    kind: perk
+    name: "Local Form Instinct"
+    form: local_form
+
+  grant
+    kind: companion
+    handle: guide
+    name: "Guide"
+
+  grant
+    kind: perk
+    name: "Guide Instinct"
+    companion: guide
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 25
+
+  grant
+    kind: resource
+    resource: jump_points
+    amount: 100
+    companion: guide
+
+  grant
+    kind: trait
+    name: "Jump Terms"
+    text
+      handle: description
+      content: "Remain for ten years."
+
+  grant
+    kind: property
+    handle: location
+    value: "Kanto"
+
+section
+  handle: introduction
+  name: "Introduction"
+`,
+      },
+    });
+    expect(
+      packageItem.diagnostics.filter((item) => item.severity === "error"),
+    ).toEqual([]);
+    const result = evaluateChain({
+      order: ["entry"],
+      packageIdByEntry: { entry: packageItem.id },
+      packages: { [packageItem.id]: packageItem },
+      jumpState: { entry: emptyJumpEntryState() },
+      jumperName: "Morgan",
+    });
+    expect(result.records).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "item", name: "Starting Kit" }),
+        expect.objectContaining({ kind: "perk", name: "Traveler's Instinct" }),
+        expect.objectContaining({
+          kind: "perk",
+          name: "Local Form Instinct",
+          ownerFormId: "form:entry:local_form",
+        }),
+        expect.objectContaining({
+          kind: "perk",
+          name: "Guide Instinct",
+          ownerActorId: "companion:entry:jumper:jump:4",
+        }),
+      ]),
+    );
+    expect(result.forms).toEqual([
+      expect.objectContaining({ handle: "local_form", name: "Local Form" }),
+    ]);
+    expect(result.companions).toEqual([
+      expect.objectContaining({
+        actorId: "companion:entry:jumper:jump:4",
+        perkRecordIds: expect.arrayContaining([
+          "grant:entry:companion:entry:jumper:jump:4:jump:5",
+        ]),
+      }),
+    ]);
+    expect(result.runtime.entry.actors.jumper.balance).toBe(1025);
+    expect(
+      result.runtime.entry.actors["companion:entry:jumper:jump:4"].balance,
+    ).toBe(100);
+    expect(result.runtime.entry.actors.jumper.traits).toEqual([
+      expect.objectContaining({
+        name: "Jump Terms",
+        description: "Remain for ten years.",
+      }),
+    ]);
+    expect(result.runtime.entry.actors.jumper.properties.location?.value).toBe(
+      "Kanto",
+    );
+  });
+
+  it("stacks flat discounts before additive percentages across resources", () => {
+    const packageItem = canonicalizePackage({
+      id: "discount-effects",
+      exactHash: "d".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Discount Effects"
+  author: "Tester"
+  version: "1"
+  discount-stacking: stack
+  discount-floor: negative
+
+resource
+  handle: mana
+  name: "Mana"
+  initial: 100
+
+section
+  handle: choices
+  name: "Choices"
+
+  choice
+    handle: flat
+    target: flat_origin
+
+  choice
+    handle: percent
+    target: percent_origin
+
+  choice
+    handle: target
+    target: training
+
+choice
+  handle: flat_origin
+  name: "Flat Origin"
+  discount
+    group: skills
+    mode: flat
+    amount: 120
+
+choice
+  handle: percent_origin
+  name: "Percent Origin"
+  discount
+    group: skills
+    mode: percent
+    amount: 20
+  discount
+    group: skills
+    mode: percent
+    amount: 30
+    resource: jump_points
+
+choice
+  handle: training
+  name: "Training"
+  group: skills
+  cost: 100
+  cost
+    resource: mana
+    amount: 40
+`,
+      },
+    });
+    const state = actor({
+      flat_origin: true,
+      percent_origin: true,
+      training: false,
+    });
+    const quoted = evaluateChain({
+      order: ["entry"],
+      packageIdByEntry: { entry: packageItem.id },
+      packages: { [packageItem.id]: packageItem },
+      jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+      jumperName: "Morgan",
+    });
+    expect(
+      quoted.runtime.entry.actors.jumper.choices.training.costs.map(
+        (cost) => cost.resolvedAmount,
+      ),
+    ).toEqual([-30, -96]);
+    expect(quoted.runtime.entry.actors.jumper.balance).toBe(1000);
+    state.choices.training = true;
+    const active = evaluateChain({
+      order: ["entry"],
+      packageIdByEntry: { entry: packageItem.id },
+      packages: { [packageItem.id]: packageItem },
+      jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+      jumperName: "Morgan",
+    });
+    expect(active.runtime.entry.actors.jumper.balance).toBe(1030);
+    expect(active.runtime.entry.actors.jumper.resources.mana.balance).toBe(196);
+  });
+
+  it("uses the strongest result, rounds halves away from zero, and restores quotes", () => {
+    const packageItem = canonicalizePackage({
+      id: "discount-policy",
+      exactHash: "p".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Discount Policy"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+  choice
+    handle: flat
+    target: flat
+  choice
+    handle: percent
+    target: percent
+  choice
+    handle: target
+    target: target
+
+choice
+  handle: flat
+  name: "Flat"
+  discount
+    group: skills
+    mode: flat
+    amount: 130
+
+choice
+  handle: percent
+  name: "Percent"
+  discount
+    group: skills
+    mode: percent
+    amount: 50
+
+choice
+  handle: target
+  name: "Target"
+  group: skills
+  cost: 101
+`,
+      },
+    });
+    const state = actor({ flat: true, percent: true, target: false });
+    const evaluate = () =>
+      evaluateChain({
+        order: ["entry"],
+        packageIdByEntry: { entry: packageItem.id },
+        packages: { [packageItem.id]: packageItem },
+        jumpState: {
+          entry: { actors: { jumper: state }, appliedGauntlet: [] },
+        },
+        jumperName: "Morgan",
+      });
+    expect(
+      evaluate().runtime.entry.actors.jumper.choices.target.costs[0],
+    ).toMatchObject({
+      discountBaseAmount: 101,
+      resolvedAmount: 0,
+      discounts: [expect.objectContaining({ sourceChoiceHandle: "flat" })],
+    });
+    state.choices.flat = false;
+    expect(
+      evaluate().runtime.entry.actors.jumper.choices.target.costs[0]
+        .resolvedAmount,
+    ).toBe(51);
+    state.choices.percent = false;
+    expect(
+      evaluate().runtime.entry.actors.jumper.choices.target.costs[0]
+        .resolvedAmount,
+    ).toBe(101);
+  });
+
+  it("applies discounts after roll allowances and grows negative values", () => {
+    const packageItem = canonicalizePackage({
+      id: "discount-order",
+      exactHash: "o".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Discount Order"
+  author: "Tester"
+  version: "1"
+  discount-stacking: stack
+  discount-floor: negative
+
+section
+  handle: content
+  name: "Content"
+  choice
+    handle: discount
+    target: discount
+  choice
+    handle: ranked
+    target: ranked
+  choice
+    handle: flaw
+    target: flaw
+
+choice
+  handle: discount
+  name: "Discount"
+  discount
+    group: affected
+    mode: percent
+    amount: 50
+
+choice
+  handle: ranked
+  name: "Ranked"
+  group: affected
+  selection: integer
+  min: 0
+  max: 5
+  resolution: either
+  cost
+    amount: 100
+    mode: each
+
+choice
+  handle: flaw
+  name: "Flaw"
+  group: affected
+  cost: -101
+`,
+      },
+    });
+    const state = actor({ discount: true, ranked: 3, flaw: true });
+    state.choiceRolls.ranked = { result: 2, sequence: 1 };
+    const result = evaluateChain({
+      order: ["entry"],
+      packageIdByEntry: { entry: packageItem.id },
+      packages: { [packageItem.id]: packageItem },
+      jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+      jumperName: "Morgan",
+    });
+    expect(
+      result.runtime.entry.actors.jumper.choices.ranked.costs[0].resolvedAmount,
+    ).toBe(50);
+    expect(
+      result.runtime.entry.actors.jumper.choices.flaw.costs[0].resolvedAmount,
+    ).toBe(-152);
+  });
+
+  it("uses a signed lock score and suspends ordinary mechanics", () => {
+    const packageItem = canonicalizePackage({
+      id: "section-locks",
+      exactHash: "l".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Section Locks"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: controls
+  name: "Controls"
+  choice
+    handle: opener
+    target: opener
+  choice
+    handle: locker
+    target: locker
+  choice
+    handle: shared
+    target: shared
+
+section
+  handle: training
+  name: "Training"
+  locked: true
+  choice
+    handle: purchase
+    target: purchase
+  choice
+    handle: shared_training
+    target: shared
+
+choice
+  handle: opener
+  name: "Open"
+  unlock: training
+
+choice
+  handle: locker
+  name: "Lock"
+  lock: training
+
+choice
+  handle: purchase
+  name: "Purchase"
+  cost: 100
+  grant: perk
+
+choice
+  handle: shared
+  name: "Shared placement"
+  cost: 50
+  grant: perk
+`,
+      },
+    });
+    const state = actor({
+      opener: true,
+      locker: true,
+      purchase: true,
+      shared: true,
+    });
+    const locked = evaluateChain({
+      order: ["entry"],
+      packageIdByEntry: { entry: packageItem.id },
+      packages: { [packageItem.id]: packageItem },
+      jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+      jumperName: "Morgan",
+    });
+    expect(locked.runtime.entry.actors.jumper.sections?.training).toEqual({
+      handle: "training",
+      lockScore: 1,
+      locked: true,
+    });
+    expect(locked.runtime.entry.actors.jumper.balance).toBe(950);
+    expect(locked.records).toEqual([
+      expect.objectContaining({ kind: "perk", name: "Shared placement" }),
+    ]);
+    state.choices.locker = false;
+    const unlocked = evaluateChain({
+      order: ["entry"],
+      packageIdByEntry: { entry: packageItem.id },
+      packages: { [packageItem.id]: packageItem },
+      jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+      jumperName: "Morgan",
+    });
+    expect(unlocked.runtime.entry.actors.jumper.sections?.training.locked).toBe(
+      false,
+    );
+    expect(unlocked.runtime.entry.actors.jumper.balance).toBe(850);
+    expect(unlocked.records).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "perk", name: "Purchase" }),
+        expect.objectContaining({ kind: "perk", name: "Shared placement" }),
+      ]),
+    );
+  });
+
+  it("keeps a selected lock effect stable when it locks its own Section", () => {
+    const packageItem = canonicalizePackage({
+      id: "stable-self-lock",
+      exactHash: "s".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Stable Self Lock"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: training
+  name: "Training"
+  choice
+    handle: seal
+    target: seal
+
+choice
+  handle: seal
+  name: "Seal"
+  lock: training
+  cost: 100
+  grant: perk
+`,
+      },
+    });
+    const state = actor({ seal: true });
+    const result = evaluateChain({
+      order: ["entry"],
+      packageIdByEntry: { entry: packageItem.id },
+      packages: { [packageItem.id]: packageItem },
+      jumpState: { entry: { actors: { jumper: state }, appliedGauntlet: [] } },
+      jumperName: "Morgan",
+    });
+    expect(result.runtime.entry.actors.jumper.sections?.training).toEqual({
+      handle: "training",
+      lockScore: 1,
+      locked: true,
+    });
+    expect(result.runtime.entry.actors.jumper.balance).toBe(1000);
+    expect(result.records).toEqual([]);
   });
 });

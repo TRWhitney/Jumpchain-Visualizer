@@ -800,6 +800,14 @@ export function convertLayoutNode(
     const shared = fields.filter((field) =>
       [
         "padding",
+        "padding-block",
+        "padding-inline",
+        "grow",
+        "column-span",
+        "row-span",
+        "min-width",
+        "min-height",
+        "aspect-ratio",
         "background",
         "background-image",
         "background-fit",
@@ -807,6 +815,16 @@ export function convertLayoutNode(
         "text-align",
         "text-size",
         "text-color",
+        "font-family",
+        "font-weight",
+        "line-height",
+        "letter-spacing",
+        "list-marker",
+        "list-indent",
+        "list-gap",
+        "control-adornments",
+        "control-density",
+        "cost-density",
       ].includes(field.name),
     );
     body =

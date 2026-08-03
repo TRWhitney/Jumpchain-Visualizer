@@ -10,6 +10,7 @@ export type EditorFieldControlKind =
   | "number"
   | "reference"
   | "choice-source-group"
+  | "choice-group"
   | "spelling-text"
   | "text";
 
@@ -58,6 +59,8 @@ export function editorFieldControlKind({
   if (hasReference) return "reference";
   if (declarationKind === "choice-source" && fieldName === "group")
     return "choice-source-group";
+  if (declarationKind === "discount" && fieldName === "group")
+    return "choice-group";
   if (["author", "name", "title"].includes(fieldName)) return "spelling-text";
   return "text";
 }

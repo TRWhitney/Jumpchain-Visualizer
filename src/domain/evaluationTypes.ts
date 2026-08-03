@@ -63,6 +63,18 @@ export type EvaluatedCost = {
   mode: "flat" | "each";
   rankCount?: number;
   rolledAllowance?: number;
+  discountBaseAmount?: number;
+  discounts?: readonly {
+    sourceChoiceHandle: string;
+    mode: "flat" | "percent";
+    amount: number;
+  }[];
+};
+
+export type EvaluatedSection = {
+  handle: string;
+  lockScore: number;
+  locked: boolean;
 };
 
 export type EvaluatedChoice = {
@@ -88,6 +100,7 @@ export type EvaluatedActorJump = {
     >
   >;
   choices: Readonly<Record<string, EvaluatedChoice>>;
+  sections?: Readonly<Record<string, EvaluatedSection>>;
   traits: readonly EvaluatedGrantRecord[];
   diagnostics: readonly string[];
 };

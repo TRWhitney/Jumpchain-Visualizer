@@ -6,6 +6,7 @@ import type {
   ImageBlock,
   JumpChoice,
   JumpCost,
+  JumpDiscount,
   JumpGrant,
   JumpInput,
   JumpLayout,
@@ -58,6 +59,8 @@ const value = (node: SourceNode, name: string) => {
   const selected = field(node, name)?.value;
   return selected === undefined ? undefined : unquote(selected);
 };
+const values = (node: SourceNode, name: string) =>
+  fields(node, name).map((item) => unquote(item.value));
 const integer = (node: SourceNode, name: string) => {
   const selected = value(node, name);
   if (selected === undefined || !/^-?\d+$/.test(selected)) return undefined;
@@ -347,6 +350,20 @@ function amount(raw: string | undefined): CostAmount | undefined {
   return normalized;
 }
 
+function discount(
+  node: SourceNode,
+  diagnostics: PackageDiagnostic[],
+): JumpDiscount {
+  const mode = value(node, "mode");
+  const rawAmount = integer(node, "amount");
+  return {
+    group: requireValue(node, "group", diagnostics),
+    mode: mode === "percent" ? "percent" : "flat",
+    amount: rawAmount ?? 0,
+    resources: fields(node, "resource").map((item) => unquote(item.value)),
+  };
+}
+
 function grant(
   node: SourceNode | SourceField,
   diagnostics: PackageDiagnostic[],
@@ -490,6 +507,18 @@ function grant(
   return result;
 }
 
+function nodeGrants(
+  node: SourceNode,
+  diagnostics: PackageDiagnostic[],
+): JumpGrant[] {
+  return [
+    ...fields(node, "grant").map((item) => grant(item, diagnostics)),
+    ...node.children
+      .filter((child) => child.kind === "grant")
+      .map((child) => grant(child, diagnostics)),
+  ];
+}
+
 function parsePropertyValue(raw: string | undefined) {
   if (raw === undefined) return undefined;
   const normalized = unquote(raw);
@@ -562,12 +591,7 @@ function input(node: SourceNode, diagnostics: PackageDiagnostic[]): JumpInput {
       "error",
       { selection },
     );
-  const grants = [
-    ...fields(node, "grant").map((item) => grant(item, diagnostics)),
-    ...node.children
-      .filter((child) => child.kind === "grant")
-      .map((child) => grant(child, diagnostics)),
-  ];
+  const grants = nodeGrants(node, diagnostics);
   if (grants.some((item) => item.kind === "form"))
     diagnostic(
       diagnostics,
@@ -664,12 +688,7 @@ function choice(
       "A choice may declare at most one cost per resource.",
       node,
     );
-  const choiceGrants = [
-    ...fields(node, "grant").map((item) => grant(item, diagnostics)),
-    ...node.children
-      .filter((child) => child.kind === "grant")
-      .map((child) => grant(child, diagnostics)),
-  ];
+  const choiceGrants = nodeGrants(node, diagnostics);
   for (const choiceGrant of choiceGrants)
     if (choiceGrant.kind === "companion" && choiceGrant.shorthand)
       choiceGrant.handle = choiceHandle;
@@ -768,6 +787,11 @@ function choice(
       .map((child) => input(child, diagnostics)),
     costs,
     grants: choiceGrants,
+    discounts: node.children
+      .filter((child) => child.kind === "discount")
+      .map((child) => discount(child, diagnostics)),
+    locks: fields(node, "lock").map((item) => unquote(item.value)),
+    unlocks: fields(node, "unlock").map((item) => unquote(item.value)),
   };
   if (!result.name.base && !result.name.variants.length)
     diagnostic(
@@ -899,6 +923,7 @@ function section(
     ),
     name: renderable(node, "name"),
     layout: value(node, "layout"),
+    locked: boolean(node, "locked") ?? false,
     sources: node.children
       .filter((child) => child.kind === "choice-source")
       .map((child): ChoiceSource => ({
@@ -909,6 +934,7 @@ function section(
         ),
         group: value(child, "group"),
         mode: value(child, "mode") === "single" ? "single" : "multi",
+        max: integer(child, "max"),
         resolution:
           value(child, "resolution") === "random" ||
           value(child, "resolution") === "either"
@@ -979,6 +1005,14 @@ function layoutNode(
     presentation: {
       gap: value(node, "gap"),
       padding: value(node, "padding"),
+      paddingBlock: value(node, "padding-block"),
+      paddingInline: value(node, "padding-inline"),
+      grow: integer(node, "grow"),
+      columnSpan: integer(node, "column-span"),
+      rowSpan: integer(node, "row-span"),
+      minWidth: value(node, "min-width"),
+      minHeight: value(node, "min-height"),
+      aspectRatio: value(node, "aspect-ratio"),
       background: value(node, "background"),
       backgroundImage: value(node, "background-image"),
       backgroundFit: value(node, "background-fit"),
@@ -986,9 +1020,25 @@ function layoutNode(
       justify: value(node, "justify"),
       textAlign: value(node, "text-align"),
       controlAdornments: boolean(node, "control-adornments"),
+      controlDensity:
+        value(node, "control-density") === "compact" ? "compact" : undefined,
+      costDensity:
+        value(node, "cost-density") === "compact" ? "compact" : undefined,
       textSize: value(node, "text-size"),
       textColor: value(node, "text-color"),
+      fontFamily: value(node, "font-family"),
+      fontWeight: value(node, "font-weight"),
+      lineHeight: value(node, "line-height"),
+      letterSpacing: value(node, "letter-spacing"),
+      listMarker: value(node, "list-marker"),
+      listIndent: value(node, "list-indent"),
+      listGap: value(node, "list-gap"),
       columns: integer(node, "columns"),
+      columnWeights: fields(node, "column-weight").length
+        ? values(node, "column-weight")
+            .filter((item) => /^\d+$/.test(item))
+            .map(Number)
+        : undefined,
       size: value(node, "size"),
       width: value(node, "width"),
       height: value(node, "height"),
@@ -996,6 +1046,8 @@ function layoutNode(
       color: value(node, "color"),
       thickness: integer(node, "thickness"),
       style: value(node, "style"),
+      orientation:
+        value(node, "orientation") === "vertical" ? "vertical" : "horizontal",
       borderColor: value(node, "border-color"),
       borderWidth: value(node, "border-width"),
       borderStyle: value(node, "border-style"),
@@ -1070,8 +1122,11 @@ function validateRelations(
     ["choice", result.choices.map((item) => item.handle)],
     [
       "form",
-      result.choices.flatMap((item) =>
-        item.grants.flatMap((grantItem) =>
+      [
+        result.grants ?? [],
+        ...result.choices.map((item) => item.grants),
+      ].flatMap((grants) =>
+        grants.flatMap((grantItem) =>
           grantItem.kind === "form" && grantItem.handle
             ? [grantItem.handle]
             : [],
@@ -1080,14 +1135,21 @@ function validateRelations(
     ],
     [
       "companion",
-      result.choices.flatMap((item) => [
-        ...(item.selection === "companions" ? [item.handle] : []),
-        ...item.grants.flatMap((grantItem) =>
+      [
+        ...(result.grants ?? []).flatMap((grantItem) =>
           grantItem.kind === "companion" && grantItem.handle
             ? [grantItem.handle]
             : [],
         ),
-      ]),
+        ...result.choices.flatMap((item) => [
+          ...(item.selection === "companions" ? [item.handle] : []),
+          ...item.grants.flatMap((grantItem) =>
+            grantItem.kind === "companion" && grantItem.handle
+              ? [grantItem.handle]
+              : [],
+          ),
+        ]),
+      ],
     ],
     ["layout", result.layouts.map((item) => item.handle)],
   ] as const)
@@ -1102,6 +1164,8 @@ function validateRelations(
       );
 
   const choices = new Set(result.choices.map((item) => item.handle));
+  const sections = new Set(result.sections.map((item) => item.handle));
+  const groups = new Set(result.choices.flatMap((item) => item.groups));
   const layoutFor = (kind: JumpLayout["kind"], handle: string | undefined) =>
     handle
       ? result.layouts.find(
@@ -1112,25 +1176,38 @@ function validateRelations(
     "jump_points",
     ...result.resources.map((item) => item.handle),
   ]);
-  const formHandles = result.choices.flatMap((item) =>
-    item.grants.flatMap((grantItem) =>
+  const formHandles = [
+    result.grants ?? [],
+    ...result.choices.map((item) => item.grants),
+  ].flatMap((grants) =>
+    grants.flatMap((grantItem) =>
       grantItem.kind === "form" && grantItem.handle ? [grantItem.handle] : [],
     ),
   );
   const forms = new Set(formHandles);
-  const companionHandles = result.choices.flatMap((item) => [
-    ...(item.selection === "companions" ? [item.handle] : []),
-    ...item.grants.flatMap((grantItem) =>
+  const companionHandles = [
+    ...(result.grants ?? []).flatMap((grantItem) =>
       grantItem.kind === "companion" && grantItem.handle
         ? [grantItem.handle]
         : [],
     ),
-  ]);
+    ...result.choices.flatMap((item) => [
+      ...(item.selection === "companions" ? [item.handle] : []),
+      ...item.grants.flatMap((grantItem) =>
+        grantItem.kind === "companion" && grantItem.handle
+          ? [grantItem.handle]
+          : [],
+      ),
+    ]),
+  ];
   const companions = new Set(companionHandles);
-  const allGrants = result.choices.flatMap((choiceItem) => [
-    ...choiceItem.grants,
-    ...choiceItem.inputs.flatMap((inputItem) => inputItem.grants),
-  ]);
+  const allGrants = [
+    ...(result.grants ?? []),
+    ...result.choices.flatMap((choiceItem) => [
+      ...choiceItem.grants,
+      ...choiceItem.inputs.flatMap((inputItem) => inputItem.grants),
+    ]),
+  ];
   for (const duplicate of duplicates(formHandles))
     diagnostic(
       diagnostics,
@@ -1252,6 +1329,40 @@ function validateRelations(
           "error",
           { resource: cost.resource, usage: "Cost" },
         );
+    for (const target of [
+      ...(choiceItem.locks ?? []),
+      ...(choiceItem.unlocks ?? []),
+    ])
+      if (!sections.has(target))
+        diagnostic(
+          diagnostics,
+          "section.effect.reference",
+          `Section effect target “${target}” does not exist.`,
+          undefined,
+          "error",
+          { target },
+        );
+    for (const discountItem of choiceItem.discounts ?? []) {
+      if (!groups.has(discountItem.group))
+        diagnostic(
+          diagnostics,
+          "discount.group.empty",
+          `Discount group “${discountItem.group}” matches no choices.`,
+          undefined,
+          "warning",
+          { group: discountItem.group },
+        );
+      for (const resourceHandle of discountItem.resources)
+        if (!resources.has(resourceHandle))
+          diagnostic(
+            diagnostics,
+            "resource.reference",
+            `Discount resource “${resourceHandle}” is not declared.`,
+            undefined,
+            "error",
+            { resource: resourceHandle, usage: "Discount" },
+          );
+    }
     for (const item of [
       ...choiceItem.grants,
       ...choiceItem.inputs.flatMap((inputItem) => inputItem.grants),
@@ -1284,6 +1395,35 @@ function validateRelations(
           { target: item.companion },
         );
     }
+  }
+  for (const item of result.grants ?? []) {
+    if (item.resource && !resources.has(item.resource))
+      diagnostic(
+        diagnostics,
+        "resource.reference",
+        `Grant resource “${item.resource}” is not declared.`,
+        undefined,
+        "error",
+        { resource: item.resource, usage: "Grant" },
+      );
+    if (item.form && !forms.has(item.form))
+      diagnostic(
+        diagnostics,
+        "grant.form.reference",
+        `Form target “${item.form}” does not exist.`,
+        undefined,
+        "error",
+        { target: item.form },
+      );
+    if (item.companion && !companions.has(item.companion))
+      diagnostic(
+        diagnostics,
+        "grant.companion.reference",
+        `Companion target “${item.companion}” does not exist.`,
+        undefined,
+        "error",
+        { target: item.companion },
+      );
   }
 
   const reachableChoices = new Set(
@@ -1514,6 +1654,23 @@ export function canonicalizePackage(
       root,
     );
   const nativeGauntlet = boolean(root, "gauntlet") ?? false;
+  const jumpGrants = nodeGrants(root, diagnostics);
+  for (const item of jumpGrants) {
+    if (item.kind === "property" && item.value === undefined)
+      diagnostic(
+        diagnostics,
+        "grant.property.jump_value",
+        "Jump-level Property grants require an explicit value.",
+        root,
+      );
+    if (item.measure !== undefined)
+      diagnostic(
+        diagnostics,
+        "grant.measure.jump",
+        "Jump-level grants cannot copy an integer control measure.",
+        root,
+      );
+  }
   const canonical: Omit<CanonicalJumpPackage, "diagnostics"> = {
     id: sources.id,
     logicalId: sources.logicalId ?? sources.id,
@@ -1533,6 +1690,11 @@ export function canonicalizePackage(
     pointsAbbreviation: fields(root, "points-abbreviation").length
       ? renderable(root, "points-abbreviation")
       : { base: "CP", variants: [] },
+    discountStacking:
+      value(root, "discount-stacking") === "stack" ? "stack" : "highest",
+    discountFloor:
+      value(root, "discount-floor") === "negative" ? "negative" : "zero",
+    grants: jumpGrants,
     defaultSectionLayout: value(root, "section-layout"),
     defaultChoiceLayout: value(root, "choice-layout"),
     defaultTraitLayout: value(root, "trait-layout"),

@@ -3,6 +3,12 @@
 - Agent: An AI coding agent, not necessarily you
 - User: A consumer of the product, potentially the developer
 
+# Tag presentation invariant
+- Jump authors provide Tag strings and choose where the Tag slot appears; they never control badge rendering.
+- The active User Tag profile always owns Tag colors, borders, shape, typography, hierarchy, and animation.
+- Never reproduce source artwork by styling Tags, use Tags as authored rule targets, or report User-owned Tag appearance as a conversion fidelity gap.
+- Cost badges are separate semantic elements and may use authored Cost-slot presentation.
+
 # When removing features
 - Assume there are no current users of the product, if a developer requests something be removed, then remove it without attempting to support backward compatibility unless explicitly told otherwise
 - Do not add tests to verify the feature is gone, we never need to test that a feature does not exist

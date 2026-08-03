@@ -101,6 +101,13 @@ export type JumpCost = {
   mode: "flat" | "each";
 };
 
+export type JumpDiscount = {
+  group: string;
+  mode: "flat" | "percent";
+  amount: number;
+  resources: readonly string[];
+};
+
 export type GrantKind =
   "perk" | "item" | "form" | "companion" | "resource" | "trait" | "property";
 
@@ -149,12 +156,16 @@ export type JumpChoice = {
   inputs: readonly JumpInput[];
   costs: readonly JumpCost[];
   grants: readonly JumpGrant[];
+  discounts?: readonly JumpDiscount[];
+  locks?: readonly string[];
+  unlocks?: readonly string[];
 };
 
 export type ChoiceSource = {
   handle: string;
   group?: string;
   mode: SourceMode;
+  max?: number;
   resolution: ResolutionKind;
 };
 
@@ -168,6 +179,7 @@ export type JumpSection = {
   handle: string;
   name: Renderable;
   layout?: string;
+  locked?: boolean;
   sources: readonly ChoiceSource[];
   directChoices: readonly DirectChoice[];
   members: readonly SectionMember[];
@@ -178,6 +190,14 @@ export type JumpSection = {
 export type Presentation = {
   gap?: string;
   padding?: string;
+  paddingBlock?: string;
+  paddingInline?: string;
+  grow?: number;
+  columnSpan?: number;
+  rowSpan?: number;
+  minWidth?: string;
+  minHeight?: string;
+  aspectRatio?: string;
   background?: string;
   backgroundImage?: string;
   backgroundFit?: string;
@@ -185,9 +205,19 @@ export type Presentation = {
   justify?: string;
   textAlign?: string;
   controlAdornments?: boolean;
+  controlDensity?: "standard" | "compact";
+  costDensity?: "standard" | "compact";
   textSize?: string;
   textColor?: string;
+  fontFamily?: string;
+  fontWeight?: string;
+  lineHeight?: string;
+  letterSpacing?: string;
+  listMarker?: string;
+  listIndent?: string;
+  listGap?: string;
   columns?: number;
+  columnWeights?: readonly number[];
   size?: string;
   width?: string;
   height?: string;
@@ -195,6 +225,7 @@ export type Presentation = {
   color?: string;
   thickness?: number;
   style?: string;
+  orientation?: "horizontal" | "vertical";
   borderColor?: string;
   borderWidth?: string;
   borderStyle?: string;
@@ -251,6 +282,9 @@ export type CanonicalJumpPackage = {
   startingPoints: number;
   pointsName: Renderable;
   pointsAbbreviation: Renderable;
+  discountStacking?: "highest" | "stack";
+  discountFloor?: "zero" | "negative";
+  grants?: readonly JumpGrant[];
   defaultSectionLayout?: string;
   defaultChoiceLayout?: string;
   defaultTraitLayout?: string;

@@ -30,6 +30,7 @@ import type {
 } from "./evaluationTypes";
 import {
   choicePlacement,
+  choicePlacementSections,
   choiceStateIsActive,
   choiceWasRolledBySource,
   evaluatedChoiceCosts,
@@ -132,6 +133,32 @@ function inheritedDescription(
     resolve(choice.text.find((text) => text.handle === "description")) ||
     `${inheritedGrantName(choice, item, context)} acquired from this Jump.`
   );
+}
+
+function jumpGrantName(
+  packageItem: CanonicalJumpPackage,
+  item: JumpGrant,
+  context?: RenderContext,
+) {
+  const fallback = display(packageItem.name, "Jump grant");
+  return item.name
+    ? context
+      ? renderRenderable(item.name, context)
+      : display(item.name, fallback)
+    : fallback;
+}
+
+function jumpGrantDescription(
+  packageItem: CanonicalJumpPackage,
+  item: JumpGrant,
+  context?: RenderContext,
+) {
+  const description = item.text.find((text) => text.handle === "description");
+  if (description)
+    return context
+      ? renderRenderable(description.content, context)
+      : display(description.content);
+  return `${jumpGrantName(packageItem, item, context)} acquired from this Jump.`;
 }
 
 function actorRenderContext(
@@ -312,6 +339,102 @@ function collectProperties(
   return writers;
 }
 
+function evaluatedSections(
+  packageItem: CanonicalJumpPackage,
+  choices: Readonly<Record<string, EvaluatedChoice>>,
+) {
+  const scores = new Map(
+    packageItem.sections.map((section) => [
+      section.handle,
+      section.locked ? 1 : 0,
+    ]),
+  );
+  for (const choice of packageItem.choices) {
+    if (!choices[choice.handle]?.active) continue;
+    for (const handle of choice.locks ?? [])
+      scores.set(handle, (scores.get(handle) ?? 0) + 1);
+    for (const handle of choice.unlocks ?? [])
+      scores.set(handle, (scores.get(handle) ?? 0) - 1);
+  }
+  return Object.fromEntries(
+    packageItem.sections.map((section) => {
+      const lockScore = scores.get(section.handle) ?? 0;
+      return [
+        section.handle,
+        { handle: section.handle, lockScore, locked: lockScore > 0 },
+      ];
+    }),
+  );
+}
+
+function roundDiscounted(value: number) {
+  return value < 0 ? -Math.round(Math.abs(value)) : Math.round(value);
+}
+
+function discountedCost(
+  packageItem: CanonicalJumpPackage,
+  target: JumpChoice,
+  resource: string,
+  amount: number,
+  choices: Readonly<Record<string, EvaluatedChoice>>,
+) {
+  const matching = packageItem.choices.flatMap((source) =>
+    choices[source.handle]?.active
+      ? (source.discounts ?? []).flatMap((discount) =>
+          target.groups.includes(discount.group) &&
+          (!discount.resources.length || discount.resources.includes(resource))
+            ? [{ sourceChoiceHandle: source.handle, ...discount }]
+            : [],
+        )
+      : [],
+  );
+  if (!matching.length) return { amount, discounts: [] };
+  const floor = (value: number) =>
+    packageItem.discountFloor === "negative" || amount < 0
+      ? value
+      : Math.max(0, value);
+  const applyPercent = (value: number, percent: number) =>
+    value < 0 ? value * (1 + percent / 100) : value * (1 - percent / 100);
+  if (packageItem.discountStacking !== "stack") {
+    const candidates = matching.map((discount) => {
+      const value =
+        discount.mode === "flat"
+          ? amount - discount.amount
+          : applyPercent(amount, discount.amount);
+      return { discount, value: floor(value) };
+    });
+    const winner = candidates.reduce((best, candidate) =>
+      candidate.value < best.value ? candidate : best,
+    );
+    return {
+      amount: roundDiscounted(winner.value),
+      discounts: [
+        {
+          sourceChoiceHandle: winner.discount.sourceChoiceHandle,
+          mode: winner.discount.mode,
+          amount: winner.discount.amount,
+        },
+      ],
+    };
+  }
+  const flat = matching
+    .filter((discount) => discount.mode === "flat")
+    .reduce((sum, discount) => sum + discount.amount, 0);
+  const percent = matching
+    .filter((discount) => discount.mode === "percent")
+    .reduce((sum, discount) => sum + discount.amount, 0);
+  const afterFlat = floor(amount - flat);
+  const resolved = floor(applyPercent(afterFlat, percent));
+  return {
+    amount: roundDiscounted(resolved),
+    discounts: matching.map((discount) => ({
+      sourceChoiceHandle: discount.sourceChoiceHandle,
+      mode: discount.mode,
+      amount: discount.amount,
+    })),
+  };
+}
+
 function evaluateActor(
   entryId: string,
   packageItem: CanonicalJumpPackage,
@@ -390,15 +513,11 @@ function evaluateActor(
     const freeByContinuity =
       (typeof selected === "string" || typeof selected === "number") &&
       continuityFreeValues.includes(selected);
-    const costs = (
-      active
-        ? evaluatedChoiceCosts(choice, selected, choiceRoll, sourceRolled)
-        : evaluatedChoiceCosts(choice, selected, choiceRoll, sourceRolled).map(
-            (cost) => ({
-              ...cost,
-              resolvedAmount: 0,
-            }),
-          )
+    const costs = evaluatedChoiceCosts(
+      choice,
+      selected,
+      choiceRoll,
+      sourceRolled,
     ).map((cost) => (freeByContinuity ? { ...cost, resolvedAmount: 0 } : cost));
     choiceViews[choice.handle] = {
       handle: choice.handle,
@@ -421,6 +540,33 @@ function evaluateActor(
       continuityFreeValues,
       derivedContinuity,
     };
+  }
+  const sections = evaluatedSections(packageItem, choiceViews);
+  for (const choice of packageItem.choices) {
+    const view = choiceViews[choice.handle];
+    const placements = choicePlacementSections(packageItem, actorState, choice);
+    const available =
+      !placements.length ||
+      placements.some((sectionHandle) => !sections[sectionHandle]?.locked);
+    view.active = view.active && available;
+  }
+  for (const choice of packageItem.choices) {
+    const view = choiceViews[choice.handle];
+    view.costs = view.costs.map((cost) => {
+      const discounted = discountedCost(
+        packageItem,
+        choice,
+        cost.resource,
+        cost.resolvedAmount,
+        choiceViews,
+      );
+      return {
+        ...cost,
+        discountBaseAmount: cost.resolvedAmount,
+        resolvedAmount: discounted.amount,
+        discounts: discounted.discounts,
+      };
+    });
   }
   const resources: Record<string, EvaluatedResource> = {
     jump_points: {
@@ -451,6 +597,21 @@ function evaluateActor(
         (actorId === "jumper" ? resource.initial : 0) +
         (targetedResourceGrants[resource.handle] ?? 0),
     };
+  if (actorId === "jumper")
+    for (const item of packageItem.grants ?? []) {
+      if (
+        item.kind !== "resource" ||
+        item.companion ||
+        !item.resource ||
+        item.amount === undefined
+      )
+        continue;
+      const resource = resources[item.resource];
+      if (!resource) continue;
+      const granted = resolveCostAmount(item.amount);
+      resource.granted += granted;
+      resource.balance += granted;
+    }
   for (const choice of packageItem.choices) {
     const evaluated = choiceViews[choice.handle];
     if (!evaluated.active) continue;
@@ -498,7 +659,26 @@ function evaluateActor(
     }
   }
   const diagnostics: string[] = [];
+  for (const section of packageItem.sections)
+    for (const source of section.sources) {
+      const selected =
+        actorState.sourceSelections[`${section.handle}:${source.handle}`] ?? [];
+      if (source.max !== undefined && selected.length > source.max)
+        diagnostics.push(
+          `${section.handle}.${source.handle} has ${selected.length} selections; maximum ${source.max}.`,
+        );
+    }
   const writers = collectProperties(packageItem, actorState, choiceViews);
+  if (actorId === "jumper")
+    for (const item of packageItem.grants ?? [])
+      if (item.kind === "property" && item.handle && item.value !== undefined) {
+        const values = writers.get(item.handle) ?? [];
+        values.push({
+          value: item.value,
+          label: jumpGrantName(packageItem, item),
+        });
+        writers.set(item.handle, values);
+      }
   const properties: Record<string, EvaluatedProperty> = {};
   for (const [handle, values] of writers) {
     const unique = new Set(
@@ -527,47 +707,84 @@ function evaluateActor(
           : "Default species",
     };
   const context = actorRenderContext({ properties }, gauntletActive);
-  const traits = packageItem.choices.flatMap((choice) => {
-    if (!choiceViews[choice.handle]?.active) return [];
-    const value = choiceViews[choice.handle]?.value;
-    return choice.grants.flatMap((item, grantIndex): EvaluatedGrantRecord[] => {
-      const grantContext = grantRenderContext(
-        {
-          ...context,
-          ...choiceControlRenderContext(choice, actorState, value),
-        },
-        item,
-        value,
-      );
-      return item.kind === "trait" && visibleGrantIsAcquired(value)
-        ? [
+  const jumpTraits: EvaluatedGrantRecord[] =
+    actorId === "jumper"
+      ? (packageItem.grants ?? []).flatMap(
+          (item, grantIndex): EvaluatedGrantRecord[] =>
+            item.kind === "trait"
+              ? [
+                  {
+                    id: `grant:${entryId}:${actorId}:jump:${grantIndex}`,
+                    kind: "trait",
+                    name: jumpGrantName(packageItem, item, context),
+                    sourceEntryId: entryId,
+                    ownerActorId: actorId,
+                    grantHandle: item.handle ?? `jump:${grantIndex}`,
+                    sourcePackageId: packageItem.logicalId,
+                    sourcePackageExactHash: packageItem.exactHash,
+                    tags: item.tags.map(normalizeTag),
+                    description: jumpGrantDescription(
+                      packageItem,
+                      item,
+                      context,
+                    ),
+                    layout: item.layout,
+                    text: item.text,
+                    images: item.images,
+                  },
+                ]
+              : [],
+        )
+      : [];
+  const traits = [
+    ...jumpTraits,
+    ...packageItem.choices.flatMap((choice) => {
+      if (!choiceViews[choice.handle]?.active) return [];
+      const value = choiceViews[choice.handle]?.value;
+      return choice.grants.flatMap(
+        (item, grantIndex): EvaluatedGrantRecord[] => {
+          const grantContext = grantRenderContext(
             {
-              id: `grant:${entryId}:${actorId}:${choice.handle}:${grantIndex}`,
-              kind: "trait",
-              name: inheritedGrantName(choice, item, grantContext),
-              sourceEntryId: entryId,
-              ownerActorId: actorId,
-              grantHandle: effectiveGrantHandle(choice, item, grantIndex),
-              sourcePackageId: packageItem.logicalId,
-              sourcePackageExactHash: packageItem.exactHash,
-              tags: [
-                ...new Set([...choice.tags, ...item.tags].map(normalizeTag)),
-              ],
-              description: inheritedDescription(choice, item, grantContext),
-              measure: grantMeasure(item, value),
-              layout: item.layout,
-              text: item.text,
-              images: item.images,
+              ...context,
+              ...choiceControlRenderContext(choice, actorState, value),
             },
-          ]
-        : [];
-    });
-  });
+            item,
+            value,
+          );
+          return item.kind === "trait" && visibleGrantIsAcquired(value)
+            ? [
+                {
+                  id: `grant:${entryId}:${actorId}:${choice.handle}:${grantIndex}`,
+                  kind: "trait",
+                  name: inheritedGrantName(choice, item, grantContext),
+                  sourceEntryId: entryId,
+                  ownerActorId: actorId,
+                  grantHandle: effectiveGrantHandle(choice, item, grantIndex),
+                  sourcePackageId: packageItem.logicalId,
+                  sourcePackageExactHash: packageItem.exactHash,
+                  tags: [
+                    ...new Set(
+                      [...choice.tags, ...item.tags].map(normalizeTag),
+                    ),
+                  ],
+                  description: inheritedDescription(choice, item, grantContext),
+                  measure: grantMeasure(item, value),
+                  layout: item.layout,
+                  text: item.text,
+                  images: item.images,
+                },
+              ]
+            : [];
+        },
+      );
+    }),
+  ];
   return {
     balance: resources.jump_points.balance,
     resources,
     properties,
     choices: choiceViews,
+    sections,
     traits,
     diagnostics,
   } satisfies EvaluatedActorJump;
@@ -641,6 +858,46 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
     const imported = new Set<string>();
     const companionTargets = new Map<string, readonly string[]>();
     const entryForms = new Map<string, EvaluatedForm>();
+
+    for (const [grantIndex, grant] of (packageItem.grants ?? []).entries()) {
+      if (grant.kind === "form" && grant.handle) {
+        const name = jumpGrantName(packageItem, grant, jumperContext);
+        const form: EvaluatedForm = {
+          id: `form:${entryId}:${grant.handle}`,
+          handle: grant.handle,
+          name,
+          sourceEntryId: entryId,
+          ownerActorId: "jumper",
+          description: jumpGrantDescription(packageItem, grant, jumperContext),
+          initials: initials(name),
+          tags: grant.tags.map(normalizeTag),
+          perkRecordIds: [],
+        };
+        entryForms.set(grant.handle, form);
+        forms.push(form);
+      }
+      if (grant.kind === "companion" && grant.handle) {
+        const name = jumpGrantName(packageItem, grant, jumperContext);
+        const companionId = `companion:${entryId}:jumper:jump:${grantIndex}`;
+        actors[companionId] = {
+          id: companionId,
+          name,
+          role: "Companion",
+          joinedEntryId: entryId,
+          initials: initials(name),
+          summary: jumpGrantDescription(packageItem, grant, jumperContext),
+        };
+        companions.set(companionId, {
+          actorId: companionId,
+          sourceEntryId: entryId,
+          tags: grant.tags.map(normalizeTag),
+          perkRecordIds: [],
+          itemRecordIds: [],
+          importedEntryIds: [],
+        });
+        companionTargets.set(grant.handle, [companionId]);
+      }
+    }
 
     for (const choice of packageItem.choices) {
       const evaluatedChoice = jumperEvaluation.choices[choice.handle];
@@ -734,6 +991,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
         targetedResources.set(actorId, grants);
       }
     };
+    (packageItem.grants ?? []).forEach(applyTargetedResource);
     for (const choice of packageItem.choices) {
       if (!jumperEvaluation.choices[choice.handle]?.active) continue;
       choice.grants.forEach(applyTargetedResource);
@@ -793,6 +1051,25 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
       if (!original[actorId]) original[actorId] = evaluation.properties;
 
       const context = actorRenderContext(evaluation, gauntlet.active);
+      if (actorId === "jumper")
+        for (const [grantIndex, item] of (packageItem.grants ?? []).entries())
+          if (item.kind === "perk" || item.kind === "item")
+            for (const owner of ownersForGrant(item, actorId)) {
+              const ownerKey = owner.ownerActorId ?? actorId;
+              records.push({
+                id: `grant:${entryId}:${ownerKey}:jump:${grantIndex}`,
+                kind: item.kind,
+                name: jumpGrantName(packageItem, item, context),
+                sourceEntryId: entryId,
+                ownerActorId: owner.ownerActorId,
+                ownerFormId: owner.ownerFormId,
+                grantHandle: item.handle ?? `jump:${grantIndex}`,
+                sourcePackageId: packageItem.logicalId,
+                sourcePackageExactHash: packageItem.exactHash,
+                tags: item.tags.map(normalizeTag),
+                description: jumpGrantDescription(packageItem, item, context),
+              });
+            }
       for (const choice of packageItem.choices) {
         const evaluatedChoice = evaluation.choices[choice.handle];
         if (!evaluatedChoice?.active) continue;

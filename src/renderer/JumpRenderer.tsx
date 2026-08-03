@@ -45,6 +45,7 @@ import {
   layoutImageStyle,
   layoutInlineChildAreaStyle,
   layoutLeafPresentationStyle,
+  layoutRichTextListStyle,
   layoutRuleStyle,
   layoutTiledImageStyle,
 } from "./layoutPresentation";
@@ -194,7 +195,12 @@ function RichInlines({ values }: { values: readonly RichInline[] }) {
     if (value.italic) content = <em>{content}</em>;
     if (value.strike) content = <s>{content}</s>;
     if (value.underline) content = <u>{content}</u>;
-    return <span key={index}>{content}</span>;
+    return (
+      <Fragment key={index}>
+        <span>{content}</span>
+        {value.breakAfter && <br />}
+      </Fragment>
+    );
   });
 }
 
@@ -202,10 +208,12 @@ function RichText({
   source,
   blocks,
   style,
+  layoutNode,
 }: {
   source?: string;
   blocks?: readonly RichBlock[];
   style?: CSSProperties;
+  layoutNode?: LayoutNode;
 }) {
   return (blocks ?? parseRichText(source ?? "")).map((block, index) => {
     if (block.kind === "paragraph")
@@ -216,7 +224,15 @@ function RichText({
       );
     if (block.kind === "list")
       return (
-        <ul className="jump-layout-text" key={index} style={style}>
+        <ul
+          className="jump-layout-text"
+          data-list-marker={layoutNode?.presentation.listMarker}
+          key={index}
+          style={{
+            ...style,
+            ...(layoutNode ? layoutRichTextListStyle(layoutNode) : {}),
+          }}
+        >
           {block.items.map((item, itemIndex) => (
             <li key={itemIndex}>
               <RichInlines values={item} />
@@ -338,10 +354,12 @@ const resolvedChoiceRichText = (
 function CostBadges({
   choice,
   evaluation,
+  packageItem,
   source,
 }: {
   choice: JumpChoice;
   evaluation: EvaluatedActorJump;
+  packageItem: CanonicalJumpPackage;
   source?: ChoiceSource;
 }) {
   const view = evaluation.choices[choice.handle];
@@ -350,6 +368,33 @@ function CostBadges({
   const rolled = source
     ? view?.rolledBySource
     : view?.rolledResult !== undefined;
+  const discountLabel = (cost: NonNullable<typeof view>["costs"][number]) =>
+    cost.discounts?.length
+      ? translate("ui.jumpRenderer.text.discountedBy", {
+          choices: cost.discounts
+            .map((discount) => {
+              const sourceChoice = packageItem.choices.find(
+                (candidate) => candidate.handle === discount.sourceChoiceHandle,
+              );
+              return label(sourceChoice?.name, discount.sourceChoiceHandle);
+            })
+            .join(", "),
+        })
+      : undefined;
+  const discountedCostLabel = (
+    cost: NonNullable<typeof view>["costs"][number],
+    suffix: string,
+  ) => {
+    const provenance = discountLabel(cost);
+    return provenance && cost.discountBaseAmount !== cost.resolvedAmount
+      ? translate("ui.jumpRenderer.aria.discountedCost", {
+          base: Math.abs(cost.discountBaseAmount ?? cost.originalAmount),
+          resolved: Math.abs(cost.resolvedAmount),
+          resource: suffix,
+          provenance,
+        })
+      : undefined;
+  };
   if (
     choice.continuity &&
     (!view?.active ||
@@ -508,6 +553,8 @@ function CostBadges({
             <b
               key={cost.resource}
               className={`cost-badge is-ranked${award ? " is-award" : ""}`}
+              title={discountLabel(cost)}
+              aria-label={discountedCostLabel(cost, suffix)}
             >
               <span>
                 {award ? "+" : ""}
@@ -526,9 +573,27 @@ function CostBadges({
           <b
             key={cost.resource}
             className={`cost-badge${award ? " is-award" : ""}`}
+            title={discountLabel(cost)}
+            aria-label={discountedCostLabel(cost, suffix)}
           >
-            {award ? "+" : ""}
-            {Math.abs(cost.resolvedAmount || cost.originalAmount)} {suffix}
+            {cost.discounts?.length &&
+            cost.discountBaseAmount !== cost.resolvedAmount ? (
+              <>
+                <span className="cost-badge-original">
+                  {Math.abs(cost.discountBaseAmount ?? cost.originalAmount)}{" "}
+                  {suffix}
+                </span>
+                <strong>
+                  {award ? "+" : ""}
+                  {Math.abs(cost.resolvedAmount)} {suffix}
+                </strong>
+              </>
+            ) : (
+              <>
+                {award ? "+" : ""}
+                {Math.abs(cost.resolvedAmount || cost.originalAmount)} {suffix}
+              </>
+            )}
           </b>
         );
       })}
@@ -1046,6 +1111,10 @@ function SourceOptionControl({
 }) {
   const selections = props.state.sourceSelections[sourceKey] ?? [];
   const checked = selections.includes(choice.handle);
+  const limitReached =
+    source.mode === "multi" &&
+    source.max !== undefined &&
+    selections.length >= source.max;
   const setGroup = () => {
     props.actions.setSourceSelections(
       sourceKey,
@@ -1067,8 +1136,9 @@ function SourceOptionControl({
           name={sourceOptionGroupName(props.entryId, props.actorId, source)}
           checked={checked}
           disabled={
-            source.resolution === "random" &&
-            sourceRoll?.result !== choice.handle
+            (source.resolution === "random" &&
+              sourceRoll?.result !== choice.handle) ||
+            (limitReached && !checked)
           }
           onChange={setGroup}
         />
@@ -1087,6 +1157,13 @@ function SourceOptionControl({
       </label>
       {sourceRoll?.result === choice.handle && (
         <em>{translate("ui.jumpRenderer.text.rolledLabel")}</em>
+      )}
+      {limitReached && !checked && (
+        <em className="source-option-limit-status">
+          {translate("ui.jumpRenderer.text.sourceMaximumReached", {
+            maximum: source.max,
+          })}
+        </em>
       )}
     </div>
   );
@@ -1159,6 +1236,7 @@ function DefaultChoice({
         <CostBadges
           choice={choice}
           evaluation={props.evaluation}
+          packageItem={props.packageItem}
           source={source}
         />
       </div>
@@ -1211,6 +1289,10 @@ function SourceRollControls({
   const { choices, key, roll } = sourceContext(source, sectionHandle, props);
   const selections = props.state.sourceSelections[key] ?? [];
   const anySelected = selections.length > 0;
+  const maximumReached =
+    source.mode === "multi" &&
+    source.max !== undefined &&
+    selections.length >= source.max;
   const doRoll = () => {
     if (!choices.length) return;
     if (roll && !props.preferences.allowRerolls) return;
@@ -1228,7 +1310,10 @@ function SourceRollControls({
         <button
           type="button"
           className="roll-control"
-          disabled={Boolean(roll) && !props.preferences.allowRerolls}
+          disabled={
+            (Boolean(roll) && !props.preferences.allowRerolls) ||
+            (maximumReached && !roll)
+          }
           onClick={doRoll}
         >
           {translate("ui.jumpRenderer.text.roll")}
@@ -1257,15 +1342,18 @@ function SourceRollControls({
         <span className="spent-total">
           {translate("ui.jumpRenderer.text.spent")}{" "}
           <output>
-            {choices.reduce(
-              (total, choice) =>
+            {choices.reduce((total, choice) => {
+              const evaluated = props.evaluation.choices[choice.handle];
+              return (
                 total +
-                (props.evaluation.choices[choice.handle]?.costs.reduce(
-                  (sum, cost) => sum + Math.max(0, cost.resolvedAmount),
-                  0,
-                ) ?? 0),
-              0,
-            )}{" "}
+                (evaluated?.active
+                  ? evaluated.costs.reduce(
+                      (sum, cost) => sum + Math.max(0, cost.resolvedAmount),
+                      0,
+                    )
+                  : 0)
+              );
+            }, 0)}{" "}
             {translate("ui.jumpRenderer.text.cpSuffix")}
           </output>
         </span>
@@ -1447,6 +1535,8 @@ function LayoutLeafBoundary({
             ? "on"
             : "off"
       }
+      data-layout-control-density={node.presentation.controlDensity}
+      data-layout-cost-density={node.presentation.costDensity}
       data-jump-background-image={background?.source ?? undefined}
       {...layoutColorInspectionData(node, layout, path)}
       style={{
@@ -1534,6 +1624,7 @@ function Layout({
         <CostBadges
           choice={choice}
           evaluation={props.evaluation}
+          packageItem={props.packageItem}
           source={source}
         />,
       );
@@ -1593,12 +1684,18 @@ function Layout({
                 ? resolvedChoiceRichText(content, choice, props)
                 : renderRichTextRenderable(content, rendererContext(props))
             }
+            layoutNode={node}
           />,
         )
       : null;
   }
   if (node.kind === "rule")
-    return bound(<hr style={layoutRuleStyle(node, props.packageItem)} />);
+    return bound(
+      <hr
+        aria-orientation={node.presentation.orientation ?? "horizontal"}
+        style={layoutRuleStyle(node, props.packageItem)}
+      />,
+    );
   if (node.kind === "input" && choice)
     return bound(
       <InputControls choice={choice} props={props} target={node.target} />,
@@ -1691,7 +1788,11 @@ function Layout({
   return (
     <Tag
       className={`jump-layout-${node.kind}`}
-      style={layoutContainerPresentationStyle(node, props.packageItem)}
+      style={layoutContainerPresentationStyle(
+        node,
+        props.packageItem,
+        parentKind,
+      )}
       data-jump-background-image={background?.source ?? undefined}
       data-layout-bound={structuralPath}
       data-layout-kind={node.kind}
@@ -1778,50 +1879,63 @@ function JumpSectionView({
       item.handle ===
         (section.layout ?? props.packageItem.defaultSectionLayout),
   );
+  const locked = props.evaluation.sections?.[section.handle]?.locked ?? false;
+  const content = layout ? (
+    <Layout
+      node={layout.root}
+      sectionHandle={section.handle}
+      layout={layout}
+      props={props}
+    />
+  ) : (
+    <div className="jump-default-section">
+      <h5 className="jump-section-layout-name">
+        {resolved(section.name, props, section.handle)}
+      </h5>
+      {section.members.map((member) => {
+        if (member.kind === "source") {
+          const source = section.sources.find(
+            (item) => item.handle === member.handle,
+          );
+          return source ? (
+            <SourceChoices
+              key={`source:${member.handle}`}
+              source={source}
+              sectionHandle={section.handle}
+              props={props}
+            />
+          ) : null;
+        }
+        const direct = section.directChoices.find(
+          (item) => item.handle === member.handle,
+        );
+        const choice = props.packageItem.choices.find(
+          (item) => item.handle === direct?.target,
+        );
+        return choice ? (
+          <ChoiceWithLayout
+            key={`choice:${member.handle}`}
+            choice={choice}
+            props={props}
+          />
+        ) : null;
+      })}
+    </div>
+  );
   return (
-    <section className="rendered-jump-section">
-      {layout ? (
-        <Layout
-          node={layout.root}
-          sectionHandle={section.handle}
-          layout={layout}
-          props={props}
-        />
-      ) : (
-        <div className="jump-default-section">
-          <h5 className="jump-section-layout-name">
-            {resolved(section.name, props, section.handle)}
-          </h5>
-          {section.members.map((member) => {
-            if (member.kind === "source") {
-              const source = section.sources.find(
-                (item) => item.handle === member.handle,
-              );
-              return source ? (
-                <SourceChoices
-                  key={`source:${member.handle}`}
-                  source={source}
-                  sectionHandle={section.handle}
-                  props={props}
-                />
-              ) : null;
-            }
-            const direct = section.directChoices.find(
-              (item) => item.handle === member.handle,
-            );
-            const choice = props.packageItem.choices.find(
-              (item) => item.handle === direct?.target,
-            );
-            return choice ? (
-              <ChoiceWithLayout
-                key={`choice:${member.handle}`}
-                choice={choice}
-                props={props}
-              />
-            ) : null;
-          })}
+    <section
+      className="rendered-jump-section"
+      data-section-locked={locked ? "true" : "false"}
+      aria-disabled={locked || undefined}
+    >
+      {locked && (
+        <div className="jump-section-locked-status" role="status">
+          {translate("ui.jumpRenderer.text.sectionLocked")}
         </div>
       )}
+      <fieldset className="jump-section-content" disabled={locked}>
+        {content}
+      </fieldset>
     </section>
   );
 }
@@ -1877,6 +1991,7 @@ function TraitLayoutNode({
                   : {},
               ),
             )}
+            layoutNode={node}
           />,
         )
       : null;
@@ -1899,7 +2014,12 @@ function TraitLayoutNode({
       : null;
   }
   if (node.kind === "rule")
-    return bound(<hr style={layoutRuleStyle(node, props.packageItem)} />);
+    return bound(
+      <hr
+        aria-orientation={node.presentation.orientation ?? "horizontal"}
+        style={layoutRuleStyle(node, props.packageItem)}
+      />,
+    );
   if (!["stack", "inline", "wrap", "grid"].includes(node.kind)) return null;
   const background = resolveLayoutBackgroundImage(
     node,
@@ -1909,7 +2029,11 @@ function TraitLayoutNode({
   return (
     <div
       className={`jump-layout-${node.kind}`}
-      style={layoutContainerPresentationStyle(node, props.packageItem)}
+      style={layoutContainerPresentationStyle(
+        node,
+        props.packageItem,
+        parentKind,
+      )}
       data-jump-background-image={background?.source ?? undefined}
       data-layout-bound={structuralPath}
       data-layout-kind={node.kind}
@@ -1957,7 +2081,7 @@ function TraitView({
       item.handle === (trait.layout ?? props.packageItem.defaultTraitLayout),
   );
   return layout ? (
-    <article>
+    <article className="authored-trait-layout">
       <TraitLayoutNode
         node={layout.root}
         layout={layout}
@@ -1966,7 +2090,7 @@ function TraitView({
       />
     </article>
   ) : (
-    <article>
+    <article className="default-trait-card">
       <strong>{trait.name}</strong>
       <span>{trait.description}</span>
     </article>

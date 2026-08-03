@@ -449,6 +449,7 @@ function childStarter(kind: string) {
     image: 'image\n  handle: new_image\n  alt: ""',
     input: "input\n  handle: new_input\n  selection: text",
     cost: "cost\n  resource: jump_points\n  amount: 0",
+    discount: "discount\n  group: choice_group\n  mode: percent\n  amount: 50",
     grant: `grant\n  kind: perk\n  name: ${JSON.stringify(translate("ui.editorWorkspace.starter.newGrantName"))}`,
   };
   return starters[kind];
@@ -461,6 +462,7 @@ const preferredFocusFields: Readonly<Record<string, string>> = {
   image: "src",
   input: "selection",
   cost: "amount",
+  discount: "group",
   grant: "kind",
 };
 

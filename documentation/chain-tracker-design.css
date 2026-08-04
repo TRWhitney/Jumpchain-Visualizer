@@ -421,20 +421,30 @@
 }
 
 .chain-library-card > .chain-library-actions {
-  grid-template-columns: minmax(0, 1fr) 1.55rem;
+  --chain-library-action-height: 1.8rem;
+
+  grid-template-columns: minmax(0, 1fr) var(--chain-library-action-height);
   gap: 0.2rem;
 }
 
 .chain-library-actions > button {
   min-width: 0;
+  min-height: var(--chain-library-action-height);
 }
 
 .chain-library-actions > .chain-library-remove {
-  width: 1.55rem;
-  height: 1.55rem;
+  width: var(--chain-library-action-height);
+  height: auto;
   min-height: 0;
-  align-self: center;
+  align-self: stretch;
   padding: 0;
+}
+
+.chain-library-remove > span {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .chain-library-card button:disabled {

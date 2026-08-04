@@ -1,0 +1,6 @@
+interface:
+  display_name: "Jumpify Facsimile"
+  short_description: "Convert source Jumps into facsimile .jmp packages"
+  default_prompt: "Use $jumpify-facsimile to convert this source Jump into a facsimile Format 1 .jmp package."
+policy:
+  allow_implicit_invocation: false

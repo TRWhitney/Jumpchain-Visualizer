@@ -1,0 +1,63 @@
+.author-guide-note {
+  margin-block: 1.5rem;
+  padding: 1rem 1.15rem;
+  background: var(--accent-soft);
+  border-left: 0.3rem solid var(--accent);
+}
+
+.author-guide-example {
+  margin-block: 1.5rem 2rem;
+  padding: 1rem 1.15rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+}
+
+.author-guide-example > :first-child {
+  margin-top: 0;
+}
+
+.author-guide-example > :last-child {
+  margin-bottom: 0;
+}
+
+.table-wrap {
+  max-width: 100%;
+  margin-block: 1rem 2rem;
+  overflow-x: auto;
+}
+
+.table-wrap table {
+  width: 100%;
+  min-width: 44rem;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.table-wrap :is(th, td) {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table-wrap thead th {
+  background: var(--code);
+}
+
+.table-wrap tbody th {
+  background: var(--background);
+  white-space: nowrap;
+}
+
+#complete-syntax-reference > section {
+  padding-top: 0.2rem;
+}
+
+@media (max-width: 36rem) {
+  .author-guide-note,
+  .author-guide-example {
+    margin-inline: -0.4rem;
+  }
+}

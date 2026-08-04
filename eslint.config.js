@@ -11,6 +11,7 @@ export default defineConfig([
     "dist",
     "node_modules",
     "playwright-report",
+    "scratch",
     "target",
     "test-results",
   ]),

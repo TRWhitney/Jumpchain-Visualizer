@@ -322,8 +322,12 @@ test("package imports enforce author-name-version identity and expose an adjacen
   ).toBeLessThanOrEqual(1);
   expect(removeBounds!.x).toBeGreaterThan(openBounds!.x + openBounds!.width);
   expect(
+    Math.abs(removeBounds!.height - openBounds!.height),
+  ).toBeLessThanOrEqual(0.1);
+  expect(
     Math.abs(removeBounds!.width - removeBounds!.height),
   ).toBeLessThanOrEqual(1);
+  await expect(remove.locator("span")).toHaveCSS("font-size", "20px");
   await attachScreenshot(
     testInfo,
     "imported-package-adjacent-remove",

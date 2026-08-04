@@ -1822,9 +1822,13 @@ test("an imported package has an adjacent square remove action and a confirmed r
     ),
   ).toBeLessThanOrEqual(1);
   expect(removeBounds.left).toBeGreaterThan(openBounds.right);
+  expect(Math.abs(removeBounds.height - openBounds.height)).toBeLessThanOrEqual(
+    0.1,
+  );
   expect(
     Math.abs(removeBounds.width - removeBounds.height),
   ).toBeLessThanOrEqual(1);
+  expect(getComputedStyle(remove.querySelector("span")!).fontSize).toBe("20px");
 
   await page
     .getByRole("button", {

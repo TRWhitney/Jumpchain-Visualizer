@@ -1,0 +1,448 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jumpchain-visualizer.local/jumpify-ledger.schema.json",
+  "title": "Jumpify conversion ledger",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "mode",
+    "sourceHash",
+    "sourcePages",
+    "sections",
+    "entries",
+    "assets",
+    "colorSamples",
+    "comparisons",
+    "interactionContracts",
+    "mechanics",
+    "gaps",
+    "acceptance"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 3 },
+    "mode": { "enum": ["semantic", "facsimile"] },
+    "sourceHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "sourcePages": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/sourcePage" }
+    },
+    "sections": { "type": "array", "items": { "$ref": "#/$defs/section" } },
+    "entries": { "type": "array", "items": { "$ref": "#/$defs/entry" } },
+    "assets": { "type": "array", "items": { "$ref": "#/$defs/asset" } },
+    "colorSamples": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/colorSample" }
+    },
+    "comparisons": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/comparison" }
+    },
+    "interactionContracts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/interactionContract" }
+    },
+    "mechanics": { "type": "array", "items": { "$ref": "#/$defs/mechanic" } },
+    "gaps": { "type": "array", "items": { "$ref": "#/$defs/gap" } },
+    "acceptance": { "type": "array", "items": { "$ref": "#/$defs/acceptance" } }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+    "rect": {
+      "type": "object",
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "sourcePage": {
+      "type": "object",
+      "required": [
+        "page",
+        "width",
+        "height",
+        "status",
+        "entryIds",
+        "sectionHandles"
+      ],
+      "properties": {
+        "page": { "type": "integer", "minimum": 1 },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "status": { "enum": ["unreviewed", "verified", "uncertain"] },
+        "entryIds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "sectionHandles": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/identifier" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "section": {
+      "type": "object",
+      "required": [
+        "handle",
+        "name",
+        "sourcePages",
+        "renderIndex",
+        "status",
+        "surfaceTree"
+      ],
+      "properties": {
+        "handle": { "$ref": "#/$defs/identifier" },
+        "name": { "type": "string", "minLength": 1 },
+        "surfaceTree": { "type": "string", "minLength": 1 },
+        "sourcePages": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "integer", "minimum": 1 }
+        },
+        "renderIndex": { "type": "integer", "minimum": 1 },
+        "status": { "enum": ["incomplete", "complete"] }
+      },
+      "additionalProperties": false
+    },
+    "entry": {
+      "type": "object",
+      "required": [
+        "id",
+        "page",
+        "rect",
+        "sourceKind",
+        "verification",
+        "handles",
+        "semantic",
+        "presentation",
+        "approximation"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "page": { "type": "integer", "minimum": 1 },
+        "rect": { "$ref": "#/$defs/rect" },
+        "sourceKind": {
+          "enum": [
+            "prose",
+            "choice",
+            "artwork",
+            "rule",
+            "heading",
+            "decoration"
+          ]
+        },
+        "transcription": { "type": "string" },
+        "verification": {
+          "enum": [
+            "unreviewed",
+            "verified",
+            "uncertain",
+            "externally-corroborated"
+          ]
+        },
+        "corroboration": { "type": "object" },
+        "handles": { "type": "array", "items": { "type": "string" } },
+        "semantic": { "type": "object" },
+        "presentation": { "type": "object" },
+        "approximation": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "edgeOwnership": {
+      "type": "object",
+      "required": ["top", "right", "bottom", "left"],
+      "properties": {
+        "top": { "type": "string" },
+        "right": { "type": "string" },
+        "bottom": { "type": "string" },
+        "left": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "asset": {
+      "type": "object",
+      "required": [
+        "id",
+        "page",
+        "rect",
+        "output",
+        "kind",
+        "alt",
+        "package",
+        "edgeOwnership"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "page": { "type": "integer", "minimum": 1 },
+        "rect": { "$ref": "#/$defs/rect" },
+        "output": { "type": "string", "pattern": "^[^/].*\\.png$" },
+        "kind": { "enum": ["artwork", "panel"] },
+        "alt": { "type": "string", "minLength": 1 },
+        "package": { "type": "boolean" },
+        "edgeOwnership": { "$ref": "#/$defs/edgeOwnership" }
+      },
+      "additionalProperties": false
+    },
+    "colorSample": {
+      "type": "object",
+      "required": ["id", "page", "x", "y"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "page": { "type": "integer", "minimum": 1 },
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 },
+        "radius": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "comparison": {
+      "type": "object",
+      "required": ["id", "section", "width", "sourcePage", "renderPath"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "section": { "$ref": "#/$defs/identifier" },
+        "width": { "enum": [390, 720, 1440] },
+        "sourcePage": { "type": "integer", "minimum": 1 },
+        "sourceRect": { "$ref": "#/$defs/rect" },
+        "renderPath": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "interactionState": {
+      "type": "object",
+      "required": ["name", "evidence", "observation"],
+      "properties": {
+        "name": {
+          "enum": [
+            "unset",
+            "selected",
+            "manual",
+            "rolled",
+            "changed",
+            "limit-disabled",
+            "ranked",
+            "prose",
+            "custom"
+          ]
+        },
+        "evidence": { "type": "string", "pattern": "\\.png$" },
+        "note": { "type": "string" },
+        "observation": { "$ref": "#/$defs/interactionObservation" }
+      },
+      "additionalProperties": false
+    },
+    "screenRect": {
+      "type": "object",
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number", "minimum": 4 },
+        "height": { "type": "number", "minimum": 4 }
+      },
+      "additionalProperties": false
+    },
+    "interactionObservation": {
+      "type": "object",
+      "required": [
+        "controlKind",
+        "controlValue",
+        "activationControlKinds",
+        "resolutionStatus",
+        "resolvedCosts",
+        "actionSucceeded",
+        "bounds",
+        "overlaps"
+      ],
+      "properties": {
+        "controlKind": {
+          "enum": [
+            "checkbox",
+            "radio",
+            "text",
+            "number",
+            "select",
+            "companions",
+            "none"
+          ]
+        },
+        "controlValue": {
+          "type": ["string", "number", "boolean", "array", "null"]
+        },
+        "activationControlKinds": {
+          "type": "array",
+          "items": { "enum": ["checkbox", "radio"] }
+        },
+        "resolutionStatus": {
+          "enum": [
+            "unset",
+            "selected",
+            "manual",
+            "rolled",
+            "changed",
+            "limit-disabled",
+            "ranked",
+            "prose",
+            "custom"
+          ]
+        },
+        "resolvedCosts": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "actionSucceeded": { "type": "boolean" },
+        "bounds": {
+          "type": "object",
+          "properties": {
+            "surface": { "$ref": "#/$defs/screenRect" },
+            "rail": { "$ref": "#/$defs/screenRect" },
+            "neighbor": { "$ref": "#/$defs/screenRect" }
+          },
+          "additionalProperties": false
+        },
+        "overlaps": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "interactionGeometry": {
+      "type": "object",
+      "required": ["policy", "evidence", "note"],
+      "properties": {
+        "policy": { "enum": ["stable", "intentional-source-reflow"] },
+        "evidence": { "type": "string", "pattern": "\\.png$" },
+        "note": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "sourceActivation": {
+      "type": "object",
+      "required": ["decision", "directInsufficient", "evidence"],
+      "properties": {
+        "decision": { "type": "string", "minLength": 1 },
+        "directInsufficient": { "type": "string", "minLength": 1 },
+        "evidence": { "type": "string", "pattern": "\\.png$" }
+      },
+      "additionalProperties": false
+    },
+    "interactionContract": {
+      "type": "object",
+      "required": [
+        "id",
+        "entryIds",
+        "sourcePage",
+        "sourceBehavior",
+        "section",
+        "owner",
+        "placement",
+        "selection",
+        "resolution",
+        "continuity",
+        "pricing",
+        "states",
+        "geometry"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "entryIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "sourcePage": { "type": "integer", "minimum": 1 },
+        "sourceBehavior": { "type": "string", "minLength": 1 },
+        "section": { "$ref": "#/$defs/identifier" },
+        "owner": { "enum": ["choice", "choice-source", "prose"] },
+        "handle": { "$ref": "#/$defs/identifier" },
+        "placement": { "enum": ["direct", "source", "none"] },
+        "sourceHandle": { "$ref": "#/$defs/identifier" },
+        "sourceActivation": { "$ref": "#/$defs/sourceActivation" },
+        "selection": {
+          "enum": [
+            "toggle",
+            "text",
+            "integer",
+            "select",
+            "companions",
+            "source-members",
+            "none"
+          ]
+        },
+        "resolution": { "enum": ["manual", "random", "either", "none"] },
+        "continuity": { "enum": ["previous", "original", "none"] },
+        "pricing": {
+          "enum": ["ordinary", "rolled-free", "continuity-change", "none"]
+        },
+        "states": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/interactionState" }
+        },
+        "geometry": { "$ref": "#/$defs/interactionGeometry" }
+      },
+      "additionalProperties": false
+    },
+    "mechanic": {
+      "type": "object",
+      "required": ["id", "description", "status", "evidence"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "description": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "pattern": "^(pass|unreviewed|gap:.+)$" },
+        "evidence": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "gap": {
+      "type": "object",
+      "required": [
+        "id",
+        "requirement",
+        "experiment",
+        "evidence",
+        "limitation",
+        "fidelityLoss",
+        "approximation"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "requirement": { "type": "string" },
+        "experiment": { "type": "string" },
+        "evidence": { "type": "string" },
+        "limitation": { "type": "string" },
+        "fidelityLoss": { "type": "string" },
+        "approximation": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "acceptance": {
+      "type": "object",
+      "required": ["section", "width", "check", "status", "evidence"],
+      "properties": {
+        "section": { "$ref": "#/$defs/identifier" },
+        "width": { "enum": [390, 720, 1440] },
+        "check": {
+          "enum": [
+            "structure-and-surfaces",
+            "text",
+            "artwork-and-crops",
+            "costs-and-controls",
+            "content-and-semantics",
+            "responsive-fit"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "pattern": "^(pass|fail|unreviewed|gap:.+)$"
+        },
+        "evidence": { "type": "string" },
+        "note": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

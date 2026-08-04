@@ -751,7 +751,7 @@ function ChainRail({
                           })
                         }
                       >
-                        ×
+                        <span aria-hidden="true">×</span>
                       </button>
                     )}
                   </div>

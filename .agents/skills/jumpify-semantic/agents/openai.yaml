@@ -1,0 +1,6 @@
+interface:
+  display_name: "Jumpify Semantic"
+  short_description: "Convert source Jumps into semantic .jmp packages"
+  default_prompt: "Use $jumpify-semantic to convert this source Jump into a semantic Format 1 .jmp package."
+policy:
+  allow_implicit_invocation: false

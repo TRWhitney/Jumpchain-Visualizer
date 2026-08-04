@@ -2231,3 +2231,9 @@ html[data-app-theme="light"]
 [data-app-theme="light"] .chain-library-card small {
   color: #686861;
 }
+
+[data-app-theme="light"] .package-review-identity .package-review-hash code {
+  color: #343430;
+  background: #f3f1eb;
+  border-color: #cbc8bf;
+}

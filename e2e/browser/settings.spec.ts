@@ -289,6 +289,26 @@ test("See Mock Data gates Morgan and the explicit Mock Library source", async ({
   await tracker.getByRole("tab", { name: "Library" }).click();
   await expect(tracker.getByRole("button", { name: "Mock" })).toHaveCount(0);
   await expect(tracker.locator(".chain-library-card")).toHaveCount(0);
+  await tracker.getByRole("tab", { name: "Supplements" }).click();
+  const untouchedSupplements = tracker.locator(
+    ".supplement-manage-list input[type='checkbox']",
+  );
+  await expect(untouchedSupplements).toHaveCount(7);
+  expect(
+    await untouchedSupplements.evaluateAll((items) =>
+      items.every((item) => !(item as HTMLInputElement).checked),
+    ),
+  ).toBe(true);
+  await expect(
+    tracker.locator(".supplement-manage-list button", { hasText: "Open Page" }),
+  ).toHaveCount(7);
+  expect(
+    await tracker
+      .locator(".supplement-manage-list button", { hasText: "Open Page" })
+      .evaluateAll((items) =>
+        items.every((item) => (item as HTMLButtonElement).disabled),
+      ),
+  ).toBe(true);
 
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("tab", { name: "Developer" }).click();
@@ -310,6 +330,8 @@ test("See Mock Data gates Morgan and the explicit Mock Library source", async ({
   );
   await page.getByRole("button", { name: "Close Settings" }).click();
 
+  await tracker.getByRole("tab", { name: "Chain & Jump" }).click();
+  await tracker.getByRole("tab", { name: "Library" }).click();
   await tracker.getByRole("button", { name: "Mock" }).click();
   await expect(tracker.locator(".chain-library-card")).toHaveCount(3);
   await expect(tracker.locator(".chain-library-list")).toContainText(

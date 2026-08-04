@@ -5,9 +5,18 @@ import {
   mockPackageIds,
 } from "../fixtures/mockData";
 import { builtinTagDefinitions } from "../settings/builtinTags";
-import { initialBodyModState } from "../supplements/bodyMod";
-import { initialEnabled } from "../supplements/model";
-import { initialSupplementState } from "../supplements/supplementState";
+import {
+  createUntouchedBodyModState,
+  initialBodyModState,
+} from "../supplements/bodyMod";
+import {
+  createUntouchedEnabledModules,
+  initialEnabled,
+} from "../supplements/model";
+import {
+  createUntouchedSupplementState,
+  initialSupplementState,
+} from "../supplements/supplementState";
 import {
   EARTH_ENTRY_ID,
   EARTH_ENTRY_STATUS,
@@ -353,6 +362,7 @@ export function createReferenceTrackerFixture() {
 
 export function createBlankTrackerFixture(name = "New Chain"): TrackerState {
   const base = createDenseTrackerFixture();
+  const supplements = createUntouchedSupplementState();
   return {
     ...base,
     chainName: name,
@@ -361,8 +371,14 @@ export function createBlankTrackerFixture(name = "New Chain"): TrackerState {
     jumpState: {
       [EARTH_ENTRY_ID]: base.jumpState[EARTH_ENTRY_ID] ?? emptyJumpEntryState(),
     },
+    enabledSupplements: createUntouchedEnabledModules(),
+    bodyMod: createUntouchedBodyModState(),
+    supplements,
     entrySupplements: {
-      [EARTH_ENTRY_ID]: base.entrySupplements[EARTH_ENTRY_ID],
+      [EARTH_ENTRY_ID]: structuredClone({
+        quest: supplements.quest,
+        uds: supplements.uds,
+      }),
     },
     actors: { jumper: structuredClone(jumper) },
     records: [],

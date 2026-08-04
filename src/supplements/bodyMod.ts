@@ -199,6 +199,20 @@ export const initialBodyModState: BodyModState = {
   bestialStat: "Speed",
 };
 
+export const createUntouchedBodyModState = (): BodyModState => ({
+  build: "",
+  type: "None",
+  purchasedStats: Object.fromEntries(
+    bodyModStats.map((stat) => [stat, 0]),
+  ) as Record<BodyModStat, number>,
+  purchasedPerks: Object.fromEntries(
+    bodyModPerks.map(([perk]) => [perk, 0]),
+  ) as Record<BodyModPerk, number>,
+  animal: "",
+  bestialTier: 0,
+  bestialStat: "Strength",
+});
+
 export const changeBodyModType = (
   state: BodyModState,
   type: BodyModType,

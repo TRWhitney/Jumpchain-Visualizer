@@ -110,6 +110,21 @@ test("the chain hub creates and renames records from the single demo chain", asy
   const tracker = page.getByLabelText("Interactive Chain Tracker workspace");
   await expect.element(tracker).toBeVisible();
   expect(tracker.element().textContent).toContain("Lantern Road");
+  await page.getByRole("tab", { name: "Supplements" }).click();
+  const supplementToggles = tracker
+    .element()
+    .querySelectorAll<HTMLInputElement>(
+      ".supplement-manage-list input[type='checkbox']",
+    );
+  expect(supplementToggles).toHaveLength(7);
+  expect([...supplementToggles].every((toggle) => !toggle.checked)).toBe(true);
+  expect(
+    [
+      ...tracker
+        .element()
+        .querySelectorAll<HTMLButtonElement>(".supplement-manage-list button"),
+    ].every((button) => button.disabled),
+  ).toBe(true);
 
   await page
     .getByRole("button", { name: "Chain Tracker", exact: true })

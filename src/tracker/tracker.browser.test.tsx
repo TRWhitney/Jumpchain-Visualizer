@@ -1085,12 +1085,14 @@ choice
   handle: tagged
   name: "Tagged Choice"
   tag: pokemon
+  tag: adaptive
   layout: authored_card
 
 choice-layout
   handle: authored_card
 
   stack
+    background: "#20201e"
     text-size: 2xl
     text-color: "#ff0000"
     slot: tags
@@ -1137,6 +1139,20 @@ choice-layout
           style: "gradient",
           presentation,
         },
+        adaptive: {
+          id: "adaptive",
+          label: "Adaptive Surface",
+          parent: "miscellaneous",
+          aliases: [],
+          color: "#ffffff",
+          to: "#ffffff",
+          style: "outline",
+          presentation: {
+            ...presentationForTagDefinition("#ffffff", "#ffffff", "outline"),
+            background: "transparent",
+            textMode: "auto",
+          },
+        },
       }}
       companions={[]}
       gauntletActive={false}
@@ -1156,6 +1172,12 @@ choice-layout
   expect(style.fontStyle).toBe("italic");
   expect(style.textDecorationLine).toBe("underline");
   expect(badge.classList).toContain("animation-ghost");
+  const adaptive = page
+    .getByText("Adaptive Surface", { exact: true })
+    .element()
+    .closest<HTMLElement>(".tag-profile-badge")!;
+  await expect.poll(() => adaptive.dataset.renderedSurface).toBe("#20201e");
+  expect(getComputedStyle(adaptive).color).toBe("rgb(255, 255, 255)");
 });
 
 test("Source limits and Section locks expose accessible disabled states", async () => {

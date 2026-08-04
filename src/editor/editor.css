@@ -283,6 +283,13 @@
 .package-review-identity dd {
   overflow-wrap: anywhere;
 }
+.package-review-identity .package-review-hash code {
+  color: #d8d8d2;
+  background: #222220;
+  border: 1px solid #494944;
+  border-radius: 0.18rem;
+  padding: 0.12rem 0.25rem;
+}
 .package-review-limits {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

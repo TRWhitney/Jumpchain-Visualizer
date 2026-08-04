@@ -219,6 +219,59 @@ export const initialSupplementState: SupplementState = {
   },
 };
 
+export const createUntouchedSupplementState = (): SupplementState => ({
+  essential: {
+    ...structuredClone(initialSupplementState.essential),
+    variants: [],
+    essences: [],
+    detail: null,
+    essenceDetail: "",
+    purchases: {},
+    progression: {
+      ...structuredClone(initialSupplementState.essential.progression),
+      purchases: {},
+      quests: [],
+    },
+  },
+  warehouse: {
+    ...structuredClone(initialSupplementState.warehouse),
+    selected: [],
+    stasisPods: 0,
+  },
+  reality: {
+    ...structuredClone(initialSupplementState.reality),
+    detail: null,
+    extraModes: [],
+    purchases: {},
+    progression: {
+      ...structuredClone(initialSupplementState.reality.progression),
+      award: false,
+      conversionCP: 0,
+      purchases: {},
+    },
+  },
+  uds: {
+    ...structuredClone(initialSupplementState.uds),
+    chain: [],
+    jump: [],
+    hiatus: [],
+    detail: null,
+  },
+  quest: {
+    ...structuredClone(initialSupplementState.quest),
+    rules: [],
+    checked: [],
+    switching: [],
+  },
+  story: {
+    selectedJump: "",
+    selectedChapter: null,
+    editingChapter: null,
+    saved: "",
+    jumps: [],
+  },
+});
+
 export type SupplementAction =
   | { type: "essential"; update: Partial<EssentialState> }
   | {

@@ -78,6 +78,11 @@ export const initialEnabled: EnabledModules = {
   story: true,
 };
 
+export const createUntouchedEnabledModules = (): EnabledModules =>
+  Object.fromEntries(
+    modules.map((module) => [module.id, false]),
+  ) as EnabledModules;
+
 export const hasEnabledSupplements = (state: EnabledModules) =>
   modules.some((module) => state[module.id]);
 

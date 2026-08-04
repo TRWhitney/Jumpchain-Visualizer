@@ -37,7 +37,7 @@ export function PackageReview({
         </div>
         <div>
           <dt>{translate("ui.editorHub.text.sha256")}</dt>
-          <dd>
+          <dd className="package-review-hash">
             <code>{review.hash}</code>
           </dd>
         </div>

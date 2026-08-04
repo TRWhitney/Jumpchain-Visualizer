@@ -1,11 +1,20 @@
-import type { CSSProperties, ReactNode } from "react";
 import {
-  adaptTagTextToSurfaces,
+  type CSSProperties,
+  type ReactNode,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import {
   presentationForTagDefinition,
   readableTagText,
   type TagDefinition,
   type TagPresentation,
 } from "../domain/tags";
+import {
+  observeRenderedSurface,
+  renderedSurfaceColor,
+} from "./renderedSurface";
 
 type CanonicalPresentation = TagPresentation;
 
@@ -23,38 +32,58 @@ export function CanonicalTagBadge({
   trailingAction?: ReactNode;
 }) {
   const transparent = presentation.background === "transparent";
+  const badge = useRef<HTMLSpanElement>(null);
+  const [measuredSurface, setMeasuredSurface] = useState<string>();
+  const needsRenderedSurface =
+    transparent && presentation.textMode === "auto" && !surface;
+  useLayoutEffect(() => {
+    if (!needsRenderedSurface || !badge.current) {
+      setMeasuredSurface(undefined);
+      return;
+    }
+    const element = badge.current;
+    const update = () => {
+      const next = renderedSurfaceColor(element);
+      setMeasuredSurface((current) => (current === next ? current : next));
+    };
+    update();
+    return observeRenderedSurface(element, update);
+  }, [needsRenderedSurface]);
+  const effectiveSurface = surface ?? measuredSurface;
   const background = transparent
     ? "transparent"
     : presentation.background === "gradient"
       ? `linear-gradient(${presentation.angle}deg, ${presentation.colors.map((color, index) => `${color} ${presentation.positions[index]}%`).join(", ")})`
       : presentation.colors[0];
-  const textForSurfaces = (surfaces: readonly string[]) =>
-    presentation.textMode === "custom"
-      ? adaptTagTextToSurfaces(presentation.textColor, surfaces)
-      : readableTagText(surfaces);
   const renderedText = transparent
-    ? surface
-      ? textForSurfaces([surface])
-      : "var(--tag-adaptive-text, var(--tag-text-on-dark))"
+    ? presentation.textMode === "custom"
+      ? presentation.textColor
+      : effectiveSurface
+        ? readableTagText([effectiveSurface])
+        : "var(--tag-adaptive-text, var(--tag-text-on-dark))"
     : presentation.textMode === "custom"
       ? presentation.textColor
       : readableTagText(presentation.colors);
   return (
     <span
+      ref={badge}
       className={`tag-profile-badge effect-${presentation.textEffect} animation-${presentation.animation}${trailingAction ? " has-trailing-action" : ""}`}
+      data-rendered-surface={needsRenderedSurface ? measuredSurface : undefined}
       title={title}
       style={
         {
           background,
           color: renderedText,
-          ...(transparent && !surface
+          ...(transparent &&
+          presentation.textMode === "auto" &&
+          !effectiveSurface
             ? {
-                "--tag-text-on-light": textForSurfaces([
+                "--tag-text-on-light": readableTagText([
                   "#ffffff",
                   "#f6f5f1",
                   "#f3f1eb",
                 ]),
-                "--tag-text-on-dark": textForSurfaces([
+                "--tag-text-on-dark": readableTagText([
                   "#171717",
                   "#20201e",
                   "#292927",

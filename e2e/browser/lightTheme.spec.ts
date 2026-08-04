@@ -1021,7 +1021,7 @@ test(
 );
 
 test(
-  "transparent tag text adapts at render time in both themes",
+  "transparent automatic Tag text follows its rendered surface in both themes",
   {
     tag: ["@visual", "@chromium-only"],
   },
@@ -1040,12 +1040,7 @@ test(
       .locator("label")
       .filter({ hasText: /^Text color mode/ })
       .locator("select")
-      .selectOption("custom");
-    const savedTextColor = form
-      .locator("label")
-      .filter({ hasText: /^Text color/ })
-      .locator('input[type="color"]');
-    await savedTextColor.fill("#ffffff");
+      .selectOption("auto");
 
     const lightPreview = page.locator(
       ".tag-profile-preview-surface.is-light .tag-profile-badge",
@@ -1054,10 +1049,7 @@ test(
       ".tag-profile-preview-surface.is-dark .tag-profile-badge",
     );
     await retainScreenshot(testInfo, "transparent-tag-preview-light", page);
-    await expect.soft(savedTextColor).toHaveValue("#ffffff");
-    await expect
-      .soft(lightPreview)
-      .not.toHaveCSS("color", "rgb(255, 255, 255)");
+    await expect.soft(lightPreview).toHaveCSS("color", "rgb(17, 17, 17)");
     await expectTextContrast(
       lightPreview,
       page.locator(".tag-profile-preview-surface.is-light"),
@@ -1073,25 +1065,18 @@ test(
       .first();
     await expect(lightTag).toBeVisible();
     await retainScreenshot(testInfo, "transparent-tags-light", page);
-    await expect.soft(lightTag).not.toHaveCSS("color", "rgb(255, 255, 255)");
+    await expect.soft(lightTag).toHaveCSS("color", "rgb(17, 17, 17)");
     await expectTextContrast(
       lightTag,
       lightTag.locator("xpath=ancestor::article[1]"),
     );
+    await lightTag.evaluate((badge) => {
+      badge.parentElement!.style.background = "#20201e";
+    });
+    await expect.soft(lightTag).toHaveCSS("color", "rgb(255, 255, 255)");
 
     await page.getByRole("button", { name: "Settings" }).click();
     await page.getByRole("tab", { name: "Tags" }).click();
-    const darkThemeTextColor = page
-      .locator(".tag-profile-form-scroll label")
-      .filter({ hasText: /^Text color/ })
-      .locator('input[type="color"]');
-    await darkThemeTextColor.fill("#000000");
-    await expect(darkThemeTextColor).toHaveValue("#000000");
-    await waitForStoredSetting(
-      page,
-      ["tags", "profile", "tags", "physical", "presentation", "textColor"],
-      "#000000",
-    );
     await page.getByRole("tab", { name: "General" }).click();
     await page.locator("#theme").selectOption("dark");
     await expect(page.locator("html")).toHaveAttribute(
@@ -1103,16 +1088,13 @@ test(
 
     await page.getByRole("button", { name: "Settings" }).click();
     await page.getByRole("tab", { name: "Tags" }).click();
-    const darkSavedTextColor = page
-      .locator(".tag-profile-form-scroll label")
-      .filter({ hasText: /^Text color/ })
-      .locator('input[type="color"]');
     const darkThemePreview = page.locator(
       ".tag-profile-preview-surface.is-dark .tag-profile-badge",
     );
     await retainScreenshot(testInfo, "transparent-tag-preview-dark", page);
-    await expect.soft(darkSavedTextColor).toHaveValue("#000000");
-    await expect.soft(darkThemePreview).not.toHaveCSS("color", "rgb(0, 0, 0)");
+    await expect
+      .soft(darkThemePreview)
+      .toHaveCSS("color", "rgb(255, 255, 255)");
     await expectTextContrast(
       darkThemePreview,
       page.locator(".tag-profile-preview-surface.is-dark"),
@@ -1126,11 +1108,15 @@ test(
       .first();
     await expect(darkTag).toBeVisible();
     await retainScreenshot(testInfo, "transparent-tags-dark", page);
-    await expect.soft(darkTag).not.toHaveCSS("color", "rgb(0, 0, 0)");
+    await expect.soft(darkTag).toHaveCSS("color", "rgb(255, 255, 255)");
     await expectTextContrast(
       darkTag,
       darkTag.locator("xpath=ancestor::article[1]"),
     );
+    await darkTag.evaluate((badge) => {
+      badge.parentElement!.style.background = "#f5f1e6";
+    });
+    await expect.soft(darkTag).toHaveCSS("color", "rgb(17, 17, 17)");
   },
 );
 

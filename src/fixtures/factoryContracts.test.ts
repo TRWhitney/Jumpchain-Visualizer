@@ -24,4 +24,27 @@ describe("fixture factory contracts", () => {
     expect(first).toEqual(second);
     expect(first).not.toBe(second);
   });
+
+  it("creates new chains with untouched supplement state", () => {
+    const state = createBlankTrackerFixture("Untouched");
+    expect(Object.values(state.enabledSupplements)).toEqual(
+      Object.values(state.enabledSupplements).map(() => false),
+    );
+    expect(state.bodyMod.type).toBe("None");
+    expect(
+      Object.values(state.bodyMod.purchasedStats).every((rank) => rank === 0),
+    ).toBe(true);
+    expect(
+      Object.values(state.bodyMod.purchasedPerks).every((rank) => rank === 0),
+    ).toBe(true);
+    expect(state.supplements.essential.essences).toEqual([]);
+    expect(state.supplements.essential.purchases).toEqual({});
+    expect(state.supplements.warehouse.selected).toEqual([]);
+    expect(state.supplements.reality.purchases).toEqual({});
+    expect(state.supplements.uds.chain).toEqual([]);
+    expect(state.supplements.uds.jump).toEqual([]);
+    expect(state.supplements.quest.rules).toEqual([]);
+    expect(state.supplements.quest.checked).toEqual([]);
+    expect(state.supplements.story.jumps).toEqual([]);
+  });
 });

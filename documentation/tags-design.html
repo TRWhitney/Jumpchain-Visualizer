@@ -411,7 +411,7 @@
         <h2>Badge Presentation Model</h2>
         <p>A badge presentation may define bounded values in these groups:</p>
         <div class="badge-capability-grid" data-toc-ignore>
-          <article><h3>Text</h3><p>Foreground color or automatic contrast; normal, medium, or bold weight; normal or italic style; optional underline or strike only where it does not imply interaction.</p></article>
+          <article><h3>Text</h3><p>Foreground color or automatic contrast; normal, medium, or bold weight; normal or italic style; optional underline or strike only where it does not imply interaction. Automatic text on a transparent badge is calculated from the rendered surface beneath that badge, including authored Jump surfaces, rather than from the application theme. Custom text remains the User's exact selection.</p></article>
           <article><h3>Text effects</h3><p>None, Outline, Drop shadow, or Glow. These are bounded static presets rather than arbitrary effect parameters, and the renderer may suppress an effect when necessary to preserve legibility.</p></article>
           <article><h3>Background</h3><p>Transparent, solid color, or a two-to-six-stop linear gradient with a bounded angle and positioned stops. Every point behind text must remain readable.</p></article>
           <article><h3>Motion effects</h3><p>None, Rainbow, Marquee, Ghost, or Bounce. Rainbow cycles text hue from the configured foreground; Marquee turns one letter gold at a time; Ghost fades the text between full and low opacity; Bounce lifts letters in sequence to form a wave.</p></article>
@@ -446,7 +446,7 @@
           <li>User-configured aliases share a badge style unless one string has a more specific user override.</li>
           <li>A user color override on a child starts a new anchored sub-family for its descendants.</li>
           <li>Gradient stops shift together in the same perceptual space.</li>
-          <li>Final foreground, background, border, and focus colors are adjusted for the active Light or Dark theme and required contrast.</li>
+          <li>Automatic foreground contrast is resolved against the surface where the badge is actually rendered. Light or Dark application theme is only an initial fallback before a transparent badge's underlying surface can be measured; it is not the final source of truth.</li>
         </ol>
         <p>Color is never the only indication of hierarchy or aliasing. Labels, relationship text, grouping, and optional non-color badge cues remain available.</p>
 

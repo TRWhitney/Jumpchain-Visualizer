@@ -220,10 +220,10 @@
   select {
   appearance: none;
   padding-inline-end: 2rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cpath d='m2 2 4 4-4 4' fill='none' stroke='%235f5a4d' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m2 2 4 4 4-4' fill='none' stroke='%235f5a4d' stroke-width='1.6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.7rem center;
-  background-size: 0.5rem 0.75rem;
+  background-size: 0.75rem 0.5rem;
 }
 .format-one-jump-renderer .number-stepper-buttons {
   background: var(--jump-control-background);
@@ -833,17 +833,17 @@
   border-radius: var(--jump-control-corners);
 }
 .earth-jump-renderer .earth-identity-controls .default-choice-actions select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cpath d='m2 2 4 4-4 4' fill='none' stroke='%23aaa9a3' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m2 2 4 4 4-4' fill='none' stroke='%23aaa9a3' stroke-width='1.6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.7rem center;
-  background-size: 0.5rem 0.75rem;
+  background-size: 0.75rem 0.5rem;
 }
 [data-app-theme="light"]
   .earth-jump-renderer
   .earth-identity-controls
   .default-choice-actions
   select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cpath d='m2 2 4 4-4 4' fill='none' stroke='%23686861' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m2 2 4 4 4-4' fill='none' stroke='%23686861' stroke-width='1.6'/%3E%3C/svg%3E");
 }
 .earth-jump-renderer .secondary-control {
   color: var(--jump-control-text) !important;
@@ -1073,6 +1073,17 @@
 .jump-renderer-appearance-boundary.format-one-jump-renderer
   :is(.control-range, [data-roll-output], [data-group-status]) {
   color: var(--jump-control-muted-text);
+}
+.jump-renderer-appearance-boundary.format-one-jump-renderer
+  .number-stepper-buttons
+  button {
+  color: var(--jump-control-indicator);
+  background: transparent !important;
+}
+.jump-renderer-appearance-boundary.format-one-jump-renderer
+  .number-stepper-buttons
+  button:disabled {
+  color: var(--jump-control-disabled-indicator);
 }
 .jump-renderer-appearance-boundary.format-one-jump-renderer .cost-badge {
   color: var(--jump-cost-text);

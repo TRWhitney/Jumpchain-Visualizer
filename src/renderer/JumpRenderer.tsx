@@ -283,7 +283,6 @@ function ChoiceTags({ choice, props }: { choice: JumpChoice; props: Props }) {
                 aliases: [],
               }
             }
-            surface="#f5f1e6"
           />
         );
       })}

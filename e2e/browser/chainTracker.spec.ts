@@ -103,6 +103,9 @@ async function importTrackerPackage(page: Page, archivePath: string) {
     .setInputFiles(archivePath);
   const review = page.getByRole("alertdialog");
   await expect(review).toContainText("Secure inspection complete");
+  const digest = review.locator(".package-review-hash code");
+  await expect(digest).toHaveCSS("color", "rgb(216, 216, 210)");
+  await expect(digest).toHaveCSS("background-color", "rgb(34, 34, 32)");
   await review.getByRole("button", { name: "Import Project" }).click();
 }
 
@@ -1394,6 +1397,24 @@ test("Earth remains immutable and drives previous continuity into Jump 1", async
     "background-repeat",
     "no-repeat",
   );
+  await expect(tracker.getByLabel("Earth gender")).toHaveCSS(
+    "background-size",
+    "12px 8px",
+  );
+  for (const heading of await earthControls
+    .locator(".default-choice-heading > strong")
+    .all())
+    await expect(heading).toHaveCSS("color", "rgb(241, 241, 235)");
+  const ageInput = tracker.getByLabel("Earth age");
+  await expect(ageInput).toHaveCSS("color", "rgb(241, 241, 235)");
+  await expect(ageInput).toHaveCSS("background-color", "rgb(48, 48, 46)");
+  await expect(earthControls.locator(".number-stepper-buttons")).toHaveCSS(
+    "background-color",
+    "rgb(48, 48, 46)",
+  );
+  await expect(
+    earthControls.locator(".number-stepper-buttons button").first(),
+  ).toHaveCSS("color", "rgb(170, 169, 163)");
   await attachScreenshot(testInfo, "earth-dark-appearance", earthRenderer);
   if (reviewArtifactsEnabled)
     await earthRenderer.screenshot({

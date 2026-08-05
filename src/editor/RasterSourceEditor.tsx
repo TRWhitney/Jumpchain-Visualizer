@@ -38,7 +38,7 @@ import {
 import { RasterRenderClient } from "./rasterRenderClient";
 import { extractSafeImageMetadata } from "./safeImageMetadata";
 import { translate } from "../localization";
-import { useContextMenu } from "../ui";
+import { ReorderArrowButton, useContextMenu } from "../ui";
 import {
   keybindingDisplay,
   matchesKeybinding,
@@ -3002,8 +3002,9 @@ export function RasterSourceEditor({
                   >
                     {layer.locked ? "▣" : "▢"}
                   </button>
-                  <button
-                    type="button"
+                  <ReorderArrowButton
+                    direction="up"
+                    unavailable={index === draft.layers.length - 1}
                     {...tooltipEvents(
                       translate("ui.editorWorkspace.asset.editor.moveLayerUp", {
                         layer: layer.name,
@@ -3013,13 +3014,11 @@ export function RasterSourceEditor({
                       "ui.editorWorkspace.asset.editor.moveLayerUp",
                       { layer: layer.name },
                     )}
-                    disabled={index === draft.layers.length - 1}
                     onClick={() => move(1)}
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
+                  />
+                  <ReorderArrowButton
+                    direction="down"
+                    unavailable={index === 0}
                     {...tooltipEvents(
                       translate(
                         "ui.editorWorkspace.asset.editor.moveLayerDown",
@@ -3030,11 +3029,8 @@ export function RasterSourceEditor({
                       "ui.editorWorkspace.asset.editor.moveLayerDown",
                       { layer: layer.name },
                     )}
-                    disabled={index === 0}
                     onClick={() => move(-1)}
-                  >
-                    ↓
-                  </button>
+                  />
                   <button
                     type="button"
                     {...tooltipEvents(

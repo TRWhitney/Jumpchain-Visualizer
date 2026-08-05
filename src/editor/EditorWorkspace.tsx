@@ -16,6 +16,7 @@ import { flushSync } from "react-dom";
 import {
   Chevron,
   DisclosureSection,
+  ReorderArrowButton,
   useContextMenu,
   useSettingDefaultedState,
   type ContextMenuAction,
@@ -6555,8 +6556,9 @@ function LayoutTreeEditor({
                         aria-hidden="true"
                       />
                     )}
-                    <button
-                      type="button"
+                    <ReorderArrowButton
+                      direction="up"
+                      unavailable={index === 0}
                       className="editor-layout-action-up"
                       aria-label={translate(
                         "ui.editorWorkspace.ariaLabel.moveLayoutNodeUp",
@@ -6566,13 +6568,12 @@ function LayoutTreeEditor({
                         "ui.editorWorkspace.ariaLabel.moveLayoutNodeUp",
                         { node: displayKind(node.kind) },
                       )}
-                      disabled={!tree.structurallySafe || index === 0}
+                      disabled={!tree.structurallySafe}
                       onClick={() => reorder("up")}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
+                    />
+                    <ReorderArrowButton
+                      direction="down"
+                      unavailable={index === children.length - 1}
                       className="editor-layout-action-down"
                       aria-label={translate(
                         "ui.editorWorkspace.ariaLabel.moveLayoutNodeDown",
@@ -6582,13 +6583,9 @@ function LayoutTreeEditor({
                         "ui.editorWorkspace.ariaLabel.moveLayoutNodeDown",
                         { node: displayKind(node.kind) },
                       )}
-                      disabled={
-                        !tree.structurallySafe || index === children.length - 1
-                      }
+                      disabled={!tree.structurallySafe}
                       onClick={() => reorder("down")}
-                    >
-                      ↓
-                    </button>
+                    />
                     <button
                       type="button"
                       className="editor-layout-action-remove"
@@ -8885,28 +8882,24 @@ function StructuredPanel({
                           : editorDeclarationLabel(child.kind)}
                       </small>
                     </button>
-                    <button
-                      type="button"
-                      disabled={index === 0}
+                    <ReorderArrowButton
+                      direction="up"
+                      unavailable={index === 0}
                       aria-label={translate(
                         "ui.editorWorkspace.ariaLabel.moveDeclarationUp",
                         { declaration: symbolLabel(child) },
                       )}
                       onClick={() => onMoveChild(symbol, child, "up")}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      disabled={index === allChildren.length - 1}
+                    />
+                    <ReorderArrowButton
+                      direction="down"
+                      unavailable={index === allChildren.length - 1}
                       aria-label={translate(
                         "ui.editorWorkspace.ariaLabel.moveDeclarationDown",
                         { declaration: symbolLabel(child) },
                       )}
                       onClick={() => onMoveChild(symbol, child, "down")}
-                    >
-                      ↓
-                    </button>
+                    />
                     <button
                       type="button"
                       aria-label={translate(

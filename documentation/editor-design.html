@@ -848,7 +848,9 @@
             Changing the active container collapses any open child presentation
             form, and reparenting through either drag or <em>Move…</em> also
             leaves the moved child collapsed in its destination. Arrows and
-            drops at a row’s top or bottom edge reorder siblings. Every enabled
+            drops at a row’s top or bottom edge reorder siblings. A reorder
+            arrow disappears at its unavailable boundary while its action cell
+            remains reserved, so adjacent controls do not shift. Every enabled
             input, select, textarea, button, editable region, and compound
             widget inside a draggable child row is an interaction boundary:
             selecting text or operating the control cannot start a row drag,

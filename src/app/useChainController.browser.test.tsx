@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { useState } from "react";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { defaultSettings } from "../settings/model";
@@ -8,6 +9,7 @@ import {
   projectTagDefinitions,
 } from "../settings/tagProfile";
 import { MemoryChainRepository } from "../tracker/repository";
+import { MemoryChainPackageRepository } from "../tracker/packageRepository";
 import { useChainController } from "./useChainController";
 
 const settings = defaultSettings(createDefaultTagProfile());
@@ -62,6 +64,67 @@ function ChainControllerHarness({
   );
 }
 
+class DeferredCreateRepository extends MemoryChainRepository {
+  private releaseCreate: (() => void) | null = null;
+  private readonly createGate = new Promise<void>((resolve) => {
+    this.releaseCreate = resolve;
+  });
+
+  override async save(value: Parameters<MemoryChainRepository["save"]>[0]) {
+    if (value.id === "ch-new-1" && value.order.length === 1)
+      await this.createGate;
+    await super.save(value);
+  }
+
+  release() {
+    this.releaseCreate?.();
+  }
+}
+
+function OrderedSaveHarness({
+  repository,
+}: {
+  repository: DeferredCreateRepository;
+}) {
+  const [routeChainId, setRouteChainId] = useState<string | null>(null);
+  const [packageRepository] = useState(
+    () => new MemoryChainPackageRepository(),
+  );
+  const chain = useChainController({
+    routeChainId,
+    tags,
+    preferences,
+    showMockData: true,
+    logger,
+    repositoryFactory: () => repository,
+    packageRepositoryFactory: () => packageRepository,
+  });
+  return (
+    <div>
+      <output aria-label="jump count">
+        {chain.effectiveState.order.length}
+      </output>
+      <button
+        type="button"
+        onClick={() => {
+          const id = chain.commands.create("Ordered Chain");
+          if (id) setRouteChainId(id);
+        }}
+      >
+        Create ordered
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          chain.dispatch({ type: "add-package", packageId: "threshold-roads" })
+        }
+      >
+        Add Jump
+      </button>
+    </div>
+  );
+}
+
 test("the Chain controller updates its view before its serialized create finishes", async () => {
   const repository = new MemoryChainRepository();
   render(<ChainControllerHarness repository={repository} />);
@@ -76,4 +139,19 @@ test("the Chain controller updates its view before its serialized create finishe
   await expect
     .poll(async () => (await repository.load("ch-new-1"))?.name)
     .toBe("Lantern Road");
+});
+
+test("a delayed create write cannot replace newer chain state", async () => {
+  const repository = new DeferredCreateRepository();
+  render(<OrderedSaveHarness repository={repository} />);
+  await page.getByRole("button", { name: "Create ordered" }).click();
+  await page.getByRole("button", { name: "Add Jump" }).click();
+  await expect
+    .element(page.getByLabelText("jump count"))
+    .toHaveTextContent("2");
+
+  repository.release();
+  await expect
+    .poll(async () => (await repository.load("ch-new-1"))?.order.length)
+    .toBe(2);
 });

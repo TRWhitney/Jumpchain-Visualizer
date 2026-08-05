@@ -38,7 +38,7 @@ async function waitForPersistedTourEditorText(page: Page, expected: string[]) {
           }
         }
         return new Promise<boolean>((resolve, reject) => {
-          const open = indexedDB.open("jumpchain-visualizer", 4);
+          const open = indexedDB.open("jumpchain-visualizer", 5);
           open.onerror = () => reject(open.error);
           open.onsuccess = () => {
             const database = open.result;
@@ -147,7 +147,7 @@ test("first launch completes the Editor lesson, resumes exact input, and tours a
         editorIds: string[];
         chainIds: string[];
       }>((resolve, reject) => {
-        const open = indexedDB.open("jumpchain-visualizer", 4);
+        const open = indexedDB.open("jumpchain-visualizer", 5);
         open.onerror = () => reject(open.error);
         open.onsuccess = () => {
           const database = open.result;

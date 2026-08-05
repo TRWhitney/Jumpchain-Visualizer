@@ -711,6 +711,22 @@ describe("Chain Tracker aggregate", () => {
     expect(tagIsWithin(state, "door-craft", "miscellaneous")).toBe(true);
   });
 
+  it("ignores missing collection fields in a persisted evaluation cache", () => {
+    const fixture = createDenseTrackerFixture();
+    const cached = evaluateTracker(fixture, fixture.bodyMod);
+    const tags = trackerTagDefinitions({
+      ...fixture,
+      lastValidatedEvaluation: {
+        ...cached,
+        records: undefined,
+        forms: undefined,
+        companions: undefined,
+      } as unknown as typeof cached,
+    });
+
+    expect(tags).toEqual(trackerTagDefinitions(fixture));
+  });
+
   it("shows five inventory tags while reserving space for search and filter matches", () => {
     const state = projectedFixture();
     const gateScholar = filteredInventory({

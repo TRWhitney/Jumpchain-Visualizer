@@ -1,9 +1,10 @@
 export const APPLICATION_DATABASE_NAME = "jumpchain-visualizer";
 export const SETTINGS_STORE_NAME = "aggregates";
 export const CHAINS_STORE_NAME = "chains";
+export const CHAIN_PACKAGES_STORE_NAME = "chain-packages";
 export const EDITOR_WORKSPACES_STORE_NAME = "editor-workspaces";
 export const WELCOME_TOUR_STORE_NAME = "welcome-tour";
-const APPLICATION_DATABASE_VERSION = 4;
+const APPLICATION_DATABASE_VERSION = 5;
 
 export function openApplicationDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
@@ -18,6 +19,15 @@ export function openApplicationDatabase() {
         request.result.createObjectStore(SETTINGS_STORE_NAME);
       if (!request.result.objectStoreNames.contains(CHAINS_STORE_NAME))
         request.result.createObjectStore(CHAINS_STORE_NAME, { keyPath: "id" });
+      if (
+        !request.result.objectStoreNames.contains(CHAIN_PACKAGES_STORE_NAME)
+      ) {
+        const store = request.result.createObjectStore(
+          CHAIN_PACKAGES_STORE_NAME,
+          { keyPath: "key" },
+        );
+        store.createIndex("chainId", "chainId", { unique: false });
+      }
       if (
         !request.result.objectStoreNames.contains(EDITOR_WORKSPACES_STORE_NAME)
       )

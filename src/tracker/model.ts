@@ -120,9 +120,15 @@ export function trackerTagDefinitions(
     ...packageReferences,
     ...state.records.flatMap((record) => record.tags),
     ...state.companions.flatMap((companion) => companion.tags),
-    ...(cached?.records.flatMap((record) => record.tags) ?? []),
-    ...(cached?.forms.flatMap((form) => form.tags) ?? []),
-    ...(cached?.companions.flatMap((companion) => companion.tags) ?? []),
+    ...(Array.isArray(cached?.records)
+      ? cached.records.flatMap((record) => record.tags)
+      : []),
+    ...(Array.isArray(cached?.forms)
+      ? cached.forms.flatMap((form) => form.tags)
+      : []),
+    ...(Array.isArray(cached?.companions)
+      ? cached.companions.flatMap((companion) => companion.tags)
+      : []),
   ]);
 }
 

@@ -48,6 +48,7 @@ export type PackageImportReview = {
   diagnostics: readonly PackageDiagnostic[];
   packageItem: CanonicalJumpPackage;
   files: SecurePackageFiles;
+  archive: Uint8Array;
 };
 
 export class PackageSecurityError extends Error {
@@ -691,6 +692,7 @@ export class JumpPackageImportService {
       diagnostics: packageItem.diagnostics,
       packageItem,
       files: { definitions, assets },
+      archive: archive.slice(),
     };
   }
 

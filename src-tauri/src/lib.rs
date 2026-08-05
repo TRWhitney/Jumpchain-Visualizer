@@ -1,10 +1,11 @@
 use std::{
     collections::HashSet,
+    io::Cursor,
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use archive_core::{EffectivePackageSizeLimits, validate_image};
+use archive_core::{EffectivePackageSizeLimits, inspect_archive, validate_image};
 use command::{CommandError, CommandResult, PersistenceState};
 use export_commands::{save_diagnostic_report, save_editor_package};
 use persistence::AggregateStore;
@@ -168,6 +169,176 @@ fn remove_chain(id: String, state: State<'_, PersistenceState>) -> CommandResult
     store
         .save("chains", 1, &encoded)
         .map_err(|_| CommandError::from("chain write failed"))
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ChainPackageMetadata {
+    chain_id: String,
+    id: String,
+    limits: EffectivePackageSizeLimits,
+}
+
+fn chain_package_directory(app: &tauri::AppHandle, chain_id: &str) -> Result<PathBuf, String> {
+    if !safe_workspace_id(chain_id) {
+        return Err("Chain package chain id is invalid".to_owned());
+    }
+    Ok(app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "Application package path is unavailable")?
+        .join("chain-packages")
+        .join(chain_id))
+}
+
+fn validate_chain_package_metadata(metadata: &ChainPackageMetadata) -> Result<(), String> {
+    if !safe_workspace_id(&metadata.chain_id) || !safe_workspace_id(&metadata.id) {
+        return Err("Chain package identity is invalid".to_owned());
+    }
+    metadata
+        .limits
+        .validate()
+        .map(|_| ())
+        .map_err(|_| "Chain package limits are invalid".to_owned())
+}
+
+fn read_chain_package_metadata(path: &Path) -> Result<ChainPackageMetadata, String> {
+    let bytes = std::fs::read(path).map_err(|_| "Chain package metadata could not be read")?;
+    if bytes.len() > 16 * 1024 {
+        return Err("Chain package metadata is too large".to_owned());
+    }
+    let metadata: ChainPackageMetadata =
+        serde_json::from_slice(&bytes).map_err(|_| "Chain package metadata is invalid JSON")?;
+    validate_chain_package_metadata(&metadata)?;
+    Ok(metadata)
+}
+
+fn decode_chain_package_payload(payload: &[u8]) -> Result<(ChainPackageMetadata, &[u8]), String> {
+    let header_length = payload
+        .get(..4)
+        .and_then(|bytes| <[u8; 4]>::try_from(bytes).ok())
+        .map(u32::from_le_bytes)
+        .map(|length| length as usize)
+        .ok_or("Chain package header is missing")?;
+    if header_length == 0 || header_length > 16 * 1024 || payload.len() < 4 + header_length {
+        return Err("Chain package header is invalid".to_owned());
+    }
+    let metadata: ChainPackageMetadata = serde_json::from_slice(&payload[4..4 + header_length])
+        .map_err(|_| "Chain package header is invalid JSON".to_owned())?;
+    validate_chain_package_metadata(&metadata)?;
+    Ok((metadata, &payload[4 + header_length..]))
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn save_chain_package(
+    app: tauri::AppHandle,
+    request: tauri::ipc::Request<'_>,
+) -> CommandResult<()> {
+    let tauri::ipc::InvokeBody::Raw(payload) = request.body() else {
+        return Err(CommandError::from("Chain package payload is not binary"));
+    };
+    let (metadata, archive) = decode_chain_package_payload(payload)?;
+    inspect_archive(Cursor::new(archive), metadata.limits)
+        .map_err(|_| CommandError::from("Chain package archive is invalid"))?;
+
+    let directory = chain_package_directory(&app, &metadata.chain_id)?;
+    std::fs::create_dir_all(&directory)
+        .map_err(|_| CommandError::from("Chain package directory could not be created"))?;
+    atomic_write(&directory.join(format!("{}.jmp", metadata.id)), archive)?;
+    let encoded = serde_json::to_vec(&metadata)
+        .map_err(|_| CommandError::from("Chain package metadata encoding failed"))?;
+    atomic_write(&directory.join(format!("{}.json", metadata.id)), &encoded)?;
+    Ok(())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn list_chain_packages(
+    app: tauri::AppHandle,
+    chain_id: String,
+) -> CommandResult<Vec<ChainPackageMetadata>> {
+    let directory = chain_package_directory(&app, &chain_id)?;
+    if !directory.exists() {
+        return Ok(Vec::new());
+    }
+    let entries = std::fs::read_dir(&directory)
+        .map_err(|_| CommandError::from("Chain package directory could not be read"))?;
+    let mut metadata = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|value| value.to_str()) != Some("json") {
+            continue;
+        }
+        let Ok(item) = read_chain_package_metadata(&path) else {
+            continue;
+        };
+        if item.chain_id == chain_id && directory.join(format!("{}.jmp", item.id)).is_file() {
+            metadata.push(item);
+        }
+    }
+    Ok(metadata)
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn load_chain_package(
+    app: tauri::AppHandle,
+    chain_id: String,
+    id: String,
+) -> CommandResult<tauri::ipc::Response> {
+    if !safe_workspace_id(&id) {
+        return Err(CommandError::from("Chain package id is invalid"));
+    }
+    let directory = chain_package_directory(&app, &chain_id)?;
+    let metadata = read_chain_package_metadata(&directory.join(format!("{id}.json")))?;
+    if metadata.chain_id != chain_id || metadata.id != id {
+        return Err(CommandError::from("Chain package metadata does not match"));
+    }
+    let archive = std::fs::read(directory.join(format!("{id}.jmp")))
+        .map_err(|_| CommandError::from("Chain package archive could not be read"))?;
+    inspect_archive(Cursor::new(&archive), metadata.limits)
+        .map_err(|_| CommandError::from("Stored chain package archive is invalid"))?;
+    Ok(tauri::ipc::Response::new(archive))
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn remove_chain_package(app: tauri::AppHandle, chain_id: String, id: String) -> CommandResult<()> {
+    if !safe_workspace_id(&id) {
+        return Err(CommandError::from("Chain package id is invalid"));
+    }
+    let directory = chain_package_directory(&app, &chain_id)?;
+    for extension in ["json", "jmp"] {
+        let path = directory.join(format!("{id}.{extension}"));
+        if path.exists() {
+            std::fs::remove_file(path)
+                .map_err(|_| CommandError::from("Chain package could not be removed"))?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn remove_chain_packages(app: tauri::AppHandle, chain_id: String) -> CommandResult<()> {
+    let directory = chain_package_directory(&app, &chain_id)?;
+    if !directory.exists() {
+        return Ok(());
+    }
+    for entry in std::fs::read_dir(&directory)
+        .map_err(|_| CommandError::from("Chain package directory could not be read"))?
+        .flatten()
+    {
+        let path = entry.path();
+        if path.is_file() {
+            std::fs::remove_file(path)
+                .map_err(|_| CommandError::from("Chain package could not be removed"))?;
+        }
+    }
+    std::fs::remove_dir(&directory)
+        .map_err(|_| CommandError::from("Chain package directory could not be removed"))?;
+    Ok(())
 }
 
 fn editor_workspace_values(store: &AggregateStore) -> Result<Vec<serde_json::Value>, String> {
@@ -589,6 +760,11 @@ pub fn run() {
             chains_initialized,
             save_chain,
             remove_chain,
+            save_chain_package,
+            list_chain_packages,
+            load_chain_package,
+            remove_chain_package,
+            remove_chain_packages,
             list_editor_workspaces,
             load_editor_workspace,
             save_editor_workspace,
@@ -613,8 +789,8 @@ mod tests {
     };
 
     use super::{
-        CommandError, EffectivePackageSizeLimits, atomic_write, read_project_folder,
-        save_external_workspace,
+        CommandError, EffectivePackageSizeLimits, atomic_write, decode_chain_package_payload,
+        read_project_folder, save_external_workspace,
     };
     use crate::validation::{
         safe_workspace_id, sanitize_suggested_name, validate_chain_payload,
@@ -704,6 +880,27 @@ mod tests {
         assert!(!safe_workspace_id("../editor-recovery"));
         assert!(!safe_workspace_id("folder/project"));
         assert!(!safe_workspace_id(""));
+    }
+
+    #[test]
+    fn validates_bounded_binary_chain_package_headers() {
+        let metadata = serde_json::json!({
+            "chainId": "chain-1",
+            "id": "imported-abcd",
+            "limits": limits(),
+        });
+        let header = serde_json::to_vec(&metadata).expect("encode package header");
+        let header_length = u32::try_from(header.len()).expect("bounded package header length");
+        let mut payload = Vec::from(header_length.to_le_bytes());
+        payload.extend_from_slice(&header);
+        payload.extend_from_slice(b"archive");
+        let (decoded, archive) =
+            decode_chain_package_payload(&payload).expect("decode package payload");
+        assert_eq!(decoded.chain_id, "chain-1");
+        assert_eq!(archive, b"archive");
+
+        payload[0..4].copy_from_slice(&(20_000_u32).to_le_bytes());
+        assert!(decode_chain_package_payload(&payload).is_err());
     }
 
     #[test]

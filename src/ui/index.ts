@@ -5,6 +5,7 @@ export * from "./ContextMenu";
 export * from "./contextMenuModel";
 export * from "./useSettingDefaultedState";
 export * from "./NumberStepper";
+export * from "./ReorderArrowButton";
 export * from "./PackageReview";
 export * from "./TagBadge";
 export * from "./useAssetObjectUrls";

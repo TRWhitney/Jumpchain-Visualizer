@@ -6,7 +6,7 @@ import { SupplementProviders } from "../supplements/TrackerSupplements";
 import { ChainTracker } from "./ChainTracker";
 import { createDenseTrackerFixture } from "./fixtures";
 import { evaluateTracker, projectEvaluation } from "./evaluateTracker";
-import { TagRadar } from "./TagRadar";
+import { StaticTagRadar, TagRadar } from "./TagRadar";
 import { trackerReducer, type TrackerAction } from "./model";
 import {
   JumpRenderer,
@@ -192,6 +192,35 @@ function TrackerHarness() {
     undefined,
     createDenseTrackerFixture,
   );
+  return (
+    <SupplementProviders
+      bodyMod={state.bodyMod}
+      onBodyModChange={(value) => dispatch({ type: "set-body-mod", value })}
+      supplementState={state.supplements}
+      supplementDispatch={(action) =>
+        dispatch({ type: "supplement-action", action })
+      }
+    >
+      <ChainTracker state={state} dispatch={dispatch} />
+    </SupplementProviders>
+  );
+}
+
+function NonRemovablePackageTrackerHarness() {
+  const [state, dispatch] = useReducer(trackerReducer, undefined, () => {
+    const fixture = createDenseTrackerFixture();
+    const packageId = fixture.entries["entry-0"].packageId;
+    return {
+      ...fixture,
+      packages: {
+        ...fixture.packages,
+        [packageId]: {
+          ...fixture.packages[packageId],
+          source: "builtin" as const,
+        },
+      },
+    };
+  });
   return (
     <SupplementProviders
       bodyMod={state.bodyMod}
@@ -1716,6 +1745,53 @@ test("category radar supports selection and breakdown", async () => {
     .toBeVisible();
 });
 
+test("isolated radar values form visible spikes without drawing zero nodes", async () => {
+  const fixture = createDenseTrackerFixture();
+  render(
+    <StaticTagRadar
+      counts={{
+        social: 0,
+        mental: 3,
+        spiritual: 0,
+        magic: 0,
+        meta: 0,
+        stealth: 2,
+        physical: 0,
+        combat: 0,
+        defense: 0,
+        crafting: 0,
+        technology: 0,
+        miscellaneous: 0,
+      }}
+      tags={fixture.tags}
+      label="Sparse perk category radar"
+    />,
+  );
+  await expect
+    .element(page.getByRole("img", { name: "Sparse perk category radar" }))
+    .toBeVisible();
+
+  const points = document
+    .querySelector("polygon.radar-area")!
+    .getAttribute("points")!
+    .split(" ")
+    .map((point) => point.split(",").map(Number));
+  const doubledArea = Math.abs(
+    points.reduce((area, [x, y], index) => {
+      const [nextX, nextY] = points[(index + 1) % points.length];
+      return area + x * nextY - nextX * y;
+    }, 0),
+  );
+  expect(doubledArea / 2).toBeGreaterThan(100);
+
+  expect(document.querySelectorAll("circle.radar-point")).toHaveLength(2);
+  expect(
+    [...document.querySelectorAll("circle.radar-point title")].map(
+      (title) => title.textContent,
+    ),
+  ).toEqual(["Mental: 3 perks", "Stealth: 2 perks"]);
+});
+
 test("a direct-only breakdown renders a solid disk", async () => {
   render(<RadarHarness />);
   const combat = page.getByRole("button", { name: "Combat" });
@@ -1819,6 +1895,27 @@ test("Earth is unnumbered, immutable, and establishes identity continuity", asyn
         .element() as HTMLInputElement
     ).value,
   ).toBe("");
+});
+
+test("built-in and Mock package actions fill cards without a remove action", async () => {
+  render(<NonRemovablePackageTrackerHarness />);
+  await page.getByRole("tab", { name: "Library" }).click();
+  const cards = [
+    page.getByText("Built-in ·", { exact: false }).first().element(),
+    page.getByText("Mock ·", { exact: false }).first().element(),
+  ].map((label) => label.closest<HTMLElement>(".chain-library-card")!);
+
+  for (const card of cards) {
+    const actions = card.querySelector<HTMLElement>(".chain-library-actions")!;
+    const action = actions.querySelector<HTMLButtonElement>("button")!;
+    expect(actions.querySelector(".chain-library-remove")).toBeNull();
+    expect(
+      Math.abs(
+        action.getBoundingClientRect().width -
+          actions.getBoundingClientRect().width,
+      ),
+    ).toBeLessThanOrEqual(0.1);
+  }
 });
 
 test("an imported package has an adjacent square remove action and a confirmed removal path", async () => {

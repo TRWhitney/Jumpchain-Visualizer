@@ -16,6 +16,7 @@ import type {
   UdsState,
 } from "../supplements/supplementState";
 import type { TrackerPage } from "./constants";
+import type { PackageSizeLimits } from "../archive/packageLimits";
 
 export type InstalledPackage = {
   id: string;
@@ -31,6 +32,8 @@ export type InstalledPackage = {
   nativeGauntlet?: boolean;
   document?: CanonicalJumpPackage;
   assets?: Readonly<Record<string, Uint8Array>>;
+  archive?: Uint8Array;
+  archiveLimits?: Readonly<PackageSizeLimits>;
 };
 
 export type ChainEntry = {

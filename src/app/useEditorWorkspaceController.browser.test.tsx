@@ -28,6 +28,28 @@ class RecordingWorkspaceRepository implements EditorWorkspaceRepository {
   async remove() {}
 }
 
+class DeferredCreateRepository implements EditorWorkspaceRepository {
+  readonly saves: EditorWorkspaceSnapshot[] = [];
+  readonly releases: (() => void)[] = [];
+  completions = 0;
+
+  async list() {
+    return [];
+  }
+
+  async load() {
+    return null;
+  }
+
+  async save(workspace: EditorWorkspaceSnapshot) {
+    this.saves.push(workspace);
+    await new Promise<void>((resolve) => this.releases.push(resolve));
+    this.completions += 1;
+  }
+
+  async remove() {}
+}
+
 function SaveQueueHarness({
   mode,
   repository,
@@ -59,6 +81,37 @@ function SaveQueueHarness({
       >
         Save
       </button>
+    </div>
+  );
+}
+
+function CreateRaceHarness({
+  repository,
+}: {
+  repository: DeferredCreateRepository;
+}) {
+  const editor = useEditorWorkspaceController("explicit", () => repository);
+  const workspace = Object.values(editor.workspaces)[0];
+  return (
+    <div>
+      <output aria-label="save state">{editor.saveState}</output>
+      {!workspace ? (
+        <button type="button" onClick={() => editor.commands.create()}>
+          Create
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() =>
+            editor.commands.change({
+              ...workspace,
+              revision: workspace.revision + 1,
+            })
+          }
+        >
+          Change
+        </button>
+      )}
     </div>
   );
 }
@@ -97,4 +150,25 @@ test("the Editor controller keeps explicit changes in memory until its save comm
   await page.getByRole("button", { name: "Save" }).click();
   await expect.poll(() => repository.saves.length).toBe(1);
   expect(repository.saves[0].revision).toBe(1);
+});
+
+test("an initial project save cannot mark a newer revision as saved", async () => {
+  const repository = new DeferredCreateRepository();
+  render(<CreateRaceHarness repository={repository} />);
+  await expect
+    .element(page.getByRole("button", { name: "Create" }))
+    .toBeVisible();
+
+  await page.getByRole("button", { name: "Create" }).click();
+  await expect.poll(() => repository.saves.length).toBe(1);
+  await page.getByRole("button", { name: "Change" }).click();
+  await expect
+    .element(page.getByLabelText("save state"))
+    .toHaveTextContent("unsaved");
+
+  repository.releases[0]();
+  await expect.poll(() => repository.completions).toBe(1);
+  await expect
+    .element(page.getByLabelText("save state"))
+    .toHaveTextContent("unsaved");
 });

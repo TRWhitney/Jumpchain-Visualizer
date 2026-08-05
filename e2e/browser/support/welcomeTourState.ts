@@ -50,7 +50,7 @@ export async function dismissWelcomeTour(page: Page) {
   await page.waitForFunction(
     () =>
       new Promise<boolean>((resolveState, reject) => {
-        const open = indexedDB.open("jumpchain-visualizer", 4);
+        const open = indexedDB.open("jumpchain-visualizer", 5);
         open.onerror = () => reject(open.error);
         open.onsuccess = () => {
           const database = open.result;

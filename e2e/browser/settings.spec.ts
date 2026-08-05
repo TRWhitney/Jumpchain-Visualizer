@@ -691,6 +691,7 @@ test(
     await page.getByLabel("Language", { exact: true }).selectOption("es");
     await expect(page.getByLabel("Idioma", { exact: true })).toHaveValue("es");
     await expect(page.locator("html")).toHaveAttribute("lang", "es");
+    await waitForStoredSetting(page, ["language", "tag"], "es");
     await page.getByPlaceholder("Buscar configuración").fill("zzzz-no-match");
     await expect(
       page.getByText("No settings match this search."),
@@ -764,6 +765,7 @@ test(
     await page.getByLabel("Language", { exact: true }).selectOption("ar");
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await waitForStoredSetting(page, ["language", "tag"], "ar");
     const frame = page.getByLabel("إعدادات التطبيق");
     await expect(frame).toBeVisible();
     const bounds = await frame.boundingBox();

@@ -27,7 +27,14 @@ import {
   type TrackerAction,
   type TrackerPreferences,
   type TrackerState,
+  type InstalledPackage,
 } from "../tracker/model";
+import { restoreStoredChainPackage } from "../tracker/importedPackage";
+import {
+  createPlatformChainPackageRepository,
+  storedChainPackage,
+  type ChainPackageRepository,
+} from "../tracker/packageRepository";
 import {
   aggregateFromTracker,
   applyAggregate,
@@ -50,6 +57,7 @@ export function useChainController({
   showMockData,
   logger,
   repositoryFactory = createPlatformChainRepository,
+  packageRepositoryFactory = createPlatformChainPackageRepository,
 }: {
   routeChainId: string | null;
   tags: Readonly<Record<string, TagDefinition>>;
@@ -57,6 +65,7 @@ export function useChainController({
   showMockData: boolean;
   logger: EventPipeline;
   repositoryFactory?: () => ChainRepository;
+  packageRepositoryFactory?: () => ChainPackageRepository;
 }) {
   const [registry, registryDispatch] = useReducer(
     chainRegistryReducer,
@@ -64,7 +73,14 @@ export function useChainController({
     createChainRegistryFixture,
   );
   const repository = useMemo(() => repositoryFactory(), [repositoryFactory]);
+  const packageRepository = useMemo(
+    () => packageRepositoryFactory(),
+    [packageRepositoryFactory],
+  );
   const initializationRef = useRef<Promise<void>>(Promise.resolve());
+  const chainWriteQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const packageWriteQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const [initialized, setInitialized] = useState(false);
   const [states, setStates] = useState<Record<string, TrackerState>>(() =>
     Object.fromEntries(
       Object.values(createChainRegistryFixture().chains).map((chain) => [
@@ -76,6 +92,32 @@ export function useChainController({
   const statesRef = useRef(states);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [lastActiveId, setLastActiveId] = useState(DEMONSTRATION_CHAIN_ID);
+
+  const queueChainSave = useCallback(
+    (aggregate: ReturnType<typeof aggregateFromTracker>) => {
+      const pending = initializationRef.current.then(() => {
+        const write = chainWriteQueueRef.current.then(() =>
+          repository.save(aggregate),
+        );
+        chainWriteQueueRef.current = write.catch(() => undefined);
+        return write;
+      });
+      return pending;
+    },
+    [repository],
+  );
+
+  const queuePackageOperation = useCallback(
+    (operation: () => Promise<void>) => {
+      const pending = initializationRef.current.then(() => {
+        const write = packageWriteQueueRef.current.then(operation);
+        packageWriteQueueRef.current = write.catch(() => undefined);
+        return write;
+      });
+      return pending;
+    },
+    [],
+  );
   const activeChain = routeChainId ? registry.chains[routeChainId] : undefined;
   const activeId = activeChain?.id ?? lastActiveId;
   const trackerState = reconcileDemonstrationPackageBindings(
@@ -138,6 +180,7 @@ export function useChainController({
               ),
             ),
           );
+          if (live) setInitialized(true);
           return;
         }
         registryDispatch({ type: "clear" });
@@ -151,14 +194,30 @@ export function useChainController({
             lastOpenedLabel: aggregate.lastOpenedLabel,
             starred: aggregate.starred ?? false,
           });
+        const storedPackages = await Promise.all(
+          stored.map((aggregate) => packageRepository.list(aggregate.id)),
+        );
+        const restoredPackages = await Promise.all(
+          storedPackages.map(async (records) =>
+            (await Promise.all(records.map(restoreStoredChainPackage))).filter(
+              (item): item is InstalledPackage => item !== null,
+            ),
+          ),
+        );
         const next = Object.fromEntries(
-          stored.map((aggregate) => {
+          stored.map((aggregate, index) => {
             const base =
               states[aggregate.id] ?? createBlankTrackerFixture(aggregate.name);
+            const packages = Object.fromEntries(
+              restoredPackages[index].map((item) => [item.id, item]),
+            );
             return [
               aggregate.id,
               reconcileDemonstrationPackageBindings(
-                applyAggregate(base, aggregate),
+                applyAggregate(
+                  { ...base, packages: { ...base.packages, ...packages } },
+                  aggregate,
+                ),
                 aggregate.id,
               ),
             ];
@@ -166,6 +225,7 @@ export function useChainController({
         );
         statesRef.current = next;
         setStates(next);
+        setInitialized(true);
       })
       .catch(() => setSaveError(translate("errors.SAVED_CHAINS_LOAD_FAILED")));
     initializationRef.current = initialize;
@@ -174,26 +234,25 @@ export function useChainController({
     };
     // The initial seed is intentionally captured once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repository]);
+  }, [packageRepository, repository]);
 
   useEffect(() => {
-    if (!activeChain) return;
+    if (!activeChain || !initialized) return;
     const timeout = window.setTimeout(() => {
-      void repository
-        .save(
-          aggregateFromTracker(
-            activeChain.id,
-            { ...trackerState, chainName: activeChain.name },
-            activeChain,
-          ),
-        )
+      void queueChainSave(
+        aggregateFromTracker(
+          activeChain.id,
+          { ...trackerState, chainName: activeChain.name },
+          activeChain,
+        ),
+      )
         .then(() => setSaveError(null))
         .catch(() =>
           setSaveError(translate("errors.AUTOSAVE_FAILED_MEMORY_RETAINED")),
         );
     }, 250);
     return () => window.clearTimeout(timeout);
-  }, [activeChain, repository, trackerState]);
+  }, [activeChain, initialized, queueChainSave, trackerState]);
 
   const open = useCallback((chain: SavedChain) => {
     setLastActiveId(chain.id);
@@ -212,17 +271,14 @@ export function useChainController({
       registryDispatch({ type: "create", id, name: normalized });
       statesRef.current = nextStates;
       setStates(nextStates);
-      void initializationRef.current
-        .then(() =>
-          repository.save(
-            aggregateFromTracker(id, nextState, {
-              description: "A new chain ready for its first Jump.",
-              lastOpenedSequence: registry.nextSequence,
-              lastOpenedLabel: "Opened just now",
-              starred: false,
-            }),
-          ),
-        )
+      void queueChainSave(
+        aggregateFromTracker(id, nextState, {
+          description: "A new chain ready for its first Jump.",
+          lastOpenedSequence: registry.nextSequence,
+          lastOpenedLabel: "Opened just now",
+          starred: false,
+        }),
+      )
         .then(() => setSaveError(null))
         .catch(() =>
           setSaveError(translate("errors.AUTOSAVE_FAILED_MEMORY_RETAINED")),
@@ -230,7 +286,7 @@ export function useChainController({
       logger.emit("chain.created", { attributes: { jumpCount: 0 } });
       return id;
     },
-    [logger, registry.nextSequence, registry.nextSerial, repository],
+    [logger, queueChainSave, registry.nextSequence, registry.nextSerial],
   );
 
   const setStarred = useCallback(
@@ -238,25 +294,65 @@ export function useChainController({
       registryDispatch({ type: "set-starred", id: chain.id, starred });
       const current = statesRef.current[chain.id];
       if (current)
-        void repository
-          .save(
-            aggregateFromTracker(chain.id, current, {
-              description: chain.description,
-              lastOpenedSequence: chain.lastOpenedSequence,
-              lastOpenedLabel: chain.lastOpenedLabel,
-              starred,
-            }),
-          )
+        void queueChainSave(
+          aggregateFromTracker(chain.id, current, {
+            description: chain.description,
+            lastOpenedSequence: chain.lastOpenedSequence,
+            lastOpenedLabel: chain.lastOpenedLabel,
+            starred,
+          }),
+        )
           .then(() => setSaveError(null))
           .catch(() =>
             setSaveError(translate("errors.AUTOSAVE_FAILED_MEMORY_RETAINED")),
           );
       logger.emit(starred ? "chain.starred" : "chain.unstarred");
     },
-    [logger, repository],
+    [logger, queueChainSave],
   );
 
   const trackerDispatchRef = useRef<Dispatch<TrackerAction>>(() => undefined);
+  const persistPackageChanges = useCallback(
+    (
+      chainId: string,
+      previous: TrackerState["packages"],
+      next: TrackerState["packages"],
+    ) => {
+      const operations: Promise<void>[] = [];
+      for (const packageItem of Object.values(previous))
+        if (packageItem.source === "imported" && !next[packageItem.id])
+          operations.push(
+            queuePackageOperation(() =>
+              packageRepository.remove(chainId, packageItem.id),
+            ),
+          );
+      for (const packageItem of Object.values(next)) {
+        if (
+          packageItem.source !== "imported" ||
+          previous[packageItem.id] ||
+          !packageItem.archive ||
+          !packageItem.archiveLimits
+        )
+          continue;
+        const value = storedChainPackage(
+          chainId,
+          packageItem.id,
+          packageItem.archive,
+          packageItem.archiveLimits,
+        );
+        operations.push(
+          queuePackageOperation(() => packageRepository.save(value)),
+        );
+      }
+      if (operations.length)
+        void Promise.all(operations)
+          .then(() => setSaveError(null))
+          .catch(() =>
+            setSaveError(translate("errors.AUTOSAVE_FAILED_MEMORY_RETAINED")),
+          );
+    },
+    [packageRepository, queuePackageOperation],
+  );
   const dispatch = useCallback<Dispatch<TrackerAction>>(
     (action) => {
       const currentState = statesRef.current[activeId] ?? trackerState;
@@ -342,16 +438,45 @@ export function useChainController({
             : undefined,
         });
       }
+      if (nextState.packages !== effectiveCurrentState.packages)
+        persistPackageChanges(
+          activeId,
+          effectiveCurrentState.packages,
+          nextState.packages,
+        );
       const nextStates = { ...statesRef.current, [activeId]: nextState };
       statesRef.current = nextStates;
       setStates(nextStates);
     },
-    [activeId, logger, preferences, tags, trackerState],
+    [activeId, logger, persistPackageChanges, preferences, tags, trackerState],
   );
 
   useEffect(() => {
     trackerDispatchRef.current = dispatch;
   }, [dispatch]);
+
+  const installPackage = useCallback(
+    async (packageItem: InstalledPackage) => {
+      if (
+        packageItem.source !== "imported" ||
+        !packageItem.archive ||
+        !packageItem.archiveLimits
+      )
+        throw new Error("The imported Jump archive is unavailable.");
+      await queuePackageOperation(() =>
+        packageRepository.save(
+          storedChainPackage(
+            activeId,
+            packageItem.id,
+            packageItem.archive!,
+            packageItem.archiveLimits!,
+          ),
+        ),
+      );
+      dispatch({ type: "install-package", packageItem });
+    },
+    [activeId, dispatch, packageRepository, queuePackageOperation],
+  );
 
   const updateDetails = useCallback(
     (id: string, name: string, description: string) => {
@@ -369,15 +494,14 @@ export function useChainController({
         const nextStates = { ...statesRef.current, [id]: nextState };
         statesRef.current = nextStates;
         setStates(nextStates);
-        void repository
-          .save(
-            aggregateFromTracker(id, nextState, {
-              description: description.trim(),
-              lastOpenedSequence: metadata.lastOpenedSequence,
-              lastOpenedLabel: metadata.lastOpenedLabel,
-              starred: metadata.starred,
-            }),
-          )
+        void queueChainSave(
+          aggregateFromTracker(id, nextState, {
+            description: description.trim(),
+            lastOpenedSequence: metadata.lastOpenedSequence,
+            lastOpenedLabel: metadata.lastOpenedLabel,
+            starred: metadata.starred,
+          }),
+        )
           .then(() => setSaveError(null))
           .catch(() =>
             setSaveError(translate("errors.AUTOSAVE_FAILED_MEMORY_RETAINED")),
@@ -385,13 +509,18 @@ export function useChainController({
       }
       logger.emit("chain.details.updated");
     },
-    [logger, registry.chains, repository],
+    [logger, queueChainSave, registry.chains],
   );
 
   const remove = useCallback(
     async (id: string) => {
       await initializationRef.current;
+      await Promise.all([
+        chainWriteQueueRef.current,
+        packageWriteQueueRef.current,
+      ]);
       await repository.remove(id);
+      await packageRepository.removeChain(id);
       registryDispatch({ type: "remove", id });
       const next = { ...statesRef.current };
       delete next[id];
@@ -403,7 +532,7 @@ export function useChainController({
       setSaveError(null);
       logger.emit("chain.deleted");
     },
-    [logger, repository],
+    [logger, packageRepository, repository],
   );
 
   const resetMockData = useCallback(async () => {
@@ -414,8 +543,7 @@ export function useChainController({
       mockChainDefinition,
     );
     try {
-      await initializationRef.current;
-      await repository.save(aggregate);
+      await queueChainSave(aggregate);
       registryDispatch({
         type: "hydrate",
         id: mockChainDefinition.id,
@@ -435,15 +563,15 @@ export function useChainController({
       logger.emit("mock_data.reset_failed");
       return false;
     }
-  }, [logger, repository]);
+  }, [logger, queueChainSave]);
 
   const retrySave = useCallback(async () => {
     if (!activeChain) return;
-    await repository.save(
+    await queueChainSave(
       aggregateFromTracker(activeChain.id, effectiveState, activeChain),
     );
     setSaveError(null);
-  }, [activeChain, effectiveState, repository]);
+  }, [activeChain, effectiveState, queueChainSave]);
 
   const commands = useMemo(
     () => ({
@@ -455,6 +583,7 @@ export function useChainController({
       remove,
       resetMockData,
       retrySave,
+      installPackage,
     }),
     [
       create,
@@ -463,6 +592,7 @@ export function useChainController({
       remove,
       resetMockData,
       retrySave,
+      installPackage,
       setStarred,
       updateDetails,
     ],

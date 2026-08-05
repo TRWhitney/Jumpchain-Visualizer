@@ -5,6 +5,7 @@ import {
   createCompanionProfileTrackerFixture,
   createDenseTrackerFixture,
   createReferenceTrackerFixture,
+  createSparseRadarTrackerFixture,
 } from "./fixtures";
 import { choiceMutationWasBlocked, trackerReducer } from "./model";
 import { useSettings } from "../settings/SettingsContext";
@@ -47,6 +48,8 @@ export function ReviewChainTracker() {
     };
     if (fixture === "companion-profiles")
       return createCompanionProfileTrackerFixture(preferences);
+    if (fixture === "sparse-radar")
+      return createSparseRadarTrackerFixture(preferences);
     if (fixture !== "reference") {
       const initial = createDenseTrackerFixture(preferences);
       return initialEntryId && initial.entries[initialEntryId]

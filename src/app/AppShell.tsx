@@ -1060,6 +1060,7 @@ function AppShellContent() {
                 chainName: activeChain?.name ?? effectiveTrackerState.chainName,
               }}
               dispatch={effectiveTrackerDispatch}
+              installPackage={chain.commands.installPackage}
               showApplicationHeader={false}
               active={knownChain}
             />

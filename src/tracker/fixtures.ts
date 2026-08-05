@@ -27,6 +27,7 @@ import {
   type TrackerPreferences,
   type TrackerState,
 } from "./model";
+import { evaluateTracker } from "./evaluateTracker";
 
 export const trackerTags = builtinTagDefinitions;
 export const DEMONSTRATION_CHAIN_ID = MOCK_CHAIN_ID;
@@ -354,6 +355,56 @@ export function createCompanionProfileTrackerFixture(
   preferences: Partial<TrackerPreferences> = {},
 ) {
   return createDenseTrackerFixture(preferences);
+}
+
+export function createSparseRadarTrackerFixture(
+  preferences: Partial<TrackerPreferences> = {},
+) {
+  const state = createDenseTrackerFixture(preferences);
+  const cached = evaluateTracker(state, state.bodyMod);
+  const sparseRecords = [
+    ...Array.from({ length: 3 }, (_, index) => ({
+      id: `sparse-mental-${index + 1}`,
+      kind: "perk" as const,
+      name: `Mental fixture ${index + 1}`,
+      sourceEntryId: "entry-2",
+      grantHandle: `sparse_mental_${index + 1}`,
+      sourcePackageId: state.entries["entry-2"].packageId,
+      sourcePackageExactHash: state.entries["entry-2"].packageExactHash,
+      ownerActorId: "jumper",
+      tags: ["mental"],
+      description: "Sparse radar geometry fixture.",
+    })),
+    ...Array.from({ length: 2 }, (_, index) => ({
+      id: `sparse-stealth-${index + 1}`,
+      kind: "perk" as const,
+      name: `Stealth fixture ${index + 1}`,
+      sourceEntryId: "entry-2",
+      grantHandle: `sparse_stealth_${index + 1}`,
+      sourcePackageId: state.entries["entry-2"].packageId,
+      sourcePackageExactHash: state.entries["entry-2"].packageExactHash,
+      ownerActorId: "jumper",
+      tags: ["stealth"],
+      description: "Sparse radar geometry fixture.",
+    })),
+  ];
+  return {
+    ...state,
+    entries: Object.fromEntries(
+      Object.entries(state.entries).map(([entryId, entry]) => [
+        entryId,
+        entry.kind === "earth"
+          ? entry
+          : { ...entry, packageExactHash: `sparse-radar-${entryId}` },
+      ]),
+    ),
+    lastValidatedEvaluation: {
+      ...cached,
+      records: sparseRecords,
+      forms: [],
+      companions: [],
+    },
+  };
 }
 
 export function createReferenceTrackerFixture() {

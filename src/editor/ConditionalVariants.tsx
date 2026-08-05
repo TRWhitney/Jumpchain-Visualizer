@@ -27,7 +27,7 @@ import {
 } from "../markup";
 import { translate, translateDiagnostic } from "../localization";
 import { NumberStepperButtons } from "../ui/NumberStepper";
-import { Chevron } from "../ui";
+import { Chevron, ReorderArrowButton } from "../ui";
 import { ConditionExpressionInput } from "./ConditionExpressionInput";
 import { SpellingTextArea, SpellingTextInput } from "./SpellingTextControl";
 import {
@@ -960,27 +960,23 @@ function VariantEditor({
         />
       </div>
       <footer>
-        <button
-          type="button"
+        <ReorderArrowButton
+          direction="up"
+          unavailable={index === 0}
           aria-label={translate("ui.editorWorkspace.condition.moveVariantUp", {
             number: index + 1,
           })}
-          disabled={index === 0}
           onClick={() => onMove("up")}
-        >
-          ↑
-        </button>
-        <button
-          type="button"
+        />
+        <ReorderArrowButton
+          direction="down"
+          unavailable={index === count - 1}
           aria-label={translate(
             "ui.editorWorkspace.condition.moveVariantDown",
             { number: index + 1 },
           )}
-          disabled={index === count - 1}
           onClick={() => onMove("down")}
-        >
-          ↓
-        </button>
+        />
         <button type="button" onClick={onRemove}>
           {translate("ui.editorWorkspace.condition.removeVariant")}
         </button>

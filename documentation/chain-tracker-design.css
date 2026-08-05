@@ -423,8 +423,12 @@
 .chain-library-card > .chain-library-actions {
   --chain-library-action-height: 1.8rem;
 
-  grid-template-columns: minmax(0, 1fr) var(--chain-library-action-height);
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.2rem;
+}
+
+.chain-library-card > .chain-library-actions.has-remove {
+  grid-template-columns: minmax(0, 1fr) var(--chain-library-action-height);
 }
 
 .chain-library-actions > button {
@@ -2372,6 +2376,7 @@
 }
 
 .companion-profile-columns h5 {
+  margin: 0;
   color: #fff;
 }
 

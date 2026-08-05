@@ -15,7 +15,12 @@ import {
   dropIndexForTarget,
   type DropEdge,
 } from "../ui/dragReorder";
-import { Chevron, useContextMenu, useSettingDefaultedState } from "../ui";
+import {
+  Chevron,
+  ReorderArrowButton,
+  useContextMenu,
+  useSettingDefaultedState,
+} from "../ui";
 import {
   TrackerSupplementContext,
   SupplementProviders,
@@ -74,6 +79,7 @@ import {
   type EvaluatedJumpRuntime,
   supplementStateForEntry,
 } from "./model";
+import { installedPackageFromReview } from "./importedPackage";
 import {
   ChainHeader,
   HistoricalSelect,
@@ -93,6 +99,7 @@ const noInstalledAssets: Readonly<Record<string, readonly number[]>> = {};
 function ChainRail({
   state,
   dispatch,
+  installPackage,
   enabled,
   openSupp,
   actorId,
@@ -517,9 +524,9 @@ function ChainRail({
                         </button>
                       ) : (
                         <>
-                          <button
-                            type="button"
-                            disabled={index === state.order.length - 1}
+                          <ReorderArrowButton
+                            direction="up"
+                            unavailable={index === state.order.length - 1}
                             aria-label={translate(
                               "ui.chainTracker.ariaLabel.moveJumpLater",
                               { jump: item.name },
@@ -531,12 +538,10 @@ function ChainRail({
                                 toIndex: index + 1,
                               })
                             }
-                          >
-                            ↑
-                          </button>
-                          <button
-                            type="button"
-                            disabled={index <= 1}
+                          />
+                          <ReorderArrowButton
+                            direction="down"
+                            unavailable={index <= 1}
                             aria-label={translate(
                               "ui.chainTracker.ariaLabel.moveJumpEarlier",
                               { jump: item.name },
@@ -548,9 +553,7 @@ function ChainRail({
                                 toIndex: index - 1,
                               })
                             }
-                          >
-                            ↓
-                          </button>
+                          />
                           <button
                             type="button"
                             aria-label={translate(
@@ -700,6 +703,7 @@ function ChainRail({
           </div>
           <div className="chain-library-list">
             {filteredPackages.map((item) => {
+              const removable = item.source === "imported";
               const existingCount = state.order.filter(
                 (id) => state.entries[id].packageExactHash === item.exactHash,
               ).length;
@@ -728,7 +732,9 @@ function ChainRail({
                       {item.nativeGauntlet && " · Native Gauntlet"}
                     </small>
                   </div>
-                  <div className="chain-library-actions">
+                  <div
+                    className={`chain-library-actions${removable ? " has-remove" : ""}`}
+                  >
                     <button
                       type="button"
                       onClick={() =>
@@ -737,7 +743,7 @@ function ChainRail({
                     >
                       {actionLabel}
                     </button>
-                    {item.source === "imported" && (
+                    {removable && (
                       <button
                         type="button"
                         className="chain-library-remove"
@@ -869,21 +875,7 @@ function ChainRail({
                   onCancel={() => setPackageImport({ kind: "idle" })}
                   onImport={() => {
                     const review = packageImport.review;
-                    const packageItem: InstalledPackage = {
-                      id: `imported-${review.hash}`,
-                      logicalId: review.packageItem.logicalId,
-                      exactHash: review.hash,
-                      name: review.name,
-                      version: review.version,
-                      source: "imported",
-                      description: review.packageItem.description,
-                      tags: review.packageItem.tags,
-                      authors: review.packageItem.authors,
-                      nativeGauntlet: review.packageItem.nativeGauntlet,
-                      availability: "library",
-                      document: review.packageItem,
-                      assets: review.files.assets,
-                    };
+                    const packageItem = installedPackageFromReview(review);
                     const conflict = packageInstallConflict(state, packageItem);
                     if (conflict) {
                       setPackageImport({
@@ -894,18 +886,36 @@ function ChainRail({
                       });
                       return;
                     }
-                    dispatch({
-                      type: "install-package",
-                      packageItem,
-                    });
-                    settingsContext?.logger.emit("chain.package.installed", {
-                      attributes: {
-                        warningOverride: review.status === "warning",
-                        definitionCount: review.definitionCount,
-                        assetCount: review.assetCount,
-                      },
-                    });
-                    setPackageImport({ kind: "idle" });
+                    void (
+                      installPackage
+                        ? installPackage(packageItem)
+                        : Promise.resolve(
+                            dispatch({ type: "install-package", packageItem }),
+                          )
+                    )
+                      .then(() => {
+                        settingsContext?.logger.emit(
+                          "chain.package.installed",
+                          {
+                            attributes: {
+                              warningOverride: review.status === "warning",
+                              definitionCount: review.definitionCount,
+                              assetCount: review.assetCount,
+                            },
+                          },
+                        );
+                        setPackageImport({ kind: "idle" });
+                      })
+                      .catch((error: unknown) =>
+                        setPackageImport({
+                          kind: "blocked",
+                          code: "package.storage_failed",
+                          message:
+                            error instanceof Error
+                              ? error.message
+                              : "The imported Jump could not be saved.",
+                        }),
+                      );
                   }}
                 />
               )}
@@ -920,6 +930,7 @@ function ChainRail({
 function JumpPage({
   state,
   dispatch,
+  installPackage,
   enabled,
   openSupp,
   jumpRenderer,
@@ -983,6 +994,7 @@ function JumpPage({
       <ChainRail
         state={state}
         dispatch={dispatch}
+        installPackage={installPackage}
         enabled={enabled}
         openSupp={openSupp}
         actorId={actorId}
@@ -2281,11 +2293,13 @@ function MutationModal({ state, dispatch }: TrackerProps) {
 export type TrackerProps = {
   state: TrackerState;
   dispatch: Dispatch<TrackerAction>;
+  installPackage?: (packageItem: InstalledPackage) => Promise<void>;
 };
 
 export function ChainTracker({
   state: inputState,
   dispatch,
+  installPackage,
   jumpRenderer,
   randomIndex,
   showApplicationHeader = true,
@@ -2436,6 +2450,7 @@ export function ChainTracker({
             <JumpPage
               state={projectedState}
               dispatch={dispatch}
+              installPackage={installPackage}
               enabled={enabled}
               openSupp={() => setSuppOpen(true)}
               jumpRenderer={jumpRenderer}

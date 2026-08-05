@@ -10815,7 +10815,7 @@ choice-layout
 
   const storedDigest = await page.evaluate(async () => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open("jumpchain-visualizer", 4);
+      const request = indexedDB.open("jumpchain-visualizer", 5);
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result);
     });
@@ -11766,12 +11766,15 @@ test("Structured layout tree safely edits hierarchy through the mock-aligned con
   await expect(
     builder.getByText("Children of stack[1]", { exact: true }),
   ).toBeVisible();
-  await expect(
-    builder.getByRole("button", { name: "Move Slot up" }),
-  ).toBeDisabled();
-  await expect(
-    builder.getByRole("button", { name: "Move Slot down" }),
-  ).toBeDisabled();
+  const onlySlot = builder.locator('[data-layout-node-kind="slot"]');
+  await expect(onlySlot.locator(".editor-layout-action-up")).toHaveCSS(
+    "visibility",
+    "hidden",
+  );
+  await expect(onlySlot.locator(".editor-layout-action-down")).toHaveCSS(
+    "visibility",
+    "hidden",
+  );
 
   await chooseNewNode("grid");
   await addRow.getByRole("button", { name: "Add child" }).click();
@@ -11845,6 +11848,16 @@ test("Structured layout tree safely edits hierarchy through the mock-aligned con
       ":scope > :is(.editor-layout-kind-field, label)",
     );
     const actions = row.locator(":scope > .editor-layout-row-actions");
+    const retainedBox = (target: Locator) =>
+      target.evaluate((element) => {
+        const bounds = element.getBoundingClientRect();
+        return {
+          x: bounds.x,
+          y: bounds.y,
+          width: bounds.width,
+          height: bounds.height,
+        };
+      });
     return Promise.all([
       labels.nth(0).boundingBox(),
       labels.nth(1).boundingBox(),
@@ -11852,8 +11865,8 @@ test("Structured layout tree safely edits hierarchy through the mock-aligned con
       actions
         .getByRole("button", { name: /^Move .* container$/ })
         .boundingBox(),
-      actions.getByRole("button", { name: /^Move .* up$/ }).boundingBox(),
-      actions.getByRole("button", { name: /^Move .* down$/ }).boundingBox(),
+      retainedBox(actions.locator(".editor-layout-action-up")),
+      retainedBox(actions.locator(".editor-layout-action-down")),
       actions.getByRole("button", { name: /^Remove / }).boundingBox(),
     ]);
   };

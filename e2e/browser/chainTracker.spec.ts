@@ -290,6 +290,16 @@ test("the Library contains exactly the three canonical packages", async ({
   await expect(
     tracker.locator(".chain-library-card").getByRole("button"),
   ).toHaveText(["Open chain entity", "Open chain entity", "Open chain entity"]);
+  const firstCard = tracker.locator(".chain-library-card").first();
+  const [actionsBounds, actionBounds] = await Promise.all([
+    firstCard.locator(".chain-library-actions").boundingBox(),
+    firstCard.getByRole("button", { name: "Open chain entity" }).boundingBox(),
+  ]);
+  expect(actionsBounds).not.toBeNull();
+  expect(actionBounds).not.toBeNull();
+  expect(
+    Math.abs(actionBounds!.width - actionsBounds!.width),
+  ).toBeLessThanOrEqual(1);
   await attachScreenshot(testInfo, "three-package-library", tracker);
 });
 
@@ -1071,6 +1081,60 @@ test("inventory breakdown renders direct-only tags without false drilldown", asy
   );
 });
 
+test("isolated radar spikes omit zero nodes while empty charts remain empty", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/review/chain-tracker?fixture=sparse-radar");
+  const tracker = trackerFor(page);
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await tracker.getByRole("tab", { name: "Stats" }).click();
+
+  const chart = tracker.locator("#category-radar-svg");
+  const area = chart.locator("polygon.radar-area");
+  const polygonArea = () =>
+    area.evaluate((element) => {
+      const points = element
+        .getAttribute("points")!
+        .split(" ")
+        .map((point) => point.split(",").map(Number));
+      return (
+        Math.abs(
+          points.reduce((total, [x, y], index) => {
+            const [nextX, nextY] = points[(index + 1) % points.length];
+            return total + x * nextY - nextX * y;
+          }, 0),
+        ) / 2
+      );
+    });
+  expect(await polygonArea()).toBeGreaterThan(100);
+
+  await expect(chart.locator("circle.radar-point")).toHaveCount(2);
+  await tracker.getByRole("button", { name: "Social", exact: true }).click();
+  await expect(chart.locator("line.radar-axis.is-selected")).toHaveCount(1);
+  await expect(chart.locator("circle.radar-point.is-selected")).toHaveCount(0);
+  await expect(
+    tracker
+      .getByRole("row", { name: "Social 0", exact: true })
+      .getByRole("cell"),
+  ).toHaveText("0");
+  await attachScreenshot(
+    testInfo,
+    "inventory-sparse-radar-spikes",
+    tracker.locator(".tracker-radar-page"),
+  );
+
+  await tracker
+    .getByLabel("Inventory through historical cutoff")
+    .selectOption({ label: "Earth · Chain beginning" });
+  expect(await polygonArea()).toBe(0);
+  await expect(chart.locator("circle.radar-point")).toHaveCount(0);
+  await attachScreenshot(
+    testInfo,
+    "inventory-empty-radar-remains-empty",
+    tracker.locator(".tracker-radar-page"),
+  );
+});
+
 test("inventory tag navigation prunes, expands, and scrolls independently", async ({
   page,
 }, testInfo) => {
@@ -1346,6 +1410,37 @@ test(
   },
 );
 
+test("boundary Jump reorder arrows disappear without collapsing their action cells", async ({
+  page,
+}, testInfo) => {
+  const tracker = trackerFor(page);
+  const latest = tracker.locator(".chain-jump-entry").filter({
+    hasText: "The Last Trial",
+  });
+  const earliest = tracker.locator(".chain-jump-entry").filter({
+    hasText: "Threshold of a Thousand Roads",
+  });
+  const unavailable = [
+    latest.locator(
+      'button[aria-label="Move The Last Trial later in the chain"]',
+    ),
+    earliest.locator(
+      'button[aria-label="Move Threshold of a Thousand Roads earlier in the chain"]',
+    ),
+  ];
+  for (const arrow of unavailable) {
+    await expect(arrow).toHaveCSS("visibility", "hidden");
+    expect(
+      await arrow.evaluate((element) => element.getBoundingClientRect().width),
+    ).toBeGreaterThan(0);
+  }
+  await attachScreenshot(
+    testInfo,
+    "chain-boundary-reorder-arrows-hidden",
+    tracker.locator(".chain-rail-panel"),
+  );
+});
+
 test("a stale canonical demo hash rebinds without losing selections or reaching recovery UI", async ({
   page,
 }, testInfo) => {
@@ -1355,7 +1450,7 @@ test("a stale canonical demo hash rebinds without losing selections or reaching 
   await expect
     .poll(async () =>
       page.evaluate(async () => {
-        const request = indexedDB.open("jumpchain-visualizer", 4);
+        const request = indexedDB.open("jumpchain-visualizer", 5);
         const database = await new Promise<IDBDatabase>((resolve, reject) => {
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
@@ -1373,7 +1468,7 @@ test("a stale canonical demo hash rebinds without losing selections or reaching 
     .toBe(true);
 
   await page.evaluate(async () => {
-    const request = indexedDB.open("jumpchain-visualizer", 4);
+    const request = indexedDB.open("jumpchain-visualizer", 5);
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -1432,7 +1527,7 @@ test("a route-loaded chain renders a recoverable placeholder when its exact pack
   await expect
     .poll(async () =>
       page.evaluate(async () => {
-        const request = indexedDB.open("jumpchain-visualizer", 4);
+        const request = indexedDB.open("jumpchain-visualizer", 5);
         const database = await new Promise<IDBDatabase>((resolve, reject) => {
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
@@ -1450,7 +1545,7 @@ test("a route-loaded chain renders a recoverable placeholder when its exact pack
     .toBe(true);
 
   await page.evaluate(async () => {
-    const request = indexedDB.open("jumpchain-visualizer", 4);
+    const request = indexedDB.open("jumpchain-visualizer", 5);
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);

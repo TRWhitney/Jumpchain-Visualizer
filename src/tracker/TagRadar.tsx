@@ -18,6 +18,7 @@ import {
 } from "./model";
 import { TagBadge } from "../ui/TagBadge";
 import { translate } from "../localization";
+import { radarAreaRatios } from "./radarGeometry";
 
 export { TagBadge } from "../ui/TagBadge";
 
@@ -38,6 +39,7 @@ export function StaticTagRadar({
   unitLabel?: string;
 }) {
   const maximum = Math.max(1, ...Object.values(counts));
+  const areaRatios = radarAreaRatios(counts, maximum);
   return (
     <svg
       className="static-tag-radar"
@@ -91,13 +93,12 @@ export function StaticTagRadar({
       })}
       <polygon
         className="radar-area"
-        points={tagCategories
-          .map((category, index) =>
-            pointAt(index, 164 * (counts[category] / maximum)).join(","),
-          )
+        points={areaRatios
+          .map((ratio, index) => pointAt(index, 164 * ratio).join(","))
           .join(" ")}
       />
       {tagCategories.map((category, index) => {
+        if (counts[category] === 0) return null;
         const [cx, cy] = pointAt(index, 164 * (counts[category] / maximum));
         return (
           <circle
@@ -665,6 +666,7 @@ function RadarGraphic({
 }) {
   const includesItems = state.preferences.includeItemTagsInRadar;
   const countLabel = includesItems ? "records" : "perks";
+  const areaRatios = radarAreaRatios(counts, maximum);
   return (
     <>
       <svg
@@ -748,13 +750,12 @@ function RadarGraphic({
         })}
         <polygon
           className="radar-area"
-          points={tagCategories
-            .map((category, index) =>
-              pointAt(index, 170 * (counts[category] / maximum)).join(","),
-            )
+          points={areaRatios
+            .map((ratio, index) => pointAt(index, 170 * ratio).join(","))
             .join(" ")}
         />
         {tagCategories.map((category, index) => {
+          if (counts[category] === 0) return null;
           const [cx, cy] = pointAt(index, 170 * (counts[category] / maximum));
           return (
             <circle

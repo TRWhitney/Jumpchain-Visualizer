@@ -69,11 +69,18 @@ export function useEditorWorkspaceController(
           ...persistedRef.current,
           [workspace.id]: workspace,
         };
-        if (updateSaveState) setSaveState("saved");
+        if (
+          updateSaveState &&
+          workspacesRef.current[workspace.id]?.revision === workspace.revision
+        )
+          setSaveState("saved");
         setError(null);
         return true;
       } catch {
-        if (updateSaveState) {
+        if (
+          updateSaveState &&
+          workspacesRef.current[workspace.id]?.revision === workspace.revision
+        ) {
           setSaveState("failed");
           setError(translate("errors.EDITOR_AUTOSAVE_FAILED_MEMORY_RETAINED"));
         }

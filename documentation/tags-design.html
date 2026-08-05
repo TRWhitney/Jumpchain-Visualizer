@@ -559,7 +559,7 @@
         <ol>
           <li>The twelve-category working set is Physical, Mental, Social, Magic, Spiritual, Technology, Crafting, Combat, Defense, Stealth, Meta, and Miscellaneous.</li>
           <li>Miscellaneous is a derived fallback for otherwise uncategorized tags; untagged records remain outside the category chart.</li>
-          <li>The radar uses raw accrued-record counts, counts a record once per category, and always exposes the exact values in a table.</li>
+          <li>The radar uses raw accrued-record counts, counts a record once per category, and always exposes the exact values in a table. When a nonzero axis has zero-valued neighbors on both sides, the filled area alone receives small visual shoulders on those neighbors so the value reads as a spike instead of collapsing to a line. Zero-valued axes omit their center point node, including when selected, while retaining line and label emphasis; table values remain at zero. No shoulder is added when existing nonzero neighbors already give the polygon area, and an all-zero chart remains empty.</li>
           <li>Aliases are separate strings made search-equivalent by user settings.</li>
           <li>Each normalized string has at most one user-configured parent in v1.</li>
           <li>Parent searches include descendants by default, with an Exact option.</li>

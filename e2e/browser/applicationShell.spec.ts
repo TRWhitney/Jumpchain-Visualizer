@@ -1,7 +1,9 @@
 import { expect, test, type Locator, type Page } from "./support/fixtures";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { zipSync } from "fflate";
 import { shouldCaptureReviewArtifacts } from "./support/reviewArtifacts";
+import { waitForStoredChainValue } from "./support/storedSettings";
 
 async function expectModalBelowRouter(page: Page, layer: Locator) {
   const [routerBox, layerBox] = await Promise.all([
@@ -14,6 +16,31 @@ async function expectModalBelowRouter(page: Page, layer: Locator) {
     Math.abs(layerBox!.y - (routerBox!.y + routerBox!.height)),
   ).toBeLessThan(2);
   expect(layerBox!.height).toBeGreaterThan(300);
+}
+
+async function expectProfileLabelsAtCardTop(dialog: Locator) {
+  const labelOffsets = await dialog
+    .locator(".companion-profile-columns section:has(h5)")
+    .evaluateAll((sections) =>
+      sections.map((section) => {
+        const label = section.querySelector("h5")!;
+        const sectionStyle = getComputedStyle(section);
+        return {
+          label: label.textContent,
+          actual: label.getBoundingClientRect().top,
+          expected:
+            section.getBoundingClientRect().top +
+            Number.parseFloat(sectionStyle.borderTopWidth) +
+            Number.parseFloat(sectionStyle.paddingTop),
+        };
+      }),
+    );
+  expect(labelOffsets.length).toBeGreaterThan(0);
+  for (const offset of labelOffsets)
+    expect(
+      Math.abs(offset.actual - offset.expected),
+      `${offset.label} should start at the top of its profile card`,
+    ).toBeLessThan(1);
 }
 
 async function resolveColorToken(page: Page, token: string) {
@@ -35,6 +62,33 @@ async function resumeMorgan(page: Page) {
     .first()
     .click();
   return page.getByLabel("Interactive Chain Tracker workspace");
+}
+
+async function writePersistentImport(testInfo: { outputDir: string }) {
+  const definition = `jump
+  format: 1
+  name: "Persistent Import"
+  author: "Persistence Fixture"
+  version: "1.0"
+
+section
+  handle: choices
+  name: "Choices"
+  choice
+    handle: persistent_placement
+    target: persistent_choice
+
+choice
+  handle: persistent_choice
+  name: "Remember This"
+`;
+  await mkdir(testInfo.outputDir, { recursive: true });
+  const path = join(testInfo.outputDir, "persistent-import.jmp");
+  await writeFile(
+    path,
+    zipSync({ "jump.jdef": new TextEncoder().encode(definition) }),
+  );
+  return path;
 }
 
 async function expectStoredChain(page: Page, id: string) {
@@ -63,7 +117,7 @@ async function expectStoredChain(page: Page, id: string) {
           }),
         {
           databaseName: "jumpchain-visualizer",
-          databaseVersion: 4,
+          databaseVersion: 5,
           chainId: id,
         },
       ),
@@ -174,6 +228,62 @@ test(
     ).toHaveAttribute("aria-pressed", "true");
   },
 );
+
+test("an imported Jump and its selections survive an application reload", async ({
+  page,
+}, testInfo) => {
+  await page.getByRole("button", { name: "Open Chain Tracker" }).click();
+  await page.getByLabel("Start a new chain").fill("Imported Chain");
+  await page.getByRole("button", { name: "Start Chain" }).click();
+  await expectStoredChain(page, "ch-new-1");
+  const tracker = page.getByLabel("Interactive Chain Tracker workspace");
+  await tracker.getByRole("tab", { name: "Library" }).click();
+  await tracker
+    .locator('input[type="file"][accept^=".jmp"]')
+    .setInputFiles(await writePersistentImport(testInfo));
+  const review = page.getByRole("alertdialog");
+  await expect(review).toContainText("Secure inspection complete");
+  await review.getByRole("button", { name: "Import Project" }).click();
+
+  const imported = tracker.locator(".chain-library-card").filter({
+    hasText: "Persistent Import",
+  });
+  await imported.getByRole("button", { name: "Add to chain" }).click();
+  const choice = tracker.getByRole("checkbox", { name: "Remember This" });
+  await choice.check();
+  await waitForStoredChainValue(
+    page,
+    "ch-new-1",
+    [
+      "jumpState",
+      "entry-0",
+      "actors",
+      "jumper",
+      "choices",
+      "persistent_choice",
+    ],
+    true,
+  );
+  await page.waitForTimeout(750);
+  await waitForStoredChainValue(page, "ch-new-1", ["order", "1"], "entry-0");
+
+  await page.reload();
+  const reloaded = page.getByLabel("Interactive Chain Tracker workspace");
+  await expect(
+    reloaded.getByText(
+      "This exact package is unavailable. Stored selections are preserved until it is restored.",
+    ),
+  ).toHaveCount(0);
+  await expect(
+    reloaded.getByRole("checkbox", { name: "Remember This" }),
+  ).toBeChecked();
+  await reloaded.getByRole("tab", { name: "Library" }).click();
+  await expect(
+    reloaded.locator(".chain-library-card").filter({
+      hasText: "Persistent Import",
+    }),
+  ).toBeVisible();
+});
 
 test("project and chain recents and hub cards expose exact-target context actions", async ({
   page,
@@ -466,6 +576,7 @@ test("tracker dialogs share the application modal boundary and close on route de
       contentType: "image/png",
     });
   await expectModalBelowRouter(page, profileLayer);
+  await expectProfileLabelsAtCardTop(formDialog);
   await expect(tracker).toHaveAttribute("inert", "");
   const formPerk = formDialog.getByRole("button", {
     name: "Refractive Hide",
@@ -502,6 +613,7 @@ test("tracker dialogs share the application modal boundary and close on route de
     name: "Companion profile: Lyra",
   });
   await expectModalBelowRouter(page, page.locator(".companion-profile-layer"));
+  await expectProfileLabelsAtCardTop(companionDialog);
   const companionRecord = companionDialog
     .locator(".companion-profile-columns button")
     .first();

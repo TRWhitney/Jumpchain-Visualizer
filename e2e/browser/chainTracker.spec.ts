@@ -96,6 +96,43 @@ section
   return path;
 }
 
+async function writeAuthoredTagArchive(testInfo: TestInfo) {
+  const definition = `jump
+  format: 1
+  name: "Authored Tag Fixture"
+  author: "Fixture Author"
+  version: "1.0"
+
+section
+  handle: content
+  name: "Content"
+  choice
+    handle: tagged_placement
+    target: tagged
+
+choice
+  handle: tagged
+  name: "Profile-owned tag"
+  tag: "Physical"
+  layout: authored_card
+
+choice-layout
+  handle: authored_card
+  stack
+    background: "#404040"
+    text-color: "#00ffff"
+    slot: tags
+    slot: control
+`;
+  await mkdir(testInfo.outputDir, { recursive: true });
+  const path = join(testInfo.outputDir, "authored-tag-profile.jmp");
+  await writeFile(
+    path,
+    zipSync({ "jump.jdef": new TextEncoder().encode(definition) }),
+  );
+  return path;
+}
+
 async function importTrackerPackage(page: Page, archivePath: string) {
   const tracker = trackerFor(page);
   await tracker
@@ -351,6 +388,55 @@ test("package imports enforce author-name-version identity and expose an adjacen
   await expect(
     tracker.getByText(/Import Identity Fixture · v2\.0/),
   ).toHaveCount(0);
+});
+
+test("an imported authored Tag string always uses the active User Tag profile", async ({
+  page,
+}, testInfo) => {
+  const renderedBadgeStyle = (locator: Locator) =>
+    locator.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        backgroundColor: style.backgroundColor,
+        backgroundImage: style.backgroundImage,
+        color: style.color,
+        border: style.border,
+        borderRadius: style.borderRadius,
+        padding: style.padding,
+        fontWeight: style.fontWeight,
+        fontStyle: style.fontStyle,
+        textDecoration: style.textDecoration,
+        textShadow: style.textShadow,
+      };
+    });
+
+  await page.goto("/settings");
+  await page.getByRole("tab", { name: "Tags" }).click();
+  const profileBadge = page
+    .locator(".tag-profile-preview-surface.is-dark .tag-profile-badge")
+    .first();
+  await expect(profileBadge).toContainText("Physical");
+  const profileStyle = await renderedBadgeStyle(profileBadge);
+
+  await page.goto("/review/chain-tracker");
+  const tracker = trackerFor(page);
+  await tracker.getByRole("tab", { name: "Library" }).click();
+  await importTrackerPackage(page, await writeAuthoredTagArchive(testInfo));
+  const imported = tracker
+    .getByText(/Authored Tag Fixture · v1\.0/)
+    .locator("xpath=ancestor::article");
+  await imported.getByRole("button", { name: "Add to chain" }).click();
+
+  const authoredBadge = tracker
+    .locator(".default-choice-tags .tag-profile-badge")
+    .filter({ hasText: /^Physical$/ });
+  await expect(authoredBadge).toBeVisible();
+  expect(await renderedBadgeStyle(authoredBadge)).toEqual(profileStyle);
+  await attachScreenshot(
+    testInfo,
+    "imported-authored-tag-uses-user-profile",
+    tracker,
+  );
 });
 
 test("Allow second version permits a different author-and-name package version", async ({
@@ -879,6 +965,36 @@ test("inventory cards disclose the complete tag projection", async ({
   await page.mouse.move(0, 0);
   await overflow.focus();
   await expect(tooltip).toBeVisible();
+});
+
+test("unknown authored Tags render in inventory cards and details", async ({
+  page,
+}) => {
+  const tracker = trackerFor(page);
+  await tracker.getByRole("tab", { name: /^Inventory/ }).click();
+  await tracker.getByLabel("Search inventory").fill("Keeper of Homeward");
+
+  const record = tracker.locator(".chain-record-list > article");
+  await expect(record).toHaveCount(1);
+  const fallbackBadge = record
+    .locator(".tag-profile-badge")
+    .filter({ hasText: "door craft" });
+  await expect(fallbackBadge).toHaveCount(1);
+  await expect(fallbackBadge).toHaveCSS(
+    "background-color",
+    "rgb(93, 105, 152)",
+  );
+  await expect(fallbackBadge).toHaveCSS("border-color", "rgb(87, 88, 141)");
+
+  await record.click();
+  const details = page.getByRole("dialog", {
+    name: "perk details: Keeper of Homeward",
+  });
+  await expect(
+    details
+      .locator(".record-detail-tags .tag-profile-badge")
+      .filter({ hasText: "door craft" }),
+  ).toHaveCount(1);
 });
 
 test("inventory record highlight follows the active application accent", async ({

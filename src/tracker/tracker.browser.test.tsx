@@ -1084,8 +1084,8 @@ section
 choice
   handle: tagged
   name: "Tagged Choice"
-  tag: pokemon
-  tag: adaptive
+  tag: "Pokemon"
+  tag: "Adaptive"
   layout: authored_card
 
 choice-layout

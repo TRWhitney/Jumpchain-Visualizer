@@ -19,6 +19,7 @@ import {
   tagCategories,
   tagBreakdown,
   tagIsWithin,
+  trackerTagDefinitions,
   trackerReducer,
   visibleTagBreakdownSlices,
   visibleCompanions,
@@ -680,6 +681,34 @@ describe("Chain Tracker aggregate", () => {
         record.tags.includes("pyrokinesis"),
       ),
     ).toBe(true);
+  });
+
+  it("places unknown authored Tags under Miscellaneous without mutating the User profile", () => {
+    const fixture = createDenseTrackerFixture();
+    expect(fixture.tags["door-craft"]).toBeUndefined();
+
+    const tags = trackerTagDefinitions(fixture);
+    expect(tags["door-craft"]).toMatchObject({
+      id: "door-craft",
+      label: "door craft",
+      parent: "miscellaneous",
+      aliases: [],
+      style: "solid",
+    });
+    expect(tags["door-craft"].presentation?.colors).not.toEqual(
+      fixture.tags.miscellaneous.presentation?.colors,
+    );
+    expect(fixture.tags["door-craft"]).toBeUndefined();
+
+    const state = projectEvaluation(
+      { ...fixture, tags },
+      evaluateTracker(fixture, fixture.bodyMod),
+    );
+    const keeper = state.records.find(
+      (record) => record.name === "Keeper of Homeward",
+    );
+    expect(keeper?.tags).toContain("door-craft");
+    expect(tagIsWithin(state, "door-craft", "miscellaneous")).toBe(true);
   });
 
   it("shows five inventory tags while reserving space for search and filter matches", () => {

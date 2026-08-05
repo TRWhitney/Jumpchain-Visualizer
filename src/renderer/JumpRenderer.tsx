@@ -28,6 +28,7 @@ import {
 } from "../markup";
 import {
   choiceControlRenderContext,
+  tagDefinitionForDisplay,
   type EvaluatedActorJump,
   type EvaluatedGrantRecord,
 } from "../domain";
@@ -265,26 +266,8 @@ function ChoiceTags({ choice, props }: { choice: JumpChoice; props: Props }) {
   return (
     <div className="default-choice-tags">
       {choice.tags.map((tagId) => {
-        const tag = props.tags[tagId];
-        const fallback = props.tags.miscellaneous;
-        return (
-          <CanonicalTagDefinitionBadge
-            key={tagId}
-            tag={
-              tag ?? {
-                ...(fallback ?? {
-                  color: "#68707c",
-                  to: "#454b54",
-                  style: "soft" as const,
-                }),
-                id: tagId,
-                label: tagId,
-                parent: "miscellaneous",
-                aliases: [],
-              }
-            }
-          />
-        );
+        const tag = tagDefinitionForDisplay(props.tags, tagId);
+        return <CanonicalTagDefinitionBadge key={tagId} tag={tag!} />;
       })}
     </div>
   );

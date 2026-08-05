@@ -3,13 +3,23 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { chromium, type Page } from "@playwright/test";
 import {
+  avoidableActionRailWrap,
+  excessiveImageLetterboxing,
+  excessiveResponsiveHeight,
+  excessiveActionRailSlack,
   facsimileSourceRowMismatches,
   facsimileSourceRows,
+  microscopicTextPanel,
 } from "./facsimile-layout-audit.mjs";
 
 type Manifest = { archive: string; mode: string; sourceHash: string };
 type Ledger = {
-  sourcePages?: Array<{ page: number; sectionHandles: string[] }>;
+  sourcePages?: Array<{
+    page: number;
+    width: number;
+    height: number;
+    sectionHandles: string[];
+  }>;
   sections?: Array<{
     handle: string;
     renderIndex: number;
@@ -28,6 +38,12 @@ type Ledger = {
     alt: string;
     rect: { x: number; y: number; width: number; height: number };
   }>;
+  comparisons?: Array<{
+    section: string;
+    width: number;
+    sourcePage: number;
+    sourceRect?: { x: number; y: number; width: number; height: number };
+  }>;
 };
 const workspace = resolve(process.argv[2] ?? "");
 const baseURL = process.argv[3] ?? "http://127.0.0.1:4173";
@@ -43,6 +59,23 @@ const manifest = JSON.parse(
 const ledger = JSON.parse(
   readFileSync(join(workspace, "ledger.json"), "utf8"),
 ) as Ledger;
+const textPanelAlts = new Set(
+  (ledger.assets ?? [])
+    .filter(
+      (asset) =>
+        asset.package &&
+        asset.kind === "panel" &&
+        (ledger.entries ?? []).some(
+          (entry) =>
+            entry.page === asset.page &&
+            ["choice", "prose", "heading"].includes(entry.sourceKind) &&
+            (["x", "y", "width", "height"] as const).every(
+              (field) => entry.rect[field] === asset.rect[field],
+            ),
+        ),
+    )
+    .map((asset) => asset.alt),
+);
 const archive = join(workspace, manifest.archive);
 if (!existsSync(archive))
   throw new Error(`Build the archive before capture: ${archive}`);
@@ -236,7 +269,7 @@ try {
         const candidates = [
           root,
           ...root.querySelectorAll<HTMLElement>(
-            "p,li,h1,h2,h3,h4,h5,h6,article,[class*='layout']",
+            "p,li,h1,h2,h3,h4,h5,h6,article,[class*='layout'],.tag-profile-badge",
           ),
         ];
         const overflow = candidates
@@ -291,7 +324,7 @@ try {
         ];
         const actionElements = [
           ...root.querySelectorAll<HTMLElement>(
-            "button,input,select,textarea,.control-range,.cost-badge-row,.cost-badge",
+            "button,input,select,textarea,.control-range,.cost-badge-row,.cost-badge,.tag-profile-badge",
           ),
         ].filter((element) => {
           const style = getComputedStyle(element);
@@ -451,6 +484,48 @@ try {
                   : [];
               })
             : [];
+        const actionRailCandidates = [
+          ...root.querySelectorAll<HTMLElement>(
+            "article.authored-choice-layout .jump-layout-wrap, article.authored-choice-layout .jump-layout-inline",
+          ),
+        ].flatMap((rail) => {
+          if (rail.querySelector("img")) return [];
+          const actions = [
+            ...rail.querySelectorAll<HTMLElement>(
+              "button,input,select,textarea,.control-range,.cost-badge,.tag-profile-badge",
+            ),
+          ].filter((element, index, values) => {
+            const style = getComputedStyle(element);
+            const rect = element.getBoundingClientRect();
+            return (
+              rect.width > 0 &&
+              rect.height > 0 &&
+              style.display !== "none" &&
+              style.visibility !== "hidden" &&
+              !values.some(
+                (candidate, candidateIndex) =>
+                  candidateIndex < index && candidate.contains(element),
+              )
+            );
+          });
+          if (!actions.length) return [];
+          const railRect = rail.getBoundingClientRect();
+          const rects = actions.map((element) =>
+            element.getBoundingClientRect(),
+          );
+          return [
+            {
+              text: rail.textContent?.trim().slice(0, 120) ?? "",
+              railWidth: railRect.width,
+              railHeight: railRect.height,
+              actions: rects.map((rect) => ({
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
+              })),
+            },
+          ];
+        });
         const cardBoundaries = [
           ...root.querySelectorAll<HTMLElement>("article"),
         ].flatMap((article) => {
@@ -473,8 +548,12 @@ try {
         const rootRect = root.getBoundingClientRect();
         const imageBounds = [...root.querySelectorAll("img")].map((image) => {
           const rect = image.getBoundingClientRect();
+          const style = getComputedStyle(image);
           return {
             alt: image.getAttribute("alt") ?? "",
+            naturalWidth: image.naturalWidth,
+            naturalHeight: image.naturalHeight,
+            objectFit: style.objectFit,
             rect: {
               x: rect.x - rootRect.x,
               y: rect.y - rootRect.y,
@@ -536,6 +615,10 @@ try {
             : [];
         });
         return {
+          rootBounds: {
+            width: rootRect.width,
+            height: rootRect.height,
+          },
           overflow,
           clipped,
           missingAlt,
@@ -544,6 +627,7 @@ try {
           controlBoundaries,
           overlappingActionElements,
           avoidableActionWraps,
+          actionRailCandidates,
           stretchedControls,
           cardBoundaries,
           contentBoundaries,
@@ -574,9 +658,78 @@ try {
               audit.imageBounds,
             )
           : [];
+      const avoidableActionRailWraps = audit.actionRailCandidates.flatMap(
+        (candidate) => {
+          const finding = avoidableActionRailWrap(
+            candidate.railWidth,
+            candidate.actions,
+          );
+          return finding
+            ? [
+                {
+                  text: candidate.text,
+                  ...finding,
+                  railHeight: candidate.railHeight,
+                },
+              ]
+            : [];
+        },
+      );
+      const excessiveActionRailSlackFindings =
+        audit.actionRailCandidates.flatMap((candidate) => {
+          const finding = excessiveActionRailSlack(
+            candidate.railHeight,
+            candidate.actions,
+          );
+          return finding ? [{ text: candidate.text, ...finding }] : [];
+        });
+      const microscopicTextPanels =
+        manifest.mode === "facsimile"
+          ? audit.imageBounds.flatMap((candidate) => {
+              if (!textPanelAlts.has(candidate.alt)) return [];
+              const finding = microscopicTextPanel(candidate);
+              return finding ? [finding] : [];
+            })
+          : [];
+      const excessiveImageLetterboxingFindings =
+        manifest.mode === "facsimile"
+          ? audit.imageBounds.flatMap((candidate) => {
+              if (!textPanelAlts.has(candidate.alt)) return [];
+              const finding = excessiveImageLetterboxing(candidate);
+              return finding ? [finding] : [];
+            })
+          : [];
+      const sectionRecord = ledger.sections?.find(
+        (candidate) => candidate.renderIndex === index + 1,
+      );
+      const comparison = ledger.comparisons?.find(
+        (candidate) =>
+          candidate.section === sectionRecord?.handle &&
+          candidate.width === width,
+      );
+      const sourcePage = ledger.sourcePages?.find(
+        (candidate) => candidate.page === comparison?.sourcePage,
+      );
+      const sourceRect =
+        comparison?.sourceRect ??
+        (sourcePage
+          ? {
+              x: 0,
+              y: 0,
+              width: sourcePage.width,
+              height: sourcePage.height,
+            }
+          : undefined);
+      const responsiveHeightInflation =
+        manifest.mode === "facsimile" && width < 1440
+          ? [excessiveResponsiveHeight(sourceRect, audit.rootBounds)].filter(
+              (finding) => finding !== null,
+            )
+          : [];
       sectionReports.push({
         index: index + 1,
         screenshot,
+        imageBounds: audit.imageBounds,
         overflow: audit.overflow,
         clipped: audit.clipped,
         missingAlt: audit.missingAlt,
@@ -585,6 +738,11 @@ try {
         controlBoundaries: audit.controlBoundaries,
         overlappingActionElements: audit.overlappingActionElements,
         avoidableActionWraps: audit.avoidableActionWraps,
+        avoidableActionRailWraps,
+        excessiveActionRailSlack: excessiveActionRailSlackFindings,
+        microscopicTextPanels,
+        excessiveImageLetterboxing: excessiveImageLetterboxingFindings,
+        responsiveHeightInflation,
         stretchedControls: audit.stretchedControls,
         cardBoundaries: audit.cardBoundaries,
         contentBoundaries: audit.contentBoundaries,

@@ -35,6 +35,7 @@ import {
   choiceWasRolledBySource,
   evaluatedChoiceCosts,
 } from "./choiceEvaluation";
+import { tagReferenceId } from "./tags";
 
 export type * from "./evaluationTypes";
 export {
@@ -64,14 +65,6 @@ export const emptyJumpEntryState = (): JumpEntryState => ({
 
 function display(value: Renderable | undefined, fallback = "") {
   return value?.base ?? value?.variants[0]?.value ?? fallback;
-}
-
-function normalizeTag(value: string) {
-  return value
-    .normalize("NFKC")
-    .toLocaleLowerCase()
-    .trim()
-    .replace(/[\s_\p{Dash_Punctuation}]+/gu, "-");
 }
 
 type RenderContext = Readonly<
@@ -722,7 +715,7 @@ function evaluateActor(
                     grantHandle: item.handle ?? `jump:${grantIndex}`,
                     sourcePackageId: packageItem.logicalId,
                     sourcePackageExactHash: packageItem.exactHash,
-                    tags: item.tags.map(normalizeTag),
+                    tags: item.tags.map(tagReferenceId),
                     description: jumpGrantDescription(
                       packageItem,
                       item,
@@ -764,7 +757,7 @@ function evaluateActor(
                   sourcePackageExactHash: packageItem.exactHash,
                   tags: [
                     ...new Set(
-                      [...choice.tags, ...item.tags].map(normalizeTag),
+                      [...choice.tags, ...item.tags].map(tagReferenceId),
                     ),
                   ],
                   description: inheritedDescription(choice, item, grantContext),
@@ -870,7 +863,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
           ownerActorId: "jumper",
           description: jumpGrantDescription(packageItem, grant, jumperContext),
           initials: initials(name),
-          tags: grant.tags.map(normalizeTag),
+          tags: grant.tags.map(tagReferenceId),
           perkRecordIds: [],
         };
         entryForms.set(grant.handle, form);
@@ -890,7 +883,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
         companions.set(companionId, {
           actorId: companionId,
           sourceEntryId: entryId,
-          tags: grant.tags.map(normalizeTag),
+          tags: grant.tags.map(tagReferenceId),
           perkRecordIds: [],
           itemRecordIds: [],
           importedEntryIds: [],
@@ -923,7 +916,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
               inheritedGrantName(choice, grant, choiceContext),
             ),
             tags: [
-              ...new Set([...choice.tags, ...grant.tags].map(normalizeTag)),
+              ...new Set([...choice.tags, ...grant.tags].map(tagReferenceId)),
             ],
             perkRecordIds: [],
           };
@@ -945,7 +938,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
             actorId: companionId,
             sourceEntryId: entryId,
             tags: [
-              ...new Set([...choice.tags, ...grant.tags].map(normalizeTag)),
+              ...new Set([...choice.tags, ...grant.tags].map(tagReferenceId)),
             ],
             perkRecordIds: [],
             itemRecordIds: [],
@@ -1066,7 +1059,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
                 grantHandle: item.handle ?? `jump:${grantIndex}`,
                 sourcePackageId: packageItem.logicalId,
                 sourcePackageExactHash: packageItem.exactHash,
-                tags: item.tags.map(normalizeTag),
+                tags: item.tags.map(tagReferenceId),
                 description: jumpGrantDescription(packageItem, item, context),
               });
             }
@@ -1101,7 +1094,9 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
                 sourcePackageId: packageItem.logicalId,
                 sourcePackageExactHash: packageItem.exactHash,
                 tags: [
-                  ...new Set([...choice.tags, ...item.tags].map(normalizeTag)),
+                  ...new Set(
+                    [...choice.tags, ...item.tags].map(tagReferenceId),
+                  ),
                 ],
                 description: inheritedDescription(choice, item, grantContext),
                 measure: grantMeasure(item, evaluatedChoice.value),
@@ -1144,7 +1139,7 @@ export function evaluateChain(input: EvaluateChainInput): ChainEvaluation {
                   sourcePackageExactHash: packageItem.exactHash,
                   tags: [
                     ...new Set(
-                      [...choice.tags, ...item.tags].map(normalizeTag),
+                      [...choice.tags, ...item.tags].map(tagReferenceId),
                     ),
                   ],
                   description: inheritedDescription(choice, item, grantContext),

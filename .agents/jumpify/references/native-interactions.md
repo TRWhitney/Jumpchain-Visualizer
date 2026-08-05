@@ -20,19 +20,19 @@ Do not reproduce a scalar interaction with a generic activation Choice when Form
 
 ## Choose the native construct
 
-| Source behavior                                 | Format 1 construct                            | Prohibited substitute                            |
-| ----------------------------------------------- | --------------------------------------------- | ------------------------------------------------ |
-| Set an integer manually                         | one `choice` with `selection: integer`        | toggle Choice plus integer Input                 |
-| Roll an integer                                 | one integer Choice with `resolution: random`  | “Roll” toggle Choice                             |
-| Roll or manually set the same integer           | one integer Choice with `resolution: either`  | separate Roll and Choose Choices                 |
-| Select one scalar value                         | one Choice with `selection: select`           | one toggle Choice per label                      |
-| Keep a prior scalar value for free or change it | one select Choice with `continuity: previous` | “Swap” radio/toggle Choice                       |
-| Roll or manually select one member of a group   | one `choice-source` with `resolution: either` | separate roll and manual Sources                 |
-| Select zero or one member of a group            | one `choice-source` with `mode: single`       | a required/default selection                     |
-| Select up to N independent members              | one multi Source with `max: N`                | runtime prose only or mutually exclusive toggles |
-| Enter text                                      | one Choice with `selection: text`             | toggle that reveals a text Input                 |
-| Buy a repeated quantity                         | one integer Choice with `cost mode: each`     | a separate Choice for each quantity              |
-| Final Home/Stay/Next outcome                    | prose and visuals only                        | any Choice or control                            |
+| Source behavior                                 | Format 1 construct                            | Prohibited substitute                                                         |
+| ----------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------- |
+| Set an integer manually                         | one `choice` with `selection: integer`        | toggle Choice plus integer Input                                              |
+| Roll an integer                                 | one integer Choice with `resolution: random`  | “Roll” toggle Choice                                                          |
+| Roll or manually set the same integer           | one integer Choice with `resolution: either`  | separate Roll and Choose Choices                                              |
+| Select one scalar value                         | one Choice with `selection: select`           | one toggle Choice per label                                                   |
+| Keep a prior scalar value for free or change it | one select Choice with `continuity: previous` | “Swap” radio/toggle Choice                                                    |
+| Roll or manually select one member of a group   | one `choice-source` with `resolution: either` | separate roll and manual Sources                                              |
+| Select zero or one member of a group            | one `choice-source` with `mode: single`       | a required/default selection                                                  |
+| Select up to N independent members              | one multi Source with `max: N`                | runtime prose only or mutually exclusive toggles                              |
+| Enter text                                      | one Choice with `selection: text`             | toggle that reveals a text Input                                              |
+| Buy a repeated quantity                         | one integer Choice with `cost mode: each`     | a separate Choice for each quantity                                           |
+| Final Home/Stay/Next outcome                    | exact prose and visuals only                  | any Choice, Source, control, selection state, property, or outcome projection |
 
 Use an `input` child only for a genuinely secondary value owned by the same Choice. Do not use it to hide the primary interaction behind an activation control.
 
@@ -147,10 +147,11 @@ stack
     gap: xs
     padding: xs
     background: source_charcoal
-    slot
-      target: control
-      control-adornments: false
-    inline
+      slot
+        target: control
+        control-adornments: false
+      slot: tags
+      inline
       grow: 1
       gap: xs
       align: center
@@ -158,14 +159,14 @@ stack
       slot: cost
 ```
 
-This keeps a simple control on one edge, the Cost on the other, and the rail directly attached to the panel. Preserve the enclosing card surface as well: when the source uses a cyan or other accent frame, that frame must visibly enclose both the panel and its additive rail. Do not globally remove the boundary and leave a charcoal rail merging into the charcoal Section, and do not let the rail grow wider than its panel without a measured reason. The panel, rail, and outer card must read as one unit like the proven Kanto treatment.
+This keeps a simple control on one edge, live Tags in available middle space, the Cost on the other, and the rail directly attached to the panel. A tags leaf collapses when the Choice has no Tags. Preserve the enclosing card surface as well: when the source uses a cyan or other accent frame, that frame must visibly enclose both the panel and its additive rail. Do not globally remove the boundary and leave a charcoal rail merging into the charcoal Section, and do not let the rail grow wider than its panel without a measured reason. The panel, rail, and outer card must read as one unit like the proven Kanto treatment.
 
 ```text
 accent card boundary
 ┌─────────────────────────────────────────────┐
 │ measured source panel                       │
 ├─────────────────────────────────────────────┤
-│ live Control                     live Cost  │
+│ live Control       live Tags     live Cost  │
 └─────────────────────────────────────────────┘
 ```
 

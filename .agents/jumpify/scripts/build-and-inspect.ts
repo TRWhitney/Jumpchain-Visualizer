@@ -17,6 +17,7 @@ import {
   hasMatchingFacsimilePanel,
   interactionContractErrors,
 } from "./interaction-contracts.mjs";
+import { facsimileContentContractErrors } from "./facsimile-content-audit.mjs";
 
 type WorkspaceManifest = {
   slug: string;
@@ -98,6 +99,10 @@ if (manifest.mode === "facsimile")
       interactionErrors.push(
         `facsimile Choice entry ${entry.id} requires a matching packaged panel crop`,
       );
+if (manifest.mode === "facsimile")
+  interactionErrors.push(
+    ...facsimileContentContractErrors(ledger, canonical, { complete: false }),
+  );
 if (interactionErrors.length) {
   for (const error of interactionErrors)
     console.error(`interaction-contract:${error}`);

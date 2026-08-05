@@ -56,6 +56,18 @@ function sameValue(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function renderableBase(value) {
+  if (typeof value === "string") return value;
+  return typeof value?.base === "string" ? value.base : undefined;
+}
+
+function contractChoice(contract, canonical) {
+  if (contract.owner !== "choice") return undefined;
+  return canonical?.choices?.find(
+    (choice) => choice.handle === contract.handle,
+  );
+}
+
 function rectErrors(rect, label) {
   if (!rect || typeof rect !== "object") return [`${label} is required`];
   const errors = [];
@@ -106,6 +118,11 @@ function observationErrors(contract, canonical) {
     (contract.states ?? []).map((state) => [state.name, state]),
   );
   const expectedKind = expectedControlKind(contract, canonical);
+  const choice = contractChoice(contract, canonical);
+  const selectOptions =
+    choice?.selection === "select"
+      ? (choice.options ?? []).map(renderableBase).filter(Boolean)
+      : [];
 
   for (const state of contract.states ?? []) {
     const observation = state.observation;
@@ -121,6 +138,15 @@ function observationErrors(contract, canonical) {
     if (expectedKind && observation.controlKind !== expectedKind)
       errors.push(
         `${stateLabel}.controlKind expected ${expectedKind} but captured ${observation.controlKind}`,
+      );
+    if (
+      selectOptions.length &&
+      observation.controlValue !== null &&
+      observation.controlValue !== "" &&
+      !selectOptions.includes(String(observation.controlValue))
+    )
+      errors.push(
+        `${stateLabel}.controlValue ${JSON.stringify(observation.controlValue)} is not an authored option for ${contract.handle}`,
       );
     if (!Array.isArray(observation.activationControlKinds))
       errors.push(`${stateLabel}.activationControlKinds must be an array`);

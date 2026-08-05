@@ -55,7 +55,7 @@ Treat the source as authoritative. Treat `schema/format-1.json` as authoritative
    ```
 
 10. Compare every Section directly at 1440px, 720px, and 390px. Fix every visible mismatch or record a demonstrated gap. Repeat build, capture, and comparison until all acceptance records pass.
-11. Exercise rolled/manual pricing, continuity, exclusive and limited Sources, repeated ranks, discounts, locks, grants, Traits, companions, dynamic names, controls, and final prose as applicable. Capture every `interactionContracts` state. In the same Playwright action, assert the resulting value and visible price and write the DOM observation for control kind/value, activation layers, resolved costs, Section-relative card/rail/neighbor bounds, and overlaps. Never use a fallback action without asserting its postcondition or treat differently named screenshots as proof. Reuse the readiness sequence established by `capture-and-audit.ts`; never convert a first-launch race or inferred state into a passing ledger record.
+11. Exercise rolled/manual pricing, continuity, exclusive and limited Sources, repeated ranks, discounts, locks, grants, Traits, companions, dynamic names, controls, and final prose as applicable. Capture every `interactionContracts` state. In the same Playwright action, assert the resulting value and visible price and write the DOM observation for control kind/value, activation layers, resolved costs, Section-relative card/rail/neighbor bounds, and overlaps. Never use a fallback action without asserting its postcondition or treat differently named screenshots as proof. Reuse the readiness sequence established by `capture-and-audit.ts`; never convert a first-launch race or inferred state into a passing ledger record. After the final evidence or ledger edit, rerun `make-comparison-sheet.mjs` so `review-evidence.json` is current.
 12. Require the completed ledger before handoff:
 
 ```sh
@@ -76,6 +76,7 @@ Do not finish while any of these remain:
 - Any action whose observed value or resolved Cost does not prove the named state, any live-element overlap at 1440/720/390, or any stable-contract bound changing by more than one CSS pixel.
 - Package warnings, errors, missing alt text, or unexercised mechanics.
 - Any source page, output Section, required width, acceptance category, comparison sheet, or evidence file missing from the ledger.
+- A missing, stale, or hand-edited `review-evidence.json`.
 - A partial package offered because the source is large or the current turn is ending. Resume and continue instead.
 
 ## Handoff

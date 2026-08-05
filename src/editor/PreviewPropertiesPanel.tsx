@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { translate } from "../localization";
-import type { TagDefinition } from "../domain/tags";
+import { tagDefinitionForDisplay, type TagDefinition } from "../domain/tags";
 import { TagBadge } from "../ui/TagBadge";
 import type { JumpPreviewSnapshot } from "./JumpPreview";
 import {
@@ -23,9 +23,10 @@ function PreviewTags({
   handles: readonly string[];
   tags: Readonly<Record<string, TagDefinition>>;
 }) {
-  const visible = handles.flatMap((handle) =>
-    tags[handle] ? [tags[handle]] : [],
-  );
+  const visible = handles.flatMap((handle) => {
+    const tag = tagDefinitionForDisplay(tags, handle);
+    return tag ? [tag] : [];
+  });
   if (!visible.length) return null;
   return (
     <div className="editor-preview-acquisition-tags">

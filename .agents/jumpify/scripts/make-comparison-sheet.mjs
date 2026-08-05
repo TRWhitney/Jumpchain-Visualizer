@@ -8,6 +8,11 @@ import {
   workspaceFromArgument,
   writeJson,
 } from "./workspace-lib.mjs";
+import {
+  experimentEvidencePaths,
+  interactionEvidencePaths,
+  reviewEvidenceForLedger,
+} from "./review-evidence.mjs";
 
 const [workspaceArgument] = process.argv.slice(2);
 if (!workspaceArgument) {
@@ -120,6 +125,15 @@ writeJson(join(workspace, "verification", "comparison-manifest.json"), {
     "Contact sheets support direct inspection. Pixel or dimension similarity is not an acceptance decision.",
   comparisons: results,
 });
+writeJson(
+  join(workspace, ledger.reviewEvidence ?? "verification/review-evidence.json"),
+  reviewEvidenceForLedger(
+    ledger,
+    manifest.sourceHash,
+    experimentEvidencePaths(workspace),
+    interactionEvidencePaths(workspace, ledger),
+  ),
+);
 console.log(
-  `${workspace}: created ${results.filter((result) => result.status === "created").length} comparison sheet(s)`,
+  `${workspace}: created ${results.filter((result) => result.status === "created").length} comparison sheet(s) and the independent-review evidence manifest`,
 );

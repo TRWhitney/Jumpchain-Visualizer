@@ -1,3 +1,5 @@
+import { shiftInheritedTagColor } from "./tagColor";
+
 export const tagCategories = [
   "social",
   "mental",
@@ -44,6 +46,113 @@ export type TagDefinition = {
   presentation?: TagPresentation;
 };
 
+export function inheritedTagPresentation(
+  parent: TagPresentation,
+  tagName: string,
+): TagPresentation {
+  return {
+    ...parent,
+    colors: parent.colors.map((color, index) =>
+      shiftInheritedTagColor(color, tagName, index),
+    ),
+    borderColor: shiftInheritedTagColor(parent.borderColor, tagName, 31),
+  };
+}
+
+export function tagReferenceId(value: string) {
+  return value
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .trim()
+    .replace(/[\s_\p{Dash_Punctuation}]+/gu, "-");
+}
+
+export function tagDefinitionForReference(
+  definitions: Readonly<Record<string, TagDefinition>>,
+  reference: string,
+) {
+  const normalized = tagReferenceId(reference);
+  return (
+    definitions[reference] ??
+    definitions[normalized] ??
+    Object.values(definitions).find(
+      (definition) =>
+        tagReferenceId(definition.label) === normalized ||
+        definition.aliases.some(
+          (alias) => tagReferenceId(alias) === normalized,
+        ),
+    )
+  );
+}
+
+export function tagDefinitionForDisplay(
+  definitions: Readonly<Record<string, TagDefinition>>,
+  reference: string,
+): TagDefinition | undefined {
+  const label = reference.trim();
+  if (!label) return undefined;
+  const resolved = tagDefinitionForReference(definitions, label);
+  if (resolved) return resolved;
+  return inheritedMiscellaneousTagDefinition(
+    tagDefinitionForReference(definitions, "miscellaneous"),
+    label,
+  );
+}
+
+function inheritedMiscellaneousTagDefinition(
+  miscellaneous: TagDefinition | undefined,
+  label: string,
+): TagDefinition {
+  const basePresentation =
+    miscellaneous?.presentation ??
+    presentationForTagDefinition(
+      miscellaneous?.color ?? "#68707c",
+      miscellaneous?.to ?? "#454b54",
+      miscellaneous?.style ?? "soft",
+    );
+  const presentation = inheritedTagPresentation(basePresentation, label);
+  return {
+    id: tagReferenceId(label),
+    label,
+    parent: "miscellaneous",
+    aliases: [],
+    color: presentation.colors[0],
+    to: presentation.colors[1] ?? presentation.colors[0],
+    style:
+      presentation.background === "gradient"
+        ? "gradient"
+        : presentation.background === "transparent"
+          ? "outline"
+          : "solid",
+    presentation,
+  };
+}
+
+export function tagDefinitionsWithFallbacks(
+  definitions: Readonly<Record<string, TagDefinition>>,
+  references: Iterable<string>,
+): Record<string, TagDefinition> {
+  const knownReferences = new Set(
+    Object.entries(definitions).flatMap(([key, definition]) =>
+      [key, definition.id, definition.label, ...definition.aliases].map(
+        tagReferenceId,
+      ),
+    ),
+  );
+  const miscellaneous = tagDefinitionForReference(definitions, "miscellaneous");
+  let result: Record<string, TagDefinition> | undefined;
+  for (const reference of references) {
+    const label = reference.trim();
+    const id = tagReferenceId(label);
+    if (!label || knownReferences.has(id)) continue;
+    const fallback = inheritedMiscellaneousTagDefinition(miscellaneous, label);
+    result ??= { ...definitions };
+    result[fallback.id] = fallback;
+    knownReferences.add(id);
+  }
+  return result ?? (definitions as Record<string, TagDefinition>);
+}
+
 const rgb = (hex: string) =>
   [1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16));
 
@@ -85,40 +194,6 @@ export const readableTagText = (backgrounds: readonly string[]) =>
       ),
     }))
     .sort((first, second) => second.minimum - first.minimum)[0].color;
-
-export const adaptTagTextToSurfaces = (
-  preferred: string,
-  backgrounds: readonly string[],
-  minimumContrast = 4.5,
-) => {
-  const normalized = preferred.toLowerCase();
-  if (
-    backgrounds.every(
-      (background) =>
-        tagTextContrast(normalized, background) >= minimumContrast,
-    )
-  )
-    return normalized;
-
-  const fallback = readableTagText(backgrounds);
-  let inaccessibleWeight = 0;
-  let accessibleWeight = 1;
-  let closestAccessible = fallback;
-  for (let iteration = 0; iteration < 20; iteration += 1) {
-    const weight = (inaccessibleWeight + accessibleWeight) / 2;
-    const candidate = mixHex(normalized, fallback, weight);
-    if (
-      backgrounds.every(
-        (background) =>
-          tagTextContrast(candidate, background) >= minimumContrast,
-      )
-    ) {
-      accessibleWeight = weight;
-      closestAccessible = candidate;
-    } else inaccessibleWeight = weight;
-  }
-  return closestAccessible;
-};
 
 export function presentationForTagDefinition(
   color: string,

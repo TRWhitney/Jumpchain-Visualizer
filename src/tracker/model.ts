@@ -1,5 +1,6 @@
 import {
   tagCategories,
+  tagDefinitionsWithFallbacks,
   type TagCategory,
   type TagDefinition,
 } from "../domain/tags";
@@ -89,6 +90,40 @@ export function packageForEntry(
   return entry.packageExactHash === packageItem.exactHash
     ? packageItem
     : { ...packageItem, document: undefined };
+}
+
+export function trackerTagDefinitions(
+  state: Pick<
+    TrackerState,
+    "packages" | "records" | "companions" | "lastValidatedEvaluation" | "tags"
+  >,
+) {
+  const packageReferences = Object.values(state.packages).flatMap(
+    (packageItem) => {
+      const document = packageItem.document;
+      return [
+        ...packageItem.tags,
+        ...(document?.tags ?? []),
+        ...(document?.grants ?? []).flatMap((grant) => grant.tags),
+        ...(document?.choices ?? []).flatMap((choice) => [
+          ...choice.tags,
+          ...choice.grants.flatMap((grant) => grant.tags),
+          ...choice.inputs.flatMap((input) =>
+            input.grants.flatMap((grant) => grant.tags),
+          ),
+        ]),
+      ];
+    },
+  );
+  const cached = state.lastValidatedEvaluation;
+  return tagDefinitionsWithFallbacks(state.tags, [
+    ...packageReferences,
+    ...state.records.flatMap((record) => record.tags),
+    ...state.companions.flatMap((companion) => companion.tags),
+    ...(cached?.records.flatMap((record) => record.tags) ?? []),
+    ...(cached?.forms.flatMap((form) => form.tags) ?? []),
+    ...(cached?.companions.flatMap((companion) => companion.tags) ?? []),
+  ]);
 }
 
 function evaluateCurrentState(state: TrackerState) {

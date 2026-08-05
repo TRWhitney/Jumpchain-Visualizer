@@ -27,10 +27,24 @@ import {
   interactionContractErrors,
 } from "../.agents/jumpify/scripts/interaction-contracts.mjs";
 import {
+  avoidableActionRailWrap,
+  excessiveImageLetterboxing,
+  excessiveActionRailSlack,
+  excessiveResponsiveHeight,
   facsimileCropSeamFindings,
   facsimileSourceRowMismatches,
   facsimileSourceRows,
+  microscopicTextPanel,
 } from "../.agents/jumpify/scripts/facsimile-layout-audit.mjs";
+import {
+  facsimileContentContractErrors,
+  facsimileRenderedAlignmentErrors,
+} from "../.agents/jumpify/scripts/facsimile-content-audit.mjs";
+import {
+  experimentEvidencePaths,
+  interactionEvidencePaths,
+  reviewEvidenceForLedger,
+} from "../.agents/jumpify/scripts/review-evidence.mjs";
 
 const repository = resolve(import.meta.dirname, "..");
 const tools = join(repository, ".agents", "jumpify", "scripts");
@@ -44,6 +58,955 @@ test("bounds cumulative rendered output", () => {
   assert.equal(addOutputBytes(40, 2, 42), 42);
   assert.throws(() => addOutputBytes(40, 3, 42), /workspace limit/);
   assert.throws(() => addOutputBytes(-1, 1, 42), /workspace limit/);
+});
+
+test("reports avoidable multi-row action rails for independent review", () => {
+  assert.deepEqual(
+    avoidableActionRailWrap(320, [
+      { y: 0, width: 32, height: 28 },
+      { y: 0, width: 72, height: 24 },
+      { y: 36, width: 64, height: 24 },
+    ]),
+    { rows: 2, requiredWidth: 184, railWidth: 320 },
+  );
+  assert.equal(
+    avoidableActionRailWrap(160, [
+      { y: 0, width: 72, height: 28 },
+      { y: 36, width: 96, height: 24 },
+    ]),
+    null,
+  );
+  assert.equal(
+    avoidableActionRailWrap(320, [
+      { y: 0, width: 72, height: 28 },
+      { y: 1, width: 96, height: 24 },
+    ]),
+    null,
+  );
+});
+
+test("reports detached empty height around action-rail content", () => {
+  assert.deepEqual(
+    excessiveActionRailSlack(80, [
+      { y: 100, height: 20 },
+      { y: 100, height: 20 },
+    ]),
+    {
+      railHeight: 80,
+      contentHeight: 20,
+      unusedHeight: 60,
+      allowedUnusedHeight: 24,
+    },
+  );
+  assert.equal(excessiveActionRailSlack(44, [{ y: 100, height: 20 }]), null);
+  assert.equal(excessiveActionRailSlack(80, []), null);
+});
+
+test("reports text-bearing facsimile panels rendered at microscopic scale", () => {
+  assert.deepEqual(
+    microscopicTextPanel({
+      alt: "Dense source prose containing enough meaningful alt transcription to identify that a low source-pixel scale threatens body-text readability across the panel.",
+      naturalWidth: 1600,
+      naturalHeight: 240,
+      rect: { width: 320, height: 48 },
+    }),
+    {
+      alt: "Dense source prose containing enough meaningful alt transcription to identify that a low source-pixel scale threatens body-text readability across the panel.",
+      scale: 0.2,
+      minimumScale: 0.25,
+      reason: "dense text at low scale",
+      rendered: { width: 320, height: 48 },
+      natural: { width: 1600, height: 240 },
+    },
+  );
+  assert.equal(
+    microscopicTextPanel({
+      alt: "Readable source prose",
+      naturalWidth: 800,
+      naturalHeight: 160,
+      rect: { width: 400, height: 80 },
+    }),
+    null,
+  );
+  assert.equal(
+    microscopicTextPanel({
+      alt: "Large decorative heading with one short line.",
+      naturalWidth: 1600,
+      naturalHeight: 400,
+      rect: { width: 320, height: 80 },
+    }),
+    null,
+  );
+});
+
+test("reports text-bearing banners letterboxed into shallow contain boxes", () => {
+  assert.deepEqual(
+    excessiveImageLetterboxing({
+      alt: "A complete source banner with instructions.",
+      objectFit: "contain",
+      naturalWidth: 1920,
+      naturalHeight: 268,
+      rect: { width: 1360, height: 80 },
+    }),
+    {
+      alt: "A complete source banner with instructions.",
+      objectFit: "contain",
+      minimumAxisUse: 0.7,
+      inlineUse: 0.421,
+      blockUse: 1,
+      rendered: { width: 1360, height: 80 },
+      content: { width: 573.13, height: 80 },
+    },
+  );
+  assert.equal(
+    excessiveImageLetterboxing({
+      alt: "Natural banner",
+      objectFit: "contain",
+      naturalWidth: 1920,
+      naturalHeight: 268,
+      rect: { width: 960, height: 134 },
+    }),
+    null,
+  );
+});
+
+test("reports extreme responsive Section height inflation", () => {
+  assert.deepEqual(
+    excessiveResponsiveHeight(
+      { width: 1920, height: 2160 },
+      { width: 720, height: 3398 },
+    ),
+    {
+      ratio: 4.195,
+      maximumRatio: 3,
+      equalWidthSourceHeight: 810,
+      renderedHeight: 3398,
+    },
+  );
+  assert.equal(
+    excessiveResponsiveHeight(
+      { width: 1920, height: 2160 },
+      { width: 720, height: 1800 },
+    ),
+    null,
+  );
+});
+
+test("facsimile content contracts enforce semantic identity, grants, Tags, and dynamic ownership", () => {
+  const canonical = {
+    grants: [
+      {
+        kind: "item",
+        name: { base: "Bag" },
+        text: [{ handle: "description", content: { base: "Bigger inside." } }],
+      },
+      {
+        kind: "trait",
+        name: { base: "Jump Terms" },
+        text: [{ handle: "description", content: { base: "Ten years." } }],
+      },
+    ],
+    choices: [
+      {
+        handle: "starter_name",
+        name: { base: "Starter Pokémon" },
+        layout: "panel_text",
+        tags: ["Starter"],
+        images: [
+          {
+            handle: "source_panel",
+            src: "panels/starter-name.png",
+            alt: { base: "Starter name panel" },
+          },
+        ],
+        text: [
+          {
+            handle: "description",
+            content: { base: "Choose the species of your starter Pokémon." },
+          },
+        ],
+        grants: [
+          {
+            kind: "companion",
+            handle: "starter",
+            name: { base: "{{species}} (Starter)" },
+            text: [
+              {
+                handle: "description",
+                content: { base: "Your chosen starter Pokémon." },
+              },
+            ],
+          },
+        ],
+      },
+      {
+        handle: "shiny",
+        name: { base: "Shiny" },
+        layout: "panel_toggle",
+        tags: ["Aesthetic"],
+        images: [
+          {
+            handle: "source_panel",
+            src: "panels/shiny.png",
+            alt: { base: "Shiny panel" },
+          },
+        ],
+        text: [
+          {
+            handle: "description",
+            content: { base: "Your starter is a Shiny Pokémon." },
+          },
+        ],
+        grants: [
+          {
+            kind: "perk",
+            name: { base: "Shiny" },
+            companion: "starter",
+            text: [
+              {
+                handle: "description",
+                content: { base: "Your starter is Shiny." },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    layouts: [
+      {
+        handle: "panel_text",
+        root: {
+          kind: "inline",
+          children: [
+            { kind: "image", target: "source_panel", children: [] },
+            { kind: "slot", target: "control", children: [] },
+            { kind: "slot", target: "tags", children: [] },
+            { kind: "slot", target: "cost", children: [] },
+          ],
+        },
+      },
+      {
+        handle: "panel_toggle",
+        root: {
+          kind: "inline",
+          children: [
+            { kind: "image", target: "source_panel", children: [] },
+            { kind: "slot", target: "control", children: [] },
+            { kind: "slot", target: "tags", children: [] },
+            { kind: "slot", target: "cost", children: [] },
+          ],
+        },
+      },
+    ],
+  };
+  const ledger = {
+    entries: [
+      {
+        id: "intro_kit",
+        page: 1,
+        sourceKind: "prose",
+        transcription: "JUMP TERMS. TEN YEARS. BAG. BIGGER INSIDE.",
+      },
+      {
+        id: "starter_name",
+        page: 1,
+        sourceKind: "choice",
+        rect: { x: 0, y: 0, width: 100, height: 40 },
+        transcription: "STARTER. CHOOSE THE SPECIES OF YOUR STARTER POKÉMON.",
+      },
+      {
+        id: "starter_shiny",
+        page: 1,
+        sourceKind: "choice",
+        rect: { x: 110, y: 0, width: 100, height: 40 },
+        transcription: "SHINY. YOUR STARTER IS A SHINY POKÉMON.",
+      },
+    ],
+    sourcePages: [{ page: 1, sectionHandles: ["other", "starter"] }],
+    sections: [{ handle: "starter", sourcePages: [1], renderIndex: 1 }],
+    interactionContracts: [
+      {
+        entryIds: ["starter_name", "starter_shiny"],
+        section: "starter",
+      },
+    ],
+    assets: [
+      {
+        page: 1,
+        kind: "panel",
+        package: true,
+        output: "panels/starter-name.png",
+        alt: "Starter name panel",
+        rect: { x: 0, y: 0, width: 100, height: 40 },
+      },
+      {
+        page: 1,
+        kind: "panel",
+        package: true,
+        output: "panels/shiny.png",
+        alt: "Shiny panel",
+        rect: { x: 110, y: 0, width: 100, height: 40 },
+      },
+    ],
+    facsimileContracts: {
+      semanticNames: [
+        {
+          handle: "starter_name",
+          sourceEntry: "starter_name",
+          sourceText: "STARTER",
+          semanticName: "Starter Pokémon",
+          sourceEffectText: "CHOOSE THE SPECIES OF YOUR STARTER POKÉMON.",
+          liveDescription: "Choose the species of your starter Pokémon.",
+          normalizationNote:
+            "Adds the source-defined Pokémon role to the semantic label.",
+        },
+        {
+          handle: "shiny",
+          sourceEntry: "starter_shiny",
+          sourceText: "SHINY",
+          semanticName: "Shiny",
+          sourceEffectText: "YOUR STARTER IS A SHINY POKÉMON.",
+          liveDescription: "Your starter is a Shiny Pokémon.",
+        },
+      ],
+      grantInventory: {
+        entryDecisions: [
+          {
+            entryId: "intro_kit",
+            dispositions: ["jump-grant"],
+            reason: "The prose gives the Jumper a durable Bag.",
+            grantKeys: ["trait:Jump Terms", "item:Bag"],
+          },
+          {
+            entryId: "starter_name",
+            dispositions: ["choice-grant"],
+            reason: "The entered species creates the Starter companion.",
+          },
+          {
+            entryId: "starter_shiny",
+            dispositions: ["choice-grant"],
+            reason: "The Choice grants the Starter-owned Shiny perk.",
+          },
+        ],
+        sourceEntryIds: ["intro_kit"],
+        status: "complete",
+        note: "Reviewed the complete starting kit.",
+        grants: [
+          {
+            entryId: "intro_kit",
+            kind: "item",
+            name: "Bag",
+            description: "Bigger inside.",
+          },
+          {
+            entryId: "intro_kit",
+            kind: "trait",
+            name: "Jump Terms",
+            description: "Ten years.",
+          },
+        ],
+      },
+      dynamicEntities: [
+        {
+          choiceHandle: "starter_name",
+          kind: "companion",
+          grantHandle: "starter",
+          visibleNameTemplate: "{{species}} (Starter)",
+          contextLabel: "Starter",
+          upgradeHandles: ["shiny"],
+          creationEvidence: "verification/starter-control.png",
+          trackerEvidence: "verification/starter-companions-tab.png",
+          upgradeEvidence: "verification/starter-shiny-owned.png",
+        },
+      ],
+      tagPlacements: [
+        {
+          choiceHandle: "starter_name",
+          decision: "placed",
+          tags: ["Starter"],
+          layoutHandle: "panel_text",
+          railOrder: ["control", "tags", "cost"],
+        },
+        {
+          choiceHandle: "shiny",
+          decision: "placed",
+          tags: ["Aesthetic"],
+          layoutHandle: "panel_toggle",
+          railOrder: ["control", "tags", "cost"],
+        },
+      ],
+      alignmentRelationships: [
+        {
+          id: "starter_pair",
+          entryIds: ["starter_name", "starter_shiny"],
+          sourceRelation: "The two panels share one horizontal row.",
+          relation: "same-row",
+          width: 1440,
+          sourceBounds: [
+            { x: 0, y: 0, width: 100, height: 40 },
+            { x: 110, y: 0, width: 100, height: 40 },
+          ],
+          renderBounds: [
+            { x: 0, y: 0, width: 400, height: 100 },
+            { x: 410, y: 0, width: 400, height: 100 },
+          ],
+          status: "pass",
+          evidence: "verification/alignment.png",
+        },
+      ],
+      independentReview: {
+        reviewer: "clean-context-agent",
+        status: "pass",
+        evidence: "verification/independent-review.md",
+        findings: [
+          {
+            id: "tag_spacing",
+            description: "The initial Tag spacing finding was corrected.",
+            status: "resolved",
+            evidence: "verification/tag-spacing.png",
+          },
+        ],
+      },
+    },
+  };
+
+  assert.deepEqual(
+    facsimileContentContractErrors(ledger, canonical, { complete: true }),
+    [],
+  );
+  assert.deepEqual(
+    ledger.facsimileContracts.grantInventory.entryDecisions[0].grantKeys,
+    ["trait:Jump Terms", "item:Bag"],
+    "validation must not mutate the converter-authored grant order",
+  );
+  const independentFacts = reviewEvidenceForLedger(
+    { ...ledger, mode: "facsimile", mechanics: [] },
+    "a".repeat(64),
+  );
+  assert.equal(
+    independentFacts.facsimileSemantics.semanticNames[1].semanticName,
+    "Shiny",
+  );
+  assert.equal(
+    JSON.stringify(independentFacts).includes("independentReview"),
+    false,
+  );
+
+  const shouted = structuredClone(canonical);
+  shouted.choices[1].name.base = "SHINY";
+  shouted.choices[1].grants[0].name.base = "SHINY";
+  assert(
+    facsimileContentContractErrors(ledger, shouted).some((error) =>
+      error.includes("all-caps display typography"),
+    ),
+  );
+
+  const missingTagSlot = structuredClone(canonical);
+  missingTagSlot.layouts[1].root.children =
+    missingTagSlot.layouts[1].root.children.filter(
+      (node) => node.target !== "tags",
+    );
+  assert(
+    facsimileContentContractErrors(ledger, missingTagSlot).some((error) =>
+      error.includes("has no live tags slot"),
+    ),
+  );
+
+  const severedPanel = structuredClone(canonical);
+  severedPanel.layouts[0].root.children =
+    severedPanel.layouts[0].root.children.filter(
+      (node) => node.target !== "source_panel",
+    );
+  assert(
+    facsimileContentContractErrors(ledger, severedPanel).some((error) =>
+      error.includes("does not render its intact source panel"),
+    ),
+  );
+
+  const decomposedLedger = structuredClone(ledger);
+  decomposedLedger.facsimileContracts.semanticNames[1].panelStrategy =
+    "measured-fragments";
+  decomposedLedger.facsimileContracts.semanticNames[1].sourcePanelAssets = [
+    "panels/shiny-title.png",
+    "panels/shiny-effect.png",
+  ];
+  decomposedLedger.facsimileContracts.semanticNames[1].decompositionReason =
+    "The intact effect prose falls below the measured narrow readability floor.";
+  decomposedLedger.assets.splice(
+    1,
+    1,
+    {
+      page: 1,
+      kind: "panel",
+      package: true,
+      output: "panels/shiny-title.png",
+      alt: "Shiny title",
+      rect: { x: 110, y: 0, width: 100, height: 20 },
+    },
+    {
+      page: 1,
+      kind: "panel",
+      package: true,
+      output: "panels/shiny-effect.png",
+      alt: "Your starter is a Shiny Pokémon.",
+      rect: { x: 110, y: 20, width: 100, height: 20 },
+    },
+  );
+  const decomposedCanonical = structuredClone(canonical);
+  decomposedCanonical.choices[1].images = [
+    {
+      handle: "source_title",
+      src: "panels/shiny-title.png",
+      alt: { base: "Shiny title" },
+    },
+    {
+      handle: "source_effect",
+      src: "panels/shiny-effect.png",
+      alt: { base: "Your starter is a Shiny Pokémon." },
+    },
+  ];
+  decomposedCanonical.layouts[1].root.children = [
+    { kind: "image", target: "source_title", children: [] },
+    { kind: "image", target: "source_effect", children: [] },
+    { kind: "slot", target: "control", children: [] },
+    { kind: "slot", target: "tags", children: [] },
+    { kind: "slot", target: "cost", children: [] },
+  ];
+  assert.equal(
+    facsimileContentContractErrors(decomposedLedger, decomposedCanonical).some(
+      (error) =>
+        /intact source-panel|measured source fragment|sourcePanelAssets|decompositionReason/.test(
+          error,
+        ),
+    ),
+    false,
+  );
+  decomposedCanonical.layouts[1].root.children =
+    decomposedCanonical.layouts[1].root.children.filter(
+      (node) => node.target !== "source_effect",
+    );
+  assert(
+    facsimileContentContractErrors(decomposedLedger, decomposedCanonical).some(
+      (error) => error.includes("does not render measured source fragment"),
+    ),
+  );
+
+  const sourceHasNoTag = structuredClone(ledger);
+  sourceHasNoTag.facsimileContracts.tagPlacements[1] = {
+    choiceHandle: "shiny",
+    decision: "not-applicable",
+    tags: [],
+    reason: "The source supplies no Tag string.",
+  };
+  assert(
+    facsimileContentContractErrors(sourceHasNoTag, canonical).some((error) =>
+      error.includes("absence of source Tag strings"),
+    ),
+  );
+
+  const genericGrantKindTag = structuredClone(ledger);
+  genericGrantKindTag.facsimileContracts.tagPlacements[1].tags = ["Companion"];
+  assert(
+    facsimileContentContractErrors(genericGrantKindTag, canonical).some(
+      (error) =>
+        error.includes("only repeat a section, cost class, or grant kind"),
+    ),
+  );
+
+  const paraphrasedDescription = structuredClone(ledger);
+  paraphrasedDescription.facsimileContracts.semanticNames[1].liveDescription =
+    "Your starter looks different.";
+  assert(
+    facsimileContentContractErrors(paraphrasedDescription, canonical).some(
+      (error) => error.includes("paraphrases or shortens"),
+    ),
+  );
+
+  const contextFree = structuredClone(ledger);
+  contextFree.facsimileContracts.dynamicEntities[0].visibleNameTemplate =
+    "{{species}}";
+  assert(
+    facsimileContentContractErrors(contextFree, canonical).some((error) =>
+      error.includes("must include its context label"),
+    ),
+  );
+
+  const unexplainedRename = structuredClone(ledger);
+  delete unexplainedRename.facsimileContracts.semanticNames[0]
+    .normalizationNote;
+  assert(
+    facsimileContentContractErrors(unexplainedRename, canonical).some((error) =>
+      error.includes("normalizationNote is required"),
+    ),
+  );
+
+  const unauthorizedCorrection = structuredClone(ledger);
+  unauthorizedCorrection.facsimileContracts.semanticNames[1].semanticName =
+    "Advanced Move";
+  unauthorizedCorrection.facsimileContracts.semanticNames[1].normalizationNote =
+    "Uses conventional grammar.";
+  assert(
+    facsimileContentContractErrors(unauthorizedCorrection, canonical).some(
+      (error) => error.includes("explicit Developer authorization"),
+    ),
+  );
+
+  const controlOnly = structuredClone(ledger);
+  delete controlOnly.facsimileContracts.dynamicEntities[0].trackerEvidence;
+  assert(
+    facsimileContentContractErrors(controlOnly, canonical).some((error) =>
+      error.includes("trackerEvidence is required"),
+    ),
+  );
+
+  const nameOnlyGrant = structuredClone(canonical);
+  nameOnlyGrant.choices[1].grants[0].text = [];
+  assert(
+    facsimileContentContractErrors(ledger, nameOnlyGrant).some((error) =>
+      error.includes("requires a complete live description"),
+    ),
+  );
+
+  const duplicatedPanelProse = structuredClone(canonical);
+  duplicatedPanelProse.choices[1].text = [
+    {
+      handle: "description",
+      content: {
+        base: "Your starter is Shiny and visibly sparkles in ordinary light.",
+      },
+    },
+  ];
+  duplicatedPanelProse.layouts[1].root = {
+    kind: "stack",
+    children: [
+      { kind: "image", target: "source_panel", children: [] },
+      { kind: "text", target: "description", children: [] },
+      ...duplicatedPanelProse.layouts[1].root.children,
+    ],
+  };
+  const duplicatedPanelLedger = structuredClone(ledger);
+  duplicatedPanelLedger.entries[2].transcription =
+    "Shiny. Your starter is Shiny and visibly sparkles in ordinary light.";
+  assert(
+    facsimileContentContractErrors(
+      duplicatedPanelLedger,
+      duplicatedPanelProse,
+    ).some((error) => error.includes("visibly duplicates its description")),
+  );
+
+  const changedJumpGrant = structuredClone(canonical);
+  changedJumpGrant.grants[0].text[0].content.base = "A shortened summary.";
+  assert(
+    facsimileContentContractErrors(ledger, changedJumpGrant).some((error) =>
+      error.includes("description does not match its reviewed source contract"),
+    ),
+  );
+
+  const skippedGrantSweepEntry = structuredClone(ledger);
+  skippedGrantSweepEntry.facsimileContracts.grantInventory.entryDecisions =
+    skippedGrantSweepEntry.facsimileContracts.grantInventory.entryDecisions.slice(
+      0,
+      1,
+    );
+  assert(
+    facsimileContentContractErrors(skippedGrantSweepEntry, canonical).some(
+      (error) => error.includes("exactly one decision"),
+    ),
+  );
+
+  const contradictoryGrantSweepEntry = structuredClone(ledger);
+  contradictoryGrantSweepEntry.facsimileContracts.grantInventory.entryDecisions[0].dispositions =
+    ["jump-grant", "no-grant"];
+  assert(
+    facsimileContentContractErrors(
+      contradictoryGrantSweepEntry,
+      canonical,
+    ).some((error) => error.includes("cannot combine no-grant")),
+  );
+
+  const missingGrantReconciliation = structuredClone(ledger);
+  delete missingGrantReconciliation.facsimileContracts.grantInventory
+    .entryDecisions[0].grantKeys;
+  assert(
+    facsimileContentContractErrors(missingGrantReconciliation, canonical).some(
+      (error) => error.includes("grantKeys must enumerate every"),
+    ),
+  );
+
+  const incompleteGrantReconciliation = structuredClone(ledger);
+  incompleteGrantReconciliation.facsimileContracts.grantInventory.entryDecisions[0].grantKeys =
+    ["item:Wallet"];
+  assert(
+    facsimileContentContractErrors(
+      incompleteGrantReconciliation,
+      canonical,
+    ).some((error) => error.includes("must exactly reconcile")),
+  );
+
+  const missingSharedChoiceGrant = structuredClone(ledger);
+  missingSharedChoiceGrant.facsimileContracts.grantInventory.entryDecisions[1].dispositions =
+    ["shared-choice-grant"];
+  assert(
+    facsimileContentContractErrors(missingSharedChoiceGrant, canonical).some(
+      (error) => error.includes("sharedEffectText is required"),
+    ),
+  );
+  missingSharedChoiceGrant.facsimileContracts.grantInventory.entryDecisions[1].sharedEffectText =
+    "CHOOSE THE SPECIES OF YOUR STARTER POKÉMON.";
+  missingSharedChoiceGrant.facsimileContracts.grantInventory.entryDecisions[1].targetHandles =
+    ["starter_name"];
+  assert(
+    facsimileContentContractErrors(missingSharedChoiceGrant, canonical).some(
+      (error) => error.includes("does not preserve shared Trait effect"),
+    ),
+  );
+
+  const paraphrasedJumpGrant = structuredClone(ledger);
+  paraphrasedJumpGrant.facsimileContracts.grantInventory.grants[0].description =
+    "A spacious bag.";
+  assert(
+    facsimileContentContractErrors(paraphrasedJumpGrant, canonical).some(
+      (error) => error.includes("not an exact contiguous extract"),
+    ),
+  );
+
+  const misplacedTags = structuredClone(canonical);
+  misplacedTags.layouts[0].root.children = [
+    { kind: "slot", target: "control", children: [] },
+    { kind: "slot", target: "cost", children: [] },
+    { kind: "slot", target: "tags", children: [] },
+  ];
+  assert(
+    facsimileContentContractErrors(ledger, misplacedTags).some((error) =>
+      error.includes("Control -> Tags -> Cost order"),
+    ),
+  );
+  const sourceRequiredAlternative = structuredClone(ledger);
+  sourceRequiredAlternative.facsimileContracts.tagPlacements[0].railOrder = [
+    "control",
+    "cost",
+    "tags",
+  ];
+  sourceRequiredAlternative.facsimileContracts.tagPlacements[0].reason =
+    "The source leaves measured Tag space only after its bottom-right Cost.";
+  assert.equal(
+    facsimileContentContractErrors(
+      sourceRequiredAlternative,
+      misplacedTags,
+    ).some((error) => error.includes("Control -> Tags -> Cost order")),
+    false,
+  );
+
+  const compactDiscountedRank = structuredClone(canonical);
+  compactDiscountedRank.choices[0].discounts = [
+    { group: "discounted_gear", mode: "percent", amount: 50 },
+  ];
+  compactDiscountedRank.choices[1].groups = ["discounted_gear"];
+  compactDiscountedRank.choices[1].costs = [
+    { resource: "jump_points", amount: 100, mode: "each" },
+  ];
+  const costSlot = compactDiscountedRank.layouts[1].root.children.find(
+    (node) => node.kind === "slot" && node.target === "cost",
+  );
+  costSlot.presentation = { costDensity: "compact" };
+  assert(
+    facsimileContentContractErrors(ledger, compactDiscountedRank).some(
+      (error) =>
+        error.includes(
+          "compact Cost density even though a repeatable discounted total must remain visibly readable",
+        ),
+    ),
+  );
+
+  const rolePerk = structuredClone(canonical);
+  rolePerk.choices[1].grants.push({
+    kind: "perk",
+    name: { base: "Starter" },
+    companion: "starter",
+  });
+  assert(
+    facsimileContentContractErrors(ledger, rolePerk).some((error) =>
+      error.includes("role as a generic perk"),
+    ),
+  );
+
+  const stacked = structuredClone(ledger);
+  stacked.facsimileContracts.alignmentRelationships[0].renderBounds[1] = {
+    x: 0,
+    y: 110,
+    width: 400,
+    height: 100,
+  };
+  assert(
+    facsimileContentContractErrors(stacked, canonical, { complete: true }).some(
+      (error) =>
+        error.includes("does not preserve its declared rendered relation"),
+    ),
+  );
+
+  const uneven = structuredClone(ledger);
+  uneven.facsimileContracts.alignmentRelationships[0].renderBounds[1].height = 70;
+  assert(
+    facsimileContentContractErrors(uneven, canonical, { complete: true }).some(
+      (error) => error.includes("source-demonstrated bottom-edge alignment"),
+    ),
+  );
+
+  const selfCertified = structuredClone(ledger);
+  selfCertified.facsimileContracts.independentReview.status = "fail";
+  selfCertified.facsimileContracts.independentReview.findings[0].status =
+    "open";
+  assert(
+    facsimileContentContractErrors(selfCertified, canonical, {
+      complete: true,
+    }).some((error) => error.includes("remains open after independent review")),
+  );
+
+  const renderedAudit = {
+    widths: {
+      1440: [
+        {
+          index: 1,
+          imageBounds: [
+            {
+              alt: "Starter name panel",
+              rect: { x: 0, y: 0, width: 400, height: 100 },
+            },
+            {
+              alt: "Shiny panel",
+              rect: { x: 410, y: 0, width: 400, height: 100 },
+            },
+          ],
+        },
+      ],
+    },
+  };
+  assert.deepEqual(facsimileRenderedAlignmentErrors(ledger, renderedAudit), []);
+  renderedAudit.widths[1440][0].imageBounds[1].rect = {
+    x: 0,
+    y: 110,
+    width: 400,
+    height: 100,
+  };
+  assert(
+    facsimileRenderedAlignmentErrors(ledger, renderedAudit).some((error) =>
+      error.includes("captured DOM geometry"),
+    ),
+  );
+
+  renderedAudit.widths[1440][0].imageBounds[1].rect = {
+    x: 410,
+    y: 0,
+    width: 400,
+    height: 70,
+  };
+  const unequalCaptured = facsimileRenderedAlignmentErrors(
+    uneven,
+    renderedAudit,
+  );
+  assert(
+    unequalCaptured.some((error) =>
+      error.includes("source-demonstrated bottom-edge alignment"),
+    ),
+  );
+});
+
+test("independent review evidence inventories only direct experiment reports", () => {
+  const workspace = temporaryDirectory();
+  try {
+    const experiments = join(workspace, "verification", "experiments");
+    mkdirSync(experiments, { recursive: true });
+    writeFileSync(join(experiments, "tracks-report.json"), "{}\n");
+    writeFileSync(join(experiments, "notes.json"), "{}\n");
+    mkdirSync(join(experiments, "nested"));
+    symlinkSync(
+      join(experiments, "tracks-report.json"),
+      join(experiments, "linked-report.json"),
+    );
+    assert.deepEqual(experimentEvidencePaths(workspace), [
+      "verification/experiments/tracks-report.json",
+    ]);
+    assert.deepEqual(
+      reviewEvidenceForLedger({}, "a".repeat(64), [
+        "verification/experiments/tracks-report.json",
+      ]).authoritativeExperimentFiles,
+      ["verification/experiments/tracks-report.json"],
+    );
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
+test("independent review evidence exposes factual unconditional-grant reconciliation", () => {
+  const evidence = reviewEvidenceForLedger(
+    {
+      mode: "facsimile",
+      entries: [
+        {
+          id: "starting_bag",
+          page: 1,
+          rect: { x: 10, y: 20, width: 30, height: 40 },
+          transcription: "A bag, bigger on the inside.",
+        },
+      ],
+      facsimileContracts: {
+        grantInventory: {
+          grants: [
+            {
+              entryId: "starting_bag",
+              kind: "item",
+              name: "Bag",
+            },
+          ],
+          entryDecisions: [
+            {
+              entryId: "starting_bag",
+              dispositions: ["jump-grant"],
+              grantKeys: ["item:Bag"],
+            },
+          ],
+        },
+      },
+    },
+    "a".repeat(64),
+  );
+
+  assert.deepEqual(evidence.facsimileSemantics.sourceGrantReconciliation, [
+    {
+      entryId: "starting_bag",
+      sourcePage: 1,
+      sourceRect: { x: 10, y: 20, width: 30, height: 40 },
+      sourceText: "A bag, bigger on the inside.",
+      grantKeys: ["item:Bag"],
+    },
+  ]);
+});
+
+test("independent review evidence transitively inventories interaction manifests", () => {
+  const workspace = temporaryDirectory();
+  try {
+    const interactions = join(workspace, "verification", "interactions");
+    mkdirSync(interactions, { recursive: true });
+    const manifestPath = "verification/interactions/combined.json";
+    const manualPath = "verification/interactions/manual.png";
+    const rolledPath = "verification/interactions/rolled.png";
+    png(join(workspace, manualPath));
+    png(join(workspace, rolledPath));
+    writeFileSync(
+      join(workspace, manifestPath),
+      `${JSON.stringify({ manual: manualPath, rolled: rolledPath })}\n`,
+    );
+    const ledger = { mechanics: [{ evidence: manifestPath }] };
+    const authoritative = interactionEvidencePaths(workspace, ledger);
+    assert.deepEqual(authoritative, [manifestPath, manualPath, rolledPath]);
+    assert.deepEqual(
+      reviewEvidenceForLedger(ledger, "a".repeat(64), [], authoritative)
+        .authoritativeInteractionFiles,
+      [manifestPath, manualPath, rolledPath],
+    );
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
 });
 
 test("interaction contracts enforce native direct scalar controls and required states", () => {
@@ -333,6 +1296,104 @@ test("interaction observations reject unchanged continuity evidence and free cha
       /pricing must be continuity-change for a priced continuity Choice/.test(
         error,
       ),
+    ),
+  );
+});
+
+test("interaction observations reject select values outside the authored option domain", () => {
+  const bounds = {
+    surface: { x: 0, y: 0, width: 320, height: 48 },
+    rail: { x: 0, y: 28, width: 320, height: 20 },
+  };
+  const ledger = {
+    entries: [
+      {
+        id: "region_free_pick",
+        sourceKind: "choice",
+        handles: ["free_pick"],
+      },
+    ],
+    interactionContracts: [
+      {
+        id: "free_pick_control",
+        entryIds: ["region_free_pick"],
+        sourcePage: 2,
+        sourceBehavior: "Choose one named Region.",
+        section: "region",
+        owner: "choice",
+        handle: "free_pick",
+        placement: "direct",
+        selection: "select",
+        resolution: "manual",
+        continuity: "none",
+        pricing: "ordinary",
+        states: [
+          {
+            name: "unset",
+            evidence: "verification/free-pick-unset.png",
+            observation: {
+              controlKind: "select",
+              controlValue: null,
+              activationControlKinds: [],
+              resolutionStatus: "unset",
+              resolvedCosts: { jump_points: 0 },
+              actionSucceeded: false,
+              bounds,
+              overlaps: [],
+            },
+          },
+          {
+            name: "manual",
+            evidence: "verification/free-pick-manual.png",
+            observation: {
+              controlKind: "select",
+              controlValue: "Female",
+              activationControlKinds: [],
+              resolutionStatus: "manual",
+              resolvedCosts: { jump_points: 0 },
+              actionSucceeded: true,
+              bounds,
+              overlaps: [],
+            },
+          },
+        ],
+        geometry: {
+          policy: "stable",
+          evidence: "verification/free-pick-geometry.png",
+        },
+      },
+    ],
+  };
+  const canonical = {
+    sections: [
+      {
+        handle: "region",
+        sources: [],
+        directChoices: [{ handle: "free_pick_field", target: "free_pick" }],
+      },
+    ],
+    choices: [
+      {
+        handle: "free_pick",
+        groups: [],
+        selection: "select",
+        resolution: "manual",
+        continuity: undefined,
+        options: [
+          { base: "Kanto", variants: [] },
+          { base: "Kalos", variants: [] },
+        ],
+        costs: [],
+      },
+    ],
+  };
+
+  assert.ok(
+    interactionContractErrors(ledger, canonical, { complete: true }).some(
+      (error) =>
+        error.includes(
+          'controlValue "Female" is not an authored option for free_pick',
+        ),
     ),
   );
 });
@@ -906,6 +1967,28 @@ test("creates globally numbered resumable workspaces without replacing ledger wo
       facsimile.workspace,
       /scratch\/jumpify\/002-my-jump-facsimile$/,
     );
+    assert.deepEqual(
+      JSON.parse(readFileSync(facsimile.ledgerPath, "utf8")).facsimileContracts,
+      {
+        semanticNames: [],
+        grantInventory: {
+          entryDecisions: [],
+          sourceEntryIds: [],
+          status: "unreviewed",
+          note: "",
+          grants: [],
+        },
+        dynamicEntities: [],
+        tagPlacements: [],
+        alignmentRelationships: [],
+        independentReview: {
+          reviewer: "clean-context-agent",
+          status: "unreviewed",
+          evidence: "",
+          findings: [],
+        },
+      },
+    );
     png(source, "#303030");
     const changed = prepareWorkspace(source, "semantic", root);
     assert.notEqual(changed.workspace, first.workspace);
@@ -1238,6 +2321,14 @@ test("builds equal-width source and render comparison columns", () => {
       comparisonManifest.comparisons[0].displayedSourceSize,
       [40, 20],
     );
+    const reviewEvidence = JSON.parse(
+      readFileSync(
+        join(workspace, "verification", "review-evidence.json"),
+        "utf8",
+      ),
+    );
+    assert.equal(reviewEvidence.sourceHash, ledger.sourceHash);
+    assert.deepEqual(reviewEvidence.interactionContracts, []);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -1382,6 +2473,9 @@ test("validates ledger structure and completion evidence", () => {
           controlBoundaries: [],
           overlappingActionElements: [],
           avoidableActionWraps: [],
+          excessiveActionRailSlack: [],
+          microscopicTextPanels: [],
+          responsiveHeightInflation: [],
           stretchedControls: [],
           cardBoundaries: [],
           contentBoundaries: [],
@@ -1414,7 +2508,76 @@ test("validates ledger structure and completion evidence", () => {
       join(workspace, "verification", "comparison-manifest.json"),
       `${JSON.stringify({ comparisons: comparisonResults })}\n`,
     );
+    writeFileSync(
+      join(workspace, ledger.reviewEvidence),
+      `${JSON.stringify(reviewEvidenceForLedger(ledger, ledger.sourceHash), null, 2)}\n`,
+    );
     run("validate-ledger.mjs", workspace, "--complete");
+
+    const cleanContextEvidence = JSON.parse(
+      readFileSync(join(workspace, ledger.reviewEvidence), "utf8"),
+    );
+    assert.equal(cleanContextEvidence.interactionContracts.length, 1);
+    assert.equal(
+      cleanContextEvidence.interactionContracts[0].states[0].observation
+        .resolutionStatus,
+      "prose",
+    );
+    assert.deepEqual(cleanContextEvidence.authoritativeInteractionFiles, [
+      interactionEvidence,
+    ]);
+    assert.equal(
+      JSON.stringify(cleanContextEvidence).includes('"status"'),
+      false,
+    );
+
+    ledger.gaps.push({
+      id: "unsupported_claim",
+      requirement: "A claimed limitation needs a reproducible experiment.",
+      experiment: "No experiment was preserved.",
+      evidence: "verification/assertion.json",
+      limitation: "Unknown.",
+      fidelityLoss: "Unknown.",
+      approximation: "Unknown.",
+    });
+    writeFileSync(ledgerPath, `${JSON.stringify(ledger, null, 2)}\n`);
+    const unsupportedGap = spawnSync(process.execPath, [
+      join(tools, "validate-ledger.mjs"),
+      workspace,
+      "--complete",
+    ]);
+    assert.notEqual(unsupportedGap.status, 0);
+    assert.match(unsupportedGap.stderr.toString(), /minimal experiment report/);
+    ledger.gaps = [];
+    writeFileSync(ledgerPath, `${JSON.stringify(ledger, null, 2)}\n`);
+
+    const orphanedEvidence = join(
+      workspace,
+      "verification",
+      "interactions",
+      "obsolete.png",
+    );
+    png(orphanedEvidence);
+    const unreferencedEvidenceBeforeReview = spawnSync(process.execPath, [
+      join(tools, "validate-ledger.mjs"),
+      workspace,
+    ]);
+    assert.notEqual(unreferencedEvidenceBeforeReview.status, 0);
+    assert.match(
+      unreferencedEvidenceBeforeReview.stderr.toString(),
+      /is not authoritative evidence/,
+    );
+    const unreferencedEvidence = spawnSync(process.execPath, [
+      join(tools, "validate-ledger.mjs"),
+      workspace,
+      "--complete",
+    ]);
+    assert.notEqual(unreferencedEvidence.status, 0);
+    assert.match(
+      unreferencedEvidence.stderr.toString(),
+      /is not authoritative evidence/,
+    );
+    rmSync(orphanedEvidence);
 
     widths["390"][0].viewportBoundaries.push({
       rect: [0, 0, 420, 100],
@@ -1472,16 +2635,48 @@ test("validates ledger structure and completion evidence", () => {
     assert.notEqual(avoidableWrap.status, 0);
     assert.match(avoidableWrap.stderr.toString(), /avoidableActionWraps/);
     widths["1440"][0].avoidableActionWraps = [];
+
+    widths["390"][0].excessiveActionRailSlack.push({
+      text: "Tagged choice",
+      railHeight: 80,
+      contentHeight: 20,
+      unusedHeight: 60,
+      allowedUnusedHeight: 24,
+    });
+    writeFileSync(
+      join(workspace, "verification", "render-audit.json"),
+      `${JSON.stringify({ widths })}\n`,
+    );
+    const detachedRail = spawnSync(process.execPath, [
+      join(tools, "validate-ledger.mjs"),
+      workspace,
+      "--complete",
+    ]);
+    assert.notEqual(detachedRail.status, 0);
+    assert.match(detachedRail.stderr.toString(), /excessiveActionRailSlack/);
+    widths["390"][0].excessiveActionRailSlack = [];
     writeFileSync(
       join(workspace, "verification", "render-audit.json"),
       `${JSON.stringify({ widths })}\n`,
     );
 
+    const narrowGapEvidence =
+      "verification/experiments/narrow-viewport-report.json";
+    mkdirSync(dirname(join(workspace, narrowGapEvidence)), { recursive: true });
+    writeFileSync(
+      join(workspace, narrowGapEvidence),
+      `${JSON.stringify({
+        id: "narrow_viewport",
+        definition: ["grid", "  columns: 2"],
+        result: "The valid experiment exceeds 390px.",
+        evidence: "verification/rendered/390-section-01.png",
+      })}\n`,
+    );
     ledger.gaps.push({
       id: "narrow_viewport",
       requirement: "Fit inside the narrow viewport.",
       experiment: "Render the valid layout at 390px.",
-      evidence: "verification/rendered/390-section-01.png",
+      evidence: narrowGapEvidence,
       limitation: "The rendered Section exceeds the viewport.",
       fidelityLoss: "Horizontal scrolling is required.",
       approximation: "Preserve all content at its intrinsic width.",
@@ -1493,6 +2688,18 @@ test("validates ledger structure and completion evidence", () => {
         record.check === "responsive-fit",
     ).status = "gap:narrow_viewport";
     writeFileSync(ledgerPath, `${JSON.stringify(ledger, null, 2)}\n`);
+    writeFileSync(
+      join(workspace, ledger.reviewEvidence),
+      `${JSON.stringify(
+        reviewEvidenceForLedger(
+          ledger,
+          ledger.sourceHash,
+          experimentEvidencePaths(workspace),
+        ),
+        null,
+        2,
+      )}\n`,
+    );
     run("validate-ledger.mjs", workspace, "--complete");
 
     const incomplete = structuredClone(ledger);

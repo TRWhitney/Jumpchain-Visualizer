@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import {
   containedPath,
@@ -11,6 +11,15 @@ import {
   interactionContractErrors,
 } from "./interaction-contracts.mjs";
 import { facsimileCropSeamFindings } from "./facsimile-layout-audit.mjs";
+import {
+  facsimileContentContractErrors,
+  facsimileRenderedAlignmentErrors,
+} from "./facsimile-content-audit.mjs";
+import {
+  experimentEvidencePaths,
+  interactionEvidencePaths,
+  reviewEvidenceForLedger,
+} from "./review-evidence.mjs";
 
 const WIDTHS = [390, 720, 1440];
 const ACCEPTANCE_CHECKS = [
@@ -30,6 +39,10 @@ const AUDIT_ACCEPTANCE_CHECKS = {
   controlBoundaries: ["costs-and-controls", "responsive-fit"],
   overlappingActionElements: ["costs-and-controls", "responsive-fit"],
   avoidableActionWraps: ["costs-and-controls", "responsive-fit"],
+  excessiveActionRailSlack: ["costs-and-controls", "responsive-fit"],
+  microscopicTextPanels: ["text", "artwork-and-crops", "responsive-fit"],
+  excessiveImageLetterboxing: ["text", "artwork-and-crops", "responsive-fit"],
+  responsiveHeightInflation: ["structure-and-surfaces", "responsive-fit"],
   stretchedControls: ["costs-and-controls", "responsive-fit"],
   cardBoundaries: ["structure-and-surfaces", "responsive-fit"],
   contentBoundaries: ["structure-and-surfaces", "responsive-fit"],
@@ -86,6 +99,36 @@ function evidenceExists(value, label) {
   return true;
 }
 
+function referencedEvidencePaths(rootValue) {
+  const referenced = new Set();
+  const pendingJson = [];
+  const visit = (value) => {
+    if (typeof value === "string" && /^verification\//u.test(value)) {
+      if (!referenced.has(value)) {
+        referenced.add(value);
+        if (value.endsWith(".json")) pendingJson.push(value);
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item);
+      return;
+    }
+    if (object(value)) for (const item of Object.values(value)) visit(item);
+  };
+  visit(rootValue);
+  for (let index = 0; index < pendingJson.length; index += 1) {
+    const relativePath = pendingJson[index];
+    try {
+      const path = containedPath(workspace, join(workspace, relativePath));
+      if (existsSync(path)) visit(readJson(path));
+    } catch {
+      // evidenceExists reports invalid and escaping paths with their context.
+    }
+  }
+  return referenced;
+}
+
 const arrayNames = [
   "sourcePages",
   "sections",
@@ -103,6 +146,12 @@ if (ledger.mode !== manifest.mode)
   errors.push("ledger mode must match workspace mode");
 if (ledger.sourceHash !== manifest.sourceHash)
   errors.push("ledger sourceHash must match workspace sourceHash");
+if (ledger.reviewEvidence !== "verification/review-evidence.json")
+  errors.push(
+    "reviewEvidence must be verification/review-evidence.json so clean-context review has a predictable factual manifest",
+  );
+if (manifest.mode === "facsimile")
+  errors.push(...facsimileContentContractErrors(ledger, null, { complete }));
 for (const name of arrayNames)
   if (!Array.isArray(ledger[name])) errors.push(`${name} must be an array`);
 
@@ -227,6 +276,29 @@ for (const gap of ledger.gaps ?? []) {
   if (!validId(gap.id) || gapIds.has(gap.id))
     errors.push(`invalid or duplicate gap id: ${gap.id}`);
   gapIds.add(gap.id);
+  for (const field of [
+    "requirement",
+    "experiment",
+    "limitation",
+    "fidelityLoss",
+    "approximation",
+  ])
+    if (!gap[field]?.trim()) errors.push(`${gap.id}.${field} is required`);
+  if (
+    !/^verification\/experiments\/[^/]+-report\.json$/u.test(gap.evidence ?? "")
+  )
+    errors.push(
+      `${gap.id}.evidence must name a verification/experiments/*-report.json minimal experiment report`,
+    );
+  else if (evidenceExists(gap.evidence, `${gap.id}.evidence`)) {
+    try {
+      const report = readJson(join(workspace, gap.evidence));
+      if (report.id !== gap.id)
+        errors.push(`${gap.id}.evidence report id does not match the gap`);
+    } catch {
+      errors.push(`${gap.id}.evidence report is not valid JSON`);
+    }
+  }
 }
 
 const comparisonKeys = new Set();
@@ -273,6 +345,24 @@ for (const contract of ledger.interactionContracts ?? []) {
 for (const error of interactionContractErrors(ledger, null, { complete }))
   errors.push(error);
 
+const interactionsDirectory = join(workspace, "verification", "interactions");
+if (existsSync(interactionsDirectory)) {
+  const referenced = referencedEvidencePaths(ledger);
+  for (const entry of readdirSync(interactionsDirectory, {
+    withFileTypes: true,
+  })) {
+    const relativePath = `verification/interactions/${entry.name}`;
+    if (!entry.isFile())
+      errors.push(
+        `${relativePath} is not a regular authoritative evidence file; move it under verification/rejected`,
+      );
+    else if (!referenced.has(relativePath))
+      errors.push(
+        `${relativePath} is not authoritative evidence; reference it from the ledger/evidence manifest or move it under verification/rejected`,
+      );
+  }
+}
+
 const acceptanceKeys = new Set();
 for (const record of ledger.acceptance ?? []) {
   if (!sections.has(record.section))
@@ -301,6 +391,25 @@ if (complete) {
     errors.push("a complete ledger requires a mechanics review record");
   if (!(ledger.interactionContracts ?? []).length)
     errors.push("a complete ledger requires interaction contracts");
+  const reviewEvidencePath = join(
+    workspace,
+    ledger.reviewEvidence ?? "verification/review-evidence.json",
+  );
+  if (!existsSync(reviewEvidencePath))
+    errors.push("review-evidence.json is required");
+  else {
+    const actual = readJson(reviewEvidencePath);
+    const expected = reviewEvidenceForLedger(
+      ledger,
+      manifest.sourceHash,
+      experimentEvidencePaths(workspace),
+      interactionEvidencePaths(workspace, ledger),
+    );
+    if (JSON.stringify(actual) !== JSON.stringify(expected))
+      errors.push(
+        "review-evidence.json is stale or contains converter verdicts; regenerate it with make-comparison-sheet.mjs",
+      );
+  }
   if (renderedPages.size !== sourcePages.size)
     errors.push("sourcePages must account for every rendered source page");
 
@@ -412,6 +521,34 @@ if (complete) {
       `${contract.id}.geometry.evidence`,
     );
   }
+  if (manifest.mode === "facsimile") {
+    for (const entity of ledger.facsimileContracts?.dynamicEntities ?? [])
+      for (const field of [
+        "creationEvidence",
+        "trackerEvidence",
+        ...(entity.upgradeHandles?.length ? ["upgradeEvidence"] : []),
+      ])
+        evidenceExists(
+          entity[field],
+          `${entity.choiceHandle}.dynamicEntity.${field}`,
+        );
+    for (const relationship of ledger.facsimileContracts
+      ?.alignmentRelationships ?? [])
+      evidenceExists(
+        relationship.evidence,
+        `${relationship.id}.alignment.evidence`,
+      );
+    evidenceExists(
+      ledger.facsimileContracts?.independentReview?.evidence,
+      "facsimileContracts.independentReview.evidence",
+    );
+    for (const finding of ledger.facsimileContracts?.independentReview
+      ?.findings ?? [])
+      evidenceExists(
+        finding.evidence,
+        `${finding.id}.independentReview.evidence`,
+      );
+  }
 
   const reviewPath = join(workspace, "verification", "package-review.json");
   if (!existsSync(reviewPath)) errors.push("package-review.json is required");
@@ -428,6 +565,8 @@ if (complete) {
     errors.push("render-audit.json is required");
   else {
     const audit = readJson(renderAuditPath);
+    if (manifest.mode === "facsimile")
+      errors.push(...facsimileRenderedAlignmentErrors(ledger, audit));
     for (const width of WIDTHS) {
       const reports = audit.widths?.[String(width)];
       if (!Array.isArray(reports) || reports.length !== sections.size) {
@@ -457,6 +596,9 @@ if (complete) {
           "controlBoundaries",
           "overlappingActionElements",
           "avoidableActionWraps",
+          "excessiveActionRailSlack",
+          "microscopicTextPanels",
+          "responsiveHeightInflation",
           "stretchedControls",
           "cardBoundaries",
           "contentBoundaries",

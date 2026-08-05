@@ -62,3 +62,23 @@ test("transparent custom Tag text remains exactly User-selected", async () => {
   const badge = text.element().closest<HTMLElement>(".tag-profile-badge")!;
   expect(getComputedStyle(badge).color).toBe("rgb(255, 0, 255)");
 });
+
+test("opaque automatic Tag text follows its own background, not the surface beneath it", async () => {
+  render(
+    <div style={{ background: "#20201e" }}>
+      <CanonicalTagBadge
+        label="Opaque"
+        presentation={{
+          ...automaticTransparent,
+          background: "solid",
+          colors: ["#f5f1e6"],
+        }}
+      />
+    </div>,
+  );
+  const text = page.getByText("Opaque", { exact: true });
+  await expect.element(text).toBeVisible();
+  const badge = text.element().closest<HTMLElement>(".tag-profile-badge")!;
+  expect(getComputedStyle(badge).color).toBe("rgb(17, 17, 17)");
+  expect(badge.dataset.renderedSurface).toBeUndefined();
+});

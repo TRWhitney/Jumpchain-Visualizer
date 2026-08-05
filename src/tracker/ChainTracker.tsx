@@ -61,6 +61,7 @@ import {
   jumpNumber,
   packageForEntry,
   packageInstallConflict,
+  trackerTagDefinitions,
   visibleCompanions,
   visibleForms,
   visibleAtInspection,
@@ -2283,7 +2284,7 @@ export type TrackerProps = {
 };
 
 export function ChainTracker({
-  state,
+  state: inputState,
   dispatch,
   jumpRenderer,
   randomIndex,
@@ -2295,6 +2296,10 @@ export function ChainTracker({
   randomIndex?: RandomIndexSource;
   active?: boolean;
 }) {
+  const state = useMemo(() => {
+    const tags = trackerTagDefinitions(inputState);
+    return tags === inputState.tags ? inputState : { ...inputState, tags };
+  }, [inputState]);
   const [suppOpen, setSuppOpen] = useState(false);
   const enabled = state.enabledSupplements;
   const supplementPage = state.supplementPage;

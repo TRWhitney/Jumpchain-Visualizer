@@ -1,6 +1,5 @@
 import type { InstalledPackage } from "../tracker/model";
 import {
-  adaptTagTextToSurfaces,
   mixHex,
   presentationForTagDefinition,
   readableTagText,
@@ -10,7 +9,6 @@ import {
 } from "../domain/tags";
 
 export {
-  adaptTagTextToSurfaces,
   mixHex,
   presentationForTagDefinition,
   readableTagText,
@@ -23,7 +21,7 @@ import {
   localizedBuiltinTagLabel,
   primaryTagIds,
 } from "./builtinTags";
-import { shiftInheritedTagColor } from "./tagColor";
+import { inheritedTagPresentation } from "../domain/tags";
 
 export type TagSource = "builtin" | "acquired" | "manual" | "imported";
 export type AppearanceSource = "builtin" | "derived" | "custom";
@@ -125,16 +123,7 @@ function derivedPresentation(
 ) {
   const parent =
     profile.tags[parentId ?? "miscellaneous"] ?? profile.tags.miscellaneous;
-  const presentation = clone(parent.presentation);
-  presentation.colors = presentation.colors.map((color, index) =>
-    shiftInheritedTagColor(color, name, index),
-  );
-  presentation.borderColor = shiftInheritedTagColor(
-    presentation.borderColor,
-    name,
-    31,
-  );
-  return presentation;
+  return inheritedTagPresentation(parent.presentation, name);
 }
 
 export type InstalledTagCandidate = {

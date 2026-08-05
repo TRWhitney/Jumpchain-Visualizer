@@ -416,6 +416,30 @@ export function prepareWorkspace(input, mode, root = repositoryRoot()) {
       colorSamples: [],
       comparisons: [],
       interactionContracts: [],
+      reviewEvidence: "verification/review-evidence.json",
+      ...(mode === "facsimile"
+        ? {
+            facsimileContracts: {
+              semanticNames: [],
+              grantInventory: {
+                entryDecisions: [],
+                sourceEntryIds: [],
+                status: "unreviewed",
+                note: "",
+                grants: [],
+              },
+              dynamicEntities: [],
+              tagPlacements: [],
+              alignmentRelationships: [],
+              independentReview: {
+                reviewer: "clean-context-agent",
+                status: "unreviewed",
+                evidence: "",
+                findings: [],
+              },
+            },
+          }
+        : {}),
       mechanics: [],
       gaps: [],
       acceptance: [],

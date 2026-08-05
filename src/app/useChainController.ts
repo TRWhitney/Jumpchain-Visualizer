@@ -21,6 +21,7 @@ import {
   choiceMutationWasBlocked,
   isSamePackageIdentity,
   radarCounts,
+  trackerTagDefinitions,
   trackerReducer,
   type TagDefinition,
   type TrackerAction,
@@ -81,10 +82,10 @@ export function useChainController({
     states[activeId] ?? createBlankTrackerFixture(activeChain?.name),
     activeId,
   );
-  const effectiveState = useMemo(
-    () => ({ ...trackerState, tags, preferences }),
-    [preferences, tags, trackerState],
-  );
+  const effectiveState = useMemo(() => {
+    const base = { ...trackerState, tags, preferences };
+    return { ...base, tags: trackerTagDefinitions(base) };
+  }, [preferences, tags, trackerState]);
   const allSavedChains = useMemo(
     () =>
       orderedChains(registry).map((chain) => {
@@ -94,14 +95,16 @@ export function useChainController({
           value,
           value.enabledSupplements["body-mod"] ? value.bodyMod : null,
         );
-        const projected = projectEvaluation(
-          {
-            ...value,
-            preferences: {
-              ...value.preferences,
-              includeItemTagsInRadar: preferences.includeItemTagsInRadar,
-            },
+        const base = {
+          ...value,
+          tags,
+          preferences: {
+            ...value.preferences,
+            includeItemTagsInRadar: preferences.includeItemTagsInRadar,
           },
+        };
+        const projected = projectEvaluation(
+          { ...base, tags: trackerTagDefinitions(base) },
           evaluation,
         );
         return {
@@ -112,7 +115,7 @@ export function useChainController({
           tagCounts: radarCounts(projected),
         };
       }),
-    [preferences.includeItemTagsInRadar, registry, states],
+    [preferences.includeItemTagsInRadar, registry, states, tags],
   );
   const savedChains = useMemo(
     () => chainsVisibleWithMockSetting(allSavedChains, showMockData),
@@ -257,10 +260,14 @@ export function useChainController({
   const dispatch = useCallback<Dispatch<TrackerAction>>(
     (action) => {
       const currentState = statesRef.current[activeId] ?? trackerState;
-      const effectiveCurrentState = {
+      const baseCurrentState = {
         ...reconcileDemonstrationPackageBindings(currentState, activeId),
         tags,
         preferences,
+      };
+      const effectiveCurrentState = {
+        ...baseCurrentState,
+        tags: trackerTagDefinitions(baseCurrentState),
       };
       const nextState = trackerReducer(effectiveCurrentState, action);
       if (

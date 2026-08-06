@@ -10,9 +10,9 @@ import { defaultSettings, type SettingsCategory } from "./model";
 import { createDefaultTagProfile } from "./tagProfile";
 import { MemorySettingsRepository, type ReportExporter } from "./repository";
 import { ContextMenuProvider } from "../ui";
-import "../../documentation/styles.css";
-import "../../documentation/settings-design.css";
-import "../../documentation/logging-design.css";
+import "../../documentation/assets/styles.css";
+import "../../documentation/development/settings-design.css";
+import "../../documentation/development/logging-design.css";
 import "./settings.css";
 
 const exporter: ReportExporter = {

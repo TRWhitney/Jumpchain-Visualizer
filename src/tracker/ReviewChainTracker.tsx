@@ -10,15 +10,15 @@ import {
 import { choiceMutationWasBlocked, trackerReducer } from "./model";
 import { useSettings } from "../settings/SettingsContext";
 import { deterministicRandomIndex } from "../domain";
-import "../../documentation/styles.css";
-import "../../documentation/chain-tracker-design.css";
-import "../../documentation/choice-rendering-design.css";
+import "../../documentation/assets/styles.css";
+import "../../documentation/development/chain-tracker-design.css";
+import "../../documentation/development/choice-rendering-design.css";
 import "./jumpRenderer.css";
-import "../../documentation/tags-design.css";
-import "../../documentation/supplements-design.css";
-import "../../documentation/supplements-essential.css";
-import "../../documentation/supplements-personal-reality.css";
-import "../../documentation/supplements-universal-drawbacks.css";
+import "../../documentation/development/tags-design.css";
+import "../../documentation/development/supplements-design.css";
+import "../../documentation/development/supplements-essential.css";
+import "../../documentation/development/supplements-personal-reality.css";
+import "../../documentation/development/supplements-universal-drawbacks.css";
 import "../supplements/review.css";
 import "./review.css";
 

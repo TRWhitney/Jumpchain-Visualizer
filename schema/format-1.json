@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": 1,
   "name": "Jumpchain definition format 1",
-  "source": "../documentation/markup.html",
+  "source": "../documentation/development/markup.html",
   "lexical": {
     "encoding": "UTF-8",
     "lineEnding": "LF",

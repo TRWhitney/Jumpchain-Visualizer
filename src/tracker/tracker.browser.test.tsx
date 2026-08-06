@@ -21,11 +21,11 @@ import { defaultSettings } from "../settings/model";
 import { createDefaultTagProfile } from "../settings/tagProfile";
 import { presentationForTagDefinition, tagTextContrast } from "../domain/tags";
 import { ContextMenuProvider } from "../ui";
-import "../../documentation/styles.css";
-import "../../documentation/chain-tracker-design.css";
-import "../../documentation/choice-rendering-design.css";
+import "../../documentation/assets/styles.css";
+import "../../documentation/development/chain-tracker-design.css";
+import "../../documentation/development/choice-rendering-design.css";
 import "./jumpRenderer.css";
-import "../../documentation/tags-design.css";
+import "../../documentation/development/tags-design.css";
 import "./review.css";
 
 const controlPackage = canonicalizePackage({

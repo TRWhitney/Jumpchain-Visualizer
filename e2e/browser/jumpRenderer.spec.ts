@@ -257,8 +257,9 @@ test("integer selector arrows visually match the authoritative control mock", as
   await attach(testInfo, "integer-selector-real", realControl);
 
   await page.goto(
-    pathToFileURL(path.resolve("documentation/choice-rendering-design.html"))
-      .href,
+    pathToFileURL(
+      path.resolve("documentation/development/choice-rendering-design.html"),
+    ).href,
   );
   const mockControl = page
     .locator(".control-specimen")

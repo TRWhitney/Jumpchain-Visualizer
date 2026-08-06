@@ -1410,7 +1410,7 @@ async function resolveColorToken(page: Page, token: string) {
 async function openReference(page: Page, width: number, height: number) {
   const reference = await page.context().newPage();
   await reference.setViewportSize(await page.viewportSize()!);
-  await reference.goto("/documentation/editor-design.html");
+  await reference.goto("/documentation/development/editor-design.html");
   await reference.addStyleTag({
     content: `
       body { margin: 0 !important; overflow: hidden !important; background: #20201e !important; }
@@ -1434,7 +1434,7 @@ async function openAssetReference(
 ) {
   const reference = await page.context().newPage();
   await reference.setViewportSize(await page.viewportSize()!);
-  await reference.goto("/documentation/editor-design.html");
+  await reference.goto("/documentation/development/editor-design.html");
   await reference.selectOption("#asset-design-mode", mode);
   await reference.selectOption("#asset-design-state", state);
   await reference.addStyleTag({

@@ -2763,7 +2763,7 @@ test("keeps generated agent and human schema references complete", () => {
     readFileSync(join(repository, "schema", "format-1.json"), "utf8"),
   );
   const guide = readFileSync(
-    join(repository, "documentation", "format-1-author-guide.html"),
+    join(repository, "documentation", "guides", "format-1-author-guide.html"),
     "utf8",
   );
   const reference = readFileSync(

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import prettier from "prettier";
 import { repositoryRoot } from "./workspace-lib.mjs";
 import { writeFileSync } from "node:fs";
+import { renderFormat1BrowserReference } from "./render-format1-browser-reference.mjs";
 
 const root = repositoryRoot();
 const schema = JSON.parse(
@@ -16,10 +17,24 @@ const markdownPath = join(
   "references",
   "format-1-authoring.md",
 );
-const guidePath = join(root, "documentation", "format-1-author-guide.html");
+const guidePath = join(
+  root,
+  "documentation",
+  "guides",
+  "format-1-author-guide.html",
+);
+const browserReferencePath = join(
+  root,
+  "documentation",
+  "guides",
+  "format-1-reference.html",
+);
 const check = process.argv.includes("--check");
 const startMarker = "<!-- BEGIN GENERATED FORMAT 1 REFERENCE -->";
 const endMarker = "<!-- END GENERATED FORMAT 1 REFERENCE -->";
+const browserStartMarker =
+  "<!-- BEGIN GENERATED FORMAT 1 BROWSER REFERENCE -->";
+const browserEndMarker = "<!-- END GENERATED FORMAT 1 BROWSER REFERENCE -->";
 
 const text = (value) => {
   if (value === undefined) return "—";
@@ -300,25 +315,56 @@ const generatedHtml = `${startMarker}
 </section>
 ${endMarker}`;
 
-function updateGuide(source) {
-  const start = source.indexOf(startMarker);
-  const end = source.indexOf(endMarker);
+function updateGeneratedBlock(source, startToken, endToken, generated, label) {
+  const start = source.indexOf(startToken);
+  const end = source.indexOf(endToken);
   if (start < 0 || end < start)
-    throw new Error(`Author guide is missing generated reference markers.`);
-  return `${source.slice(0, start)}${generatedHtml}${source.slice(end + endMarker.length)}`;
+    throw new Error(`${label} is missing generated reference markers.`);
+  return `${source.slice(0, start)}${generated}${source.slice(end + endToken.length)}`;
 }
 
 const guideSource = existsSync(guidePath)
   ? readFileSync(guidePath, "utf8")
   : "";
 const expectedGuide = guideSource
-  ? await prettier.format(updateGuide(guideSource), { parser: "html" })
+  ? await prettier.format(
+      updateGeneratedBlock(
+        guideSource,
+        startMarker,
+        endMarker,
+        generatedHtml,
+        "Author guide",
+      ),
+      { parser: "html" },
+    )
   : guideSource;
+const browserReferenceSource = existsSync(browserReferencePath)
+  ? readFileSync(browserReferencePath, "utf8")
+  : "";
+const generatedBrowserReference = `${browserStartMarker}
+${renderFormat1BrowserReference(schema)}
+${browserEndMarker}`;
+const expectedBrowserReference = browserReferenceSource
+  ? await prettier.format(
+      updateGeneratedBlock(
+        browserReferenceSource,
+        browserStartMarker,
+        browserEndMarker,
+        generatedBrowserReference,
+        "Browser reference",
+      ),
+      { parser: "html" },
+    )
+  : browserReferenceSource;
 if (check) {
   const currentMarkdown = existsSync(markdownPath)
     ? readFileSync(markdownPath, "utf8")
     : "";
-  if (currentMarkdown !== markdown || guideSource !== expectedGuide) {
+  if (
+    currentMarkdown !== markdown ||
+    guideSource !== expectedGuide ||
+    browserReferenceSource !== expectedBrowserReference
+  ) {
     console.error(
       "Generated Format 1 references are stale. Run generate-format1-reference.mjs.",
     );
@@ -328,6 +374,9 @@ if (check) {
 } else {
   writeFileSync(markdownPath, markdown);
   if (guideSource) writeFileSync(guidePath, expectedGuide);
+  if (browserReferenceSource)
+    writeFileSync(browserReferencePath, expectedBrowserReference);
   console.log(markdownPath);
   if (guideSource) console.log(guidePath);
+  if (browserReferenceSource) console.log(browserReferencePath);
 }

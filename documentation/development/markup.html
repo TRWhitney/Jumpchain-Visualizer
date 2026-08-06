@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Design direction for the Jumpchain authoring markup language and package structure.">
   <title>Markup Design | Jumpchain Visualizer Documentation</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="documentation.js" defer></script>
+  <link rel="stylesheet" href="../assets/styles.css">
+  <script src="../assets/documentation.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#content">Skip to content</a>
   <header class="site-header">
-    <a class="site-name" href="index.html" aria-label="Jumpchain Visualizer documentation home">
+    <a class="site-name" href="../index.html" aria-label="Jumpchain Visualizer documentation home">
       <span class="site-mark" aria-hidden="true">JV</span>
       <span>Jumpchain Visualizer <small>Documentation</small></span>
     </a>
     <nav class="site-nav" aria-label="Documentation">
-      <a href="index.html">Overview</a>
+      <a href="../index.html">Overview</a>
       <a href="application-design.html">Application</a>
       <a href="architecture.html">Architecture</a>
       <a href="chain-tracker-design.html">Chain Tracker</a>
@@ -46,7 +46,7 @@
         <p class="eyebrow">Language specification</p>
 <h1>Markup Design</h1>
 <h2>Purpose</h2>
-<p>Authors looking for a tutorial and field reference should use the <a href="format-1-author-guide.html">Format 1 Author Guide</a>. This document records the language design and rationale.</p>
+<p>Authors looking for a tutorial and field reference should use the <a href="../guides/format-1-author-guide.html">Format 1 Author Guide</a>. This document records the language design and rationale.</p>
 <p>The live, export-clean coverage packages are catalogued in the <a href="format-1-demonstration-chain.html">Format 1 Demonstration Chain</a>.</p>
 <p>This document captures the agreed design direction for the jump authoring
 markup language and its package structure.</p>
@@ -2174,8 +2174,8 @@ choice
 <h2>Amended Pre-Release Format 1 Schema</h2>
 <p>The format 1 field cardinalities, layout grammar, contextual constraints, and
 initial conformance cases are recorded in the machine-readable
-<a href="../schema/format-1.json"><code>schema/format-1.json</code></a> contract and
-<a href="../schema/conformance.json"><code>schema/conformance.json</code></a> manifest.
+<a href="../../schema/format-1.json"><code>schema/format-1.json</code></a> contract and
+<a href="../../schema/conformance.json"><code>schema/conformance.json</code></a> manifest.
 The contract was amended before the application's first release to add direct choice placement, entry-scoped identity properties, Gender continuity, and native Gauntlet declaration. No released-package migration is required. The machine contract, its conformance fixtures, the Lezer-backed source pipeline, and the canonical package validator now implement that amendment directly. The machine contract remains
 the parser, validator, language-service, and fixture source of truth. A change that
 accepts or rejects different source is a format change and must not be smuggled in as

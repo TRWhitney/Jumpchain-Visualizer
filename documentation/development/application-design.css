@@ -74,6 +74,7 @@
 
 .app-mock-brand,
 .app-mock-header nav button,
+.app-mock-theme-toggle,
 .app-mock-settings {
   min-height: 2.15rem;
   padding: 0.35rem 0.55rem;
@@ -108,8 +109,27 @@
   gap: 0.2rem;
 }
 
-.app-mock-settings {
+.app-mock-theme-toggle {
   margin-left: auto;
+  display: grid;
+  width: 2.15rem;
+  padding: 0.35rem;
+  place-items: center;
+}
+
+.app-mock-theme-toggle svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.app-mock-theme-toggle [data-theme-icon="dark"] {
+  fill: currentcolor;
+  stroke: none;
 }
 
 .app-mock-header button:hover,

@@ -23,7 +23,7 @@ import {
 } from "../editor";
 import { type PackageImportReview } from "../archive";
 import { ConfirmationDialog } from "../ui/ConfirmationDialog";
-import { useContextMenu } from "../ui";
+import { ThemeIcon, useContextMenu } from "../ui";
 import "../../documentation/assets/styles.css";
 import "../../documentation/development/application-design.css";
 import "../../documentation/development/chain-tracker-design.css";
@@ -75,7 +75,7 @@ export function AppShell() {
 
 function AppShellContent() {
   const { openContextMenu, openContextMenuFromKeyboard } = useContextMenu();
-  const { settings, logger, update, replace } = useSettings();
+  const { settings, effectiveTheme, logger, update, replace } = useSettings();
   const {
     pathname,
     setPathname,
@@ -631,6 +631,36 @@ function AppShellContent() {
               {translate("ui.appShell.text.chainTracker")}
             </button>
           </nav>
+          <button
+            className="app-mock-theme-toggle"
+            type="button"
+            data-theme={effectiveTheme}
+            aria-label={translate(
+              effectiveTheme === "light"
+                ? "ui.appShell.ariaLabel.switchToDarkTheme"
+                : "ui.appShell.ariaLabel.switchToLightTheme",
+            )}
+            title={translate(
+              effectiveTheme === "light"
+                ? "ui.appShell.ariaLabel.switchToDarkTheme"
+                : "ui.appShell.ariaLabel.switchToLightTheme",
+            )}
+            onClick={() => {
+              if (tourSession) return;
+              update(
+                (current) => ({
+                  ...current,
+                  appearance: {
+                    ...current.appearance,
+                    theme: effectiveTheme === "light" ? "dark" : "light",
+                  },
+                }),
+                "appearance.theme",
+              );
+            }}
+          >
+            <ThemeIcon theme={effectiveTheme} />
+          </button>
           <button
             ref={settingsButtonRef}
             className="app-mock-settings"

@@ -9,6 +9,8 @@
         "forward": "Forward",
         "editorWorkspace": "Editor workspace",
         "applicationSettings": "Application settings",
+        "switchToDarkTheme": "Switch to dark theme",
+        "switchToLightTheme": "Switch to light theme",
         "chainActions": "{{chain}} chain actions"
       },
       "text": {

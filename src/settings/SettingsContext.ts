@@ -1,11 +1,12 @@
 import { createContext, useContext, useSyncExternalStore } from "react";
 import type { EventPipeline } from "./logging";
-import type { ApplicationSettings } from "./model";
+import type { ApplicationSettings, EffectiveTheme } from "./model";
 import type { ReportExporter } from "./repository";
 import type { InstalledPackage } from "../tracker/model";
 
 export type SettingsContextValue = {
   settings: ApplicationSettings;
+  effectiveTheme: EffectiveTheme;
   update: (
     updater: (settings: ApplicationSettings) => ApplicationSettings,
     settingKey: string,

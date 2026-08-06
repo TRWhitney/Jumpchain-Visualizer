@@ -8,7 +8,7 @@ import {
 } from "react";
 import { installedPackages as defaultInstalledPackages } from "../tracker/fixtures";
 import type { InstalledPackage } from "../tracker/model";
-import { accentTokens } from "./appearance";
+import { accentTokens, resolveThemePreference } from "./appearance";
 import { EventPipeline } from "./logging";
 import {
   defaultSettings,
@@ -51,6 +51,9 @@ export function SettingsProvider({
 }) {
   const initial = useMemo(() => defaultSettings(createDefaultTagProfile()), []);
   const [settings, setSettings] = useState(initial);
+  const [systemPrefersDark, setSystemPrefersDark] = useState(
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
   const [loaded, setLoaded] = useState(false);
   const [settingsSource] = useState(() => new SettingsSource(initial));
   const [persistedSource] = useState(() => new SettingsSource(initial));
@@ -234,33 +237,41 @@ export function SettingsProvider({
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const syncSystemTheme = () => setSystemPrefersDark(media.matches);
+    syncSystemTheme();
+    media.addEventListener("change", syncSystemTheme);
+    return () => media.removeEventListener("change", syncSystemTheme);
+  }, []);
+
+  const effectiveTheme = resolveThemePreference(
+    settings.appearance.theme,
+    systemPrefersDark,
+  );
+
+  useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => {
-      const theme =
-        settings.appearance.theme === "system"
-          ? media.matches
-            ? "dark"
-            : "light"
-          : settings.appearance.theme;
       const reduced =
         settings.accessibility.motion === "system"
           ? motion.matches
           : settings.accessibility.motion === "reduced";
-      document.documentElement.dataset.appTheme = theme;
+      document.documentElement.dataset.appTheme = effectiveTheme;
       document.documentElement.dataset.appMotion = reduced ? "reduced" : "full";
       for (const [name, value] of Object.entries(
-        accentTokens(settings.appearance.accentColor, theme),
+        accentTokens(settings.appearance.accentColor, effectiveTheme),
       ))
         document.documentElement.style.setProperty(name, value);
     };
     apply();
-    media.addEventListener("change", apply);
     motion.addEventListener("change", apply);
     return () => {
-      media.removeEventListener("change", apply);
       motion.removeEventListener("change", apply);
     };
-  }, [settings.appearance, settings.accessibility.motion]);
+  }, [
+    effectiveTheme,
+    settings.appearance.accentColor,
+    settings.accessibility.motion,
+  ]);
 
   useEffect(() => {
     void changeLanguage(settings.language.tag);
@@ -278,6 +289,7 @@ export function SettingsProvider({
 
   const value: SettingsContextValue = {
     settings,
+    effectiveTheme,
     update,
     replace,
     logger,

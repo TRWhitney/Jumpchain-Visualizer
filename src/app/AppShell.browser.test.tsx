@@ -51,6 +51,37 @@ test("primary navigation updates paths, titles, selection, and route focus", asy
     .toBeVisible();
 });
 
+test("the header theme shortcut reflects the effective theme and updates Settings", async () => {
+  const settings = defaultSettings(createDefaultTagProfile());
+  settings.onboarding.welcomeTourStatus = "dismissed";
+  render(
+    <SettingsProvider repository={new MemorySettingsRepository(settings)}>
+      <AppShell />
+    </SettingsProvider>,
+  );
+
+  const initialTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+  const nextTheme = initialTheme === "light" ? "dark" : "light";
+  const shortcut = page.getByRole("button", {
+    name:
+      initialTheme === "light"
+        ? "Switch to dark theme"
+        : "Switch to light theme",
+  });
+  await expect.element(shortcut).toHaveAttribute("data-theme", initialTheme);
+  await shortcut.click();
+  await expect
+    .element(document.documentElement)
+    .toHaveAttribute("data-app-theme", nextTheme);
+
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect
+    .element(page.getByLabelText("Appearance"))
+    .toHaveValue(nextTheme);
+});
+
 const nextRouteFocus = () =>
   new Promise<void>((resolve) =>
     window.requestAnimationFrame(() =>

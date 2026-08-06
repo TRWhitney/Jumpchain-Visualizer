@@ -55,6 +55,50 @@ async function enableMockData(page: Page) {
   await page.getByRole("button", { name: "Close Settings" }).click();
 }
 
+test("the header theme shortcut resolves system dark and cycles the Settings preference", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/");
+
+  const settingsButton = page.getByRole("button", {
+    name: "Settings",
+    exact: true,
+  });
+  const shortcut = page.locator(".app-mock-theme-toggle");
+  await expect(page.locator("html")).toHaveAttribute("data-app-theme", "dark");
+  await expect(shortcut).toHaveAccessibleName("Switch to light theme");
+  await expect(shortcut).toHaveAttribute("data-theme", "dark");
+  await expect(shortcut.locator("svg")).toHaveAttribute(
+    "data-theme-icon",
+    "dark",
+  );
+  expect(
+    await shortcut.evaluate((element) =>
+      element.nextElementSibling?.classList.contains("app-mock-settings"),
+    ),
+  ).toBe(true);
+
+  await shortcut.click();
+  await expect(page.locator("html")).toHaveAttribute("data-app-theme", "light");
+  await expect(shortcut).toHaveAccessibleName("Switch to dark theme");
+  await expect(shortcut.locator("svg")).toHaveAttribute(
+    "data-theme-icon",
+    "light",
+  );
+  await waitForStoredSetting(page, ["appearance", "theme"], "light");
+
+  await settingsButton.click();
+  await expect(page.locator("select#theme")).toHaveValue("light");
+  await page.getByRole("button", { name: "Close Settings" }).click();
+
+  await shortcut.click();
+  await expect(page.locator("html")).toHaveAttribute("data-app-theme", "dark");
+  await waitForStoredSetting(page, ["appearance", "theme"], "dark");
+  await settingsButton.click();
+  await expect(page.locator("select#theme")).toHaveValue("dark");
+});
+
 test("contextual Settings preserves its inert workspace, history, focus, and category", async ({
   page,
 }, testInfo) => {

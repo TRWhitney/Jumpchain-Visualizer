@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { accentTokens, contrastRatio } from "./appearance";
+import {
+  accentTokens,
+  contrastRatio,
+  resolveThemePreference,
+} from "./appearance";
+
+it("resolves system themes from the current platform preference", () => {
+  expect(resolveThemePreference("system", false)).toBe("light");
+  expect(resolveThemePreference("system", true)).toBe("dark");
+  expect(resolveThemePreference("light", true)).toBe("light");
+  expect(resolveThemePreference("dark", false)).toBe("dark");
+});
 
 describe("accessible accent derivation", () => {
   it.each(["light", "dark"] as const)(

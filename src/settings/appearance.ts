@@ -1,3 +1,11 @@
+import type { EffectiveTheme, ThemePreference } from "./model";
+
+export const resolveThemePreference = (
+  preference: ThemePreference,
+  systemPrefersDark: boolean,
+): EffectiveTheme =>
+  preference === "system" ? (systemPrefersDark ? "dark" : "light") : preference;
+
 const rgbFromHex = (value: string) =>
   [1, 3, 5].map((index) => Number.parseInt(value.slice(index, index + 2), 16));
 const hexFromRgb = (value: number[]) =>

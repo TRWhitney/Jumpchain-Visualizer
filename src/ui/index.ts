@@ -1,5 +1,6 @@
 export * from "./ConfirmationDialog";
 export * from "./Chevron";
+export * from "./ThemeIcon";
 export * from "./DisclosureSection";
 export * from "./ContextMenu";
 export * from "./contextMenuModel";

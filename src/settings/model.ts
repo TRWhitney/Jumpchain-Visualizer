@@ -14,6 +14,7 @@ export {
 export const SETTINGS_SCHEMA_VERSION = 5;
 
 export type ThemePreference = "system" | "light" | "dark";
+export type EffectiveTheme = Exclude<ThemePreference, "system">;
 export type MotionPreference = "system" | "reduced" | "full";
 export type NotificationClass =
   "confirmations" | "editor" | "chain" | "validation" | "errors";

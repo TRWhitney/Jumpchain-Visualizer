@@ -102,6 +102,7 @@
               <button type="button" data-app-route="editor">Editor</button>
               <button type="button" data-app-route="chain">Chain Tracker</button>
             </nav>
+            <button class="app-mock-theme-toggle" type="button" aria-label="Switch to light theme"><svg aria-hidden="true" data-theme-icon="dark" viewBox="0 0 24 24"><path d="M20.25 15.32A8.5 8.5 0 0 1 8.68 3.75a8.5 8.5 0 1 0 11.57 11.57Z" /></svg></button>
             <button class="app-mock-settings" type="button" data-app-route="settings">Settings</button>
           </header>
           <div class="app-mock-location" aria-label="Mock browser location">
@@ -277,6 +278,7 @@
           <li><code>/</code> always shows Home and offers explicit Resume actions rather than silently redirecting.</li>
           <li>Declaration-level Editor URLs are postponed beyond v1.</li>
           <li>Settings is a route-backed overlay when opened from another route and a full page when opened directly.</li>
+          <li>The Sun/Moon control immediately before Settings reflects the effective theme, including the resolved system preference, and switches to the opposite explicit theme without opening Settings.</li>
           <li>Home separates recent Editor workspaces from Chains, fills an empty group with one card-sized instructional placeholder, limits each populated group to five records, and links to the owning hub when more exist; starred chains appear before unstarred chains, retain recency ordering within each group, and use a read-only accent star on Home.</li>
           <li>Switching workspaces through the persistent Editor/Chain Tracker controls opens the destination hub; it never chooses a recent project or chain automatically.</li>
           <li>No other action receives permanent shell space in v1. Create, import, export, search, documentation, and other contextual actions remain in their owning hub, workspace, or Settings page.</li>

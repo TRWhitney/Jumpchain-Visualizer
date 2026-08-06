@@ -1,3 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#202020" />
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  role="img"
+  aria-labelledby="title"
+>
+  <title id="title">Jumpchain Visualizer</title>
+  <rect width="512" height="512" rx="96" fill="#202020" />
+  <path
+    d="M136 128h216v164c0 64-43 104-108 104-56 0-96-30-112-76"
+    fill="none"
+    stroke="#d4af37"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="32"
+  />
+  <g fill="#202020" stroke="#e0c25e" stroke-width="14">
+    <circle cx="136" cy="128" r="27" />
+    <circle cx="352" cy="128" r="27" />
+    <circle cx="352" cy="292" r="27" />
+    <circle cx="244" cy="396" r="27" />
+    <circle cx="132" cy="320" r="27" />
+  </g>
 </svg>

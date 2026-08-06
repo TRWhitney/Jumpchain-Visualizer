@@ -3,7 +3,11 @@ name = "jumpchain-visualizer"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+authors.workspace = true
 license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "Offline-first desktop editor and tracker for Jumpchain packages and chains."
 
 [lib]
 name = "jumpchain_visualizer_lib"

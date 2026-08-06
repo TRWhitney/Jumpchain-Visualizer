@@ -31,6 +31,7 @@ export const VERIFICATION_MODES = Object.freeze([
 export const CORE_VERIFICATION_WAVES = Object.freeze([
   [
     "format:check",
+    "check:third-party-notices",
     "lint",
     "typecheck",
     "test:verification",

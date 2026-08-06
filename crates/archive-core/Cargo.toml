@@ -3,7 +3,11 @@ name = "archive-core"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+authors.workspace = true
 license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "Secure inspection and validation of Jumpchain package archives."
 
 [lib]
 crate-type = ["cdylib", "rlib"]

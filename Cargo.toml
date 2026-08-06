@@ -6,7 +6,10 @@ members = ["crates/archive-core", "crates/persistence", "src-tauri"]
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.89"
-license = "MIT"
+authors = ["Whitney White"]
+license = "Unlicense"
+homepage = "https://github.com/TRWhitney/Jumpchain-Visualizer"
+repository = "https://github.com/TRWhitney/Jumpchain-Visualizer.git"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

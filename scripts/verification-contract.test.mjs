@@ -84,6 +84,7 @@ test("bounded core waves and verification tails preserve every gate", () => {
   assert.equal(CORE_VERIFICATION_WAVES.length, 3);
   assert.deepEqual(CORE_VERIFICATION_WAVES[0], [
     "format:check",
+    "check:third-party-notices",
     "lint",
     "typecheck",
     "test:verification",
@@ -114,6 +115,7 @@ test("bounded core waves and verification tails preserve every gate", () => {
   assert.deepEqual([...allGates].sort(), [
     "build:client",
     "check:rust",
+    "check:third-party-notices",
     "format:check",
     "lint",
     "rust:cache:status",

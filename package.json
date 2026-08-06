@@ -1,7 +1,15 @@
 {
   "name": "jumpchain-visualizer",
   "version": "0.1.0",
+  "description": "Offline-first desktop editor and tracker for Jumpchain packages and chains.",
   "private": true,
+  "license": "Unlicense",
+  "author": "Whitney White",
+  "homepage": "https://github.com/TRWhitney/Jumpchain-Visualizer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TRWhitney/Jumpchain-Visualizer.git"
+  },
   "type": "module",
   "packageManager": "pnpm@11.11.0",
   "engines": {
@@ -27,6 +35,8 @@
     "lint": "eslint --cache --cache-location node_modules/.cache/eslint/.eslintcache --cache-strategy content .",
     "format": "prettier --write .",
     "format:check": "prettier --cache --cache-strategy content --check .",
+    "generate:third-party-notices": "node scripts/generate-third-party-notices.mjs",
+    "check:third-party-notices": "node scripts/generate-third-party-notices.mjs --check",
     "generate:markup": "lezer-generator src/markup/format1.grammar -o src/markup/format1Parser.generated.ts",
     "generate:format1-reference": "node .agents/jumpify/scripts/generate-format1-reference.mjs",
     "check:format1-reference": "node .agents/jumpify/scripts/generate-format1-reference.mjs --check",
@@ -54,6 +64,7 @@
     "@lezer/highlight": "1.2.3",
     "@lezer/lr": "1.4.8",
     "@tauri-apps/api": "2.11.1",
+    "dictionary-en": "^4.0.0",
     "fflate": "^0.8.3",
     "i18next": "^26.3.6",
     "konva": "10.3.0",
@@ -85,7 +96,6 @@
     "@wdio/spec-reporter": "9.29.1",
     "@wdio/tauri-service": "1.2.0",
     "@wdio/types": "9.29.1",
-    "dictionary-en": "^4.0.0",
     "eslint": "10.7.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-react-refresh": "0.5.3",

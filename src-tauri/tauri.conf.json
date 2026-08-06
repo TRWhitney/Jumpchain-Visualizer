@@ -26,6 +26,17 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all"
+    "targets": "all",
+    "publisher": "Whitney White",
+    "homepage": "https://github.com/TRWhitney/Jumpchain-Visualizer",
+    "license": "Unlicense",
+    "licenseFile": "../UNLICENSE.md",
+    "category": "Productivity",
+    "shortDescription": "Offline-first Jumpchain editor and tracker.",
+    "longDescription": "Create, inspect, visualize, and track Jumpchain packages and chains entirely on your local device.",
+    "resources": {
+      "../UNLICENSE.md": "UNLICENSE.md",
+      "../THIRD_PARTY_NOTICES.txt": "THIRD_PARTY_NOTICES.txt"
+    }
   }
 }

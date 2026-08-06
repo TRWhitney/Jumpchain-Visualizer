@@ -3,7 +3,11 @@ name = "persistence"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+authors.workspace = true
 license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "SQLite persistence primitives for Jumpchain Visualizer."
 
 [dependencies]
 rusqlite = { version = "0.39.0", features = ["bundled"] }

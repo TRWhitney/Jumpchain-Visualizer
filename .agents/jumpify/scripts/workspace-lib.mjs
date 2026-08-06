@@ -406,7 +406,7 @@ export function prepareWorkspace(input, mode, root = repositoryRoot()) {
   const ledgerPath = join(workspace, "ledger.json");
   if (!existsSync(ledgerPath))
     writeJson(ledgerPath, {
-      schemaVersion: 3,
+      schemaVersion: 4,
       mode,
       sourceHash: hash,
       sourcePages: [],
@@ -421,6 +421,8 @@ export function prepareWorkspace(input, mode, root = repositoryRoot()) {
         ? {
             facsimileContracts: {
               semanticNames: [],
+              choiceGrantSemantics: [],
+              referentResolutions: [],
               grantInventory: {
                 entryDecisions: [],
                 sourceEntryIds: [],
@@ -444,6 +446,16 @@ export function prepareWorkspace(input, mode, root = repositoryRoot()) {
       gaps: [],
       acceptance: [],
     });
+  else {
+    const existingLedger = readJson(ledgerPath);
+    if (
+      Object.hasOwn(existingLedger, "schemaVersion") &&
+      existingLedger.schemaVersion !== 4
+    )
+      throw new Error(
+        `${ledgerPath} uses an obsolete conversion-ledger schema. Start a fresh workspace; semantic review evidence cannot be migrated safely.`,
+      );
+  }
   return {
     workspace,
     manifest,

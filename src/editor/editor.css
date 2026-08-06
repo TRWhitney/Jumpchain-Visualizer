@@ -2524,9 +2524,49 @@
 .editor-layout-column-weights {
   display: grid;
   grid-template-columns: repeat(3, minmax(7rem, 1fr));
+  align-items: stretch;
   gap: 0.45rem;
   padding: 0.5rem;
   border-top: 1px solid #484843;
+}
+.editor-layout-presentation-group
+  > .editor-layout-node-fields
+  > .editor-schema-field {
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  row-gap: 0.25rem;
+}
+.editor-layout-presentation-group
+  > .editor-layout-node-fields
+  > .editor-schema-field
+  > .editor-field-occurrence {
+  display: contents;
+}
+.editor-layout-presentation-group
+  > .editor-layout-node-fields
+  > .editor-schema-field
+  > .editor-field-occurrence
+  > :first-child {
+  grid-row: 1;
+}
+.editor-layout-presentation-group
+  > .editor-layout-node-fields
+  > .editor-schema-field
+  > .editor-field-occurrence
+  > :not(:first-child) {
+  grid-row: 2;
+}
+.editor-layout-presentation-group
+  > .editor-layout-node-fields
+  > .editor-schema-field
+  > .editor-field-diagnostics {
+  grid-row: 3;
+}
+.editor-layout-presentation-group
+  .editor-schema-field-control
+  input[type="checkbox"] {
+  margin-block: 0;
 }
 .editor-layout-column-weights > label {
   align-content: end;
@@ -3434,6 +3474,83 @@
   color: #85857f;
   font-size: 0.57rem;
   white-space: nowrap;
+}
+.editor-source-toolbar .editor-format-reference-trigger {
+  width: 1.75rem;
+  min-width: 1.75rem;
+  justify-content: center;
+  padding-inline: 0;
+}
+.editor-format-reference-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+.review-modal-layer > .editor-format-reference-dialog {
+  display: grid;
+  width: min(92rem, calc(100vw - 40px));
+  height: min(54rem, calc(100vh - 40px));
+  min-height: 22rem;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  color: #deded8;
+  background: #20201e;
+  border: 1px solid #565650;
+  border-radius: 0.45rem;
+}
+.editor-format-reference-dialog > header {
+  display: flex;
+  min-height: 3.4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0.75rem;
+  background: #292927;
+  border-bottom: 1px solid #44443f;
+}
+.editor-format-reference-dialog > header > div {
+  display: grid;
+  gap: 0.1rem;
+}
+.editor-format-reference-dialog > header p,
+.editor-format-reference-dialog > header h4 {
+  margin: 0;
+}
+.editor-format-reference-dialog > header p {
+  color: var(--app-accent-text);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.editor-format-reference-dialog > header h4 {
+  font-size: 0.95rem;
+}
+.editor-format-reference-dialog > header button {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: #aaa9a3;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+.editor-format-reference-dialog > header button:hover {
+  color: #f1f1eb;
+  background: #373733;
+  border-color: #55554f;
+}
+.editor-format-reference-dialog > iframe {
+  width: 100%;
+  height: 100%;
+  background: #171715;
+  border: 0;
 }
 .editor-source-toolbar button:disabled,
 .editor-find-bar button:disabled,

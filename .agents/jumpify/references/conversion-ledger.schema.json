@@ -20,7 +20,7 @@
     "acceptance"
   ],
   "properties": {
-    "schemaVersion": { "const": 3 },
+    "schemaVersion": { "const": 4 },
     "mode": { "enum": ["semantic", "facsimile"] },
     "sourceHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "sourcePages": {
@@ -393,6 +393,8 @@
       "type": "object",
       "required": [
         "semanticNames",
+        "choiceGrantSemantics",
+        "referentResolutions",
         "grantInventory",
         "dynamicEntities",
         "tagPlacements",
@@ -404,6 +406,14 @@
           "type": "array",
           "items": { "$ref": "#/$defs/facsimileSemanticName" }
         },
+        "choiceGrantSemantics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/facsimileChoiceGrantSemantic" }
+        },
+        "referentResolutions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/facsimileReferentResolution" }
+        },
         "grantInventory": { "$ref": "#/$defs/facsimileGrantInventory" },
         "dynamicEntities": {
           "type": "array",
@@ -412,6 +422,9 @@
         "tagPlacements": {
           "type": "array",
           "items": { "$ref": "#/$defs/facsimileTagPlacement" }
+        },
+        "tagCardinalityReview": {
+          "$ref": "#/$defs/facsimileTagCardinalityReview"
         },
         "alignmentRelationships": {
           "type": "array",
@@ -484,9 +497,21 @@
     },
     "facsimileGrantEntryDecision": {
       "type": "object",
-      "required": ["entryId", "dispositions", "reason"],
+      "required": ["entryId", "clauses"],
       "properties": {
         "entryId": { "$ref": "#/$defs/identifier" },
+        "clauses": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/facsimileGrantClauseDecision" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "facsimileGrantClauseDecision": {
+      "type": "object",
+      "required": ["dispositions", "semanticForce", "sourceEvidence", "reason"],
+      "properties": {
         "dispositions": {
           "type": "array",
           "minItems": 1,
@@ -500,6 +525,18 @@
             ]
           }
         },
+        "semanticForce": {
+          "enum": [
+            "explicit-grant",
+            "retained-existing",
+            "narrative",
+            "current-jump-rule",
+            "conditional-choice-effect",
+            "mechanical-instruction",
+            "presentation"
+          ]
+        },
+        "sourceEvidence": { "type": "string", "minLength": 1 },
         "reason": { "type": "string", "minLength": 1 },
         "grantKeys": {
           "type": "array",
@@ -518,17 +555,205 @@
           "items": { "$ref": "#/$defs/identifier" }
         }
       },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "dispositions": { "contains": { "const": "jump-grant" } }
+            },
+            "required": ["dispositions"]
+          },
+          "then": {
+            "required": ["grantKeys"],
+            "properties": {
+              "semanticForce": {
+                "enum": ["explicit-grant", "current-jump-rule"]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["grantKeys"]
+          },
+          "then": {
+            "properties": {
+              "dispositions": { "contains": { "const": "jump-grant" } }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "dispositions": {
+                "contains": { "const": "shared-choice-grant" }
+              }
+            },
+            "required": ["dispositions"]
+          },
+          "then": { "required": ["sharedEffectText", "targetHandles"] }
+        },
+        {
+          "if": {
+            "properties": {
+              "dispositions": { "contains": { "const": "no-grant" } }
+            },
+            "required": ["dispositions"]
+          },
+          "then": { "properties": { "dispositions": { "maxItems": 1 } } }
+        }
+      ],
       "additionalProperties": false
     },
     "facsimileJumpGrant": {
       "type": "object",
-      "required": ["entryId", "kind", "name", "description"],
+      "required": [
+        "entryId",
+        "kind",
+        "name",
+        "description",
+        "tags",
+        "tagRationale"
+      ],
       "properties": {
         "entryId": { "$ref": "#/$defs/identifier" },
         "kind": { "enum": ["perk", "item", "form", "companion", "trait"] },
         "name": { "type": "string", "minLength": 1 },
-        "description": { "type": "string", "minLength": 1 }
+        "description": { "type": "string", "minLength": 1 },
+        "canonicalGrantRef": {
+          "type": "string",
+          "pattern": "^jump:[0-9]+:(companion|form):.+$"
+        },
+        "tags": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "tagRationale": { "type": "string", "minLength": 1 }
       },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": { "enum": ["companion", "form"] }
+            },
+            "required": ["kind"]
+          },
+          "then": { "required": ["canonicalGrantRef"] }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "facsimileChoiceGrantSemantic": {
+      "type": "object",
+      "required": [
+        "choiceHandle",
+        "grantIndex",
+        "sourceEntry",
+        "effectRole",
+        "sourceEvidence",
+        "reason"
+      ],
+      "properties": {
+        "choiceHandle": { "$ref": "#/$defs/identifier" },
+        "grantIndex": { "type": "integer", "minimum": 0 },
+        "sourceEntry": { "$ref": "#/$defs/identifier" },
+        "effectRole": {
+          "enum": [
+            "entity-acquisition",
+            "entity-classification",
+            "entity-enhancement",
+            "ability",
+            "possession",
+            "form",
+            "current-jump-circumstance",
+            "identity-property",
+            "resource-change"
+          ]
+        },
+        "sourceEvidence": { "type": "string", "minLength": 1 },
+        "subjectGrantHandle": { "$ref": "#/$defs/identifier" },
+        "projection": {
+          "enum": ["entity-name", "tracker-description", "property-only"]
+        },
+        "tagRationale": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "facsimileReferentResolution": {
+      "type": "object",
+      "required": ["sourceEntry", "sourceEvidence", "resolution", "reason"],
+      "properties": {
+        "sourceEntry": { "$ref": "#/$defs/identifier" },
+        "sourceEvidence": { "type": "string", "minLength": 1 },
+        "resolution": {
+          "enum": ["same-entity", "new-entity", "narrative-only"]
+        },
+        "targetChoiceHandle": { "$ref": "#/$defs/identifier" },
+        "targetGrantHandle": { "$ref": "#/$defs/identifier" },
+        "targetJumpGrantRef": { "type": "string", "minLength": 1 },
+        "distinctnessEvidence": { "type": "string", "minLength": 1 },
+        "distinctnessBasis": {
+          "enum": [
+            "explicit-additionality",
+            "independent-slot-or-count",
+            "simultaneous-possession",
+            "incompatible-source-identity"
+          ]
+        },
+        "comparedDynamicEntityRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$"
+          }
+        },
+        "reason": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "resolution": { "enum": ["same-entity", "new-entity"] }
+            },
+            "required": ["resolution"]
+          },
+          "then": {
+            "oneOf": [
+              {
+                "required": ["targetChoiceHandle", "targetGrantHandle"],
+                "not": { "required": ["targetJumpGrantRef"] }
+              },
+              {
+                "required": ["targetJumpGrantRef"],
+                "not": {
+                  "anyOf": [
+                    { "required": ["targetChoiceHandle"] },
+                    { "required": ["targetGrantHandle"] }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": { "resolution": { "const": "new-entity" } },
+            "required": ["resolution"]
+          },
+          "then": {
+            "required": [
+              "distinctnessEvidence",
+              "distinctnessBasis",
+              "comparedDynamicEntityRefs"
+            ]
+          }
+        }
+      ],
       "additionalProperties": false
     },
     "facsimileDynamicEntity": {
@@ -539,6 +764,7 @@
         "grantHandle",
         "visibleNameTemplate",
         "contextLabel",
+        "classificationChoiceHandles",
         "upgradeHandles",
         "creationEvidence",
         "trackerEvidence"
@@ -549,15 +775,37 @@
         "grantHandle": { "$ref": "#/$defs/identifier" },
         "visibleNameTemplate": { "type": "string", "minLength": 1 },
         "contextLabel": { "type": "string", "minLength": 1 },
+        "classificationChoiceHandles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "classificationSourceHandle": { "$ref": "#/$defs/identifier" },
+        "classificationPropertyHandle": { "$ref": "#/$defs/identifier" },
         "upgradeHandles": {
           "type": "array",
           "items": { "$ref": "#/$defs/identifier" }
         },
         "creationEvidence": { "type": "string", "minLength": 1 },
         "trackerEvidence": { "type": "string", "minLength": 1 },
+        "continuityEvidence": { "type": "string", "minLength": 1 },
         "upgradeEvidence": { "type": "string", "minLength": 1 }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "classificationChoiceHandles": { "minItems": 1 }
+            },
+            "required": ["classificationChoiceHandles"]
+          },
+          "then": {
+            "required": [
+              "classificationSourceHandle",
+              "classificationPropertyHandle"
+            ]
+          }
+        },
         {
           "if": {
             "properties": { "upgradeHandles": { "minItems": 1 } },
@@ -574,23 +822,55 @@
       "properties": {
         "choiceHandle": { "$ref": "#/$defs/identifier" },
         "decision": { "enum": ["placed", "not-applicable"] },
-        "tags": { "type": "array", "items": { "type": "string" } },
+        "tags": {
+          "type": "array",
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
         "layoutHandle": { "$ref": "#/$defs/identifier" },
         "railOrder": {
           "type": "array",
           "items": { "enum": ["control", "tags", "cost", "roll"] }
         },
-        "reason": { "type": "string" }
+        "reason": { "type": "string" },
+        "tagRationale": { "type": "string", "minLength": 1 }
       },
       "allOf": [
         {
           "if": { "properties": { "decision": { "const": "placed" } } },
           "then": {
-            "required": ["layoutHandle", "railOrder"],
+            "required": ["layoutHandle", "railOrder", "tagRationale"],
             "properties": { "tags": { "minItems": 1 } }
           },
           "else": { "required": ["reason"] }
         }
+      ],
+      "additionalProperties": false
+    },
+    "facsimileTagCardinalityReview": {
+      "type": "object",
+      "required": ["status", "choiceHandles", "grantRefs", "reason"],
+      "properties": {
+        "status": { "const": "justified" },
+        "choiceHandles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "grantRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(jump|choice:[a-z][a-z0-9_]*):[0-9]+:(perk|item|form|companion|trait):.+$"
+          }
+        },
+        "reason": { "type": "string", "minLength": 1 }
+      },
+      "anyOf": [
+        { "properties": { "choiceHandles": { "minItems": 1 } } },
+        { "properties": { "grantRefs": { "minItems": 1 } } }
       ],
       "additionalProperties": false
     },
@@ -666,7 +946,26 @@
         "findings": {
           "type": "array",
           "items": { "$ref": "#/$defs/facsimileReviewFinding" }
+        },
+        "entityContinuityReviews": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/facsimileEntityContinuityReview" }
         }
+      },
+      "additionalProperties": false
+    },
+    "facsimileEntityContinuityReview": {
+      "type": "object",
+      "required": ["sourceEntry", "targetRef", "status", "reason", "evidence"],
+      "properties": {
+        "sourceEntry": { "$ref": "#/$defs/identifier" },
+        "targetRef": {
+          "type": "string",
+          "pattern": "^(choice:[a-z][a-z0-9_]*:[a-z][a-z0-9_]*|jump:[0-9]+:(companion|form):.+)$"
+        },
+        "status": { "enum": ["supported", "unsupported"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidence": { "type": "string", "minLength": 1 }
       },
       "additionalProperties": false
     },

@@ -10,6 +10,14 @@
   --ref-border: #41413d;
   --ref-border-strong: #5a5a54;
   --ref-code: #141413;
+  --ref-code-block-background: #171717;
+  --ref-code-block-text: #f5f5f1;
+  --ref-code-block-border: #41413d;
+  --ref-code-block-control-background: #292927;
+  --ref-code-block-control-text: #c6c6bf;
+  --ref-code-block-control-border: #4d4d48;
+  --ref-code-block-control-hover-text: #fff;
+  --ref-code-block-control-hover-border: #77776f;
   --ref-accent: var(--app-accent-text, #e2c04f);
   --ref-accent-raw: var(--app-accent-raw, #d4af37);
   --ref-accent-fill: var(--app-accent-fill, #d4af37);
@@ -34,6 +42,14 @@
   --ref-border: #d3d0c7;
   --ref-border-strong: #aaa79e;
   --ref-code: #eceae4;
+  --ref-code-block-background: #f3f1eb;
+  --ref-code-block-text: #252522;
+  --ref-code-block-border: #c8c5bc;
+  --ref-code-block-control-background: #fff;
+  --ref-code-block-control-text: #464640;
+  --ref-code-block-control-border: #aaa79e;
+  --ref-code-block-control-hover-text: #171717;
+  --ref-code-block-control-hover-border: #686861;
   --ref-accent: var(--app-accent-text, #765b00);
   --ref-accent-soft: var(--app-accent-soft, #f4e8b6);
   --ref-focus: var(--app-accent-focus, #8a6800);
@@ -259,6 +275,10 @@ kbd {
   font-size: 0.85rem;
 }
 
+.reference-search input:focus-visible {
+  outline: 0;
+}
+
 .reference-search input::placeholder {
   color: var(--ref-muted);
 }
@@ -415,7 +435,7 @@ kbd {
   text-wrap: balance;
 }
 
-.reference-hero > p:not(.reference-kicker, .reference-resume-note) {
+.reference-hero > p:not(.reference-kicker) {
   max-width: 48rem;
   margin: 1.4rem 0 0;
   color: var(--ref-text-soft);
@@ -438,26 +458,6 @@ kbd {
   border-radius: 0.38rem;
   cursor: pointer;
   font-weight: 800;
-}
-
-.reference-hero-actions a {
-  padding: 0.65rem 0;
-  font-weight: 750;
-  text-decoration: none;
-}
-
-.reference-hero-actions a:hover {
-  text-decoration: underline;
-}
-
-.reference-resume-note {
-  width: fit-content;
-  margin: 1rem 0 0;
-  padding: 0.35rem 0.6rem;
-  color: var(--ref-muted);
-  background: var(--ref-surface);
-  border-radius: 0.3rem;
-  font-size: 0.75rem;
 }
 
 .reference-section {
@@ -518,7 +518,7 @@ kbd {
   display: grid;
   min-height: 4.25rem;
   padding: 0.85rem 1rem;
-  grid-template-columns: minmax(0, 1fr) minmax(8rem, auto);
+  grid-template-columns: minmax(10rem, 0.55fr) minmax(0, 1.45fr) auto;
   align-items: center;
   gap: 0.5rem 1rem;
   cursor: pointer;
@@ -683,13 +683,13 @@ kbd {
   margin: 0;
   padding: 0.85rem 4.25rem 0.85rem 0.95rem;
   overflow-x: auto;
-  color: #f5f5f1;
-  background: #171717;
-  border: 1px solid #41413d;
+  color: var(--ref-code-block-text);
+  background: var(--ref-code-block-background);
+  border: 1px solid var(--ref-code-block-border);
   border-radius: 0.42rem;
   font-size: 0.78rem;
   line-height: 1.5;
-  scrollbar-color: #5a5a54 transparent;
+  scrollbar-color: var(--ref-border-strong) transparent;
   tab-size: 2;
 }
 
@@ -706,9 +706,9 @@ kbd {
   top: 0.5rem;
   right: 0.5rem;
   padding: 0.3rem 0.48rem;
-  color: #c6c6bf;
-  background: #292927;
-  border: 1px solid #4d4d48;
+  color: var(--ref-code-block-control-text);
+  background: var(--ref-code-block-control-background);
+  border: 1px solid var(--ref-code-block-control-border);
   border-radius: 0.3rem;
   cursor: pointer;
   font-size: 0.66rem;
@@ -716,8 +716,8 @@ kbd {
 }
 
 .syntax-example button:hover {
-  color: #fff;
-  border-color: #77776f;
+  color: var(--ref-code-block-control-hover-text);
+  border-color: var(--ref-code-block-control-hover-border);
 }
 
 .reference-form {

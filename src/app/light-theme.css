@@ -283,6 +283,31 @@
   border-color: #cbc8bf;
 }
 
+[data-app-theme="light"] .editor-format-reference-dialog {
+  color: #343430;
+  background: #f6f5f1;
+  border-color: #aaa79e;
+}
+
+[data-app-theme="light"] .editor-format-reference-dialog > header {
+  background: #fff;
+  border-color: #cbc8bf;
+}
+
+[data-app-theme="light"] .editor-format-reference-dialog > header button {
+  color: #686861;
+}
+
+[data-app-theme="light"] .editor-format-reference-dialog > header button:hover {
+  color: #252522;
+  background: #eceae4;
+  border-color: #aaa79e;
+}
+
+[data-app-theme="light"] .editor-format-reference-dialog > iframe {
+  background: #f6f5f1;
+}
+
 [data-app-theme="light"] .editor-code-stage,
 [data-app-theme="light"] .editor-code-editor,
 [data-app-theme="light"] .editor-code-editor .cm-editor {

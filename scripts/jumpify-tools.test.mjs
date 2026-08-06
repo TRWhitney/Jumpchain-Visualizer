@@ -31,6 +31,8 @@ import {
   excessiveImageLetterboxing,
   excessiveActionRailSlack,
   excessiveResponsiveHeight,
+  facsimileCropAuditConsistencyErrors,
+  facsimileCropClearanceFindings,
   facsimileCropSeamFindings,
   facsimileSourceRowMismatches,
   facsimileSourceRows,
@@ -198,11 +200,13 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
       {
         kind: "item",
         name: { base: "Bag" },
+        tags: ["Storage", "Convenience"],
         text: [{ handle: "description", content: { base: "Bigger inside." } }],
       },
       {
         kind: "trait",
         name: { base: "Jump Terms" },
+        tags: ["Duration"],
         text: [{ handle: "description", content: { base: "Ten years." } }],
       },
     ],
@@ -230,10 +234,13 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
             kind: "companion",
             handle: "starter",
             name: { base: "{{species}} (Starter)" },
+            tags: ["Starter", "Companionship"],
             text: [
               {
                 handle: "description",
-                content: { base: "Your chosen starter Pokémon." },
+                content: {
+                  base: "Choose the species of your starter Pokémon.",
+                },
               },
             ],
           },
@@ -262,10 +269,11 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
             kind: "perk",
             name: { base: "Shiny" },
             companion: "starter",
+            tags: ["Aesthetic"],
             text: [
               {
                 handle: "description",
-                content: { base: "Your starter is Shiny." },
+                content: { base: "Your starter is a Shiny Pokémon." },
               },
             ],
           },
@@ -305,7 +313,8 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
         id: "intro_kit",
         page: 1,
         sourceKind: "prose",
-        transcription: "JUMP TERMS. TEN YEARS. BAG. BIGGER INSIDE.",
+        transcription:
+          "JUMP TERMS. TEN YEARS. YOU KEEP YOUR CLOTHES. BAG. BIGGER INSIDE.",
       },
       {
         id: "starter_name",
@@ -369,23 +378,77 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
           liveDescription: "Your starter is a Shiny Pokémon.",
         },
       ],
+      choiceGrantSemantics: [
+        {
+          choiceHandle: "starter_name",
+          grantIndex: 0,
+          sourceEntry: "starter_name",
+          effectRole: "entity-acquisition",
+          sourceEvidence: "CHOOSE THE SPECIES OF YOUR STARTER POKÉMON.",
+          reason: "The Choice creates the selected starter as one companion.",
+          tagRationale:
+            "Starter describes its role and Companionship describes the relationship.",
+        },
+        {
+          choiceHandle: "shiny",
+          grantIndex: 0,
+          sourceEntry: "starter_shiny",
+          effectRole: "entity-enhancement",
+          sourceEvidence: "YOUR STARTER IS A SHINY POKÉMON.",
+          subjectGrantHandle: "starter",
+          reason: "Shiny adds a cosmetic quality to the existing starter.",
+          tagRationale: "Aesthetic describes the cosmetic effect.",
+        },
+      ],
+      referentResolutions: [],
       grantInventory: {
         entryDecisions: [
           {
             entryId: "intro_kit",
-            dispositions: ["jump-grant"],
-            reason: "The prose gives the Jumper a durable Bag.",
-            grantKeys: ["trait:Jump Terms", "item:Bag"],
+            clauses: [
+              {
+                dispositions: ["no-grant"],
+                semanticForce: "retained-existing",
+                sourceEvidence: "YOU KEEP YOUR CLOTHES.",
+                reason: "Retention wording does not create a new Tracker Item.",
+              },
+              {
+                dispositions: ["jump-grant"],
+                semanticForce: "current-jump-rule",
+                sourceEvidence: "JUMP TERMS. TEN YEARS.",
+                reason: "The clause states the current Jump duration.",
+                grantKeys: ["trait:Jump Terms"],
+              },
+              {
+                dispositions: ["jump-grant"],
+                semanticForce: "explicit-grant",
+                sourceEvidence: "BAG. BIGGER INSIDE.",
+                reason: "The prose gives the Jumper a durable Bag.",
+                grantKeys: ["item:Bag"],
+              },
+            ],
           },
           {
             entryId: "starter_name",
-            dispositions: ["choice-grant"],
-            reason: "The entered species creates the Starter companion.",
+            clauses: [
+              {
+                dispositions: ["choice-grant"],
+                semanticForce: "conditional-choice-effect",
+                sourceEvidence: "CHOOSE THE SPECIES OF YOUR STARTER POKÉMON.",
+                reason: "The entered species creates the Starter companion.",
+              },
+            ],
           },
           {
             entryId: "starter_shiny",
-            dispositions: ["choice-grant"],
-            reason: "The Choice grants the Starter-owned Shiny perk.",
+            clauses: [
+              {
+                dispositions: ["choice-grant"],
+                semanticForce: "conditional-choice-effect",
+                sourceEvidence: "YOUR STARTER IS A SHINY POKÉMON.",
+                reason: "The Choice grants the Starter-owned Shiny perk.",
+              },
+            ],
           },
         ],
         sourceEntryIds: ["intro_kit"],
@@ -397,12 +460,17 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
             kind: "item",
             name: "Bag",
             description: "Bigger inside.",
+            tags: ["Storage", "Convenience"],
+            tagRationale:
+              "The bag provides storage and supernatural carrying convenience.",
           },
           {
             entryId: "intro_kit",
             kind: "trait",
             name: "Jump Terms",
             description: "Ten years.",
+            tags: ["Duration"],
+            tagRationale: "The effect defines the Jump's duration.",
           },
         ],
       },
@@ -413,6 +481,7 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
           grantHandle: "starter",
           visibleNameTemplate: "{{species}} (Starter)",
           contextLabel: "Starter",
+          classificationChoiceHandles: [],
           upgradeHandles: ["shiny"],
           creationEvidence: "verification/starter-control.png",
           trackerEvidence: "verification/starter-companions-tab.png",
@@ -424,6 +493,7 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
           choiceHandle: "starter_name",
           decision: "placed",
           tags: ["Starter"],
+          tagRationale: "Starter identifies the entered entity's role.",
           layoutHandle: "panel_text",
           railOrder: ["control", "tags", "cost"],
         },
@@ -431,6 +501,7 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
           choiceHandle: "shiny",
           decision: "placed",
           tags: ["Aesthetic"],
+          tagRationale: "Aesthetic describes the cosmetic Shiny effect.",
           layoutHandle: "panel_toggle",
           railOrder: ["control", "tags", "cost"],
         },
@@ -475,8 +546,10 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
     [],
   );
   assert.deepEqual(
-    ledger.facsimileContracts.grantInventory.entryDecisions[0].grantKeys,
-    ["trait:Jump Terms", "item:Bag"],
+    ledger.facsimileContracts.grantInventory.entryDecisions[0].clauses.map(
+      (clause) => clause.grantKeys,
+    ),
+    [undefined, ["trait:Jump Terms"], ["item:Bag"]],
     "validation must not mutate the converter-authored grant order",
   );
   const independentFacts = reviewEvidenceForLedger(
@@ -486,6 +559,36 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
   assert.equal(
     independentFacts.facsimileSemantics.semanticNames[1].semanticName,
     "Shiny",
+  );
+  assert.deepEqual(
+    independentFacts.facsimileSemantics.referentResolutions,
+    [],
+    "fresh-context review evidence must expose entity-continuity decisions",
+  );
+  const continuityReviewLedger = structuredClone(ledger);
+  continuityReviewLedger.facsimileContracts.referentResolutions = [
+    {
+      sourceEntry: "starter_shiny",
+      sourceEvidence: "YOUR STARTER IS A SHINY POKÉMON.",
+      resolution: "same-entity",
+      targetChoiceHandle: "starter_name",
+      targetGrantHandle: "starter",
+      reason: "The upgrade refers to the stable Starter companion.",
+    },
+  ];
+  continuityReviewLedger.facsimileContracts.dynamicEntities[0].continuityEvidence =
+    "verification/starter-continuity.png";
+  const continuityFacts = reviewEvidenceForLedger(
+    { ...continuityReviewLedger, mode: "facsimile", mechanics: [] },
+    "b".repeat(64),
+  );
+  assert.equal(
+    continuityFacts.facsimileSemantics.referentResolutions[0].resolution,
+    "same-entity",
+  );
+  assert.equal(
+    continuityFacts.facsimileSemantics.dynamicEntities[0].continuityEvidence,
+    "verification/starter-continuity.png",
   );
   assert.equal(
     JSON.stringify(independentFacts).includes("independentReview"),
@@ -715,7 +818,7 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
   );
 
   const contradictoryGrantSweepEntry = structuredClone(ledger);
-  contradictoryGrantSweepEntry.facsimileContracts.grantInventory.entryDecisions[0].dispositions =
+  contradictoryGrantSweepEntry.facsimileContracts.grantInventory.entryDecisions[0].clauses[0].dispositions =
     ["jump-grant", "no-grant"];
   assert(
     facsimileContentContractErrors(
@@ -726,7 +829,7 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
 
   const missingGrantReconciliation = structuredClone(ledger);
   delete missingGrantReconciliation.facsimileContracts.grantInventory
-    .entryDecisions[0].grantKeys;
+    .entryDecisions[0].clauses[1].grantKeys;
   assert(
     facsimileContentContractErrors(missingGrantReconciliation, canonical).some(
       (error) => error.includes("grantKeys must enumerate every"),
@@ -734,7 +837,7 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
   );
 
   const incompleteGrantReconciliation = structuredClone(ledger);
-  incompleteGrantReconciliation.facsimileContracts.grantInventory.entryDecisions[0].grantKeys =
+  incompleteGrantReconciliation.facsimileContracts.grantInventory.entryDecisions[0].clauses[1].grantKeys =
     ["item:Wallet"];
   assert(
     facsimileContentContractErrors(
@@ -743,22 +846,61 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
     ).some((error) => error.includes("must exactly reconcile")),
   );
 
+  const swappedClauseGrants = structuredClone(ledger);
+  swappedClauseGrants.facsimileContracts.grantInventory.entryDecisions[0].clauses[1].grantKeys =
+    ["item:Bag"];
+  swappedClauseGrants.facsimileContracts.grantInventory.entryDecisions[0].clauses[2].grantKeys =
+    ["trait:Jump Terms"];
+  assert(
+    facsimileContentContractErrors(swappedClauseGrants, canonical).some(
+      (error) => error.includes("exact evidence does not contain"),
+    ),
+  );
+
   const missingSharedChoiceGrant = structuredClone(ledger);
-  missingSharedChoiceGrant.facsimileContracts.grantInventory.entryDecisions[1].dispositions =
+  missingSharedChoiceGrant.facsimileContracts.grantInventory.entryDecisions[1].clauses[0].dispositions =
     ["shared-choice-grant"];
   assert(
     facsimileContentContractErrors(missingSharedChoiceGrant, canonical).some(
       (error) => error.includes("sharedEffectText is required"),
     ),
   );
-  missingSharedChoiceGrant.facsimileContracts.grantInventory.entryDecisions[1].sharedEffectText =
+  missingSharedChoiceGrant.facsimileContracts.grantInventory.entryDecisions[1].clauses[0].sharedEffectText =
     "CHOOSE THE SPECIES OF YOUR STARTER POKÉMON.";
-  missingSharedChoiceGrant.facsimileContracts.grantInventory.entryDecisions[1].targetHandles =
+  missingSharedChoiceGrant.facsimileContracts.grantInventory.entryDecisions[1].clauses[0].targetHandles =
     ["starter_name"];
   assert(
     facsimileContentContractErrors(missingSharedChoiceGrant, canonical).some(
       (error) => error.includes("does not preserve shared Trait effect"),
     ),
+  );
+
+  const sharedSourceCanonical = structuredClone(canonical);
+  sharedSourceCanonical.choices[1].grants.push({
+    kind: "trait",
+    name: { base: "Jump Terms" },
+    tags: ["Duration"],
+    text: [{ handle: "description", content: { base: "Ten years." } }],
+  });
+  const sharedSourceLedger = structuredClone(ledger);
+  const sharedClause =
+    sharedSourceLedger.facsimileContracts.grantInventory.entryDecisions[0]
+      .clauses[1];
+  sharedClause.dispositions.push("shared-choice-grant");
+  sharedClause.sharedEffectText = "TEN YEARS.";
+  sharedClause.targetHandles = ["shiny"];
+  sharedSourceLedger.facsimileContracts.choiceGrantSemantics.push({
+    choiceHandle: "shiny",
+    grantIndex: 1,
+    sourceEntry: "intro_kit",
+    effectRole: "current-jump-circumstance",
+    sourceEvidence: "JUMP TERMS. TEN YEARS.",
+    reason: "The source-wide duration rule applies to this Choice.",
+    tagRationale: "Duration describes the shared current-Jump rule.",
+  });
+  assert.deepEqual(
+    facsimileContentContractErrors(sharedSourceLedger, sharedSourceCanonical),
+    [],
   );
 
   const paraphrasedJumpGrant = structuredClone(ledger);
@@ -828,6 +970,842 @@ test("facsimile content contracts enforce semantic identity, grants, Tags, and d
     facsimileContentContractErrors(ledger, rolePerk).some((error) =>
       error.includes("role as a generic perk"),
     ),
+  );
+
+  const formCanonical = structuredClone(canonical);
+  formCanonical.choices[0].grants[0].kind = "form";
+  formCanonical.choices[1].grants[0].form = "starter";
+  delete formCanonical.choices[1].grants[0].companion;
+  const formLedger = structuredClone(ledger);
+  formLedger.facsimileContracts.dynamicEntities[0].kind = "form";
+  assert.equal(
+    facsimileContentContractErrors(formLedger, formCanonical).some((error) =>
+      error.includes("does not target form starter"),
+    ),
+    false,
+  );
+  formCanonical.choices[1].grants[0].companion = "starter";
+  delete formCanonical.choices[1].grants[0].form;
+  assert(
+    facsimileContentContractErrors(formLedger, formCanonical).some((error) =>
+      error.includes("does not target form starter"),
+    ),
+  );
+
+  const narrativeGrant = structuredClone(ledger);
+  narrativeGrant.facsimileContracts.grantInventory.entryDecisions[0].clauses[1].semanticForce =
+    "narrative";
+  assert(
+    facsimileContentContractErrors(narrativeGrant, canonical).some((error) =>
+      error.includes(
+        "cannot create an unconditional grant from narrative wording",
+      ),
+    ),
+  );
+
+  const wrongContextualKind = structuredClone(ledger);
+  wrongContextualKind.facsimileContracts.choiceGrantSemantics[1].effectRole =
+    "entity-classification";
+  assert(
+    facsimileContentContractErrors(wrongContextualKind, canonical).some(
+      (error) => error.includes("does not match contextual role"),
+    ),
+  );
+
+  const contextualClassification = structuredClone(canonical);
+  contextualClassification.choices[0].selection = "text";
+  contextualClassification.choices[0].placeholder = "Starter species";
+  contextualClassification.choices[0].grants[0].name = {
+    base: "{{species}} ({{starter_tier}} Starter)",
+  };
+  contextualClassification.choices[1].selection = "toggle";
+  contextualClassification.choices[1].groups = ["starter_tiers"];
+  contextualClassification.choices[1].grants[0] = {
+    kind: "property",
+    handle: "starter_tier",
+    value: { base: "Shiny" },
+  };
+  contextualClassification.choices[1].grants.push({
+    kind: "perk",
+    name: { base: "Shiny" },
+    companion: "starter",
+    tags: ["Aesthetic"],
+    text: [
+      {
+        handle: "description",
+        content: { base: "Your starter is a Shiny Pokémon." },
+      },
+    ],
+  });
+  contextualClassification.choices.push({
+    handle: "ordinary",
+    name: { base: "Ordinary" },
+    layout: "panel_toggle",
+    tags: ["Appearance"],
+    groups: ["starter_tiers"],
+    selection: "toggle",
+    images: [
+      {
+        handle: "source_panel",
+        src: "panels/ordinary.png",
+        alt: { base: "Ordinary panel" },
+      },
+    ],
+    text: [
+      {
+        handle: "description",
+        content: { base: "Your starter is an ordinary Pokémon." },
+      },
+    ],
+    grants: [
+      {
+        kind: "property",
+        handle: "starter_tier",
+        value: { base: "Ordinary" },
+      },
+    ],
+  });
+  contextualClassification.sections = [
+    {
+      handle: "starter",
+      sources: [
+        {
+          handle: "starter_tier_source",
+          group: "starter_tiers",
+          mode: "single",
+          resolution: "manual",
+        },
+      ],
+      directChoices: [
+        { handle: "starter_species_field", target: "starter_name" },
+      ],
+      members: [
+        { kind: "choice", handle: "starter_species_field" },
+        { kind: "source", handle: "starter_tier_source" },
+      ],
+    },
+  ];
+  const contextualClassificationLedger = structuredClone(ledger);
+  contextualClassificationLedger.entries.push({
+    id: "starter_ordinary",
+    page: 1,
+    sourceKind: "choice",
+    rect: { x: 220, y: 0, width: 100, height: 40 },
+    transcription: "ORDINARY. YOUR STARTER IS AN ORDINARY POKÉMON.",
+  });
+  contextualClassificationLedger.assets.push({
+    page: 1,
+    kind: "panel",
+    package: true,
+    output: "panels/ordinary.png",
+    alt: "Ordinary panel",
+    rect: { x: 220, y: 0, width: 100, height: 40 },
+  });
+  contextualClassificationLedger.facsimileContracts.semanticNames.push({
+    handle: "ordinary",
+    sourceEntry: "starter_ordinary",
+    sourceText: "ORDINARY",
+    semanticName: "Ordinary",
+    sourceEffectText: "YOUR STARTER IS AN ORDINARY POKÉMON.",
+    liveDescription: "Your starter is an ordinary Pokémon.",
+  });
+  contextualClassificationLedger.facsimileContracts.choiceGrantSemantics[1] = {
+    choiceHandle: "shiny",
+    grantIndex: 0,
+    sourceEntry: "starter_shiny",
+    effectRole: "entity-classification",
+    sourceEvidence: "YOUR STARTER IS A SHINY POKÉMON.",
+    subjectGrantHandle: "starter",
+    projection: "entity-name",
+    reason:
+      "For this fixture the selected word classifies the existing entity rather than adding an ability.",
+  };
+  contextualClassificationLedger.facsimileContracts.choiceGrantSemantics.push({
+    choiceHandle: "shiny",
+    grantIndex: 1,
+    sourceEntry: "starter_shiny",
+    effectRole: "entity-enhancement",
+    sourceEvidence: "YOUR STARTER IS A SHINY POKÉMON.",
+    subjectGrantHandle: "starter",
+    reason:
+      "The same Choice also adds its explicitly authored cosmetic enhancement.",
+    tagRationale: "Aesthetic describes the cosmetic effect.",
+  });
+  contextualClassificationLedger.facsimileContracts.choiceGrantSemantics.push({
+    choiceHandle: "ordinary",
+    grantIndex: 0,
+    sourceEntry: "starter_ordinary",
+    effectRole: "entity-classification",
+    sourceEvidence: "ORDINARY. YOUR STARTER IS AN ORDINARY POKÉMON.",
+    subjectGrantHandle: "starter",
+    projection: "entity-name",
+    reason: "The Choice classifies the same starter as ordinary.",
+  });
+  contextualClassificationLedger.facsimileContracts.grantInventory.entryDecisions.push(
+    {
+      entryId: "starter_ordinary",
+      clauses: [
+        {
+          dispositions: ["choice-grant"],
+          semanticForce: "conditional-choice-effect",
+          sourceEvidence: "YOUR STARTER IS AN ORDINARY POKÉMON.",
+          reason: "The Choice classifies the existing starter.",
+        },
+      ],
+    },
+  );
+  contextualClassificationLedger.facsimileContracts.tagPlacements.push({
+    choiceHandle: "ordinary",
+    decision: "placed",
+    tags: ["Appearance"],
+    tagRationale: "Appearance describes the selected visual classification.",
+    layoutHandle: "panel_toggle",
+    railOrder: ["control", "tags", "cost"],
+  });
+  contextualClassificationLedger.facsimileContracts.dynamicEntities[0].visibleNameTemplate =
+    "{{species}} ({{starter_tier}} Starter)";
+  contextualClassificationLedger.facsimileContracts.dynamicEntities[0].classificationChoiceHandles =
+    ["shiny", "ordinary"];
+  contextualClassificationLedger.facsimileContracts.dynamicEntities[0].classificationPropertyHandle =
+    "starter_tier";
+  contextualClassificationLedger.facsimileContracts.dynamicEntities[0].classificationSourceHandle =
+    "starter_tier_source";
+  assert.deepEqual(
+    facsimileContentContractErrors(
+      contextualClassificationLedger,
+      contextualClassification,
+    ),
+    [],
+  );
+
+  const multiSelectClassification = structuredClone(contextualClassification);
+  multiSelectClassification.sections[0].sources[0].mode = "multi";
+  assert(
+    facsimileContentContractErrors(
+      contextualClassificationLedger,
+      multiSelectClassification,
+    ).some((error) => error.includes("must be single-select")),
+  );
+
+  const nestedScalarClassification = structuredClone(contextualClassification);
+  nestedScalarClassification.choices[2].selection = "text";
+  nestedScalarClassification.choices[2].placeholder = "Do not nest this";
+  assert(
+    facsimileContentContractErrors(
+      contextualClassificationLedger,
+      nestedScalarClassification,
+    ).some((error) => error.includes("must be a toggle rendered by")),
+  );
+
+  const incompleteClassificationInventory = structuredClone(
+    contextualClassificationLedger,
+  );
+  incompleteClassificationInventory.facsimileContracts.dynamicEntities[0].classificationChoiceHandles =
+    ["shiny"];
+  assert(
+    facsimileContentContractErrors(
+      incompleteClassificationInventory,
+      contextualClassification,
+    ).some((error) => error.includes("must exactly equal every member")),
+  );
+
+  const embeddedCreationControl = structuredClone(
+    contextualClassificationLedger,
+  );
+  embeddedCreationControl.facsimileContracts.dynamicEntities[0].classificationChoiceHandles.push(
+    "starter_name",
+  );
+  assert(
+    facsimileContentContractErrors(
+      embeddedCreationControl,
+      contextualClassification,
+    ).some((error) => error.includes("creation control must be separate")),
+  );
+
+  const classificationBeforeName = structuredClone(contextualClassification);
+  classificationBeforeName.sections[0].members.reverse();
+  assert(
+    facsimileContentContractErrors(
+      contextualClassificationLedger,
+      classificationBeforeName,
+    ).some((error) => error.includes("must be placed before")),
+  );
+
+  const inventedClassificationValue = structuredClone(contextualClassification);
+  inventedClassificationValue.choices[1].grants[0].value = { base: "Rare" };
+  assert(
+    facsimileContentContractErrors(
+      contextualClassificationLedger,
+      inventedClassificationValue,
+    ).some((error) =>
+      error.includes(
+        "classification value is not present in its source evidence",
+      ),
+    ),
+  );
+
+  const grantlessClassification = structuredClone(ledger);
+  grantlessClassification.facsimileContracts.dynamicEntities[0].classificationChoiceHandles =
+    ["shiny"];
+  grantlessClassification.facsimileContracts.dynamicEntities[0].classificationPropertyHandle =
+    "starter_tier";
+  grantlessClassification.facsimileContracts.dynamicEntities[0].visibleNameTemplate =
+    "{{species}} ({{starter_tier}} Starter)";
+  assert(
+    facsimileContentContractErrors(grantlessClassification, canonical).some(
+      (error) =>
+        error.includes(
+          "must grant shared classification Property starter_tier",
+        ),
+    ),
+  );
+
+  const untaggedVisibleGrant = structuredClone(canonical);
+  untaggedVisibleGrant.choices[1].grants[0].tags = [];
+  assert(
+    facsimileContentContractErrors(ledger, untaggedVisibleGrant).some((error) =>
+      error.includes("must have between 1 and 5 effect Tags"),
+    ),
+  );
+
+  const emptySelector = structuredClone(canonical);
+  emptySelector.choices[1].selection = "select";
+  emptySelector.choices[1].options = [];
+  assert(
+    facsimileContentContractErrors(ledger, emptySelector).some((error) =>
+      error.includes("select control has no options"),
+    ),
+  );
+
+  const unpromptedText = structuredClone(canonical);
+  unpromptedText.choices[1].selection = "text";
+  assert(
+    facsimileContentContractErrors(ledger, unpromptedText).some((error) =>
+      error.includes("text control requires a meaningful placeholder"),
+    ),
+  );
+
+  const unresolvedEntity = structuredClone(ledger);
+  unresolvedEntity.facsimileContracts.referentResolutions = [
+    {
+      sourceEntry: "starter_name",
+      sourceEvidence: "STARTER",
+      resolution: "same-entity",
+      reason: "This mention refers to the entity defined later.",
+    },
+  ];
+  assert(
+    facsimileContentContractErrors(unresolvedEntity, canonical).some((error) =>
+      error.includes("must identify either the canonical Choice grant"),
+    ),
+  );
+
+  const nonexistentReferent = structuredClone(ledger);
+  nonexistentReferent.facsimileContracts.referentResolutions = [
+    {
+      sourceEntry: "starter_shiny",
+      sourceEvidence: "YOUR STARTER IS A SHINY POKÉMON.",
+      resolution: "same-entity",
+      targetChoiceHandle: "missing_choice",
+      targetGrantHandle: "missing_grant",
+      reason: "This is intentionally invalid target evidence.",
+    },
+  ];
+  assert(
+    facsimileContentContractErrors(nonexistentReferent, canonical).some(
+      (error) => error.includes("targets missing Choice missing_choice"),
+    ),
+  );
+
+  const contextlessReferent = structuredClone(ledger);
+  contextlessReferent.facsimileContracts.referentResolutions = [
+    {
+      sourceEntry: "starter_shiny",
+      sourceEvidence: "STARTER",
+      resolution: "same-entity",
+      targetChoiceHandle: "starter_name",
+      targetGrantHandle: "starter",
+      reason: "This evidence does not establish the relationship.",
+    },
+  ];
+  assert(
+    facsimileContentContractErrors(contextlessReferent, canonical).some(
+      (error) => error.includes("enough contiguous context"),
+    ),
+  );
+
+  const unsupportedDistinctCanonical = structuredClone(canonical);
+  unsupportedDistinctCanonical.choices[1].grants.push({
+    kind: "companion",
+    handle: "rescued_companion",
+    name: { base: "Rescued Companion" },
+    tags: ["Rescue", "Companionship"],
+    text: [
+      {
+        handle: "description",
+        content: { base: "Your starter is a Shiny Pokémon." },
+      },
+    ],
+  });
+  const unsupportedDistinct = structuredClone(ledger);
+  unsupportedDistinct.facsimileContracts.choiceGrantSemantics.push({
+    choiceHandle: "shiny",
+    grantIndex: 1,
+    sourceEntry: "starter_shiny",
+    effectRole: "entity-acquisition",
+    sourceEvidence: "YOUR STARTER IS A SHINY POKÉMON.",
+    reason: "This intentionally misreads provenance as another companion.",
+    tagRationale: "Rescue and Companionship describe the claimed effect.",
+  });
+  unsupportedDistinct.facsimileContracts.referentResolutions = [
+    {
+      sourceEntry: "starter_shiny",
+      sourceEvidence: "YOUR STARTER IS A SHINY POKÉMON.",
+      resolution: "new-entity",
+      targetChoiceHandle: "shiny",
+      targetGrantHandle: "rescued_companion",
+      distinctnessEvidence: "YOUR STARTER IS A SHINY POKÉMON.",
+      distinctnessBasis: "explicit-additionality",
+      comparedDynamicEntityRefs: ["starter_name:starter"],
+      reason: "The entity appeared before the later defining control.",
+    },
+  ];
+  assert(
+    facsimileContentContractErrors(
+      unsupportedDistinct,
+      unsupportedDistinctCanonical,
+    ).some((error) =>
+      error.includes(
+        "entityContinuityReviews must exactly adjudicate every new-entity resolution",
+      ),
+    ),
+    "a converter-authored basis cannot pass without independent semantic adjudication",
+  );
+  const unsupportedDistinctFacts = reviewEvidenceForLedger(
+    { ...unsupportedDistinct, mode: "facsimile", mechanics: [] },
+    "c".repeat(64),
+  );
+  assert.equal(
+    unsupportedDistinctFacts.facsimileSemantics.referentResolutions[0]
+      .distinctnessEvidence,
+    "YOUR STARTER IS A SHINY POKÉMON.",
+    "the independent reviewer must receive the exact unsupported evidence and declared basis",
+  );
+
+  const omittedContinuity = structuredClone(unsupportedDistinct);
+  omittedContinuity.facsimileContracts.referentResolutions = [];
+  assert(
+    facsimileContentContractErrors(
+      omittedContinuity,
+      unsupportedDistinctCanonical,
+    ).some((error) =>
+      error.includes(
+        "Choice shiny grant rescued_companion must have exactly one new-entity continuity resolution",
+      ),
+    ),
+    "omitting the referent record must not hide an extra same-kind entity grant",
+  );
+
+  const competingSameEntity = structuredClone(unsupportedDistinct);
+  competingSameEntity.facsimileContracts.referentResolutions = [
+    {
+      sourceEntry: "starter_shiny",
+      sourceEvidence: "YOUR STARTER IS A SHINY POKÉMON.",
+      resolution: "same-entity",
+      targetChoiceHandle: "starter_name",
+      targetGrantHandle: "starter",
+      reason: "The mention points to the later dynamic Starter.",
+    },
+  ];
+  competingSameEntity.facsimileContracts.dynamicEntities[0].continuityEvidence =
+    "verification/starter-continuity.png";
+  competingSameEntity.facsimileContracts.independentReview.entityContinuityReviews =
+    [];
+  assert(
+    facsimileContentContractErrors(
+      competingSameEntity,
+      unsupportedDistinctCanonical,
+    ).some((error) =>
+      error.includes("also creates a competing companion grant"),
+    ),
+    "a same-entity declaration must not coexist with an origin-specific duplicate grant",
+  );
+
+  const explicitAdditionalCanonical = structuredClone(
+    unsupportedDistinctCanonical,
+  );
+  explicitAdditionalCanonical.choices[1].grants[1].text[0].content.base =
+    "You receive another companion in addition to your starter.";
+  const explicitAdditional = structuredClone(unsupportedDistinct);
+  explicitAdditional.entries.find(
+    (entry) => entry.id === "starter_shiny",
+  ).transcription +=
+    " YOU RECEIVE ANOTHER COMPANION IN ADDITION TO YOUR STARTER.";
+  explicitAdditional.facsimileContracts.choiceGrantSemantics[2].sourceEvidence =
+    "YOU RECEIVE ANOTHER COMPANION IN ADDITION TO YOUR STARTER.";
+  explicitAdditional.facsimileContracts.referentResolutions[0].sourceEvidence =
+    "YOU RECEIVE ANOTHER COMPANION IN ADDITION TO YOUR STARTER.";
+  explicitAdditional.facsimileContracts.referentResolutions[0].distinctnessEvidence =
+    "ANOTHER COMPANION IN ADDITION TO YOUR STARTER";
+  explicitAdditional.facsimileContracts.referentResolutions[0].distinctnessBasis =
+    "explicit-additionality";
+  explicitAdditional.facsimileContracts.independentReview.entityContinuityReviews =
+    [
+      {
+        sourceEntry: "starter_shiny",
+        targetRef: "choice:shiny:rescued_companion",
+        status: "supported",
+        reason: "The independent source review confirms an additional entity.",
+        evidence: "verification/independent-review.md",
+      },
+    ];
+  assert.equal(
+    facsimileContentContractErrors(
+      explicitAdditional,
+      explicitAdditionalCanonical,
+    ).some(
+      (error) =>
+        error.includes("distinctnessBasis is required") ||
+        error.includes(
+          "must have exactly one new-entity continuity resolution",
+        ),
+    ),
+    false,
+    "explicit additionality may justify a genuinely distinct companion",
+  );
+
+  const preReviewAdditional = structuredClone(explicitAdditional);
+  preReviewAdditional.facsimileContracts.independentReview = {
+    reviewer: "clean-context-agent",
+    status: "unreviewed",
+    evidence: "",
+    findings: [],
+    entityContinuityReviews: [],
+  };
+  assert.equal(
+    facsimileContentContractErrors(
+      preReviewAdditional,
+      explicitAdditionalCanonical,
+      { complete: false },
+    ).some((error) =>
+      error.includes(
+        "entityContinuityReviews must exactly adjudicate every new-entity resolution",
+      ),
+    ),
+    false,
+    "a valid new entity may build and capture before independent adjudication",
+  );
+
+  const unrelatedKeyword = structuredClone(unsupportedDistinct);
+  unrelatedKeyword.entries.find(
+    (entry) => entry.id === "starter_shiny",
+  ).transcription += " BOTH PANELS USE TWO COLORS.";
+  unrelatedKeyword.facsimileContracts.referentResolutions[0].distinctnessEvidence =
+    "BOTH PANELS USE TWO COLORS";
+  assert(
+    facsimileContentContractErrors(
+      unrelatedKeyword,
+      unsupportedDistinctCanonical,
+    ).some((error) =>
+      error.includes(
+        "entityContinuityReviews must exactly adjudicate every new-entity resolution",
+      ),
+    ),
+    "an unrelated English count phrase plus a converter basis still requires independent adjudication",
+  );
+
+  const proseAdditionalCanonical = structuredClone(canonical);
+  proseAdditionalCanonical.grants.push({
+    kind: "companion",
+    name: { base: "Guide" },
+    tags: ["Guidance", "Companionship"],
+    text: [
+      {
+        handle: "description",
+        content: { base: "Another guide joins you." },
+      },
+    ],
+  });
+  const proseAdditional = structuredClone(ledger);
+  proseAdditional.entries.find(
+    (entry) => entry.id === "intro_kit",
+  ).transcription += " ANOTHER GUIDE JOINS YOU.";
+  proseAdditional.facsimileContracts.grantInventory.entryDecisions[0].clauses.push(
+    {
+      dispositions: ["jump-grant"],
+      semanticForce: "explicit-grant",
+      sourceEvidence: "ANOTHER GUIDE JOINS YOU.",
+      reason: "The prose explicitly grants an additional guide.",
+      grantKeys: ["companion:Guide"],
+    },
+  );
+  proseAdditional.facsimileContracts.grantInventory.grants.push({
+    entryId: "intro_kit",
+    kind: "companion",
+    name: "Guide",
+    description: "Another guide joins you.",
+    canonicalGrantRef: "jump:2:companion:Guide",
+    tags: ["Guidance", "Companionship"],
+    tagRationale: "Guidance and Companionship describe the live role.",
+  });
+  proseAdditional.facsimileContracts.referentResolutions = [
+    {
+      sourceEntry: "intro_kit",
+      sourceEvidence: "ANOTHER GUIDE JOINS YOU.",
+      resolution: "new-entity",
+      targetJumpGrantRef: "jump:2:companion:Guide",
+      distinctnessEvidence: "ANOTHER GUIDE JOINS YOU.",
+      distinctnessBasis: "explicit-additionality",
+      comparedDynamicEntityRefs: ["starter_name:starter"],
+      reason: "The source explicitly adds a Guide besides the dynamic entity.",
+    },
+  ];
+  proseAdditional.facsimileContracts.independentReview.entityContinuityReviews =
+    [
+      {
+        sourceEntry: "intro_kit",
+        targetRef: "jump:2:companion:Guide",
+        status: "supported",
+        reason: "The independent source review confirms the extra Guide.",
+        evidence: "verification/independent-review.md",
+      },
+    ];
+  assert.equal(
+    facsimileContentContractErrors(
+      proseAdditional,
+      proseAdditionalCanonical,
+    ).some((error) =>
+      error.includes(
+        "Jump grant jump:2:companion:Guide must have exactly one new-entity continuity resolution",
+      ),
+    ),
+    false,
+    "an explicit prose-level additional entity can target an exact Jump grant",
+  );
+
+  const duplicateNamedJumpCanonical = structuredClone(proseAdditionalCanonical);
+  duplicateNamedJumpCanonical.grants.push(
+    structuredClone(duplicateNamedJumpCanonical.grants[2]),
+  );
+  const misboundDuplicateJump = structuredClone(proseAdditional);
+  misboundDuplicateJump.facsimileContracts.referentResolutions[0].targetJumpGrantRef =
+    "jump:3:companion:Guide";
+  misboundDuplicateJump.facsimileContracts.independentReview.entityContinuityReviews[0].targetRef =
+    "jump:3:companion:Guide";
+  assert(
+    facsimileContentContractErrors(
+      misboundDuplicateJump,
+      duplicateNamedJumpCanonical,
+    ).some((error) =>
+      error.includes(
+        "Jump target jump:3:companion:Guide has no exact grant-inventory record",
+      ),
+    ),
+    "an indexed Jump target must bind to the exact source inventory record even when names duplicate",
+  );
+
+  const duplicateInventoryRef = structuredClone(proseAdditional);
+  duplicateInventoryRef.facsimileContracts.grantInventory.grants.push({
+    ...structuredClone(
+      duplicateInventoryRef.facsimileContracts.grantInventory.grants.at(-1),
+    ),
+    entryId: "starter_shiny",
+  });
+  assert(
+    facsimileContentContractErrors(
+      duplicateInventoryRef,
+      proseAdditionalCanonical,
+    ).some((error) =>
+      error.includes("canonicalGrantRef values must be unique"),
+    ),
+    "two source entries cannot claim one exact indexed Jump grant",
+  );
+
+  const omittedProseContinuity = structuredClone(proseAdditional);
+  omittedProseContinuity.facsimileContracts.referentResolutions = [];
+  assert(
+    facsimileContentContractErrors(
+      omittedProseContinuity,
+      proseAdditionalCanonical,
+    ).some((error) =>
+      error.includes(
+        "Jump grant jump:2:companion:Guide must have exactly one new-entity continuity resolution",
+      ),
+    ),
+    "a direct Jump/prose entity cannot bypass continuity coverage",
+  );
+
+  const proseCompetingSameEntity = structuredClone(proseAdditional);
+  proseCompetingSameEntity.facsimileContracts.referentResolutions = [
+    {
+      sourceEntry: "intro_kit",
+      sourceEvidence: "ANOTHER GUIDE JOINS YOU.",
+      resolution: "same-entity",
+      targetChoiceHandle: "starter_name",
+      targetGrantHandle: "starter",
+      reason: "This intentionally claims the direct Guide is the Starter.",
+    },
+  ];
+  proseCompetingSameEntity.facsimileContracts.dynamicEntities[0].continuityEvidence =
+    "verification/starter-continuity.png";
+  proseCompetingSameEntity.facsimileContracts.independentReview.entityContinuityReviews =
+    [];
+  assert(
+    facsimileContentContractErrors(
+      proseCompetingSameEntity,
+      proseAdditionalCanonical,
+    ).some((error) =>
+      error.includes("source entry also creates a competing companion grant"),
+    ),
+    "same-entity resolution must inspect direct Jump/prose grants",
+  );
+
+  const unrelatedGrantSource = structuredClone(ledger);
+  unrelatedGrantSource.facsimileContracts.choiceGrantSemantics[1].sourceEntry =
+    "intro_kit";
+  unrelatedGrantSource.facsimileContracts.choiceGrantSemantics[1].sourceEvidence =
+    "BAG. BIGGER INSIDE.";
+  assert(
+    facsimileContentContractErrors(unrelatedGrantSource, canonical).some(
+      (error) =>
+        error.includes("neither owns the Choice nor declares a shared effect"),
+    ),
+  );
+
+  const shortenedOwnedGrant = structuredClone(canonical);
+  shortenedOwnedGrant.choices[1].grants[0].text[0].content = {
+    base: "Your starter is Shiny.",
+  };
+  assert(
+    facsimileContentContractErrors(ledger, shortenedOwnedGrant).some((error) =>
+      error.includes("description is not an exact contiguous extract"),
+    ),
+  );
+
+  const uniformTagging = structuredClone(ledger);
+  uniformTagging.facsimileContracts.tagPlacements = Array.from(
+    { length: 8 },
+    (_value, index) => ({
+      choiceHandle: `uniform_${index}`,
+      decision: "placed",
+      tags: ["Mobility"],
+      tagRationale: "The effect changes mobility.",
+      layoutHandle: "panel_toggle",
+      railOrder: ["control", "tags", "cost"],
+    }),
+  );
+  assert(
+    facsimileContentContractErrors(uniformTagging).some((error) =>
+      error.includes("suspiciously uniform"),
+    ),
+  );
+  uniformTagging.facsimileContracts.tagCardinalityReview = {
+    status: "justified",
+    choiceHandles: uniformTagging.facsimileContracts.tagPlacements.map(
+      (record) => record.choiceHandle,
+    ),
+    grantRefs: [],
+    reason:
+      "Each reviewed effect exposes exactly one independent filtering dimension.",
+  };
+  assert.equal(
+    facsimileContentContractErrors(uniformTagging).some((error) =>
+      error.includes("suspiciously uniform"),
+    ),
+    false,
+  );
+
+  const uniformGrantCanonical = {
+    grants: Array.from({ length: 8 }, (_value, index) => ({
+      kind: "item",
+      name: { base: "Shared Name" },
+      tags: ["Utility"],
+      text: [
+        {
+          handle: "description",
+          content: { base: `Effect ${index}.` },
+        },
+      ],
+    })),
+    choices: [],
+    layouts: [],
+    sections: [],
+  };
+  const uniformGrantLedger = {
+    entries: Array.from({ length: 8 }, (_value, index) => ({
+      id: `grant_${index}`,
+      sourceKind: "prose",
+      transcription: `SHARED NAME. EFFECT ${index}.`,
+    })),
+    facsimileContracts: {
+      semanticNames: [],
+      choiceGrantSemantics: [],
+      referentResolutions: [],
+      grantInventory: {
+        entryDecisions: Array.from({ length: 8 }, (_value, index) => ({
+          entryId: `grant_${index}`,
+          clauses: [
+            {
+              dispositions: ["jump-grant"],
+              semanticForce: "explicit-grant",
+              sourceEvidence: `SHARED NAME. EFFECT ${index}.`,
+              reason: "The clause explicitly grants this Item.",
+              grantKeys: ["item:Shared Name"],
+            },
+          ],
+        })),
+        sourceEntryIds: Array.from(
+          { length: 8 },
+          (_value, index) => `grant_${index}`,
+        ),
+        status: "complete",
+        note: "Every source grant was reviewed.",
+        grants: Array.from({ length: 8 }, (_value, index) => ({
+          entryId: `grant_${index}`,
+          kind: "item",
+          name: "Shared Name",
+          description: `Effect ${index}.`,
+          tags: ["Utility"],
+          tagRationale: "Utility is the only independent filtering effect.",
+        })),
+      },
+      dynamicEntities: [],
+      tagPlacements: [],
+      alignmentRelationships: [],
+      independentReview: {
+        reviewer: "clean-context-agent",
+        status: "unreviewed",
+        evidence: "",
+        findings: [],
+      },
+    },
+  };
+  assert(
+    facsimileContentContractErrors(
+      uniformGrantLedger,
+      uniformGrantCanonical,
+    ).some((error) =>
+      error.includes("visible grant Tags are suspiciously uniform"),
+    ),
+  );
+  uniformGrantLedger.facsimileContracts.tagCardinalityReview = {
+    status: "justified",
+    choiceHandles: [],
+    grantRefs: Array.from(
+      { length: 8 },
+      (_value, index) => `jump:${index}:item:Shared Name`,
+    ),
+    reason:
+      "Each duplicate-named Item was independently reviewed and exposes one filtering dimension.",
+  };
+  assert.equal(
+    facsimileContentContractErrors(
+      uniformGrantLedger,
+      uniformGrantCanonical,
+    ).some((error) =>
+      error.includes("visible grant Tags are suspiciously uniform"),
+    ),
+    false,
   );
 
   const stacked = structuredClone(ledger);
@@ -961,8 +1939,15 @@ test("independent review evidence exposes factual unconditional-grant reconcilia
           entryDecisions: [
             {
               entryId: "starting_bag",
-              dispositions: ["jump-grant"],
-              grantKeys: ["item:Bag"],
+              clauses: [
+                {
+                  dispositions: ["jump-grant"],
+                  semanticForce: "explicit-grant",
+                  sourceEvidence: "A bag, bigger on the inside.",
+                  reason: "The source explicitly gives the bag.",
+                  grantKeys: ["item:Bag"],
+                },
+              ],
             },
           ],
         },
@@ -977,6 +1962,15 @@ test("independent review evidence exposes factual unconditional-grant reconcilia
       sourcePage: 1,
       sourceRect: { x: 10, y: 20, width: 30, height: 40 },
       sourceText: "A bag, bigger on the inside.",
+      clauses: [
+        {
+          dispositions: ["jump-grant"],
+          semanticForce: "explicit-grant",
+          sourceEvidence: "A bag, bigger on the inside.",
+          reason: "The source explicitly gives the bag.",
+          grantKeys: ["item:Bag"],
+        },
+      ],
       grantKeys: ["item:Bag"],
     },
   ]);
@@ -1087,6 +2081,39 @@ test("interaction contracts enforce native direct scalar controls and required s
   assert.deepEqual(
     interactionContractErrors(ledger, canonical, { complete: true }),
     [],
+  );
+
+  const textCanonical = structuredClone(canonical);
+  textCanonical.choices[0].selection = "text";
+  textCanonical.choices[0].resolution = "manual";
+  textCanonical.choices[0].costs = [];
+  const textLedger = structuredClone(ledger);
+  const textContract = textLedger.interactionContracts[0];
+  textContract.selection = "text";
+  textContract.resolution = "manual";
+  textContract.pricing = "none";
+  textContract.states = textContract.states
+    .filter((state) => state.name !== "rolled")
+    .map((state) => ({
+      ...state,
+      observation: {
+        ...state.observation,
+        controlKind: "text",
+        controlValue: "",
+        resolvedCosts: {},
+      },
+    }));
+  assert(
+    interactionContractErrors(textLedger, textCanonical, {
+      complete: true,
+    }).some((error) => error.includes("nonempty typed value")),
+  );
+  textContract.states[1].observation.controlValue = "Nonbinary";
+  assert.equal(
+    interactionContractErrors(textLedger, textCanonical, {
+      complete: true,
+    }).some((error) => error.includes("nonempty typed value")),
+    false,
   );
 
   const wrongPricing = structuredClone(ledger);
@@ -1828,10 +2855,12 @@ test("facsimile audits preserve source same-row panel relationships at the prima
 
   const cleanEdge = {
     possibleStructuralEdge: true,
+    dominantColor: "#404040",
     dominantRatio: 1,
   };
   const cutEdge = {
     possibleStructuralEdge: false,
+    dominantColor: "#404040",
     dominantRatio: 0.8,
   };
   const splitSharedSentence = facsimileCropSeamFindings({
@@ -1870,6 +2899,190 @@ test("facsimile audits preserve source same-row panel relationships at the prima
       ],
     }),
     [],
+  );
+  assert.deepEqual(
+    facsimileCropClearanceFindings(
+      {
+        assets: [
+          {
+            id: "clipped_icon",
+            page: 1,
+            edges: { top: cutEdge },
+          },
+        ],
+      },
+      [
+        {
+          id: "clipped_icon",
+          edgeOwnership: { top: "clean structural gutter above artwork" },
+        },
+      ],
+    ).map(({ id, side }) => ({ id, side })),
+    [{ id: "clipped_icon", side: "top" }],
+  );
+  assert.deepEqual(
+    facsimileCropClearanceFindings(
+      {
+        assets: [
+          {
+            id: "complete_icon",
+            page: 1,
+            edges: { top: cleanEdge },
+          },
+        ],
+      },
+      [
+        {
+          id: "complete_icon",
+          edgeOwnership: { top: "outside first complete artwork pixel" },
+        },
+      ],
+    ),
+    [],
+  );
+  assert.deepEqual(
+    facsimileCropClearanceFindings(
+      {
+        assets: [
+          {
+            id: "foreign_stripe",
+            page: 1,
+            interior: { dominantColor: "#404040", dominantRatio: 0.92 },
+            edges: {
+              top: {
+                possibleStructuralEdge: true,
+                dominantColor: "#00ffff",
+                dominantRatio: 1,
+              },
+            },
+          },
+        ],
+      },
+      [
+        {
+          id: "foreign_stripe",
+          edgeOwnership: { top: "clean background above complete artwork" },
+        },
+      ],
+    ).map(({ id, side, reason }) => ({ id, side, reason })),
+    [
+      {
+        id: "foreign_stripe",
+        side: "top",
+        reason:
+          "authored edge claims clearance but a uniform foreign stripe differs from the crop's dominant interior background",
+      },
+    ],
+  );
+  assert.deepEqual(
+    facsimileCropAuditConsistencyErrors(
+      {
+        schemaVersion: 2,
+        assets: [
+          {
+            id: "complete_icon",
+            page: 1,
+            rect: { x: 1, y: 2, width: 30, height: 40 },
+            output: "complete.png",
+            packaged: true,
+            alt: "Complete icon",
+            interior: { dominantColor: "#404040", dominantRatio: 1 },
+            edges: {
+              top: cleanEdge,
+              right: cleanEdge,
+              bottom: cleanEdge,
+              left: cleanEdge,
+            },
+          },
+        ],
+      },
+      [
+        {
+          id: "complete_icon",
+          page: 1,
+          rect: { x: 1, y: 3, width: 30, height: 40 },
+          output: "complete.png",
+          package: true,
+          alt: "Complete icon",
+        },
+      ],
+    ),
+    ["complete_icon crop audit rectangle is stale"],
+  );
+  assert.deepEqual(
+    facsimileCropAuditConsistencyErrors(
+      {
+        schemaVersion: 2,
+        assets: [
+          {
+            id: "complete_icon",
+            page: 1,
+            rect: { x: 1, y: 2, width: 30, height: 40 },
+            output: "complete.png",
+            packaged: true,
+            alt: "Complete icon",
+            interior: { dominantColor: "#404040", dominantRatio: 1 },
+            edges: {
+              top: cleanEdge,
+              right: cleanEdge,
+              bottom: cleanEdge,
+              left: cleanEdge,
+            },
+          },
+        ],
+      },
+      [
+        {
+          id: "complete_icon",
+          page: 1,
+          rect: { x: 1, y: 2, width: 30, height: 40 },
+          output: "complete.png",
+          package: true,
+          alt: "Complete icon",
+        },
+      ],
+    ),
+    [],
+  );
+  const strippedCropAudit = {
+    schemaVersion: 2,
+    sourceHash: "old-source",
+    assets: [
+      {
+        id: "complete_icon",
+        page: 1,
+        rect: { x: 1, y: 2, width: 30, height: 40 },
+        output: "complete.png",
+        packaged: true,
+        alt: "Complete icon",
+        edges: {
+          top: cleanEdge,
+          right: cleanEdge,
+          bottom: cleanEdge,
+          left: cleanEdge,
+        },
+      },
+    ],
+  };
+  assert.deepEqual(
+    facsimileCropAuditConsistencyErrors(
+      strippedCropAudit,
+      [
+        {
+          id: "complete_icon",
+          page: 1,
+          rect: { x: 1, y: 2, width: 30, height: 40 },
+          output: "complete.png",
+          package: true,
+          alt: "Complete icon",
+        },
+      ],
+      "current-source",
+    ),
+    [
+      "crop audit sourceHash does not match the current source",
+      "complete_icon crop audit is missing current interior or edge metrics",
+    ],
   );
 });
 
@@ -1971,6 +3184,8 @@ test("creates globally numbered resumable workspaces without replacing ledger wo
       JSON.parse(readFileSync(facsimile.ledgerPath, "utf8")).facsimileContracts,
       {
         semanticNames: [],
+        choiceGrantSemantics: [],
+        referentResolutions: [],
         grantInventory: {
           entryDecisions: [],
           sourceEntryIds: [],
@@ -2010,6 +3225,24 @@ test("does not repeat a mode already present in the readable source name", () =>
       /scratch\/jumpify\/001-already-facsimile$/,
     );
     assert.equal(prepared.manifest.archive, "001-already-facsimile.jmp");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects obsolete conversion ledgers instead of inventing migration evidence", () => {
+  const root = temporaryDirectory();
+  try {
+    const source = join(root, "Old Evidence.png");
+    png(source);
+    const prepared = prepareWorkspace(source, "facsimile", root);
+    const oldLedger = JSON.parse(readFileSync(prepared.ledgerPath, "utf8"));
+    oldLedger.schemaVersion = 3;
+    writeFileSync(prepared.ledgerPath, `${JSON.stringify(oldLedger)}\n`);
+    assert.throws(
+      () => prepareWorkspace(source, "facsimile", root),
+      /obsolete conversion-ledger schema.*Start a fresh workspace/,
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -2200,7 +3433,7 @@ test("renders PDF, PNG, JPEG, and ordered image-directory sources", async (t) =>
     const ledger = JSON.parse(
       readFileSync(join(workspace, "ledger.json"), "utf8"),
     );
-    assert.equal(ledger.schemaVersion, 3);
+    assert.equal(ledger.schemaVersion, 4);
     assert.deepEqual(ledger.interactionContracts, []);
     assert.equal(ledger.sourcePages.length, manifest.pages.length);
     assert.ok(

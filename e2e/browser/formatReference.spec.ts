@@ -42,6 +42,12 @@ test(
     const search = page.getByRole("searchbox", {
       name: "Search syntax and fields",
     });
+    await search.focus();
+    await expect(search).toHaveCSS("outline-style", "none");
+    await expect(page.locator(".reference-search-control")).not.toHaveCSS(
+      "box-shadow",
+      "none",
+    );
     await search.fill("gender");
     await expect(page.locator("#reference-result-count")).toContainText(
       "results",
@@ -190,6 +196,27 @@ test(
       summaryBox!.x + summaryBox!.width - 32,
     );
 
+    const grantSummary = page.locator("#declaration-grant > summary");
+    await grantSummary.scrollIntoViewIfNeeded();
+    const grantBadge = grantSummary.locator(".reference-kind");
+    const grantDescription = grantSummary.locator(":scope > span:last-of-type");
+    const [grantBadgeBox, grantDescriptionBox, grantDescriptionLineHeight] =
+      await Promise.all([
+        grantBadge.boundingBox(),
+        grantDescription.boundingBox(),
+        grantDescription.evaluate((element) =>
+          Number.parseFloat(getComputedStyle(element).lineHeight),
+        ),
+      ]);
+    expect(grantBadgeBox).not.toBeNull();
+    expect(grantDescriptionBox).not.toBeNull();
+    expect(grantDescriptionBox!.height).toBeGreaterThan(
+      grantDescriptionLineHeight * 1.5,
+    );
+    expect(grantBadgeBox!.x + grantBadgeBox!.width).toBeLessThanOrEqual(
+      grantDescriptionBox!.x,
+    );
+
     await page.setViewportSize({ width: 700, height: 900 });
     await expect(name).toBeVisible();
     const [narrowSummaryBox, narrowNameBox] = await Promise.all([
@@ -325,7 +352,8 @@ test(
     );
 
     await page.reload();
-    await expect(lexicalRules).toHaveAttribute("open", "");
+    await expect(lexicalRules).not.toHaveAttribute("open", "");
+    await lexicalRules.locator("summary").click();
     await expect(integer).toBeHidden();
     await page.getByRole("button", { name: "Test integer pattern" }).click();
     await expect(integer).toHaveValue("-42");

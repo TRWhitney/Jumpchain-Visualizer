@@ -18,6 +18,8 @@ Do not infer the control from the source's visual mark. A printed circle does no
 
 Do not reproduce a scalar interaction with a generic activation Choice when Format 1 has a scalar Choice. A checkbox or radio that merely reveals the real integer, select, or text control is a failed mapping unless the source itself first selects among genuinely separate interaction mechanisms.
 
+A `select` must contain the complete source-evidenced option domain; zero options is never an operable selector. When the valid domain is genuinely unrestricted, use text rather than an empty select, provide a meaningful placeholder, and verify a typed value. The text Choice's manual DOM observation must contain a nonempty string different from the unset observation; a placeholder, screenshot filename, or successful-action flag is not typed-value evidence. If a reserved identity property cannot express that unrestricted value natively, demonstrate the limitation instead of silently authoring an empty control.
+
 ## Choose the native construct
 
 | Source behavior                                 | Format 1 construct                            | Prohibited substitute                                                         |
@@ -121,11 +123,11 @@ If either answer is absent, use a direct association.
 
 Record the exception as a separate Choice interaction contract with `sourceHandle` and `sourceActivation` source evidence. The package gate rejects every non-toggle Source member without exactly one such exception contract. Do not use the exception for repeated copies of one entered value across tier, rarity, price, or classification Choices; model one direct scalar owner and toggle tier Choices instead.
 
-The direct scalar owner creates the durable grant once. Tier Choices modify price/classification without creating duplicate entities, and related upgrades target that same stable companion or form. Exercise the entered name in the corresponding Tracker tab and exercise at least one owned upgrade.
+The direct scalar owner creates the durable grant once and remains outside every classification Source. When tiers classify the entity, inventory their complete handle set in one `mode: single` Source; that Source's membership exactly equals the set. Each classification member is a toggle that writes an explicit source-authored value to the same stable Property, and the entity name interpolates the selected value. Tier Choices never repeat or own the scalar input. Related upgrades target that same stable entity: Companion Perks use `companion` ownership and Form Perks use `form` ownership. Exercise the entered name and selected classification in the corresponding Tracker tab and exercise at least one correctly owned upgrade.
 
 ## Stable interaction geometry
 
-Capture every interaction in all materially different states. At minimum capture unset and selected/manual states; also capture rolled state for `random` or `either`, disabled-at-limit state for capped Sources, and a nonzero rank for repeated purchases. The capture script must assert the requested postcondition before writing evidence. Never catch a failed exact-label action by choosing an arbitrary option index: select by actual value, then assert the resulting value and Cost text.
+Capture every interaction in all materially different states. At minimum capture unset and selected/manual states; also capture rolled state for `random` or `either`, disabled-at-limit state for capped Sources, and a nonzero rank for repeated purchases. For text, assert that the manual control value is nonempty and differs from unset before writing evidence. The capture script must assert the requested postcondition before writing evidence. Never catch a failed exact-label action by choosing an arbitrary option index: select by actual value, then assert the resulting value and Cost text.
 
 Keep interaction contracts independent. Clear a tested purchase after its selected or ranked evidence unless another named contract explicitly depends on it. Before each action, establish only the prerequisites that contract requires. A selection rejected because earlier tests exhausted the point balance is a failed test setup, not evidence for the control.
 

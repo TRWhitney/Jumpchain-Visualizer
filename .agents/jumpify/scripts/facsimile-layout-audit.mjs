@@ -349,3 +349,108 @@ export function facsimileCropSeamFindings(cropAudit) {
     }),
   );
 }
+
+/**
+ * Catch crops whose authored ownership says an edge lies outside the content,
+ * while the extracted pixels show non-structural foreground touching it. This
+ * is the common clipped-artwork/partial-glyph failure that appears as a stray
+ * stripe when independently cropped siblings are laid out together.
+ */
+export function facsimileCropClearanceFindings(cropAudit, ledgerAssets = []) {
+  const ownershipById = new Map(
+    ledgerAssets.map((asset) => [asset.id, asset.edgeOwnership ?? {}]),
+  );
+  return (cropAudit?.assets ?? []).flatMap((asset) =>
+    ["top", "right", "bottom", "left"].flatMap((side) => {
+      const ownership = ownershipById.get(asset.id)?.[side];
+      if (typeof ownership !== "string") return [];
+      const claimsClearance =
+        /\b(?:outside|clear|clean|blank|background)\b/iu.test(ownership);
+      if (!claimsClearance) return [];
+      const edge = asset.edges?.[side];
+      const interior = asset.interior;
+      const foreignUniformStripe =
+        edge?.possibleStructuralEdge === true &&
+        interior?.dominantRatio >= 0.5 &&
+        edge.dominantColor !== interior.dominantColor;
+      if (edge?.possibleStructuralEdge === true && !foreignUniformStripe)
+        return [];
+      return [
+        {
+          id: asset.id,
+          page: asset.page,
+          side,
+          ownership,
+          dominantRatio: edge?.dominantRatio ?? null,
+          reason: foreignUniformStripe
+            ? "authored edge claims clearance but a uniform foreign stripe differs from the crop's dominant interior background"
+            : "authored edge claims clearance but foreground pixels touch the crop boundary",
+        },
+      ];
+    }),
+  );
+}
+
+/**
+ * Crop edge findings are authoritative only for the exact ledger rectangles
+ * that produced them. Reconcile the complete asset inventory so editing a crop
+ * after the audit cannot silently reuse stale edge evidence.
+ */
+export function facsimileCropAuditConsistencyErrors(
+  cropAudit,
+  ledgerAssets = [],
+  expectedSourceHash,
+) {
+  const errors = [];
+  if (cropAudit?.schemaVersion !== 2)
+    errors.push(
+      "crop audit schema is stale; regenerate it with the current crop tool",
+    );
+  if (expectedSourceHash && cropAudit?.sourceHash !== expectedSourceHash)
+    errors.push("crop audit sourceHash does not match the current source");
+  const reports = cropAudit?.assets ?? [];
+  const reportIds = reports.map((asset) => asset.id);
+  const ledgerIds = ledgerAssets.map((asset) => asset.id);
+  for (const id of reportIds.filter(
+    (candidate, index) => reportIds.indexOf(candidate) !== index,
+  ))
+    errors.push(`crop audit contains duplicate asset ${id}`);
+  if (
+    JSON.stringify([...new Set(reportIds)].sort()) !==
+    JSON.stringify([...new Set(ledgerIds)].sort())
+  )
+    errors.push("crop audit asset inventory does not match ledger assets");
+  const byId = new Map(reports.map((asset) => [asset.id, asset]));
+  for (const expected of ledgerAssets) {
+    const actual = byId.get(expected.id);
+    if (!actual) continue;
+    if (
+      typeof actual.interior?.dominantColor !== "string" ||
+      !Number.isFinite(actual.interior?.dominantRatio) ||
+      ["top", "right", "bottom", "left"].some(
+        (side) =>
+          typeof actual.edges?.[side]?.dominantColor !== "string" ||
+          !Number.isFinite(actual.edges?.[side]?.dominantRatio) ||
+          typeof actual.edges?.[side]?.possibleStructuralEdge !== "boolean",
+      )
+    )
+      errors.push(
+        `${expected.id} crop audit is missing current interior or edge metrics`,
+      );
+    if (actual.page !== expected.page)
+      errors.push(`${expected.id} crop audit page is stale`);
+    if (
+      ["x", "y", "width", "height"].some(
+        (field) => actual.rect?.[field] !== expected.rect?.[field],
+      )
+    )
+      errors.push(`${expected.id} crop audit rectangle is stale`);
+    if (actual.output !== expected.output)
+      errors.push(`${expected.id} crop audit output is stale`);
+    if (actual.packaged !== (expected.package === true))
+      errors.push(`${expected.id} crop audit packaging state is stale`);
+    if ((actual.alt ?? null) !== (expected.alt ?? null))
+      errors.push(`${expected.id} crop audit alt text is stale`);
+  }
+  return [...new Set(errors)];
+}

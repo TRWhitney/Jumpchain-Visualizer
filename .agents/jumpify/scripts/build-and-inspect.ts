@@ -82,9 +82,9 @@ const canonical = canonicalizePackage(
   },
 );
 const ledger = JSON.parse(readFileSync(join(workspace, "ledger.json"), "utf8"));
-if (ledger.schemaVersion !== 3)
+if (ledger.schemaVersion !== 4)
   throw new Error(
-    "ledger.json must use schemaVersion 3 before the package can be built.",
+    "ledger.json must use schemaVersion 4 before the package can be built.",
   );
 const interactionErrors = interactionContractErrors(ledger, canonical, {
   requireCoverage: true,

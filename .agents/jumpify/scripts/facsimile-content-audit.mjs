@@ -36,6 +36,28 @@ function grantDescription(grant) {
   return textBase(block?.content)?.trim();
 }
 
+function grantTags(grant) {
+  return array(grant?.tags).map((tag) => textBase(tag) ?? tag);
+}
+
+function meaningfulTagErrors(tags, label) {
+  const errors = [];
+  if (tags.length < 1 || tags.length > 5)
+    errors.push(`${label} must have between 1 and 5 effect Tags`);
+  if (new Set(tags.map(semanticComparable)).size !== tags.length)
+    errors.push(`${label} has duplicate-equivalent Tags`);
+  if (
+    tags.length &&
+    tags.every((tag) =>
+      GENERIC_CLASSIFICATION_TAGS.has(semanticComparable(tag)),
+    )
+  )
+    errors.push(
+      `${label} Tags only repeat a section, cost class, or grant kind; add a concrete effect Tag`,
+    );
+  return errors;
+}
+
 function layoutSlots(layout) {
   const slots = [];
   const visit = (node) => {
@@ -103,6 +125,25 @@ function duplicateValues(values) {
   });
 }
 
+function exactStringSet(left, right) {
+  return (
+    JSON.stringify([...array(left)].sort()) ===
+    JSON.stringify([...array(right)].sort())
+  );
+}
+
+function tagGrantReviewRef(scope, index, grant) {
+  return `${scope}:${index}:${grantContractKey(grant)}`;
+}
+
+function justifiedUniformTagReview(review, field, values) {
+  return (
+    review?.status === "justified" &&
+    review.reason?.trim() &&
+    exactStringSet(review[field], values)
+  );
+}
+
 const ALIGNMENT_RELATIONS = new Set([
   "same-row",
   "same-column",
@@ -131,6 +172,18 @@ const GENERIC_CLASSIFICATION_TAGS = new Set([
   "trait",
   "world",
 ]);
+
+const EFFECT_ROLE_GRANT_KINDS = {
+  "entity-acquisition": new Set(["companion", "form"]),
+  "entity-classification": new Set(["property"]),
+  "entity-enhancement": new Set(["perk"]),
+  ability: new Set(["perk"]),
+  possession: new Set(["item"]),
+  form: new Set(["form"]),
+  "current-jump-circumstance": new Set(["trait"]),
+  "identity-property": new Set(["property"]),
+  "resource-change": new Set(["resource"]),
+};
 
 const STRICT_ALIGNMENT_RELATIONS = [
   "left-edge",
@@ -327,6 +380,8 @@ export function facsimileContentContractErrors(
 
   for (const field of [
     "semanticNames",
+    "choiceGrantSemantics",
+    "referentResolutions",
     "dynamicEntities",
     "tagPlacements",
     "alignmentRelationships",
@@ -414,6 +469,105 @@ export function facsimileContentContractErrors(
       );
   }
 
+  const choiceGrantSemantics = array(contract.choiceGrantSemantics);
+  const semanticGrantKeys = choiceGrantSemantics.map(
+    (record) => `${record.choiceHandle}:${record.grantIndex}`,
+  );
+  for (const key of duplicateValues(semanticGrantKeys))
+    errors.push(`duplicate facsimile Choice grant semantic contract: ${key}`);
+  for (const record of choiceGrantSemantics) {
+    const label = `${record.choiceHandle ?? "choice"}.grant[${record.grantIndex ?? "?"}]`;
+    const sourceEntry = entries.get(record.sourceEntry);
+    if (!record.choiceHandle) errors.push(`${label}.choiceHandle is required`);
+    if (!Number.isInteger(record.grantIndex) || record.grantIndex < 0)
+      errors.push(`${label}.grantIndex must be a non-negative integer`);
+    if (!sourceEntry)
+      errors.push(`${label}.sourceEntry must reference a ledger entry`);
+    if (!record.sourceEvidence?.trim())
+      errors.push(`${label}.sourceEvidence is required`);
+    else if (
+      sourceEntry?.transcription?.trim() &&
+      !semanticComparable(sourceEntry.transcription).includes(
+        semanticComparable(record.sourceEvidence),
+      )
+    )
+      errors.push(`${label}.sourceEvidence is not present in its source entry`);
+    if (!EFFECT_ROLE_GRANT_KINDS[record.effectRole])
+      errors.push(`${label}.effectRole is invalid`);
+    if (!record.reason?.trim()) errors.push(`${label}.reason is required`);
+  }
+
+  for (const record of array(contract.referentResolutions)) {
+    const label = `referent resolution ${record.sourceEntry ?? "unknown"}`;
+    const sourceEntry = entries.get(record.sourceEntry);
+    if (!sourceEntry) errors.push(`${label} references a missing source entry`);
+    if (!record.sourceEvidence?.trim())
+      errors.push(`${label}.sourceEvidence is required`);
+    else if (semanticComparable(record.sourceEvidence).split(/\s+/u).length < 3)
+      errors.push(
+        `${label}.sourceEvidence must include enough contiguous context to establish the relationship`,
+      );
+    else if (
+      sourceEntry?.transcription?.trim() &&
+      !semanticComparable(sourceEntry.transcription).includes(
+        semanticComparable(record.sourceEvidence),
+      )
+    )
+      errors.push(`${label}.sourceEvidence is not present in its source entry`);
+    if (
+      !["same-entity", "new-entity", "narrative-only"].includes(
+        record.resolution,
+      )
+    )
+      errors.push(`${label}.resolution is invalid`);
+    if (
+      ["same-entity", "new-entity"].includes(record.resolution) &&
+      !(
+        (record.targetChoiceHandle && record.targetGrantHandle) ||
+        record.targetJumpGrantRef
+      )
+    )
+      errors.push(
+        `${label} must identify either the canonical Choice grant or exact Jump grant for an entity resolution`,
+      );
+    if (
+      record.targetJumpGrantRef &&
+      (record.targetChoiceHandle || record.targetGrantHandle)
+    )
+      errors.push(
+        `${label} must not mix Choice-grant and Jump-grant entity targets`,
+      );
+    if (record.resolution === "new-entity") {
+      if (!record.distinctnessEvidence?.trim())
+        errors.push(
+          `${label}.distinctnessEvidence is required for a new entity`,
+        );
+      else if (
+        sourceEntry?.transcription?.trim() &&
+        !semanticComparable(sourceEntry.transcription).includes(
+          semanticComparable(record.distinctnessEvidence),
+        )
+      )
+        errors.push(
+          `${label}.distinctnessEvidence is not present in its source entry`,
+        );
+      if (!Array.isArray(record.comparedDynamicEntityRefs))
+        errors.push(
+          `${label}.comparedDynamicEntityRefs must inventory same-kind dynamic candidates`,
+        );
+      if (
+        ![
+          "explicit-additionality",
+          "independent-slot-or-count",
+          "simultaneous-possession",
+          "incompatible-source-identity",
+        ].includes(record.distinctnessBasis)
+      )
+        errors.push(`${label}.distinctnessBasis is required for a new entity`);
+    }
+    if (!record.reason?.trim()) errors.push(`${label}.reason is required`);
+  }
+
   const inventory = contract.grantInventory;
   if (isObject(inventory)) {
     if (!Array.isArray(inventory.entryDecisions))
@@ -434,64 +588,140 @@ export function facsimileContentContractErrors(
         );
       for (const decision of inventory.entryDecisions) {
         const label = `grant decision ${decision.entryId ?? "unknown"}`;
-        if (!decision.reason?.trim())
-          errors.push(`${label}.reason is required`);
-        const dispositions = array(decision.dispositions);
-        if (!dispositions.length)
-          errors.push(`${label}.dispositions must not be empty`);
-        if (new Set(dispositions).size !== dispositions.length)
-          errors.push(`${label}.dispositions must not contain duplicates`);
-        if (dispositions.includes("no-grant") && dispositions.length !== 1)
-          errors.push(
-            `${label} cannot combine no-grant with a grant disposition`,
-          );
+        const sourceEntry = entries.get(decision.entryId);
+        const clauses = array(decision.clauses);
+        if (!clauses.length) errors.push(`${label}.clauses must not be empty`);
+        const clauseEvidence = clauses.map((clause) =>
+          semanticComparable(clause.sourceEvidence),
+        );
         if (
-          !dispositions.every((value) =>
-            [
-              "jump-grant",
-              "choice-grant",
-              "shared-choice-grant",
-              "no-grant",
-            ].includes(value),
+          clauseEvidence.some(
+            (evidence, index) =>
+              evidence && clauseEvidence.indexOf(evidence) !== index,
           )
         )
-          errors.push(`${label}.dispositions contains an invalid value`);
-        const declaredKeys = [...array(decision.grantKeys)].sort();
+          errors.push(
+            `${label}.clauses must not reuse one evidence span for distinct semantic forces`,
+          );
+        const declaredKeys = [];
+        for (const [clauseIndex, clause] of clauses.entries()) {
+          const clauseLabel = `${label}.clauses[${clauseIndex}]`;
+          if (!clause.reason?.trim())
+            errors.push(`${clauseLabel}.reason is required`);
+          if (!clause.sourceEvidence?.trim())
+            errors.push(`${clauseLabel}.sourceEvidence is required`);
+          else if (
+            sourceEntry?.transcription?.trim() &&
+            !semanticComparable(sourceEntry.transcription).includes(
+              semanticComparable(clause.sourceEvidence),
+            )
+          )
+            errors.push(
+              `${clauseLabel}.sourceEvidence is not present in its source entry`,
+            );
+          if (
+            ![
+              "explicit-grant",
+              "retained-existing",
+              "narrative",
+              "current-jump-rule",
+              "conditional-choice-effect",
+              "mechanical-instruction",
+              "presentation",
+            ].includes(clause.semanticForce)
+          )
+            errors.push(`${clauseLabel}.semanticForce is invalid`);
+          const dispositions = array(clause.dispositions);
+          if (!dispositions.length)
+            errors.push(`${clauseLabel}.dispositions must not be empty`);
+          if (new Set(dispositions).size !== dispositions.length)
+            errors.push(
+              `${clauseLabel}.dispositions must not contain duplicates`,
+            );
+          if (dispositions.includes("no-grant") && dispositions.length !== 1)
+            errors.push(
+              `${clauseLabel} cannot combine no-grant with a grant disposition`,
+            );
+          if (
+            dispositions.includes("jump-grant") &&
+            !["explicit-grant", "current-jump-rule"].includes(
+              clause.semanticForce,
+            )
+          )
+            errors.push(
+              `${clauseLabel} cannot create an unconditional grant from ${clause.semanticForce} wording`,
+            );
+          if (
+            !dispositions.every((value) =>
+              [
+                "jump-grant",
+                "choice-grant",
+                "shared-choice-grant",
+                "no-grant",
+              ].includes(value),
+            )
+          )
+            errors.push(
+              `${clauseLabel}.dispositions contains an invalid value`,
+            );
+          const clauseKeys = array(clause.grantKeys);
+          if (dispositions.includes("jump-grant")) {
+            if (!clauseKeys.length)
+              errors.push(
+                `${clauseLabel}.grantKeys must enumerate every unconditional grant produced by that clause`,
+              );
+            declaredKeys.push(...clauseKeys);
+            for (const key of clauseKeys) {
+              const declaredGrant = array(inventory.grants).find(
+                (grant) =>
+                  grant.entryId === decision.entryId &&
+                  grantContractKey(grant) === key,
+              );
+              if (
+                declaredGrant?.description?.trim() &&
+                !semanticComparable(clause.sourceEvidence).includes(
+                  semanticComparable(declaredGrant.description),
+                )
+              )
+                errors.push(
+                  `${clauseLabel} cannot own ${key}; its exact evidence does not contain that grant's complete effect`,
+                );
+            }
+          } else if (clauseKeys.length)
+            errors.push(
+              `${clauseLabel}.grantKeys is allowed only with a jump-grant disposition`,
+            );
+          if (dispositions.includes("shared-choice-grant")) {
+            if (!clause.sharedEffectText?.trim())
+              errors.push(`${clauseLabel}.sharedEffectText is required`);
+            else if (
+              sourceEntry?.transcription?.trim() &&
+              !semanticComparable(sourceEntry.transcription).includes(
+                semanticComparable(clause.sharedEffectText),
+              )
+            )
+              errors.push(
+                `${clauseLabel}.sharedEffectText is not an exact contiguous extract of its source entry transcription`,
+              );
+            if (!array(clause.targetHandles).length)
+              errors.push(`${clauseLabel}.targetHandles must not be empty`);
+          }
+        }
+        if (new Set(declaredKeys).size !== declaredKeys.length)
+          errors.push(
+            `${label} assigns an unconditional grant to multiple clauses`,
+          );
         const expectedKeys = array(inventory.grants)
           .filter((grant) => grant.entryId === decision.entryId)
           .map(grantContractKey)
           .sort();
-        if (dispositions.includes("jump-grant")) {
-          if (!declaredKeys.length)
-            errors.push(
-              `${label}.grantKeys must enumerate every unconditional grant from that source entry`,
-            );
-          else if (
-            JSON.stringify(declaredKeys) !== JSON.stringify(expectedKeys)
-          )
-            errors.push(
-              `${label}.grantKeys must exactly reconcile the unconditional grant inventory for that source entry`,
-            );
-        } else if (declaredKeys.length)
+        if (
+          JSON.stringify([...declaredKeys].sort()) !==
+          JSON.stringify(expectedKeys)
+        )
           errors.push(
-            `${label}.grantKeys is allowed only with a jump-grant disposition`,
+            `${label}.clauses must exactly reconcile the unconditional grant inventory for that source entry`,
           );
-        if (dispositions.includes("shared-choice-grant")) {
-          const sourceEntry = entries.get(decision.entryId);
-          if (!decision.sharedEffectText?.trim())
-            errors.push(`${label}.sharedEffectText is required`);
-          else if (
-            sourceEntry?.transcription?.trim() &&
-            !semanticComparable(sourceEntry.transcription).includes(
-              semanticComparable(decision.sharedEffectText),
-            )
-          )
-            errors.push(
-              `${label}.sharedEffectText is not an exact contiguous extract of its source entry transcription`,
-            );
-          if (!array(decision.targetHandles).length)
-            errors.push(`${label}.targetHandles must not be empty`);
-        }
       }
     }
     if (!Array.isArray(inventory.sourceEntryIds))
@@ -504,7 +734,14 @@ export function facsimileContentContractErrors(
           errors.push(`grant inventory references missing entry ${entryId}`);
     if (!Array.isArray(inventory.grants))
       errors.push("facsimileContracts.grantInventory.grants must be an array");
-    else
+    else {
+      const canonicalGrantRefs = inventory.grants
+        .map((grant) => grant.canonicalGrantRef)
+        .filter(Boolean);
+      if (duplicateValues(canonicalGrantRefs).length)
+        errors.push(
+          "facsimileContracts.grantInventory.grants canonicalGrantRef values must be unique",
+        );
       for (const grant of inventory.grants) {
         if (!grant.entryId || !entries.has(grant.entryId))
           errors.push(
@@ -518,6 +755,23 @@ export function facsimileContentContractErrors(
           errors.push(
             `unconditional grant ${grant.kind ?? "unknown"}:${grant.name ?? "unnamed"} requires a complete live description`,
           );
+        errors.push(
+          ...meaningfulTagErrors(
+            array(grant.tags),
+            `unconditional grant ${grant.kind ?? "unknown"}:${grant.name ?? "unnamed"}`,
+          ),
+        );
+        if (!grant.tagRationale?.trim())
+          errors.push(
+            `unconditional grant ${grant.kind ?? "unknown"}:${grant.name ?? "unnamed"}.tagRationale is required`,
+          );
+        if (
+          ["companion", "form"].includes(grant.kind) &&
+          !grant.canonicalGrantRef?.trim()
+        )
+          errors.push(
+            `unconditional grant ${grant.kind}:${grant.name ?? "unnamed"}.canonicalGrantRef is required`,
+          );
         const sourceEntry = entries.get(grant.entryId);
         if (
           grant.description?.trim() &&
@@ -530,6 +784,7 @@ export function facsimileContentContractErrors(
             `unconditional grant ${grant.kind ?? "unknown"}:${grant.name ?? "unnamed"} description is not an exact contiguous extract of its source entry transcription`,
           );
       }
+    }
     const declaredGrantEntries = [
       ...new Set(array(inventory.grants).map((grant) => grant.entryId)),
     ].sort();
@@ -544,7 +799,11 @@ export function facsimileContentContractErrors(
         "facsimileContracts.grantInventory.sourceEntryIds must exactly identify the entries that produced unconditional grants",
       );
     const jumpGrantDecisionEntries = array(inventory.entryDecisions)
-      .filter((decision) => array(decision.dispositions).includes("jump-grant"))
+      .filter((decision) =>
+        array(decision.clauses).some((clause) =>
+          array(clause.dispositions).includes("jump-grant"),
+        ),
+      )
       .map((decision) => decision.entryId)
       .sort();
     if (
@@ -570,7 +829,26 @@ export function facsimileContentContractErrors(
       errors.push(
         `${label}.visibleNameTemplate must interpolate the entered value`,
       );
-    if (
+    if (!Array.isArray(entity.classificationChoiceHandles))
+      errors.push(`${label}.classificationChoiceHandles must be an array`);
+    if (array(entity.classificationChoiceHandles).length) {
+      if (!entity.classificationPropertyHandle)
+        errors.push(
+          `${label}.classificationPropertyHandle is required when the source classifies the entity`,
+        );
+      if (!entity.classificationSourceHandle)
+        errors.push(
+          `${label}.classificationSourceHandle is required when the source classifies the entity`,
+        );
+      if (
+        !entity.visibleNameTemplate?.includes(
+          `{{${entity.classificationPropertyHandle}}}`,
+        )
+      )
+        errors.push(
+          `${label}.visibleNameTemplate must interpolate the selected classification {{${entity.classificationPropertyHandle}}}`,
+        );
+    } else if (
       entity.contextLabel &&
       !entity.visibleNameTemplate
         ?.toLocaleLowerCase()
@@ -602,16 +880,9 @@ export function facsimileContentContractErrors(
     if (!Array.isArray(record.tags))
       errors.push(`${label}.tags must be an array`);
     if (record.decision === "placed") {
-      if (!record.tags?.length)
-        errors.push(`${label} placed Tags must not be empty`);
-      else if (
-        record.tags.every((tag) =>
-          GENERIC_CLASSIFICATION_TAGS.has(semanticComparable(tag)),
-        )
-      )
-        errors.push(
-          `${label} Tags only repeat a section, cost class, or grant kind; add a concrete effect Tag`,
-        );
+      errors.push(...meaningfulTagErrors(record.tags ?? [], label));
+      if (!record.tagRationale?.trim())
+        errors.push(`${label}.tagRationale is required for placed Tags`);
       if (!record.layoutHandle)
         errors.push(`${label}.layoutHandle is required`);
       if (
@@ -637,6 +908,23 @@ export function facsimileContentContractErrors(
   )
     errors.push(
       "a complete interactive facsimile must place applicable live Tags; every Choice was marked not-applicable",
+    );
+  const placedTagCounts = tagPlacements
+    .filter((record) => record.decision === "placed")
+    .map((record) => array(record.tags).length);
+  if (
+    placedTagCounts.length >= 8 &&
+    placedTagCounts.every((count) => count === 1) &&
+    !justifiedUniformTagReview(
+      contract.tagCardinalityReview,
+      "choiceHandles",
+      tagPlacements
+        .filter((record) => record.decision === "placed")
+        .map((record) => record.choiceHandle),
+    )
+  )
+    errors.push(
+      "Choice Tags are suspiciously uniform: a substantial conversion with one Tag on every Choice requires an exact justified tagCardinalityReview",
     );
 
   for (const relationship of array(contract.alignmentRelationships)) {
@@ -755,6 +1043,49 @@ export function facsimileContentContractErrors(
         if (complete && finding.status === "open")
           errors.push(`${finding.id} remains open after independent review`);
       }
+    const expectedContinuityReviews = array(contract.referentResolutions)
+      .filter((record) => record.resolution === "new-entity")
+      .map((record) => ({
+        sourceEntry: record.sourceEntry,
+        targetRef:
+          record.targetJumpGrantRef ??
+          `choice:${record.targetChoiceHandle}:${record.targetGrantHandle}`,
+      }));
+    const actualContinuityReviews = array(review.entityContinuityReviews);
+    const expectedContinuityKeys = expectedContinuityReviews.map(
+      (record) => `${record.sourceEntry}|${record.targetRef}`,
+    );
+    const actualContinuityKeys = actualContinuityReviews.map(
+      (record) => `${record.sourceEntry}|${record.targetRef}`,
+    );
+    const continuityReviewDue = complete || review.status !== "unreviewed";
+    if (continuityReviewDue) {
+      if (!exactStringSet(expectedContinuityKeys, actualContinuityKeys))
+        errors.push(
+          "facsimileContracts.independentReview.entityContinuityReviews must exactly adjudicate every new-entity resolution",
+        );
+      if (duplicateValues(actualContinuityKeys).length)
+        errors.push(
+          "facsimileContracts.independentReview.entityContinuityReviews contains duplicate targets",
+        );
+      for (const continuityReview of actualContinuityReviews) {
+        if (
+          !continuityReview.reason?.trim() ||
+          !continuityReview.evidence?.trim()
+        )
+          errors.push(
+            `entity continuity review ${continuityReview.sourceEntry ?? "unknown"} requires independent reason and evidence`,
+          );
+        if (!["supported", "unsupported"].includes(continuityReview.status))
+          errors.push(
+            `entity continuity review ${continuityReview.sourceEntry ?? "unknown"}.status is invalid`,
+          );
+        if (complete && continuityReview.status !== "supported")
+          errors.push(
+            `entity continuity review ${continuityReview.sourceEntry ?? "unknown"} remains unsupported`,
+          );
+      }
+    }
     if (complete && review.status !== "pass")
       errors.push("facsimileContracts.independentReview must pass");
     if (complete && !review.evidence?.trim())
@@ -766,26 +1097,203 @@ export function facsimileContentContractErrors(
   const choices = new Map(
     array(canonical.choices).map((choice) => [choice.handle, choice]),
   );
-  for (const decision of array(inventory?.entryDecisions)) {
-    if (!array(decision.dispositions).includes("shared-choice-grant")) continue;
-    for (const handle of array(decision.targetHandles)) {
-      const choice = choices.get(handle);
-      if (!choice)
+  const actualChoiceGrantKeys = [];
+  for (const choice of choices.values())
+    array(choice.grants).forEach((_grant, grantIndex) =>
+      actualChoiceGrantKeys.push(`${choice.handle}:${grantIndex}`),
+    );
+  if (
+    JSON.stringify([...semanticGrantKeys].sort()) !==
+    JSON.stringify(actualChoiceGrantKeys.sort())
+  )
+    errors.push(
+      "facsimileContracts.choiceGrantSemantics must contain exactly one source-evidenced semantic role for every canonical Choice grant",
+    );
+  for (const record of choiceGrantSemantics) {
+    const owningEntry = semanticNames.find(
+      (semantic) => semantic.handle === record.choiceHandle,
+    )?.sourceEntry;
+    const sharedSource = array(inventory?.entryDecisions).some(
+      (decision) =>
+        decision.entryId === record.sourceEntry &&
+        array(decision.clauses).some(
+          (clause) =>
+            array(clause.dispositions).includes("shared-choice-grant") &&
+            array(clause.targetHandles).includes(record.choiceHandle),
+        ),
+    );
+    if (record.sourceEntry !== owningEntry && !sharedSource)
+      errors.push(
+        `${record.choiceHandle}.grant[${record.grantIndex}] cites source ${record.sourceEntry} that neither owns the Choice nor declares a shared effect for it`,
+      );
+  }
+  for (const record of array(contract.referentResolutions)) {
+    if (!["same-entity", "new-entity"].includes(record.resolution)) continue;
+    const targetChoice = choices.get(record.targetChoiceHandle);
+    const choiceTargetGrant = array(targetChoice?.grants).find(
+      (grant) => grant.handle === record.targetGrantHandle,
+    );
+    const jumpTargetGrant = array(canonical.grants)
+      .map((grant, index) => ({
+        grant,
+        ref: tagGrantReviewRef("jump", index, grant),
+      }))
+      .find(({ ref }) => ref === record.targetJumpGrantRef)?.grant;
+    const targetGrant = choiceTargetGrant ?? jumpTargetGrant;
+    if (record.targetChoiceHandle && !targetChoice)
+      errors.push(
+        `referent resolution ${record.sourceEntry} targets missing Choice ${record.targetChoiceHandle}`,
+      );
+    else if (record.targetChoiceHandle && !choiceTargetGrant)
+      errors.push(
+        `referent resolution ${record.sourceEntry} targets missing grant ${record.targetGrantHandle} on Choice ${record.targetChoiceHandle}`,
+      );
+    if (record.targetJumpGrantRef && !jumpTargetGrant)
+      errors.push(
+        `referent resolution ${record.sourceEntry} targets missing Jump grant ${record.targetJumpGrantRef}`,
+      );
+    if (record.targetJumpGrantRef) {
+      const reviewedJumpGrant = array(inventory?.grants).find(
+        (grant) => grant.canonicalGrantRef === record.targetJumpGrantRef,
+      );
+      if (!reviewedJumpGrant)
         errors.push(
-          `grant decision ${decision.entryId} references missing Choice ${handle}`,
+          `referent resolution ${record.sourceEntry} Jump target ${record.targetJumpGrantRef} has no exact grant-inventory record`,
         );
-      else if (
-        !array(choice.grants).some(
-          (grant) =>
-            grant.kind === "trait" &&
-            semanticComparable(grantDescription(grant)).includes(
-              semanticComparable(decision.sharedEffectText),
+      else if (reviewedJumpGrant.entryId !== record.sourceEntry)
+        errors.push(
+          `referent resolution ${record.sourceEntry} Jump target ${record.targetJumpGrantRef} belongs to source entry ${reviewedJumpGrant.entryId}`,
+        );
+    }
+    if (!targetGrant) continue;
+
+    if (record.resolution === "new-entity") {
+      const comparedDynamicEntityRefs = array(contract.dynamicEntities)
+        .filter(
+          (entity) =>
+            entity.kind === targetGrant.kind &&
+            !(
+              entity.choiceHandle === record.targetChoiceHandle &&
+              entity.grantHandle === record.targetGrantHandle
             ),
+        )
+        .map((entity) => `${entity.choiceHandle}:${entity.grantHandle}`);
+      if (
+        !exactStringSet(
+          record.comparedDynamicEntityRefs,
+          comparedDynamicEntityRefs,
         )
       )
         errors.push(
-          `Choice ${handle} does not preserve shared Trait effect from ${decision.entryId}`,
+          `referent resolution ${record.sourceEntry}.comparedDynamicEntityRefs must exactly inventory every other dynamic ${targetGrant.kind} candidate`,
         );
+    }
+
+    if (record.resolution === "same-entity") {
+      const owningChoiceHandles = semanticNames
+        .filter((semantic) => semantic.sourceEntry === record.sourceEntry)
+        .map((semantic) => semantic.handle);
+      const competingGrants = owningChoiceHandles.flatMap(
+        (owningChoiceHandle) =>
+          array(choices.get(owningChoiceHandle)?.grants).filter(
+            (grant) =>
+              grant.kind === targetGrant.kind &&
+              !(
+                owningChoiceHandle === record.targetChoiceHandle &&
+                grant.handle === record.targetGrantHandle
+              ),
+          ),
+      );
+      const competingJumpGrants = array(inventory?.grants).filter(
+        (grant) =>
+          grant.entryId === record.sourceEntry &&
+          grant.kind === targetGrant.kind &&
+          !array(canonical.grants).some(
+            (actual, index) =>
+              tagGrantReviewRef("jump", index, actual) ===
+                record.targetJumpGrantRef &&
+              grantContractKey(actual) === `${grant.kind}:${grant.name}`,
+          ),
+      );
+      if (competingGrants.length || competingJumpGrants.length)
+        errors.push(
+          `referent resolution ${record.sourceEntry} is same-entity but its source entry also creates a competing ${targetGrant.kind} grant`,
+        );
+    }
+  }
+
+  const dynamicEntityGrantTargets = new Set(
+    array(contract.dynamicEntities).map(
+      (entity) => `${entity.choiceHandle}:${entity.grantHandle}`,
+    ),
+  );
+  const continuityCandidates = [];
+  for (const choice of choices.values())
+    array(choice.grants).forEach((grant) => {
+      if (!["companion", "form"].includes(grant.kind)) return;
+      if (dynamicEntityGrantTargets.has(`${choice.handle}:${grant.handle}`))
+        return;
+      if (
+        !array(contract.dynamicEntities).some(
+          (entity) => entity.kind === grant.kind,
+        )
+      )
+        return;
+      continuityCandidates.push({
+        label: `Choice ${choice.handle} grant ${grant.handle}`,
+        matches: array(contract.referentResolutions).filter(
+          (record) =>
+            record.resolution === "new-entity" &&
+            record.targetChoiceHandle === choice.handle &&
+            record.targetGrantHandle === grant.handle,
+        ),
+      });
+    });
+  array(canonical.grants).forEach((grant, index) => {
+    if (!["companion", "form"].includes(grant.kind)) return;
+    if (
+      !array(contract.dynamicEntities).some(
+        (entity) => entity.kind === grant.kind,
+      )
+    )
+      return;
+    const ref = tagGrantReviewRef("jump", index, grant);
+    continuityCandidates.push({
+      label: `Jump grant ${ref}`,
+      matches: array(contract.referentResolutions).filter(
+        (record) =>
+          record.resolution === "new-entity" &&
+          record.targetJumpGrantRef === ref,
+      ),
+    });
+  });
+  for (const candidate of continuityCandidates)
+    if (candidate.matches.length !== 1)
+      errors.push(
+        `${candidate.label} must have exactly one new-entity continuity resolution against same-kind dynamic entities`,
+      );
+  for (const decision of array(inventory?.entryDecisions)) {
+    for (const clause of array(decision.clauses)) {
+      if (!array(clause.dispositions).includes("shared-choice-grant")) continue;
+      for (const handle of array(clause.targetHandles)) {
+        const choice = choices.get(handle);
+        if (!choice)
+          errors.push(
+            `grant decision ${decision.entryId} references missing Choice ${handle}`,
+          );
+        else if (
+          !array(choice.grants).some(
+            (grant) =>
+              grant.kind === "trait" &&
+              semanticComparable(grantDescription(grant)).includes(
+                semanticComparable(clause.sharedEffectText),
+              ),
+          )
+        )
+          errors.push(
+            `Choice ${handle} does not preserve shared Trait effect from ${decision.entryId}`,
+          );
+      }
     }
   }
   const layouts = new Map(
@@ -805,6 +1313,36 @@ export function facsimileContentContractErrors(
         `Choice ${choice.handle} name is ${JSON.stringify(textBase(choice.name))}, expected semantic name ${JSON.stringify(record.semanticName)}`,
       );
     const layout = layouts.get(choice.layout);
+    if (choice.selection === "select" && !array(choice.options).length)
+      errors.push(`Choice ${choice.handle} select control has no options`);
+    if (
+      choice.selection === "text" &&
+      !(textBase(choice.placeholder) ?? choice.placeholder)?.trim()
+    )
+      errors.push(
+        `Choice ${choice.handle} text control requires a meaningful placeholder`,
+      );
+    else if (
+      choice.selection === "text" &&
+      ["enter value", "type here", "value", "text"].includes(
+        semanticComparable(textBase(choice.placeholder) ?? choice.placeholder),
+      )
+    )
+      errors.push(
+        `Choice ${choice.handle} text control placeholder must identify the value being entered`,
+      );
+    const reservedIdentityName = semanticComparable(textBase(choice.name));
+    if (
+      ["age", "gender", "location", "origin"].includes(reservedIdentityName)
+    ) {
+      const property = array(choice.grants).find(
+        (grant) => grant.kind === "property",
+      );
+      if (property?.handle !== reservedIdentityName)
+        errors.push(
+          `Choice ${choice.handle} represents reserved ${reservedIdentityName} identity but does not grant that reserved Property`,
+        );
+    }
     if (
       array(choice.costs).some((cost) => cost.mode === "each") &&
       array(choice.groups).some((group) => discountedGroups.has(group)) &&
@@ -958,8 +1496,77 @@ export function facsimileContentContractErrors(
           );
       }
     }
-    for (const grant of array(choice.grants))
+    for (const [grantIndex, grant] of array(choice.grants).entries()) {
+      const semanticGrant = choiceGrantSemantics.find(
+        (item) =>
+          item.choiceHandle === choice.handle && item.grantIndex === grantIndex,
+      );
+      if (semanticGrant) {
+        const allowedKinds = EFFECT_ROLE_GRANT_KINDS[semanticGrant.effectRole];
+        if (!allowedKinds?.has(grant.kind))
+          errors.push(
+            `Choice ${choice.handle} grant[${grantIndex}] is ${grant.kind}, which does not match contextual role ${semanticGrant.effectRole}`,
+          );
+        if (visibleGrant(grant) && !semanticGrant.tagRationale?.trim())
+          errors.push(
+            `Choice ${choice.handle} grant[${grantIndex}].tagRationale is required for its visible grant Tags`,
+          );
+        if (
+          semanticGrant.effectRole === "entity-classification" &&
+          (!semanticGrant.subjectGrantHandle ||
+            semanticGrant.projection !== "entity-name")
+        )
+          errors.push(
+            `Choice ${choice.handle} grant[${grantIndex}] entity classification must name its subject and entity-name projection`,
+          );
+        if (
+          semanticGrant.effectRole === "entity-classification" &&
+          String(textBase(grant.value) ?? grant.value ?? "").trim() &&
+          !semanticComparable(semanticGrant.sourceEvidence).includes(
+            semanticComparable(textBase(grant.value) ?? grant.value),
+          )
+        )
+          errors.push(
+            `Choice ${choice.handle} grant[${grantIndex}] classification value is not present in its source evidence`,
+          );
+        if (
+          semanticGrant.effectRole === "entity-enhancement" &&
+          (!semanticGrant.subjectGrantHandle ||
+            ![grant.companion, grant.form].includes(
+              semanticGrant.subjectGrantHandle,
+            ))
+        )
+          errors.push(
+            `Choice ${choice.handle} grant[${grantIndex}] entity enhancement must target its declared subject`,
+          );
+        if (
+          semanticGrant.effectRole === "entity-classification" &&
+          semanticGrant.projection === "entity-name"
+        ) {
+          const subject = [...choices.values()]
+            .flatMap((candidate) => array(candidate.grants))
+            .find(
+              (candidate) =>
+                ["companion", "form"].includes(candidate.kind) &&
+                candidate.handle === semanticGrant.subjectGrantHandle,
+            );
+          if (!subject)
+            errors.push(
+              `Choice ${choice.handle} classification cannot find subject grant ${semanticGrant.subjectGrantHandle ?? "(missing)"}`,
+            );
+          else if (!textBase(subject.name)?.includes(`{{${grant.handle}}}`))
+            errors.push(
+              `Choice ${choice.handle} classification is declared in the entity name but ${subject.handle} does not interpolate {{${grant.handle}}}`,
+            );
+        }
+      }
       if (visibleGrant(grant)) {
+        errors.push(
+          ...meaningfulTagErrors(
+            grantTags(grant),
+            `Choice ${choice.handle} visible grant ${JSON.stringify(textBase(grant.name))}`,
+          ),
+        );
         if (looksLikeDisplayTypography(textBase(grant.name)))
           errors.push(
             `Choice ${choice.handle} grant ${JSON.stringify(textBase(grant.name))} preserves source all-caps display typography`,
@@ -968,38 +1575,114 @@ export function facsimileContentContractErrors(
           errors.push(
             `Choice ${choice.handle} visible grant ${JSON.stringify(textBase(grant.name))} requires a complete live description`,
           );
+        else if (
+          semanticGrant?.sourceEvidence?.trim() &&
+          !semanticComparable(semanticGrant.sourceEvidence).includes(
+            semanticComparable(grantDescription(grant)),
+          )
+        )
+          errors.push(
+            `Choice ${choice.handle} visible grant ${JSON.stringify(textBase(grant.name))} description is not an exact contiguous extract of its grant evidence`,
+          );
       }
+    }
   }
 
   const expectedJumpGrants = array(inventory?.grants);
-  const actualJumpGrants = array(canonical.grants).filter(visibleGrant);
-  for (const expected of expectedJumpGrants)
-    if (
-      !actualJumpGrants.some(
-        (grant) => grantContractKey(grant) === grantContractKey(expected),
-      )
-    )
+  const actualJumpGrantRecords = array(canonical.grants)
+    .map((grant, index) => ({
+      grant,
+      ref: tagGrantReviewRef("jump", index, grant),
+    }))
+    .filter(({ grant }) => visibleGrant(grant));
+  const actualJumpGrants = actualJumpGrantRecords.map(({ grant }) => grant);
+  for (const expected of expectedJumpGrants) {
+    const actualRecord = expected.canonicalGrantRef
+      ? actualJumpGrantRecords.find(
+          ({ ref }) => ref === expected.canonicalGrantRef,
+        )
+      : actualJumpGrantRecords.find(
+          ({ grant }) => grantContractKey(grant) === grantContractKey(expected),
+        );
+    if (!actualRecord)
       errors.push(
-        `missing unconditional Jump grant ${grantContractKey(expected)}`,
+        `missing unconditional Jump grant ${expected.canonicalGrantRef ?? grantContractKey(expected)}`,
       );
     else {
-      const actual = actualJumpGrants.find(
-        (grant) => grantContractKey(grant) === grantContractKey(expected),
-      );
+      const actual = actualRecord.grant;
+      if (grantContractKey(actual) !== grantContractKey(expected))
+        errors.push(
+          `unconditional Jump grant ${expected.canonicalGrantRef} does not match reviewed ${grantContractKey(expected)}`,
+        );
       if (grantDescription(actual) !== expected.description)
         errors.push(
           `unconditional Jump grant ${grantContractKey(expected)} description does not match its reviewed source contract`,
         );
+      if (
+        JSON.stringify([...grantTags(actual)].sort()) !==
+        JSON.stringify([...array(expected.tags)].sort())
+      )
+        errors.push(
+          `unconditional Jump grant ${grantContractKey(expected)} Tags do not match its reviewed effect classification`,
+        );
     }
-  for (const actual of actualJumpGrants)
+  }
+  for (const { grant: actual, ref } of actualJumpGrantRecords)
     if (
       !expectedJumpGrants.some(
-        (grant) => grantContractKey(grant) === grantContractKey(actual),
+        (grant) =>
+          grant.canonicalGrantRef === ref ||
+          (!grant.canonicalGrantRef &&
+            grantContractKey(grant) === grantContractKey(actual)),
       )
     )
       errors.push(
         `unreviewed unconditional Jump grant ${grantContractKey(actual)}`,
       );
+
+  const visibleGrantReview = [
+    ...array(canonical.grants).flatMap((grant, grantIndex) =>
+      visibleGrant(grant)
+        ? [
+            {
+              grant,
+              ref: tagGrantReviewRef("jump", grantIndex, grant),
+            },
+          ]
+        : [],
+    ),
+    ...[...choices.values()].flatMap((choice) =>
+      array(choice.grants).flatMap((grant, grantIndex) =>
+        visibleGrant(grant)
+          ? [
+              {
+                grant,
+                ref: tagGrantReviewRef(
+                  `choice:${choice.handle}`,
+                  grantIndex,
+                  grant,
+                ),
+              },
+            ]
+          : [],
+      ),
+    ),
+  ];
+  const visibleGrantTagCounts = visibleGrantReview.map(
+    ({ grant }) => grantTags(grant).length,
+  );
+  if (
+    visibleGrantTagCounts.length >= 8 &&
+    visibleGrantTagCounts.every((count) => count === 1) &&
+    !justifiedUniformTagReview(
+      contract.tagCardinalityReview,
+      "grantRefs",
+      visibleGrantReview.map(({ ref }) => ref),
+    )
+  )
+    errors.push(
+      "visible grant Tags are suspiciously uniform: a substantial conversion with one Tag on every grant requires an exact justified tagCardinalityReview",
+    );
   for (const actual of actualJumpGrants)
     if (looksLikeDisplayTypography(textBase(actual.name)))
       errors.push(
@@ -1019,6 +1702,153 @@ export function facsimileContentContractErrors(
       errors.push(
         `${entity.choiceHandle} visible entity name does not match its context template`,
       );
+    const entityGrantOwners = [...choices.values()].filter((candidate) =>
+      array(candidate.grants).some(
+        (candidateGrant) =>
+          candidateGrant.kind === entity.kind &&
+          candidateGrant.handle === entity.grantHandle,
+      ),
+    );
+    if (entityGrantOwners.length !== 1)
+      errors.push(
+        `${entity.choiceHandle} dynamic ${entity.kind} ${entity.grantHandle} must be created exactly once`,
+      );
+    const continuityReferents = array(contract.referentResolutions).filter(
+      (record) =>
+        record.resolution === "same-entity" &&
+        record.targetChoiceHandle === entity.choiceHandle &&
+        record.targetGrantHandle === entity.grantHandle &&
+        record.sourceEntry !==
+          semanticNames.find(
+            (semantic) => semantic.handle === entity.choiceHandle,
+          )?.sourceEntry,
+    );
+    if (continuityReferents.length && !entity.continuityEvidence?.trim())
+      errors.push(
+        `${entity.choiceHandle} requires continuityEvidence for earlier same-entity source references`,
+      );
+    const classificationHandles = array(entity.classificationChoiceHandles);
+    if (classificationHandles.includes(entity.choiceHandle))
+      errors.push(
+        `${entity.choiceHandle} creation control must be separate from its classification Choices`,
+      );
+    if (classificationHandles.length && choice?.selection === "toggle")
+      errors.push(
+        `${entity.choiceHandle} must own the entered entity value as a scalar control above the classification Source`,
+      );
+    const classificationSection = array(canonical.sections).find((section) =>
+      array(section.sources).some(
+        (source) => source.handle === entity.classificationSourceHandle,
+      ),
+    );
+    const classificationSource = classificationSection?.sources?.find(
+      (source) => source.handle === entity.classificationSourceHandle,
+    );
+    if (classificationHandles.length) {
+      if (!classificationSource)
+        errors.push(
+          `${entity.choiceHandle} references missing classification Source ${entity.classificationSourceHandle}`,
+        );
+      else {
+        if (classificationSource.mode !== "single")
+          errors.push(
+            `${entity.choiceHandle} classification Source ${classificationSource.handle} must be single-select`,
+          );
+        if (!classificationSource.group)
+          errors.push(
+            `${entity.choiceHandle} classification Source ${classificationSource.handle} must target one Choice group`,
+          );
+        const sourceMembers = [...choices.values()]
+          .filter((candidate) =>
+            array(candidate.groups).includes(classificationSource.group),
+          )
+          .map((candidate) => candidate.handle)
+          .sort();
+        if (
+          JSON.stringify(sourceMembers) !==
+          JSON.stringify([...classificationHandles].sort())
+        )
+          errors.push(
+            `${entity.choiceHandle} classificationChoiceHandles must exactly equal every member of single-select Source ${classificationSource.handle}`,
+          );
+        const ownerPlacement = array(classificationSection.directChoices).find(
+          (placement) => placement.target === entity.choiceHandle,
+        );
+        const ownerIndex = array(classificationSection.members).findIndex(
+          (member) =>
+            member.kind === "choice" &&
+            member.handle === ownerPlacement?.handle,
+        );
+        const sourceIndex = array(classificationSection.members).findIndex(
+          (member) =>
+            member.kind === "source" &&
+            member.handle === classificationSource.handle,
+        );
+        if (ownerIndex < 0 || sourceIndex < 0 || ownerIndex >= sourceIndex)
+          errors.push(
+            `${entity.choiceHandle} scalar creation control must be placed before classification Source ${classificationSource.handle} in the same Section`,
+          );
+      }
+    }
+    for (const classificationHandle of array(
+      entity.classificationChoiceHandles,
+    )) {
+      const classification = choices.get(classificationHandle);
+      const property = array(classification?.grants).find(
+        (item) =>
+          item.kind === "property" &&
+          item.handle === entity.classificationPropertyHandle,
+      );
+      if (!classification)
+        errors.push(
+          `${entity.choiceHandle} references missing classification ${classificationHandle}`,
+        );
+      else {
+        if (classification.selection !== "toggle")
+          errors.push(
+            `${classificationHandle} classification Source member must be a toggle rendered by the single-select Source, not a nested scalar control`,
+          );
+        if (!property)
+          errors.push(
+            `${classificationHandle} must grant shared classification Property ${entity.classificationPropertyHandle}`,
+          );
+        else if (
+          !String(textBase(property.value) ?? property.value ?? "").trim()
+        )
+          errors.push(
+            `${classificationHandle} must give shared classification Property ${entity.classificationPropertyHandle} an explicit source-authored value`,
+          );
+      }
+      const semanticGrant = choiceGrantSemantics.find(
+        (record) =>
+          record.choiceHandle === classificationHandle &&
+          record.grantIndex === array(classification?.grants).indexOf(property),
+      );
+      if (
+        property &&
+        (semanticGrant?.effectRole !== "entity-classification" ||
+          semanticGrant?.subjectGrantHandle !== entity.grantHandle ||
+          semanticGrant?.projection !== "entity-name")
+      )
+        errors.push(
+          `${classificationHandle} must declare its shared Property as an entity classification projected into ${entity.grantHandle}'s name`,
+        );
+    }
+    const semanticallyDeclaredClassifications = choiceGrantSemantics
+      .filter(
+        (record) =>
+          record.effectRole === "entity-classification" &&
+          record.subjectGrantHandle === entity.grantHandle,
+      )
+      .map((record) => record.choiceHandle)
+      .sort();
+    if (
+      JSON.stringify([...new Set(semanticallyDeclaredClassifications)]) !==
+      JSON.stringify([...classificationHandles].sort())
+    )
+      errors.push(
+        `${entity.choiceHandle} classification inventory must exactly match every entity-classification semantic record targeting ${entity.grantHandle}`,
+      );
     for (const upgradeHandle of array(entity.upgradeHandles)) {
       const upgrade = choices.get(upgradeHandle);
       if (!upgrade)
@@ -1028,18 +1858,18 @@ export function facsimileContentContractErrors(
       else if (
         !upgrade.grants?.some(
           (item) =>
-            item.kind === "perk" && item.companion === entity.grantHandle,
+            item.kind === "perk" && item[entity.kind] === entity.grantHandle,
         )
       )
         errors.push(
-          `${upgradeHandle} does not target companion ${entity.grantHandle}`,
+          `${upgradeHandle} does not target ${entity.kind} ${entity.grantHandle}`,
         );
     }
     for (const owner of choices.values())
       for (const ownedGrant of array(owner.grants))
         if (
           ownedGrant.kind === "perk" &&
-          ownedGrant.companion === entity.grantHandle &&
+          ownedGrant[entity.kind] === entity.grantHandle &&
           textBase(ownedGrant.name)?.toLocaleLowerCase() ===
             entity.contextLabel?.toLocaleLowerCase()
         )

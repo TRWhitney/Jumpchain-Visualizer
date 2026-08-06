@@ -1,12 +1,14 @@
 (() => {
   // Embed contract:
   // - Load with ?embedded=1&theme=light|dark to remove standalone chrome.
+  // - Pass &entry=<reference-id> to restore Editor-owned navigation state.
   // - Same-origin embeds automatically follow the parent application tokens.
   // - Send jumpchain:format-reference-config from the parent to update theme,
   //   bounded application accent tokens, direction, or the active entry.
   // - Listen for jumpchain:format-reference-ready and
   //   jumpchain:format-reference-location messages from this document.
   const storageKey = "jumpchain.format1-reference.v1";
+  const embeddedToolStorageKey = `${storageKey}.embedded-tools`;
   const root = document.documentElement;
   const parameters = new URLSearchParams(window.location.search);
   const embedded = parameters.get("embedded") === "1";
@@ -67,6 +69,7 @@
       attributes: true,
       attributeFilter: ["data-app-theme", "dir", "style"],
     });
+    requestAnimationFrame(syncParentAppearance);
   }
 
   if (!explicitTheme)
@@ -105,13 +108,18 @@
 
   const readState = () => {
     try {
-      const value = JSON.parse(localStorage.getItem(storageKey) ?? "null");
+      const value = JSON.parse(
+        localStorage.getItem(embedded ? embeddedToolStorageKey : storageKey) ??
+          "null",
+      );
       if (!value || typeof value !== "object") return;
-      if (typeof value.lastEntry === "string") state.lastEntry = value.lastEntry;
-      if (Array.isArray(value.openEntries))
-        state.openEntries = value.openEntries
-          .filter((id) => typeof id === "string")
-          .slice(-40);
+      if (!embedded) {
+        if (typeof value.lastEntry === "string") state.lastEntry = value.lastEntry;
+        if (Array.isArray(value.openEntries))
+          state.openEntries = value.openEntries
+            .filter((id) => typeof id === "string")
+            .slice(-40);
+      }
       if (value.validatorValues && typeof value.validatorValues === "object")
         for (const tester of lexicalTesters) {
           const key = tester.dataset.lexicalKey;
@@ -130,6 +138,7 @@
             state.valueTesterValues[key] = savedValue.slice(0, 160);
         }
       if (
+        !embedded &&
         typeof value.filter === "string" &&
         filterButtons.some((button) => button.dataset.referenceFilter === value.filter)
       )
@@ -142,14 +151,21 @@
   const persistState = () => {
     try {
       localStorage.setItem(
-        storageKey,
-        JSON.stringify({
-          filter: state.filter,
-          lastEntry: state.lastEntry,
-          openEntries: state.openEntries.slice(-40),
-          validatorValues: state.validatorValues,
-          valueTesterValues: state.valueTesterValues,
-        }),
+        embedded ? embeddedToolStorageKey : storageKey,
+        JSON.stringify(
+          embedded
+            ? {
+                validatorValues: state.validatorValues,
+                valueTesterValues: state.valueTesterValues,
+              }
+            : {
+                filter: state.filter,
+                lastEntry: state.lastEntry,
+                openEntries: state.openEntries.slice(-40),
+                validatorValues: state.validatorValues,
+                valueTesterValues: state.valueTesterValues,
+              },
+        ),
       );
     } catch {
       // Reference navigation remains fully usable without persistence.
@@ -660,10 +676,11 @@
   const hashEntry = location.hash
     ? document.getElementById(decodeURIComponent(location.hash.slice(1)))
     : null;
+  const requestedEntry = embedded
+    ? document.getElementById(parameters.get("entry") ?? "")
+    : null;
   const savedEntry = state.lastEntry ? document.getElementById(state.lastEntry) : null;
-  const restoreTarget = hashEntry ?? savedEntry;
-  if (savedEntry && !hashEntry)
-    document.querySelector("#reference-resume-note")?.removeAttribute("hidden");
+  const restoreTarget = hashEntry ?? requestedEntry ?? savedEntry;
   if (restoreTarget)
     requestAnimationFrame(() =>
       navigateTo(restoreTarget, { updateHash: Boolean(hashEntry), focus: false }),

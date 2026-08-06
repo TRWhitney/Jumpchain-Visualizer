@@ -208,6 +208,22 @@ function observationErrors(contract, canonical) {
   if (changed && unset && sameValue(changed.controlValue, unset.controlValue))
     errors.push(`${label}.changed did not change the primary control value`);
 
+  if (contract.selection === "text") {
+    const typedState =
+      contract.continuity === "none"
+        ? states.get("manual")?.observation
+        : states.get("changed")?.observation;
+    if (
+      !typedState ||
+      typeof typedState.controlValue !== "string" ||
+      !typedState.controlValue.trim() ||
+      (unset && sameValue(typedState.controlValue, unset.controlValue))
+    )
+      errors.push(
+        `${label} must capture a nonempty typed value distinct from its unset state`,
+      );
+  }
+
   if (contract.pricing === "rolled-free") {
     const manual = numericCostTotal(states.get("manual")?.observation);
     const rolled = numericCostTotal(states.get("rolled")?.observation);

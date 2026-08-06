@@ -52,6 +52,165 @@ async function openContentAndEffects(editor: Locator) {
   return section;
 }
 
+test(
+  "every Source toolbar opens one shared embedded Format 1 reference panel",
+  { tag: ["@smoke", "@cross-browser"] },
+  async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    const editor = await openCreatedEditor(page);
+    await editor.getByRole("tab", { name: "Source" }).click();
+
+    const toolbar = editor.locator(".editor-source-toolbar");
+    const quickFix = toolbar.getByRole("button", {
+      name: "Quick Fix",
+      exact: true,
+    });
+    const help = toolbar.getByRole("button", {
+      name: "Open Format 1 author reference",
+    });
+    const [quickFixBox, helpBox] = await Promise.all([
+      quickFix.boundingBox(),
+      help.boundingBox(),
+    ]);
+    expect(quickFixBox).not.toBeNull();
+    expect(helpBox).not.toBeNull();
+    expect(helpBox!.x).toBeGreaterThan(quickFixBox!.x + quickFixBox!.width);
+    await expect(help.locator("svg")).toHaveCount(1);
+    await expect(help).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(help).toHaveAttribute("aria-expanded", "false");
+
+    await help.click();
+    const panel = page.getByRole("dialog", {
+      name: "Format 1 author reference",
+    });
+    const frameElement = page.locator(
+      'iframe[title="Format 1 author reference"]',
+    );
+    const reference = page.frameLocator(
+      'iframe[title="Format 1 author reference"]',
+    );
+    await expect(panel).toBeVisible();
+    await expect(panel).toHaveCount(1);
+    await expect(frameElement).toHaveCount(1);
+    await expect(help).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      panel.getByRole("button", {
+        name: "Close Format 1 author reference",
+      }),
+    ).toBeFocused();
+    await expect(
+      reference.getByRole("heading", { name: "Author reference" }),
+    ).toBeVisible();
+    await expect(reference.locator("html")).toHaveAttribute(
+      "data-embedded",
+      "true",
+    );
+    const parentTheme = await page
+      .locator("html")
+      .getAttribute("data-app-theme");
+    await expect(reference.locator("html")).toHaveAttribute(
+      "data-app-theme",
+      parentTheme ?? "light",
+    );
+    const parentAccent = await page
+      .locator("html")
+      .evaluate((element) =>
+        getComputedStyle(element).getPropertyValue("--app-accent-text").trim(),
+      );
+    await expect(reference.locator("html")).toHaveCSS(
+      "--app-accent-text",
+      parentAccent,
+    );
+
+    await page.locator("html").evaluate((element) => {
+      element.dataset.appTheme = "light";
+    });
+    await expect(reference.locator("html")).toHaveAttribute(
+      "data-app-theme",
+      "light",
+    );
+    const jumpReference = reference.locator("#declaration-jump");
+    await jumpReference.locator("summary").click();
+    await jumpReference.getByRole("button", { name: "Build example" }).click();
+    const builder = reference.locator("#declaration-builder-jump");
+    const codeBlock = builder.locator(".syntax-example pre");
+    const copyControl = builder.locator("[data-copy-code]");
+    await expect(codeBlock).toHaveCSS("background-color", "rgb(243, 241, 235)");
+    await expect(codeBlock).toHaveCSS("color", "rgb(37, 37, 34)");
+    await expect(copyControl).toHaveCSS(
+      "background-color",
+      "rgb(255, 255, 255)",
+    );
+    await page.locator("html").evaluate((element) => {
+      element.dataset.appTheme = "dark";
+    });
+    await expect(codeBlock).toHaveCSS("background-color", "rgb(23, 23, 23)");
+    await expect(codeBlock).toHaveCSS("color", "rgb(245, 245, 241)");
+    await builder
+      .getByRole("button", { name: "Close jump declaration builder" })
+      .click();
+
+    const search = reference.getByRole("searchbox", {
+      name: "Search syntax and fields",
+    });
+    await search.fill("gender");
+    await reference
+      .locator(".reference-index-group")
+      .filter({
+        has: reference.getByRole("heading", { name: "Special cases" }),
+      })
+      .getByRole("link", { name: /identity properties/i })
+      .click();
+    await expect(
+      reference.locator("#special-identity-properties"),
+    ).toHaveAttribute("open", "");
+    await panel
+      .getByRole("button", { name: "Close Format 1 author reference" })
+      .click();
+    await expect(panel).toHaveCount(0);
+    await expect(help).toBeFocused();
+
+    await editor.getByRole("button", { name: "introduction" }).click();
+    const nextHelp = toolbar.getByRole("button", {
+      name: "Open Format 1 author reference",
+    });
+    await nextHelp.click();
+    await expect(panel).toHaveCount(1);
+    await expect(frameElement).toHaveCount(1);
+    await expect(
+      reference.locator("#special-identity-properties"),
+    ).toHaveAttribute("open", "");
+    await expect
+      .poll(() =>
+        reference
+          .locator("#special-identity-properties")
+          .evaluate((entry) => entry.getBoundingClientRect().top),
+      )
+      .toBeLessThan(100);
+    await page.keyboard.press("Escape");
+    await expect(panel).toHaveCount(0);
+    await expect(nextHelp).toBeFocused();
+
+    const freshEditor = await openCreatedEditor(page);
+    await freshEditor.getByRole("tab", { name: "Source" }).click();
+    await freshEditor
+      .locator(".editor-source-toolbar")
+      .getByRole("button", { name: "Open Format 1 author reference" })
+      .click();
+    await expect(panel).toBeVisible();
+    await expect(
+      reference.locator("#special-identity-properties"),
+    ).not.toHaveAttribute("open", "");
+    await expect
+      .poll(() =>
+        reference
+          .locator("#reference-content")
+          .evaluate((content) => content.scrollTop),
+      )
+      .toBeLessThan(50);
+  },
+);
+
 test("specific editor simplification settings update live while optional sections retain session state", async ({
   page,
 }) => {
@@ -3789,11 +3948,14 @@ test("semantic fidelity fields use contextual progressive disclosures and round-
     "Collapse optional sections by default",
   );
   await collapseOptional.check();
+  await page.getByRole("tab", { name: "Editor" }).click();
+  await page.getByLabel("Show explanatory text").check();
   await waitForStoredSetting(
     page,
     ["general", "collapseOptionalSectionsByDefault"],
     true,
   );
+  await waitForStoredSetting(page, ["editor", "showExplanatoryText"], true);
   const editor = await openCreatedEditor(page);
   await editor.getByRole("button", { name: "Add", exact: true }).click();
   await editor
@@ -3847,7 +4009,44 @@ test("semantic fidelity fields use contextual progressive disclosures and round-
     '[data-layout-presentation-group="typography"]',
   );
   await typography.locator("summary").click();
+  const textAlignment = typography.getByLabel("Text alignment", {
+    exact: true,
+  });
   const textSize = typography.getByLabel("Text size", { exact: true });
+  const fontFamily = typography.getByLabel("Font family", { exact: true });
+  const [textAlignmentBox, textSizeBox, fontFamilyBox] = await Promise.all([
+    textAlignment.boundingBox(),
+    textSize.boundingBox(),
+    fontFamily.boundingBox(),
+  ]);
+  expect(textAlignmentBox).not.toBeNull();
+  expect(textSizeBox).not.toBeNull();
+  expect(fontFamilyBox).not.toBeNull();
+  expect(Math.abs(fontFamilyBox!.y - textAlignmentBox!.y)).toBeLessThanOrEqual(
+    1,
+  );
+  expect(Math.abs(fontFamilyBox!.y - textSizeBox!.y)).toBeLessThanOrEqual(1);
+  const originalViewport = page.viewportSize();
+  await page.setViewportSize({ width: 700, height: 900 });
+  const [narrowTextAlignmentBox, narrowTextSizeBox, narrowFontFamilyBox] =
+    await Promise.all([
+      textAlignment.boundingBox(),
+      textSize.boundingBox(),
+      fontFamily.boundingBox(),
+    ]);
+  expect(narrowTextAlignmentBox).not.toBeNull();
+  expect(narrowTextSizeBox).not.toBeNull();
+  expect(narrowFontFamilyBox).not.toBeNull();
+  expect(
+    narrowTextAlignmentBox!.y + narrowTextAlignmentBox!.height,
+  ).toBeLessThanOrEqual(narrowTextSizeBox!.y);
+  expect(narrowTextSizeBox!.y + narrowTextSizeBox!.height).toBeLessThanOrEqual(
+    narrowFontFamilyBox!.y,
+  );
+  expect(
+    Math.abs(narrowFontFamilyBox!.x - narrowTextAlignmentBox!.x),
+  ).toBeLessThanOrEqual(1);
+  if (originalViewport) await page.setViewportSize(originalViewport);
   await textSize.fill("513px");
   await expect(textSize).toHaveValue("513px");
   await expect(textSize).toHaveAttribute("aria-invalid", "true");
@@ -3876,6 +4075,10 @@ test("semantic fidelity fields use contextual progressive disclosures and round-
 test("Inline Text alignment uses the row's visible available space", async ({
   page,
 }, testInfo) => {
+  await page.goto("/settings");
+  await page.getByRole("tab", { name: "Editor" }).click();
+  await page.getByLabel("Show explanatory text").check();
+  await waitForStoredSetting(page, ["editor", "showExplanatoryText"], true);
   await page.emulateMedia({ colorScheme: "dark" });
   await page.setViewportSize({ width: 2048, height: 1024 });
   const editor = await openCreatedEditor(page);
@@ -3919,6 +4122,31 @@ test("Inline Text alignment uses the row's visible available space", async ({
   await textRow
     .getByRole("button", { name: "Edit Text presentation fields" })
     .click();
+  const sizing = textRow.locator('[data-layout-presentation-group="sizing"]');
+  const spaceShare = sizing.getByLabel("Space share", { exact: true });
+  const minimumWidth = sizing.getByLabel("Minimum width", { exact: true });
+  const minimumHeight = sizing.getByLabel("Minimum height", { exact: true });
+  const aspectRatio = sizing.getByLabel("Aspect ratio", { exact: true });
+  const [spaceShareBox, minimumWidthBox, minimumHeightBox, aspectRatioBox] =
+    await Promise.all([
+      spaceShare.boundingBox(),
+      minimumWidth.boundingBox(),
+      minimumHeight.boundingBox(),
+      aspectRatio.boundingBox(),
+    ]);
+  expect(spaceShareBox).not.toBeNull();
+  expect(minimumWidthBox).not.toBeNull();
+  expect(minimumHeightBox).not.toBeNull();
+  expect(aspectRatioBox).not.toBeNull();
+  expect(Math.abs(spaceShareBox!.y - minimumWidthBox!.y)).toBeLessThanOrEqual(
+    1,
+  );
+  expect(Math.abs(spaceShareBox!.y - minimumHeightBox!.y)).toBeLessThanOrEqual(
+    1,
+  );
+  expect(aspectRatioBox!.y).toBeGreaterThan(
+    spaceShareBox!.y + spaceShareBox!.height,
+  );
   const preview = editor.locator(".editor-real-preview");
   const inline = preview.locator('[data-layout-kind="inline"]').first();
   const textBoundary = inline.locator('[data-layout-kind="text"]').nth(1);
@@ -9958,6 +10186,10 @@ test("Structured declaration breadcrumbs space hierarchy separators consistently
 test("Format 1 layout backgrounds switch organically between color and tiled images", async ({
   page,
 }, testInfo) => {
+  await page.goto("/settings");
+  await page.getByRole("tab", { name: "Editor" }).click();
+  await page.getByLabel("Show explanatory text").check();
+  await waitForStoredSetting(page, ["editor", "showExplanatoryText"], true);
   await page.emulateMedia({ colorScheme: "dark" });
   await page.setViewportSize({ width: 1440, height: 900 });
   const editor = await openCreatedEditor(page);
@@ -10014,6 +10246,45 @@ section-layout
   await expect(
     background.getByLabel("Background", { exact: true }),
   ).toHaveValue("white");
+  const appearance = builder.locator(
+    '[data-layout-presentation-group="appearance"]',
+  );
+  const backgroundColor = background.getByLabel("Background", { exact: true });
+  const itemAlignment = appearance.getByLabel("Item alignment", {
+    exact: true,
+  });
+  const itemDistribution = appearance.getByLabel("Item distribution", {
+    exact: true,
+  });
+  const corners = appearance.getByLabel("Corners", { exact: true });
+  const clipOverflow = appearance.getByLabel("Clip overflowing content", {
+    exact: true,
+  });
+  const [
+    backgroundColorBox,
+    itemAlignmentBox,
+    itemDistributionBox,
+    cornersBox,
+    clipOverflowBox,
+  ] = await Promise.all([
+    backgroundColor.boundingBox(),
+    itemAlignment.boundingBox(),
+    itemDistribution.boundingBox(),
+    corners.boundingBox(),
+    clipOverflow.boundingBox(),
+  ]);
+  expect(backgroundColorBox).not.toBeNull();
+  expect(itemAlignmentBox).not.toBeNull();
+  expect(itemDistributionBox).not.toBeNull();
+  expect(cornersBox).not.toBeNull();
+  expect(clipOverflowBox).not.toBeNull();
+  expect(
+    Math.abs(backgroundColorBox!.y - itemAlignmentBox!.y),
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(backgroundColorBox!.y - itemDistributionBox!.y),
+  ).toBeLessThanOrEqual(1);
+  expect(Math.abs(clipOverflowBox!.y - cornersBox!.y)).toBeLessThanOrEqual(1);
   await background.getByRole("button", { name: "Image", exact: true }).click();
   const backgroundImage = background.getByRole("combobox", {
     name: "Background image",

@@ -10,7 +10,11 @@ import {
   hasMatchingFacsimilePanel,
   interactionContractErrors,
 } from "./interaction-contracts.mjs";
-import { facsimileCropSeamFindings } from "./facsimile-layout-audit.mjs";
+import {
+  facsimileCropAuditConsistencyErrors,
+  facsimileCropClearanceFindings,
+  facsimileCropSeamFindings,
+} from "./facsimile-layout-audit.mjs";
 import {
   facsimileContentContractErrors,
   facsimileRenderedAlignmentErrors,
@@ -141,7 +145,7 @@ const arrayNames = [
   "gaps",
   "acceptance",
 ];
-if (ledger.schemaVersion !== 3) errors.push("schemaVersion must be 3");
+if (ledger.schemaVersion !== 4) errors.push("schemaVersion must be 4");
 if (ledger.mode !== manifest.mode)
   errors.push("ledger mode must match workspace mode");
 if (ledger.sourceHash !== manifest.sourceHash)
@@ -483,15 +487,22 @@ if (complete) {
     if (!existsSync(cropAuditPath)) errors.push("crop-audit.json is required");
     else {
       const cropAudit = readJson(cropAuditPath);
-      const auditedIds = new Set(
-        (cropAudit.assets ?? []).map((asset) => asset.id),
-      );
-      for (const asset of ledger.assets ?? [])
-        if (asset.package && !auditedIds.has(asset.id))
-          errors.push(`crop audit is missing packaged asset ${asset.id}`);
+      for (const error of facsimileCropAuditConsistencyErrors(
+        cropAudit,
+        ledger.assets ?? [],
+        ledger.sourceHash,
+      ))
+        errors.push(`facsimile ${error}`);
       for (const finding of facsimileCropSeamFindings(cropAudit))
         errors.push(
           `facsimile crop seam ${finding.left}|${finding.right} on page ${finding.page} is not structural; move shared text/content into its parent crop instead of splitting it at x=${finding.x}`,
+        );
+      for (const finding of facsimileCropClearanceFindings(
+        cropAudit,
+        ledger.assets ?? [],
+      ))
+        errors.push(
+          `facsimile crop ${finding.id} on page ${finding.page} has clipped or contaminating pixels on its ${finding.side} edge despite ownership ${JSON.stringify(finding.ownership)}`,
         );
     }
   }
@@ -526,6 +537,7 @@ if (complete) {
       for (const field of [
         "creationEvidence",
         "trackerEvidence",
+        ...(entity.continuityEvidence ? ["continuityEvidence"] : []),
         ...(entity.upgradeHandles?.length ? ["upgradeEvidence"] : []),
       ])
         evidenceExists(
@@ -547,6 +559,12 @@ if (complete) {
       evidenceExists(
         finding.evidence,
         `${finding.id}.independentReview.evidence`,
+      );
+    for (const continuityReview of ledger.facsimileContracts?.independentReview
+      ?.entityContinuityReviews ?? [])
+      evidenceExists(
+        continuityReview.evidence,
+        `${continuityReview.sourceEntry}.entityContinuityReview.evidence`,
       );
   }
 

@@ -186,6 +186,10 @@ import {
   type AssetSourceCommit,
 } from "./AssetSourceWorkspace";
 import {
+  FormatReferenceHelpIcon,
+  FormatReferencePanel,
+} from "./FormatReferencePanel";
+import {
   trimAssetWorkspaceHistory,
   type AssetWorkspaceHistoryState,
 } from "./assetHistory";
@@ -675,6 +679,10 @@ export function EditorWorkspace({
   });
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [completionOpen, setCompletionOpen] = useState(false);
+  const [formatReferenceOpen, setFormatReferenceOpen] = useState(false);
+  const [formatReferenceEntry, setFormatReferenceEntry] = useState<
+    string | null
+  >(null);
   const [sourceCursor, setSourceCursor] = useState(0);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [structuredFocus, setStructuredFocus] = useState<string | null>(null);
@@ -3371,6 +3379,21 @@ export function EditorWorkspace({
                   <span>{translate("ui.editorWorkspace.text.quickFix")}</span>
                   <kbd aria-hidden="true">{sourceShortcutLabels.quickFix}</kbd>
                 </button>
+                <button
+                  className="editor-format-reference-trigger"
+                  type="button"
+                  aria-label={translate(
+                    "ui.editorWorkspace.ariaLabel.openFormat1AuthorReference",
+                  )}
+                  aria-haspopup="dialog"
+                  aria-expanded={formatReferenceOpen}
+                  title={translate(
+                    "ui.editorWorkspace.ariaLabel.openFormat1AuthorReference",
+                  )}
+                  onClick={() => setFormatReferenceOpen(true)}
+                >
+                  <FormatReferenceHelpIcon />
+                </button>
               </div>
             </div>
             {findOpen && (
@@ -4277,6 +4300,13 @@ export function EditorWorkspace({
         >
           {translate("ui.editorWorkspace.trash.permanentDeleteDescription")}
         </ConfirmationDialog>
+      )}
+      {formatReferenceOpen && (
+        <FormatReferencePanel
+          entryId={formatReferenceEntry}
+          onEntryChange={setFormatReferenceEntry}
+          onClose={() => setFormatReferenceOpen(false)}
+        />
       )}
     </div>
   );

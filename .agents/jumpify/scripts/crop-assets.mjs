@@ -23,28 +23,7 @@ function coordinate(value, label) {
   return value;
 }
 
-function edgeSummary(image, side) {
-  const pixels = [];
-  const add = (x, y) => {
-    const offset = (y * image.width + x) * 4;
-    pixels.push(
-      `${image.data[offset].toString(16).padStart(2, "0")}${image.data[
-        offset + 1
-      ]
-        .toString(16)
-        .padStart(
-          2,
-          "0",
-        )}${image.data[offset + 2].toString(16).padStart(2, "0")}`,
-    );
-  };
-  if (side === "top" || side === "bottom") {
-    const y = side === "top" ? 0 : image.height - 1;
-    for (let x = 0; x < image.width; x += 1) add(x, y);
-  } else {
-    const x = side === "left" ? 0 : image.width - 1;
-    for (let y = 0; y < image.height; y += 1) add(x, y);
-  }
+function dominantSummary(pixels) {
   const frequencies = new Map();
   for (const color of pixels)
     frequencies.set(color, (frequencies.get(color) ?? 0) + 1);
@@ -53,9 +32,50 @@ function edgeSummary(image, side) {
     [];
   return {
     dominantColor: `#${dominantColor}`,
-    dominantRatio: Number((dominantCount / pixels.length).toFixed(4)),
-    possibleStructuralEdge: dominantCount / pixels.length >= 0.9,
+    dominantRatio: Number(
+      (dominantCount / Math.max(1, pixels.length)).toFixed(4),
+    ),
   };
+}
+
+function pixelColor(image, x, y) {
+  const offset = (y * image.width + x) * 4;
+  return `${image.data[offset].toString(16).padStart(2, "0")}${image.data[
+    offset + 1
+  ]
+    .toString(16)
+    .padStart(2, "0")}${image.data[offset + 2].toString(16).padStart(2, "0")}`;
+}
+
+function edgeSummary(image, side) {
+  const pixels = [];
+  const add = (x, y) => {
+    pixels.push(pixelColor(image, x, y));
+  };
+  if (side === "top" || side === "bottom") {
+    const y = side === "top" ? 0 : image.height - 1;
+    for (let x = 0; x < image.width; x += 1) add(x, y);
+  } else {
+    const x = side === "left" ? 0 : image.width - 1;
+    for (let y = 0; y < image.height; y += 1) add(x, y);
+  }
+  const summary = dominantSummary(pixels);
+  return {
+    ...summary,
+    possibleStructuralEdge: summary.dominantRatio >= 0.9,
+  };
+}
+
+function interiorSummary(image) {
+  const area = image.width * image.height;
+  const stride = Math.max(1, Math.ceil(Math.sqrt(area / 200_000)));
+  const insetX = Math.min(2, Math.max(0, Math.floor((image.width - 1) / 2)));
+  const insetY = Math.min(2, Math.max(0, Math.floor((image.height - 1) / 2)));
+  const pixels = [];
+  for (let y = insetY; y < image.height - insetY; y += stride)
+    for (let x = insetX; x < image.width - insetX; x += stride)
+      pixels.push(pixelColor(image, x, y));
+  return dominantSummary(pixels);
 }
 
 const reports = [];
@@ -109,6 +129,7 @@ for (const asset of ledger.assets ?? []) {
     output: asset.output,
     packaged: asset.package === true,
     alt: asset.alt ?? null,
+    interior: interiorSummary(crop),
     edges: Object.fromEntries(
       ["top", "right", "bottom", "left"].map((side) => [
         side,
@@ -119,7 +140,7 @@ for (const asset of ledger.assets ?? []) {
 }
 
 writeJson(join(workspace, "verification", "crop-audit.json"), {
-  schemaVersion: 1,
+  schemaVersion: 2,
   sourceHash: manifest.sourceHash,
   warning:
     "Structural-edge candidates require visual ownership review; a uniform edge is not automatically wrong.",

@@ -27,6 +27,12 @@ if (!workspaceArgument) {
 }
 const force = forceFlag === "--force";
 const { workspace, manifest } = workspaceFromArgument(workspaceArgument);
+const ledgerPath = join(workspace, "ledger.json");
+const ledger = readJson(ledgerPath);
+if (ledger.schemaVersion !== 4)
+  throw new Error(
+    `${ledgerPath} uses an obsolete conversion-ledger schema. Start a fresh workspace; semantic review evidence cannot be migrated safely.`,
+  );
 const outputDirectory = join(workspace, "extracted", "pages");
 mkdirSync(outputDirectory, { recursive: true });
 let outputBytes = 0;
@@ -157,20 +163,16 @@ const pagesManifest = {
 const pagesJson = `${JSON.stringify(pagesManifest, null, 2)}\n`;
 addOutputBytes(outputBytes, Buffer.byteLength(pagesJson));
 writeFileSync(join(outputDirectory, "pages.json"), pagesJson);
-const ledgerPath = join(workspace, "ledger.json");
-const ledger = readJson(ledgerPath);
-if (ledger.schemaVersion === 3) {
-  const existing = new Map(
-    (ledger.sourcePages ?? []).map((page) => [page.page, page]),
-  );
-  ledger.sourcePages = pages.map((page) => ({
-    page: page.page,
-    width: page.width,
-    height: page.height,
-    status: existing.get(page.page)?.status ?? "unreviewed",
-    entryIds: existing.get(page.page)?.entryIds ?? [],
-    sectionHandles: existing.get(page.page)?.sectionHandles ?? [],
-  }));
-  writeJson(ledgerPath, ledger);
-}
+const existing = new Map(
+  (ledger.sourcePages ?? []).map((page) => [page.page, page]),
+);
+ledger.sourcePages = pages.map((page) => ({
+  page: page.page,
+  width: page.width,
+  height: page.height,
+  status: existing.get(page.page)?.status ?? "unreviewed",
+  entryIds: existing.get(page.page)?.entryIds ?? [],
+  sectionHandles: existing.get(page.page)?.sectionHandles ?? [],
+}));
+writeJson(ledgerPath, ledger);
 console.log(`${workspace}: rendered ${pages.length} page(s)`);

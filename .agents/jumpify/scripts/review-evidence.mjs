@@ -127,7 +127,9 @@ export function reviewEvidenceForLedger(
         ledger.facsimileContracts?.grantInventory?.entryDecisions ?? []
       )
         .filter((decision) =>
-          (decision.dispositions ?? []).includes("jump-grant"),
+          (decision.clauses ?? []).some((clause) =>
+            (clause.dispositions ?? []).includes("jump-grant"),
+          ),
         )
         .map((decision) => {
           const entry = sourceEntries.get(decision.entryId);
@@ -136,11 +138,17 @@ export function reviewEvidenceForLedger(
             sourcePage: entry?.page,
             sourceRect: entry?.rect,
             sourceText: entry?.transcription,
-            grantKeys: decision.grantKeys ?? [],
+            clauses: decision.clauses ?? [],
+            grantKeys: (decision.clauses ?? []).flatMap(
+              (clause) => clause.grantKeys ?? [],
+            ),
           };
         }),
+      referentResolutions: ledger.facsimileContracts?.referentResolutions ?? [],
       dynamicEntities: ledger.facsimileContracts?.dynamicEntities ?? [],
       tagPlacements: ledger.facsimileContracts?.tagPlacements ?? [],
+      tagCardinalityReview:
+        ledger.facsimileContracts?.tagCardinalityReview ?? null,
     };
   return result;
 }

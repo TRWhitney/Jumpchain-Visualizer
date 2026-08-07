@@ -24,6 +24,10 @@ import {
 import { createDefaultTagProfile, hydrateTagProfile } from "./tagProfile";
 import { SettingsContext, type SettingsContextValue } from "./SettingsContext";
 import { changeLanguage, translate, translationCatalog } from "../localization";
+import {
+  platformNativeThemeBridge,
+  type NativeThemeBridge,
+} from "../platform/nativeTheme";
 
 class SettingsSource {
   #value: ApplicationSettings;
@@ -43,11 +47,13 @@ export function SettingsProvider({
   repository,
   reportExporter,
   installedPackages = defaultInstalledPackages,
+  nativeThemeBridge = platformNativeThemeBridge,
 }: {
   children: ReactNode;
   repository?: SettingsRepository;
   reportExporter?: ReportExporter;
   installedPackages?: readonly InstalledPackage[];
+  nativeThemeBridge?: NativeThemeBridge;
 }) {
   const initial = useMemo(() => defaultSettings(createDefaultTagProfile()), []);
   const [settings, setSettings] = useState(initial);
@@ -247,6 +253,11 @@ export function SettingsProvider({
     settings.appearance.theme,
     systemPrefersDark,
   );
+
+  useEffect(() => {
+    if (!nativeThemeBridge.isAvailable()) return;
+    void nativeThemeBridge.setTheme(effectiveTheme).catch(() => undefined);
+  }, [effectiveTheme, nativeThemeBridge]);
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");

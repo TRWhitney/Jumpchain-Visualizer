@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Implementation and acceptance roadmap for a Jumpchain Visualizer macOS release.">
+  <title>macOS release roadmap | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="../index.html" aria-label="Jumpchain Visualizer documentation home"><span class="site-mark" aria-hidden="true">JV</span><span>Jumpchain Visualizer <small>Documentation</small></span></a>
+    <nav class="site-nav" aria-label="Documentation"><a href="../index.html">Overview</a><a href="architecture.html">Architecture</a><a href="verification-performance.html">Verification</a><a href="linux-release.html">Linux release</a><a href="windows-release.html">Windows release</a><a href="macos-release.html" aria-current="page">macOS release</a></nav>
+  </header>
+  <main id="content" class="document" tabindex="-1">
+    <article>
+      <header>
+        <p class="eyebrow">Final planned desktop target</p>
+        <h1>macOS release roadmap</h1>
+        <p class="lede">macOS follows Windows and must be built and accepted on Apple hardware. The repository has shared application metadata and an ICNS icon, but no macOS-specific packaging, inspection, native-test, or staging workflow exists yet.</p>
+      </header>
+
+      <h2>Proposed release contract</h2>
+      <ul>
+        <li>Build on a clean Mac using a current Xcode toolchain, pinned Node 24, pinned Rust, and both Apple Rust targets.</li>
+        <li>Ship one universal DMG containing a universal application bundle for Apple Silicon and Intel. Direct download is the first distribution path; do not target the Mac App Store.</li>
+        <li>Choose and encode an explicit minimum macOS version only after compatibility testing. Do not accidentally claim Tauri's broad default minimum of macOS 10.13.</li>
+        <li>Retain <code>dev.jumpchainvisualizer.desktop</code> as the stable bundle identifier and include byte-identical <code>UNLICENSE.md</code> and <code>THIRD_PARTY_NOTICES.txt</code> resources.</li>
+        <li>Publish the DMG, source archive, JSON manifest, and <code>SHA256SUMS</code> together. Do not add an automatic updater in the first release.</li>
+      </ul>
+
+      <h2>Signing and Gatekeeper decision</h2>
+      <p>macOS does not offer a low-friction unsigned direct-download path equivalent to Linux. Tauri documents code signing as necessary to avoid a browser-downloaded application being reported as unverified or broken. Apple notarization requires a valid Developer ID signature; an ad-hoc or self-signed identity cannot be notarized. See <a href="https://v2.tauri.app/distribute/sign/macos/">Tauri's macOS signing guide</a>, <a href="https://developer.apple.com/developer-id/">Apple's Developer ID guidance</a>, and <a href="https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution">Apple's notarization requirements</a>.</p>
+      <p>If the project retains its no-public-signing-authority policy, configure Tauri's ad-hoc identity <code>-</code>. This satisfies the code-signature requirement of Apple Silicon binaries but does not establish publisher identity, cannot be notarized, and does not stop Gatekeeper from requiring the user to approve the application in Privacy &amp; Security. Some managed Macs may prohibit that approval. Release notes must describe this as a supported-distribution limitation, and compatibility acceptance must exercise a genuinely quarantined download rather than only the local build output.</p>
+      <p>If ordinary click-to-open installation becomes a requirement, the remaining path is Apple Developer Program membership, a Developer ID Application certificate, Hardened Runtime, notarization, and a stapled ticket. That would be a policy change and is not assumed by this roadmap.</p>
+
+      <h2>Decisions to close before implementation</h2>
+      <ol>
+        <li>Confirm universal Apple Silicon plus Intel support rather than Apple-Silicon-only distribution.</li>
+        <li>Select the oldest macOS release the project will support. Use a version still suitable for the application's WebKit and native API behavior, encode it with <code>bundle.macOS.minimumSystemVersion</code>, and test that exact floor. Tauri exposes the setting in its <a href="https://v2.tauri.app/distribute/macos-application-bundle/">application-bundle guide</a>.</li>
+        <li>Confirm ad-hoc signing and its Gatekeeper friction, or explicitly reverse the signing policy and adopt Developer ID notarization.</li>
+        <li>Audit required entitlements and <code>Info.plist</code> usage descriptions. Add only capabilities the app actually uses; native file dialogs alone do not justify App Sandbox adoption.</li>
+        <li>Decide whether Finder/Info.plist strings need platform localization in the first macOS release. Platform metadata localization is separate from in-app localization.</li>
+      </ol>
+
+      <h2>Implementation sequence</h2>
+      <ol>
+        <li>Provision a real Mac build host with current Xcode command-line tools. Install the <code>aarch64-apple-darwin</code> and <code>x86_64-apple-darwin</code> Rust targets and prove the pinned toolchain builds both slices.</li>
+        <li>Add a macOS-specific Tauri configuration selecting DMG, the universal target, the agreed minimum system version, ad-hoc signing identity or Developer ID identity, and any audited entitlements or Info.plist values.</li>
+        <li>Add <code>setup:release:macos</code>, <code>inspect:macos</code>, and <code>release:macos</code> commands. They must reject non-macOS hosts, unsupported architectures, dirty worktrees, metadata drift, missing signing policy, and incomplete universal binaries.</li>
+        <li>Extend native verification to drive a packaged macOS application under isolated data directories. The WebDriver plugin must remain test-only and be absent from the publication application.</li>
+        <li>Inspect the mounted DMG and application bundle: verify both Mach-O architecture slices, bundle identifier and version, minimum system version, icon, exact license and notice resources, expected signature class, absence of test hooks, and consistent product metadata.</li>
+        <li>For ad-hoc output, run strict local code-signature verification and document that it is not publisher authentication. For Developer ID output, enable Hardened Runtime, submit with <code>notarytool</code>, inspect the notarization log, staple the ticket, and assess the final DMG with Gatekeeper.</li>
+        <li>Run the shared release gate and launch-smoke the exact packaged application. Exercise CodeMirror layout, native Light and Dark appearance, color controls, Author Reference compact popovers, persistence, and clean shutdown.</li>
+        <li>Stage a normalized DMG filename, source archive from the same commit, platform manifest, and deterministic checksums. Add script tests for host and architecture rejection, universal-slice inspection, signature policy, metadata, resources, manifest rendering, and atomic staging.</li>
+      </ol>
+
+      <h2>Manual acceptance</h2>
+      <ol>
+        <li>Test the universal candidate on a clean Apple Silicon Mac and a real Intel Mac at the claimed minimum or oldest available supported macOS version. Rosetta is useful additional evidence but does not replace Intel-hardware acceptance for an Intel support claim.</li>
+        <li>Upload and redownload the DMG so it receives normal quarantine metadata. Verify <code>SHA256SUMS</code>, mount it, drag the app to Applications, and record the exact Gatekeeper flow. Confirm that the documented approval path works under the accepted signing policy.</li>
+        <li>Verify first launch and onboarding, native open/save dialogs, Light and Dark mode, color picker and eyedropper success/cancel/permission-denial behavior, Author Reference tools, package import/export, persistence across quit and relaunch, absence of unexpected Untitled Jump workspaces, and clean quit.</li>
+        <li>Verify display scaling on Retina hardware, keyboard shortcuts using Command, window restoration, Finder application metadata, and behavior when the DMG is ejected after installation.</li>
+        <li>Write release notes that state tested hardware and macOS versions, universal architecture, minimum system version, signing/notarization status, Gatekeeper instructions, and lack of automatic updates. Tag only after acceptance, publish all staged files together, redownload, verify hashes, and perform one final installation.</li>
+      </ol>
+
+      <h2>Deferred alternatives</h2>
+      <p>Mac App Store distribution, Apple-Silicon-only packaging, separate per-architecture DMGs, automatic updates, and Developer ID notarization remain explicit future choices. They must not be mixed into the first macOS implementation without updating this release contract.</p>
+    </article>
+  </main>
+</body>
+</html>

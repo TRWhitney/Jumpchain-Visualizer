@@ -29,6 +29,7 @@ import {
 import type { SvgAssetEditorDocument } from "./assetEditorModel";
 import { translate } from "../localization";
 import { matchesKeybinding, type KeybindingChord } from "../settings/model";
+import { codeMirrorCspNonceExtension } from "./codeMirrorCsp";
 
 const svgElements: ElementSpec[] = [
   "svg",
@@ -133,6 +134,7 @@ export function SvgSourceEditor({
     const state = EditorState.create({
       doc: initialSource,
       extensions: [
+        codeMirrorCspNonceExtension(),
         lineNumbers(),
         drawSelection(),
         highlightActiveLine(),

@@ -280,6 +280,34 @@ test(
     await page.getByRole("button", { name: "Test handle pattern" }).click();
     await expect(handleTester).toBeVisible();
     await expect(handle).toBeFocused();
+    const testerGeometry = await handleTester.evaluate((tester) => {
+      const pattern = tester.querySelector(".lexical-tester-pattern");
+      const label = tester.querySelector("label");
+      const control = tester.querySelector(".lexical-tester-control");
+      const status = tester.querySelector("[data-lexical-status]");
+      if (!pattern || !label || !control || !status) return null;
+      const box = (element: Element) => {
+        const { top, bottom, height } = element.getBoundingClientRect();
+        return { top, bottom, height };
+      };
+      return {
+        tester: box(tester),
+        pattern: box(pattern),
+        label: box(label),
+        control: box(control),
+        status: box(status),
+      };
+    });
+    expect(testerGeometry).not.toBeNull();
+    expect(testerGeometry!.tester.height).toBeLessThanOrEqual(280);
+    expect(testerGeometry!.pattern.height).toBeLessThanOrEqual(32);
+    expect(testerGeometry!.control.height).toBeLessThanOrEqual(56);
+    expect(
+      testerGeometry!.label.top - testerGeometry!.pattern.bottom,
+    ).toBeLessThanOrEqual(24);
+    expect(
+      testerGeometry!.status.top - testerGeometry!.control.bottom,
+    ).toBeLessThanOrEqual(24);
     await expect(handle).toHaveCSS("outline-style", "none");
     await expect(handleTester.locator(".lexical-tester-control")).not.toHaveCSS(
       "box-shadow",

@@ -156,6 +156,42 @@ test("Settings chrome, dropdowns, and standalone color pickers suppress the gene
   await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
 });
 
+test("the resolved theme synchronizes Tauri window chrome and native dialogs", async () => {
+  const initial = defaultSettings(createDefaultTagProfile());
+  initial.appearance.theme = "light";
+  const appliedThemes: Array<"light" | "dark"> = [];
+  render(
+    <SettingsProvider
+      repository={new MemorySettingsRepository(initial)}
+      reportExporter={exporter}
+      nativeThemeBridge={{
+        isAvailable: () => true,
+        setTheme: async (theme) => {
+          appliedThemes.push(theme);
+        },
+      }}
+    >
+      <SettingsSurfaceHarness />
+    </SettingsProvider>,
+  );
+
+  const appearance = page.getByLabelText("Appearance");
+  await expect.element(appearance).toHaveValue("light");
+  await expect.poll(() => appliedThemes.at(-1)).toBe("light");
+
+  await appearance.selectOptions("dark");
+  await expect
+    .element(document.documentElement)
+    .toHaveAttribute("data-app-theme", "dark");
+  await expect.poll(() => appliedThemes.at(-1)).toBe("dark");
+
+  await appearance.selectOptions("light");
+  await expect
+    .element(document.documentElement)
+    .toHaveAttribute("data-app-theme", "light");
+  await expect.poll(() => appliedThemes.at(-1)).toBe("light");
+});
+
 test("interface experience applies its settings and becomes Custom after an individual override", async () => {
   const repository = new MemorySettingsRepository();
   render(

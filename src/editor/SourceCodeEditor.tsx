@@ -39,6 +39,7 @@ import {
   type DecorationSet,
   type ViewUpdate,
 } from "@codemirror/view";
+import { codeMirrorCspNonceExtension } from "./codeMirrorCsp";
 import { parseFormatFile } from "../markup";
 import {
   matchesKeybinding,
@@ -384,6 +385,7 @@ export const SourceCodeEditor = forwardRef<
     const createdState = EditorState.create({
       doc: value,
       extensions: [
+        codeMirrorCspNonceExtension(),
         lineNumbers(),
         codeFolding({ placeholderText: "" }),
         foldGutter({ openText: "▾", closedText: "▸" }),

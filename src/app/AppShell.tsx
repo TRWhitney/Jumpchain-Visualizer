@@ -232,6 +232,7 @@ function AppShellContent() {
     logger,
   });
   const {
+    initialized: chainInitialized,
     savedChains,
     activeChain,
     effectiveState: effectiveTrackerState,
@@ -1072,7 +1073,8 @@ function AppShellContent() {
           <section
             className="app-chain-workspace"
             hidden={!knownChain}
-            inert={!knownChain || undefined}
+            inert={!knownChain || !chainInitialized || undefined}
+            aria-busy={!chainInitialized}
             data-active-route={knownChain}
             aria-labelledby="app-chain-workspace-heading"
           >
@@ -1092,7 +1094,7 @@ function AppShellContent() {
               dispatch={effectiveTrackerDispatch}
               installPackage={chain.commands.installPackage}
               showApplicationHeader={false}
-              active={knownChain}
+              active={knownChain && chainInitialized}
             />
             {chainSaveError && (
               <div className="tracker-undo" role="alert">

@@ -7,6 +7,7 @@ import {
 import { defaultKeymap } from "@codemirror/commands";
 import { EditorState, Prec } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
+import { codeMirrorCspNonceExtension } from "./codeMirrorCsp";
 
 export function ConditionExpressionInput({
   value,
@@ -40,6 +41,7 @@ export function ConditionExpressionInput({
       state: EditorState.create({
         doc: callbackRef.current.value,
         extensions: [
+          codeMirrorCspNonceExtension(),
           EditorState.changeFilter.of(
             (transaction) => transaction.newDoc.lines === 1,
           ),

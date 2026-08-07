@@ -3,5 +3,9 @@
   "identifier": "default",
   "description": "Baseline capability for the main application window.",
   "windows": ["main"],
-  "permissions": ["core:default", "wdio-webdriver:default"]
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-theme",
+    "wdio-webdriver:default"
+  ]
 }

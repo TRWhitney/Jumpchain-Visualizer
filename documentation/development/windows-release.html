@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Implementation and acceptance roadmap for an unsigned Jumpchain Visualizer Windows release.">
+  <title>Windows release roadmap | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="../index.html" aria-label="Jumpchain Visualizer documentation home"><span class="site-mark" aria-hidden="true">JV</span><span>Jumpchain Visualizer <small>Documentation</small></span></a>
+    <nav class="site-nav" aria-label="Documentation"><a href="../index.html">Overview</a><a href="architecture.html">Architecture</a><a href="verification-performance.html">Verification</a><a href="linux-release.html">Linux release</a><a href="windows-release.html" aria-current="page">Windows release</a><a href="macos-release.html">macOS release</a></nav>
+  </header>
+  <main id="content" class="document" tabindex="-1">
+    <article>
+      <header>
+        <p class="eyebrow">Planned maintainer playbook</p>
+        <h1>Windows release roadmap</h1>
+        <p class="lede">Windows is the next packaging target. The repository has shared application metadata and a Windows icon, but it does not yet have a Windows-specific build, inspection, native-test, or staging workflow.</p>
+      </header>
+
+      <h2>Proposed release contract</h2>
+      <ul>
+        <li>Build on a clean x86-64 Windows host using the pinned Node 24 and Rust toolchains plus the Microsoft C++ build tools.</li>
+        <li>Ship one x86-64 per-user NSIS setup executable as a direct download. Do not add MSI or Microsoft Store distribution to the first Windows release.</li>
+        <li>Support Windows 11 x64. Treat Windows 10 as unclaimed best-effort compatibility unless it receives a deliberate support decision and the same manual acceptance coverage.</li>
+        <li>Remain unsigned unless the project later adopts a trusted signing service or Microsoft Store distribution. Signing policy must not be silently changed by release automation.</li>
+        <li>Retain <code>dev.jumpchainvisualizer.desktop</code> as the stable application identity and bundle byte-identical <code>UNLICENSE.md</code> and <code>THIRD_PARTY_NOTICES.txt</code>.</li>
+        <li>Publish the installer, source archive, JSON manifest, and <code>SHA256SUMS</code> together. Do not add an automatic updater in the first release.</li>
+      </ul>
+
+      <h2>Unsigned Windows consequence</h2>
+      <p>Unsigned executables may show <q>Windows protected your PC</q>. Microsoft states that an unsigned file starts with no transferable publisher reputation for every new version, a self-signed certificate behaves like no signature, and organizational policy or Windows 11 Smart App Control may prevent users from bypassing the block. Release notes and download instructions must state this plainly and provide the published SHA-256 value, but a checksum hosted beside the installer is not a substitute for trusted publisher identity. See <a href="https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation">Microsoft's current SmartScreen guidance</a>.</p>
+
+      <h2>Decisions to close before implementation</h2>
+      <ol>
+        <li>Confirm NSIS per-user installation and the Windows 11 x64 support baseline.</li>
+        <li>Choose WebView2 installation mode. The recommended first choice is Tauri's embedded Evergreen bootstrapper: it adds roughly 1.8 MB and covers machines missing WebView2, but initial installation requires network access. A fully offline installer adds roughly 127 MB. Skipping the check creates a known failure mode on machines without the runtime. Windows 11 includes the Evergreen runtime, while Microsoft still recommends covering edge cases. See the <a href="https://v2.tauri.app/distribute/windows-installer/">Tauri Windows installer guide</a> and <a href="https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/evergreen-vs-fixed-version">Microsoft WebView2 distribution guidance</a>.</li>
+        <li>Decide whether the installer itself remains English-only for the first release or receives the supported application locales. Installer localization is separate from in-app localization.</li>
+        <li>Define uninstall behavior for durable user projects and settings. The uninstaller must never delete external canonical project folders; retained application data must be disclosed.</li>
+      </ol>
+
+      <h2>Implementation sequence</h2>
+      <ol>
+        <li>Add a Windows-specific Tauri configuration that selects only NSIS, sets the agreed install mode and WebView2 policy, and preserves shared product identity, icons, descriptions, license, and notices.</li>
+        <li>Add <code>setup:release:windows</code>, <code>inspect:windows</code>, and <code>release:windows</code> commands. They must reject the wrong host or architecture, require a clean worktree, enforce synchronized versions and metadata, and use noninteractive tooling.</li>
+        <li>Extend native verification to drive a packaged Windows candidate rather than only a development binary. Keep the WebDriver plugin test-only and prove that it is absent from the publication build.</li>
+        <li>Inspect the installer and installed application for x86-64 PE executables, stable product and publisher metadata, the application icon, exact license and notice resources, and expected shortcuts. Verify installation and uninstall under a standard user without requiring administrator rights.</li>
+        <li>Run the shared release gate, then install and launch the exact candidate with isolated test data. Exercise CodeMirror layout, Light and Dark chrome, the native color picker, Author Reference compact popovers, persistence, and clean shutdown.</li>
+        <li>Stage a normalized installer filename, a source archive from the same commit, a platform manifest, and deterministic checksums under <code>target/release-artifacts/&lt;version&gt;</code>. Re-running a clean commit must atomically replace only that version's generated Windows directory.</li>
+        <li>Add script-level tests for host rejection, artifact discovery, metadata and architecture checks, driver exclusion, manifest rendering, checksums, and staging behavior.</li>
+      </ol>
+
+      <h2>Manual acceptance</h2>
+      <ol>
+        <li>Verify <code>SHA256SUMS</code> and test the downloaded installer on a clean, fully updated Windows 11 x64 account without development tools.</li>
+        <li>Record the exact SmartScreen or Smart App Control experience. Confirm the documented path is actually available; do not claim that every policy permits an unsigned installer.</li>
+        <li>Verify install, first launch, onboarding, Start-menu shortcut, open/save dialogs, scaling at 100% and 150%, Light and Dark mode, color picker and eyedropper, Author Reference tools, package import/export, persistence across relaunch, absence of unexpected Untitled Jump workspaces, and clean exit.</li>
+        <li>Uninstall and confirm the agreed application-data behavior. Reinstall and verify that retained data is either restored or absent exactly as documented.</li>
+        <li>Write release notes, create the version tag after acceptance, publish all staged files together, redownload them, verify hashes, and perform one final installation.</li>
+      </ol>
+
+      <h2>Deferred alternatives</h2>
+      <p>MSI, Microsoft Store publication, ARM64, automatic updates, and trusted code signing remain separate future decisions. The <a href="https://v2.tauri.app/distribute/windows-installer/">Tauri installer documentation</a> supports both NSIS and MSI, but carrying both formats would duplicate acceptance and support work without improving the first direct-download release.</p>
+    </article>
+  </main>
+</body>
+</html>

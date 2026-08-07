@@ -756,7 +756,11 @@ test(
     const supplementWorkspace = page.getByLabel(
       "Interactive Chain Tracker workspace",
     );
-    await supplementWorkspace.getByRole("tab", { name: "Supplements" }).click();
+    const supplementsTab = supplementWorkspace.getByRole("tab", {
+      name: "Supplements",
+    });
+    await supplementsTab.click();
+    await expect(supplementsTab).toHaveAttribute("aria-selected", "true");
     const translatedQuest = page
       .locator(".supplement-manage-list article")
       .filter({ hasText: "Modo de misiones" });

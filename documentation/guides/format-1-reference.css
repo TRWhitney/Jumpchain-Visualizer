@@ -904,8 +904,11 @@ kbd {
 
 .reference-tool-popover[popover] {
   width: min(25rem, calc(100vw - 2rem));
+  height: max-content;
+  max-height: calc(100vh - 2rem);
   margin: auto;
   padding: 1rem;
+  overflow: auto;
   color: var(--ref-text);
   background: var(--ref-surface-raised);
   border: 1px solid var(--ref-border-strong);
@@ -915,6 +918,8 @@ kbd {
 
 .reference-tool-popover:popover-open {
   display: grid;
+  grid-auto-rows: max-content;
+  align-content: start;
   gap: 0.75rem;
 }
 

@@ -13,8 +13,10 @@ export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
     include: [
+      "@tauri-apps/api/window",
       "nspell",
       "react",
+      "react-dom/client",
       "react/jsx-dev-runtime",
       "vitest-browser-react",
     ],

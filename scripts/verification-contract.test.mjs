@@ -56,6 +56,10 @@ const gitignore = await readFile(
   new URL("../.gitignore", import.meta.url),
   "utf8",
 );
+const nativeRunnerSource = await readFile(
+  new URL("./run-native-test.mjs", import.meta.url),
+  "utf8",
+);
 
 test("the everyday and comprehensive Playwright modes remain distinct", () => {
   assert.deepEqual(PLAYWRIGHT_MODES.smoke.arguments, [
@@ -163,6 +167,19 @@ test("unit isolation uses worker threads instead of WSL-crashing child forks", (
     (project) => project.test.name === "unit",
   );
   assert.equal(unitProject?.test.pool, "threads");
+});
+
+test("browser components prebundle React's renderer without mid-run reloads", () => {
+  for (const dependency of ["@tauri-apps/api/window", "react-dom/client"])
+    assert.ok(vitestConfig.optimizeDeps.include.includes(dependency));
+});
+
+test("native verification uses an AppImage and isolated application data", () => {
+  assert.match(nativeRunnerSource, /--bundles["'],\s*["']appimage/);
+  for (const variable of ["XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME"])
+    assert.match(nativeRunnerSource, new RegExp(`${variable}:`));
+  assert.match(nativeRunnerSource, /mkdtempSync/);
+  assert.match(nativeRunnerSource, /rmSync\(nativeDataRoot/);
 });
 
 test("no-emit typechecking covers both projects with independent incremental state", () => {

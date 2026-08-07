@@ -61,7 +61,7 @@
       <h3>Desktop profile</h3>
       <ul>
         <li>The Tauri package is the primary supported user surface.</li>
-        <li>Each operating system receives its normal native artifact from the same source tree. One binary is not expected to run across all operating systems.</li>
+        <li>Each operating system receives its normal native artifact from the same source tree. One binary is not expected to run across all operating systems. Linux releases use one unsigned x86-64 AppImage built on the accepted Ubuntu 22.04 or Debian 12 compatibility baseline.</li>
         <li>SQLite, native dialogs, application-data storage, content-addressed package files, and atomic filesystem replacement are provided by Rust commands.</li>
         <li>Unsigned packages are allowed. The architecture does not depend on a signing service, store, updater, or paid distribution account.</li>
       </ul>
@@ -240,7 +240,7 @@ src-tauri/capabilities/ explicit Tauri permissions
         <li>Vitest Browser Mode covers components requiring real layout, selection, focus, input, and browser APIs.</li>
         <li>The everyday <code>pnpm check</code> gate runs bounded parallel static, unit, build, Browser Mode, and Rust checks before eight Chromium smoke journeys. The cold-run budget is 90 seconds.</li>
         <li>Full Chromium functional coverage remains available through <code>pnpm test:e2e:chromium</code>. Firefox and WebKit run a focused matrix for routing and focus, responsive layout, source selection, canvas pointers, image decoding, drag behavior, IndexedDB, RTL, supplement keyboard navigation, and native controls.</li>
-        <li><code>pnpm check:exhaustive</code> restores the complete three-engine matrix for browser infrastructure work. <code>pnpm check:release</code> adds the packaged Tauri boundary.</li>
+        <li><code>pnpm check:exhaustive</code> restores the complete three-engine matrix for browser infrastructure work. <code>pnpm check:release</code> adds the packaged Tauri boundary. <code>pnpm release:linux</code> then builds, extracts, inspects, launch-smokes, hashes, and stages the unsigned AppImage and matching source archive without publishing them.</li>
         <li>Review screenshots and pixel comparisons are evidence generation rather than pass/fail side effects. Only <code>pnpm test:e2e:artifacts</code> may update tracked artifacts; ordinary runs retain screenshots only for failures.</li>
         <li>Playwright tests wait for observable DOM, persistence, image, and animation state. Time-based sleeps are prohibited, flaky retries fail the run, and slow files are reported.</li>
         <li>Cargo tests cover archive attacks, hashing, path containment, SQLite transactions, migrations, and filesystem recovery.</li>

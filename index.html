@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Jumpchain Visualizer" />
+    <!-- Tauri replaces this style's nonce token at runtime. CodeMirror reuses
+         that nonce for the structural stylesheet it creates dynamically. -->
+    <style id="tauri-csp-style-nonce">
+      :root {
+      }
+    </style>
     <title>Jumpchain Visualizer</title>
   </head>
   <body>

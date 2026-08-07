@@ -739,7 +739,7 @@ fn scan_editor_project_folder(
 pub fn run() {
     let builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
 
-    #[cfg(debug_assertions)]
+    #[cfg(any(debug_assertions, feature = "native-test"))]
     let builder = builder.plugin(tauri_plugin_wdio_webdriver::init());
 
     builder

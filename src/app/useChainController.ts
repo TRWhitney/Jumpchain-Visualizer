@@ -599,6 +599,7 @@ export function useChainController({
   );
 
   return {
+    initialized,
     savedChains,
     activeChain,
     effectiveState,

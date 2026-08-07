@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Fail-closed AppImage release workflow for Jumpchain Visualizer.">
+  <title>Linux release | Jumpchain Visualizer Documentation</title>
+  <link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="../index.html" aria-label="Jumpchain Visualizer documentation home"><span class="site-mark" aria-hidden="true">JV</span><span>Jumpchain Visualizer <small>Documentation</small></span></a>
+    <nav class="site-nav" aria-label="Documentation"><a href="../index.html">Overview</a><a href="architecture.html">Architecture</a><a href="verification-performance.html">Verification</a><a href="linux-release.html" aria-current="page">Linux release</a><a href="windows-release.html">Windows release</a><a href="macos-release.html">macOS release</a></nav>
+  </header>
+  <main id="content" class="document" tabindex="-1">
+    <article>
+      <header>
+        <p class="eyebrow">Maintainer playbook</p>
+        <h1>Linux AppImage release</h1>
+        <p class="lede">One local command verifies, builds, inspects, smoke-launches, and stages an unsigned x86-64 AppImage. Publication remains a deliberate human action.</p>
+      </header>
+
+      <h2>Accepted release contract</h2>
+      <ul>
+        <li>The build host is x86-64 Ubuntu 22.04 or Debian 12. A newer distribution is rejected because its glibc can silently raise the minimum supported runtime.</li>
+        <li>The Git worktree is clean before and after verification. Release contents therefore correspond exactly to one commit.</li>
+        <li>Node, Cargo, and Tauri metadata agree on version, license, publisher, repository, and stable application identifier.</li>
+        <li>The artifact is an unsigned AppImage. No key, certificate, upload credential, or public release service participates in the command.</li>
+        <li>The embedded WebDriver plugin remains debug-only. Release binaries never expose the test driver.</li>
+      </ul>
+
+      <h2>One-time host setup</h2>
+      <p>The repository pins Rust 1.97 with the required formatting and lint components. Rustup installs that toolchain automatically when it is absent. Run <code>pnpm setup:release:linux</code> once; it installs the pinned <code>tauri-driver</code> through Cargo when absent. If WebKitWebDriver is not installed system-wide, it downloads the signed distribution package without root access and extracts the driver under the ignored <code>target/release-tools</code> directory. A later explicit Cargo clean may remove that local copy; the setup command recreates it.</p>
+
+      <h2>Create a candidate</h2>
+      <pre><code>corepack pnpm release:linux</code></pre>
+      <p>The command runs <code>pnpm check:release</code>, removes inherited Windows directories from the packaging child process’s <code>PATH</code>, builds with Tauri’s noninteractive <code>--bundles appimage --ci --no-sign</code> options, and requires exactly one artifact for the declared version. Native verification packages and drives an optimized AppImage with a test-only WebDriver feature under temporary XDG data, config, and cache directories so test-created workspaces never enter the developer profile; publication builds omit that feature. The release packager removes linuxdeploy’s fixed <code>GTK_THEME</code> and X11 backend overrides so the application can use the native display backend and switch GTK window chrome and native dialogs between Light and Dark at runtime. It extracts the final AppImage and verifies that theme contract, its x86-64 ELF executable, desktop metadata, icons, and byte-identical project and third-party license files. It then launches the exact AppImage with isolated XDG data directories and requires the process to remain healthy through the startup window.</p>
+      <p>Publication-ready output is written to <code>target/release-artifacts/&lt;version&gt;</code>. It contains the normalized AppImage filename, a source archive from the same Git commit, a JSON manifest, and <code>SHA256SUMS</code>. Re-running the same clean commit atomically replaces only that generated version directory.</p>
+
+      <h2>Inspect an existing AppImage</h2>
+      <pre><code>corepack pnpm inspect:appimage -- path/to/application.AppImage</code></pre>
+      <p>This performs extraction, content validation, and the isolated launch smoke without running the full release gate or producing publication files.</p>
+
+      <h2>Manual acceptance before publication</h2>
+      <p>Automation cannot substitute for a native desktop compatibility check. The generated candidate is technically complete; the following human acceptance and publication work remains for every public AppImage release.</p>
+      <ol>
+        <li>Confirm that the staged version is the intended public version and that the manifest names the exact commit being released.</li>
+        <li>Verify <code>SHA256SUMS</code>, then run the staged AppImage on one clean Ubuntu 22.04 installation and one current non-Debian distribution such as Fedora. Testing a developer workstation alone is not sufficient.</li>
+        <li>On each distribution, verify first launch and onboarding, Light and Dark native chrome, the Author Reference pattern tester, native open/save dialogs, screen eyedropper success/cancel/portal-rejection behavior, persistence across relaunch, absence of unexpected Untitled Jump workspaces, package import/export, and clean exit.</li>
+        <li>Write release notes that record the exact tested distributions, the x86-64 and unsigned-package scope, the Ubuntu 22.04/glibc 2.35 compatibility baseline, the lack of an automatic updater, known WSL limitations, and the command needed to mark a downloaded AppImage executable.</li>
+        <li>Create the version tag only after manual acceptance. Publish the staged AppImage, source archive, manifest, and <code>SHA256SUMS</code> together.</li>
+        <li>Download the published files through the same public path a user receives, verify their hashes again, and perform one final launch.</li>
+      </ol>
+
+      <h2>Deferred Linux polish</h2>
+      <p>AppStream metadata may be added later to improve presentation in AppImageHub and software catalogues and to remove the current packager warning. It is not required for direct AppImage execution. GPG signing is also optional and is not part of the accepted unsigned release contract; the checksum file remains an integrity aid rather than independent proof of publisher identity.</p>
+
+      <h2>Publication boundary</h2>
+      <p>The release command never creates a tag, changes a version, writes release notes, uploads files, or contacts a hosting API. After manual acceptance, publish the staged AppImage, source archive, manifest, checksum file, and human-written release notes through the chosen project host.</p>
+
+      <h2>Other desktop targets</h2>
+      <p>Windows and macOS packaging have not been implemented yet. Their accepted implementation and acceptance sequences are maintained in the <a href="windows-release.html">Windows release roadmap</a> and <a href="macos-release.html">macOS release roadmap</a>.</p>
+    </article>
+  </main>
+</body>
+</html>

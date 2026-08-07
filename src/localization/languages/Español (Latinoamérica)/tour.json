@@ -1,0 +1,248 @@
+{
+  "tour": {
+    "sections": {
+      "welcome": "Recorrido de bienvenida",
+      "home": "Inicio",
+      "editor": "Lección del Editor",
+      "tracker": "Lección del Rastreador",
+      "finish": "Adáptalo a ti"
+    },
+    "progress": "Paso {{current}} de {{total}}",
+    "progressLabel": "Progreso del recorrido: paso {{current}} de {{total}}",
+    "actions": {
+      "exit": "Salir del recorrido",
+      "back": "Atrás",
+      "retry": "Reintentar",
+      "skipStep": "Omitir paso: hazlo por mí",
+      "start": "Iniciar recorrido",
+      "continue": "Continuar",
+      "stepComplete": "Buen trabajo. Completaste este paso.",
+      "exploreAdvanced": "Explorar herramientas avanzadas",
+      "notNow": "Ahora no",
+      "continueOther": "Continuar en {{branch}}",
+      "finishTour": "Finalizar recorrido"
+    },
+    "targetMissing": {
+      "title": "Este control está tardando un poco",
+      "body": "El recorrido no pudo encontrar el siguiente control. Vuelve a intentarlo cuando la vista termine de cargar o permite que el recorrido complete este paso por ti."
+    },
+    "branch": {
+      "editor": {
+        "title": "Crear en el Editor",
+        "short": "el Editor",
+        "body": "Crea un Jump pequeño con controles estructurados y observa cómo aparece en la vista previa."
+      },
+      "tracker": {
+        "title": "Viajar en el Rastreador",
+        "short": "el Rastreador",
+        "body": "Agrega un Jump, toma decisiones, organiza la Chain y explora los beneficios persistentes."
+      }
+    },
+    "mode": {
+      "beginner": {
+        "title": "Ideal para principiantes",
+        "body": "Mantén ocultos los paneles avanzados, muestra más explicaciones y simplifica los grupos de acciones."
+      },
+      "advanced": {
+        "title": "Avanzado",
+        "body": "Mantén visibles todos los controles del espacio de trabajo y usa la interfaz completa."
+      },
+      "keepCurrent": "Conservar mi configuración actual"
+    },
+    "steps": {
+      "welcome": {
+        "title": "Te damos la bienvenida a Jumpchain Visualizer",
+        "body": "Este recorrido guiado comienza explicando Inicio y después te permite practicar en el Editor o en el Rastreador de Chains.",
+        "detail": "La lección usa datos temporales. Solo se guardan para que puedas reanudar el recorrido y se eliminan de forma permanente cuando lo finalizas o sales."
+      },
+      "home-navigation": {
+        "title": "Tu trabajo siempre está a la mano",
+        "body": "La barra superior es la navegación global: selecciona la marca JV para ir a Inicio, Editor o Rastreador de Chains para abrir un centro de trabajo y Configuración para ajustar tus preferencias.",
+        "detail": "Atrás y Adelante recorren el historial de ubicaciones de la aplicación. Durante esta lección, esos controles permanecen bloqueados para evitar que el trabajo temporal llegue a la navegación normal."
+      },
+      "home-workspaces": {
+        "title": "Inicia un trabajo o continúa uno existente",
+        "body": "Las dos tarjetas grandes de Inicio abren los centros del Editor y del Rastreador de Chains. Los proyectos y las Chains existentes aparecen en las listas recientes que están debajo.",
+        "detail": "Crear un Jump significa preparar un paquete; iniciar una Chain significa importar Jumps y registrar las decisiones de un Jumper."
+      },
+      "choose-branch": {
+        "title": "¿Dónde te gustaría comenzar?",
+        "body": "Elige una tarjeta para abrir un espacio de trabajo temporal del Editor o del Rastreador.",
+        "detail": "La aplicación cambiará de espacio de trabajo de forma visible. Al final podrás recorrer la otra ruta o terminar."
+      },
+      "editor-overview": {
+        "title": "Estás en el Editor de práctica",
+        "body": "La ruta que elegiste abrió Mi primer Jump. El contenido está a la izquierda, la declaración seleccionada se edita en el centro y la vista previa en vivo está a la derecha.",
+        "detail": "Nada de lo que ves aquí aparece en Tus proyectos de Jump. Continúa para comenzar a recorrer el proyecto por tu cuenta."
+      },
+      "editor-open-details": {
+        "title": "Ve a los detalles del Jump",
+        "body": "En el explorador de Contenido de la izquierda, selecciona Detalles del Jump.",
+        "detail": "Las selecciones del explorador determinan qué edita el panel Estructurado del centro. La fila resaltada es el punto de partida del paquete."
+      },
+      "editor-metadata": {
+        "title": "Revisa la identidad del Jump",
+        "body": "Estructurado ahora muestra el nombre, la descripción, los autores, la versión y la configuración ampliable del Jump para ajustar los puntos.",
+        "detail": "Estos valores ya están completos para que la lección pueda centrarse en el ciclo de creación. Continúa cuando los encuentres."
+      },
+      "editor-add-choice": {
+        "title": "Agrega tu primera Choice",
+        "body": "Selecciona Agregar en la barra de herramientas del proyecto y después elige Choice en el menú que se abre.",
+        "detail": "El Editor crea una Choice reutilizable de nivel superior en choices.jdef y abre directamente su formulario Estructurado."
+      },
+      "editor-configure-choice": {
+        "title": "Dale una identidad clara a la Choice",
+        "body": "Cambia Identificador de new_choice a road_companion y Nombre de Nueva Choice a Compañero de viaje.",
+        "detail": "Los identificadores usan letras minúsculas, números y guiones bajos individuales. Deja Tipo de selección como Alternar; el paso se completa cuando ambos campos de identidad son válidos."
+      },
+      "editor-open-section": {
+        "title": "Ve a la sección",
+        "body": "En el explorador de Contenido de la izquierda, expande Secciones si es necesario y selecciona first_steps.",
+        "detail": "Las secciones controlan el orden de lectura. Esta selección reemplaza el formulario de la Choice por el editor de contenido Estructurado de la sección."
+      },
+      "editor-place-choice": {
+        "title": "Coloca la Choice en una sección",
+        "body": "En Contenido y efectos, selecciona + Choice directa. En la nueva ubicación, configura Choice que se mostrará como road_companion.",
+        "detail": "La Choice de nivel superior define el comportamiento; esta ubicación determina dónde la verán los lectores. Conserva el identificador de ubicación generado."
+      },
+      "editor-preview": {
+        "title": "Revisa la vista del lector",
+        "body": "Observa la vista previa en vivo de la derecha y busca Compañero de viaje dentro de Primeros pasos.",
+        "detail": "La barra Diagnósticos de la parte inferior informa problemas de creación. Un Jump viable no tiene diagnósticos rojos que lo bloqueen."
+      },
+      "editor-advanced-offer": {
+        "title": "Tu Jump mínimo está listo",
+        "body": "Completaste el ciclo mínimo: agregar una declaración, configurarla, colocarla y verificarla.",
+        "detail": "Explora las herramientas avanzadas para ver una breve lección sobre archivos, código fuente, apariencia y exportación, o finaliza esta ruta."
+      },
+      "editor-advanced-toggle": {
+        "title": "Mostrar vistas avanzadas",
+        "body": "Selecciona Vistas avanzadas en la barra de herramientas del proyecto.",
+        "detail": "Esto muestra la navegación de Archivos y las pestañas de edición Código fuente y Propiedades sin modificar tus datos."
+      },
+      "editor-advanced-tabs": {
+        "title": "Ve a Archivos y Código fuente",
+        "body": "Selecciona Archivos en la navegación izquierda.",
+        "detail": "El panel central cambia a Código fuente para el archivo .jdef seleccionado. Contenido y Estructurado siguen siendo la ruta visual más segura."
+      },
+      "editor-advanced-appearance": {
+        "title": "Vuelve a la apariencia visual",
+        "body": "Selecciona Contenido y después Apariencia del Jump en el explorador.",
+        "detail": "Esto regresa a la edición Estructurada. La apariencia, los diseños, los temas y las herramientas de inspección de la vista previa controlan la presentación por separado del contenido."
+      },
+      "editor-advanced-export": {
+        "title": "Exporta solo cuando esté listo",
+        "body": "La acción Exportar .jmp empaqueta un proyecto terminado para usarlo en el Rastreador.",
+        "detail": "La exportación valida primero las definiciones, las referencias, los archivos y los recursos. El recorrido no crea un archivo comprimido; continúa cuando encuentres la acción."
+      },
+      "editor-summary": {
+        "title": "Creaste un Jump funcional",
+        "body": "Recorriste el explorador y completaste el ciclo principal del Editor: agregar, configurar, colocar y verificar.",
+        "detail": "Continúa con la lección del Rastreador o termina ahora. Este proyecto temporal se elimina después de que elijas la interfaz."
+      },
+      "tracker-overview": {
+        "title": "Estás en el Rastreador de práctica",
+        "body": "La ruta que elegiste abrió una Chain aislada. La barra izquierda contiene la Tierra y los Jumps ordenados; la vista principal muestra la entrada seleccionada y las pestañas superiores reúnen los resultados duraderos.",
+        "detail": "Nada de lo que ves aquí aparece en tus Chains guardadas. Continúa para recorrer el Rastreador por tu cuenta."
+      },
+      "tracker-library": {
+        "title": "Abre la Biblioteca de Jumps",
+        "body": "Selecciona Biblioteca en la parte superior de la barra izquierda.",
+        "detail": "La Biblioteca reemplaza la cronología por los Jumps instalados que puedes agregar. La cronología actual se conserva."
+      },
+      "tracker-add-jump": {
+        "title": "Agrega La Encrucijada",
+        "body": "En la tarjeta de biblioteca La Encrucijada, selecciona Agregar a la Chain.",
+        "detail": "El Rastreador vuelve a la cronología, agrega el Jump al final, lo selecciona y muestra sus Choices en la vista principal.",
+        "completedTitle": "La Encrucijada ya está en tu Chain",
+        "completedBody": "El Rastreador regresó a la Chain, agregó La Encrucijada después de El inicio del sendero y la seleccionó por ti.",
+        "completedDetail": "La entrada resaltada de la cronología conserva el lugar de este Jump en tu historia. Sus Choices ya están visibles en la vista principal."
+      },
+      "tracker-route-choice": {
+        "title": "Toma una decisión decisiva",
+        "body": "En Elegir una ruta, selecciona Camino del bosque o Camino costero.",
+        "detail": "Esta es una selección única: elegir una opción reemplaza la otra. El resultado se guarda en esta entrada exacta del Jump."
+      },
+      "tracker-perk-choice": {
+        "title": "Obtén entrenamiento duradero",
+        "body": "Activa Entrenamiento de campo.",
+        "detail": "Esta Choice de alternancia gasta su costo y otorga una ventaja. El Rastreador proyectará esa ventaja en el Inventario."
+      },
+      "tracker-item-choice": {
+        "title": "Lleva algo contigo",
+        "body": "Activa Mochila de viajero.",
+        "detail": "Esta Choice de alternancia gasta su costo y otorga un objeto que el Rastreador proyecta en el Inventario."
+      },
+      "tracker-reorder": {
+        "title": "Organiza el viaje",
+        "body": "En la cronología izquierda, mueve La Encrucijada antes de El inicio del sendero arrastrándola o mediante la acción Mover hacia antes.",
+        "detail": "La Tierra permanece fija al principio. Reordenar cambia la cronología, pero conserva las decisiones vinculadas a su Jump."
+      },
+      "tracker-inventory": {
+        "title": "Consulta lo que perdura",
+        "body": "Selecciona Inventario en la navegación superior de la página.",
+        "detail": "Esta navegación reemplaza la vista del Jump por las ventajas y los objetos persistentes de la Chain. Continúa cuando se active la pestaña."
+      },
+      "tracker-inventory-result": {
+        "title": "Tu ventaja y tu objeto son persistentes",
+        "body": "El Inventario ahora contiene Entrenamiento de campo y Mochila de viajero, obtenidos mediante tus elecciones anteriores.",
+        "detail": "Cada registro muestra su tipo y su Jump de origen. El punto de corte histórico también permite saber cuándo ingresó un beneficio a la Chain."
+      },
+      "tracker-supplements": {
+        "title": "Abre Suplementos",
+        "body": "Selecciona Suplementos en la navegación superior de la página.",
+        "detail": "Esta página administra sistemas opcionales. Los suplementos comienzan desactivados y pueden agregar sus propias páginas."
+      },
+      "tracker-enable-body-mod": {
+        "title": "Activa Body Mod clásico",
+        "body": "En la tarjeta Body Mod clásico, activa Habilitado.",
+        "detail": "Al activarlo se agrega una página de Body Mod clásico, pero no se sale de Administrar suplementos."
+      },
+      "tracker-open-body-mod": {
+        "title": "Entra a Body Mod",
+        "body": "En la tarjeta Body Mod clásico, selecciona Abrir página.",
+        "detail": "La página exclusiva del suplemento reemplaza la lista de administración. Puedes volver mediante Administrar suplementos.",
+        "completedTitle": "Body Mod clásico está abierto",
+        "completedBody": "La lista de administración fue reemplazada por el espacio de trabajo exclusivo de Body Mod clásico.",
+        "completedDetail": "La página resaltada contiene su presupuesto, configuración física, tipo de cuerpo, estadísticas, ventajas y controles de revisión."
+      },
+      "tracker-use-body-mod": {
+        "title": "Define una base persistente",
+        "body": "En Configuración física y cuerpo, elige una configuración o un tipo de cuerpo distinto del actual.",
+        "detail": "Body Mod describe la base persistente del Jumper, por lo que esta configuración acompaña a la Chain."
+      },
+      "tracker-summary": {
+        "title": "Tu Chain de práctica está en marcha",
+        "body": "Recorriste la Biblioteca, la cronología, el Inventario, los Suplementos y Body Mod mientras registrabas un conjunto completo de decisiones de práctica.",
+        "detail": "Continúa con la lección del Editor o termina ahora. Esta Chain temporal se elimina después de que elijas la interfaz."
+      },
+      "mode-choice": {
+        "title": "Elige tu interfaz",
+        "body": "Elige el ajuste predefinido de presentación que deseas usar después del recorrido.",
+        "detail": "Ideal para principiantes agrega orientación; Avanzado muestra la interfaz completa. Si reinicias el recorrido, puedes conservar la configuración ya establecida."
+      }
+    },
+    "fixture": {
+      "author": "Jumpchain Visualizer",
+      "pointsName": "Puntos de Choice",
+      "chainName": "Tu Chain de práctica",
+      "crossroadsName": "La Encrucijada",
+      "crossroadsDescription": "Un pequeño Jump de práctica con las Choices necesarias para aprender a usar el Rastreador.",
+      "trailheadName": "El inicio del sendero",
+      "trailheadDescription": "Un prólogo breve para practicar cómo organizar una Chain.",
+      "prologueName": "Antes del camino",
+      "prologueText": "Toda Chain comienza en algún lugar.",
+      "editorName": "Mi primer Jump",
+      "editorDescription": "Un pequeño espacio de trabajo guiado para aprender a usar el Editor.",
+      "sectionName": "Primeros pasos",
+      "sectionText": "Elige lo que llevarás en el camino.",
+      "editorChoicesComment": "Tu Choice guiada se agregará aquí.",
+      "guidedChoiceName": "Compañero de viaje",
+      "routeName": "Elegir una ruta",
+      "routeForest": "Camino del bosque",
+      "routeCoast": "Camino costero",
+      "trainingName": "Entrenamiento de campo",
+      "packName": "Mochila de viajero"
+    }
+  }
+}

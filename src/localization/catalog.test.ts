@@ -21,9 +21,19 @@ describe("translation catalog", () => {
   it("discovers the canonical English resource and defaults unknown tags", () => {
     expect(translationCatalog.languages.map((pack) => pack.name)).toEqual([
       "English",
+      "Español (Latinoamérica)",
       "Português (Brasil)",
     ]);
     expect(translationCatalog.english.languageTag).toBe("en");
+    expect(packForLanguage("es-419")).toMatchObject({
+      name: "Español (Latinoamérica)",
+      languageTag: "es-419",
+      direction: "ltr",
+    });
+    expect(
+      (packForLanguage("es-419").messages.common as Record<string, string>)
+        .settings,
+    ).toBe("Configuración");
     expect(packForLanguage("pt-BR")).toMatchObject({
       name: "Português (Brasil)",
       languageTag: "pt-BR",

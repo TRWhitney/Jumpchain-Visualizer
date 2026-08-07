@@ -5,6 +5,7 @@ import {
   localeList,
   localeNumber,
   normalizeAvailableLanguage,
+  packForLanguage,
   translationCatalog,
   validateTranslationPack,
 } from "./catalog";
@@ -20,8 +21,18 @@ describe("translation catalog", () => {
   it("discovers the canonical English resource and defaults unknown tags", () => {
     expect(translationCatalog.languages.map((pack) => pack.name)).toEqual([
       "English",
+      "Português (Brasil)",
     ]);
     expect(translationCatalog.english.languageTag).toBe("en");
+    expect(packForLanguage("pt-BR")).toMatchObject({
+      name: "Português (Brasil)",
+      languageTag: "pt-BR",
+      direction: "ltr",
+    });
+    expect(
+      (packForLanguage("pt-BR").messages.common as Record<string, string>)
+        .settings,
+    ).toBe("Configurações");
     expect(normalizeAvailableLanguage("not-a-real-locale")).toBe("en");
   });
 

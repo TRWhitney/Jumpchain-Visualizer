@@ -1,0 +1,3603 @@
+{
+  "supplements": {
+    "modules": {
+      "body-mod": {
+        "shortName": "Body Mod",
+        "name": "Body Mod Clássico",
+        "description": "Fundamento alternativo · opções completas e estatísticas."
+      },
+      "essential-body-mod": {
+        "shortName": "Body Mod Essencial",
+        "name": "Modificação Corporal Essencial",
+        "description": "Fundamento alternativo · mutuamente exclusivo com Classic."
+      },
+      "warehouse": {
+        "shortName": "Cosmic Warehouse",
+        "name": "Cosmic Warehouse",
+        "description": "Alternativa persistente-espacial."
+      },
+      "personal-reality": {
+        "shortName": "Realidade Pessoal",
+        "name": "Realidade Pessoal",
+        "description": "Alternativas de espaço persistente · escolhas iniciais e pontos acumulados."
+      },
+      "universal-drawbacks": {
+        "shortName": "Drawbacks Universais",
+        "name": "Drawbacks Universais",
+        "description": "Efeitos de regra recorrentes a nível da Chain."
+      },
+      "quest-mode": {
+        "shortName": "Modo de Missões",
+        "name": "Modo de Missões",
+        "description": "As missões por Jump substituem o CP de partida normal."
+      },
+      "story": {
+        "shortName": "História",
+        "name": "História",
+        "description": "Uma narrativa de Prévia ao vivo para cada Jump."
+      }
+    },
+    "catalogDiagnostics": {
+      "unknown": "Entrada de catálogo desconhecida: {{id}}",
+      "requires": "O {{entry}} requer o {{requirement}}.",
+      "conflicts": "O {{entry}} entra em conflito com o {{conflict}}."
+    },
+    "catalogs": {
+      "essential": {
+        "basic-refinements": {
+          "name": "Refinamentos básicos",
+          "summary": "Refinamentos cosméticos, físicos, mentais, espirituais e secundários."
+        },
+        "the-interface": {
+          "name": "A interface",
+          "summary": "Escolha as janelas opcionais de personagem, status, partido, missão, temporizador, ajuda e notificação."
+        },
+        "cosmetic-refinement": {
+          "name": "Refinamento cosmético",
+          "summary": "A Cosmetic Refinement altera a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "cosmetic-reconfiguration": {
+          "name": "Reconfiguração cosmética",
+          "summary": "A Reconfiguração Cosmética altera a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "physical-health-refinement": {
+          "name": "Refinamento da Saúde Física",
+          "summary": "A Refinamento de Saúde Física altera a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "physical-prowess-refinement": {
+          "name": "Refinamento da habilidade física",
+          "summary": "A Refinamento de Proficiência Física altera a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "mental-health-refinement": {
+          "name": "Refinamento da saúde mental",
+          "summary": "A Refinamento de Saúde Mental altera a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "mental-awareness-refinement": {
+          "name": "Refinamento da Consciência Mental",
+          "summary": "A Refinamento de Consciência Mental muda a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "spiritual-awareness-refinement": {
+          "name": "Refinamento da consciência espiritual",
+          "summary": "A Refinamento da Consciência Espiritual muda a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "spiritual-resource-refinement": {
+          "name": "Refinamento dos recursos espirituais",
+          "summary": "A Refinamento de Recursos Espirituais muda a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "secondary-powers-refinement": {
+          "name": "Refinamento de poderes secundários",
+          "summary": "A Refinamento de Poderes Secundários altera a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "morality-refinement": {
+          "name": "Refinamento da moralidade",
+          "summary": "A Refinamento de Moralidade altera a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "the-character-sheet": {
+          "name": "A folha de caráter",
+          "summary": "A Ficha de Caracteres altera a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "the-status-window": {
+          "name": "A janela de status",
+          "summary": "A janela de status altera a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "the-party-window": {
+          "name": "A Janela da Festa",
+          "summary": "A janela de partido altera a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "the-quest-window": {
+          "name": "A Janela da Quest",
+          "summary": "A Janela Quest muda a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "the-timer-window": {
+          "name": "A Janela do Tempo",
+          "summary": "A janela temporizadora altera a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "the-help-menu": {
+          "name": "O Menu de Ajuda",
+          "summary": "O Menu de Ajuda altera a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "push-notifications": {
+          "name": "Notificações de empurramento",
+          "summary": "As notificações de empurrão alteram a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "accessibility": {
+          "name": "Acessibilidade",
+          "summary": "A acessibilidade altera a construção básica permanente de acordo com as suas fileiras e limites listados."
+        },
+        "physical-perfection-i-to-iii": {
+          "name": "Perfeição física I a III",
+          "summary": "A Perfeição Física I a III altera a construção física permanente de acordo com as suas fileiras e limites listados."
+        },
+        "physical-resilience-i-to-iii": {
+          "name": "Resiliência física I a III",
+          "summary": "A Resiliência Física I a III altera a construção física permanente de acordo com as suas fileiras e limites listados."
+        },
+        "reduced-sustenance-i-to-iii": {
+          "name": "Substâncias de subsistência reduzidas I a III",
+          "summary": "A Substância Reduzida I a III altera a construção física permanente de acordo com as suas fileiras e limites listados."
+        },
+        "environmental-tolerance-i-and-ii": {
+          "name": "Tolerância ambiental I e II",
+          "summary": "A Tolerança Ambiental I e II alteram a construção física permanente de acordo com as suas fileiras e limites listados."
+        },
+        "regeneration-i-to-ii": {
+          "name": "Regeneração I a II",
+          "summary": "A regeneração I a II altera a construção física permanente de acordo com as suas fileiras e limites listados."
+        },
+        "ageless-i-to-ii": {
+          "name": "Idade I a II",
+          "summary": "A Ageless I a II altera a construção física permanente de acordo com as suas fileiras e limites listados."
+        },
+        "undead-physiology-i": {
+          "name": "Fisiologia dos mortos-vivos I",
+          "summary": "Fisiologia dos mortos-vivos Eu altera a construção física permanente de acordo com as suas fileiras e limites listados."
+        },
+        "elemental-physiology-i": {
+          "name": "Fisiologia Elemental I",
+          "summary": "Fisiologia Elemental I altera a construção física permanente de acordo com suas fileiras e limites listados."
+        },
+        "creature-soul-i-to-v": {
+          "name": "Alma da criatura I a V",
+          "summary": "A Alma da Criatura I a V muda a construção física permanente de acordo com as suas fileiras e limites listados."
+        },
+        "heightened-senses-i-and-ii": {
+          "name": "Aumentos dos sentidos I e II",
+          "summary": "Os sentidos aumentados I e II alteram a construção mental permanente de acordo com as suas fileiras e limites listados."
+        },
+        "heightened-reactions-i-and-ii": {
+          "name": "reações intensificadas I e II",
+          "summary": "As reações aumentadas I e II alteram a construção mental permanente de acordo com as suas fileiras e limites listados."
+        },
+        "mental-prowess-i-to-iii": {
+          "name": "Proficiência Mental I a III",
+          "summary": "A Proficiência Mental I a III altera a construção mental permanente de acordo com as suas fileiras e limites listados."
+        },
+        "mental-resistance-i-to-iii": {
+          "name": "Resistência Mental I a III",
+          "summary": "Resistência Mental I a III altera a construção mental permanente de acordo com as suas fileiras e limites listados."
+        },
+        "blank-i-and-ii": {
+          "name": "Em branco I e II",
+          "summary": "O espaço em branco I e II altera a construção mental permanente de acordo com as suas fileiras e limites listados."
+        },
+        "empathetic-i-and-ii": {
+          "name": "Empatético I e II",
+          "summary": "Empatético I e II alteram a construção mental permanente de acordo com as suas fileiras e limites listados."
+        },
+        "charismatic-i-and-ii": {
+          "name": "Carismático I e II",
+          "summary": "Os carismáticos I e II alteram a construção mental permanente de acordo com as suas fileiras e limites listados."
+        },
+        "wild-empathy-i-and-ii": {
+          "name": "Empatia selvagem I e II",
+          "summary": "A Empatia Selvagem I e II alteram a construção espiritual permanente de acordo com as suas fileiras e limites listados."
+        },
+        "unflappable": {
+          "name": "Não se apertam",
+          "summary": "Manter a calma sob pressão e circunstâncias sobrenaturais."
+        },
+        "corruption-resistance": {
+          "name": "Resistência à Corrupção",
+          "summary": "Resista a influências que corromperam o corpo, a mente ou a alma."
+        },
+        "inertia-of-self-i-and-ii": {
+          "name": "Inércia do Self I e II",
+          "summary": "A inercia do Eu I e II altera a construção espiritual permanente de acordo com as suas fileiras e limites listados."
+        },
+        "supernatural-resource-recovery-i-to-iv": {
+          "name": "Recuperação de Recursos Supernaturais I a IV",
+          "summary": "A recuperação de recursos sobrenaturais I a IV altera a construção espiritual permanente de acordo com as suas fileiras e limites listados."
+        },
+        "alchemical-mastery-i-to-iv": {
+          "name": "Mestrado Alquímico I a IV",
+          "summary": "A Mestrandade Alquímica I a IV altera as competências permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "magical-mastery-i-to-iv": {
+          "name": "Mestreza Mágica I a IV",
+          "summary": "O Mestre Magico I a IV altera as habilidades permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "strategic-mastery-i-to-iv": {
+          "name": "Mestrado estratégico I a IV",
+          "summary": "A Mestrandade Estratégica I a IV altera as competências permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "leadership-mastery-i-to-iv": {
+          "name": "Mestrado em Liderança I a IV",
+          "summary": "A Mestrandade de Liderança I a IV altera as competências permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "martial-mastery-i-to-iv": {
+          "name": "Mestreza Marcial I a IV",
+          "summary": "O Mestreamento Marcial I a IV altera as habilidades permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "scientific-mastery-i-to-iv": {
+          "name": "Mestrado científico I a IV",
+          "summary": "A Mestrandade Científica I a IV altera as competências permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "engineering-mastery-i-to-iv": {
+          "name": "Mestrado em Engenharia I a IV",
+          "summary": "O Mestrado em Engenharia I a IV altera as competências permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "reverse-engineering-mastery-i-to-iv": {
+          "name": "Mestrado em Engenharia Reversa I a IV",
+          "summary": "A Mestrado em Engenharia Reversa I a IV altera as competências permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "biomedical-mastery-i-to-iv": {
+          "name": "Mestrado em Biomedicina I a IV",
+          "summary": "A Mestrandade Biomédica I a IV altera as competências permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "occult-mastery-i-to-iv": {
+          "name": "Mestreza Oculta I a IV",
+          "summary": "O domínio oculto I a IV altera as habilidades permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "subterfuge-mastery-i-to-iv": {
+          "name": "Subterfúgio Mestrado I a IV",
+          "summary": "Subterfúgio Mestrado I a IV altera as habilidades permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "social-mastery-i-to-iv": {
+          "name": "Mestrado social I a IV",
+          "summary": "O domínio social I a IV altera as competências permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "wilderness-mastery-i-to-iv": {
+          "name": "Domínio da natureza I a IV",
+          "summary": "O domínio da natureza I a IV altera as competências permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "polyglot": {
+          "name": "Polínglo",
+          "summary": "Compreender e aprender rapidamente as línguas encontradas."
+        },
+        "magical-engineer": {
+          "name": "Engenheiro Mágico",
+          "summary": "O Engenheiro Mágico muda as habilidades permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "thanatologist": {
+          "name": "Tânatólogo",
+          "summary": "O Thanatologist muda as habilidades permanentes construídas de acordo com suas fileiras e limites listados."
+        },
+        "geneticist": {
+          "name": "Geneticista",
+          "summary": "O genetista muda as habilidades permanentes construídas de acordo com suas fileiras e limites listados."
+        },
+        "vehicle-empathy": {
+          "name": "Empatia com veículos",
+          "summary": "A Vehicle Empathy muda as habilidades permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "tooth-and-claw": {
+          "name": "Dente e garra",
+          "summary": "O Dente e a Garra altera as habilidades permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "natural-athlete": {
+          "name": "Atleta natural",
+          "summary": "O Atleta Natural muda as habilidades permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "natural-teacher": {
+          "name": "Professora Natural",
+          "summary": "O Mestre Natural muda as habilidades permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "field-technician": {
+          "name": "Técnico de campo",
+          "summary": "O técnico de campo altera as competências permanentes construídas de acordo com as suas fileiras e limites listados."
+        },
+        "physical-perfection-iv-and-v": {
+          "name": "Perfeição Física IV e V",
+          "summary": "A Perfeição Física IV e V muda a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "physical-resilience-iv-and-v": {
+          "name": "Resiliência física IV e V",
+          "summary": "A Resiliência Física IV e V altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "environmental-tolerance-iii-and-iv": {
+          "name": "Tolerância ambiental III e IV",
+          "summary": "A Tolerança Ambiental III e IV alteram a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "regeneration-iii": {
+          "name": "Regeneração III",
+          "summary": "A Regeneração III altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "elemental-resistance-i-to-iv": {
+          "name": "Resistência elementar I a IV",
+          "summary": "Resistência Elemental I a IV altera a construção sobrenatural permanente de acordo com suas fileiras e limites listados."
+        },
+        "heightened-senses-iii": {
+          "name": "Aumentados os sentidos III",
+          "summary": "Os Senses Aumentados III alteram a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "unusual-senses": {
+          "name": "Sentidos incomuns",
+          "summary": "Os sentidos incomuns alteram a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "heightened-reactions-iii-and-iv": {
+          "name": "reações intensificadas III e IV",
+          "summary": "As reações aumentadas III e IV alteram a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "mental-prowess-iv": {
+          "name": "Proficiência Mental IV",
+          "summary": "A Proeza Mental IV altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "empathetic-iii": {
+          "name": "Empatético III",
+          "summary": "Empathetic III altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "charismatic-iii": {
+          "name": "Carismático III",
+          "summary": "O Carismático III altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "form-mastery-i-to-iii": {
+          "name": "Forma de mestria I a III",
+          "summary": "O Formulário de Mestrado I a III altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "morphic-form-i-to-iii": {
+          "name": "Formulário morfológico I a III",
+          "summary": "O Formulário Morfico I a III altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "reduced-form-i-to-iv": {
+          "name": "Formulário reduzido I a IV",
+          "summary": "O Formulário Reduzido I a IV altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "enlarged-form-i-to-iv": {
+          "name": "Formulário alargado I a IV",
+          "summary": "O Formulário Amplio I a IV altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "animal-form-i-and-ii": {
+          "name": "Forma animal I e II",
+          "summary": "A forma animal I e II altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "fantastic-beast-form-i-and-ii": {
+          "name": "Fantastic Beast Form I e II",
+          "summary": "Fantastic Beast Form I e II alteram a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "intangible-form-i-and-ii": {
+          "name": "Formulários immateriais I e II",
+          "summary": "O Formulário Imaterial I e II altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "energy-projection": {
+          "name": "Projecção de energia",
+          "summary": "Projeta uma forma selecionada de energia prejudicial."
+        },
+        "material-creation": {
+          "name": "Criação Material",
+          "summary": "A Criação Material muda a construção sobrenatural permanente de acordo com suas fileiras e limites listados."
+        },
+        "kinesis-i-to-iv": {
+          "name": "Cinese I a IV",
+          "summary": "A cinese I a IV altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "flight-i-to-iv": {
+          "name": "Voo I a IV",
+          "summary": "Voos I a IV alteram a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "spaceflight-i-and-ii": {
+          "name": "Voos espaciais I e II",
+          "summary": "Os voos espaciais I e II alteram a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "bodily-reinforcement-techniques-i-and-ii": {
+          "name": "Técnicas de reforço corporal I e II",
+          "summary": "As técnicas de reforço corporal I e II alteram a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "inventory-i-to-iv": {
+          "name": "Inventário I a IV",
+          "summary": "O inventário I a IV altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "power-toggle": {
+          "name": "Acompanhamento de energia",
+          "summary": "Supre as habilidades possíveis e os seus efeitos visíveis."
+        },
+        "personal-immunity": {
+          "name": "Imunidade pessoal",
+          "summary": "A Imunidade Pessoal altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "power-drain-protection": {
+          "name": "Proteção contra a fuga de energia",
+          "summary": "A Proteção de Desgaste de Energia altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "power-combination-i-to-iii": {
+          "name": "Combinação de potência I a III",
+          "summary": "A combinação de potências I a III altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "private-reality": {
+          "name": "Realidade privada",
+          "summary": "Cria uma realidade extradimensional pessoal."
+        },
+        "cheat-death-i-and-ii": {
+          "name": "A morte de trapaceiro I e II",
+          "summary": "A morte de trapaça I e II altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "reflexive-reinforcement-i-and-ii": {
+          "name": "Reforço Reflexivo I e II",
+          "summary": "Reforço Reflexivo I e II altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "master-of-many-arts-i-to-iii": {
+          "name": "Mestre de muitas artes I a III",
+          "summary": "Mestre de Muitas Artes I a III altera a construção sobrenatural permanente de acordo com suas fileiras e limites listados."
+        },
+        "defense-piercing-techniques-i-and-ii": {
+          "name": "Técnicas de Perforação de Defesa I e II",
+          "summary": "As técnicas de Perforação de Defesa I e II alteram a construção sobrenatural permanente de acordo com suas fileiras e limites listados."
+        },
+        "trivial-applications": {
+          "name": "Aplicações triviais",
+          "summary": "A Trivial Applications altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "over-caster": {
+          "name": "Over-Caster",
+          "summary": "O Over-Caster altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "healing-touch-i-to-iv": {
+          "name": "Cura do Toque I a IV",
+          "summary": "O Toque I a IV muda a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "energy-drain-i-to-v": {
+          "name": "Descarga de energia I a V",
+          "summary": "A energia de drenagem I a V altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "minion-creation-i-to-iii": {
+          "name": "Criação Minion I a III",
+          "summary": "Minion Creation I a III altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "minion-empowerment-i-to-iv": {
+          "name": "Empoderamento de Minion I a IV",
+          "summary": "O Minion Empowerment I a IV altera a construção sobrenatural permanente de acordo com as suas fileiras e limites listados."
+        },
+        "divinity": {
+          "name": "Divindade",
+          "summary": "Estabelece um portfólio divino e autoridade metafísica."
+        },
+        "essence-infusion": {
+          "name": "Infusão de essência",
+          "summary": "Dê uma proteção fiduciária e devolução confiável a um item não CP."
+        },
+        "essence-integration": {
+          "name": "Integração de essência",
+          "summary": "Tratar a tecnologia implantada ou a magitech como parte da forma base."
+        },
+        "essential-annexation-i-to-iv": {
+          "name": "Anexo essencial I a IV",
+          "summary": "Os anexos essenciais I a IV alteram os elementos permanentes construídos de acordo com as suas fileiras e limites listados."
+        },
+        "essential-item": {
+          "name": "Item essencial",
+          "summary": "Permitir que um item seja importado em configurações futuras a um nível local adequado."
+        },
+        "essence-transfer": {
+          "name": "Transferência de essência",
+          "summary": "Transferir uma quantidade escolhida de EP para um Companheiro elegível."
+        },
+        "essence-link-i-and-ii": {
+          "name": "Essencia Links I e II",
+          "summary": "Essence Link I e II alteram os Companheiros permanentes construídos de acordo com as suas fileiras e limites listados."
+        },
+        "essential-companion": {
+          "name": "Companheiro essencial",
+          "summary": "Fornecer proteções persistentes de importação e de luvas a um Companheiro."
+        },
+        "dependency": {
+          "name": "Dependência",
+          "summary": "Requer acesso regular a uma substância específica."
+        },
+        "standout": {
+          "name": "Outro destaque",
+          "summary": "Torne-se cada vez mais notável, irritante ou provocativo."
+        },
+        "unnatural-presence": {
+          "name": "Presença não natural",
+          "summary": "Causa uma impressão sobrenatural inconfundível."
+        },
+        "elemental-vulnerability": {
+          "name": "Vulnerabilidade Elemental",
+          "summary": "Sofrir uma fraqueza crescente para um elemento selecionado."
+        },
+        "vulnerability": {
+          "name": "Vulnerabilidade",
+          "summary": "Sofrir uma fraqueza crescente para uma substância selecionada."
+        },
+        "achilles-heel": {
+          "name": "Calcanhar de Aquiles",
+          "summary": "Mantém um ponto vulnerável que inimigos determinados possam atingir."
+        },
+        "lovable-goof": {
+          "name": "Amável Goof",
+          "summary": "Perder o acesso a Vantagens sociais em troca de charme estranho."
+        },
+        "compulsions": {
+          "name": "Compulsões",
+          "summary": "Aceita várias compulsões menores ou uma compulsão maior."
+        },
+        "softhearted": {
+          "name": "Com o coração macio",
+          "summary": "Tornar-se incomumente suscetível a pedidos de ajuda."
+        },
+        "form-locked-i-and-ii": {
+          "name": "Formulário bloqueado I e II",
+          "summary": "O formulário bloqueado I e II altera as Desvantagens permanentes que se constroem de acordo com as suas fileiras e limites listados."
+        },
+        "wardrobe-malfunction-i-and-ii": {
+          "name": "Malfunção do armário I e II",
+          "summary": "A falha de guarda-roupa I e II altera os inconvenientes permanentes que se constroem de acordo com as suas fileiras e limites listados."
+        },
+        "interface": {
+          "name": "A interface",
+          "summary": "Escolha as janelas opcionais de personagem, status, partido, missão, temporizador, ajuda e notificação."
+        },
+        "physical-perfection": {
+          "name": "Perfeição física",
+          "summary": "Melhora todo o desempenho físico do pico humano até cinco vezes o pico."
+        },
+        "physical-resilience": {
+          "name": "Resiliência física",
+          "summary": "Fornece uma imunidade crescente a doenças, toxinas, radiação e lesões."
+        },
+        "reduced-sustenance": {
+          "name": "A redução da alimentação",
+          "summary": "Reduz e amplia progressivamente as necessidades alimentares e de bebidas comuns."
+        },
+        "environmental-tolerance": {
+          "name": "Tolerância ambiental",
+          "summary": "Protege contra a respiração, temperatura, pressão e riscos do vácuo."
+        },
+        "regeneration": {
+          "name": "Regeneração",
+          "summary": "Acelera a recuperação de feridas menores através de membros cortados."
+        },
+        "ageless": {
+          "name": "Sem idade",
+          "summary": "Prolongar a vida ou parar de envelhecer após a maturidade física."
+        },
+        "undead-physiology": {
+          "name": "Fisiologia dos mortos-vivos",
+          "summary": "Cria uma fisiologia base de mortos-vivos com níveis mais altos de financiamento de habilidades associadas."
+        },
+        "elemental-physiology": {
+          "name": "Fisiologia Elemental",
+          "summary": "Cria uma fisiologia elementar ligada a um elemento escolhido."
+        },
+        "creature-soul": {
+          "name": "Alma da criatura",
+          "summary": "Manifesta e eventualmente assume uma forma criatura escolhida."
+        },
+        "heightened-senses": {
+          "name": "Aumentar os sentidos",
+          "summary": "Melhora o alcance e a precisão dos sentidos comuns."
+        },
+        "heightened-reactions": {
+          "name": "reações aumentadas",
+          "summary": "Acelera o tempo de reação e desenvolve a consciência de perigo."
+        },
+        "mental-prowess": {
+          "name": "Capacidade Mental",
+          "summary": "Melhora a memória, o processamento, a concentração e a resistência mental."
+        },
+        "mental-resistance": {
+          "name": "Resistência Mental",
+          "summary": "Resiste à influência mental e à alteração hostil."
+        },
+        "blank": {
+          "name": "Em branco",
+          "summary": "Bloqueia a observação sobrenatural de informações pessoais e história."
+        },
+        "empathetic": {
+          "name": "Empatético",
+          "summary": "Melhora a consciência e a compreensão das emoções dos outros."
+        },
+        "charismatic": {
+          "name": "Carismático",
+          "summary": "Melhora a presença pessoal e a influência social."
+        },
+        "wild-empathy": {
+          "name": "Empatia selvagem",
+          "summary": "Entender e influenciar animais e outras criaturas não sábias."
+        },
+        "inertia-of-self": {
+          "name": "Inércia do Eu",
+          "summary": "Preservar a identidade contra mudanças metafísicas indesejadas."
+        },
+        "resource-recovery": {
+          "name": "Recuperação de Recursos Sobrenaturais",
+          "summary": "Acelera a recuperação de recursos mágicos e outros não físicos."
+        },
+        "strategic-mastery": {
+          "name": "Mestreamento estratégico",
+          "summary": "Aprenda estratégia e táticas através da familiaridade."
+        },
+        "leadership-mastery": {
+          "name": "Mestreza na liderança",
+          "summary": "Aprenda a comando, administração e liderança organizacional."
+        },
+        "martial-mastery": {
+          "name": "Mestreza Marcial",
+          "summary": "Aprenda disciplinas de combate armadas e desarmadas."
+        },
+        "scientific-mastery": {
+          "name": "Mestreza Científica",
+          "summary": "Aprenda disciplinas científicas encontradas em toda a Chain."
+        },
+        "engineering-mastery": {
+          "name": "Mestrado em Engenharia",
+          "summary": "Aprenda a desenhar, construir e manter disciplinas."
+        },
+        "biomedical-mastery": {
+          "name": "Mestrado em Biomédicas",
+          "summary": "Aprenda medicina e ciências biológicas."
+        },
+        "occult-mastery": {
+          "name": "Mestreza oculta",
+          "summary": "Aprenda as tradições e práticas ocultistas."
+        },
+        "subterfuge-mastery": {
+          "name": "Mestreza subterfúgica",
+          "summary": "Aprenda a furtividade, infiltração e engano."
+        },
+        "social-mastery": {
+          "name": "Mestre social",
+          "summary": "Aprenda a interação social e a navegação cultural."
+        },
+        "wilderness-mastery": {
+          "name": "Domínio do deserto",
+          "summary": "Aprenda a sobrevivência e a disciplina da natureza."
+        },
+        "form-mastery": {
+          "name": "Mestreza da Forma",
+          "summary": "Melhora o controle, o acesso e a combinação de formas alternativas."
+        },
+        "morphic-form": {
+          "name": "Forma morfológica",
+          "summary": "Permite uma mudança de forma cada vez mais extensa."
+        },
+        "kinesis": {
+          "name": "Cinesis",
+          "summary": "Manipula um material ou força selecionados em escala crescente."
+        },
+        "flight": {
+          "name": "Voos",
+          "summary": "Proporciona um voo atmosférico cada vez mais rápido."
+        },
+        "inventory": {
+          "name": "Inventário",
+          "summary": "Cria armazenamento de itens pessoais extradimensionais."
+        },
+        "power-combination": {
+          "name": "Combinação de potência",
+          "summary": "Combina habilidades compatíveis em expressões unificadas."
+        },
+        "cheat-death": {
+          "name": "Engajar a Morte",
+          "summary": "Fornece métodos limitados para voltar da morte."
+        },
+        "healing-touch": {
+          "name": "Toque curativo",
+          "summary": "Cura outros com velocidade e alcance crescentes."
+        },
+        "essence-infusion-item": {
+          "name": "Infusão de essência",
+          "summary": "Dê uma proteção fiduciária e devolução confiável a um item não CP."
+        },
+        "essential-annexation": {
+          "name": "Anexo essencial",
+          "summary": "Atender propriedades cada vez maiores a um espaço persistente."
+        },
+        "essence-link": {
+          "name": "Linha de essência",
+          "summary": "Dê um Companheiro a escalar o EP e eventualmente o acesso à Essence."
+        },
+        "form-locked": {
+          "name": "Formulário bloqueado",
+          "summary": "Restringir as capacidades de suplemento aos formulários selecionados."
+        },
+        "wardrobe-malfunction": {
+          "name": "Malfunção do armário",
+          "summary": "Tornar a mudança de forma pouco confiável em relação à roupa."
+        }
+      },
+      "reality": {
+        "reality-cosmic-warehouse": {
+          "name": "Cosmic Warehouse",
+          "summary": "O Cosmic Warehouse está incluído no Realidade Pessoal de partida."
+        },
+        "reality-second-reality": {
+          "name": "Segunda Realidade",
+          "summary": "Criar um segundo Realidade Pessoal separado com as suas próprias compras e as mesmas Limitações."
+        },
+        "reality-boxes-and-boxes-and-boxes": {
+          "name": "Caixas e caixas e caixas",
+          "summary": "Caixas e Caixas e Caixas estão incluídas com o Realidade Pessoal de partida."
+        },
+        "reality-starting-space": {
+          "name": "Espaço de início",
+          "summary": "O espaço de partida está incluído no Realidade Pessoal de partida."
+        },
+        "reality-additional-space": {
+          "name": "Espaço adicional",
+          "summary": "Multiplicar cada dimensão padrão por dez com cada compra."
+        },
+        "reality-discount-additional-space": {
+          "name": "Desconto Espaço adicional",
+          "summary": "Multiplicar cada dimensão por três; duas compras contam como uma expansão completa."
+        },
+        "reality-adaptive-inactive-storage": {
+          "name": "Armazenamento inativo adaptativo",
+          "summary": "Criar um armazenamento seguro e inativo para posses com respaldo CP."
+        },
+        "reality-antibiotic-field": {
+          "name": "Campo de Antibióticos",
+          "summary": "O Campo Antibiótico está incluído no Realidade Pessoal de partida."
+        },
+        "reality-access-key": {
+          "name": "Chave de acesso",
+          "summary": "A chave de acesso está incluída no Realidade Pessoal de partida."
+        },
+        "reality-additional-keys": {
+          "name": "Chaves adicionais",
+          "summary": "Adicionar quatro chaves Realidade Pessoal sintonizadas por compra."
+        },
+        "reality-key-link": {
+          "name": "Linha-chave",
+          "summary": "Ligue o hall de entrada a portas abertas anteriormente por uma chave de acesso."
+        },
+        "reality-the-big-hole": {
+          "name": "O grande buraco",
+          "summary": "Adicionar uma abertura de eliminação coberta no vazio ilimitado."
+        },
+        "reality-the-loft": {
+          "name": "O LOFT",
+          "summary": "O LOFT modifica a configuração de serviços de utilidade Realidade Pessoals ao preço listado."
+        },
+        "reality-lofty-loft": {
+          "name": "Loft elevado",
+          "summary": "Adicionar uma área do tamanho do espaço de partida reservada para habitação e luxo."
+        },
+        "reality-underside": {
+          "name": "Subterrâneo",
+          "summary": "Permitam espaços no porão debaixo do Lofty Loft."
+        },
+        "reality-playing-with-portals": {
+          "name": "Jogar com os portais",
+          "summary": "Abrir os portais Realidade Pessoal em superfícies adequadas sem depender da chave de acesso."
+        },
+        "reality-portal-link": {
+          "name": "Linha do portal",
+          "summary": "Portos abertos do interior da Realidade para lugares visitados anteriormente."
+        },
+        "reality-portal-control-rod": {
+          "name": "Rodas de controle do portal",
+          "summary": "Abre os portais a alcance com um dispositivo de controle convocado."
+        },
+        "reality-free-portal": {
+          "name": "Portal livre",
+          "summary": "Abre portais sem superfície de apoio e direcione-se a qualquer parte da Realidade."
+        },
+        "reality-portal-aperture": {
+          "name": "Abertura do portal",
+          "summary": "Ampliar o tamanho do portal e a velocidade de abertura."
+        },
+        "reality-security-system": {
+          "name": "Sistema de segurança",
+          "summary": "O sistema de segurança está incluído no sistema de partida Realidade Pessoal."
+        },
+        "reality-detainment": {
+          "name": "Detenção",
+          "summary": "A detenção modifica a configuração dos serviços públicos Realidade Pessoals ao preço listado."
+        },
+        "reality-security-personnel": {
+          "name": "Funcionários de segurança",
+          "summary": "O pessoal de segurança modifica a configuração dos serviços de utilidade Realidade Pessoals ao preço indicado."
+        },
+        "reality-force-wall": {
+          "name": "Muralha de Força",
+          "summary": "A Force Wall modifica a configuração de serviços de utilidade Realidade Pessoals ao preço listado."
+        },
+        "reality-partition-plan": {
+          "name": "Plano de partição",
+          "summary": "O Plano de Partição modifica a configuração de utilitários Realidade Pessoals ao preço listado."
+        },
+        "reality-automated-weapons-security-system": {
+          "name": "Sistema de segurança de armas automatizado",
+          "summary": "O Sistema de Segurança de Armas Automatizado modifica a configuração dos serviços públicos Realidade Pessoals ao preço listado."
+        },
+        "reality-environmentally-neutral": {
+          "name": "Não envolvem o ambiente",
+          "summary": "O Realidade Pessoal de partida é incluído no sistema de neutralidade ambiental."
+        },
+        "reality-environmental-controls": {
+          "name": "Controle ambiental",
+          "summary": "O Controle Ambiental modifica a configuração dos serviços públicos Realidade Pessoals ao preço listado."
+        },
+        "reality-improved-regulation": {
+          "name": "Melhoria da regulamentação",
+          "summary": "O Regulamento aprimorado modifica a configuração dos serviços públicos Realidade Pessoals ao preço listado."
+        },
+        "reality-the-question-of-shelving": {
+          "name": "A QUESTIÃO DO SELFING",
+          "summary": "A QUESTION OF SHELVING modifica a configuração dos serviços públicos Realidade Pessoals ao preço indicado."
+        },
+        "reality-storage-solutions": {
+          "name": "Soluções de armazenamento",
+          "summary": "A Storage Solutions modifica a configuração de serviços de utilidade Realidade Pessoals ao preço listado."
+        },
+        "reality-whos-got-the-powa": {
+          "name": "Quem tem a Powa?",
+          "summary": "Fornecer eletricidade estável suficiente para uma grande cidade."
+        },
+        "reality-power-overwhelming": {
+          "name": "O PODER OVERWHELMING",
+          "summary": "POWER OVERWHELMING modifica a configuração dos serviços públicos Realidade Pessoals ao preço indicado."
+        },
+        "reality-an-intervention": {
+          "name": "Uma intervenção",
+          "summary": "Uma intervenção modifica a configuração dos serviços públicos Realidade Pessoals ao preço indicado."
+        },
+        "reality-tashi-station": {
+          "name": "Estação Tashi",
+          "summary": "A estação Tashi modifica a configuração de serviços públicos Realidade Pessoals ao preço listado."
+        },
+        "reality-digital-extranet": {
+          "name": "Extranet digital",
+          "summary": "A Extranet Digital modifica a configuração de utilidades Realidade Pessoals ao preço listado."
+        },
+        "reality-voice-over-warehouse-protocol-cellular-service": {
+          "name": "Serviço celular de voz por protocolo de armazenamento",
+          "summary": "O Serviço Cellular Voice Over Warehouse Protocol modifica a configuração de utilitários Realidade Pessoals ao preço listado."
+        },
+        "reality-neutral-lighting": {
+          "name": "Iluminação neutra",
+          "summary": "Iluminação neutra está incluída no sistema de partida Realidade Pessoal."
+        },
+        "reality-natural-lighting": {
+          "name": "Iluminação natural",
+          "summary": "Forneça iluminação realista ao sol, à lua e às estrelas."
+        },
+        "reality-recyclotron": {
+          "name": "RECYCLOTRON",
+          "summary": "A RECYCLOTRON modifica a configuração dos serviços públicos Realidade Pessoals ao preço indicado."
+        },
+        "reality-fabricator": {
+          "name": "Fabricador",
+          "summary": "O fabricante modifica a configuração dos serviços de utilidade Realidade Pessoals ao preço indicado."
+        },
+        "reality-a-week-a-button": {
+          "name": "Uma Semana e um Botão",
+          "summary": "Um botão de semana e de ano está incluído no Realidade Pessoal de partida."
+        },
+        "reality-a-month": {
+          "name": "Um mês",
+          "summary": "A Month modifica a configuração de serviços de utilidade Realidade Pessoals ao preço listado."
+        },
+        "reality-a-months-return": {
+          "name": "Um Retorno de meses",
+          "summary": "Um Months Return modifica a configuração de utilitários Realidade Pessoals ao preço listado."
+        },
+        "reality-pipes-pipes-pipes": {
+          "name": "Tubos Tubos Tubos Tubos",
+          "summary": "Fornecer uma grande capacidade de água, canalização e esgoto."
+        },
+        "reality-waterworld": {
+          "name": "Mundo da Água",
+          "summary": "Waterworld modifica a configuração de serviços públicos Realidade Pessoals ao preço listado."
+        },
+        "reality-dynamic-waterworks": {
+          "name": "Atividades aquáticas dinâmicas",
+          "summary": "A Dynamic Waterworks modifica a configuração dos serviços públicos Realidade Pessoals ao preço listado."
+        },
+        "reality-basic-accommodations": {
+          "name": "ACCOMMODAÇÕES Básicas",
+          "summary": "A BASIC ACCOMMODATIONS modifica a configuração dos serviços públicos Realidade Pessoals ao preço indicado."
+        },
+        "reality-basic-nutrition": {
+          "name": "Nutrição básica",
+          "summary": "A BASIC NUTRITION modifica a configuração dos serviços públicos Realidade Pessoals ao preço indicado."
+        },
+        "reality-a-little-less-basic": {
+          "name": "Um pouco menos básico",
+          "summary": "A Little Less Basic modifica a configuração de utilitários Realidade Pessoals ao preço listado."
+        },
+        "reality-a-lot-less-basic": {
+          "name": "Muito menos básico",
+          "summary": "A Lot Less Basic modifica a configuração de utilitários Realidade Pessoals ao preço listado."
+        },
+        "reality-hallowed-earth": {
+          "name": "Terra sagrada",
+          "summary": "A HALLOWED EARTH modifica a configuração dos serviços públicos Realidade Pessoals ao preço indicado."
+        },
+        "reality-temporal-controls": {
+          "name": "Controle temporário",
+          "summary": "Mudança de fluxo de tempo enquanto o proprietário estiver fora da Realidade."
+        },
+        "reality-stasis": {
+          "name": "Estação",
+          "summary": "A Stasis modifica a configuração de serviços de utilidade Realidade Pessoals ao preço listado."
+        },
+        "reality-sectional-time": {
+          "name": "Tempo de seção",
+          "summary": "O Sectional Time modifica a configuração de serviços de utilidade Realidade Pessoals ao preço listado."
+        },
+        "reality-eternalizer": {
+          "name": "Eternalizador",
+          "summary": "O Eternalizer modifica a configuração de serviços de utilidade Realidade Pessoals ao preço listado."
+        },
+        "reality-eternal-eternalizer": {
+          "name": "Eterno eterno",
+          "summary": "Eternal Eternalizer modifica a configuração de serviços de utilidade Realidade Pessoals ao preço listado."
+        },
+        "reality-reality-extruder": {
+          "name": "A REALIDADE EXTRUDER",
+          "summary": "REALITY EXTRUDER modifica a configuração de serviços públicos Realidade Pessoals ao preço listado."
+        },
+        "reality-central-control": {
+          "name": "Controle central",
+          "summary": "Instalar um sistema de controle e inventário pseudo-inteligente."
+        },
+        "reality-your-robots": {
+          "name": "Os seus robôs",
+          "summary": "Os seus robôs modificam a configuração de serviços Realidade Pessoals ao preço listado."
+        },
+        "reality-maintenance-systems": {
+          "name": "Sistemas de manutenção",
+          "summary": "Os sistemas de manutenção modificam a configuração dos serviços públicos Realidade Pessoals ao preço listado."
+        },
+        "reality-calendar-change": {
+          "name": "CHANGE DE CALENDAR",
+          "summary": "O CHANGE do Calendário modifica a configuração dos serviços públicos Realidade Pessoals ao preço indicado."
+        },
+        "reality-sky-simulator": {
+          "name": "Simulador de céu",
+          "summary": "Substitua o teto por um céu simulado."
+        },
+        "reality-fly-a-kite": {
+          "name": "Voar um Kite",
+          "summary": "Fly a Kite modifica a configuração cosmética do Realidade Pessoals ao preço indicado."
+        },
+        "reality-realistic-ground-cover": {
+          "name": "Cobertura realista",
+          "summary": "Adicione solo natural e cobertura de solo."
+        },
+        "reality-dig-it": {
+          "name": "Escava-o",
+          "summary": "Dig Modifica a configuração cosmética do Realidade Pessoal ao preço listado."
+        },
+        "reality-treeline-timber": {
+          "name": "Treeline & Timber",
+          "summary": "Cercam áreas apropriadas com um limite florestal convincente."
+        },
+        "reality-wildlife-for-your-wild-life": {
+          "name": "Vida selvagem para a sua vida selvagem",
+          "summary": "Wildlife for Your Wild Life modifica a configuração cosmética do Realidade Pessoal ao preço listado."
+        },
+        "reality-the-pond": {
+          "name": "O lago",
+          "summary": "Substitua uma parede com um recurso de água configurável."
+        },
+        "reality-the-meaning-of-life": {
+          "name": "O sentido da vida",
+          "summary": "O significado da vida modifica a configuração cosmética do Realidade Pessoals ao preço listado."
+        },
+        "reality-hollow-earth": {
+          "name": "Terra vazia",
+          "summary": "Criar uma vasta extensão do mundo interno."
+        },
+        "reality-basic-thematics": {
+          "name": "Temáticas básicas",
+          "summary": "Aplicar um tema cosmético coerente a áreas selecionadas."
+        },
+        "reality-advanced-thematics": {
+          "name": "Temáticas avançadas",
+          "summary": "Torne a apresentação temática receptiva e imersiva."
+        },
+        "reality-theme-park": {
+          "name": "Parque temático",
+          "summary": "Aplicar temas gerenciados separados em toda a Realidade."
+        },
+        "reality-entrance-hall": {
+          "name": "Sala de entrada",
+          "summary": "O hall de entrada está incluído no Realidade Pessoal de partida."
+        },
+        "reality-the-benefactor-lounge": {
+          "name": "O Salão de Beneficentes",
+          "summary": "A Sala dos Beneficentes está incluída no ponto de partida Realidade Pessoal."
+        },
+        "reality-companion-calibration-unit": {
+          "name": "Unidade de Calibração de Companheiro",
+          "summary": "Calibrar os Companheiros elegíveis para os formulários importados e as condições locais."
+        },
+        "reality-the-reality-development-board": {
+          "name": "O painel de desenvolvimento da realidade",
+          "summary": "O REALITY DEVELOPMENT BOARD modifica a configuração das instalações Realidade Pessoals ao preço indicado."
+        },
+        "reality-the-medical-bay": {
+          "name": "A Baía Médica",
+          "summary": "Tratar problemas médicos e dentais para pacientes vivos."
+        },
+        "reality-the-better-bay": {
+          "name": "A Baía Melhor",
+          "summary": "A Better Bay modifica a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-the-counseling-bay": {
+          "name": "A Baía de Consultoria",
+          "summary": "A Counseling Bay modifica a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-the-cybernetics-bay": {
+          "name": "A Baía da Cibernética",
+          "summary": "A Cybernetics Bay modifica a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-the-nano-medical-lab": {
+          "name": "O Laboratório Nano-Médico",
+          "summary": "O Laboratório Nano-Medical modifica a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-the-bio-synthesis-lab": {
+          "name": "O Laboratório de Bio-Síntese",
+          "summary": "O Laboratório de Bio-Síntese modifica a configuração das instalações do Realidade Pessoals ao preço indicado."
+        },
+        "reality-the-microbiome-replacement-lab": {
+          "name": "O Laboratório de Substituição do Microbioma",
+          "summary": "O Laboratório de Substituição do Microbioma modifica a configuração das instalações Realidade Pessoals ao preço indicado."
+        },
+        "reality-personal-body-mod-pods": {
+          "name": "Os cápsulas pessoais Body Mod",
+          "summary": "Os Pods pessoais Body Mod modificam a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-connecting-doors": {
+          "name": "Portas de ligação",
+          "summary": "Adicionar portas emparelhadas que conectam duas partes da Realidade."
+        },
+        "reality-inter-reality-connecting-doors": {
+          "name": "Portas de ligação entre a realidade",
+          "summary": "Inter-Reality Connecting Doors modifica a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-high-security-inter-reality-connecting-doors": {
+          "name": "Portas de ligação inter-realidade de alta segurança",
+          "summary": "Porta de ligação inter-realidade de alta segurança modifica a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-servants-quarters": {
+          "name": "Servidores",
+          "summary": "SERVANTS QUARTERS modifica a configuração das instalações Realidade Pessoals ao preço indicado."
+        },
+        "reality-unique-servants": {
+          "name": "Servidores únicos",
+          "summary": "O Unique Servants modifica a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-housing-complex": {
+          "name": "Complexo de Habitação",
+          "summary": "Forneça alojamento para o grupo sábio do Jumper."
+        },
+        "reality-rooms-for-cheap": {
+          "name": "Quartos baratos",
+          "summary": "O quarto para barato modifica a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-choice-apartments": {
+          "name": "Apartamentos de escolha",
+          "summary": "O Choice Apartments modifica a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-luxury-apartments": {
+          "name": "Apartamentos de luxo",
+          "summary": "O Luxury Apartments modifica a configuração das instalações do Realidade Pessoals ao preço listado."
+        },
+        "reality-opulent-apartments": {
+          "name": "Apartamentos de luxo",
+          "summary": "O Opulent Apartments modifica a configuração das instalações do Realidade Pessoals ao preço listado."
+        },
+        "reality-downsizing": {
+          "name": "Reduzir",
+          "summary": "O redutoramento modifica a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-upscaling": {
+          "name": "Aumento de escala",
+          "summary": "A escalação aumenta a configuração das instalações Realidade Pessoals ao preço indicado."
+        },
+        "reality-the-commons": {
+          "name": "O Commons",
+          "summary": "O Commons modifica a configuração das instalações do Realidade Pessoals ao preço listado."
+        },
+        "reality-the-quadrangle": {
+          "name": "O Quadrangulo",
+          "summary": "O Quadrangle modifica a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-the-esplanade": {
+          "name": "A Esplanada",
+          "summary": "A Esplanade modifica a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-a-stellar-nursery": {
+          "name": "Uma Quadra Estelar",
+          "summary": "A Stellar Nursery modifica a configuração das instalações Realidade Pessoals ao preço listado."
+        },
+        "reality-seraglio-a-gogo": {
+          "name": "Seraglio-A-GOGO",
+          "summary": "SERAGLIO-A-GOGO modifica a configuração das instalações Realidade Pessoals ao preço indicado."
+        },
+        "reality-grand-dining-hall": {
+          "name": "Grande sala de jantar",
+          "summary": "O GRAND DINING HALL modifica a configuração das instalações do Realidade Pessoals ao preço indicado."
+        },
+        "reality-workshop-row": {
+          "name": "ROOW DE WORKHOP",
+          "summary": "O WORKSHOP ROW modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-infinite-office-worx": {
+          "name": "Oficina INFINITA",
+          "summary": "O INFINITE OFFICE WORX modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-the-library-jumpxandria": {
+          "name": "A Biblioteca Jumpxandria",
+          "summary": "Adicionar uma biblioteca protegida para escritos coletados em toda a Chain."
+        },
+        "reality-library-services": {
+          "name": "Serviços de biblioteca",
+          "summary": "O Serviço de Biblioteca modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-digital-database": {
+          "name": "Base de dados digital",
+          "summary": "A Base de Dados Digital modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-starting-collection": {
+          "name": "Coleção inicial",
+          "summary": "A biblioteca tem os trabalhos de referência que se esperam."
+        },
+        "reality-expanded-collection": {
+          "name": "Coleção ampliada",
+          "summary": "A Coleção Expandida modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-esoteric-collection": {
+          "name": "Coleção Esotérica",
+          "summary": "A Esoteric Collection modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-printing-precious": {
+          "name": "Impressão preciosa",
+          "summary": "Adicionar máquinas de fabricação e impressão especializadas."
+        },
+        "reality-a-classy-classroom": {
+          "name": "Uma sala de aula de classe",
+          "summary": "Adicione um espaço de ensino bem equipado."
+        },
+        "reality-gym-nice-ium": {
+          "name": "GYM-NICE-IUM",
+          "summary": "A GYM-NICE-IUM modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-gym-nasty-um": {
+          "name": "Gym-Nasty-Um",
+          "summary": "Gym-Nasty-Um modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-gym-classy-um": {
+          "name": "Gym-Classy-Um",
+          "summary": "Gym-Classy-Um modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-the-big-pool": {
+          "name": "A Grande Piscina",
+          "summary": "Adicionar um parque aquático olímpico quando estiver disponível."
+        },
+        "reality-the-bigger-pool": {
+          "name": "A piscina maior",
+          "summary": "O Bigger Pool modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-lets-have-fun": {
+          "name": "Vamos divertir-nos",
+          "summary": "Let's Have Fun modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-wellness-centre": {
+          "name": "O Centro de Bem-Estar",
+          "summary": "O WELLNESS CENTRE modifica a configuração das extensões Realidade Pessoals ao preço indicado."
+        },
+        "reality-baf-and-booty-works": {
+          "name": "O Baf e o Booty trabalham",
+          "summary": "Baf and Booty Works modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-a-room-for-your-trophies-and-cigars": {
+          "name": "Uma sala para os seus troféus e cigarros",
+          "summary": "A ROOM FOR YOUR TROPHIES AND CIGARS modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-pilot-simulator": {
+          "name": "Simulador de piloto",
+          "summary": "O PILOT SIMULATOR modifica a configuração das extensões Realidade Pessoals ao preço indicado."
+        },
+        "reality-entertainment-room": {
+          "name": "Sala de diversão",
+          "summary": "Adicione espaços para mídia passiva e relaxamento."
+        },
+        "reality-kit-and-kaboodle": {
+          "name": "Kit e Kaboodle",
+          "summary": "Kit e Kaboodle modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-the-audacious-auditorium": {
+          "name": "O auditorio ousado",
+          "summary": "O Auditorio Audacious modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-costume-closet": {
+          "name": "Armazém de vestuário",
+          "summary": "O Costume Closet modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-propshop-scenery": {
+          "name": "Propshop & Scenery",
+          "summary": "Propshop & Scenery modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-watch-your-arsenal": {
+          "name": "Cuidado com o seu Arsenal.",
+          "summary": "Adicione um armazém organizado para armas e armaduras."
+        },
+        "reality-the-semi-secret-garden": {
+          "name": "O JARDIM Semi-SECRETO",
+          "summary": "O SEMI-SECRET GARDEN modifica a configuração das extensões Realidade Pessoals ao preço indicado."
+        },
+        "reality-parkland-paradise": {
+          "name": "Parque do Paraíso",
+          "summary": "Parkland Paradise modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-meditatiation-corners": {
+          "name": "Cantos de Meditação",
+          "summary": "Meditação Corners modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-high-courts-low": {
+          "name": "Superiores e inferiores",
+          "summary": "High Courts & Low modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-im-game-room": {
+          "name": "Eu sou sala de jogos.",
+          "summary": "Adicionar instalações de jogos em rede e de mesa."
+        },
+        "reality-a-range-of-ranges": {
+          "name": "Uma gama de categorias",
+          "summary": "Uma gama de gama modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-the-garage-of-the-gods": {
+          "name": "A garagem dos deuses",
+          "summary": "Adicionar acampamentos adaptativos e manutenção para veículos."
+        },
+        "reality-wide-berth-expansion": {
+          "name": "Expansão de Berth Largo",
+          "summary": "Wide Berth Expansion modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-getcha-berths-here-boyo": {
+          "name": "Traz-me os Berths, Boyo!",
+          "summary": "Getcha Berths Here, Boyo! modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-adaptor-adaptation": {
+          "name": "Adaptação do adaptador",
+          "summary": "Adaptador Adaptation modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-fueling-station": {
+          "name": "Estação de Combustível",
+          "summary": "A Estação de Combustível modifica a configuração das extensões Realidade Pessoals ao preço indicado."
+        },
+        "reality-eldritch-fueling-station": {
+          "name": "Estação de Combustível de Eldritch",
+          "summary": "A Estação de Combustível Eldritch modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-the-big-garage": {
+          "name": "A Grande Garagem",
+          "summary": "A Big Garage modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-the-titans-mall": {
+          "name": "O centro comercial de Titan",
+          "summary": "Adicione um centro comercial com lojas configuráveis."
+        },
+        "reality-more-for-more": {
+          "name": "Mais para mais",
+          "summary": "More for More modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-mall-of-all": {
+          "name": "Mercado comercial de todos",
+          "summary": "Mall of All modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-jump-topic": {
+          "name": "Jump Topic",
+          "summary": "Jump Topic modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-the-mall-of-mystery": {
+          "name": "O Centro Comercial do Mistério",
+          "summary": "O Mall of Mystery modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-guardians-greenhouse": {
+          "name": "A Estância de Verão do Guardião",
+          "summary": "Adicione uma estufa controlada quando estiver disponível água e energia."
+        },
+        "reality-seeds-and-seedlings": {
+          "name": "Sementes e sementes",
+          "summary": "Seeds and Seedlings modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-the-mystical-menagerie": {
+          "name": "A Menageria Mística",
+          "summary": "A Menagerie Mística modifica a configuração das extensões Realidade Pessoals ao preço listado."
+        },
+        "reality-cleaning-supplies": {
+          "name": "Suplementos de limpeza",
+          "summary": "Fornecer suprimentos de limpeza ordinários ilimitados."
+        },
+        "reality-windows": {
+          "name": "Janela",
+          "summary": "O WINDOWS modifica a configuração dos itens Realidade Pessoals ao preço listado."
+        },
+        "reality-windows-of-nostalgia": {
+          "name": "Janela da Nostalgia",
+          "summary": "Os Windows of Nostalgia modificam a configuração dos itens Realidade Pessoals ao preço listado."
+        },
+        "reality-computer-hub": {
+          "name": "O HUB de computadores",
+          "summary": "O COMPUTER HUB modifica a configuração dos itens Realidade Pessoals ao preço indicado."
+        },
+        "reality-music-collection": {
+          "name": "Coleção de Música",
+          "summary": "Manter uma ampla coleção de música gravada."
+        },
+        "reality-movie-tv-series-collection": {
+          "name": "Coleção de filmes e séries de TV",
+          "summary": "Manter uma ampla coleção de mídia visual gravada."
+        },
+        "reality-pod-rack": {
+          "name": "RACK POD",
+          "summary": "A POD RACK modifica a configuração dos itens Realidade Pessoals ao preço indicado."
+        },
+        "reality-pod-override-exclusion": {
+          "name": "Exclusão de Pod Override",
+          "summary": "Pod Override Exclusion modifica a configuração dos itens Realidade Pessoals ao preço listado."
+        },
+        "reality-one-art-please": {
+          "name": "Uma arte por favor",
+          "summary": "Adicionar obras de arte escolhidas à coleção da Realidade."
+        },
+        "reality-its-a-small-multiverse": {
+          "name": "É uma pequena multiversidade",
+          "summary": "É um pequeno multiversal que modifica a configuração dos Companheiros Realidade Pessoals ao preço listado."
+        },
+        "reality-my-school": {
+          "name": "A MINHA Escola",
+          "summary": "A MY SCHOOL modifica a configuração dos Companheiros Realidade Pessoals ao preço listado."
+        },
+        "reality-my-harem": {
+          "name": "O meu harém",
+          "summary": "Combine amantes ou cônjuges elegíveis em slots compartilhados de Companheiro."
+        },
+        "reality-my-family": {
+          "name": "A MINHA FAMILHA",
+          "summary": "A MINHA FAMILHA modifica a configuração dos Companheiros Realidade Pessoals ao preço listado."
+        },
+        "reality-many-happy-returns": {
+          "name": "Muitos retornos felizes",
+          "summary": "Passe mais dez anos num mundo visitado anteriormente na cadência da fonte."
+        },
+        "reality-more-happy-more-returns": {
+          "name": "Mais felizes, mais retornos",
+          "summary": "Mais felizes, mais retornos modifica a configuração de Realidade Pessoals ao preço listado."
+        },
+        "reality-macro-happy-micro-returns": {
+          "name": "Macro feliz, micro retorno",
+          "summary": "Macro Happy, Micro Returns modifica a configuração de Realidade Pessoals ao preço listado."
+        },
+        "reality-flex-happy-flex-returns": {
+          "name": "Flex feliz, Flex volta",
+          "summary": "Flex Happy, Flex Returns modifica a configuração de Realidade Pessoals ao preço listado."
+        },
+        "reality-eye-spy": {
+          "name": "Espião Ocular",
+          "summary": "Observe qualquer coisa que ocorra dentro do Realidade Pessoal."
+        },
+        "reality-jump-recording": {
+          "name": "Gravação de Jump",
+          "summary": "Jump Recording modifica a configuração de mix do Realidade Pessoals ao preço listado."
+        },
+        "reality-semi-euclidean": {
+          "name": "Semi-EUCLIDEAN",
+          "summary": "A SEMI-EUCLIDEAN modifica a configuração de mistura do Realidade Pessoals ao preço indicado."
+        },
+        "reality-non-euclidean": {
+          "name": "Não euclidiano",
+          "summary": "O não-Euclidean modifica a configuração de mistura do Realidade Pessoals ao preço listado."
+        },
+        "reality-all-your-stuff": {
+          "name": "Todas as suas coisas",
+          "summary": "Traz as posses da Realidade Origem e dá-lhes apoio fiduciário."
+        },
+        "reality-all-your-pets": {
+          "name": "Todos os seus animais de estimação",
+          "summary": "Todos os seus animais modificam a configuração de Realidade Pessoals ao preço indicado."
+        },
+        "reality-companions-stuff": {
+          "name": "A Companhia",
+          "summary": "A Companheiro STUFF modifica a configuração de mistura do Realidade Pessoals ao preço indicado."
+        },
+        "reality-all-your-peeps": {
+          "name": "Todas as suas pipas",
+          "summary": "Traz pessoas selecionadas da Realidade Origem ou compre o plano ilimitado."
+        },
+        "reality-personal-realty": {
+          "name": "A REALIDADE Pessoal",
+          "summary": "A PERSONAL REALTY modifica a configuração de Realidade Pessoals ao preço indicado."
+        },
+        "reality-personal-mini-realty": {
+          "name": "Mini-Realty pessoal",
+          "summary": "A Personal Mini-Realty modifica a configuração de Realidade Pessoals à preço indicado."
+        },
+        "reality-shell-by-dyson": {
+          "name": "Shell por Dyson",
+          "summary": "Converte uma Mini-Realidade Pessoal num sistema em escala Dyson."
+        },
+        "reality-he-abides": {
+          "name": "Ele abide",
+          "summary": "HE ABIDES modifica a configuração de limitações do Realidade Pessoals ao preço indicado."
+        },
+        "reality-astor-hilton": {
+          "name": "ASTOR & HILTON",
+          "summary": "A ASTOR & HILTON modifica a configuração de limitações do Realidade Pessoals ao preço indicado."
+        },
+        "reality-weregild": {
+          "name": "WEREGILD",
+          "summary": "A WEREGILD modifica a configuração de limitações do Realidade Pessoals ao preço listado."
+        },
+        "reality-bat-cave": {
+          "name": "CAVA BAT",
+          "summary": "A BAT CAVE modifica a configuração de limitações do Realidade Pessoals ao preço listado."
+        },
+        "reality-real-bat-cave": {
+          "name": "Caverna de morcegos real",
+          "summary": "A Real Bat Cave modifica a configuração de limitações do Realidade Pessoals ao preço listado."
+        },
+        "reality-crowd-scene": {
+          "name": "Escenas de multidão",
+          "summary": "Encha a Realidade com multidões anônimas."
+        },
+        "reality-fluorescent-lighting": {
+          "name": "Lâmpadas fluorescentes",
+          "summary": "A FLUORESCENT LIGHTING modifica a configuração das limitações do Realidade Pessoals ao preço indicado."
+        },
+        "reality-lost-and-found-section": {
+          "name": "Seção Perdida e Encontrada",
+          "summary": "A seção PERDIDO E TRABALHO modifica a configuração das limitações do Realidade Pessoals ao preço listado."
+        },
+        "reality-zero-time": {
+          "name": "Tempo Zero",
+          "summary": "O ZERO TIME modifica a configuração de limitações do Realidade Pessoals ao preço indicado."
+        },
+        "reality-warehouse-funk": {
+          "name": "A FUNK da loja",
+          "summary": "A WAREHOUSE FUNK modifica a configuração de limitações do Realidade Pessoals ao preço indicado."
+        },
+        "reality-whorehouse": {
+          "name": "WHOREHOUSE",
+          "summary": "A WHOREHOUSE modifica a configuração de limitações do Realidade Pessoals ao preço indicado."
+        },
+        "reality-dangerous-wildlife": {
+          "name": "Vida selvagem perigosa",
+          "summary": "Torne a vida selvagem dentro da Realidade ativamente antagônica."
+        },
+        "reality-infestation": {
+          "name": "Infecção",
+          "summary": "Causam colônias recorrentes de pragas e parasitas adaptativas."
+        },
+        "reality-nasty-creepy-ugh": {
+          "name": "Desagradável, assustador.",
+          "summary": "O Nasty Creepy Ugh modifica a configuração de limitações do Realidade Pessoals ao preço listado."
+        },
+        "reality-journeying-spirits": {
+          "name": "Espíritos viajantes",
+          "summary": "Faça passar espíritos recentemente mortos pela Realidade."
+        },
+        "reality-haunted": {
+          "name": "Assombrado",
+          "summary": "O Haunted modifica a configuração de limitações do Realidade Pessoals ao preço listado."
+        },
+        "reality-ghost-town": {
+          "name": "Cidade Fantasma",
+          "summary": "GHOST TOWN modifica a configuração de limitações do Realidade Pessoals ao preço listado."
+        },
+        "reality-warehouse-clock": {
+          "name": "Relógio de armazém",
+          "summary": "Limite o tempo diário dentro da Realidade."
+        },
+        "reality-museum-tours": {
+          "name": "Visitas ao museu",
+          "summary": "O MUSEUM TOURS modifica a configuração de limitações do Realidade Pessoals ao preço listado."
+        },
+        "reality-interstitial-lighting": {
+          "name": "Iluminação intersticial",
+          "summary": "A LIGHTING INTERSTITIAL modifica a configuração das limitações do Realidade Pessoals ao preço indicado."
+        },
+        "reality-maintenance-issues": {
+          "name": "Questões de manutenção",
+          "summary": "As questões de manutenção modificam a configuração de limitações do Realidade Pessoals ao preço listado."
+        },
+        "reality-unsecured": {
+          "name": "Não garantida",
+          "summary": "Permitir que pessoas suficientemente poderosas ou qualificadas invadam a Realidade."
+        },
+        "reality-real-world-location": {
+          "name": "Localização do mundo real",
+          "summary": "Real World Location modifica a configuração de limitações do Realidade Pessoals ao preço listado."
+        },
+        "reality-uncontrolled-portal": {
+          "name": "Portal não controlado",
+          "summary": "O Portal não controlado modifica a configuração de limitações do Realidade Pessoals ao preço listado."
+        },
+        "reality-natural-disasters": {
+          "name": "Desastres naturais",
+          "summary": "Submeter a Realidade a desastres destrutivos recorrentes."
+        },
+        "reality-dont-look-down": {
+          "name": "Não olhes para baixo",
+          "summary": "DO NOT LOOK DOWN modifica a configuração de limitações do Realidade Pessoals ao preço listado."
+        },
+        "reality-the-labyrinth-of-jumpnos": {
+          "name": "O Labirinto de Jumpnos",
+          "summary": "Distribuir compras através de um labirinto de reorganização."
+        },
+        "reality-jumpotaur": {
+          "name": "Jumptaur",
+          "summary": "O Jumpotaur modifica a configuração de limitações do Realidade Pessoals ao preço indicado."
+        },
+        "reality-never-the-twain-shall-meet": {
+          "name": "Nunca o Twain vai encontrar-se",
+          "summary": "Torne a Realidade virtual e evite transferências físicas."
+        },
+        "reality-big-benefactor": {
+          "name": "Grande Benfeitor",
+          "summary": "Transforma a Chain em entretenimento generalizado com desafios atribuídos."
+        },
+        "reality-the-woods-are-lovely-dark-and-deep": {
+          "name": "As madeiras são muito escuras e desoxygenas.",
+          "summary": "Os madeiros são muito escuros e o DEEP modifica a configuração de limitações do Realidade Pessoals ao preço listado."
+        },
+        "cosmic-warehouse": {
+          "name": "Cosmic Warehouse",
+          "summary": "O Cosmic Warehouse está incluído no Realidade Pessoal de partida."
+        },
+        "boxes-and-boxes-and-boxes": {
+          "name": "Caixas e caixas e caixas",
+          "summary": "Caixas e Caixas e Caixas estão incluídas no Realidade Pessoal de partida."
+        },
+        "access-key": {
+          "name": "Chave de acesso",
+          "summary": "A chave de acesso está incluída no Realidade Pessoal de partida."
+        },
+        "starting-space": {
+          "name": "Espaço de início",
+          "summary": "O espaço de partida está incluído no Realidade Pessoal de partida."
+        },
+        "neutral-lighting": {
+          "name": "Iluminação neutra",
+          "summary": "Iluminação neutra está incluída no sistema de partida Realidade Pessoal."
+        },
+        "shelving": {
+          "name": "Escafeiras",
+          "summary": "A prateleira está incluída no Realidade Pessoal de partida."
+        },
+        "environmentally-neutral": {
+          "name": "Não envolvem o ambiente",
+          "summary": "O Realidade Pessoal de partida é incluído no sistema de controle ambiental neutro."
+        },
+        "a-week-a-button": {
+          "name": "Uma Semana e um Botão",
+          "summary": "Um botão de semana e de ano está incluído no Realidade Pessoal de partida."
+        },
+        "security-system": {
+          "name": "Sistema de segurança",
+          "summary": "O sistema de segurança está incluído no sistema de arranque Realidade Pessoal."
+        },
+        "loft": {
+          "name": "Loft",
+          "summary": "O loft está incluído no Realidade Pessoal de partida."
+        },
+        "entrance-hall": {
+          "name": "Sala de entrada",
+          "summary": "O hall de entrada está incluído no Realidade Pessoal de partida."
+        },
+        "the-benefactor-lounge": {
+          "name": "O Salão de Beneficentes",
+          "summary": "A Sala dos Beneficentes está incluída no Realidade Pessoal de partida."
+        },
+        "cleaning-supplies": {
+          "name": "Suplementos de limpeza",
+          "summary": "Fornecer suprimentos de limpeza ordinários ilimitados."
+        },
+        "antibiotic-field": {
+          "name": "Campo de Antibióticos",
+          "summary": "O Campo Antibiótico está incluído no Realidade Pessoal de partida."
+        },
+        "second-reality": {
+          "name": "Segunda Realidade",
+          "summary": "Criar um segundo Realidade Pessoal separado com as suas próprias compras e as mesmas Limitações."
+        },
+        "additional-space": {
+          "name": "Espaço adicional",
+          "summary": "Multiplicar cada dimensão padrão por dez com cada compra."
+        },
+        "discount-space": {
+          "name": "Desconto Espaço adicional",
+          "summary": "Multiplicar cada dimensão por três; duas compras contam como uma expansão completa."
+        },
+        "adaptive-storage": {
+          "name": "Armazenamento inativo adaptativo",
+          "summary": "Criar um armazenamento seguro e inativo para posses com apoio CP."
+        },
+        "additional-keys": {
+          "name": "Chaves adicionais",
+          "summary": "Adicionar quatro chaves Realidade Pessoal sintonizadas por compra."
+        },
+        "key-link": {
+          "name": "Linha-chave",
+          "summary": "Ligue o hall de entrada a portas abertas anteriormente por uma chave de acesso."
+        },
+        "big-hole": {
+          "name": "O grande buraco",
+          "summary": "Adicionar uma abertura de eliminação coberta no vazio ilimitado."
+        },
+        "lofty-loft": {
+          "name": "Loft elevado",
+          "summary": "Adicionar uma área do tamanho do espaço de partida reservada para habitação e luxo."
+        },
+        "underside": {
+          "name": "Subterrâneo",
+          "summary": "Permitam espaços no porão debaixo do Lofty Loft."
+        },
+        "playing-portals": {
+          "name": "Jogar com os portais",
+          "summary": "Abrir os portais Realidade Pessoal em superfícies adequadas sem depender da chave de acesso."
+        },
+        "portal-link": {
+          "name": "Linha do portal",
+          "summary": "Portos abertos do interior da Realidade para lugares visitados anteriormente."
+        },
+        "portal-control": {
+          "name": "Rodas de controle do portal",
+          "summary": "Abre os portais a alcance com um dispositivo de controle convocado."
+        },
+        "free-portal": {
+          "name": "Portal livre",
+          "summary": "Abre portais sem superfície de apoio e direcione-se a qualquer parte da Realidade."
+        },
+        "portal-aperture": {
+          "name": "Abertura do portal",
+          "summary": "Ampliar o tamanho do portal e a velocidade de abertura."
+        },
+        "power": {
+          "name": "Quem tem a Powa?",
+          "summary": "Fornecer eletricidade estável suficiente para uma grande cidade."
+        },
+        "pipes": {
+          "name": "Tubos Tubos Tubos Tubos",
+          "summary": "Fornecer uma grande capacidade de água, canalização e esgoto."
+        },
+        "temporal-controls": {
+          "name": "Controle temporário",
+          "summary": "Mudança de fluxo de tempo enquanto o proprietário estiver fora da Realidade."
+        },
+        "central-control": {
+          "name": "Controle central",
+          "summary": "Instalar um sistema de controle e inventário pseudo-inteligente."
+        },
+        "sky-simulator": {
+          "name": "Simulador de céu",
+          "summary": "Substitua o teto por um céu simulado."
+        },
+        "natural-lighting": {
+          "name": "Iluminação natural",
+          "summary": "Forneça iluminação realista ao sol, à lua e às estrelas."
+        },
+        "treeline": {
+          "name": "Treeline & Timber",
+          "summary": "Cercam áreas apropriadas com um limite florestal convincente."
+        },
+        "pond": {
+          "name": "O lago",
+          "summary": "Substitua uma parede com um recurso de água configurável."
+        },
+        "ground-cover": {
+          "name": "Cobertura realista",
+          "summary": "Adicione solo natural e cobertura de solo."
+        },
+        "basic-thematics": {
+          "name": "Temáticas básicas",
+          "summary": "Aplicar um tema cosmético coerente a áreas selecionadas."
+        },
+        "advanced-thematics": {
+          "name": "Temáticas avançadas",
+          "summary": "Torne a apresentação temática receptiva e imersiva."
+        },
+        "theme-park": {
+          "name": "Parque temático",
+          "summary": "Aplicar temas gerenciados separados em toda a Realidade."
+        },
+        "medical-bay": {
+          "name": "A Baía Médica",
+          "summary": "Tratar problemas médicos e dentais para pacientes vivos."
+        },
+        "connecting-doors": {
+          "name": "Portas de ligação",
+          "summary": "Adicionar portas emparelhadas que conectam duas partes da Realidade."
+        },
+        "housing-complex": {
+          "name": "Complexo de Habitação",
+          "summary": "Forneça alojamento para o grupo sábio do Jumper."
+        },
+        "classroom": {
+          "name": "Uma sala de aula de classe",
+          "summary": "Adicione um espaço de ensino bem equipado."
+        },
+        "big-pool": {
+          "name": "A Grande Piscina",
+          "summary": "Adicionar um parque aquático olímpico quando estiver disponível."
+        },
+        "entertainment-room": {
+          "name": "Sala de diversão",
+          "summary": "Adicione espaços para mídia passiva e relaxamento."
+        },
+        "arsenal": {
+          "name": "Cuidado com o seu Arsenal.",
+          "summary": "Adicione um armazém organizado para armas e armaduras."
+        },
+        "game-room": {
+          "name": "Eu sou sala de jogos.",
+          "summary": "Adicionar instalações de jogos em rede e de mesa."
+        },
+        "garage": {
+          "name": "A garagem dos deuses",
+          "summary": "Adicionar acampamentos adaptativos e manutenção para veículos."
+        },
+        "mall": {
+          "name": "O centro comercial de Titan",
+          "summary": "Adicione um centro comercial com lojas configuráveis."
+        },
+        "greenhouse": {
+          "name": "A Estância de Verão do Guardião",
+          "summary": "Adicione uma estufa controlada quando estiver disponível água e energia."
+        },
+        "library": {
+          "name": "A Biblioteca Jumpxandria",
+          "summary": "Adicionar uma biblioteca protegida para escritos coletados em toda a Chain."
+        },
+        "starting-collection": {
+          "name": "Coleção inicial",
+          "summary": "A biblioteca tem os trabalhos de referência que se esperam."
+        },
+        "parking-station": {
+          "name": "Estação de estacionamento",
+          "summary": "Adicionar estacionamento e apoio ao transporte."
+        },
+        "village": {
+          "name": "A aldeia",
+          "summary": "Adicionar uma extensão de escala de liquidação povoada."
+        },
+        "small-multiverse": {
+          "name": "É um pequeno multiverso.",
+          "summary": "Anexar ambientes de bolso temáticos múltiplos."
+        },
+        "hollow-earth": {
+          "name": "Terra vazia",
+          "summary": "Criar uma vasta extensão do mundo interno."
+        },
+        "music-collection": {
+          "name": "Coleção de Música",
+          "summary": "Manter uma ampla coleção de música gravada."
+        },
+        "movie-collection": {
+          "name": "Coleção de filmes e séries de TV",
+          "summary": "Manter uma ampla coleção de mídia visual gravada."
+        },
+        "printing-precious": {
+          "name": "Impressão preciosa",
+          "summary": "Adicionar máquinas de fabricação e impressão especializadas."
+        },
+        "one-art": {
+          "name": "Uma arte por favor",
+          "summary": "Adicionar obras de arte escolhidas à coleção da Realidade."
+        },
+        "calibration-unit": {
+          "name": "Unidade de Calibração de Companheiro",
+          "summary": "Calibrar os Companheiros elegíveis para os formulários importados e as condições locais."
+        },
+        "my-harem": {
+          "name": "O meu harém",
+          "summary": "Combine amantes ou cônjuges elegíveis em slots compartilhados de Companheiro."
+        },
+        "all-your-peeps": {
+          "name": "Todas as suas pipas",
+          "summary": "Traz pessoas selecionadas da Realidade Origem ou compre o plano ilimitado."
+        },
+        "podpanion": {
+          "name": "Apoio do Podpanion",
+          "summary": "Fornecer alojamento protegido e apoio aos Companheiros em cápsulas."
+        },
+        "happy-returns": {
+          "name": "Muitos retornos felizes",
+          "summary": "Passe mais dez anos num mundo visitado anteriormente na cadência da fonte."
+        },
+        "eye-spy": {
+          "name": "Espião Ocular",
+          "summary": "Observe qualquer coisa que ocorra dentro do Realidade Pessoal."
+        },
+        "all-your-stuff": {
+          "name": "Todas as suas coisas",
+          "summary": "Traz as posses da Realidade Origem e dá-lhes apoio fiduciário."
+        },
+        "mini-reality": {
+          "name": "Mini-Realidade Pessoal",
+          "summary": "Criar um domínio pessoal menor conectado à Realidade principal."
+        },
+        "dyson-shell": {
+          "name": "Shell por Dyson",
+          "summary": "Converte uma Mini-Realidade Pessoal num sistema em escala Dyson."
+        },
+        "crowd-scene": {
+          "name": "Escenas de multidão",
+          "summary": "Encha a Realidade com multidões anônimas."
+        },
+        "dangerous-wildlife": {
+          "name": "Vida selvagem perigosa",
+          "summary": "Torne a vida selvagem dentro da Realidade ativamente antagônica."
+        },
+        "infestation": {
+          "name": "Infecção",
+          "summary": "Causam colônias recorrentes de pragas e parasitas adaptativas."
+        },
+        "air-fresheners": {
+          "name": "Necessários de refrescadores de ar",
+          "summary": "Requer ventilação regular ou limpeza para controlar os odores acumulados."
+        },
+        "journeying-spirits": {
+          "name": "Espíritos viajantes",
+          "summary": "Faça passar espíritos recentemente mortos pela Realidade."
+        },
+        "warehouse-clock": {
+          "name": "Relógio de armazém",
+          "summary": "Limite o tempo diário dentro da Realidade."
+        },
+        "unsecured": {
+          "name": "Não garantida",
+          "summary": "Permitir que pessoas suficientemente poderosas ou qualificadas invadam a Realidade."
+        },
+        "natural-disasters": {
+          "name": "Desastres naturais",
+          "summary": "Submeter a Realidade a desastres destrutivos recorrentes."
+        },
+        "labyrinth": {
+          "name": "O Labirinto de Jumpnos",
+          "summary": "Distribuir compras através de um labirinto de reorganização."
+        },
+        "never-twain": {
+          "name": "Nunca o Twain vai encontrar-se",
+          "summary": "Torne a Realidade virtual e evite transferências físicas."
+        },
+        "big-benefactor": {
+          "name": "Grande Benfeitor",
+          "summary": "Transforma a Chain em entretenimento generalizado com desafios atribuídos."
+        },
+        "woods": {
+          "name": "As florestas são bonitas, escuras e profundas",
+          "summary": "Coloque a Realidade numa floresta primitiva hostil; não pode ser comprada."
+        }
+      },
+      "drawbacks": {
+        "random-chan": {
+          "name": "Random-Chan",
+          "summary": "A ordem de Jump é gerada a partir de um grande grupo aleatório em vez de ser selecionada livremente."
+        },
+        "pseudo-random-chan": {
+          "name": "Pseudo-Random-Chan",
+          "summary": "Pseudo-Random-Chan aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "sadist-chan": {
+          "name": "Sadista-Chan",
+          "summary": "Sadist-Chan aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "variant-sadist-chan": {
+          "name": "Variante Sadista-Chan",
+          "summary": "A variante Sadist-Chan aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativa."
+        },
+        "bitch-chan": {
+          "name": "Bitch-Chan",
+          "summary": "Bitch-Chan aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "no-drawbacks-for-you-san": {
+          "name": "Não há inconvenientes para você!",
+          "summary": "Não há Desvantagens para você! - San aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "and-only-you": {
+          "name": "E somente a ti!",
+          "summary": "E só você! aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "gauntlet-kun": {
+          "name": "Guante-Kun",
+          "summary": "O Gauntlet-Kun aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "the-thomas-wolfe-rule": {
+          "name": "A Regra de Thomas Wolfe",
+          "summary": "A Regra Thomas Wolfe aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "the-river-corollary": {
+          "name": "O Corolário do Rio",
+          "summary": "O Corolário do Rio aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "retail-rocker": {
+          "name": "Rocker de varejo",
+          "summary": "O Retail Rocker aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "old-home-week": {
+          "name": "Semana da Início Velha",
+          "summary": "A Old Início Week aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "benefits-package": {
+          "name": "Benefícios",
+          "summary": "Benefícios O pacote aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "refresher-course": {
+          "name": "Curso de Refrescamento",
+          "summary": "O Curso de Refrescamento aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "sadistic-bitch-chan": {
+          "name": "Sadista Cachorrinha-Chan",
+          "summary": "Sadista Bitch-Chan aplica sua restrição de Chain listada e ajustamento CP enquanto está ativo."
+        },
+        "cyclopes-psi-ops": {
+          "name": "Ciclopes Psi-Ops",
+          "summary": "Cyclopes Psi-Ops aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "shut-up-jumper": {
+          "name": "Cala-te Jumper!",
+          "summary": "O Shut Up Jumper! aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "age-of-descent": {
+          "name": "Idade da descendência",
+          "summary": "A Age of Descent aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "we-see-you": {
+          "name": "Nós vemos você",
+          "summary": "A We See You aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "a-giant-adventure": {
+          "name": "Uma aventura gigante!",
+          "summary": "A Giant Adventure! aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "a-little-drawback": {
+          "name": "Uma pequena desvantagem",
+          "summary": "A Little Desvantagem aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "a-giant-among-jumpers": {
+          "name": "Um gigante entre os Jumpers",
+          "summary": "A Giant Among Jumpers aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "a-petite-problem": {
+          "name": "Um pequeno problema",
+          "summary": "A Petite Problem aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "stochastic-scalar-suckage": {
+          "name": "Sucção de Escala Stocástica",
+          "summary": "A Stochastic Scalar Suckage aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativa."
+        },
+        "ferret-lady": {
+          "name": "Lady Ferret",
+          "summary": "Ferret Lady aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "un-bearable": {
+          "name": "Não suportável",
+          "summary": "O Un-Bearable aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "pose-of-the-day": {
+          "name": "A posição do dia!!!!",
+          "summary": "A posição do dia!!!! aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "do-you-oowoo": {
+          "name": "Do You OoWoo?",
+          "summary": "A restrição de Chain listada e o ajuste CP são aplicados enquanto estiver ativo."
+        },
+        "stone-sober": {
+          "name": "Pedra sóbria",
+          "summary": "A Stone Sober aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativa."
+        },
+        "in-deep-water": {
+          "name": "Em Águas Profundas",
+          "summary": "No Deep Water aplica-se a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "all-the-hats": {
+          "name": "Todos os chapéus",
+          "summary": "Todos os chapéus aplicam a sua restrição de Chain listada e o ajuste CP enquanto estiver ativo."
+        },
+        "gunshy": {
+          "name": "Gunshy",
+          "summary": "A Gunshy aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "milk-white-eyes": {
+          "name": "Olhos Brancos de Leite",
+          "summary": "O Milk White Eyes aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "would-you-like-ketchup-with-that": {
+          "name": "Queres ketchup com isso?",
+          "summary": "Would You Like Ketchup With That? aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "i-suppose-its-possible-i-was-drunk": {
+          "name": "Suponho que seja possível que estivesse bêbado",
+          "summary": "Suponho que é possível que estivesse bêbado aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "the-jumper-with-no-name": {
+          "name": "O Salto sem nome",
+          "summary": "O Jumper With No Name aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "trigger-warning": {
+          "name": "Aviso de Trigger",
+          "summary": "A Aviso de Trigger aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "a-pleasant-headache": {
+          "name": "Uma dor de cabeça agradável",
+          "summary": "A Pleasant Headache aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "crippling-phobia": {
+          "name": "Fobia paralizante",
+          "summary": "A Fobia Invalida aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativa."
+        },
+        "porn-be-gone": {
+          "name": "Pornográfico",
+          "summary": "Porn-Be-Gone aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "universal-punching-bag": {
+          "name": "Saco de punção universal",
+          "summary": "O Universal Punching Bag aplica a sua restrição de Chain listada e o ajuste CP enquanto está ativo."
+        },
+        "economic-impact": {
+          "name": "Impacto económico",
+          "summary": "A riqueza importada afeta normalmente as economias locais; as proteções contra a inflação ou a perturbação não eliminam mais essas consequências."
+        },
+        "two-player-jumpchain": {
+          "name": "Dois jogadores Jumpchain",
+          "summary": "O Jumpchain dos dois jogadores aplica a restrição de Companheiro listada e o ajuste CP enquanto está ativo."
+        },
+        "all-by-yourself": {
+          "name": "Tudo por conta própria",
+          "summary": "Os Companheiros não estão disponíveis para o âmbito afectado e não podem ser associados durante o mesmo novos Companheiros de longa duração."
+        },
+        "alone-and-unloved": {
+          "name": "Sozinhos e sem amor",
+          "summary": "Alone and Unloved aplica a sua restrição de Companheiro listada e o ajuste CP enquanto está ativo."
+        },
+        "scattered-to-the-winds": {
+          "name": "Dispersos pelos ventos",
+          "summary": "Dispersed to the Winds aplica a sua restrição de Companheiro listada e o ajuste CP enquanto está ativo."
+        },
+        "and-8-shall-be-the-number-of-the-chosen": {
+          "name": "E 8 será o número dos escolhidos",
+          "summary": "E 8 será o número do escolhido aplica sua restrição de Companheiro listado e CP ajuste enquanto ativo."
+        },
+        "single-shot": {
+          "name": "Single-Shot",
+          "summary": "O Single-Shot aplica a sua restrição de acompanhamento listada e o ajuste CP enquanto está ativo."
+        },
+        "one-and-done": {
+          "name": "Um e feito",
+          "summary": "One and Done aplica a sua restrição de companhia listada e o ajuste CP enquanto está ativo."
+        },
+        "one-life-to-lose": {
+          "name": "Uma vida a perder",
+          "summary": "A One Life to Lose aplica a sua restrição de Companheiro listada e o ajuste CP enquanto está ativo."
+        },
+        "courting-disaster": {
+          "name": "A corte de desastres",
+          "summary": "O Courting Disaster aplica a sua restrição de Companheiro listada e o ajuste CP enquanto está ativo."
+        },
+        "why": {
+          "name": "Porquê?",
+          "summary": "POR QUÉ?! aplica a sua restrição de Companheiro listada e o ajuste CP enquanto está ativo."
+        },
+        "kidnapper-san": {
+          "name": "Raptor-San",
+          "summary": "Kidnapper- San aplica a sua restrição de Companheiro listada e o ajuste CP enquanto está ativo."
+        },
+        "hate-squad": {
+          "name": "Esquadrão de ódio",
+          "summary": "O Esquadrão de Ódio aplica a sua restrição de Companheiro listada e o ajuste CP enquanto está ativo."
+        },
+        "vortex-of-enemies": {
+          "name": "Vortex de inimigos",
+          "summary": "Vortex of Enemies aplica a sua restrição de Companheiro listada e o ajuste CP enquanto está ativo."
+        },
+        "dere-for-all": {
+          "name": "\"Dere para todos\"",
+          "summary": "Dere for All aplica a sua restrição de Companheiro listada e o ajuste CP enquanto está ativo."
+        },
+        "companion-lockdown": {
+          "name": "Companheiro Lockdown",
+          "summary": "Companheiro Lockdown aplica sua restrição de Companheiro listada e o ajuste CP enquanto está ativo."
+        },
+        "party-limit": {
+          "name": "Limite de festa",
+          "summary": "O limite de parte aplica a sua restrição de companhia listada e o ajustamento CP enquanto está ativo."
+        },
+        "blythe-of-clive": {
+          "name": "Blythe de Clive",
+          "summary": "A Blythe of Clive aplica a sua restrição de Companheiro listada e o ajuste CP enquanto está ativo."
+        },
+        "clyde-the-blithe": {
+          "name": "Clyde o Blithe",
+          "summary": "Clyde o Blithe aplica a sua restrição de Companheiro listada e o ajuste CP enquanto está ativo."
+        },
+        "obviously-fake": {
+          "name": "Obviamente falso",
+          "summary": "Obviamente, a Fake aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "blatantly-uncool": {
+          "name": "Claramente Descoitado",
+          "summary": "Blatantly Uncool aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "that-cant-be-good": {
+          "name": "Isso não pode ser bom.",
+          "summary": "O que não pode ser bom aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "shipping-ban": {
+          "name": "Proibição de navegação",
+          "summary": "A proibição de envio aplica a sua restrição de armazenamento listada e o ajustamento CP enquanto está ativo."
+        },
+        "limited-storage": {
+          "name": "Armazenamento limitado",
+          "summary": "O armazenamento limitado aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "warehouse-brand-backpack": {
+          "name": "Mochila de marca de armazenamento",
+          "summary": "A marca Warehouse Backpack aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "limited-access": {
+          "name": "Acesso limitado",
+          "summary": "O acesso ao armazém é limitado a um intervalo periódico ou a propriedade de propriedade qualificada; a sua encadeamento também proporciona o benefício de um único armazém."
+        },
+        "really-limited-access": {
+          "name": "Acesso realmente limitado",
+          "summary": "O acesso realmente limitado aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "no-access": {
+          "name": "Não há acesso",
+          "summary": "O armazém não pode ser acessado para o Jump afectado e os inconvenientes do armazém incompatíveis não estão disponíveis."
+        },
+        "share-and-share-alike": {
+          "name": "Compartilhar e compartilhar de forma semelhante",
+          "summary": "A Alike aplica a sua restrição de armazenamento listado e o ajustamento CP enquanto ativo."
+        },
+        "ppppp": {
+          "name": "PPPPP",
+          "summary": "A PPPPP aplica a sua restrição de armazenamento listada e o ajustamento CP enquanto está ativa."
+        },
+        "remember-the-little-people": {
+          "name": "Lembre-se dos Pequenos",
+          "summary": "Lembre-se que o Pequeno Povo aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "ready-access": {
+          "name": "Acesso pronto",
+          "summary": "As entradas ao armazém continuam vulneráveis a intrusões externas e a parede de força protetora não está disponível."
+        },
+        "no-insurance": {
+          "name": "Não há seguro",
+          "summary": "O conteúdo roubado do armazém não retorna mais automaticamente; encadeá-lo direciona um estipendio adicional para os itens."
+        },
+        "limited-warranty": {
+          "name": "Garantia limitada",
+          "summary": "A Garantia Limitada aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "voided-warranty": {
+          "name": "Garantia anulada",
+          "summary": "A Garantia Anulada aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "embargo": {
+          "name": "Embargo",
+          "summary": "Embargo aplica a sua restrição de armazenamento listada e o ajustamento CP enquanto estiver ativo."
+        },
+        "old-ways-are-best": {
+          "name": "Os velhos caminhos são melhores",
+          "summary": "A Old Ways Are Best aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "reservations-needed": {
+          "name": "Requeridas reservas",
+          "summary": "Reservas necessárias aplica a sua restrição de armazenamento listado e o ajustamento CP enquanto está ativo."
+        },
+        "shuffle": {
+          "name": "SHUFFLE!",
+          "summary": "A SHUFFLE! aplica a sua restrição de armazenamento listada e o ajustamento CP enquanto está ativo."
+        },
+        "the-warehouse-always-wins": {
+          "name": "O Armazém sempre vence",
+          "summary": "O Warehouse Always Wins aplica a sua restrição de armazenamento listada e o ajustamento CP enquanto estiver ativo."
+        },
+        "real-shuffle": {
+          "name": "Um verdadeiro misturamento",
+          "summary": "A Real Shuffle aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativa."
+        },
+        "oh-god-make-it-stop": {
+          "name": "Deus, pára!",
+          "summary": "Oh God Make it STOP! aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "environmental-impact": {
+          "name": "Impacto ambiental",
+          "summary": "O impacto ambiental aplica a sua restrição de armazenamento listada e o ajustamento do CP enquanto está ativo."
+        },
+        "open-door-policy": {
+          "name": "Política de portas abertas",
+          "summary": "A Política de Portas Abertas aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "interjump-limbo": {
+          "name": "Limbo InterJump",
+          "summary": "O InterJump Limbo aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "the-waiting-room": {
+          "name": "A Sala de Esperança",
+          "summary": "A Sala de Esperança aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativa."
+        },
+        "the-great-interjump-labyrinth": {
+          "name": "O Grande Labirinto do Inter-Jump",
+          "summary": "O Grande Labirinto InterJump aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "the-hub": {
+          "name": "O Hub",
+          "summary": "O Hub aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "perpetual-hubworks": {
+          "name": "Trabalhos de Hub Perpétuos",
+          "summary": "A Perpetual HubWorks aplica a sua restrição de armazenamento listada e o ajuste CP enquanto está ativo."
+        },
+        "hot-water": {
+          "name": "Água quente",
+          "summary": "O Jump começa no local menos desejável não-mortalmente listado sob uma inserção desagradável."
+        },
+        "hotter-water": {
+          "name": "Água mais quente",
+          "summary": "O lugar de partida ruim torna-se ativamente perigoso e mais difícil de escapar."
+        },
+        "super-hot": {
+          "name": "Super quente",
+          "summary": "Cada Jump começa no seu pior local de sobrevivência com uma crise de abertura prolongada."
+        },
+        "soup": {
+          "name": "Sopa",
+          "summary": "Soup aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "flex-start": {
+          "name": "Flex Start",
+          "summary": "O Flex Start aplica a sua restrição de partida listada e o ajuste CP enquanto está ativo."
+        },
+        "dietary-restrictions": {
+          "name": "Restrições alimentares",
+          "summary": "A restrição dietética aplica a sua restrição de início listada e o ajuste de CP enquanto está ativo."
+        },
+        "meal-plan": {
+          "name": "Plano de refeições",
+          "summary": "O Plan de Refeições aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "food-drink": {
+          "name": "Alimentos e bebidas",
+          "summary": "A Food & Drink aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "counting-calories": {
+          "name": "Contando calorias",
+          "summary": "A contagem de calorias aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "not-quite-bread-water": {
+          "name": "Não há muito pão e água",
+          "summary": "A Not Quite Bread & Water aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "lightweight": {
+          "name": "Peso leve",
+          "summary": "O peso leve aplica a sua restrição de partida listada e o ajuste CP enquanto está ativo."
+        },
+        "all-you-can-eat": {
+          "name": "Tudo o que pode comer",
+          "summary": "Tudo que você pode comer aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "random-food-allergy": {
+          "name": "Alergia ao Alimento Radual",
+          "summary": "A Random Food Allergy aplica a sua restrição de início listada e o ajuste de CP enquanto está ativo."
+        },
+        "plague-of-butterflies": {
+          "name": "A praga das borboletas",
+          "summary": "A peste das borboletas aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "law-of-unintended-consequences": {
+          "name": "Lei das Consequências Inintencionadas",
+          "summary": "A Lei das Consequências Indesejadas aplica a sua restrição de início listada e o ajustamento CP enquanto está ativo."
+        },
+        "no-exit": {
+          "name": "Não há saída",
+          "summary": "Não é aplicável a restrição de partida listada e o ajustamento CP enquanto está ativo."
+        },
+        "bitch-of-destiny": {
+          "name": "Curiosa do Destino",
+          "summary": "Bitch of Destiny aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "trouble-magnet": {
+          "name": "Magnético de Problemas",
+          "summary": "O Trouble Magnet aplica a sua restrição de partida listada e o ajuste CP enquanto está ativo."
+        },
+        "trouble-central": {
+          "name": "Problemas Central",
+          "summary": "O Trouble Central aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "trouble-blackhole": {
+          "name": "Problemas do buraco negro",
+          "summary": "O Trouble Blackhole aplica a sua restrição de partida listada e o ajuste CP enquanto está ativo."
+        },
+        "central-casting": {
+          "name": "Casting central",
+          "summary": "A Central Casting aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "echoed-changes": {
+          "name": "Recoeu as mudanças",
+          "summary": "A Echoed Changes aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "unjump": {
+          "name": "Desaparece",
+          "summary": "A UnJump aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "humiliation-conga": {
+          "name": "Humilhação Conga",
+          "summary": "Humiliation Conga aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "victim-complex": {
+          "name": "Complexo de vítimas",
+          "summary": "O Victim Complex aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "the-prisoners-dilemma": {
+          "name": "O Dilema do Prisioneiro",
+          "summary": "O Dilema do Prisioneiro aplica a sua restrição de início e o ajuste CP enquanto está ativo."
+        },
+        "there-will-be-a-quiz-on-this": {
+          "name": "Vai haver um questionário sobre isto.",
+          "summary": "Será um teste sobre o que aplica a restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "soundtrack-by-jumpchan": {
+          "name": "Banda sonora de Jumpchan",
+          "summary": "A trilha sonora da Jumpchan aplica a sua restrição de partida listada e o ajuste CP enquanto está ativo."
+        },
+        "aft-gang-agley": {
+          "name": "Aft Gang Agley",
+          "summary": "Aft Gang Agley aplica a sua restrição de partida listada e o ajuste CP enquanto está ativo."
+        },
+        "not-so-out-of-context": {
+          "name": "Não-tão fora de contexto",
+          "summary": "O Not-So Out Of Context aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "contagious-context": {
+          "name": "Contexto contagioso",
+          "summary": "Contexto contagioso aplica a sua restrição de início listada e o ajuste CP enquanto está ativo."
+        },
+        "its-the-little-things-that-matter": {
+          "name": "São as pequenas coisas que importam",
+          "summary": "É o The Little Things That Matter que aplica a sua restrição de partida listada e o ajuste CP enquanto está ativo."
+        },
+        "semper-preparatus": {
+          "name": "Semper Preparatus",
+          "summary": "Semper Preparatus aplica a sua restrição de partida listada e o ajuste CP enquanto está ativo."
+        },
+        "youve-gotta-want-it": {
+          "name": "Tens de querer!",
+          "summary": "Você tem que querer! aplica a sua restrição de poderes listada e o ajuste CP enquanto está ativo."
+        },
+        "one-to-one": {
+          "name": "Um a um",
+          "summary": "A One to One aplica a sua restrição de poderes listada e o ajustamento CP enquanto está ativo."
+        },
+        "out-of-context-you-say": {
+          "name": "Fora do contexto, diz?",
+          "summary": "Out of Context, You Say? aplica a sua restrição de poderes listados e o ajuste CP enquanto está ativo."
+        },
+        "you-need-a-minute": {
+          "name": "Precisas de um minuto?",
+          "summary": "Você precisa de um minuto? aplica a sua restrição de potências listada e o ajuste CP enquanto está ativo."
+        },
+        "sleep-changer": {
+          "name": "Câmbio de sono",
+          "summary": "O Sleep Changer aplica a sua restrição de potências listada e o ajuste CP enquanto está ativo."
+        },
+        "alt-form-lockdown": {
+          "name": "Localização de forma alternativa",
+          "summary": "O Alt-form Lockdown aplica a sua restrição de poderes listada e o ajuste CP enquanto está ativo."
+        },
+        "changing-room": {
+          "name": "Sala de mudança",
+          "summary": "A Sala de mudanças aplica a sua restrição de potências listada e o ajuste CP enquanto está ativo."
+        },
+        "maintain-the-change": {
+          "name": "Mantém a mudança",
+          "summary": "Manter a mudança aplica a sua restrição de poderes listada e o ajuste CP enquanto está ativo."
+        },
+        "powerscaling": {
+          "name": "Escala de potência",
+          "summary": "A escala de potência aplica a sua restrição de potências listada e o ajuste CP enquanto está ativo."
+        },
+        "slot-o-matic": {
+          "name": "Slot-o-matic",
+          "summary": "A Slot-o-matic aplica a sua restrição de poderes listada e o ajuste CP enquanto está ativo."
+        },
+        "unemployment": {
+          "name": "Desemprego",
+          "summary": "O desemprego aplica a sua restrição de poderes listada e o ajustamento CP enquanto está ativo."
+        },
+        "slot-locker": {
+          "name": "Localização",
+          "summary": "O Slot-Locker aplica a sua restrição de poderes listada e o ajuste CP enquanto está ativo."
+        },
+        "slot-o-matic-jr": {
+          "name": "Slot-o-Matic Jr.",
+          "summary": "A Slot-o-Matic Jr. aplica a sua restrição de poderes listada e o ajuste CP enquanto está ativo."
+        },
+        "crybaby": {
+          "name": "Criança",
+          "summary": "A Crybaby aplica a sua restrição de poderes listada e o ajustamento CP enquanto está ativo."
+        },
+        "mindlock": {
+          "name": "Confinamento mental",
+          "summary": "Mindlock aplica a sua restrição de potências listada e o ajuste CP enquanto está ativo."
+        },
+        "freakish": {
+          "name": "Freakish",
+          "summary": "A Freakish aplica a sua restrição de poderes listada e o ajuste CP enquanto está ativo."
+        },
+        "canned-laughter": {
+          "name": "Riso em lata",
+          "summary": "O Caned Laughter aplica a sua restrição de poderes listada e o ajuste CP enquanto está ativo."
+        },
+        "is-my-life-funny-to-you": {
+          "name": "A minha vida é engraçada para você?",
+          "summary": "A minha vida é engraçada para você? aplica a sua restrição de poderes listada e o ajuste CP enquanto está ativo."
+        },
+        "pool-segregation": {
+          "name": "Segregação de piscinas",
+          "summary": "A Segregação de Pools aplica a sua restrição de poderes listada e o ajustamento CP enquanto está ativo."
+        },
+        "the-great-power-down": {
+          "name": "O Grande Poder Desapareceu",
+          "summary": "O Great Power Down aplica a sua restrição de potências listada e o ajuste CP enquanto está ativo."
+        },
+        "bigger-fish": {
+          "name": "Peixes maiores",
+          "summary": "O Bigger Fish aplica a sua restrição de poderes listada e o ajustamento CP enquanto está ativo."
+        },
+        "power-cap": {
+          "name": "Capeta de potência",
+          "summary": "O Power Cap aplica a sua restrição de potências listada e o ajuste CP enquanto está ativo."
+        },
+        "existential-doubt": {
+          "name": "Duvida da existência",
+          "summary": "A dúvida existencial aplica a sua restrição de poderes listada e o ajustamento do CP enquanto está ativo."
+        },
+        "respect-my-authority": {
+          "name": "Respeite a minha autoridade",
+          "summary": "Respect My Authority aplica a sua restrição de poderes listada e o ajustamento CP enquanto está ativo."
+        },
+        "shell-your-own-nuts": {
+          "name": "Escavar as suas próprias nozes",
+          "summary": "A Shell Your Own Nuts aplica a sua restrição de potências listada e o ajuste CP enquanto está ativo."
+        },
+        "life-is-your-oyster": {
+          "name": "A vida é a sua ostras",
+          "summary": "A Life Is Your Oyster aplica a sua restrição de potências listada e o ajuste CP enquanto está ativo."
+        },
+        "charge-it": {
+          "name": "Carregue",
+          "summary": "Carga Aplica a sua restrição de poderes listada e o ajustamento CP enquanto está ativo."
+        },
+        "luckless": {
+          "name": "Sem sorte.",
+          "summary": "Vantagens de sorte e efeitos equivalentes não podem beneficiar o ator afetado."
+        },
+        "degenerate": {
+          "name": "Desgeneração",
+          "summary": "O Degenerate aplica a sua restrição de potências listada e o ajuste CP enquanto está ativo."
+        },
+        "adorkable": {
+          "name": "Adorável",
+          "summary": "Adorkable aplica a sua restrição de poderes listada e o ajustamento CP enquanto está ativo."
+        },
+        "slow-learner": {
+          "name": "Aprendiz lento",
+          "summary": "Os efeitos da aprendizagem acelerada não podem beneficiar o actor afectado."
+        },
+        "copyright-protection": {
+          "name": "Proteção dos direitos autorais",
+          "summary": "A Proteção do Direito de Autor aplica a sua restrição de poderes listada e o ajustamento do CP enquanto está ativo."
+        },
+        "arbitrary-skepticism": {
+          "name": "Escepticismo arbitrário",
+          "summary": "O Escepticismo Arbitrário aplica a sua restrição de poderes listada e o ajuste CP enquanto está ativo."
+        },
+        "no-alibi": {
+          "name": "Não há alibi.",
+          "summary": "A Alibi não aplica a sua restrição de poderes listada e o ajustamento do CP enquanto está ativo."
+        },
+        "smart-as-you-are": {
+          "name": "Inteligente como você é",
+          "summary": "Smart as You Are aplica a sua restrição de poderes listada e o ajuste CP enquanto está ativo."
+        },
+        "vow-of-poverty": {
+          "name": "O voto de pobreza",
+          "summary": "O Prêmio da Pobreza aplica a sua restrição de poderes listada e o ajustamento do CP enquanto estiver ativo."
+        },
+        "the-kindness-of-strangers": {
+          "name": "A bondade dos estranhos",
+          "summary": "A Kindness of Strangers aplica a sua restrição de poderes listada e o ajuste CP enquanto está ativo."
+        },
+        "genre-lock": {
+          "name": "Gênero Lock",
+          "summary": "O Gênero Lock aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "in-the-grim-darkness-of-jumpchain": {
+          "name": "Na escuridão sombria de Jumpchain",
+          "summary": "No The Dark Darkness of Jumpchain aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "jumpchain-is-magic": {
+          "name": "Jumpchain é mágica",
+          "summary": "Jumpchain é Magic aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "edge-for-the-edgelord": {
+          "name": "O Edge para o Edgelord",
+          "summary": "Edge para o Edgelord aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "insert-laugh-track-here": {
+          "name": "Insira a trilha de Rires aqui",
+          "summary": "Insira o Track Laugh Aqui aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "the-always-ticking-clock": {
+          "name": "O relógio sempre a piscar",
+          "summary": "O Relógio de Segurança sempre aplique a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "cut-and-paste": {
+          "name": "Cortar e colar",
+          "summary": "O Cut and Paste aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "exit-light-enter-night": {
+          "name": "Saia da Luz, entre na Noite",
+          "summary": "A luz de saída, a noite de entrada aplicam a restrição de configuração listada e o ajuste CP enquanto estiver ativo."
+        },
+        "romeo-jumper-ette": {
+          "name": "Romeo & Jumper-ette",
+          "summary": "Romeo & Jumper-ette aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "madcap-and-slapstick": {
+          "name": "Madcap e Slapstick",
+          "summary": "A Madcap e a Slapstick aplicam a sua restrição de configuração listada e o ajuste CP enquanto estiver ativo."
+        },
+        "everybody-was-kung-fu-fighting": {
+          "name": "Todos estavam lutando Kung-Fu",
+          "summary": "Todos estavam a Kung-Fu Combate aplica sua restrição de configuração listada e ajuste CP enquanto ativo."
+        },
+        "enter-the-weirdness": {
+          "name": "Entrem na estranheza",
+          "summary": "A entrada de Weirdness aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "escalation": {
+          "name": "Escalada!",
+          "summary": "A ESCALATION! aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "pow-zap-bang": {
+          "name": "POW! ZAP! BANG!",
+          "summary": "POW! ZAP! BANG! aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "internet-rules-jumpchain": {
+          "name": "Regras da Internet Jumpchain",
+          "summary": "Regras da Internet Jumpchain aplica a sua restrição de configuração listada e o ajuste de CP enquanto está ativo."
+        },
+        "informed-villainy": {
+          "name": "Malfeitoria informada",
+          "summary": "A Villainy Informed aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "without-why": {
+          "name": "Sem Porquê",
+          "summary": "O Jumper não sabe que estão num Jumpchain ou recebem o contexto explicativo habitual."
+        },
+        "without-why-2": {
+          "name": "Sem, porquê?",
+          "summary": "Sem, Porquê? aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "lost-cause": {
+          "name": "Causa perdida",
+          "summary": "A Lost Cause aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "why-not-without": {
+          "name": "Por que não sem",
+          "summary": "Por que não sem aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "earlier-beginning": {
+          "name": "Começo anterior",
+          "summary": "A Early Beginning aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "setting-amnesia": {
+          "name": "A configuração da amnésia",
+          "summary": "Não é possível prever a configuração atual e a sua parcela enquanto se aplica o inconveniente."
+        },
+        "soft-setting-amnesia": {
+          "name": "A amnésia se torna suave",
+          "summary": "Configuração suave Amnesia aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "thats-not-canon": {
+          "name": "Isso não é Canon!",
+          "summary": "Não é o Canon! aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "total-amnesia": {
+          "name": "Amnésia total",
+          "summary": "Memórias anteriores, em vez de apenas estabelecer conhecimento, tornam-se indisponíveis para o Jump afetado."
+        },
+        "stronger-imprint": {
+          "name": "Impressão mais forte",
+          "summary": "Imprint mais forte aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "language-block": {
+          "name": "Bloco de Língua",
+          "summary": "A inserção fornece apenas um pequeno núcleo da linguagem comum em vez de fluência automática."
+        },
+        "3d6-six-times": {
+          "name": "3d6 Seis vezes",
+          "summary": "3d6 Six Times aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "cannot-into-drop-cid": {
+          "name": "Não pode cair (CID)",
+          "summary": "Não pode entrar em queda (CID) aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "drop-out": {
+          "name": "Desistência",
+          "summary": "O Drop-Out aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "the-long-road": {
+          "name": "O longo caminho",
+          "summary": "A Long Road aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativa."
+        },
+        "the-winding-road": {
+          "name": "O caminho sinuoso",
+          "summary": "A Rota de Enrolamento aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativa."
+        },
+        "coin-flip": {
+          "name": "Flip de moeda",
+          "summary": "A Coin Flip aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "pocket-change": {
+          "name": "Mudança de bolso",
+          "summary": "A Pocket Change aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "dissing-that-phoria": {
+          "name": "Dissing que Phoria",
+          "summary": "A Phoria aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "yen-for-yang": {
+          "name": "Yen para Yang",
+          "summary": "O Yen para Yang aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "is-this-your-story": {
+          "name": "Esta é a sua história?",
+          "summary": "Esta é a sua história? aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "must-be-their-story": {
+          "name": "Deve ser a história deles!",
+          "summary": "Must be Their Story! aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "invasion-of-the-body-snatcher": {
+          "name": "Invasão do Raptor do Corpo",
+          "summary": "Invasion of the Body Snatcher aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "dark-stormy-past": {
+          "name": "Passado escuro e tempestuoso",
+          "summary": "O Dark & Stormy Past aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "drawback-keeper": {
+          "name": "Guardeiro de Ressessurreições",
+          "summary": "O Retorno de Retorno aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "wrath-of-the-living-drawbacks": {
+          "name": "A ira dos defeitos vivos",
+          "summary": "A Wrath of the Living Disadvantages aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "what-are-drawbacks": {
+          "name": "Quais são os inconvenientes?",
+          "summary": "Qual é a desvantagem? aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "everything-is-worse": {
+          "name": "Tudo é pior!",
+          "summary": "Tudo é pior! aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "no-cheese-please": {
+          "name": "Não tem queijo, por favor.",
+          "summary": "Não Cheese Por favor, aplique a restrição de configuração listada e o ajuste CP enquanto estiver ativo."
+        },
+        "and-thats-terrible": {
+          "name": "E isso é terrível.",
+          "summary": "E o Thats Terrible aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "candyman": {
+          "name": "Candyman",
+          "summary": "Candyman aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "that-bitch": {
+          "name": "Aquela cabra!",
+          "summary": "Essa cabra! aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "you-bitch": {
+          "name": "You Bitch!",
+          "summary": "Tu, cabra! aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "simple-biology": {
+          "name": "Biologia simples",
+          "summary": "A Simple Biology aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "rated-x-for-xylophone": {
+          "name": "Classificação X para Xilófono",
+          "summary": "A classificação X para Xylophone aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "nap-time-for-jumper": {
+          "name": "Tempo de dormir para o Jumper",
+          "summary": "O Tempo de Napping para Jumper aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "long-dark-nap-time-of-the-soul": {
+          "name": "Tempo de durmiça longa e escura da alma",
+          "summary": "O Tempo de Sopa Longa e Escura da Alma aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "the-jumper-sleep": {
+          "name": "O Som do Salto",
+          "summary": "O Jumper-Sleep aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "none-so-fabulous": {
+          "name": "Nenhum tão fabuloso",
+          "summary": "None So Fabulous aplica a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "absolutely-fabulous": {
+          "name": "Absolutamente fabuloso",
+          "summary": "Absolutely Fabulous aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "peevish-pets": {
+          "name": "Animais de estimação",
+          "summary": "Peevish Pets aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "thats-my-waffle": {
+          "name": "É o meu waffle!",
+          "summary": "THATS MY WAFFLE! aplica a sua restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "all-the-shiny": {
+          "name": "Tudo o Brilhante",
+          "summary": "Todos os Shiny aplicam a restrição de configuração listada e o ajuste CP enquanto estiverem ativos."
+        },
+        "for-the-hoard": {
+          "name": "Para o Armazém!",
+          "summary": "Para o Hoard! aplica-se a restrição de configuração listada e o ajuste CP enquanto está ativo."
+        },
+        "oath-of-truth": {
+          "name": "Juramento da Verdade",
+          "summary": "O juramento da verdade aplica a sua restrição de ethos listada e o ajuste CP enquanto está ativo."
+        },
+        "oath-of-humility": {
+          "name": "Juramento de Humildade",
+          "summary": "O juramento de humildade aplica a sua restrição de ethos listada e o ajuste CP enquanto está ativo."
+        },
+        "oath-of-celibacy": {
+          "name": "Juramento de Celibado",
+          "summary": "O juramento de Celibacy aplica a sua restrição de ethos listada e o ajuste CP enquanto está ativo."
+        },
+        "oath-of-diligence": {
+          "name": "Juramento de Diligência",
+          "summary": "O Oath of Diligence aplica a sua restrição de ethos listada e o ajustamento CP enquanto está ativo."
+        },
+        "oath-of-compassion": {
+          "name": "Juramento de compaixão",
+          "summary": "O juramento da compaixão aplica sua restrição de ethos listada e o ajuste CP enquanto está ativo."
+        },
+        "oath-of-patience": {
+          "name": "Juramento de paciência",
+          "summary": "O Oath of Patience aplica a sua restrição de ethos listada e o ajuste CP enquanto está ativo."
+        },
+        "oath-of-temperance": {
+          "name": "Juramento de Temperança",
+          "summary": "O juramento de temperança aplica a sua restrição de ethos listada e o ajuste CP enquanto está ativo."
+        },
+        "oath-of-the-jackass": {
+          "name": "O juramento do Jackass.",
+          "summary": "O juramento do Jackass aplica a sua restrição de ethos listada e o ajuste CP enquanto está ativo."
+        },
+        "insane-and-legendary": {
+          "name": "Louco e lendário",
+          "summary": "Insane and Legendary aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "fair-and-balanced": {
+          "name": "Justo e equilibrado",
+          "summary": "A Fair and Balanced aplica a sua restrição de desafio listada e o ajustamento CP enquanto está ativo."
+        },
+        "fission-dance": {
+          "name": "Dança da Fissão",
+          "summary": "A Fision Dance aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "fragmented-psyche": {
+          "name": "Psicologia fragmentada",
+          "summary": "A Psyche Fragmented aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativa."
+        },
+        "im-a-jumper": {
+          "name": "Sou um saltador!",
+          "summary": "Im a Jumper! aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "always-expect-ninjas": {
+          "name": "Sempre espere Ninjas",
+          "summary": "Always Expect Ninjas aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "first-rule": {
+          "name": "Primeira Regra",
+          "summary": "A primeira regra aplica a sua restrição de desafio listada e o ajustamento CP enquanto está ativo."
+        },
+        "possessed-possessive-possessions": {
+          "name": "Possuídos Possuídos",
+          "summary": "A Possessive Possessions aplica a sua restrição de desafio listada e o ajustamento CP enquanto está ativa."
+        },
+        "we-are-all-together": {
+          "name": "Estamos todos juntos",
+          "summary": "Estamos Todos Juntos aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "you-wanted-worthy-opponents": {
+          "name": "Querias oponentes dignos?",
+          "summary": "Você Queria Oponentes Dignos? aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "so-many-teef": {
+          "name": "Tão muito!",
+          "summary": "SO MANY TEEF! aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "npc-reality-check": {
+          "name": "Verificação de realidade NPC",
+          "summary": "A NPC Reality Check aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "bio-equipment": {
+          "name": "Equipamentos biológicos",
+          "summary": "A Bio-Equipment aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativa."
+        },
+        "npc-blues": {
+          "name": "NPC Blues",
+          "summary": "Um desafio orientado para punição limita o saltador a uma vida profissional normal para uma série limitada de Jumps."
+        },
+        "down-out-in-npc-ville": {
+          "name": "Baixo e fora em NPC-Ville",
+          "summary": "Down & Out em NPC-Ville aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "the-best-worst-blessing-curse-evar": {
+          "name": "A Melhor Maldição e Benção Que Já Houve",
+          "summary": "O EVAR de Melhor Melhor Maldição-Beladoção aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "jumpchain-with-bernie": {
+          "name": "Jumpchain com Bernie",
+          "summary": "A Jumpchain com Bernie aplica a sua restrição de desafio listada e o ajuste de CP enquanto está ativo."
+        },
+        "jumper-of-many-worlds": {
+          "name": "Salto de muitos mundos",
+          "summary": "Jumper of Many Worlds aplica sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "stranger-in-a-strange-land": {
+          "name": "Estrangeiro em um país estranho",
+          "summary": "O estranho em uma terra estranha aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "soft-stranger": {
+          "name": "O estranho macio",
+          "summary": "O Soft Stranger aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "my-jumper-is-an-idiot": {
+          "name": "O meu Jumper é um idiota.",
+          "summary": "O meu Jumper é um idiota aplica a restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "sealed-jumper-in-a-can": {
+          "name": "Salto fechado em lata",
+          "summary": "O Jumper selado em lata aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "password-locked": {
+          "name": "Password bloqueado",
+          "summary": "Password Locked aplica a restrição de desafio listada e o ajuste CP enquanto ativo."
+        },
+        "jumpseed": {
+          "name": "JumpSeed",
+          "summary": "Outros Jumpers existem no mundo originário e retornam em seus próprios horários, reestruturando as maiores participações da Chain."
+        },
+        "so-many-teef-2": {
+          "name": "Tantas teefs",
+          "summary": "A Many Teef aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativa."
+        },
+        "if-at-first": {
+          "name": "Se, no início",
+          "summary": "Se At First aplica a sua restrição de desafio listada e o ajustamento CP enquanto está ativo."
+        },
+        "if-at-second": {
+          "name": "Se em segundo",
+          "summary": "Se At Second aplica a sua restrição de desafio listada e o ajustamento CP enquanto está ativo."
+        },
+        "strangler-in-a-strange-land": {
+          "name": "Estrangulador em um país estranho",
+          "summary": "O Strangler in a Strange Land aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "mistaken-identity": {
+          "name": "Identidade Errada?",
+          "summary": "O Mistaken Identity? aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "stalking-the-jumper": {
+          "name": "A seguir o saltador",
+          "summary": "O bloqueio do Jumper aplica a restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "the-darkness-inside": {
+          "name": "A escuridão interior",
+          "summary": "A Darkness Inside aplica a sua restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "bad-touch": {
+          "name": "Má toque",
+          "summary": "O Bad Touch aplica a restrição de desafio listada e o ajuste CP enquanto está ativo."
+        },
+        "pseudo-random": {
+          "name": "Pseudo-Random-Chan",
+          "summary": "O autor escolhe a rota, mas o Jumper não tem controle sobre o destino ou o tempo."
+        },
+        "two-player": {
+          "name": "Duas jogadoras Jumpchain",
+          "summary": "Cria dois Jumpers ligados com orçamentos divididos e condições compartilhadas de falha de Chain."
+        },
+        "why-glowing": {
+          "name": "Por que está brilhando?",
+          "summary": "O equipamento com CP de fora do cenário torna-se visível anomalia; sua opção de cadeia superior direciona a concessão aos itens."
+        },
+        "not-so-ooc": {
+          "name": "Não-Tanto fora de contexto",
+          "summary": "As habilidades trazidas de configurações anteriores adquirem contrapartes locais, consciência e contadores em configurações posteriores."
+        },
+        "oath-truth": {
+          "name": "Juramento da Verdade",
+          "summary": "O ator não deve comunicar falsidades deliberadas; as variantes mais altas também cobrem a omissão enganosa."
+        },
+        "oath-humility": {
+          "name": "Juramento de Humildade",
+          "summary": "O atriz não pode reclamar crédito nem aceitar recompensas fora das licenças limitadas da variante selecionada."
+        }
+      }
+    },
+    "bodyMod": {
+      "stats": {
+        "Strength": {
+          "label": "Força",
+          "descriptions": {
+            "0": "Uma média humana.",
+            "1": "A pressão do banco é de cerca de 180 libras.",
+            "2": "A pressão do banco é de cerca de 250 libras.",
+            "3": "Levante o dobro do seu peso corporal.",
+            "4": "Levante cerca de três vezes o seu peso corporal."
+          }
+        },
+        "Endurance": {
+          "label": "Perseverança",
+          "descriptions": {
+            "0": "Uma média humana.",
+            "1": "Corra uma milha sem respirar muito.",
+            "2": "Termina um 5K e recupera facilmente.",
+            "3": "Correr uma maratona, descansar e fazer outra vez.",
+            "4": "Fique ativo o dia todo sem fadiga."
+          }
+        },
+        "Speed": {
+          "label": "Velocidade",
+          "descriptions": {
+            "0": "Uma média humana.",
+            "1": "Corra com velocidade constante de cerca de 6 mph.",
+            "2": "Corra com velocidade constante, a cerca de 15 mph.",
+            "3": "Comparável ao Usain Bolt.",
+            "4": "Velocidade de corrida como uma motocicleta."
+          }
+        },
+        "Dexterity": {
+          "label": "Dexteridade",
+          "descriptions": {
+            "0": "Uma média humana.",
+            "1": "Desligue um obstáculo em um sprint.",
+            "2": "Parkour básico, mantendo a velocidade.",
+            "3": "Equilíbrio através de movimentos difíceis de precisão.",
+            "4": "Avançado corrido na parede, tiros e recuperação de queda."
+          }
+        },
+        "Appeal": {
+          "label": "Apelo",
+          "descriptions": {
+            "0": "Uma média humana.",
+            "1": "Pele limpa e livre de acne.",
+            "2": "Cabelos limpos e saudáveis e pele.",
+            "3": "Sem rugas, cicatrizes ou manchas.",
+            "4": "Pele perfeitamente lisa e perfeita."
+          }
+        },
+        "Shape": {
+          "label": "Forma",
+          "descriptions": {
+            "0": "Uma média humana.",
+            "1": "Mesmo, uma distribuição saudável de gordura.",
+            "2": "Escolha uma relação plausível perna-torso.",
+            "3": "Proporções pronunciadas flexíveis ou rígidas.",
+            "4": "Um físico ideal e impressionante."
+          }
+        },
+        "Sense": {
+          "label": "Sentimento",
+          "descriptions": {
+            "0": "Uma média humana.",
+            "1": "Visão 20/20 e sentidos saudáveis comuns.",
+            "2": "Visão mais nítida e agudeza sensorial.",
+            "3": "Dobrar o poder e o alcance dos três sentidos.",
+            "4": "Perceber além do espectro humano normal."
+          }
+        }
+      },
+      "perks": {
+        "Height": {
+          "label": "Altura",
+          "descriptions": {
+            "0": "Não há ajuste de altura.",
+            "1": "Ajustar a altura até um pé da média atual de grupos etários.",
+            "2": "Ajustar a altura até dois metros da média atual de grupos etários."
+          }
+        },
+        "Flexibility": {
+          "label": "Flexbilidade",
+          "descriptions": {
+            "0": "Flexibilidade normal.",
+            "1": "Chegar ao limite físico natural do corpo atual.",
+            "2": "Tornar-se mais flexível do que o corpo normalmente permitiria."
+          }
+        },
+        "Endowed": {
+          "label": "Doado",
+          "descriptions": {
+            "0": "Não há ajuste.",
+            "1": "Ajustar as proporções físicas primárias ou secundárias por um nível."
+          }
+        },
+        "Color": {
+          "label": "Cor",
+          "descriptions": {
+            "0": "Coloração natural.",
+            "1": "Escolha qualquer cor natural possível de pele, cabelo ou olhos.",
+            "2": "Escolha qualquer cor imaginável."
+          }
+        },
+        "Winged": {
+          "label": "Aulado",
+          "descriptions": {
+            "0": "Sem asas.",
+            "1": "As asas funcionais que se dobram nas costas quando não estão em uso."
+          }
+        },
+        "Metavore": {
+          "label": "Metavoros",
+          "descriptions": {
+            "0": "Manutenção de forma normal.",
+            "1": "Mantém o corpo selecionado com nutrição adequada."
+          }
+        },
+        "Evercleansed": {
+          "label": "Sempre limpo",
+          "descriptions": {
+            "0": "A limpeza normal.",
+            "1": "Naturalmente, repel a sujeira, o barro e o cheiro corporal."
+          }
+        },
+        "Genderswap": {
+          "label": "Gênero",
+          "descriptions": {
+            "0": "Não há mudança de gênero.",
+            "1": "Mudar de sexo até duas vezes durante um Jump."
+          }
+        }
+      },
+      "types": {
+        "None": {
+          "label": "Corpo atual",
+          "included": "Não incluem rangos"
+        },
+        "Bodybuilder": {
+          "label": "Bósniper",
+          "included": "Força 2 · Resistência 2 · Altura 1"
+        },
+        "Athlete": {
+          "label": "Atleta",
+          "included": "Velocidade 2 · Destrutura 2 · Flexibilidade 1"
+        },
+        "Charmer": {
+          "label": "Charmer",
+          "included": "Apelo 2 · Forma 2 · Doado 3"
+        },
+        "Bestial": {
+          "label": "Animais",
+          "included": "Senso 2 · Cor 1"
+        }
+      }
+    },
+    "warehouse": {
+      "electricity": {
+        "label": "Energia elétrica",
+        "description": "Saídas, cabos, luzes e interruptores."
+      },
+      "plumbing": {
+        "label": "Instalações de encanamento",
+        "description": "Conexões de água corrente e esgoto."
+      },
+      "heat-a-c-": {
+        "label": "Calor / AC",
+        "description": "Termo-statos e controle de temperatura."
+      },
+      "local-net": {
+        "label": "Rede local",
+        "description": "Acesso seguro à internet do universo actual."
+      },
+      "forcewall": {
+        "label": "ForçaMuralha",
+        "description": "Selar o portal atrás de si com um campo de força."
+      },
+      "gravitylink": {
+        "label": "GravityLink",
+        "description": "Reduzir ou desativar a gravidade para o levantamento pesado."
+      },
+      "shelving": {
+        "label": "Escafeiras",
+        "description": "Establocas de metal numeradas para organizar as posses."
+      },
+      "terminal": {
+        "label": "Terminal",
+        "description": "Um catálogo de computador de itens armazenados."
+      },
+      "robots": {
+        "label": "Robôs",
+        "description": "Robôs armazenam e recuperam bens."
+      },
+      "housing": {
+        "label": "Habitação",
+        "description": "Uma Início mobiliada dentro do Armazém."
+      },
+      "workshop": {
+        "label": "Talhado",
+        "description": "Ferramentas e peças para fabricação."
+      },
+      "medbay": {
+        "label": "Medbay",
+        "description": "Uma instalação de tratamento médico."
+      },
+      "portal": {
+        "label": "Portal",
+        "description": "Abre o portal numa superfície adequada."
+      },
+      "link": {
+        "label": "Links",
+        "description": "Abre dois portais para viajar."
+      },
+      "food-supply": {
+        "label": "Supply of Food",
+        "description": "Um suprimento reabastecedor de alimentos comuns."
+      },
+      "loft": {
+        "label": "Loft",
+        "description": "Um nível elevado de vida e armazenamento."
+      },
+      "free-space": {
+        "label": "Espaço Livre",
+        "description": "Dobrar a área disponível."
+      },
+      "stasis-pod": {
+        "label": "Pod de estação",
+        "description": "Leve uma pessoa segura por cápsula."
+      }
+    },
+    "quests": {
+      "expert": {
+        "label": "Torne-te um especialista",
+        "description": "Dominar os fundamentos da tecnologia, magia ou outro poder único neste cenário."
+      },
+      "setup": {
+        "label": "Configure a história habitual",
+        "description": "Reuni os personagens principais e assegure que o incidente incitante ocorra."
+      },
+      "cast": {
+        "label": "Junte-se ao elenco principal",
+        "description": "Torne-se amigo deles, rival ou inimigo."
+      },
+      "master": {
+        "label": "Torne-te um mestre",
+        "description": "Conquiste um domínio de uma tecnologia, magia ou poder exclusivo a este ambiente."
+      },
+      "form-org": {
+        "label": "Formar uma organização local",
+        "description": "Criar uma organização com presença local significativa."
+      },
+      "join-org": {
+        "label": "Junte-se a uma grande organização",
+        "description": "Integrar-se com uma organização ou governo conhecido."
+      },
+      "beats": {
+        "label": "Preserva a história bate",
+        "description": "Certifique-se de que a história habitual atinja todas as suas principais batidas familiares."
+      },
+      "authority": {
+        "label": "Ganhar autoridade notável",
+        "description": "Tome uma posição de autoridade em uma organização ou governo bem conhecido."
+      },
+      "local-tone": {
+        "label": "Transformar uma área local",
+        "description": "Tornar o tom geral muito melhor ou pior."
+      },
+      "fame": {
+        "label": "Tornar-se famoso em todo o mundo",
+        "description": "Ganhar fama em todo o cenário."
+      },
+      "lead-org": {
+        "label": "Liderar uma grande organização",
+        "description": "Assuma o comando de uma organização ou governo bem conhecido."
+      },
+      "setting-tone": {
+        "label": "Transformar a configuração",
+        "description": "Tornar o tom geral do ambiente muito melhor ou pior."
+      }
+    }
+  },
+  "ui": {
+    "dialogs": {
+      "title": {
+        "bodyModAtAGlance": "Body Mod num olhar"
+      },
+      "text": {
+        "build": " construção",
+        "jumpSpecies": "Espécies de Jump",
+        "currentAge": "Idade actual",
+        "bodyMod": "Body Mod",
+        "openFullBodyMod": "Abre o Body Mod completo",
+        "persistentBaseline": "Linha de base persistente",
+        "statistics": "Estatísticas",
+        "rank": "Classe ",
+        "bodyModPerks": "Vantagens do Body Mod ",
+        "chooseABadgeForDetails": "Escolha um distintivo para detalhes",
+        "noBodyModPerks": "Não existem Vantagens para o Body Mod",
+        "anAuthoredOriginSpeciesIsUsedWhenPresentOtherwise": "Uma espécie de origem autorizada é usada quando presente. caso contrário, o tipo Bestial ativo ou Humano é mostrado. Body Mod permanece visível separadamente."
+      }
+    },
+    "modulePages": {
+      "ariaLabel": {
+        "interactiveClassicBodyModFullSupplementPage": "Interativo Classic Body Mod página completa de suplemento",
+        "build": "Construir",
+        "bodyType": "Tipo de corpo",
+        "bestialAnimal": "Animais animais",
+        "bestialTraitTier": "Nível de traço animal",
+        "bestialAssociatedStat": "Estatísticas associadas a animais"
+      },
+      "text": {
+        "foundationSupplement": "Suplemento da Fundação",
+        "classicBodyMod": "Body Mod Clássico",
+        "quicksilverEdition600CP": "Edição de prata quente · 600 CP",
+        "remaining": "Restes",
+        "cp": " CP",
+        "currentFoundation": "Fundamento atual",
+        "build": " construção",
+        "bodyType": "Tipo de corpo",
+        "stats": "Estatísticas",
+        "perks": "Vantagens",
+        "includedWith": "Incluído",
+        "whatThisChanges": "O que isso muda",
+        "yourPersistentDefaultBody": "O seu corpo persistente por padrão",
+        "bodyModChangesTheJumperSDefaultAppearanceAnd": "O Body Mod altera a aparência padrão do Jumper e as habilidades de linha de base em toda a Chain.",
+        "600CP": "600 CP",
+        "oneIndependentSupplementBudget": "Um orçamento suplementar independente.",
+        "fitsCurrentAge": "Adapta-se à idade actual",
+        "thePhysiqueFollowsTheCurrentAge": "O corpo segue a idade atual.",
+        "adaptsToOtherForms": "Adaptações a outras formas",
+        "traitsAreInterpretedForTheActiveBody": "Os traços são interpretados para o corpo ativo.",
+        "persistent": "Persistente",
+        "theBaselineRemainsAvailable": "A linha de base continua disponível.",
+        "step1": "Passo 1",
+        "chooseBuildAndBodyType": "Escolha construção e tipo de carroceria",
+        "buildPrefix": "Construir ",
+        "freeChooseOne": "Libres · escolher um",
+        "bodyTypePrefix": "Tipo de corpo ",
+        "optionalChooseOne": "Opcional · escolher um",
+        "animal": "Animais",
+        "traitTier": "Nível de traço",
+        "minorTraits": "Traços menores",
+        "majorTraits": "Características principais",
+        "fullAnthro": "Antrô completo",
+        "animalAssociatedStat": "Estatística associada a animais",
+        "theSelectedStatReceivesIncludedRanksEqualToThe": "O estatuto selecionado recebe rangos incluídos iguais ao nível de traço.",
+        "step2": "Passo 2",
+        "chooseStats": "Escolha estatísticas",
+        "everyPurchasedRankCosts50CPRequiresThePrevious": "Cada classificação adquirida custa 50 CP, requer a classificação anterior e os limites na classificação 4.",
+        "persistentBaseline": "Linha de base persistente ",
+        "step3": "Passo 3",
+        "choosePerks": "Escolha Vantagens",
+        "perksRetainTheSourceDocumentSRepeatLimitsAnd": "Os Vantagens conservam os limites de repetição e o preço do documento fonte por nível.",
+        "cpEach": " CP cada um",
+        "review": "Revisão",
+        "yourBodyMod": "O seu Body Mod",
+        "buildHeading": "Construir",
+        "spent": "Gasto"
+      },
+      "label": {
+        "bodyModPageSection": "Seção de página Body Mod"
+      },
+      "placeholder": {
+        "chooseARealAnimal": "Escolha um animal verdadeiro"
+      }
+    },
+    "parityDialogs": {
+      "text": {
+        "startingMode": "Modo de inicialização",
+        "advancement": "Avanços",
+        "epAccess": "Acesso EP",
+        "epRemaining": "EP restante",
+        "openFullEssentialBodyMod": "Abre o conjunto completo Essential Body Mod",
+        "persistentCapabilities": "Capacidades persistentes",
+        "morganSBuild": "A construção da Morgan",
+        "regularJump": "Jump regular",
+        "gauntletProjection": "Projecção de luvas:",
+        "baseFormAndSkillCapabilitiesRemainAvailableSupernaturalPurchases": " As capacidades de base e de competências permanecem disponíveis.",
+        "netEPChange": "Mudança líquida de EP",
+        "ep": " EP",
+        "epInfusion": "EP Infusão",
+        "epSpentHere": "EP gasto aqui",
+        "jumpCPSpent": "Jump CP gasto",
+        "cp": " CP",
+        "newEPBalance": "Novo saldo EP",
+        "openStartingBuild": "Construção de início aberto",
+        "selectedJumpRecord": "Selecionado Jump record",
+        "progressionSourcesAndPurchases": "Fontes de progressão e compras",
+        "advancementMode": "Modo de avanço",
+        "questingChallenges": "Desafios em busca",
+        "recordChallengesCompletedDuring": "Recorde de desafios realizados durante o período de ",
+        "epInfusionPurchasedIn": "EP Infusion adquirida em ",
+        "spendEPIn": "Gastar EP em ",
+        "epAvailable": " EP disponível",
+        "purchasesMadeHereRemainAttributedTo": "As compras feitas aqui continuam a ser atribuídas a ",
+        "category": "Categoria",
+        "find": "Encontrar",
+        "changingThisRecordRecalculatesTheCurrentEssentialEPBalance": "A alteração deste registro recalcula o saldo atual do EP e o saldo selecionado do Jump CP.",
+        "squareFeet": "metros quadrados",
+        "access": "Acesso",
+        "wpRemaining": "restantes de WP",
+        "entrance": "Entrada",
+        "oneAtATime": "Um a cada vez",
+        "closedState": "Estado fechado",
+        "timeStopped": "O tempo parou.",
+        "openFullWarehouse": "Abre o armazém completo",
+        "configuredInterior": "Interior configurado",
+        "floorPlanSummary": "Resumo do plano de piso",
+        "features": " Características",
+        "mainStorage": "Armazenamento principal",
+        "ft²Total": " ft2 total",
+        "theWarehouseSGeneralPurposeStorageFloor": "O depósito é um piso de armazenamento de uso geral.",
+        "installedFeatures": "Características instaladas ",
+        "chooseABadgeForDetails": "Escolha um distintivo para detalhes",
+        "stasisPod": "Pod de estação ×",
+        "theGatewayUses": "O portal usa",
+        "utilitiesAndFacilitiesExistOnlyInsideTheWarehouseUnless": " Os serviços públicos e as instalações só existem dentro do armazém, salvo disposição em contrário.",
+        "coreModeControlsStartingAndProgressionWP": " O modo núcleo controla o início e a progressão do WP.",
+        "mode": " Modo",
+        "accumulatedReality": "Realidade acumulada",
+        "currentWP": "A atual WP",
+        "volume": "Volume",
+        "upgrades": "Mudanças",
+        "openStartingReality": "Realidade de início aberto",
+        "accumulatedConfiguration": "Configuração acumulada",
+        "morganSPersonalReality": "Morgan s Realidade Pessoal",
+        "mainWarehouse": "Armazenamento principal",
+        "loftyLoft": "Loft elevado",
+        "housingArea": "Área de habitação",
+        "entranceHall": "Sala de entrada",
+        "primaryAccess": "Acesso primário",
+        "noAccumulatedCapabilitiesInThisCategory": "Nenhuma capacidade acumulada nesta categoria.",
+        "netWPChange": "Mudança líquida de WP",
+        "wp": " WP",
+        "modeAward": "Prêmio de modo",
+        "cpConversion": "Conversão de CP",
+        "wpSpentHere": "WP gasto aqui",
+        "wpSourcesAndPurchases": "WP fontes e compras",
+        "coreMode": " Modo de base",
+        "coreModeAward": "Prêmio Core Mode",
+        "convert": "Convertir ",
+        "cpToWP": " CP a WP",
+        "outsideUnlimitedModeEvery50CPConvertsTo2": "Fora do Modo ilimitado, cada 50 CP se converte em 2 WP.",
+        "cpConversionSeparator": " CP · +",
+        "spendWPIn": "Gastar WP em ",
+        "wpAvailable": " WP disponível",
+        "completedPurchasesRemainAttributedTo": "As compras concluídas continuam a ser atribuídas a ",
+        "budgetAdjustment": "Ajuste orçamental",
+        "chainCP": "Chain CP",
+        "singleJumpCP": "Jump único CP",
+        "restrictedCP": "Restrição de CP",
+        "activeEffects": "Efeitos ativos",
+        "openChainSetup": "Configuração de Chain aberta",
+        "calculatedForJump": "Calculado para Jump ",
+        "activeRulesAndBudget": "Regras e orçamento ativos",
+        "noConflicts": "Não há conflitos",
+        "base": "Base ",
+        "chain": " + Chain ",
+        "single": " + Único",
+        "findASingleJumpDrawback": "Encontre um inconveniente de um só Jump",
+        "noNativeOrUniversalDrawbackConflictsWereDetectedFor": "Não foram detectados conflitos nativos ou universais de Retorno para os Reinos Arcanos.",
+        "availableThisJump": "Disponível neste Jump",
+        "startingCP": "Iniciação CP",
+        "drawbackCP": "Redução de custos",
+        "questCP": "Quest CP",
+        "drawbackQuests": " Questões de retorno",
+        "switchingOutQuests": " Troca de missões",
+        "questsComplete": "missões completas",
+        "openFullQuestMode": "Abre o Modo de Missões completo",
+        "currentJumpChecklist": "Lista de verificação de Jump atual",
+        "chooseCompletedQuests": "Escolha missões concluídas",
+        "awardsUpdateImmediately": "Atualização imediata dos prémios",
+        "selectedDrawbacks": "Desvantagens selecionadas",
+        "workThemOffToReceiveTheirWithheldCP": "Trabalhem para receberem o CP.",
+        "switchingOutQuestsSuffix": " missões de deslocamento",
+        "addedOnlyToThisJumpSQuestList": "Somente adicionado à lista de missões do Jump.",
+        "quest": "Quest",
+        "award": "Prêmio",
+        "addQuest": "Adicionar Quest",
+        "switchingOutObjectiveDeclaredForThisJump": "Objectivo de substituição declarado para este Jump.",
+        "checkingAQuestRecordsTheUserSDeclarationOf": "Verificar uma busca registra a declaração de conclusão do usuário.",
+        "currentStory": "História atual",
+        "jump": "Jump ",
+        "words": "Palavras",
+        "chapters": "Capítulos",
+        "openFullStory": "Abre história completa",
+        "color": "Cor",
+        "addChapter": "+ Adicionar capítulo",
+        "areYouSureYouWantToRemove": "Tens a certeza que queres remover? "
+      },
+      "ariaLabel": {
+        "filterEssentialBodyModificationAbilities": "Filtra as habilidades essenciais de modificação do corpo",
+        "epInfusionPurchase": "EP Comprar com perfusão",
+        "filterPersonalRealityCapabilities": "Capacidades de filtro Realidade Pessoal",
+        "cpToWPConversion": "Conversão de CP para WP",
+        "optionalRuleStatus": "Estatuto da regra opcional",
+        "switchingOutQuestName": "Nome da missão de troca",
+        "switchingOutQuestAward": "Prêmio de busca de troca",
+        "storyFormatting": "Formatação de história",
+        "textColor": "Cor do texto",
+        "jumpStoryChapters": "Capítulos de Jump Story"
+      },
+      "placeholder": {
+        "findAnUpgrade": "Encontrar um upgrade",
+        "nameEffectOrRestriction": "Nome, efeito ou restrição",
+        "describeTheObjective": "Descreva o objetivo",
+        "untitledChapter": "Capítulo sem título"
+      },
+      "title": {
+        "dragToReorder": "Arraste para reordem",
+        "removeChapter": "Remover o capítulo?",
+        "essentialBodyModAtAGlance": "Body Mod essencial num olhar",
+        "essentialBodyModProgression": "Progressão essencial do Body Mod",
+        "warehouseAtAGlance": "Depósito num olhar",
+        "personalRealityAtAGlance": "Realidade Pessoal num olhar",
+        "personalRealityProgression": "Progressão Realidade Pessoal",
+        "universalDrawbacksThisJump": "Drawbacks Universais este Jump",
+        "questProgress": "Progresso da busca"
+      }
+    },
+    "parityPages": {
+      "text": {
+        "requires": "Requisitos ",
+        "notSelected": "Não selecionado",
+        "foundationSupplement": "Suplemento da Fundação",
+        "essentialBodyModification": "Modificação Corporal Essencial",
+        "sourceEdition100Morgan": "Edição fonte 1.00 · Morgan",
+        "initialEPRemaining": "Restante inicial de EP",
+        "ep": " EP",
+        "build": "Construir",
+        "findInCategory": "Encontre em categoria",
+        "variantsAndAccessModifiers": "Variantes e modificadores de acesso",
+        "essenceOfThe": "A essência da ",
+        "itDiscountsEverySourcePerkMarkedForThisEssence": " Ele descontará todos os Vantagem de origem marcados para esta Essence em 50%; um Vantagem EP descontado 50 torna-se gratuito.",
+        "persistentSpaceSupplement": "Suplemento de espaço persistente",
+        "cosmicWarehouse": "Cosmic Warehouse",
+        "updatedQuicksilverEdition40000Ft²": "Edição atualizada da Quicksilver · 40.000 pés quadrados",
+        "remaining": "Restes",
+        "wp": " WP",
+        "currentSpace": "Espaço atual",
+        "cw": "CW",
+        "ft²": " F2",
+        "utilities": "Serviços públicos",
+        "structures": "Estruturas",
+        "otherUpgrades": "Outras atualizações",
+        "entryMethod": "Método de entrada",
+        "whatThisProvides": "O que isto fornece",
+        "aPersistentStorageDimension": "Uma dimensão de armazenamento persistente",
+        "theWarehouseIsAChainWideSpaceReachedThrough": "O Warehouse é um espaço de toda a Chain alcançado através de uma chave especial, ou através do Portal quando comprado.",
+        "40000Ft²": "40 000 pés quadrados",
+        "updatedStartingFloorArea": "Área de partida atualizada.",
+        "150WP": "150 WP",
+        "independentWarehouseBudget": "Orçamento do Armazém Independente.",
+        "oneGateway": "Um portal",
+        "onlyOneEntranceMayBeOpen": "Só uma entrada pode estar aberta.",
+        "timeStops": "O tempo parou",
+        "whenItsGatewayCloses": "Quando o seu portão fechar.",
+        "operatingRules": "Regras de funcionamento",
+        "theGatewayRemainsOpenWhileTheOwnerIsInside": "O portão permanece aberto enquanto o dono estiver dentro.",
+        "livingPeopleCannotBeStoredInTheClosedWarehouse": "Pessoas vivas não podem ser armazenadas no armazém fechado.",
+        "visitorsMayEnterWithTheOwnerAndLeaveWhen": "Os visitantes podem entrar com o proprietário e sair quando o proprietário o fizer.",
+        "timeStopsInsideWheneverTheEntranceCloses": "O tempo pára dentro sempre que a entrada fecha.",
+        "onlyOneWarehouseGatewayMayBeOpenAtOnce": "Só um portal do Armazém pode estar aberto de uma vez.",
+        "review": "Revisão",
+        "yourCosmicWarehouse": "O seu Cosmic Warehouse",
+        "floorArea": "Área do piso",
+        "access": "Acesso",
+        "spent": "Gasto",
+        "installedFeatures": "Características instaladas",
+        "stasisPod": "Pod de estação ×",
+        "wpEach": " WP cada um",
+        "personalReality": "Realidade Pessoal",
+        "sourceEdition17Morgan": "Edição fonte 1.7 · Morgan",
+        "initialWPRemaining": "Restante inicial de WP",
+        "startingReality": "Começando a Realidade",
+        "coreMode": " Modo de base",
+        "extraModes": "Modos Extras",
+        "rulesSupplementSJChan": "Suplemento das regras · SJ-Chan",
+        "universalDrawbacks": "Drawbacks Universais",
+        "sourceEdition112MorganSChain": "Edição fonte 1.12 · Morgans Chain",
+        "chainWideAdjustment": "Ajuste de toda a Chain",
+        "cp": " CP",
+        "drawbackFamilies": "Famílias de desvantagem",
+        "selected": " selecionados",
+        "findDrawbacks": "Encontrar os inconvenientes",
+        "currentRule": "Regra atual:",
+        "rulesSupplement": "Suplemento das regras",
+        "questMode": "Modo de Missões",
+        "chainWideRulesPerJumpProgress": "Regras para toda a Chain · Progresso por Jump",
+        "startingBalance": "Equilíbrio inicial",
+        "0CP": "0 CP",
+        "currentRules": "Regras atuais",
+        "questModeActive": "Modo de Missões ativo",
+        "optionalRules": " Regras opcionais",
+        "jumpStart": "Começo de Jump",
+        "awardTiers": "Níveis de prémios",
+        "standardQuests": "Questões padrão",
+        "howItChangesAJump": "Como é que ele muda um Jump",
+        "earnTheBudgetThroughQuests": "Ganhar o orçamento através de missões",
+        "everyJumpBeginsWithNoOrdinaryStartingCPCompleting": "Cada Jump começa sem início normal CP. Completar uma missão listada adiciona sua recompensa ao saldo atual Jump.",
+        "defaultStartingBalance": "Saldo inicial por padrão",
+        "100600CP": "100600 CP",
+        "awardedPerCompletedQuest": "Prêmios por missão concluída",
+        "perJump": "Por Jump",
+        "eachEntryTracksItsOwnProgress": "Cada entrada acompanha o seu próprio progresso",
+        "effortIsTheRequirement": "É necessário esforço",
+        "aPerkPowerOriginOrOtherPurchaseCannotComplete": "Um Vantagem, poder, origem ou outra compra não podem completar uma busca automaticamente.",
+        "awardStructure": "Estrutura dos prémios",
+        "standardQuestTiers": "Níveis de missão padrão",
+        "sourceDefinedVariants": "Variantes definidas pela fonte",
+        "optionalRulesHeading": "Regras opcionais",
+        "narrativeSupplement": "Suplemento narrativo",
+        "morganSStory": "A História de Morgan",
+        "3Jumps": "3 Jumps",
+        "chaptersWritten": " capítulos escritos",
+        "oldestToNewest": "Do mais antigo ao mais novo",
+        "jump": "Jump ",
+        "oneOrderedStoryForEveryJump": "Uma história por Jump.",
+        "readEveryChapterHereOrUseSuppStoryTo": "Leia todos os capítulos aqui ou use Supp → Story para editar o Jump atual.",
+        "chapter": "Capítulo ",
+        "openThisJumpAndChooseSuppStoryToAdd": "Abra este Jump e escolha Supp → Story para adicionar seu primeiro capítulo."
+      },
+      "ariaLabel": {
+        "interactiveEssentialBodyModificationFullSupplementPage": "Interativo Modificação do corpo essencial página completa de suplemento",
+        "essentialBodyModificationCategories": "Categorias essenciais de modificações corporais",
+        "cosmicWarehousePageSection": "Seção de página Cosmic Warehouse",
+        "removeStasisPod": "Remover o cápsulo de estação",
+        "addStasisPod": "Adicionar Stasis Pod",
+        "personalRealityCategories": "Categoria Realidade Pessoal",
+        "universalDrawbackCategories": "Categoria de retorno universal",
+        "catalogFilter": "Filtro de catálogo",
+        "questModePageSection": "Seção de página Modo de Missões",
+        "storyJumpAndChapterIndex": "História Jump e índice de capítulos"
+      },
+      "placeholder": {
+        "findAPerkOrAbility": "Encontre uma vantagem ou habilidade",
+        "findAnUpgrade": "Encontrar um upgrade",
+        "nameEffectOrRestriction": "Nome, efeito ou restrição"
+      }
+    },
+    "trackerSupplements": {
+      "ariaLabel": {
+        "supplementPages": "Páginas de suplemento",
+        "closeCurrentJumpSupplements": "Suplementos de Jump de atual fechada",
+        "enabledSupplementTools": "Ferramentas de suplemento habilitadas"
+      },
+      "text": {
+        "supplementLibrary": "Biblioteca de suplemento",
+        "manageSupplements": "Gerenciamento dos suplementos",
+        "supportedModulesRemainListedEnabledModulesReceivePagesAnd": "Os módulos suportados permanecem listados; os módulos habilitados recebem páginas e ferramentas de Jump de atual.",
+        "enabled": "Ativado",
+        "openPage": "Página aberta",
+        "currentJumpSupplements": "Suplementos de Jump de atual",
+        "selectedJump": "Jump selecionado · "
+      }
+    }
+  }
+}

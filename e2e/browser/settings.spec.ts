@@ -732,7 +732,17 @@ test(
     ).toHaveAttribute("aria-selected", "true");
     await expect(page.locator("#language-selection")).toBeFocused();
 
-    await page.getByLabel("Language", { exact: true }).selectOption("es");
+    await page.getByLabel("Language", { exact: true }).selectOption("pt-BR");
+    await expect(page.getByLabel("Idioma", { exact: true })).toHaveValue(
+      "pt-BR",
+    );
+    await expect(page.locator("html")).toHaveAttribute("lang", "pt-BR");
+    await expect(page.locator(".app-settings-surface")).toHaveAccessibleName(
+      "Configurações do aplicativo",
+    );
+    await waitForStoredSetting(page, ["language", "tag"], "pt-BR");
+
+    await page.getByLabel("Idioma", { exact: true }).selectOption("es");
     await expect(page.getByLabel("Idioma", { exact: true })).toHaveValue("es");
     await expect(page.locator("html")).toHaveAttribute("lang", "es");
     await waitForStoredSetting(page, ["language", "tag"], "es");

@@ -43,7 +43,7 @@ test("Node, Cargo, and Tauri release metadata remain aligned", () => {
   assert.equal(tauri.bundle.license, expected.license);
   assert.equal(tauri.bundle.publisher, expected.author);
   assert.equal(tauri.bundle.homepage, expected.homepage);
-  assert.equal(tauri.bundle.licenseFile, "../UNLICENSE.md");
+  assert.equal(tauri.bundle.licenseFile, "../UNLICENSE");
   assert.match(tauri.app.security.csp, /(?:^|;)\s*style-src 'self'(?:;|$)/);
   assert.doesNotMatch(tauri.app.security.csp, /'unsafe-inline'/);
   assert.match(indexHtml, /<style id="tauri-csp-style-nonce">/);
@@ -58,7 +58,7 @@ test("Node, Cargo, and Tauri release metadata remain aligned", () => {
     "icons/icon.ico",
   ]);
   assert.deepEqual(tauri.bundle.resources, {
-    "../UNLICENSE.md": "UNLICENSE.md",
+    "../UNLICENSE": "UNLICENSE",
     "../THIRD_PARTY_NOTICES.txt": "THIRD_PARTY_NOTICES.txt",
   });
   assert.equal(linuxTauri.bundle.targets, "appimage");

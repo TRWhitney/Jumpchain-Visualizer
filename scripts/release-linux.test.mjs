@@ -168,7 +168,7 @@ test("AppImage contents require the binary, exact licenses, desktop entry, and i
     const binary = join(binaryDirectory, "jumpchain-visualizer");
     writeFileSync(binary, x8664Elf());
     chmodSync(binary, 0o755);
-    copyFileSync("UNLICENSE.md", join(resourceDirectory, "UNLICENSE.md"));
+    copyFileSync("UNLICENSE", join(resourceDirectory, "UNLICENSE"));
     copyFileSync(
       "THIRD_PARTY_NOTICES.txt",
       join(resourceDirectory, "THIRD_PARTY_NOTICES.txt"),
@@ -194,14 +194,14 @@ test("AppImage contents require the binary, exact licenses, desktop entry, and i
       productName: "Jumpchain Visualizer",
     });
     assert.equal(result.iconCount, 1);
-    writeFileSync(join(resourceDirectory, "UNLICENSE.md"), "wrong");
+    writeFileSync(join(resourceDirectory, "UNLICENSE"), "wrong");
     assert.throws(
       () =>
         verifyExtractedAppImage(root, {
           binaryName: "jumpchain-visualizer",
           productName: "Jumpchain Visualizer",
         }),
-      /UNLICENSE\.md does not match/,
+      /UNLICENSE does not match/,
     );
   } finally {
     rmSync(root, { recursive: true, force: true });

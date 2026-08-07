@@ -145,7 +145,7 @@ export function verifyExtractedAppImage(extractionRoot, metadata) {
     throw new Error(`AppImage is missing usr/bin/${metadata.binaryName}.`);
   assertX8664Elf(readFileSync(binary).subarray(0, 64), "Bundled application");
 
-  for (const licenseName of ["UNLICENSE.md", "THIRD_PARTY_NOTICES.txt"]) {
+  for (const licenseName of ["UNLICENSE", "THIRD_PARTY_NOTICES.txt"]) {
     const bundled = exactlyOne(
       files.filter((path) => path.endsWith(`${sep}${licenseName}`)),
       `bundled ${licenseName}`,

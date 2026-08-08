@@ -147,7 +147,7 @@
         "handle": { "type": "handle", "min": 1, "max": 1, "required": true },
         "name": { "type": "renderableScalar", "min": 1, "max": 1, "required": true },
         "layout": { "type": "handleReference:section-layout", "min": 0, "max": 1 },
-        "locked": { "type": "boolean", "min": 0, "max": 1, "default": false }
+        "locked": { "type": "integer", "min": 0, "max": 1, "minimum": 0, "maximum": 5, "default": 0 }
       },
       "children": {
         "choice-source": { "min": 0, "repeatable": true, "ordered": true },
@@ -585,7 +585,7 @@
     { "code": "jump.grant.activation", "rule": "grants directly under jump are unconditional for the entry; property grants require explicit values because no owning control exists" },
     { "code": "choice-source.max", "rule": "max is an optional positive integer on multi sources, limits simultaneous selections without implying a minimum or default, and omission is unlimited" },
     { "code": "choice.discount", "rule": "active choices grant flat or percentage discounts to choice groups, optionally limited to repeated resource targets; jump policy controls stacking and the zero or negative floor" },
-    { "code": "section.locking", "rule": "initial locked contributes one, active lock and unlock effects contribute positive and negative one, and a positive total suspends editing and ordinary projections for choices placed only in that section" },
+    { "code": "section.locking", "rule": "locked contributes its authored initial count from zero through five and omission also contributes zero; active lock and unlock effects contribute positive and negative one, and a positive total suspends editing and ordinary projections for choices placed only in that section" },
     { "code": "choice.continuity.domain", "rule": "continuity is valid only on selection select with exactly one direct property grant to gender whose value is omitted" },
     { "code": "choice.integer.bounds", "rule": "integer min must not exceed max; random/either requires both finite bounds" },
     { "code": "choice.select.options", "rule": "option is valid only for selection select; empty option values warn and are omitted; zero non-empty options is a warning" },

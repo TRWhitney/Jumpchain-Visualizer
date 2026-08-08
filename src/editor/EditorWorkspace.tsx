@@ -7847,6 +7847,14 @@ function StructuredPanel({
               ),
               hasReference: Boolean(referenceKind),
             });
+            const integerControl = integerFieldControl(value, {
+              minimum: definition?.minimum,
+              maximum: definition?.maximum,
+              defaultValue:
+                typeof definition?.default === "number"
+                  ? definition.default
+                  : undefined,
+            });
             const measureUnavailable =
               !value && fieldName === "measure"
                 ? symbol.kind === "choice"
@@ -8228,12 +8236,12 @@ function StructuredPanel({
                         min={
                           typeof definition.const === "number"
                             ? definition.const
-                            : undefined
+                            : definition.minimum
                         }
                         max={
                           typeof definition.const === "number"
                             ? definition.const
-                            : undefined
+                            : definition.maximum
                         }
                         placeholder={value === "" ? shadowText : undefined}
                         value={value}
@@ -8251,29 +8259,27 @@ function StructuredPanel({
                       <NumberStepperButtons
                         label={controlLabel}
                         increaseDisabled={
-                          typeof definition.const === "number" &&
-                          value !== "" &&
-                          Number(value) >= definition.const
+                          typeof definition.const === "number"
+                            ? value !== "" && Number(value) >= definition.const
+                            : integerControl.increaseDisabled
                         }
                         decreaseDisabled={
-                          typeof definition.const === "number" &&
-                          value !== "" &&
-                          Number(value) <= definition.const
+                          typeof definition.const === "number"
+                            ? value !== "" && Number(value) <= definition.const
+                            : integerControl.decreaseDisabled
                         }
                         onIncrease={() => {
-                          const parsed = Number(value);
                           const next =
                             typeof definition.const === "number"
                               ? definition.const
-                              : (Number.isFinite(parsed) ? parsed : -1) + 1;
+                              : integerControl.increase();
                           onUpdate(symbol, fieldName, String(next), occurrence);
                         }}
                         onDecrease={() => {
-                          const parsed = Number(value);
                           const next =
                             typeof definition.const === "number"
                               ? definition.const
-                              : (Number.isFinite(parsed) ? parsed : 1) - 1;
+                              : integerControl.decrease();
                           onUpdate(symbol, fieldName, String(next), occurrence);
                         }}
                       />
@@ -8717,6 +8723,7 @@ function StructuredPanel({
             <>
               {optionalDetailSectionKinds.has(symbol.kind) ? (
                 <CollapsibleFormSection
+                  contentClassName="editor-detail-fields"
                   disclosureId="declaration-details"
                   label={editorSectionLabel(symbol.kind)}
                   open={optionalDisclosureExpanded("declaration-details")}

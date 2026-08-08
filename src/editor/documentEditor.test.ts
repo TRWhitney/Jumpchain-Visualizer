@@ -78,7 +78,7 @@ describe("Format 1 structured document edits", () => {
       ["jump", "points-abbreviation", { kind: "value", value: "CP" }],
       ["jump", "discount-stacking", { kind: "value", value: "highest" }],
       ["jump", "discount-floor", { kind: "value", value: "zero" }],
-      ["section", "locked", { kind: "value", value: false }],
+      ["section", "locked", { kind: "value", value: 0 }],
       ["resource", "initial", { kind: "value", value: 0 }],
       ["choice-source", "mode", { kind: "value", value: "multi" }],
       ["choice-source", "resolution", { kind: "value", value: "manual" }],
@@ -593,7 +593,7 @@ section-layout
 section
   handle: content
   name: "Content"
-  locked: true
+  locked: 3
 
   choice-source
     handle: flaws

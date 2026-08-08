@@ -179,7 +179,7 @@ export type JumpSection = {
   handle: string;
   name: Renderable;
   layout?: string;
-  locked?: boolean;
+  locked?: number;
   sources: readonly ChoiceSource[];
   directChoices: readonly DirectChoice[];
   members: readonly SectionMember[];

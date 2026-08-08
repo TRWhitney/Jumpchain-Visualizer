@@ -5148,6 +5148,10 @@ test("Structured round-trips gap-closure mechanics in both application themes", 
 }, testInfo) => {
   test.setTimeout(60_000);
   await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/settings");
+  await page.getByRole("tab", { name: "Editor" }).click();
+  await page.getByLabel("Show explanatory text").check();
+  await waitForStoredSetting(page, ["editor", "showExplanatoryText"], true);
   const definition = await readFile(
     join(process.cwd(), "schema/fixtures/gap-closure-valid/jump.jdef"),
   );
@@ -5182,7 +5186,7 @@ test("Structured round-trips gap-closure mechanics in both application themes", 
   const newJumpGrantKind = editor.getByLabel("Award type", { exact: true });
   await expect(newJumpGrantKind).toBeFocused();
   await newJumpGrantKind.click();
-  await editor.getByRole("option", { name: "Trait", exact: true }).click();
+  await editor.getByRole("option", { name: /^Trait/ }).click();
   await editor.getByLabel("Name", { exact: true }).fill("Authored Jump Trait");
   await editor
     .getByRole("button", { name: "Jump details", exact: true })
@@ -5206,12 +5210,95 @@ test("Structured round-trips gap-closure mechanics in both application themes", 
     .locator(".editor-outline-scroll")
     .getByRole("button", { name: "content", exact: true })
     .click();
-  const initiallyLocked = editor.getByLabel("Initially locked", {
+  const initialLocksField = editor.locator('[data-structured-field="locked"]');
+  const layoutField = editor.locator('[data-structured-field="layout"]');
+  const initialLocks = editor.getByRole("spinbutton", {
+    name: "Initial locks",
     exact: true,
   });
-  await expect(initiallyLocked).toBeChecked();
-  await initiallyLocked.uncheck();
-  await initiallyLocked.check();
+  const alignedControlDifference = async () => {
+    const [layoutBox, locksBox] = await Promise.all([
+      layoutField.locator(".editor-handle-combobox").boundingBox(),
+      initialLocks.boundingBox(),
+    ]);
+    expect(layoutBox).not.toBeNull();
+    expect(locksBox).not.toBeNull();
+    return {
+      top: Math.abs(layoutBox!.y - locksBox!.y),
+      bottom: Math.abs(
+        layoutBox!.y + layoutBox!.height - (locksBox!.y + locksBox!.height),
+      ),
+    };
+  };
+  await expect(initialLocks).toHaveValue("3");
+  await expect(
+    editor.locator(".editor-preview-scroll [data-section-lock-seal]"),
+  ).toHaveCount(3);
+  await expect(
+    initialLocksField.getByText(
+      "Choose from 0 to 5 initial locks. Zero leaves this Section unlocked; active Choice locks and unlocks adjust the final lock score.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  expect(await alignedControlDifference()).toEqual({ top: 0, bottom: 0 });
+  const increaseInitialLocks = initialLocksField.getByRole("button", {
+    name: "Increase",
+  });
+  const decreaseInitialLocks = initialLocksField.getByRole("button", {
+    name: "Decrease",
+  });
+  await increaseInitialLocks.click();
+  await increaseInitialLocks.click();
+  await expect(initialLocks).toHaveValue("5");
+  await expect(
+    editor.locator(".editor-preview-scroll [data-section-lock-seal]"),
+  ).toHaveCount(5);
+  await expect(increaseInitialLocks).toBeDisabled();
+  await decreaseInitialLocks.click();
+  await expect(initialLocks).toHaveValue("4");
+  await initialLocks.fill("0");
+  await expect(initialLocks).not.toHaveAttribute("aria-invalid", "true");
+  await expect(decreaseInitialLocks).toBeDisabled();
+  await expect(
+    editor.locator(".editor-preview-scroll [data-section-lock-seal]"),
+  ).toHaveCount(0);
+  await initialLocks.fill("-1");
+  await expect(initialLocks).toHaveAttribute("aria-invalid", "true");
+  await expect(
+    initialLocksField.locator(".editor-field-diagnostics"),
+  ).toBeVisible();
+  expect(await alignedControlDifference()).toEqual({ top: 0, bottom: 0 });
+  await initialLocks.fill("3");
+  await expect(initialLocks).not.toHaveAttribute("aria-invalid", "true");
+  await expect(
+    editor.locator(".editor-preview-scroll [data-section-lock-seal]"),
+  ).toHaveCount(3);
+  await expect(initialLocks).toHaveCSS("background-color", "rgb(32, 32, 30)");
+  await expect(initialLocksField.locator(".number-stepper-buttons")).toHaveCSS(
+    "background-color",
+    "rgb(32, 32, 30)",
+  );
+  await attachProductionState(
+    testInfo,
+    "editor-section-initial-lock-count-dark-production",
+    editor.locator('[data-disclosure-section="declaration-details"]'),
+  );
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(initialLocks).toHaveCSS(
+    "background-color",
+    "rgb(255, 255, 255)",
+  );
+  await expect(initialLocksField.locator(".number-stepper-buttons")).toHaveCSS(
+    "background-color",
+    "rgb(255, 255, 255)",
+  );
+  expect(await alignedControlDifference()).toEqual({ top: 0, bottom: 0 });
+  await attachProductionState(
+    testInfo,
+    "editor-section-initial-lock-count-light-production",
+    editor.locator('[data-disclosure-section="declaration-details"]'),
+  );
+  await page.emulateMedia({ colorScheme: "dark" });
 
   await editor
     .locator(".editor-child-list")

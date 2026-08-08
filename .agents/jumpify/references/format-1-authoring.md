@@ -110,12 +110,12 @@ Contexts: top-level
 
 Contexts: top-level
 
-| Field  | Type                           | Cardinality | Default | Rules |
-| ------ | ------------------------------ | ----------- | ------- | ----- |
-| handle | handle                         | required    | —       | {}    |
-| name   | renderableScalar               | required    | —       | {}    |
-| layout | handleReference:section-layout | optional    | —       | {}    |
-| locked | boolean                        | optional    | false   | {}    |
+| Field  | Type                           | Cardinality | Default | Rules                     |
+| ------ | ------------------------------ | ----------- | ------- | ------------------------- |
+| handle | handle                         | required    | —       | {}                        |
+| name   | renderableScalar               | required    | —       | {}                        |
+| layout | handleReference:section-layout | optional    | —       | {}                        |
+| locked | integer                        | optional    | 0       | {"minimum":0,"maximum":5} |
 
 Children: `choice-source` ({"min":0,"repeatable":true,"ordered":true}), `choice` ({"min":0,"repeatable":true,"ordered":true,"ownerLocalHandleNamespace":"choice-placement"}), `text` ({"min":0,"repeatable":true,"ownerLocalHandleNamespace":"text"}), `image` ({"min":0,"repeatable":true,"ownerLocalHandleNamespace":"image"})
 
@@ -836,7 +836,7 @@ uniqueBy: source
 3. {"code":"jump.grant.activation","rule":"grants directly under jump are unconditional for the entry; property grants require explicit values because no owning control exists"}
 4. {"code":"choice-source.max","rule":"max is an optional positive integer on multi sources, limits simultaneous selections without implying a minimum or default, and omission is unlimited"}
 5. {"code":"choice.discount","rule":"active choices grant flat or percentage discounts to choice groups, optionally limited to repeated resource targets; jump policy controls stacking and the zero or negative floor"}
-6. {"code":"section.locking","rule":"initial locked contributes one, active lock and unlock effects contribute positive and negative one, and a positive total suspends editing and ordinary projections for choices placed only in that section"}
+6. {"code":"section.locking","rule":"locked contributes its authored initial count from zero through five and omission also contributes zero; active lock and unlock effects contribute positive and negative one, and a positive total suspends editing and ordinary projections for choices placed only in that section"}
 7. {"code":"choice.continuity.domain","rule":"continuity is valid only on selection select with exactly one direct property grant to gender whose value is omitted"}
 8. {"code":"choice.integer.bounds","rule":"integer min must not exceed max; random/either requires both finite bounds"}
 9. {"code":"choice.select.options","rule":"option is valid only for selection select; empty option values warn and are omitted; zero non-empty options is a warning"}

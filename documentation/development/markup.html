@@ -2144,7 +2144,7 @@ available without expanding the grant into a block:</p>
 section
   handle: advanced_training
   name: "Advanced Training"
-  locked: true
+  locked: 3
 
   choice-source
     handle: flaws
@@ -2168,7 +2168,7 @@ choice
 <li>When the maximum is reached, additional controls are disabled without changing authored Choice-layout geometry. The repeated per-option status remains available to assistive technology; the ordinary un-authored source presentation may show the localized status visibly.</li>
 <li>A Choice may own repeated <code>discount</code> blocks. <code>group</code> targets Choice groups only; Tags and display names are never price selectors. <code>mode</code> is <code>flat</code> or <code>percent</code>, <code>amount</code> is a non-negative integer, and omitted <code>resource</code> applies to all currencies.</li>
 <li><code>discount-stacking</code> defaults to <code>highest</code>; <code>stack</code> sums flats first and percentages second. <code>discount-floor</code> defaults to <code>zero</code>; <code>negative</code> permits negative results. Percentage evaluation is sign-aware and the evaluator rounds once, with halves away from zero.</li>
-<li><code>locked: true</code> contributes one initial lock. Active <code>lock</code> fields add one and active <code>unlock</code> fields subtract one. A positive total locks the Section. Locked Sections preserve selections but suspend editing, costs, grants, discounts, and ordinary projections. Lock effects themselves remain active, preventing oscillation; an unlocked placement elsewhere keeps a shared Choice active.</li>
+<li><code>locked</code> accepts an initial lock count from 0 through 5; zero and omission both mean initially unlocked. Active <code>lock</code> fields add one and active <code>unlock</code> fields subtract one. A positive total locks the Section. Locked Sections preserve selections but suspend editing, costs, grants, discounts, and ordinary projections. Lock effects themselves remain active, preventing oscillation; an unlocked placement elsewhere keeps a shared Choice active.</li>
 </ul>
 <p>Tags are outside this author styling model. A layout may position the Tags slot and style its surrounding placement boundary, but the active User Tag profile owns badge color, border, shape, typography, hierarchy, and animation. Tag slots do not accept author text size, text color, font, weight, line height, or letter spacing. Cost presentation remains independently authorable.</p>
 <h2>Amended Pre-Release Format 1 Schema</h2>
@@ -2186,7 +2186,7 @@ an implementation detail.</p>
 <tbody>
 <tr><td><code>jump</code></td><td><code>format</code>, <code>name</code>, one or more <code>author</code>, <code>version</code></td><td><code>author</code>, <code>grant</code></td><td><code>gauntlet</code> defaults false; discount policies, point presentation, and three default layout references</td></tr>
 <tr><td><code>resource</code></td><td><code>handle</code>, <code>name</code></td><td>none</td><td><code>abbreviation</code>; <code>initial</code> defaults to 0</td></tr>
-<tr><td><code>section</code></td><td><code>handle</code>, <code>name</code></td><td><code>choice-source</code>, direct <code>choice</code> associations, <code>text</code>, <code>image</code></td><td><code>layout</code>; <code>locked</code> defaults false</td></tr>
+<tr><td><code>section</code></td><td><code>handle</code>, <code>name</code></td><td><code>choice-source</code>, direct <code>choice</code> associations, <code>text</code>, <code>image</code></td><td><code>layout</code>; omitted <code>locked</code> means zero initial locks</td></tr>
 <tr><td><code>choice-source</code></td><td><code>handle</code></td><td>none</td><td><code>group</code>; <code>mode</code> defaults to multi; optional multi <code>max</code>; omitted resolution is manual</td></tr>
 <tr><td><code>choice</code></td><td><code>handle</code>, <code>name</code></td><td><code>tag</code>, <code>group</code>, <code>lock</code>, <code>unlock</code>, <code>option</code>, owned blocks, costs, grants, discounts</td><td>layout/control/continuity fields; selection defaults to toggle</td></tr>
 <tr><td><code>text</code></td><td><code>handle</code></td><td>conditional <code>content</code> variants</td><td>base <code>content</code></td></tr>

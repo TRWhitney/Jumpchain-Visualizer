@@ -1780,7 +1780,7 @@ name when gender = "male":
                               type="checkbox"
                               data-skeleton-field
                               data-skeleton-field-name="locked"
-                              data-skeleton-field-value="false"
+                              data-skeleton-field-value="0"
                             />
                             <span
                               ><code>locked</code><small>optional</small></span
@@ -1882,15 +1882,15 @@ name when gender = "male":
                     <dl class="syntax-facts">
                       <div>
                         <dt>Value</dt>
-                        <dd><code>true | false</code></dd>
+                        <dd><code>integer</code></dd>
                       </div>
                       <div>
                         <dt>Type</dt>
-                        <dd><code>boolean</code></dd>
+                        <dd><code>integer</code></dd>
                       </div>
                       <div>
                         <dt>Rules</dt>
-                        <dd>default false</dd>
+                        <dd>default 0 · minimum 0 · maximum 5</dd>
                       </div>
                     </dl>
                   </div>
@@ -13028,7 +13028,7 @@ name when gender = "male":
               data-reference-entry
               data-reference-kind="field"
               data-reference-label="locked"
-              data-reference-search="locked section top-level Starts the Section locked. Lock and unlock effects can change the effective state while choices are active. true | false"
+              data-reference-search="locked section top-level Starts the Section locked. Lock and unlock effects can change the effective state while choices are active. integer"
             >
               <summary>
                 <span
@@ -13048,7 +13048,7 @@ name when gender = "male":
                   <dl class="syntax-facts">
                     <div>
                       <dt>Value</dt>
-                      <dd><code>true | false</code></dd>
+                      <dd><code>integer</code></dd>
                     </div>
                     <div>
                       <dt>Cardinality</dt>
@@ -13056,7 +13056,7 @@ name when gender = "male":
                     </div>
                     <div>
                       <dt>Rules</dt>
-                      <dd>default false</dd>
+                      <dd>default 0 · minimum 0 · maximum 5</dd>
                     </div>
                   </dl>
                 </section>
@@ -21793,14 +21793,15 @@ name when gender = "male":
               data-reference-entry
               data-reference-kind="rule"
               data-reference-label="section.locking"
-              data-reference-search="section.locking initial locked contributes one, active lock and unlock effects contribute positive and negative one, and a positive total suspends editing and ordinary projections for choices placed only in that section"
+              data-reference-search="section.locking locked contributes its authored initial count from zero through five and omission also contributes zero; active lock and unlock effects contribute positive and negative one, and a positive total suspends editing and ordinary projections for choices placed only in that section"
             >
               <code>section.locking</code>
               <p>
-                initial locked contributes one, active lock and unlock effects
-                contribute positive and negative one, and a positive total
-                suspends editing and ordinary projections for choices placed
-                only in that section
+                locked contributes its authored initial count from zero through
+                five and omission also contributes zero; active lock and unlock
+                effects contribute positive and negative one, and a positive
+                total suspends editing and ordinary projections for choices
+                placed only in that section
               </p>
             </article>
             <article

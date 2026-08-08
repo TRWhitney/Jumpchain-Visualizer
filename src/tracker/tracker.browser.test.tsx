@@ -1233,7 +1233,7 @@ section
 section
   handle: restricted
   name: "Restricted"
-  locked: true
+  locked: 5
 
   choice
     handle: restricted_choice
@@ -1243,11 +1243,13 @@ choice
   handle: first
   name: "First Flaw"
   group: flaws
+  lock: restricted
 
 choice
   handle: second
   name: "Second Flaw"
   group: flaws
+  lock: restricted
 
 choice
   handle: restricted_choice
@@ -1298,6 +1300,25 @@ choice
   expect(
     restricted.querySelector<HTMLFieldSetElement>("fieldset")!.disabled,
   ).toBe(true);
+  await expect
+    .element(page.getByRole("status", { name: "Section locked × 6" }))
+    .toBeVisible();
+  const lockOverlay = restricted.querySelector<HTMLElement>(
+    "[data-section-lock-count]",
+  );
+  expect(lockOverlay?.dataset.sectionLockCount).toBe("6");
+  expect(
+    lockOverlay
+      ?.querySelector("[data-section-lock-formation]")
+      ?.getAttribute("data-section-lock-formation"),
+  ).toBe("5");
+  expect(restricted.querySelectorAll("[data-section-lock-seal]")).toHaveLength(
+    5,
+  );
+  expect(
+    getComputedStyle(restricted.querySelector<HTMLFieldSetElement>("fieldset")!)
+      .opacity,
+  ).toBe("1");
   expect(evaluation.choices.restricted_choice.active).toBe(false);
   expect(evaluation.balance).toBe(1000);
 });

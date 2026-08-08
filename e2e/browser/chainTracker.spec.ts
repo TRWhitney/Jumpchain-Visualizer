@@ -133,6 +133,96 @@ choice-layout
   return path;
 }
 
+async function writeSectionLocksArchive(testInfo: TestInfo) {
+  const definition = `jump
+  format: 1
+  name: "Lock Overlay Fixture"
+  author: "Fixture Author"
+  version: "1.0"
+
+section
+  handle: controls
+  name: "Seal Controls"
+
+  choice
+    handle: second_seal_placement
+    target: second_seal
+
+  choice
+    handle: third_seal_placement
+    target: third_seal
+
+  choice
+    handle: fourth_seal_placement
+    target: fourth_seal
+
+  choice
+    handle: fifth_seal_placement
+    target: fifth_seal
+
+  choice
+    handle: sixth_seal_placement
+    target: sixth_seal
+
+  choice
+    handle: release_vault_placement
+    target: release_vault
+
+section
+  handle: vault
+  name: "Visible Vault"
+  locked: 1
+
+  choice
+    handle: vault_choice_placement
+    target: vault_choice
+
+choice
+  handle: second_seal
+  name: "Second Seal"
+  lock: vault
+
+choice
+  handle: third_seal
+  name: "Third Seal"
+  lock: vault
+
+choice
+  handle: fourth_seal
+  name: "Fourth Seal"
+  lock: vault
+
+choice
+  handle: fifth_seal
+  name: "Fifth Seal"
+  lock: vault
+
+choice
+  handle: sixth_seal
+  name: "Sixth Seal"
+  lock: vault
+
+choice
+  handle: release_vault
+  name: "Release Vault"
+  unlock: vault
+
+choice
+  handle: vault_choice
+  name: "Preserved Secret"
+  text
+    handle: description
+    content: "The section contents stay visible while interaction is disabled."
+`;
+  await mkdir(testInfo.outputDir, { recursive: true });
+  const path = join(testInfo.outputDir, "lock-overlay-fixture.jmp");
+  await writeFile(
+    path,
+    zipSync({ "jump.jdef": new TextEncoder().encode(definition) }),
+  );
+  return path;
+}
+
 async function importTrackerPackage(page: Page, archivePath: string) {
   const tracker = trackerFor(page);
   await tracker
@@ -447,6 +537,133 @@ test("an imported authored Tag string always uses the active User Tag profile", 
     "imported-authored-tag-uses-user-profile",
     tracker,
   );
+});
+
+test("a locked Section balances up to five seals and counts overflow without hiding its content", async ({
+  page,
+}, testInfo) => {
+  const tracker = trackerFor(page);
+  await tracker.getByRole("tab", { name: "Library" }).click();
+  await importTrackerPackage(page, await writeSectionLocksArchive(testInfo));
+  const imported = tracker
+    .getByText(/Lock Overlay Fixture · v1\.0/)
+    .locator("xpath=ancestor::article");
+  await imported.getByRole("button", { name: "Add to chain" }).click();
+
+  const lockedSection = tracker
+    .getByRole("heading", { name: "Visible Vault" })
+    .locator("xpath=ancestor::section[1]");
+  await expect(lockedSection).toHaveAttribute("data-section-locked", "true");
+  const seals = lockedSection.locator("[data-section-lock-seal]");
+  const formation = lockedSection.locator("[data-section-lock-formation]");
+  const sealChoices = ["Second", "Third", "Fourth", "Fifth", "Sixth"];
+  const expectedFormations = [
+    [{ x: 50, y: 56 }],
+    [
+      { x: 32, y: 31 },
+      { x: 68, y: 69 },
+    ],
+    [
+      { x: 50, y: 23 },
+      { x: 24, y: 72 },
+      { x: 76, y: 72 },
+    ],
+    [
+      { x: 28, y: 25 },
+      { x: 72, y: 25 },
+      { x: 22, y: 72 },
+      { x: 78, y: 72 },
+    ],
+    [
+      { x: 28, y: 25 },
+      { x: 72, y: 25 },
+      { x: 22, y: 72 },
+      { x: 78, y: 72 },
+      { x: 50, y: 50 },
+    ],
+  ];
+  const normalizedSealCenters = () =>
+    formation.evaluate((element) => {
+      const formationBox = element.getBoundingClientRect();
+      return Array.from(
+        element.querySelectorAll<SVGElement>("[data-section-lock-seal]"),
+      ).map((seal) => {
+        const sealBox = seal.getBoundingClientRect();
+        return {
+          x: Math.round(
+            ((sealBox.x + sealBox.width / 2 - formationBox.x) /
+              formationBox.width) *
+              100,
+          ),
+          y: Math.round(
+            ((sealBox.y + sealBox.height / 2 - formationBox.y) /
+              formationBox.height) *
+              100,
+          ),
+        };
+      });
+    });
+  for (let count = 1; count <= 5; count += 1) {
+    await expect(
+      lockedSection.getByRole("status", {
+        name: `Section locked × ${count}`,
+      }),
+    ).toBeVisible();
+    await expect(formation).toHaveAttribute(
+      "data-section-lock-formation",
+      String(count),
+    );
+    await expect(seals).toHaveCount(count);
+    expect(await normalizedSealCenters()).toEqual(
+      expectedFormations[count - 1],
+    );
+    await tracker
+      .getByRole("checkbox", { name: new RegExp(sealChoices[count - 1]) })
+      .check();
+  }
+  await expect(
+    lockedSection.getByRole("status", { name: "Section locked × 6" }),
+  ).toBeVisible();
+  await expect(formation).toHaveAttribute("data-section-lock-formation", "5");
+  await expect(seals).toHaveCount(5);
+  expect(await normalizedSealCenters()).toEqual(expectedFormations[4]);
+  await expect(
+    lockedSection.getByText(
+      "The section contents stay visible while interaction is disabled.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    lockedSection.getByRole("checkbox", { name: /Preserved Secret/ }),
+  ).toBeDisabled();
+  await expect
+    .poll(() =>
+      lockedSection.locator(".jump-section-content").evaluate((element) => ({
+        opacity: getComputedStyle(element).opacity,
+        visibility: getComputedStyle(element).visibility,
+      })),
+    )
+    .toEqual({ opacity: "1", visibility: "visible" });
+  await lockedSection.evaluate((element) =>
+    element.scrollIntoView({ block: "center" }),
+  );
+  await attachScreenshot(
+    testInfo,
+    "section-psyche-lock-inspired-overlay",
+    lockedSection,
+  );
+
+  for (const sealChoice of sealChoices) {
+    await tracker
+      .getByRole("checkbox", { name: new RegExp(sealChoice) })
+      .uncheck();
+  }
+  await tracker.getByRole("checkbox", { name: /Release Vault/ }).check();
+  await expect(lockedSection).toHaveAttribute("data-section-locked", "false");
+  await expect(lockedSection.getByRole("status")).toHaveCount(0);
+  await expect(
+    lockedSection.getByRole("checkbox", { name: /Preserved Secret/ }),
+  ).toBeEnabled();
 });
 
 test("Allow second version permits a different author-and-name package version", async ({

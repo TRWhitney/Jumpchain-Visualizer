@@ -2436,7 +2436,7 @@ trait-layout
 section
   handle: content
   name: "Content"
-  locked: true
+  locked: 3
   layout: section_layout
   choice-source
     handle: flaws
@@ -2478,7 +2478,7 @@ section-layout
       grants: [expect.objectContaining({ kind: "trait" })],
       sections: [
         expect.objectContaining({
-          locked: true,
+          locked: 3,
           sources: [expect.objectContaining({ max: 2 })],
         }),
       ],
@@ -2491,6 +2491,57 @@ section-layout
         expect.anything(),
       ],
     });
+
+    const explicitlyUnlocked = canonicalizePackage({
+      id: "explicit-zero-initial-locks",
+      exactHash: "0".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Explicit Zero Initial Locks"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+  locked: 0
+`,
+      },
+    });
+    expect(explicitlyUnlocked.sections[0]?.locked).toBe(0);
+    expect(explicitlyUnlocked.diagnostics).not.toContainEqual(
+      expect.objectContaining({
+        code: "schema.value.bounds",
+        target: expect.objectContaining({ field: "locked" }),
+      }),
+    );
+
+    for (const count of [-1, 6]) {
+      const invalid = canonicalizePackage({
+        id: `invalid-initial-lock-count-${count}`,
+        exactHash: (count < 0 ? "f" : String(count)).repeat(64),
+        files: {
+          "jump.jdef": `jump
+  format: 1
+  name: "Invalid Initial Locks"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: content
+  name: "Content"
+  locked: ${count}
+`,
+        },
+      });
+      expect(invalid.diagnostics).toContainEqual(
+        expect.objectContaining({
+          code: "schema.value.bounds",
+          target: expect.objectContaining({ field: "locked" }),
+        }),
+      );
+    }
 
     const authoredTags = canonicalizePackage({
       id: "authored-tags",

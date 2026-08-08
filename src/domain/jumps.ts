@@ -339,7 +339,7 @@ function evaluatedSections(
   const scores = new Map(
     packageItem.sections.map((section) => [
       section.handle,
-      section.locked ? 1 : 0,
+      section.locked ?? 0,
     ]),
   );
   for (const choice of packageItem.choices) {

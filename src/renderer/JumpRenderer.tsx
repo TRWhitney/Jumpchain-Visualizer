@@ -1848,6 +1848,128 @@ function ChoiceWithLayout({
   );
 }
 
+function SectionLockSeal({ index }: { index: number }) {
+  const gradientId = `section-lock-${useId().replaceAll(":", "")}`;
+  return (
+    <svg
+      className="jump-section-lock-seal"
+      data-section-lock-seal={index + 1}
+      viewBox="0 0 112 120"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <linearGradient id={`${gradientId}-metal`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#fff1a6" />
+          <stop offset="0.35" stopColor="#c88b27" />
+          <stop offset="0.7" stopColor="#6f351b" />
+          <stop offset="1" stopColor="#e9bd4c" />
+        </linearGradient>
+        <radialGradient id={`${gradientId}-jewel`} cx="38%" cy="28%" r="74%">
+          <stop offset="0" stopColor="#ff6a5f" />
+          <stop offset="0.45" stopColor="#b80f26" />
+          <stop offset="1" stopColor="#4b0714" />
+        </radialGradient>
+      </defs>
+      <path
+        className="jump-section-lock-shackle-shadow"
+        d="M32 51V35C32 5 80 5 80 35v16"
+      />
+      <path
+        className="jump-section-lock-shackle"
+        d="M32 51V35C32 5 80 5 80 35v16"
+        stroke={`url(#${gradientId}-metal)`}
+      />
+      <path
+        d="m12 55 11-13 13 4 20-9 20 9 13-4 11 13-8 13 5 28-17 5-8 13H40l-8-13-17-5 5-28Z"
+        fill={`url(#${gradientId}-metal)`}
+        stroke="#3b1712"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m22 59 8-9 10 4 16-8 16 8 10-4 8 9-7 11 4 20-13 4-7 11H45l-7-11-13-4 4-20Z"
+        fill={`url(#${gradientId}-jewel)`}
+        stroke="#ffd875"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M35 64c9-8 33-8 42 0M32 87c13 7 35 7 48 0"
+        fill="none"
+        stroke="#ff8270"
+        strokeWidth="2"
+        strokeLinecap="round"
+        opacity="0.7"
+      />
+      <circle
+        cx="56"
+        cy="76"
+        r="12"
+        fill="#5f1018"
+        stroke="#f6cb63"
+        strokeWidth="2"
+      />
+      <path
+        d="M56 68a5 5 0 0 0-3 9l-3 9h12l-3-9a5 5 0 0 0-3-9Z"
+        fill="#19090b"
+      />
+      <g fill="#fff0a1" stroke="#6b3518" strokeWidth="1.5">
+        <circle cx="30" cy="62" r="3" />
+        <circle cx="82" cy="62" r="3" />
+        <circle cx="35" cy="91" r="3" />
+        <circle cx="77" cy="91" r="3" />
+      </g>
+    </svg>
+  );
+}
+
+function SectionLockOverlay({ count }: { count: number }) {
+  const label = translate("ui.jumpRenderer.text.sectionLocked");
+  const visibleCount = Math.min(count, 5);
+  return (
+    <div
+      className="jump-section-locked-status"
+      data-section-lock-count={count}
+      role="status"
+      aria-label={`${label} × ${count}`}
+    >
+      <svg
+        className="jump-section-lock-chains"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <g className="jump-section-chain-shadow">
+          <path d="M-8 16 108 84" />
+          <path d="M-8 84 108 16" />
+        </g>
+        <g className="jump-section-chain-links">
+          <path d="M-8 16 108 84" />
+          <path d="M-8 84 108 16" />
+        </g>
+        <g className="jump-section-chain-glint">
+          <path d="M-8 14.5 108 82.5" />
+          <path d="M-8 82.5 108 14.5" />
+        </g>
+      </svg>
+      <div className="jump-section-lock-message">
+        <span>{label}</span>
+        <span aria-hidden="true">× {count}</span>
+      </div>
+      <div
+        className="jump-section-lock-seals"
+        data-section-lock-formation={visibleCount}
+      >
+        {Array.from({ length: visibleCount }, (_, index) => (
+          <SectionLockSeal key={index} index={index} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function JumpSectionView({
   section,
   props,
@@ -1861,7 +1983,11 @@ function JumpSectionView({
       item.handle ===
         (section.layout ?? props.packageItem.defaultSectionLayout),
   );
-  const locked = props.evaluation.sections?.[section.handle]?.locked ?? false;
+  const evaluatedSection = props.evaluation.sections?.[section.handle];
+  const locked = evaluatedSection?.locked ?? false;
+  const lockCount = locked
+    ? Math.max(1, Math.trunc(evaluatedSection?.lockScore ?? 1))
+    : 0;
   const content = layout ? (
     <Layout
       node={layout.root}
@@ -1910,11 +2036,7 @@ function JumpSectionView({
       data-section-locked={locked ? "true" : "false"}
       aria-disabled={locked || undefined}
     >
-      {locked && (
-        <div className="jump-section-locked-status" role="status">
-          {translate("ui.jumpRenderer.text.sectionLocked")}
-        </div>
-      )}
+      {locked && <SectionLockOverlay count={lockCount} />}
       <fieldset className="jump-section-content" disabled={locked}>
         {content}
       </fieldset>

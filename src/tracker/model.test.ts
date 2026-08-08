@@ -1104,7 +1104,7 @@ describe("Chain Tracker aggregate", () => {
             ...document,
             sections: document.sections.map((section) =>
               section.handle === "multi_manual"
-                ? { ...section, locked: true }
+                ? { ...section, locked: 1 }
                 : section,
             ),
             choices: document.choices.map((choice) =>

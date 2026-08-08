@@ -58,7 +58,7 @@ section
   handle: content
   name: "Content"
   layout: content_layout
-  locked: true
+  locked: 3
 
   choice-source
     handle: selections

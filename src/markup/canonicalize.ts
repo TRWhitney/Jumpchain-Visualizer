@@ -923,7 +923,7 @@ function section(
     ),
     name: renderable(node, "name"),
     layout: value(node, "layout"),
-    locked: boolean(node, "locked") ?? false,
+    locked: integer(node, "locked") ?? 0,
     sources: node.children
       .filter((child) => child.kind === "choice-source")
       .map((child): ChoiceSource => ({

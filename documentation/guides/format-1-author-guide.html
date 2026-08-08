@@ -174,7 +174,6 @@ section
   handle: perks
   name: "Perks"
   layout: perk_section
-  locked: false
 
   text
     handle: introduction
@@ -223,18 +222,20 @@ section
           <pre><code>section
   handle: advanced_training
   name: "Advanced Training"
-  locked: true
+  locked: 3
 
 choice
   handle: academy_access
   name: "Academy Access"
   unlock: advanced_training</code></pre>
           <p>
-            Each active <code>lock</code> adds one lock and each active
-            <code>unlock</code> removes one. An initially locked Section starts
-            with one lock. The Section remains locked while the total is greater
-            than zero. Existing selections are preserved while locked, but their
-            ordinary costs, grants, and effects are suspended.
+            <code>locked</code> sets an initial count from 0 through 5; zero and
+            omission both start the Section unlocked. Each active
+            <code>lock</code> adds one lock and each active
+            <code>unlock</code> removes one. The Section remains locked while
+            the total is greater than zero. Existing selections are preserved
+            while locked, but their ordinary costs, grants, and effects are
+            suspended.
           </p>
 
           <h2 id="choices-and-controls">Author Choices and controls</h2>
@@ -1202,10 +1203,10 @@ choice-layout
                     </tr>
                     <tr>
                       <th scope="row"><code>locked</code></th>
-                      <td>boolean</td>
+                      <td>integer</td>
                       <td>optional</td>
-                      <td>false</td>
-                      <td>{}</td>
+                      <td>0</td>
+                      <td>{&quot;minimum&quot;:0,&quot;maximum&quot;:5}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -5365,11 +5366,12 @@ choice-layout
                 controls stacking and the zero or negative floor&quot;}
               </li>
               <li>
-                {&quot;code&quot;:&quot;section.locking&quot;,&quot;rule&quot;:&quot;initial
-                locked contributes one, active lock and unlock effects
-                contribute positive and negative one, and a positive total
-                suspends editing and ordinary projections for choices placed
-                only in that section&quot;}
+                {&quot;code&quot;:&quot;section.locking&quot;,&quot;rule&quot;:&quot;locked
+                contributes its authored initial count from zero through five
+                and omission also contributes zero; active lock and unlock
+                effects contribute positive and negative one, and a positive
+                total suspends editing and ordinary projections for choices
+                placed only in that section&quot;}
               </li>
               <li>
                 {&quot;code&quot;:&quot;choice.continuity.domain&quot;,&quot;rule&quot;:&quot;continuity

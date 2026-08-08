@@ -2219,11 +2219,18 @@
   color: #92928d;
   opacity: 1;
 }
-.editor-number-stepper > input {
-  padding-right: 2.35rem !important;
+.editor-number-stepper input {
+  box-sizing: border-box;
+  height: 2.25rem;
+  min-height: 2.25rem !important;
+  padding: 0.38rem 2.35rem 0.38rem 0.5rem !important;
   color: #eee;
   background: #20201e;
   border-color: #52524c;
+}
+.editor-number-stepper,
+.editor-number-stepper > input {
+  display: block;
 }
 .editor-number-stepper .number-stepper-buttons {
   background: #20201e;
@@ -4855,11 +4862,14 @@
   span {
   color: #343430;
 }
-[data-app-theme="light"] .editor-number-stepper > input,
+[data-app-theme="light"] .editor-number-stepper input,
 [data-app-theme="light"] .editor-number-stepper .number-stepper-buttons {
   color: #252522;
   background: #fff;
   border-color: #aaa79e;
+}
+[data-app-theme="light"] .editor-number-stepper .number-stepper-buttons button {
+  color: #686861;
 }
 [data-app-theme="light"] .editor-outline-search input,
 [data-app-theme="light"] .editor-form-card :is(input, select, textarea),

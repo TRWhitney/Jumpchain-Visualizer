@@ -241,8 +241,10 @@ describe("unreleased Format 1 identity amendment", () => {
       children: { grant: { repeatable: true } },
     });
     expect(schemaJson.declarations.section.fields.locked).toMatchObject({
-      type: "boolean",
-      default: false,
+      type: "integer",
+      minimum: 0,
+      maximum: 5,
+      default: 0,
     });
     expect(schemaJson.declarations["choice-source"].fields.max).toMatchObject({
       type: "integer",

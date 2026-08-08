@@ -1211,7 +1211,7 @@ section
 section
   handle: training
   name: "Training"
-  locked: true
+  locked: 1
   choice
     handle: purchase
     target: purchase
@@ -1283,6 +1283,40 @@ choice
         expect.objectContaining({ kind: "perk", name: "Shared placement" }),
       ]),
     );
+  });
+
+  it("starts a Section with its authored number of locks", () => {
+    const packageItem = canonicalizePackage({
+      id: "multiple-initial-section-locks",
+      exactHash: "i".repeat(64),
+      files: {
+        "jump.jdef": `jump
+  format: 1
+  name: "Multiple Initial Locks"
+  author: "Tester"
+  version: "1"
+
+section
+  handle: vault
+  name: "Vault"
+  locked: 5
+`,
+      },
+    });
+    const result = evaluateChain({
+      order: ["entry"],
+      packageIdByEntry: { entry: packageItem.id },
+      packages: { [packageItem.id]: packageItem },
+      jumpState: {
+        entry: { actors: { jumper: actor({}) }, appliedGauntlet: [] },
+      },
+      jumperName: "Morgan",
+    });
+    expect(result.runtime.entry.actors.jumper.sections?.vault).toEqual({
+      handle: "vault",
+      lockScore: 5,
+      locked: true,
+    });
   });
 
   it("keeps a selected lock effect stable when it locks its own Section", () => {

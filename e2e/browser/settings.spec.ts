@@ -713,6 +713,7 @@ test(
   "Language selection switches, persists, falls back, and supports RTL",
   { tag: "@cross-browser" },
   async ({ page }, testInfo) => {
+    test.setTimeout(45_000);
     await page.goto("/settings");
     await expect(
       page.getByRole("tab", { name: "Language", exact: true }),
@@ -742,6 +743,21 @@ test(
     );
     await waitForStoredSetting(page, ["language", "tag"], "es-419");
 
+    await page.getByLabel("Idioma", { exact: true }).selectOption("es-ES");
+    await expect(page.getByLabel("Idioma", { exact: true })).toHaveValue(
+      "es-ES",
+    );
+    await expect(page.locator("html")).toHaveAttribute("lang", "es-ES");
+    await expect(page.locator(".app-settings-surface")).toHaveAccessibleName(
+      "Configuración de la aplicación",
+    );
+    await waitForStoredSetting(page, ["language", "tag"], "es-ES");
+    await page.getByRole("tab", { name: "Rastreador de Chains" }).click();
+    await expect(
+      page.getByLabel("Añadir otra versión del paquete", { exact: true }),
+    ).toBeVisible();
+    await page.getByRole("tab", { name: "General", exact: true }).click();
+
     await page.getByLabel("Idioma", { exact: true }).selectOption("pt-BR");
     await expect(page.getByLabel("Idioma", { exact: true })).toHaveValue(
       "pt-BR",
@@ -752,7 +768,20 @@ test(
     );
     await waitForStoredSetting(page, ["language", "tag"], "pt-BR");
 
-    await page.getByLabel("Idioma", { exact: true }).selectOption("es");
+    await page.getByLabel("Idioma", { exact: true }).selectOption("it-IT");
+    await expect(page.getByLabel("Lingua", { exact: true })).toHaveValue(
+      "it-IT",
+    );
+    await expect(page.locator("html")).toHaveAttribute("lang", "it-IT");
+    await expect(page.locator(".app-settings-surface")).toHaveAccessibleName(
+      "Impostazioni dell'applicazione",
+    );
+    await expect(
+      page.getByPlaceholder("Cerca nelle impostazioni"),
+    ).toBeVisible();
+    await waitForStoredSetting(page, ["language", "tag"], "it-IT");
+
+    await page.getByLabel("Lingua", { exact: true }).selectOption("es");
     await expect(page.getByLabel("Idioma", { exact: true })).toHaveValue("es");
     await expect(page.locator("html")).toHaveAttribute("lang", "es");
     await waitForStoredSetting(page, ["language", "tag"], "es");

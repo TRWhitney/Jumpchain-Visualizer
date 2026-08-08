@@ -1,0 +1,1774 @@
+{
+  "packageErrors": {
+    "archive": {
+      "truncated": "Non tutte le voci dell'archivio sono state estratte completamente.",
+      "filename_encoding": "Il nome di una voce non è in formato UTF-8 valido.",
+      "path": "L'archivio contiene un percorso non canonico.",
+      "entry_type": "Voce imprevista del pacchetto “{{value0}}”. Sono consentiti solo file .jdef e risorse immagine supportate.",
+      "malformed": "Il record finale ZIP è assente.",
+      "trailing_data": "L'archivio contiene dati finali o poliglotti.",
+      "multi_disk": "Una voce rimanda a un altro disco ZIP.",
+      "zip64": "I pacchetti ZIP64 non sono supportati.",
+      "entry_count": "I pacchetti devono contenere tra 1 e {{value0}} voci.",
+      "directory": "La directory centrale contiene byte imprevisti.",
+      "encrypted": "Le voci del pacchetto crittografate non sono consentite.",
+      "compression": "È stato usato un metodo di compressione non supportato.",
+      "special_entry": "Collegamenti, directory, dispositivi e altre voci speciali non sono consentiti.",
+      "path_collision": "L'archivio contiene percorsi duplicati o in conflitto dopo la conversione tra maiuscole e minuscole.",
+      "ratio": "Il pacchetto supera il limite obbligatorio complessivo di {{value0}}:1 per il rapporto di compressione.",
+      "extra_field": "I campi aggiuntivi ZIP64 e Unix in grado di rappresentare collegamenti non sono consentiti.",
+      "local_header": "Un'intestazione di file locale non è valida.",
+      "header_mismatch": "I campi di integrità delle voci locali e centrali non concordano.",
+      "overlap": "Le voci dell'archivio si sovrappongono nello spazio di archiviazione.",
+      "cancelled": "L'importazione è stata annullata.",
+      "entry_mismatch": "Il flusso ZIP ha esposto una voce sconosciuta.",
+      "file_limit": "Un elemento {{value0}} espanso supera il limite effettivo di {{value1}} MiB.",
+      "expanded_limit": "I dati espansi del pacchetto superano il limite effettivo di {{value0}} MiB.",
+      "size_mismatch": "La dimensione espansa effettiva di una voce non corrisponde alla relativa intestazione ZIP.",
+      "crc": "Una voce non ha superato il controllo di integrità CRC.",
+      "size_limit": "L'archivio .jmp supera il limite effettivo di {{value0}} MiB.",
+      "inspect_failed": "Non è stato possibile ispezionare il pacchetto in sicurezza."
+    },
+    "asset": {
+      "signature": "{{value0}} non corrisponde a una firma immagine sicura supportata.",
+      "decode": "Non è stato possibile decodificare {{value0}} in sicurezza.",
+      "crc": "{{value0}} contiene un CRC non valido per un blocco PNG.",
+      "polyglot": "{{value0}} non contiene un trailer GIF terminale.",
+      "extension": "{{value0}} usa un'estensione immagine non supportata.",
+      "dimensions": "{{value0}} supera le dimensioni obbligatorie dell'immagine decodificata o il limite di pixel.",
+      "total_pixels": "Le immagini del pacchetto superano il limite totale obbligatorio di pixel decodificati.",
+      "size_mismatch": "{{value0}} indica dimensioni decodificate incoerenti."
+    },
+    "definition": {
+      "encoding": "{{value0}} non è un sorgente UTF-8 valido."
+    },
+    "package": {
+      "invalid": "Il pacchetto non è valido: {{value0}}",
+      "missing_asset": "La risorsa obbligatoria “{{value0}}” è assente."
+    },
+    "export": {
+      "path": "Percorso risorsa non valido “{{value0}}”.",
+      "file_limit": "{{value0}} supera il limite effettivo per le risorse.",
+      "entry_count": "I pacchetti possono contenere al massimo {{value0}} voci.",
+      "expanded_limit": "Il pacchetto supera il limite dei dati espansi.",
+      "archive_limit": "L'archivio compresso supera il limite degli archivi."
+    }
+  },
+  "diagnostics": {
+    "source": {
+      "too_large": "Il sorgente supera {{limit}} caratteri.",
+      "too_many_lines": "Il sorgente supera {{limit}} righe.",
+      "line_too_long": "La riga supera {{limit}} caratteri.",
+      "too_deep": "L'annidamento supera {{limit}} livelli.",
+      "too_many_nodes": "Il sorgente supera {{limit}} dichiarazioni."
+    },
+    "syntax": {
+      "document": "Non è stato possibile suddividere il sorgente in token.",
+      "fence_indent": "Il contenuto delimitato ha un rientro inferiore a quello del delimitatore.",
+      "tab": "Le tabulazioni non sono un rientro valido in Format 1.",
+      "indent": "Il rientro deve usare multipli di due spazi.",
+      "orphan_field": "Il campo “{{field}}” non appartiene ad alcuna dichiarazione.",
+      "embedded_field": "Il campo “{{field}}” deve iniziare su una riga propria.",
+      "line": "Era prevista una dichiarazione, un nodo di layout o un campo.",
+      "unclosed_fence": "Il delimitatore del testo formattato non è chiuso."
+    },
+    "schema": {
+      "declaration": {
+        "unknown": "Dichiarazione sconosciuta “{{declaration}}”.",
+        "unknownSuggested": "Dichiarazione sconosciuta “{{declaration}}”. Forse intendevi “{{suggestion}}”?",
+        "context": "“{{declaration}}” non è valido all'interno di {{context}}.",
+        "scalar": "{{declaration}} non supporta un valore semplice."
+      },
+      "field": {
+        "unknown": "Campo sconosciuto “{{field}}” in {{declaration}}.",
+        "unknownSuggested": "Campo sconosciuto “{{field}}” in {{declaration}}. Forse intendevi “{{suggestion}}”?",
+        "condition": "Il campo “{{field}}” non supporta varianti condizionali.",
+        "required": "{{declaration}} richiede {{field}}.",
+        "duplicate": "Il campo “{{field}}” può comparire una sola volta in {{declaration}}.",
+        "exactDuplicate": "Il campo “{{field}}” ripete il valore “{{value}}”.",
+        "exclusive": "I campi “{{field}}” e “{{other}}” non possono essere usati insieme.",
+        "optionAssociation": "Un'opzione condizionale deve seguire l'opzione di base che modifica.",
+        "inapplicable": "Il campo “{{field}}” non è disponibile in {{declaration}}."
+      },
+      "value": {
+        "handle": "“{{value}}” non è un handle valido. Usa lettere minuscole, numeri e caratteri di sottolineatura singoli.",
+        "handleReference": "“{{value}}” non è un riferimento a un handle valido.",
+        "type": "“{{value}}” non è un valore {{expected}} valido per {{field}}.",
+        "const": "Il campo “{{field}}” deve essere {{expected}}.",
+        "bounds": "Il campo “{{field}}” è al di fuori dei limiti consentiti."
+      },
+      "child": {
+        "invalid": "“{{child}}” non è valido all'interno di {{declaration}}.",
+        "required": "{{declaration}} richiede un elemento figlio {{child}}.",
+        "cardinality": "{{declaration}} contiene troppi elementi figli {{child}}."
+      },
+      "handle": {
+        "duplicate": "L'handle “{{handle}}” è ripetuto nello spazio dei nomi {{namespace}}."
+      },
+      "file": {
+        "placement": "“{{declaration}}” non è consentito in {{file}}."
+      }
+    },
+    "reference": {
+      "unresolved": "Il riferimento “{{value}}” del campo {{field}} non corrisponde ad alcuna dichiarazione {{namespace}}."
+    },
+    "text": {
+      "empty": "Questo blocco di testo è privo di contenuto e non visualizza nulla."
+    },
+    "option": {
+      "empty": "Questa opzione è vuota e non verrà visualizzata."
+    },
+    "image": {
+      "src": {
+        "missing": "Questa immagine non ha una sorgente ed è incompleta per l'esportazione."
+      },
+      "asset": {
+        "missing": "La risorsa immagine “{{path}}” non esiste nel pacchetto."
+      },
+      "alt": {
+        "missing": "Questa immagine non ha testo alternativo."
+      }
+    },
+    "appearance": {
+      "contrast": {
+        "surfaceText": "Il contrasto del testo della superficie è {{measured}}:1; è previsto almeno {{expected}}:1.",
+        "headerTitle": "Il contrasto del titolo dell'intestazione è {{measured}}:1; è previsto almeno {{expected}}:1.",
+        "headerDescription": "Il contrasto della descrizione dell'intestazione è {{measured}}:1; è previsto almeno {{expected}}:1.",
+        "sectionBody": "Il contrasto del corpo della Sezione è {{measured}}:1; è previsto almeno {{expected}}:1.",
+        "choiceBody": "Il contrasto del corpo della Scelta è {{measured}}:1; è previsto almeno {{expected}}:1.",
+        "controlText": "Il contrasto del testo del controllo è {{measured}}:1; è previsto almeno {{expected}}:1.",
+        "controlIndicator": "Il contrasto dell'indicatore del controllo è {{measured}}:1; è previsto almeno {{expected}}:1.",
+        "focusIndicator": "Il contrasto dell'indicatore dello stato attivo è {{measured}}:1; è previsto almeno {{expected}}:1.",
+        "meaningfulBorder": "Il contrasto del bordo significativo è {{measured}}:1; è previsto almeno {{expected}}:1."
+      }
+    },
+    "layout": {
+      "node": {
+        "context": "{{node}} non è valido in un layout {{layout}}."
+      },
+      "slot": {
+        "target": "La destinazione dello slot “{{target}}” non è valida in un layout {{layout}}.",
+        "context": "Il layout dei tratti {{layout}} supporta solo lo slot del nome."
+      },
+      "root": {
+        "cardinality": "Un layout {{layout}} richiede esattamente un contenitore radice; trovati: {{count}}.",
+        "child": "{{child}} non può essere una radice diretta di un layout {{layout}}."
+      },
+      "expand": {
+        "ambiguous": "Il layout “{{layout}}” deve indicare una sorgente di espansione quando viene visualizzato per {{owner}}.",
+        "source": "La sorgente di espansione “{{source}}” non esiste in {{owner}}.",
+        "using": "Il layout di espansione “{{layout}}” non è un layout di Scelta.",
+        "unique": "Il layout della Sezione {{layout}} espande la sorgente “{{source}}” più di una volta.",
+        "unreachable": "La sorgente di Scelte {{section}}.{{source}} è omessa dal relativo layout esplicito."
+      },
+      "choice": {
+        "target": "Il posizionamento della Scelta diretta “{{target}}” non esiste in {{owner}}.",
+        "unique": "Il layout della Sezione {{layout}} posiziona “{{target}}” più di una volta.",
+        "unreachable": "La Scelta diretta {{section}}.{{choice}} è omessa dal relativo layout esplicito."
+      },
+      "input": {
+        "unreachable": "L'input “{{input}}” non è posizionato dal layout di Scelta “{{layout}}” e non verrà mostrato."
+      },
+      "container": {
+        "empty": "Questo contenitore del layout è vuoto e non visualizza nulla."
+      },
+      "grid": {
+        "columns": "La griglia in {{layout}} richiede da 1 a 12 colonne.",
+        "weightCount": "La griglia dichiara {{columns}} colonne ma fornisce {{weights}} pesi di colonna. Fornisci un peso per colonna oppure rimuovili tutti."
+      },
+      "grow": {
+        "parent": "L'espansione è disponibile solo per un elemento figlio diretto di Pila o In linea, non per un elemento figlio {{parent}}."
+      },
+      "span": {
+        "parent": "{{field}} è disponibile solo per un elemento figlio diretto di Griglia, non per un elemento figlio {{parent}}."
+      },
+      "list": {
+        "textOnly": "{{field}} è disponibile solo in una foglia di layout Testo."
+      },
+      "reference": "Il layout {{ownerKind}} “{{layout}}” non esiste.",
+      "typedTarget": {
+        "missing": "La destinazione {{kind}} “{{target}}” è assente da {{owner}} e lì viene compressa."
+      }
+    },
+    "choice": {
+      "continuity": {
+        "domain": "Genere predefinito non è configurato correttamente.",
+        "selection": "Genere predefinito è valido solo per le Scelte di selezione. Cambia Tipo di selezione in Selezione oppure imposta Genere predefinito su Non è una selezione del genere.",
+        "propertyMissing": "Genere predefinito richiede un'assegnazione diretta di tipo Proprietà che copi questa Scelta. Aggiungi un Conferimento, imposta Tipo di assegnazione su Proprietà e Nome risposta su gender, quindi lascia Valore vuoto.",
+        "propertyMultiple": "Genere predefinito ha trovato {{count}} assegnazioni dirette di tipo Proprietà che copiano gender. Mantienine esattamente una e lasciane vuoto il Valore."
+      },
+      "integer": {
+        "bounds": "I limiti della Scelta intera sono incompleti o non validi."
+      },
+      "companions": {
+        "max": "Il massimo deve essere un intero positivo.",
+        "bounds": "Il Minimo della selezione dei Compagni non può superare il relativo Massimo.",
+        "funding": "Importa Compagni richiede un'assegnazione positiva di valuta indirizzata a “{{handle}}”.",
+        "shorthand": "Questa Scelta non può usare anche l'assegnazione semplice Compagno, perché riutilizzerebbe la relativa destinazione d'importazione."
+      },
+      "placeholder": {
+        "domain": "Il segnaposto è valido solo per Scelte di tipo Testo, Intero, Selezione e Importa Compagni."
+      },
+      "resolution": {
+        "domain": "La risoluzione della Scelta è valida solo per Scelte intere e di selezione."
+      },
+      "unreachable": "La Scelta “{{choice}}” non è associata a una Sezione.",
+      "select": {
+        "options": "Questa Scelta di selezione non ha opzioni."
+      },
+      "option": {
+        "domain": "Le opzioni sono valide solo quando il tipo di selezione è Selezione."
+      },
+      "group": {
+        "missing": "Questa Scelta non appartiene ad alcun gruppo e non è citata direttamente, pertanto non è raggiungibile.",
+        "invalid": "Il gruppo di Scelte “{{value}}” non è un handle valido.",
+        "duplicate": "Il gruppo di Scelte “{{value}}” è ripetuto."
+      }
+    },
+    "choiceSource": {
+      "group": {
+        "missing": "La sorgente di Scelte “{{source}}” non ha un gruppo e non può trovare Scelte corrispondenti.",
+        "invalid": "Il gruppo della sorgente di Scelte “{{value}}” non è un handle valido."
+      },
+      "empty": "La sorgente di Scelte “{{source}}” non corrisponde ad alcuna Scelta nel gruppo “{{group}}”.",
+      "max": {
+        "domain": "Il massimo di una Sorgente di Scelte è disponibile solo in modalità multipla."
+      }
+    },
+    "choice-source": {
+      "group": {
+        "missing": "La sorgente di Scelte {{section}}.{{source}} non ha un gruppo e non può contenere Scelte."
+      },
+      "empty": "La sorgente di Scelte {{section}}.{{source}} non corrisponde ad alcuna Scelta."
+    },
+    "jump": {
+      "cardinality": "Un pacchetto richiede esattamente una dichiarazione jump; trovate: {{count}}.",
+      "format": "Sono supportati solo pacchetti Format 1.",
+      "author": {
+        "duplicate": "L'autore “{{author}}” è ripetuto."
+      }
+    },
+    "input": {
+      "selection": "Selezione dell'input non valida “{{selection}}”.",
+      "bounds": {
+        "domain": "Min e max non si applicano a un input {{selection}}.",
+        "order": "Il min dell'input non deve superare il max."
+      },
+      "option": {
+        "domain": "Le opzioni non si applicano a un input {{selection}}.",
+        "empty": "Questo input di selezione non ha opzioni."
+      }
+    },
+    "grant": {
+      "kind": "Tipo di conferimento sconosciuto “{{kind}}”.",
+      "resource": {
+        "fields": "I conferimenti di risorse richiedono risorsa e quantità."
+      },
+      "property": {
+        "fields": "I conferimenti di Proprietà richiedono un handle.",
+        "reserved_types": "La Proprietà {{property}} non è compatibile con il valore creato dall'autore o con il controllo {{selection}}.",
+        "jump_value": "I conferimenti di Proprietà a livello di Jump richiedono un valore esplicito."
+      },
+      "form": {
+        "handle": "I conferimenti di Forma richiedono un handle stabile univoco.",
+        "target_kind": "Solo i conferimenti di Vantaggi possono avere come destinazione una forma.",
+        "context": "I conferimenti di Forma sono validi solo direttamente nelle Scelte.",
+        "shorthand": "Un destinatario Forma richiede esattamente un'assegnazione semplice di Vantaggio in questa Scelta.",
+        "reference": "La forma di destinazione “{{target}}” non esiste."
+      },
+      "companion": {
+        "handle": "Le destinazioni Compagno richiedono un handle stabile univoco.",
+        "target_kind": "Solo i conferimenti di Vantaggi e risorse possono avere come destinazione un Compagno.",
+        "shorthand": "Un destinatario Compagno richiede esattamente un'assegnazione semplice di Vantaggio in questa Scelta.",
+        "reference": "Il Compagno di destinazione “{{target}}” non esiste."
+      },
+      "owner": {
+        "conflict": "Un conferimento non può avere come destinazione sia una forma sia un Compagno."
+      },
+      "measure": {
+        "integer_only": "Misura richiede una Scelta o un Input proprietario di tipo intero.",
+        "jump": "I conferimenti a livello di Jump non possono copiare la misura di un controllo intero.",
+        "kind": "Misura è valida solo nei conferimenti di Vantaggi, Oggetti e tratti.",
+        "shorthand": "Il campo “Il numero selezionato rappresenta” richiede esattamente una semplice assegnazione di Vantaggio o Oggetto in questa Scelta.",
+        "value": "Misura deve essere impostata su grado o quantità."
+      },
+      "visible": {
+        "field": "Il campo “{{field}}” non è valido per un conferimento {{kind}}."
+      }
+    },
+    "tag": {
+      "empty": "Il campo “{{field}}” ha un'identità canonica vuota.",
+      "duplicate": "Il campo “{{field}}” ripete “{{value}}” dopo la canonizzazione."
+    },
+    "condition": {
+      "syntax": "La condizione “{{condition}}” non usa una sintassi di espressione Format 1 valida.",
+      "type": "La Proprietà “{{property}}” è di tipo {{propertyType}}, pertanto l'operatore “{{operator}}” non può confrontarla con un valore {{literalType}}.",
+      "shadowed": "Una condizione precedente, “{{condition}}”, corrisponde per prima e rende questa variante irraggiungibile.",
+      "property": {
+        "unresolved": "La Proprietà della condizione “{{property}}” non è definita da questo pacchetto."
+      }
+    },
+    "placeholder": {
+      "field": {
+        "invalid": "I segnaposto non sono validi nel campo strutturale “{{field}}”."
+      },
+      "property": {
+        "unresolved": "La Proprietà segnaposto “{{property}}” non è definita da questo pacchetto."
+      }
+    },
+    "file": {
+      "choice": {
+        "mixed": "Questa Scelta rimane in jump.jdef nonostante sia presente choices.jdef."
+      },
+      "layout": {
+        "mixed": "Questa dichiarazione di presentazione rimane in jump.jdef nonostante sia presente layout.jdef."
+      }
+    },
+    "color": {
+      "reference": "Il token colore “{{value}}” non corrisponde a un colore integrato o a un tema."
+    },
+    "cost": {
+      "unique_resource": "Una Scelta può dichiarare al massimo un costo per la risorsa “{{resource}}”.",
+      "each": {
+        "integer_only": "I costi per grado richiedono una Scelta intera con un min esplicito non negativo."
+      }
+    },
+    "discount": {
+      "group": {
+        "empty": "Il gruppo di sconto “{{group}}” non corrisponde ad alcuna Scelta."
+      }
+    },
+    "resource": {
+      "reserved": "jump_points è la risorsa primaria di proprietà del motore.",
+      "reference": "La risorsa “{{resource}}” per {{usage}} non è dichiarata."
+    },
+    "package": {
+      "asset_path": "Le risorse devono usare un percorso relativo al pacchetto supportato, senza attraversamenti né schemi URI."
+    },
+    "section": {
+      "required": "Un pacchetto distribuibile richiede almeno una Sezione.",
+      "effect": {
+        "reference": "La destinazione dell'effetto della Sezione “{{target}}” non esiste."
+      },
+      "choice": {
+        "target": {
+          "unique": "Questa Sezione associa la Scelta “{{target}}” più di una volta."
+        }
+      }
+    }
+  },
+  "diagnosticType": {
+    "imageDimension": "dimensione dell'immagine"
+  },
+  "ui": {
+    "editorHub": {
+      "ariaLabel": {
+        "projectActions": "Azioni del progetto {{project}}",
+        "delete": "Elimina {{project}}",
+        "star": "Aggiungi {{project}} ai preferiti",
+        "unstar": "Rimuovi {{project}} dai preferiti"
+      },
+      "title": {
+        "chooseProjectFolder": "Scegli una cartella di progetto",
+        "projectFoldersDesktopOnly": "Le cartelle di progetto sono disponibili nell'applicazione desktop"
+      },
+      "opened": {
+        "justNow": "Aperto proprio ora",
+        "today": "Aperto oggi",
+        "yesterday": "Aperto ieri",
+        "date": "Aperto il {{date}}"
+      },
+      "count": {
+        "total_one": "{{formattedCount}} in totale",
+        "total_other": "{{formattedCount}} in totale",
+        "visible": "{{visible}} di {{total}}",
+        "errors_one": "{{formattedCount}} errore",
+        "errors_other": "{{formattedCount}} errori",
+        "warnings_one": "{{formattedCount}} avviso",
+        "warnings_other": "{{formattedCount}} avvisi"
+      },
+      "empty": {
+        "noMatch": "Nessun progetto corrisponde a “{{search}}”.",
+        "noProjects": "Non sono ancora presenti progetti dell'Editor.",
+        "searchHelp": "Prova con un nome, un autore, una versione, un tag o una diagnostica.",
+        "createHelp": "Crea un progetto oppure importa un pacchetto .jmp sicuro."
+      },
+      "text": {
+        "editor": "Editor",
+        "yourJumpProjects": "I tuoi progetti Jump",
+        "createAPackageResumeRecentAuthoringOrSecurelyInspect": "Crea un pacchetto, riprendi un lavoro recente oppure ispeziona in sicurezza un file .jmp portatile.",
+        "savedProjects": "progetti salvati",
+        "createANewJump": "Crea un nuovo Jump",
+        "startsAValidFormat1ProjectAuthoredByAnonymous": "Avvia un progetto Format 1 valido, creato da Anonimo, versione 0.1, con una Sezione Introduzione.",
+        "createProject": "Crea progetto",
+        "openProjectFolder": "Apri cartella del progetto",
+        "importJmp": "Importa .jmp",
+        "allSavedProjects": "Tutti i progetti salvati",
+        "starredProjectsFirstThenByWhenYouLastOpened": "Prima i progetti preferiti, poi in base all'ultima apertura.",
+        "searchSavedProjects": "Cerca nei progetti salvati",
+        "loadingSavedProjects": "Caricamento dei progetti salvati…",
+        "yourInMemoryWorkRemainsAvailable": "Il lavoro in memoria resta disponibile.",
+        "delete": "Elimina",
+        "nativeGauntlet": "Gauntlet nativo",
+        "format1Jump": "Jump Format 1",
+        "unknownAuthor": "Autore sconosciuto",
+        "clean": "Nessun problema",
+        "version": "Versione",
+        "sections": "Sezioni",
+        "choices": "Scelte",
+        "diagnostics": "Diagnostica",
+        "openProject": "Apri progetto",
+        "securePackageInspection": "Ispezione sicura del pacchetto",
+        "inspectingEveryEntry": "Ispezione di ogni voce…",
+        "compressedAndExpandedBytesFileTypesPathsSignaturesImages": "Prima di creare qualsiasi elemento, vengono convalidati byte compressi ed espansi, tipi di file, percorsi, firme, immagini, sorgente, schema e riferimenti.",
+        "cancel": "Annulla",
+        "importBlocked": "Importazione bloccata",
+        "thisPackageMayBeUnsafeOrMalformed": "Questo pacchetto potrebbe non essere sicuro o essere non valido",
+        "nothingWasInstalledExtractedOrCreated": "Non è stato installato, estratto o creato nulla.",
+        "close": "Chiudi",
+        "versionPrefix": "versione ",
+        "identity": "Identità",
+        "sha256": "SHA-256",
+        "files": "File",
+        "definitions": " definizioni · ",
+        "assets": " risorse",
+        "expanded": "Espanso",
+        "mib": " MiB",
+        "effectivePackageLimits": "Limiti effettivi del pacchetto",
+        "archive": "Archivio ",
+        "definition": "Definizione ",
+        "asset": "Risorsa ",
+        "expandedSizePrefix": "Espanso ",
+        "atYourOwnRisk": "A tuo rischio.",
+        "customByteBudgetsAreActiveMandatoryMaliciousArchiveProtections": " Sono attivi limiti personalizzati in byte. Le protezioni obbligatorie dagli archivi dannosi restano applicate.",
+        "reviewAuthoringWarnings": "Esamina gli avvisi di creazione",
+        "secureInspectionComplete": "Ispezione sicura completata",
+        "importAnyway": "Importa comunque",
+        "importProject": "Importa progetto"
+      },
+      "placeholder": {
+        "nameAuthorVersionTagDiagnostic": "Nome, autore, versione, tag, diagnostica"
+      }
+    },
+    "editorWorkspace": {
+      "defaultValue": {
+        "template": "Predefinito: {{value}}",
+        "booleanTrue": "true",
+        "booleanFalse": "false",
+        "builtInSectionLayout": "layout di Sezione integrato",
+        "builtInChoiceLayout": "layout di Scelta integrato",
+        "builtInTraitLayout": "layout di tratto integrato",
+        "notGenderSelection": "Non è una selezione del genere",
+        "unboundedMinimum": "Predefinito: −∞ (senza limite)",
+        "unboundedMaximum": "Predefinito: +∞ (senza limite)"
+      },
+      "color": {
+        "hexPlaceholder": "#RRGGBB",
+        "hexOrTokenPlaceholder": "#RRGGBB o token colore",
+        "chooseWithPicker": "Scegli {{field}} con il selettore colori",
+        "sampleFromScreenForField": "Campiona un colore dello schermo per {{field}}",
+        "screenSamplingUnavailable": "Il campionamento dei colori dello schermo non è disponibile.",
+        "showChoicesForField": "Mostra le scelte di colore per {{field}}",
+        "availableTokens": "Token colore disponibili",
+        "builtInTokens": "Colori integrati",
+        "themeTokens": "Colori del tema",
+        "useToken": "Usa il token colore {{token}}",
+        "createThemeColor": "Nuovo tema…"
+      },
+      "handle": {
+        "showChoicesForField": "Mostra le scelte degli handle per {{field}}",
+        "availableHandlesForField": "Handle disponibili per {{field}}"
+      },
+      "previewProperties": {
+        "runtimeHeading": "Runtime dell'anteprima",
+        "basicDataHeading": "Verifica dei dati di base",
+        "basicData": "Dati di base",
+        "identity": "Identità",
+        "originAndLocation": "Origine e luogo",
+        "interpolatedValues": "Valori interpolati aggiuntivi",
+        "unset": "Non impostato",
+        "currentSource": "Sorgente corrente: {{source}}",
+        "noCurrentSource": "Nessun valore attivo scrive questa Proprietà.",
+        "setByThisJump": "Può essere impostato da questo Jump",
+        "noChoiceSetter": "Nessuna Scelta o Input compatibile e raggiungibile in questo Jump",
+        "missingBasicWriter": {
+          "gender": "Crea una Scelta di selezione raggiungibile con l'handle gender. L'opzione selezionata scriverà automaticamente Genere.",
+          "age": "Crea una Scelta intera raggiungibile con l'handle age. Il numero selezionato scriverà automaticamente Età.",
+          "origin": "Crea una Scelta non intera raggiungibile con l'handle origin oppure un gruppo di Scelte Origin. Le risposte di testo e selezione scrivono direttamente Origine; gli altri tipi di selezione usano il nome della Scelta. Un nome che inizia con Origin (…) scrive solo il testo tra parentesi.",
+          "location": "Crea una Scelta non intera raggiungibile con l'handle location. Le risposte di testo e selezione scrivono direttamente Luogo; gli altri tipi di selezione usano il nome della Scelta. Un nome che inizia con Location (…) scrive solo il testo tra parentesi."
+        },
+        "noInterpolatedValues": "Questo Jump non contiene segnaposto aggiuntivi per le Proprietà. I dati di base sono mostrati sopra.",
+        "currentSelectionHeading": "Selezione corrente dell'anteprima",
+        "selectedAcquisitions": "Acquisizioni selezionate",
+        "perksAndItems": "Vantaggi e Oggetti",
+        "perk": "Vantaggio",
+        "item": "Oggetto",
+        "forms": "Forme",
+        "form": "Forma",
+        "companions": "Compagni",
+        "companion": "Compagno",
+        "view": "Visualizza",
+        "close": "Chiudi",
+        "viewDetails": "Visualizza i dettagli di {{name}}",
+        "currentJumpRecord": "Record del Jump corrente",
+        "currentJumpCompanion": "Si è unito nell'anteprima corrente",
+        "rankValue": "Grado {{value}}",
+        "noSelectedAcquisitions": "Al momento non è selezionato alcun Vantaggio, Oggetto, forma o Compagno."
+      },
+      "spelling": {
+        "suggestionsFor": "Suggerimenti ortografici per “{{word}}”"
+      },
+      "combobox": {
+        "showSuggestionsForField": "Mostra suggerimenti per {{field}}",
+        "availableSuggestionsForField": "Suggerimenti disponibili per {{field}}",
+        "showOptions": "Mostra scelte per {{field}}",
+        "availableOptions": "Scelte disponibili per {{field}}"
+      },
+      "reference": {
+        "primaryPointCurrency": "Valuta principale dei punti",
+        "kindAndName": "{{kind}} · {{name}}",
+        "importedCompanionChoice": "Compagni selezionati da {{name}} nei Jump precedenti"
+      },
+      "setFields": {
+        "primaryTagSuggestion": "Tag principale del profilo",
+        "existingPackageGroupSuggestion": "Gruppo esistente nel pacchetto",
+        "choiceSourceGroupLabel": "Gruppo della Sorgente di Scelte",
+        "choiceSourceGroupHelp": "Associa questa Sorgente di Scelte alle Scelte create con lo stesso gruppo. I gruppi collegano le Scelte alle Sorgenti di Scelte; non sono tag di presentazione.",
+        "choiceSourceGroupPlaceholder": "Digita un gruppo o scegli un gruppo esistente nel pacchetto.",
+        "discountGroupPlaceholder": "Scegli il gruppo di Scelte interessato da questo sconto.",
+        "tag": {
+          "label": "Tag",
+          "help": "I tag di presentazione usano il profilo tag corrente per i badge. Qui i tag aggiunti sono immutabili; per modificare un tag, rimuovilo e aggiungine uno.",
+          "placeholder": "Digita un tag qualsiasi o scegli un tag principale.",
+          "add": "Aggiungi tag",
+          "addedList": "Tag aggiunti",
+          "emptyValue": "Tag vuoto creato nell'origine",
+          "remove": "Rimuovi tag {{value}}"
+        },
+        "group": {
+          "label": "Gruppi",
+          "help": "I gruppi collegano le Scelte alle Sorgenti di Scelte; non sono tag di presentazione. Vengono suggeriti i gruppi esistenti nel pacchetto.",
+          "placeholder": "Digita un gruppo o scegli un gruppo esistente nel pacchetto.",
+          "add": "Aggiungi gruppo",
+          "addedList": "Gruppi aggiunti",
+          "emptyValue": "Gruppo vuoto creato nell'origine",
+          "remove": "Rimuovi gruppo {{value}}"
+        },
+        "author": {
+          "label": "Autori",
+          "help": "Aggiungi una sola volta ogni autore del Jump. Qui gli autori aggiunti sono immutabili; per modificare un autore, rimuovilo e aggiungine uno.",
+          "placeholder": "Digita il nome di un autore.",
+          "add": "Aggiungi autore",
+          "addedList": "Autori aggiunti",
+          "emptyValue": "Autore vuoto creato nell'origine",
+          "remove": "Rimuovi autore {{value}}"
+        }
+      },
+      "choiceShorthand": {
+        "bothHeading": "Destinatario e grado/quantità dell'assegnazione",
+        "bothSummary": "Scegli se questa assegnazione appartiene a una forma o a un Compagno. Per una Scelta o un Input intero, scegli se il numero selezionato rappresenta un grado o una quantità.",
+        "recipientHeading": "Destinatario dell'assegnazione",
+        "recipientSummary": "Scegli una forma o un Compagno esistente che riceverà questa assegnazione.",
+        "measureHeading": "Grado o quantità",
+        "measureSummary": "Per una Scelta o un Input intero, scegli se il numero selezionato rappresenta un grado o una quantità.",
+        "form": {
+          "label": "Forma destinataria",
+          "help": "Scegli una forma esistente che riceverà il Vantaggio assegnato."
+        },
+        "companion": {
+          "label": "Compagno destinatario",
+          "help": "Scegli un Compagno esistente, acquistato o importato, che riceverà il Vantaggio assegnato."
+        },
+        "measure": {
+          "label": "Il numero selezionato rappresenta",
+          "help": "Considera il numero selezionato come grado di un Vantaggio o tratto oppure come quantità di un Oggetto.",
+          "selectionUnavailable": "Non disponibile per questo tipo di selezione. Scegli Intero per usare grado o quantità.",
+          "ownerSelectionUnavailable": "Non disponibile perché la Scelta o l'Input proprietario non usa una selezione Intero.",
+          "awardUnavailable": "Non disponibile finché questa Scelta non assegna esattamente un Vantaggio o un Oggetto.",
+          "selectionUnavailablePlaceholder": "Richiede una selezione Intero",
+          "awardUnavailablePlaceholder": "Richiede un'assegnazione Vantaggio o Oggetto"
+        },
+        "companionCreation": "Per creare un nuovo Compagno, aggiungi Compagno in Contenuto ed effetti. Compagno destinatario invia il Vantaggio assegnato solo a un Compagno già esistente."
+      },
+      "description": {
+        "label": "Descrizione",
+        "declarationLabel": "Testo della descrizione",
+        "choiceOwnerHelp": "La Descrizione illustra questa Scelta ed è la descrizione di riserva per ogni assegnazione che conferisce. Gli altri blocchi Testo, Immagine e Input sono contenuti di presentazione. Per creare un Compagno, aggiungi un'assegnazione Compagno; Compagno destinatario può avere come destinazione solo un Compagno già esistente.",
+        "grantOwnerHelp": "La Descrizione illustra questa assegnazione specifica nell'Inventario e sostituisce la Descrizione della Scelta proprietaria. Gli altri blocchi Testo e Immagine non sono usati da questo tipo di assegnazione.",
+        "traitOwnerHelp": "La Descrizione illustra questo tratto e sostituisce la Descrizione della Scelta proprietaria. Il layout selezionato del tratto può mostrare altri blocchi Testo e Immagine."
+      },
+      "sectionEffects": {
+        "heading": "Blocco delle Sezioni",
+        "help": "Quando questa Scelta è selezionata, i blocchi si sommano e gli sblocchi si sottraggono dal punteggio di blocco di ogni Sezione di destinazione."
+      },
+      "input": {
+        "supportingControlHelp": "Questo è un controllo di completamento usato dopo la selezione della Scelta genitore. I relativi effetti usano questa risposta e ogni Input aggiuntivo crea un altro controllo separato.",
+        "automaticPlacement": "Il layout di Scelta integrato mostra automaticamente questo Input.",
+        "placedByLayout": "Mostrato dal layout di Scelta “{{layout}}”.",
+        "missingFromLayout": "L'Input “{{input}}” non viene mostrato perché il layout di Scelta “{{layout}}” non lo posiziona.",
+        "placeInLayout": "Inserisci nel layout",
+        "placedAnnouncement": "Input “{{input}}” inserito nel layout di Scelta.",
+        "openLayout": "Apri layout"
+      },
+      "implicitBasicChoice": {
+        "gender": "Comportamento speciale: poiché questa Scelta di selezione raggiungibile ha l'handle gender, l'opzione selezionata scrive automaticamente la Proprietà Genere.",
+        "age": "Comportamento speciale: poiché questa Scelta intera raggiungibile ha l'handle age, il numero selezionato scrive automaticamente la Proprietà Età.",
+        "location": "Comportamento speciale: poiché questa Scelta non intera raggiungibile ha l'handle location, scrive automaticamente la Proprietà Luogo. I controlli di testo e selezione usano la propria risposta; gli altri controlli usano il nome della Scelta, abbreviando Location (…) al testo tra parentesi.",
+        "originChoice": "Comportamento speciale: poiché questa Scelta non intera raggiungibile ha l'handle origin, scrive automaticamente la Proprietà Origine. I controlli di testo e selezione usano la propria risposta; gli altri controlli usano il nome della Scelta, abbreviando Origin (…) al testo tra parentesi.",
+        "originGroup": "Comportamento speciale: questa Scelta appartiene a un gruppo Origin. Selezionandola, il suo nome viene scritto automaticamente nella Proprietà Origine, abbreviando Origin (…) al testo tra parentesi."
+      },
+      "previewCompanion": {
+        "first": "Compagno precedente",
+        "second": "Compagno del Jump precedente"
+      },
+      "namedValues": {
+        "answerName": "Nome della risposta",
+        "answerNameHelp": "Il nome stabile usato dalle condizioni e dai valori inseriti. Lasciando vuoto Valore viene copiata la risposta della Scelta o dell'Input proprietario.",
+        "insert": "Inserisci valore…"
+      },
+      "editorSection": {
+        "default": "Dettagli",
+        "jump": "Impostazioni Jump",
+        "resource": "Dettagli della valuta",
+        "section": "Presentazione della Sezione",
+        "choice-source": "Comportamento del gruppo di Scelte",
+        "choice": "Comportamento della Scelta",
+        "text": "Contenuto testuale",
+        "image": "Contenuto dell'immagine",
+        "input": "Comportamento dell'Input",
+        "cost": "Calcolo del costo",
+        "grant": "Dettagli dell'assegnazione",
+        "theme": "Colore del tema"
+      },
+      "choiceSelection": {
+        "label": "Selezione",
+        "showChoices": "Mostra tipi di selezione",
+        "availableChoices": "Tipi di selezione disponibili",
+        "toggle": {
+          "label": "Interruttore",
+          "description": "Una scelta attivabile/disattivabile. In un gruppo a scelta singola, appare come pulsante di opzione."
+        },
+        "text": {
+          "label": "Testo",
+          "description": "Consenti all'utente di inserire testo."
+        },
+        "integer": {
+          "label": "Intero",
+          "description": "Consenti all'utente di scegliere un numero intero."
+        },
+        "select": {
+          "label": "Selezione",
+          "description": "Consenti all'utente di scegliere una delle opzioni ordinate di seguito."
+        }
+      },
+      "fieldPresentation": {
+        "label": {
+          "handle": "Identificatore",
+          "name": "Nome",
+          "description": "Descrizione",
+          "author": "Autore",
+          "version": "Versione",
+          "format": "Formato del pacchetto",
+          "gauntlet": "Gauntlet nativo",
+          "starting-points": "Punti iniziali",
+          "points-name": "Nome dei punti",
+          "points-abbreviation": "Abbreviazione dei punti",
+          "discountStacking": "Combinazione degli sconti",
+          "discountFloor": "Limite minimo dello sconto",
+          "section-layout": "Layout di Sezione predefinito",
+          "choice-layout": "Layout di Scelta predefinito",
+          "trait-layout": "Layout di tratto predefinito",
+          "abbreviation": "Abbreviazione",
+          "initial": "Saldo iniziale",
+          "layout": "Layout",
+          "locked": "Blocchi iniziali",
+          "group": "Gruppo",
+          "choiceSourceMode": "Scelte consentite",
+          "sourceMaximum": "Numero massimo di selezioni",
+          "resolution": "Modalità di selezione",
+          "tag": "Tag",
+          "choiceSelection": "Tipo di selezione",
+          "continuity": "Genere predefinito",
+          "min": "Minimo",
+          "max": "Massimo",
+          "lock": "Blocca Sezione",
+          "unlock": "Sblocca Sezione",
+          "option": "Opzione",
+          "choiceTarget": "Scelta da visualizzare",
+          "content": "Testo",
+          "src": "File immagine",
+          "alt": "Descrizione dell'immagine",
+          "roundedCorners": "Angoli arrotondati",
+          "roundedIntensity": "Intensità degli angoli",
+          "fadeEdges": "Dissolvi verso i bordi",
+          "fadeIntensity": "Intensità della dissolvenza",
+          "inputSelection": "Tipo di Input",
+          "placeholder": "Segnaposto",
+          "resource": "Valuta",
+          "amount": "Quantità",
+          "costMode": "Calcolo del costo",
+          "discountMode": "Calcolo dello sconto",
+          "discountGroup": "Gruppo scontato",
+          "discountAmount": "Importo dello sconto",
+          "discountResource": "Valuta scontata",
+          "orientation": "Orientamento",
+          "grantKind": "Tipo di assegnazione",
+          "formRecipient": "Forma destinataria",
+          "companionRecipient": "Compagno destinatario",
+          "measure": "Il numero selezionato rappresenta",
+          "value": "Valore",
+          "color": "Colore"
+        },
+        "help": {
+          "handle": "Un nome interno stabile usato dai riferimenti. Usa lettere minuscole, numeri e caratteri di sottolineatura singoli.",
+          "grantHandle": "Il nome interno stabile usato per avere come destinazione questa forma, questo Compagno, questo gruppo di Compagni importati o questa Proprietà.",
+          "gauntlet": "Contrassegna questo pacchetto come Gauntlet per sua natura. Quando i punti iniziali sono omessi, un Gauntlet nativo inizia da 0 anziché da 1000.",
+          "startingPoints": "Il saldo punti disponibile all'inizio di questo Jump.",
+          "pointsName": "Il nome completo mostrato per i punti principali di questo Jump.",
+          "pointsAbbreviation": "L'etichetta breve mostrata accanto agli importi dei punti principali.",
+          "defaultSectionLayout": "Usato dalle Sezioni che non scelgono un layout proprio.",
+          "defaultChoiceLayout": "Usato dalle Scelte a cui non viene assegnato un layout più specifico.",
+          "defaultTraitLayout": "Usato dai tratti assegnati che non scelgono un layout proprio.",
+          "discountStacking": "Scegli se per gli sconti corrispondenti viene usato solo il risultato maggiore oppure se vengono combinati.",
+          "discountFloor": "Scegli se gli sconti si fermano a zero o possono trasformare i costi in assegnazioni.",
+          "sectionLocked": "Scegli da 0 a 5 blocchi iniziali. Con zero questa Sezione rimane sbloccata; i blocchi e gli sblocchi delle Scelte attive modificano il punteggio di blocco finale.",
+          "layoutOverride": "Scegli qui un layout specifico oppure lascia il campo vuoto per usare il layout circostante o quello predefinito del Jump.",
+          "minimum": "Il numero minimo consentito. I valori minimo e massimo sono inclusivi.",
+          "maximum": "Il numero massimo consentito. I valori minimo e massimo sono inclusivi.",
+          "sourceMaximum": "Il maggior numero di Scelte corrispondenti che l'utente può selezionare. Lascia vuoto per non impostare alcun limite.",
+          "sectionEffect": "Scegli la Sezione il cui punteggio di blocco cambia mentre questa Scelta è selezionata.",
+          "option": "Aggiungi le scelte mostrate in questo elenco ordinato. Ogni opzione deve essere univoca.",
+          "continuity": "Per una Scelta Genere, scegli quale identità fornisce il valore predefinito gratuito quando l'utente non ha scelto un valore. Sono necessari Tipo di selezione Selezione ed esattamente un'assegnazione diretta Proprietà con Nome risposta gender e Valore vuoto.",
+          "resolution": "Determina se l'utente sceglie normalmente, effettua un tiro oppure può fare entrambe le cose.",
+          "choiceSourceMode": "Scegli se l'utente può selezionare una sola Scelta corrispondente o più Scelte.",
+          "inputSelection": "Scegli il tipo di valore raccolto da questo Input di supporto.",
+          "placeholder": "Mostrato solo all'interno di un controllo vuoto. Usa un blocco Testo per etichette visibili, istruzioni e spiegazioni più lunghe.",
+          "costResource": "La valuta spesa o assegnata da questo costo.",
+          "costAmount": "Un importo positivo viene speso. Un importo negativo assegna tale valuta.",
+          "costMode": "Scegli se l'importo si applica una volta oppure viene moltiplicato per una Scelta intera.",
+          "discountGroup": "Applica questo sconto alle Scelte che contengono il gruppo selezionato.",
+          "discountMode": "Gli sconti fissi sottraggono punti; gli sconti percentuali operano sull'importo successivo agli sconti fissi.",
+          "discountAmount": "Inserisci un intero non negativo. Percentuale 50 significa cinquanta per cento.",
+          "discountResource": "Limita lo sconto alle valute selezionate. Se non ne viene selezionata alcuna, sono interessate tutte le valute.",
+          "ruleOrientation": "Scegli se questa linea attraversa la riga del layout in orizzontale o in verticale.",
+          "grantKind": "Scegli che cosa aggiunge o modifica questo effetto quando la Scelta o l'Input proprietario è attivo.",
+          "grantName": "Il nome mostrato per questa specifica assegnazione. Lascialo vuoto per usare il nome della Scelta proprietaria.",
+          "grantResource": "La valuta modificata da questa assegnazione.",
+          "grantAmount": "Un importo positivo aggiunge valuta; un importo negativo la rimuove.",
+          "grantValue": "Imposta un valore fisso per la Proprietà. Lascialo vuoto per copiare il valore della Scelta o dell'Input proprietario.",
+          "traitLayout": "Scegli come visualizzare il tratto assegnato.",
+          "formRecipient": "Scegli una forma esistente che riceverà il Vantaggio assegnato.",
+          "companionRecipient": "Scegli un Compagno esistente, acquistato o importato, che riceverà il Vantaggio o la valuta assegnati.",
+          "companionRecipientChoice": "Scegli un Compagno esistente, acquistato o importato, che riceverà il Vantaggio assegnato.",
+          "measure": "Considera il numero selezionato come grado di un Vantaggio o tratto oppure come quantità di un Oggetto.",
+          "imageFile": "Scegli un'immagine già presente in questo progetto oppure importane una nuova.",
+          "imageDescription": "Descrivi il contenuto significativo dell'immagine per chi non può vederla.",
+          "roundedCorners": "Arrotonda gli angoli visibili ovunque venga mostrato questo blocco immagine.",
+          "roundedIntensity": "Scegli l'intensità dell'arrotondamento degli angoli. Al 100%, l'immagine raggiunge la massima forma arrotondata.",
+          "fadeEdges": "Rendi gradualmente trasparente l'immagine verso ogni bordo.",
+          "fadeIntensity": "Scegli la porzione dell'immagine interessata dalla dissolvenza. Valori maggiori creano una dissolvenza più ampia e marcata.",
+          "textContent": "Il testo mostrato ovunque venga posizionato questo blocco di contenuto."
+        }
+      },
+      "optionLabel": {
+        "manual": "Manuale",
+        "random": "Solo casuale",
+        "either": "Manuale o casuale",
+        "single": "Una Scelta",
+        "multi": "Più Scelte",
+        "previous": "Jump precedente",
+        "original": "Identità originale",
+        "flat": "Una volta",
+        "percent": "Percentuale",
+        "highest": "Solo il maggiore",
+        "stack": "Combina tutti",
+        "zero": "Ferma a zero",
+        "negative": "Consenti valori negativi",
+        "horizontal": "Orizzontale",
+        "vertical": "Verticale",
+        "each": "Per numero selezionato",
+        "toggle": "Interruttore",
+        "text": "Testo",
+        "integer": "Intero",
+        "select": "Selezione",
+        "companions": "Importa Compagni",
+        "perk": "Vantaggio",
+        "item": "Oggetto",
+        "form": "Forma",
+        "companion": "Compagno",
+        "resource": "Risorsa",
+        "trait": "Tratto",
+        "property": "Proprietà",
+        "rank": "Grado",
+        "quantity": "Quantità",
+        "true": "Vero",
+        "false": "Falso",
+        "start": "Inizio",
+        "center": "Centro",
+        "end": "Fine",
+        "stretch": "Estendi",
+        "between": "Spazio tra elementi",
+        "justify": "Giustifica",
+        "contain": "Contieni",
+        "cover": "Copri",
+        "tile": "Ripeti",
+        "solid": "Uniforme",
+        "dashed": "Tratteggiato",
+        "dotted": "Punteggiato",
+        "dash": "Tratto",
+        "rounded": "Arrotondato",
+        "none": "Nessuno",
+        "xs": "Molto piccolo",
+        "sm": "Piccolo",
+        "md": "Medio",
+        "lg": "Grande",
+        "xl": "Molto grande",
+        "2xl": "2× molto grande",
+        "3xl": "3× molto grande",
+        "4xl": "4× molto grande",
+        "system": "Interfaccia di sistema",
+        "sans": "Senza grazie",
+        "serif": "Con grazie",
+        "monospace": "Monospaziato",
+        "condensed": "Condensato",
+        "light": "Leggero",
+        "normal": "Normale",
+        "semibold": "Semigrassetto",
+        "bold": "Grassetto",
+        "tight": "Stretto",
+        "relaxed": "Ampio",
+        "wide": "Largo",
+        "widest": "Larghissimo",
+        "standard": "Standard",
+        "compact": "Compatto",
+        "application": "Predefinito dell'applicazione",
+        "disc": "Disco",
+        "pill": "Pillola",
+        "thin": "Sottile",
+        "medium": "Medio",
+        "thick": "Spesso",
+        "trivial": "Trascurabile",
+        "small": "Piccolo",
+        "large": "Grande",
+        "major": "Importante",
+        "extreme": "Estremo",
+        "add_trivial": "Assegna trascurabile",
+        "add_small": "Assegna piccolo",
+        "add_medium": "Assegna medio",
+        "add_large": "Assegna grande",
+        "add_major": "Assegna importante",
+        "add_extreme": "Assegna estremo",
+        "black": "Nero",
+        "blue": "Blu",
+        "brown": "Marrone",
+        "gray": "Grigio",
+        "green": "Verde",
+        "orange": "Arancione",
+        "pink": "Rosa",
+        "purple": "Viola",
+        "red": "Rosso",
+        "white": "Bianco",
+        "yellow": "Giallo"
+      },
+      "optionDescription": {
+        "choiceSelection": {
+          "toggle": "Una scelta attivabile/disattivabile. In un gruppo a scelta singola, appare come pulsante di opzione.",
+          "text": "Consente all'utente di inserire testo.",
+          "integer": "Consente all'utente di scegliere un numero intero.",
+          "select": "Consente all'utente di scegliere una delle opzioni ordinate di seguito.",
+          "companions": "Consente all'utente di importare Compagni esistenti acquisiti in Jump precedenti. Un'assegnazione Compagno crea invece un nuovo Compagno."
+        },
+        "inputSelection": {
+          "text": "Inserisci una breve risposta testuale.",
+          "integer": "Inserisci un numero intero, facoltativamente limitato da minimo e massimo.",
+          "select": "Scegli un valore tra le opzioni ordinate di seguito."
+        },
+        "choiceSourceMode": {
+          "single": "La scelta di un'altra Scelta corrispondente sostituisce la selezione corrente.",
+          "multi": "È possibile selezionare un numero qualsiasi di Scelte corrispondenti."
+        },
+        "resolution": {
+          "manual": "L'utente sceglie normalmente un valore.",
+          "random": "Il valore deve essere tirato.",
+          "either": "L'utente può scegliere normalmente oppure tirare un valore gratuito."
+        },
+        "continuity": {
+          "previous": "Usa il genere effettivo dell'attore dal Jump precedente.",
+          "original": "Usa l'identità del Jumper sulla Terra o l'identità di acquisizione di un Compagno."
+        },
+        "costMode": {
+          "flat": "Applica l'importo una volta mentre la Scelta è attiva.",
+          "each": "Moltiplica l'importo per l'intero selezionato."
+        },
+        "grantKind": {
+          "perk": "Aggiunge un Vantaggio all'inventario del destinatario.",
+          "item": "Aggiunge un Oggetto all'inventario del destinatario.",
+          "form": "Crea un profilo forma a cui è possibile inviare Vantaggi.",
+          "companion": "Crea un nuovo Compagno.",
+          "resource": "Aggiunge o rimuove un importo di una valuta.",
+          "trait": "Aggiunge un tratto visibile che può usare un layout di tratto.",
+          "property": "Imposta un valore usato dalle condizioni e dai campi identità."
+        },
+        "measure": {
+          "rank": "Considera l'intero selezionato come grado di un Vantaggio o tratto.",
+          "quantity": "Considera l'intero selezionato come quantità di un Oggetto o tratto."
+        },
+        "layoutNode": {
+          "stack": "Dispone gli elementi figli in verticale, uno dopo l'altro.",
+          "inline": "Dispone gli elementi figli in un'unica riga orizzontale.",
+          "wrap": "Dispone gli elementi figli in orizzontale e li manda a capo su nuove righe.",
+          "grid": "Dispone gli elementi figli in un numero fisso di colonne.",
+          "slot": "Mostra una parte integrata, come nome, costo, controllo o tag.",
+          "text": "Mostra un blocco Testo a cui viene fatto riferimento.",
+          "image": "Mostra un blocco Immagine a cui viene fatto riferimento.",
+          "input": "Mostra un Input di supporto a cui viene fatto riferimento.",
+          "choice": "Mostra direttamente una Scelta annidata.",
+          "expand": "Mostra le Scelte corrispondenti a una Sorgente di Scelte.",
+          "rule": "Mostra un separatore visivo."
+        }
+      },
+      "appearance": {
+        "help": "Lascia un campo vuoto per ereditare l'impostazione di aspetto più generale. Un valore più specifico la sostituisce.",
+        "tagBoundary": "I badge dei tag usano il profilo tag attivo, quindi il loro aspetto viene gestito separatamente.",
+        "inheritedValue": "Ereditato: {{value}}",
+        "manuallySetValue": "Valore impostato manualmente"
+      },
+      "appearancePreview": {
+        "title": "Componenti dell'aspetto del Jump",
+        "description": "Contenuto rappresentativo visualizzato dagli stessi controlli usati in un Jump.",
+        "section": "Componenti",
+        "choiceBody": "Testo del corpo, controlli, trattamenti dello stato e costi semantici vengono ereditati indipendentemente.",
+        "optionOne": "Prima opzione",
+        "optionTwo": "Seconda opzione",
+        "exampleTag": "Tag di esempio",
+        "toggleChoice": "Scelta a interruttore",
+        "textChoice": "Scelta testuale",
+        "integerChoice": "Scelta intera",
+        "selectChoice": "Scelta di selezione",
+        "standardCost": "Costo standard",
+        "benefit": "Beneficio",
+        "award": "Assegnazione",
+        "pendingRoll": "Tiro in sospeso",
+        "groupedChoice": "Scelta raggruppata",
+        "imageAlt": "Contenuto rappresentativo del tooltip"
+      },
+      "appearanceGroup": {
+        "sharedColors": "Colori condivisi",
+        "surfaces": "Superfici",
+        "headerAndBudget": "Intestazione e budget",
+        "sections": "Sezioni",
+        "choicesAndGroups": "Scelte e gruppi",
+        "controls": "Controlli",
+        "costsAndSemanticStates": "Costi e stati semantici",
+        "tooltips": "Tooltip",
+        "shapeAndSpacing": "Forma e spaziatura"
+      },
+      "explorerGroup": {
+        "resources": "Risorse",
+        "sections": "Sezioni",
+        "choices": "Scelte",
+        "layouts": "Layout",
+        "themes": "Temi"
+      },
+      "appearanceField": {
+        "background": "Sfondo",
+        "text-color": "Colore del testo",
+        "border-color": "Colore del bordo",
+        "accent-color": "Colore in risalto",
+        "surface-background": "Sfondo della superficie",
+        "surface-text": "Testo della superficie",
+        "surface-border": "Bordo della superficie",
+        "header-background": "Sfondo dell'intestazione",
+        "header-label": "Etichetta dell'intestazione",
+        "header-title": "Titolo dell'intestazione",
+        "header-description": "Descrizione dell'intestazione",
+        "header-border": "Bordo dell'intestazione",
+        "budget-background": "Sfondo del budget",
+        "budget-label": "Etichetta del budget",
+        "budget-value": "Valore del budget",
+        "budget-border": "Bordo del budget",
+        "section-gutter": "Sfondo dell'interspazio",
+        "section-background": "Sfondo della Sezione",
+        "section-heading": "Intestazione della Sezione",
+        "section-body": "Corpo della Sezione",
+        "section-border": "Bordo della Sezione",
+        "choice-background": "Sfondo della Scelta",
+        "choice-heading": "Intestazione della Scelta",
+        "choice-body": "Corpo della Scelta",
+        "choice-border": "Bordo della Scelta",
+        "group-background": "Sfondo del gruppo",
+        "group-footer-background": "Sfondo del piè di pagina del gruppo",
+        "group-text": "Testo del gruppo",
+        "group-border": "Bordo del gruppo",
+        "control-background": "Sfondo del controllo",
+        "control-text": "Testo del controllo",
+        "control-muted-text": "Testo attenuato del controllo",
+        "control-border": "Bordo del controllo",
+        "control-indicator": "Indicatore del controllo",
+        "control-accent": "Colore in risalto del controllo",
+        "control-hover-background": "Sfondo al passaggio del puntatore",
+        "control-hover-text": "Testo al passaggio del puntatore",
+        "control-hover-border": "Bordo al passaggio del puntatore",
+        "control-pressed-background": "Sfondo alla pressione",
+        "control-pressed-text": "Testo alla pressione",
+        "control-pressed-border": "Bordo alla pressione",
+        "control-selected-background": "Sfondo selezionato",
+        "control-selected-text": "Testo selezionato",
+        "control-selected-border": "Bordo selezionato",
+        "control-disabled-background": "Sfondo disabilitato",
+        "control-disabled-text": "Testo disabilitato",
+        "control-disabled-border": "Bordo disabilitato",
+        "control-disabled-indicator": "Indicatore disabilitato",
+        "cost-background": "Sfondo del costo",
+        "cost-text": "Testo del costo",
+        "cost-border": "Bordo del costo",
+        "cost-benefit-background": "Sfondo del beneficio",
+        "cost-benefit-text": "Testo del beneficio",
+        "cost-benefit-border": "Bordo del beneficio",
+        "cost-award-background": "Sfondo dell'assegnazione",
+        "cost-award-text": "Testo dell'assegnazione",
+        "cost-award-border": "Bordo dell'assegnazione",
+        "cost-pending-background": "Sfondo in sospeso",
+        "cost-pending-text": "Testo in sospeso",
+        "cost-pending-border": "Bordo in sospeso",
+        "tooltip-background": "Sfondo del tooltip",
+        "tooltip-text": "Testo del tooltip",
+        "tooltip-border": "Bordo del tooltip",
+        "canvas-padding": "Spaziatura interna della tela",
+        "section-spacing": "Spaziatura delle Sezioni",
+        "section-padding": "Spaziatura interna della Sezione",
+        "corners": "Angoli generali",
+        "control-corners": "Angoli dei controlli",
+        "cost-corners": "Angoli dei costi",
+        "structural-border-width": "Spessore del bordo strutturale"
+      },
+      "imageDimension": {
+        "tokenOrExactPlaceholder": "Token dimensione o lunghezza esatta",
+        "showChoicesForField": "Mostra scelte di dimensione per {{field}}",
+        "availableTokens": "Token disponibili per la dimensione dell'immagine"
+      },
+      "textSize": {
+        "tokenOrExactPlaceholder": "Token dimensione testo o lunghezza esatta in px/rem",
+        "showChoicesForField": "Mostra scelte di dimensione del testo per {{field}}",
+        "availableTokens": "Token disponibili per la dimensione del testo"
+      },
+      "layoutDimension": {
+        "tokenOrExactPlaceholder": "Token dimensione o lunghezza esatta in px/rem",
+        "showChoicesForField": "Mostra scelte di dimensione per {{field}}",
+        "availableTokens": "Token disponibili per la dimensione del layout"
+      },
+      "previewStatus": {
+        "label": "Anteprima: {{status}}",
+        "currentSource": "Sorgente corrente",
+        "safelyRecovered": "Anteprima ripristinata in sicurezza",
+        "lastValid": "Ultima anteprima valida",
+        "layoutPreview": "Anteprima del layout",
+        "sourceValid": "Il sorgente viene analizzato senza errori.",
+        "sourceRecovered": "L'anteprima ha compilato temporaneamente un campo incompleto. Il sorgente non è stato modificato.",
+        "sourceLastValid": "L'anteprima mostra la versione più recente che è stato possibile visualizzare.",
+        "layoutUsesRepresentativeData": "Questa anteprima usa contenuto generato per permetterti di esaminare il layout riutilizzabile indipendentemente dai dati del pacchetto."
+      },
+      "layoutPreview": {
+        "packageName": "Anteprima del layout",
+        "packageDescription": "Contenuto rappresentativo per la creazione del layout.",
+        "sectionName": "Sezione di esempio",
+        "choiceName": "Scelta di esempio {{number}}",
+        "directChoiceName": "Scelta diretta di esempio {{number}}",
+        "traitName": "Tratto di esempio",
+        "traitDescription": "Contenuto rappresentativo del tratto.",
+        "choiceLayout": "Layout di Scelta per le Scelte generate",
+        "choiceLayoutHelp": "Si applica alle Scelte dirette e alle espansioni prive di un valore Using proprio.",
+        "builtInChoiceLayout": "Layout di Scelta integrato",
+        "textContent": "Contenuto di esempio per “{{target}}”.",
+        "imageAlt": "Immagine di esempio per {{target}}",
+        "tag": "esempio",
+        "option": "Opzione di esempio"
+      },
+      "starter": {
+        "jumpName": "Jump senza titolo",
+        "jumpDescription": "Un Jump senza titolo.",
+        "author": "Anonimo",
+        "pointName": "Punti Scelta",
+        "sectionName": "Introduzione",
+        "welcome": "Inizia qui il tuo Jump. Usa la modifica Strutturata per i campi guidati oppure Sorgente per un markup Format 1 preciso.",
+        "choicesComment": "Le Scelte vengono posizionate qui dall'Editor.",
+        "layoutComment": "Aspetto del Jump, layout e temi vengono posizionati qui dall'Editor.",
+        "noDescription": "Il Jump non ha ancora una descrizione.",
+        "resourceName": "Nuova risorsa",
+        "resourceAbbreviation": "NR",
+        "newSectionName": "Nuova Sezione",
+        "newChoiceName": "Nuova Scelta",
+        "newGrantName": "Nuovo conferimento"
+      },
+      "condition": {
+        "variants": "Varianti condizionali",
+        "behaviorSummary": "Vengono controllate dall'alto verso il basso. La prima condizione corrispondente usa invece il proprio {{field}}; se nessuna corrisponde, viene usato il {{field}} qui sopra.",
+        "variantNumber": "Variante {{number}}",
+        "variantValue": "Valore condizionale di {{field}}",
+        "builder": "Generatore",
+        "expression": "Espressione",
+        "editMode": "Modalità di modifica della condizione",
+        "expressionLabel": "Espressione della condizione della variante {{number}}",
+        "repairBeforeBuilder": "Correggi questa espressione prima di passare al generatore guidato.",
+        "property": "Proprietà",
+        "chooseProperty": "Scegli una Proprietà…",
+        "showProperties": "Mostra Proprietà disponibili",
+        "showValues": "Mostra valori noti",
+        "unresolvedProperty": "Proprietà creata non risolta",
+        "contextValue": "Disponibile in questo contesto di visualizzazione",
+        "choiceAnswer": "Risposta da questa Scelta",
+        "inputAnswer": "Risposta da un Input di supporto",
+        "engineValue": "Fornito dal motore",
+        "fromOwner": "Da {{kind}} {{handle}}",
+        "mayBeUnset": "potrebbe non essere impostato",
+        "group": {
+          "context": "Questa Scelta",
+          "engine": "Motore e identità",
+          "package": "Proprietà del pacchetto"
+        },
+        "contextProperty": {
+          "rank": "Grado",
+          "count": "Quantità"
+        },
+        "type": {
+          "boolean": "Booleano",
+          "integer": "Intero",
+          "string": "Testo",
+          "unknown": "Tipo sconosciuto"
+        },
+        "operator": "Operatore",
+        "operatorLabel": {
+          "active": "è attivo",
+          "inactive": "è inattivo",
+          "equal": "è (=)",
+          "not-equal": "non è (!=)",
+          "less": "è minore di (<)",
+          "less-equal": "è al massimo (<=)",
+          "greater": "è maggiore di (>)",
+          "greater-equal": "è almeno (>=)"
+        },
+        "value": "Valore della condizione",
+        "true": "Vero",
+        "false": "Falso",
+        "constant": "Condizione costante",
+        "always": "Sempre",
+        "never": "Mai",
+        "match": "Corrispondenza",
+        "all": "tutte",
+        "any": "una qualsiasi",
+        "conditionsInGroup": "le condizioni di questo gruppo.",
+        "invert": "Inverti gruppo",
+        "groupLabel": "Gruppo di condizioni",
+        "groupOperator": "Operatore del gruppo di condizioni",
+        "addCondition": "+ Aggiungi condizione",
+        "addConditionHelp": "Aggiungi un altro confronto di Proprietà a questo gruppo.",
+        "addNestedGroup": "+ Aggiungi gruppo annidato",
+        "addNestedGroupHelp": "Aggiungi un sottogruppo con un comportamento di corrispondenza Tutte o Una qualsiasi proprio.",
+        "removeRule": "Rimuovi regola di condizione",
+        "removeGroup": "Rimuovi gruppo di condizioni",
+        "variantDraft": "Bozza della nuova variante",
+        "conditionDraft": "Bozza della nuova condizione",
+        "draftNotSaved": "Non viene salvata finché la prima regola non è completa.",
+        "cancelDraft": "Annulla bozza",
+        "moveVariantUp": "Sposta variante {{number}} su",
+        "moveVariantDown": "Sposta variante {{number}} giù",
+        "removeVariant": "Rimuovi variante"
+      },
+      "ariaLabel": {
+        "removeFieldOccurrence": "Rimuovi {{field}} {{occurrence}}",
+        "projectEditor": "Editor di {{project}}",
+        "undo": "Annulla",
+        "redo": "Ripeti",
+        "showFilesSourceAndPropertiesViews": "Mostra le viste File, Sorgente e Proprietà",
+        "navigation": "Navigazione",
+        "authoring": "Creazione",
+        "editingView": "Vista di modifica",
+        "findOptions": "Opzioni di ricerca",
+        "matchCase": "Maiuscole/minuscole",
+        "matchWholeWord": "Parola intera",
+        "useRegularExpression": "Usa espressione regolare",
+        "previousMatch": "Corrispondenza precedente",
+        "nextMatch": "Corrispondenza successiva",
+        "allCompletions": "Tutti i completamenti",
+        "closeCompletions": "Chiudi completamenti",
+        "contextView": "Vista contestuale",
+        "appearancePreviewMode": "Modalità anteprima dell'aspetto del Jump",
+        "appearanceColorLegend": "Ruoli dei colori dell'aspetto del Jump",
+        "appearanceColorReadout": "Dettagli dei colori dell'aspetto del Jump",
+        "layoutBoundsLegend": "Legenda dei limiti del layout",
+        "layoutBoundReadout": "Dettagli del limite del layout",
+        "documentDiagnostics": "Diagnostica del documento",
+        "filterDiagnosticsBySeverity": "Filtra diagnostica per gravità",
+        "declarationBreadcrumbs": "Percorso delle dichiarazioni",
+        "quickAdd": "Aggiunta rapida",
+        "closeQuickAdd": "Chiudi Aggiunta rapida",
+        "openFormat1AuthorReference": "Apri riferimento per autori Format 1",
+        "moveDeclarationUp": "Sposta {{declaration}} su",
+        "moveDeclarationDown": "Sposta {{declaration}} giù",
+        "removeDeclaration": "Rimuovi {{declaration}}",
+        "moveLayoutNodeUp": "Sposta {{node}} su",
+        "moveLayoutNodeDown": "Sposta {{node}} giù",
+        "moveLayoutNodeIn": "Sposta {{node}} in un contenitore",
+        "moveLayoutNodeOut": "Sposta {{node}} fuori dal relativo contenitore",
+        "removeLayoutNode": "Rimuovi {{node}}",
+        "layoutNodeTarget": "Destinazione di {{node}}",
+        "editLayoutNodePresentation": "Modifica i campi di presentazione di {{node}}",
+        "layoutContainerBreadcrumbs": "Percorso dei contenitori del layout",
+        "openLayoutContainer": "Apri contenitore {{container}}",
+        "moveLayoutNodeToContainer": "Sposta {{node}} in un altro contenitore",
+        "removeConditionalVariant": "Rimuovi la variante condizionale {{occurrence}} di {{field}}",
+        "sidebarItemMenu": "Azioni dell'elemento della barra laterale",
+        "sidebarGroupMenu": "Azioni del gruppo della barra laterale",
+        "themeColorPreview": "Anteprima del colore del tema {{color}}",
+        "deletedSource": "Sorgente della dichiarazione eliminata",
+        "layoutNodeActions": "Azioni del nodo di layout {{node}}"
+      },
+      "announcement": {
+        "declarationAdded": "{{declaration}} aggiunto e aperto per la modifica.",
+        "declarationRemoved": "{{declaration}} rimosso.",
+        "declarationMoved": "{{declaration}} spostato.",
+        "resourceCreated": "{{resource}} è stato creato, assegnato e aperto per la modifica.",
+        "referenceCreated": "{{declaration}} è stato creato, assegnato e aperto per la modifica.",
+        "contentTargetCreated": "{{declaration}} è stato creato in {{owner}}, assegnato al layout e aperto per la modifica.",
+        "assetMoved": "Risorsa spostata in {{asset}}.",
+        "layoutNodeAdded": "{{node}} aggiunto.",
+        "layoutNodeConverted": "Nodo di layout modificato in {{node}}.",
+        "layoutNodeUpdated": "{{node}} aggiornato.",
+        "layoutNodeReordered": "{{node}} riordinato all'interno del relativo contenitore.",
+        "layoutNodeMoved": "{{node}} spostato in un altro contenitore.",
+        "layoutNodeRemoved": "{{node}} rimosso.",
+        "layoutNodeExpanded": "Campi di presentazione di {{node}} aperti.",
+        "layoutNodeCollapsed": "{{node}} convertito nel formato compatto.",
+        "invalidLayoutFieldRemoved": "Campo di layout non valido {{field}} rimosso.",
+        "movedToTrash": "{{item}} spostato nel Cestino.",
+        "restoredFromTrash": "{{item}} ripristinato.",
+        "trashRestoreCollision": "Impossibile ripristinare {{item}} perché la posizione della risorsa è già in uso.",
+        "trashRestoreMissingFile": "Il file originale {{file}} non esiste più, quindi non è possibile ripristinare questo elemento.",
+        "permanentlyDeleted": "{{item}} è stato eliminato definitivamente."
+      },
+      "saveState": {
+        "saved": "Salvato",
+        "saving": "Salvataggio",
+        "unsaved": "Non salvato",
+        "failed": "Salvataggio non riuscito"
+      },
+      "diagnosticSeverity": {
+        "error": "errori",
+        "warning": "avvisi",
+        "info": "informazioni"
+      },
+      "diagnosticCount": {
+        "error_one": "{{count}} errore",
+        "error_other": "{{count}} errori",
+        "warning_one": "{{count}} avviso",
+        "warning_other": "{{count}} avvisi",
+        "info_one": "{{count}} messaggio informativo",
+        "info_other": "{{count}} messaggi informativi"
+      },
+      "asset": {
+        "assetFile": "File risorsa",
+        "manageAsset": "Gestisci risorsa",
+        "filename": "Nome file",
+        "folder": "Cartella",
+        "rootFolder": "Radice delle risorse",
+        "referenceCount_one": "Usato come riferimento da {{count}} blocco immagine.",
+        "referenceCount_other": "Usato come riferimento da {{count}} blocchi immagine.",
+        "binaryFile": "File immagine binario",
+        "readOnlyBinary": "Immagine convalidata mostrata in sola lettura.",
+        "assetPreview": "Anteprima della risorsa",
+        "selectedAssetAlt": "Risorsa selezionata {{asset}}",
+        "loadingImage": "Caricamento dell'immagine…",
+        "missingOption": "{{asset}} (assente)",
+        "definitionFile": "File di definizione",
+        "format": "Formato",
+        "dimensions": "Dimensioni",
+        "header": {
+          "colorModel": "Modello di colore",
+          "bitDepth": "Profondità in bit",
+          "colorResolution": "Risoluzione del colore",
+          "encoding": "Codifica",
+          "interlaced": "Interlacciato",
+          "alpha": "Canale alfa",
+          "animated": "Animato",
+          "colorProfile": "Profilo colore",
+          "pixelDensity": "Densità dei pixel",
+          "orientation": "Orientamento",
+          "version": "Versione dell'intestazione",
+          "palette": "Tavolozza",
+          "bits_one": "{{count}} bit",
+          "bits_other": "{{count}} bit",
+          "pixelDensityValue": "{{x}} × {{y}} {{unit}}",
+          "paletteValue_one": "{{count}} colore",
+          "paletteValue_other": "{{count}} colori",
+          "boolean": {
+            "yes": "Sì",
+            "no": "No"
+          },
+          "colorModelValue": {
+            "grayscale": "Scala di grigi",
+            "grayscale-alpha": "Scala di grigi + alfa",
+            "indexed": "Colore indicizzato",
+            "rgb": "RGB",
+            "rgba": "RGBA",
+            "ycbcr": "YCbCr",
+            "cmyk": "CMYK"
+          },
+          "encodingValue": {
+            "baseline": "Baseline",
+            "progressive": "Progressiva",
+            "lossy": "Con perdita",
+            "lossless": "Senza perdita"
+          },
+          "colorProfileValue": {
+            "srgb": "sRGB",
+            "icc": "ICC incorporato"
+          },
+          "orientationValue": {
+            "1": "Normale",
+            "2": "Specchiato orizzontalmente",
+            "3": "Ruotato di 180°",
+            "4": "Specchiato verticalmente",
+            "5": "Trasposto",
+            "6": "Ruotato di 90° in senso orario",
+            "7": "Trasversale",
+            "8": "Ruotato di 270° in senso orario"
+          }
+        },
+        "references": "Riferimenti",
+        "owner": "Proprietario",
+        "sourceLocation": "Posizione nel sorgente",
+        "native": "Nativo",
+        "no": "No",
+        "propertiesReadOnly": "Le proprietà descrivono la selezione corrente e sono in sola lettura.",
+        "pathError": {
+          "empty": "Inserisci un nome file.",
+          "absolute": "Le posizioni delle risorse sono relative alla radice delle risorse.",
+          "separator": "Usa barre oblique tra le cartelle delle risorse.",
+          "segment": "Le cartelle delle risorse non possono contenere segmenti vuoti, di directory corrente, di directory genitore o non canonici.",
+          "extension": "Usa un nome file PNG, JPEG, SVG, GIF, WebP o AVIF.",
+          "collision": "Un'altra risorsa usa già questa posizione.",
+          "signature": "L'estensione del nome file deve corrispondere al formato immagine convalidato."
+        },
+        "editor": {
+          "localCopy": "Copia locale",
+          "localCopyTitle": "Le modifiche restano in questo progetto",
+          "ready": "Editor locale pronto",
+          "renderValidationFailed": "L'immagine visualizzata non ha superato la convalida del pacchetto.",
+          "validImageRetained": "{{message}} È stata conservata l'immagine valida precedente.",
+          "keepFailedHistory": "Mantieni {{action}} non riuscito",
+          "readOnlyLocalCopy": "Copia locale in sola lettura",
+          "comingLater": "Editor disponibile prossimamente",
+          "restoreBeforeEdit": "Ripristina questa risorsa prima di modificarla.",
+          "secureSvgSource": "Sorgente SVG sicuro",
+          "rasterCorrections": "Correzioni e annotazioni non distruttive",
+          "validatedAsset": "Risorsa convalidata",
+          "animatedPngReadOnly": "Il PNG animato viene conservato in sola lettura per evitare di appiattirne l'animazione.",
+          "formatUnavailable": "La modifica di {{format}} non è ancora disponibile. La copia locale convalidata rimane invariata.",
+          "fieldValue": "Valore di {{field}}",
+          "editFieldValue": "Modifica il valore di {{field}}",
+          "resetField": "Reimposta {{field}}",
+          "canvas_one": "Tela di modifica di {{path}}. {{count}} livello di annotazione. Zoom {{zoom}} per cento.",
+          "canvas_other": "Tela di modifica di {{path}}. {{count}} livelli di annotazione. Zoom {{zoom}} per cento.",
+          "canvasWithSelection_one": "Tela di modifica di {{path}}. {{count}} livello di annotazione. Zoom {{zoom}} per cento. Selezionato {{layer}}, {{visibility}} e {{lock}}.",
+          "canvasWithSelection_other": "Tela di modifica di {{path}}. {{count}} livelli di annotazione. Zoom {{zoom}} per cento. Selezionato {{layer}}, {{visibility}} e {{lock}}.",
+          "visible": "visibile",
+          "hidden": "nascosto",
+          "locked": "bloccato",
+          "editable": "modificabile",
+          "cropSize": "Ritaglio {{width}} × {{height}}",
+          "pngEncodingDescription": "PNG senza perdita · trasparenza conservata",
+          "jpegEncodingDescription": "JPEG sRGB opaco · metadati ripuliti",
+          "renameLayer": "Rinomina {{layer}}",
+          "hideLayer": "Nascondi {{layer}}",
+          "showLayer": "Mostra {{layer}}",
+          "unlockLayer": "Sblocca {{layer}}",
+          "lockLayer": "Blocca {{layer}}",
+          "moveLayerUp": "Sposta {{layer}} su",
+          "moveLayerDown": "Sposta {{layer}} giù",
+          "duplicateLayer": "Duplica {{layer}}",
+          "deleteLayer": "Elimina {{layer}}",
+          "renderingFullResolution": "Rendering alla risoluzione completa…",
+          "renderingFailed": "Non è stato possibile eseguire il rendering dell'immagine alla risoluzione completa.",
+          "previewUpdated": "{{width}} × {{height}} · Anteprima aggiornata",
+          "colorProfileNormalized": "Il profilo colore originale è stato normalizzato in sRGB sicuro.",
+          "noUnlockedLayersToErase": "Non sono disponibili livelli di annotazione visibili e sbloccati da cancellare.",
+          "renderStatus_one": "{{width}} × {{height}} · {{count}} livello",
+          "renderStatus_other": "{{width}} × {{height}} · {{count}} livelli",
+          "fit": "Adatta",
+          "holdOriginal": "Mostra originale",
+          "resetAll": "Reimposta tutto",
+          "flatten": "Appiattisci…",
+          "tools": "Strumenti",
+          "canvasFallback": "Usa l'ispettore con etichette e i controlli Livelli per ogni operazione sulla tela.",
+          "toolInspector": "Ispettore dello strumento",
+          "corrections": "Correzioni",
+          "transform": "Trasforma",
+          "flipHorizontal": "↔ Rifletti",
+          "flipVertical": "↕ Capovolgi",
+          "straighten": "Raddrizza",
+          "cropResize": "Ritaglia e ridimensiona",
+          "ratio": "Rapporto",
+          "aspectLock": "Blocca proporzioni",
+          "cropX": "Ritaglio X",
+          "cropY": "Ritaglio Y",
+          "cropWidth": "Larghezza del ritaglio",
+          "cropHeight": "Altezza del ritaglio",
+          "cropHint": "Trascina sull'immagine per impostare i limiti del ritaglio.",
+          "free": "Libero",
+          "original": "Originale",
+          "custom": "Personalizzato",
+          "width": "Larghezza",
+          "height": "Altezza",
+          "markup": "Annotazione",
+          "color": "Colore",
+          "brushSize": "Dimensione del pennello",
+          "hardness": "Durezza",
+          "opacity": "Opacità",
+          "shapeStroke": "Contorno della forma",
+          "shapeFill": "Riempimento della forma",
+          "none": "Nessuno",
+          "white": "Bianco",
+          "black": "Nero",
+          "currentMarkupColor": "Colore corrente dell'annotazione",
+          "strokeWidth": "Spessore del tratto",
+          "newText": "Nuovo testo",
+          "selectedLayer": "Livello selezionato",
+          "name": "Nome",
+          "text": "Testo",
+          "font": "Carattere",
+          "size": "Dimensione",
+          "textBoxWidth": "Larghezza della casella di testo",
+          "weight": "Spessore",
+          "alignment": "Allineamento",
+          "textColor": "Colore del testo",
+          "background": "Sfondo",
+          "rotation": "Rotazione",
+          "positionX": "Posizione X",
+          "positionY": "Posizione Y",
+          "paintPositionX": "Posizione X della pittura",
+          "paintPositionY": "Posizione Y della pittura",
+          "paintWidth": "Larghezza della pittura",
+          "paintHeight": "Altezza della pittura",
+          "sans": "Senza grazie",
+          "serif": "Con grazie",
+          "mono": "Monospaziato",
+          "normal": "Normale",
+          "bold": "Grassetto",
+          "left": "Sinistra",
+          "center": "Centro",
+          "right": "Destra",
+          "encoding": "Codifica",
+          "jpegQuality": "Qualità JPEG",
+          "transparencyBackground": "Sfondo della trasparenza",
+          "layers": "Livelli",
+          "inspector": "Ispettore",
+          "noSvgDiagnostics": "Nessuna diagnostica SVG.",
+          "layerActions": "Azioni del livello {{layer}}"
+        }
+      },
+      "trash": {
+        "assetKind": "risorsa",
+        "kind": "Tipo",
+        "originalFile": "In origine in {{file}}",
+        "originalLocation": "Posizione originale",
+        "deletedAt": "Spostato nel Cestino",
+        "readOnly": "Gli elementi nel Cestino sono in sola lettura. Ripristina questo elemento per modificarlo.",
+        "permanentDeleteHeading": "Eliminare definitivamente {{item}}?",
+        "permanentDeleteDescription": "L'operazione non può essere annullata. La cronologia di annullamento e ripetizione dell'Editor verrà cancellata, così l'elemento eliminato non potrà essere recuperato.",
+        "deleteForever": "Elimina definitivamente"
+      },
+      "field": {
+        "handle": "Identificatore",
+        "name": "Nome",
+        "abbreviation": "Abbreviazione",
+        "initial": "Saldo iniziale"
+      },
+      "layoutField": {
+        "target": "Contenuto da visualizzare",
+        "columns": "Colonne",
+        "gap": "Spazio",
+        "padding": "Spaziatura interna",
+        "padding-block": "Spaziatura interna verticale",
+        "padding-inline": "Spaziatura interna orizzontale",
+        "grow": "Quota di spazio",
+        "column-span": "Estensione in colonne",
+        "row-span": "Estensione in righe",
+        "column-weight": "Peso della colonna",
+        "min-width": "Larghezza minima",
+        "min-height": "Altezza minima",
+        "aspect-ratio": "Proporzioni",
+        "background": "Sfondo",
+        "background-image": "Immagine di sfondo",
+        "background-fit": "Adattamento dello sfondo",
+        "align": "Allineamento degli elementi",
+        "justify": "Distribuzione degli elementi",
+        "text-align": "Allineamento del testo",
+        "control-align": "Allineamento del controllo",
+        "control-adornments": "Decorazioni del controllo",
+        "text-size": "Dimensione del testo",
+        "font-family": "Famiglia di caratteri",
+        "font-weight": "Spessore del carattere",
+        "line-height": "Interlinea",
+        "letter-spacing": "Spaziatura tra lettere",
+        "list-marker": "Marcatore dell'elenco",
+        "list-indent": "Rientro dell'elenco",
+        "list-gap": "Spazio tra elementi dell'elenco",
+        "control-density": "Densità dei controlli",
+        "cost-density": "Densità dei costi",
+        "text-color": "Colore del testo",
+        "border-color": "Colore del bordo",
+        "border-width": "Spessore del bordo",
+        "border-style": "Stile del bordo",
+        "corners": "Angoli",
+        "clip": "Ritaglia il contenuto eccedente",
+        "size": "Dimensione",
+        "width": "Larghezza",
+        "height": "Altezza",
+        "fit": "Adattamento dell'immagine",
+        "source": "Sorgente di Scelte",
+        "using": "Layout di Scelta",
+        "color": "Colore",
+        "thickness": "Spessore",
+        "style": "Stile",
+        "orientation": "Orientamento"
+      },
+      "layoutFieldHelp": {
+        "target": "Scegli la parte integrata o il contenuto creato mostrato in questa posizione.",
+        "align": "Determina come ogni elemento figlio viene allineato lungo la direzione secondaria del contenitore.",
+        "justify": "Determina come gli elementi figli vengono disposti lungo la direzione principale del contenitore.",
+        "text-align": "Determina come viene allineato il testo all'interno di questo elemento.",
+        "control-align": "Determina come viene allineato il controllo all'interno di questo elemento.",
+        "control-adornments": "Mostra la linea decorativa e la spaziatura attorno a questo gruppo di controlli.",
+        "fit": "Contieni mostra l'intera immagine; Copri riempie lo spazio e può ritagliarla; Ripeti la ripete alle dimensioni naturali.",
+        "background-fit": "Contieni mostra l'intero sfondo; Copri riempie lo spazio e può ritagliarlo; Ripeti lo ripete alle dimensioni naturali.",
+        "clip": "Nascondi il contenuto figlio che si estende al di fuori di questo contenitore.",
+        "source": "Scegli la Sorgente di Scelte le cui Scelte corrispondenti compaiono qui.",
+        "using": "Facoltativamente, scegli un layout specifico per le Scelte espanse.",
+        "orientation": "Le linee orizzontali attraversano il contenuto. Le linee verticali si estendono per l'altezza condivisa della propria riga In linea.",
+        "grow": "Gli elementi figli diretti di Pila e In linea dividono lo spazio libero in base alle quote definite dall'autore.",
+        "column-span": "Un elemento figlio diretto di Griglia può occupare più di una colonna.",
+        "row-span": "Un elemento figlio diretto di Griglia può occupare più di una riga.",
+        "column-weight": "I pesi personalizzati dividono proporzionalmente la larghezza della Griglia e richiedono un valore per ogni colonna.",
+        "text-size": "Scegli un token condiviso oppure inserisci un valore esatto da 8px a 512px o da .5rem a 32rem.",
+        "control-density": "Compatto riduce gli elementi decorativi visivi mantenendo il controllo completo.",
+        "cost-density": "Compatto mantiene visibile il prezzo e sposta lo stato dettagliato nel testo accessibile."
+      },
+      "layoutPresentationGroup": {
+        "appearance": "Aspetto",
+        "spacing": "Spaziatura",
+        "sizing": "Dimensionamento e distribuzione",
+        "grid": "Tracce della griglia",
+        "typography": "Tipografia",
+        "list": "Presentazione dell'elenco",
+        "interaction": "Presentazione dell'interazione",
+        "nonDefault": "{{count}} personalizzati"
+      },
+      "backgroundMode": {
+        "choose": "Tipo di sfondo",
+        "color": "Colore",
+        "image": "Immagine"
+      },
+      "layoutOption": {
+        "ruleStyle": {
+          "solid": "uniforme",
+          "dash": "tratto",
+          "rounded": "arrotondato"
+        }
+      },
+      "declaration": {
+        "jump": "Jump",
+        "jump-appearance": "Aspetto del Jump",
+        "resource": "Risorsa",
+        "section": "Sezione",
+        "choice-source": "Sorgente di Scelte",
+        "choice": "Scelta",
+        "directChoice": "Scelta diretta",
+        "text": "Testo",
+        "image": "Immagine",
+        "input": "Input",
+        "cost": "Costo",
+        "discount": "Sconto",
+        "grant": "Conferimento",
+        "section-layout": "Layout di Sezione",
+        "choice-layout": "Layout di Scelta",
+        "trait-layout": "Layout di tratto",
+        "theme": "Tema",
+        "stack": "Pila",
+        "inline": "In linea",
+        "wrap": "A capo",
+        "grid": "Griglia",
+        "slot": "Slot",
+        "rule": "Linea",
+        "expand": "Espandi"
+      },
+      "text": {
+        "save": "Salva",
+        "advancedViews": "Viste avanzate",
+        "exportJmp": "Esporta .jmp",
+        "add": "Aggiungi",
+        "addItem": "Aggiungi {{item}}",
+        "asset": "Risorsa…",
+        "importAssetEllipsis": "Importa risorsa…",
+        "expand": "Espandi",
+        "collapse": "Comprimi",
+        "searchPackageContent": "Cerca nel contenuto del pacchetto",
+        "jumpDetails": "Dettagli Jump",
+        "jumpAppearance": "Aspetto del Jump",
+        "appearancePreviewJump": "Jump",
+        "appearancePreviewComponents": "Componenti",
+        "nestedResults": "Risultati annidati",
+        "assets": "Risorse ",
+        "trash": "Cestino",
+        "open": "Apri",
+        "restore": "Ripristina",
+        "delete": "Elimina",
+        "packageFiles": "File del pacchetto",
+        "find": "Trova",
+        "quickAdd": "Aggiunta rapida",
+        "format": "Formatta",
+        "quickFix": "Correzione rapida",
+        "authoringHelp": "Guida alla creazione",
+        "format1AuthorReference": "Riferimento per autori Format 1",
+        "aa": "Aa",
+        "ab": "ab",
+        "replace": "Sostituisci",
+        "replaceAll": "Sostituisci tutto",
+        "completions": "Completamenti",
+        "format1": "Format 1 ",
+        "livePreview": "Anteprima in tempo reale",
+        "previewTools": "Strumenti anteprima",
+        "showBounds": " Mostra limiti",
+        "inspectColors": "Ispeziona colori",
+        "inspect": "Ispeziona",
+        "stripColor": "Rimuovi colore",
+        "appearanceColorKindBackground": "Sfondo",
+        "appearanceColorKindText": "Testo",
+        "appearanceColorKindBorder": "Bordo",
+        "appearanceColorKindAccent": "Risalto",
+        "appearanceColorLayoutOverride": "Sostituzione del layout",
+        "appearanceColorReadout": "{{field}} · fai clic per modificare",
+        "appearanceLayoutColorReadout": "{{kind}} {{handle}} · {{field}} · fai clic per modificare la sostituzione",
+        "appearanceColorReadoutIdle": "Passa su un elemento o sul bordo per identificarne il colore",
+        "sectionLayout": "Layout di Sezione",
+        "choiceLayout": "Layout di Scelta",
+        "traitLayout": "Layout di tratto",
+        "container": "Contenitore",
+        "slot": "Slot",
+        "reference": "Riferimento",
+        "layoutBoundReadout": "{{kind}} · {{path}}",
+        "layoutBoundReadoutIdle": "Passa su un limite per ispezionarlo",
+        "diagnostics": "Diagnostica",
+        "noDiagnosticClassesAreIncluded": "Non è inclusa alcuna classe diagnostica.",
+        "noDeclarationSelected": "Nessuna dichiarazione selezionata",
+        "choosePackageContentFromTheExplorer": "Scegli il contenuto del pacchetto dall'esploratore.",
+        "required": "Obbligatorio",
+        "notSet": "Non impostato",
+        "addPrefix": "+ Aggiungi ",
+        "when": "Quando",
+        "value": "Valore",
+        "addConditionalVariant": "+ Aggiungi variante condizionale",
+        "variantsForOccurrence": "Varianti per {{field}} {{occurrence}}",
+        "package": "Pacchetto",
+        "identity": "Identità",
+        "scalarShorthand": "Valore semplice",
+        "valuePrefix": "Valore ",
+        "expandToFields": "Aggiungi dettagli",
+        "collapseToShorthand": "Usa valore semplice",
+        "layoutTree": "Struttura del layout",
+        "navigateContainersSlotsControlsAndReferencesReorderButtonsCommit": "Esplora contenitori, slot, controlli e riferimenti. I pulsanti di riordinamento registrano le modifiche nella cronologia condivisa del sorgente.",
+        "fieldsAndBehavior": "Campi e comportamento",
+        "contentAndDeclarations": "Contenuto ed effetti",
+        "addContentAndEffectsHelp": "Aggiungi contenuto o effetti appartenenti a {{owner}}.",
+        "addADeclarationValidInsideThis": "Aggiungi una dichiarazione valida all'interno di questo ",
+        "quickAddAction": "Aggiunta rapida",
+        "validHere": "Disponibile qui",
+        "availableHere": "Disponibile qui",
+        "addField": "Aggiungi il campo {{field}}",
+        "completeField": "Completa il campo {{field}} esistente",
+        "addFieldToSelection": "Aggiungi {{field}} al contenuto selezionato.",
+        "addContentType": "Aggiungi qui contenuto {{type}}.",
+        "sourceContextTitle": "{{kind}} {{handle}}",
+        "unnamedDeclaration": "dichiarazione senza nome",
+        "noAdditionalDeclarationsAreValidHere": "Qui non sono disponibili altri contenuti o effetti.",
+        "commands": "Comandi",
+        "writeADeterministicRepair": "Applica correzione suggerita",
+        "applySuggestedFix": "Applica correzione suggerita",
+        "matchCount": "{{current}} di {{total}}",
+        "noDiagnosticsMatchFilters": "Nessuna diagnostica corrisponde ai filtri selezionati.",
+        "completeExistingFieldIn": "Completa il campo esistente in {{title}}",
+        "addToDeclaration": "Aggiungi a {{title}}",
+        "insertInside": "Inserisci in {{title}}",
+        "allCompletions": "Tutti i completamenti",
+        "showFieldsValuesAndHandles": "Mostra campi, valori e handle",
+        "selection": "Selezione",
+        "kind": "Tipo",
+        "file": "File",
+        "size": "Dimensione",
+        "bytes": " byte",
+        "version": "Versione",
+        "authors": "Autori",
+        "sections": "Sezioni",
+        "choices": "Scelte",
+        "gauntlet": "Gauntlet",
+        "propertiesAreDerivedFromCanonicalSourceEditThemIn": "Questi dettagli sono in sola lettura qui. Modificali in Strutturato o Sorgente.",
+        "needsAttention": "Richiede attenzione",
+        "fieldsInvalidInContext": "Questi campi creati dall'autore non sono validi nel contesto corrente. Correggili o rimuovili per risolvere la relativa diagnostica.",
+        "createDeclaration": "Crea {{declaration}}",
+        "newDeclarationEllipsis": "Nuova dichiarazione {{declaration}}…",
+        "createAndUseDeclaration": "Crea e usa {{declaration}}",
+        "layoutContentTarget": "Destinazione del contenuto del layout",
+        "addTo": "Aggiungi a",
+        "traitGrant": "conferimento tratto",
+        "layoutContentCreationExplanation": "La dichiarazione del contenuto appartiene al proprietario del pacchetto selezionato; questo nodo di layout farà riferimento al relativo nuovo handle.",
+        "removeInvalidField": "Rimuovi campo non valido",
+        "secondaryCurrency": "Valuta secondaria",
+        "createResource": "Crea risorsa",
+        "resourceValuesInvalid": "Usa un handle valido e univoco diverso da jump_points e un saldo iniziale intero letterale.",
+        "cancel": "Annulla",
+        "createAndUseResource": "Crea e usa risorsa",
+        "backToDeclaration": "Torna a {{declaration}}",
+        "editLayoutNode": "Modifica nodo {{node}}",
+        "layoutEditor": "Layout",
+        "layoutNodeCount_one": "{{count}} nodo",
+        "layoutNodeCount_other": "{{count}} nodi",
+        "layoutItemCount_one": "{{count}} elemento",
+        "layoutItemCount_other": "{{count}} elementi",
+        "layoutColumnNumber": "Colonna {{number}}",
+        "customColumnProportions": "Proporzioni personalizzate",
+        "layoutNeedsRoot": "Questo layout richiede un contenitore radice.",
+        "createRootContainer": "Crea contenitore radice",
+        "layoutStructureUnsafe": "La struttura del layout creata richiede una correzione in Sorgente prima che le operazioni sulla struttura possano essere eseguite in sicurezza.",
+        "editingContainer": "Modifica del contenitore",
+        "path": "Percorso",
+        "containerFlow": "Flusso",
+        "childrenOf": "Elementi figli di {{path}}",
+        "nodeType": "Tipo di nodo",
+        "target": "Destinazione",
+        "notApplicable": "Non applicabile",
+        "moveEllipsis": "Sposta…",
+        "moveToContainer": "Sposta nel contenitore",
+        "move": "Sposta",
+        "editPresentation": "Modifica presentazione",
+        "newNodeType": "Nuovo tipo di nodo",
+        "source": "Sorgente",
+        "using": "Uso",
+        "addChild": "Aggiungi elemento figlio"
+      },
+      "placeholder": {
+        "searchContent": "Cerca nel contenuto",
+        "find": "Trova",
+        "replace": "Sostituisci"
+      },
+      "title": {
+        "matchCase": "Maiuscole/minuscole",
+        "matchWholeWord": "Parola intera",
+        "useRegularExpression": "Usa espressione regolare",
+        "dragLayoutNode": "Trascina per riordinare o spostare in un contenitore",
+        "applySuggestedFixAtCursor": "Applica la correzione suggerita in corrispondenza del cursore",
+        "applySuggestedFix": "Applica correzione suggerita",
+        "noSuggestedFixAvailable": "Non è disponibile alcuna correzione suggerita",
+        "toggleDiagnosticSeverity": "Attiva/disattiva {{severity}}"
+      }
+    }
+  }
+}

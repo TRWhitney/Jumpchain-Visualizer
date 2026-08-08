@@ -1,0 +1,3603 @@
+{
+  "supplements": {
+    "modules": {
+      "body-mod": {
+        "shortName": "Body Mod",
+        "name": "Body Mod clásico",
+        "description": "Alternativa base · elecciones y estadísticas completas."
+      },
+      "essential-body-mod": {
+        "shortName": "Body Mod esencial",
+        "name": "Modificación corporal esencial",
+        "description": "Alternativa base · incompatible con Body Mod clásico."
+      },
+      "warehouse": {
+        "shortName": "Cosmic Warehouse",
+        "name": "Cosmic Warehouse",
+        "description": "Alternativa de espacio persistente."
+      },
+      "personal-reality": {
+        "shortName": "Realidad personal",
+        "name": "Realidad personal",
+        "description": "Alternativa de espacio persistente · elecciones iniciales y puntos acumulados."
+      },
+      "universal-drawbacks": {
+        "shortName": "Desventajas universales",
+        "name": "Desventajas universales",
+        "description": "Efectos de reglas para toda la Chain y efectos recurrentes."
+      },
+      "quest-mode": {
+        "shortName": "Modo de misiones",
+        "name": "Modo de misiones",
+        "description": "Las misiones de cada Jump reemplazan los CP iniciales normales."
+      },
+      "story": {
+        "shortName": "Historia",
+        "name": "Historia",
+        "description": "Una narración con vista previa en directo para cada Jump."
+      }
+    },
+    "catalogDiagnostics": {
+      "unknown": "Entrada de catálogo desconocida: {{id}}",
+      "requires": "{{entry}} requiere {{requirement}}.",
+      "conflicts": "{{entry}} entra en conflicto con {{conflict}}."
+    },
+    "catalogs": {
+      "essential": {
+        "basic-refinements": {
+          "name": "Basic Refinements",
+          "summary": "Mejoras cosméticas, físicas, mentales, espirituales y de poderes secundarios."
+        },
+        "the-interface": {
+          "name": "The Interface",
+          "summary": "Elige ventanas opcionales de personaje, estado, grupo, misiones, temporizador, ayuda y notificaciones."
+        },
+        "cosmetic-refinement": {
+          "name": "Cosmetic Refinement",
+          "summary": "Cosmetic Refinement cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "cosmetic-reconfiguration": {
+          "name": "Cosmetic Reconfiguration",
+          "summary": "Cosmetic Reconfiguration cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "physical-health-refinement": {
+          "name": "Physical Health Refinement",
+          "summary": "Physical Health Refinement cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "physical-prowess-refinement": {
+          "name": "Physical Prowess Refinement",
+          "summary": "Physical Prowess Refinement cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "mental-health-refinement": {
+          "name": "Mental Health Refinement",
+          "summary": "Mental Health Refinement cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "mental-awareness-refinement": {
+          "name": "Mental Awareness Refinement",
+          "summary": "Mental Awareness Refinement cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "spiritual-awareness-refinement": {
+          "name": "Spiritual Awareness Refinement",
+          "summary": "Spiritual Awareness Refinement cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "spiritual-resource-refinement": {
+          "name": "Spiritual Resource Refinement",
+          "summary": "Spiritual Resource Refinement cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "secondary-powers-refinement": {
+          "name": "Secondary Powers Refinement",
+          "summary": "Secondary Powers Refinement cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "morality-refinement": {
+          "name": "Morality Refinement",
+          "summary": "Morality Refinement cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "the-character-sheet": {
+          "name": "The Character Sheet",
+          "summary": "The Character Sheet cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "the-status-window": {
+          "name": "The Status Window",
+          "summary": "The Status Window cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "the-party-window": {
+          "name": "The Party Window",
+          "summary": "The Party Window cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "the-quest-window": {
+          "name": "The Quest Window",
+          "summary": "The Quest Window cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "the-timer-window": {
+          "name": "The Timer Window",
+          "summary": "The Timer Window cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "the-help-menu": {
+          "name": "The Help Menu",
+          "summary": "The Help Menu cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "push-notifications": {
+          "name": "Push Notifications",
+          "summary": "Push Notifications cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "accessibility": {
+          "name": "Accessibility",
+          "summary": "Accessibility cambia la configuración permanente básica según los rangos y límites indicados."
+        },
+        "physical-perfection-i-to-iii": {
+          "name": "Physical Perfection I to III",
+          "summary": "Physical Perfection I to III cambia la configuración permanente física según los rangos y límites indicados."
+        },
+        "physical-resilience-i-to-iii": {
+          "name": "Physical Resilience I to III",
+          "summary": "Physical Resilience I to III cambia la configuración permanente física según los rangos y límites indicados."
+        },
+        "reduced-sustenance-i-to-iii": {
+          "name": "Reduced Sustenance I to III",
+          "summary": "Reduced Sustenance I to III cambia la configuración permanente física según los rangos y límites indicados."
+        },
+        "environmental-tolerance-i-and-ii": {
+          "name": "Environmental Tolerance I and II",
+          "summary": "Environmental Tolerance I and II cambia la configuración permanente física según los rangos y límites indicados."
+        },
+        "regeneration-i-to-ii": {
+          "name": "Regeneration I to II",
+          "summary": "Regeneration I to II cambia la configuración permanente física según los rangos y límites indicados."
+        },
+        "ageless-i-to-ii": {
+          "name": "Ageless I to II",
+          "summary": "Ageless I to II cambia la configuración permanente física según los rangos y límites indicados."
+        },
+        "undead-physiology-i": {
+          "name": "Undead Physiology I",
+          "summary": "Undead Physiology I cambia la configuración permanente física según los rangos y límites indicados."
+        },
+        "elemental-physiology-i": {
+          "name": "Elemental Physiology I",
+          "summary": "Elemental Physiology I cambia la configuración permanente física según los rangos y límites indicados."
+        },
+        "creature-soul-i-to-v": {
+          "name": "Creature Soul I to V",
+          "summary": "Creature Soul I to V cambia la configuración permanente física según los rangos y límites indicados."
+        },
+        "heightened-senses-i-and-ii": {
+          "name": "Heightened Senses I and II",
+          "summary": "Heightened Senses I and II cambia la configuración permanente mental según los rangos y límites indicados."
+        },
+        "heightened-reactions-i-and-ii": {
+          "name": "Heightened Reactions I and II",
+          "summary": "Heightened Reactions I and II cambia la configuración permanente mental según los rangos y límites indicados."
+        },
+        "mental-prowess-i-to-iii": {
+          "name": "Mental Prowess I to III",
+          "summary": "Mental Prowess I to III cambia la configuración permanente mental según los rangos y límites indicados."
+        },
+        "mental-resistance-i-to-iii": {
+          "name": "Mental Resistance I to III",
+          "summary": "Mental Resistance I to III cambia la configuración permanente mental según los rangos y límites indicados."
+        },
+        "blank-i-and-ii": {
+          "name": "Blank I and II",
+          "summary": "Blank I and II cambia la configuración permanente mental según los rangos y límites indicados."
+        },
+        "empathetic-i-and-ii": {
+          "name": "Empathetic I and II",
+          "summary": "Empathetic I and II cambia la configuración permanente mental según los rangos y límites indicados."
+        },
+        "charismatic-i-and-ii": {
+          "name": "Charismatic I and II",
+          "summary": "Charismatic I and II cambia la configuración permanente mental según los rangos y límites indicados."
+        },
+        "wild-empathy-i-and-ii": {
+          "name": "Wild Empathy I and II",
+          "summary": "Wild Empathy I and II cambia la configuración permanente espiritual según los rangos y límites indicados."
+        },
+        "unflappable": {
+          "name": "Unflappable",
+          "summary": "Conserva la compostura bajo presión y ante circunstancias sobrenaturales."
+        },
+        "corruption-resistance": {
+          "name": "Corruption Resistance",
+          "summary": "Resiste efectos que corrompen el cuerpo, la mente o el alma."
+        },
+        "inertia-of-self-i-and-ii": {
+          "name": "Inertia of Self I and II",
+          "summary": "Inertia of Self I and II cambia la configuración permanente espiritual según los rangos y límites indicados."
+        },
+        "supernatural-resource-recovery-i-to-iv": {
+          "name": "Supernatural Resource Recovery I to IV",
+          "summary": "Supernatural Resource Recovery I to IV cambia la configuración permanente espiritual según los rangos y límites indicados."
+        },
+        "alchemical-mastery-i-to-iv": {
+          "name": "Alchemical Mastery I to IV",
+          "summary": "Alchemical Mastery I to IV cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "magical-mastery-i-to-iv": {
+          "name": "Magical Mastery I to IV",
+          "summary": "Magical Mastery I to IV cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "strategic-mastery-i-to-iv": {
+          "name": "Strategic Mastery I to IV",
+          "summary": "Strategic Mastery I to IV cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "leadership-mastery-i-to-iv": {
+          "name": "Leadership Mastery I to IV",
+          "summary": "Leadership Mastery I to IV cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "martial-mastery-i-to-iv": {
+          "name": "Martial Mastery I to IV",
+          "summary": "Martial Mastery I to IV cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "scientific-mastery-i-to-iv": {
+          "name": "Scientific Mastery I to IV",
+          "summary": "Scientific Mastery I to IV cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "engineering-mastery-i-to-iv": {
+          "name": "Engineering Mastery I to IV",
+          "summary": "Engineering Mastery I to IV cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "reverse-engineering-mastery-i-to-iv": {
+          "name": "Reverse Engineering Mastery I to IV",
+          "summary": "Reverse Engineering Mastery I to IV cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "biomedical-mastery-i-to-iv": {
+          "name": "Biomedical Mastery I to IV",
+          "summary": "Biomedical Mastery I to IV cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "occult-mastery-i-to-iv": {
+          "name": "Occult Mastery I to IV",
+          "summary": "Occult Mastery I to IV cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "subterfuge-mastery-i-to-iv": {
+          "name": "Subterfuge Mastery I to IV",
+          "summary": "Subterfuge Mastery I to IV cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "social-mastery-i-to-iv": {
+          "name": "Social Mastery I to IV",
+          "summary": "Social Mastery I to IV cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "wilderness-mastery-i-to-iv": {
+          "name": "Wilderness Mastery I to IV",
+          "summary": "Wilderness Mastery I to IV cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "polyglot": {
+          "name": "Polyglot",
+          "summary": "Comprende y aprende rápidamente los idiomas que encuentres."
+        },
+        "magical-engineer": {
+          "name": "Magical Engineer",
+          "summary": "Magical Engineer cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "thanatologist": {
+          "name": "Thanatologist",
+          "summary": "Thanatologist cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "geneticist": {
+          "name": "Geneticist",
+          "summary": "Geneticist cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "vehicle-empathy": {
+          "name": "Vehicle Empathy",
+          "summary": "Vehicle Empathy cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "tooth-and-claw": {
+          "name": "Tooth and Claw",
+          "summary": "Tooth and Claw cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "natural-athlete": {
+          "name": "Natural Athlete",
+          "summary": "Natural Athlete cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "natural-teacher": {
+          "name": "Natural Teacher",
+          "summary": "Natural Teacher cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "field-technician": {
+          "name": "Field Technician",
+          "summary": "Field Technician cambia la configuración permanente de habilidades según los rangos y límites indicados."
+        },
+        "physical-perfection-iv-and-v": {
+          "name": "Physical Perfection IV and V",
+          "summary": "Physical Perfection IV and V cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "physical-resilience-iv-and-v": {
+          "name": "Physical Resilience IV and V",
+          "summary": "Physical Resilience IV and V cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "environmental-tolerance-iii-and-iv": {
+          "name": "Environmental Tolerance III and IV",
+          "summary": "Environmental Tolerance III and IV cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "regeneration-iii": {
+          "name": "Regeneration III",
+          "summary": "Regeneration III cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "elemental-resistance-i-to-iv": {
+          "name": "Elemental Resistance I to IV",
+          "summary": "Elemental Resistance I to IV cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "heightened-senses-iii": {
+          "name": "Heightened Senses III",
+          "summary": "Heightened Senses III cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "unusual-senses": {
+          "name": "Unusual Senses",
+          "summary": "Unusual Senses cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "heightened-reactions-iii-and-iv": {
+          "name": "Heightened Reactions III and IV",
+          "summary": "Heightened Reactions III and IV cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "mental-prowess-iv": {
+          "name": "Mental Prowess IV",
+          "summary": "Mental Prowess IV cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "empathetic-iii": {
+          "name": "Empathetic III",
+          "summary": "Empathetic III cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "charismatic-iii": {
+          "name": "Charismatic III",
+          "summary": "Charismatic III cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "form-mastery-i-to-iii": {
+          "name": "Form Mastery I to III",
+          "summary": "Form Mastery I to III cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "morphic-form-i-to-iii": {
+          "name": "Morphic Form I to III",
+          "summary": "Morphic Form I to III cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "reduced-form-i-to-iv": {
+          "name": "Reduced Form I to IV",
+          "summary": "Reduced Form I to IV cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "enlarged-form-i-to-iv": {
+          "name": "Enlarged Form I to IV",
+          "summary": "Enlarged Form I to IV cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "animal-form-i-and-ii": {
+          "name": "Animal Form I and II",
+          "summary": "Animal Form I and II cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "fantastic-beast-form-i-and-ii": {
+          "name": "Fantastic Beast Form I and II",
+          "summary": "Fantastic Beast Form I and II cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "intangible-form-i-and-ii": {
+          "name": "Intangible Form I and II",
+          "summary": "Intangible Form I and II cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "energy-projection": {
+          "name": "Energy Projection",
+          "summary": "Proyecta una forma elegida de energía dañina."
+        },
+        "material-creation": {
+          "name": "Material Creation",
+          "summary": "Material Creation cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "kinesis-i-to-iv": {
+          "name": "Kinesis I to IV",
+          "summary": "Kinesis I to IV cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "flight-i-to-iv": {
+          "name": "Flight I to IV",
+          "summary": "Flight I to IV cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "spaceflight-i-and-ii": {
+          "name": "Spaceflight I and II",
+          "summary": "Spaceflight I and II cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "bodily-reinforcement-techniques-i-and-ii": {
+          "name": "Bodily Reinforcement Techniques I and II",
+          "summary": "Bodily Reinforcement Techniques I and II cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "inventory-i-to-iv": {
+          "name": "Inventory I to IV",
+          "summary": "Inventory I to IV cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "power-toggle": {
+          "name": "Power Toggle",
+          "summary": "Suprime o restaura las habilidades propias y sus efectos visibles."
+        },
+        "personal-immunity": {
+          "name": "Personal Immunity",
+          "summary": "Personal Immunity cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "power-drain-protection": {
+          "name": "Power Drain Protection",
+          "summary": "Power Drain Protection cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "power-combination-i-to-iii": {
+          "name": "Power Combination I to III",
+          "summary": "Power Combination I to III cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "private-reality": {
+          "name": "Private Reality",
+          "summary": "Crea una realidad extradimensional personal."
+        },
+        "cheat-death-i-and-ii": {
+          "name": "Cheat Death I and II",
+          "summary": "Cheat Death I and II cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "reflexive-reinforcement-i-and-ii": {
+          "name": "Reflexive Reinforcement I and II",
+          "summary": "Reflexive Reinforcement I and II cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "master-of-many-arts-i-to-iii": {
+          "name": "Master of Many Arts I to III",
+          "summary": "Master of Many Arts I to III cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "defense-piercing-techniques-i-and-ii": {
+          "name": "Defense Piercing Techniques I and II",
+          "summary": "Defense Piercing Techniques I and II cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "trivial-applications": {
+          "name": "Trivial Applications",
+          "summary": "Trivial Applications cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "over-caster": {
+          "name": "Over-Caster",
+          "summary": "Over-Caster cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "healing-touch-i-to-iv": {
+          "name": "Healing Touch I to IV",
+          "summary": "Healing Touch I to IV cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "energy-drain-i-to-v": {
+          "name": "Energy Drain I to V",
+          "summary": "Energy Drain I to V cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "minion-creation-i-to-iii": {
+          "name": "Minion Creation I to III",
+          "summary": "Minion Creation I to III cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "minion-empowerment-i-to-iv": {
+          "name": "Minion Empowerment I to IV",
+          "summary": "Minion Empowerment I to IV cambia la configuración permanente sobrenatural según los rangos y límites indicados."
+        },
+        "divinity": {
+          "name": "Divinity",
+          "summary": "Establece un dominio divino y autoridad metafísica."
+        },
+        "essence-infusion": {
+          "name": "Essence Infusion",
+          "summary": "Otorga protección fiat y retorno confiable a un objeto que no cueste CP."
+        },
+        "essence-integration": {
+          "name": "Essence Integration",
+          "summary": "Considera la tecnología implantada o magitecnología como parte de la forma base."
+        },
+        "essential-annexation-i-to-iv": {
+          "name": "Essential Annexation I to IV",
+          "summary": "Essential Annexation I to IV cambia la configuración permanente de objetos según los rangos y límites indicados."
+        },
+        "essential-item": {
+          "name": "Essential Item",
+          "summary": "Permite importar un objeto a ambientaciones futuras con un nivel local apropiado."
+        },
+        "essence-transfer": {
+          "name": "Essence Transfer",
+          "summary": "Transfiere una cantidad elegida de EP a un compañero válido."
+        },
+        "essence-link-i-and-ii": {
+          "name": "Essence Link I and II",
+          "summary": "Essence Link I and II cambia la configuración permanente de compañeros según los rangos y límites indicados."
+        },
+        "essential-companion": {
+          "name": "Essential Companion",
+          "summary": "Proporciona a un compañero protecciones persistentes de importación y Gauntlet."
+        },
+        "dependency": {
+          "name": "Dependency",
+          "summary": "Requiere acceso regular a una sustancia específica."
+        },
+        "standout": {
+          "name": "Standout",
+          "summary": "Te vuelve cada vez más llamativo, inquietante o provocador."
+        },
+        "unnatural-presence": {
+          "name": "Unnatural Presence",
+          "summary": "Provoca una impresión sobrenatural inconfundible."
+        },
+        "elemental-vulnerability": {
+          "name": "Elemental Vulnerability",
+          "summary": "Sufres una debilidad creciente ante un elemento elegido."
+        },
+        "vulnerability": {
+          "name": "Vulnerability",
+          "summary": "Sufres una debilidad creciente ante una sustancia elegida."
+        },
+        "achilles-heel": {
+          "name": "Achilles Heel",
+          "summary": "Conservas un punto vulnerable que enemigos decididos pueden alcanzar."
+        },
+        "lovable-goof": {
+          "name": "Lovable Goof",
+          "summary": "Pierdes acceso a ventajas de mejora social a cambio de un encanto torpe."
+        },
+        "compulsions": {
+          "name": "Compulsions",
+          "summary": "Aceptas varias compulsiones menores o una compulsión mayor."
+        },
+        "softhearted": {
+          "name": "Softhearted",
+          "summary": "Te vuelves especialmente susceptible a las peticiones de ayuda."
+        },
+        "form-locked-i-and-ii": {
+          "name": "Form Locked I and II",
+          "summary": "Form Locked I and II cambia la configuración permanente de desventajas según los rangos y límites indicados."
+        },
+        "wardrobe-malfunction-i-and-ii": {
+          "name": "Wardrobe Malfunction I and II",
+          "summary": "Wardrobe Malfunction I and II cambia la configuración permanente de desventajas según los rangos y límites indicados."
+        },
+        "interface": {
+          "name": "The Interface",
+          "summary": "Elige ventanas opcionales de personaje, estado, grupo, misiones, temporizador, ayuda y notificaciones."
+        },
+        "physical-perfection": {
+          "name": "Physical Perfection",
+          "summary": "Mejora todo el rendimiento físico desde el máximo humano hasta cinco veces ese máximo."
+        },
+        "physical-resilience": {
+          "name": "Physical Resilience",
+          "summary": "Proporciona inmunidad creciente a enfermedades, toxinas, radiación y lesiones."
+        },
+        "reduced-sustenance": {
+          "name": "Reduced Sustenance",
+          "summary": "Reduce progresivamente y flexibiliza las necesidades normales de comida y bebida."
+        },
+        "environmental-tolerance": {
+          "name": "Environmental Tolerance",
+          "summary": "Protege contra peligros respiratorios, de temperatura, presión y vacío."
+        },
+        "regeneration": {
+          "name": "Regeneration",
+          "summary": "Acelera la recuperación desde heridas menores hasta extremidades amputadas."
+        },
+        "ageless": {
+          "name": "Ageless",
+          "summary": "Prolonga la vida o detiene el envejecimiento después de la madurez física."
+        },
+        "undead-physiology": {
+          "name": "Undead Physiology",
+          "summary": "Crea una fisiología base de no muerto; los niveles superiores financian habilidades relacionadas."
+        },
+        "elemental-physiology": {
+          "name": "Elemental Physiology",
+          "summary": "Crea una fisiología elemental vinculada a un elemento elegido."
+        },
+        "creature-soul": {
+          "name": "Creature Soul",
+          "summary": "Manifiesta y finalmente adopta la forma de una criatura elegida."
+        },
+        "heightened-senses": {
+          "name": "Heightened Senses",
+          "summary": "Mejora el alcance y la precisión de los sentidos normales."
+        },
+        "heightened-reactions": {
+          "name": "Heightened Reactions",
+          "summary": "Acelera el tiempo de reacción y desarrolla percepción del peligro."
+        },
+        "mental-prowess": {
+          "name": "Mental Prowess",
+          "summary": "Mejora la memoria, el procesamiento, la concentración y la resistencia mental."
+        },
+        "mental-resistance": {
+          "name": "Mental Resistance",
+          "summary": "Resiste la influencia mental y las alteraciones hostiles."
+        },
+        "blank": {
+          "name": "Blank",
+          "summary": "Impide la observación sobrenatural de información e historia personales."
+        },
+        "empathetic": {
+          "name": "Empathetic",
+          "summary": "Mejora la percepción y comprensión de las emociones ajenas."
+        },
+        "charismatic": {
+          "name": "Charismatic",
+          "summary": "Mejora la presencia personal y la influencia social."
+        },
+        "wild-empathy": {
+          "name": "Wild Empathy",
+          "summary": "Comprende e influye en animales y otras criaturas no sapientes."
+        },
+        "inertia-of-self": {
+          "name": "Inertia of Self",
+          "summary": "Conserva la identidad frente a cambios metafísicos no deseados."
+        },
+        "resource-recovery": {
+          "name": "Supernatural Resource Recovery",
+          "summary": "Acelera la recuperación de recursos mágicos y otros recursos no físicos."
+        },
+        "strategic-mastery": {
+          "name": "Strategic Mastery",
+          "summary": "Aprende estrategia y táctica desde conocimientos básicos hasta el dominio."
+        },
+        "leadership-mastery": {
+          "name": "Leadership Mastery",
+          "summary": "Aprende mando, administración y liderazgo organizacional."
+        },
+        "martial-mastery": {
+          "name": "Martial Mastery",
+          "summary": "Aprende disciplinas de combate armado y sin armas."
+        },
+        "scientific-mastery": {
+          "name": "Scientific Mastery",
+          "summary": "Aprende las disciplinas científicas encontradas a lo largo de la Chain."
+        },
+        "engineering-mastery": {
+          "name": "Engineering Mastery",
+          "summary": "Aprende disciplinas de diseño, construcción y mantenimiento."
+        },
+        "biomedical-mastery": {
+          "name": "Biomedical Mastery",
+          "summary": "Aprende medicina y ciencias biológicas."
+        },
+        "occult-mastery": {
+          "name": "Occult Mastery",
+          "summary": "Aprende conocimientos y prácticas ocultistas."
+        },
+        "subterfuge-mastery": {
+          "name": "Subterfuge Mastery",
+          "summary": "Aprende sigilo, infiltración y engaño."
+        },
+        "social-mastery": {
+          "name": "Social Mastery",
+          "summary": "Aprende interacción social y adaptación cultural."
+        },
+        "wilderness-mastery": {
+          "name": "Wilderness Mastery",
+          "summary": "Aprende disciplinas de supervivencia y vida silvestre."
+        },
+        "form-mastery": {
+          "name": "Form Mastery",
+          "summary": "Mejora el control, el acceso y la combinación de formas alternativas."
+        },
+        "morphic-form": {
+          "name": "Morphic Form",
+          "summary": "Permite cambios de forma cada vez más amplios."
+        },
+        "kinesis": {
+          "name": "Kinesis",
+          "summary": "Manipula un material o fuerza elegidos a una escala creciente."
+        },
+        "flight": {
+          "name": "Flight",
+          "summary": "Proporciona vuelo atmosférico cada vez más rápido."
+        },
+        "inventory": {
+          "name": "Inventory",
+          "summary": "Crea un almacén extradimensional personal para objetos."
+        },
+        "power-combination": {
+          "name": "Power Combination",
+          "summary": "Combina habilidades compatibles en manifestaciones unificadas."
+        },
+        "cheat-death": {
+          "name": "Cheat Death",
+          "summary": "Proporciona métodos limitados para volver de la muerte."
+        },
+        "healing-touch": {
+          "name": "Healing Touch",
+          "summary": "Cura a otras personas con velocidad y alcance crecientes."
+        },
+        "essence-infusion-item": {
+          "name": "Essence Infusion",
+          "summary": "Otorga protección fiat y retorno confiable a un objeto que no cueste CP."
+        },
+        "essential-annexation": {
+          "name": "Essential Annexation",
+          "summary": "Vincula propiedades propias cada vez mayores a un espacio persistente."
+        },
+        "essence-link": {
+          "name": "Essence Link",
+          "summary": "Otorga a un compañero EP crecientes y, con el tiempo, acceso a Esencia."
+        },
+        "form-locked": {
+          "name": "Form Locked",
+          "summary": "Restringe las habilidades del suplemento a las formas seleccionadas."
+        },
+        "wardrobe-malfunction": {
+          "name": "Wardrobe Malfunction",
+          "summary": "Hace que el cambio de forma sea poco confiable cuando interviene la ropa."
+        }
+      },
+      "reality": {
+        "reality-cosmic-warehouse": {
+          "name": "Cosmic Warehouse",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "reality-second-reality": {
+          "name": "Second Reality",
+          "summary": "Crea una segunda Realidad personal independiente, con sus propias compras y las mismas Limitaciones."
+        },
+        "reality-boxes-and-boxes-and-boxes": {
+          "name": "Boxes and Boxes and Boxes",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "reality-starting-space": {
+          "name": "Starting Space",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "reality-additional-space": {
+          "name": "Additional Space",
+          "summary": "Multiplica por diez cada dimensión estándar con cada compra."
+        },
+        "reality-discount-additional-space": {
+          "name": "Discount Additional Space",
+          "summary": "Multiplica por tres cada dimensión; dos compras cuentan como una expansión completa."
+        },
+        "reality-adaptive-inactive-storage": {
+          "name": "Adaptive Inactive Storage",
+          "summary": "Crea almacenamiento inactivo seguro para posesiones respaldadas por CP."
+        },
+        "reality-antibiotic-field": {
+          "name": "Antibiotic Field",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "reality-access-key": {
+          "name": "Access Key",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "reality-additional-keys": {
+          "name": "Additional Keys",
+          "summary": "Añade cuatro llaves sintonizadas con la Realidad personal por compra."
+        },
+        "reality-key-link": {
+          "name": "Key Link",
+          "summary": "Vincula el Vestíbulo con puertas abiertas anteriormente mediante una Llave de acceso."
+        },
+        "reality-the-big-hole": {
+          "name": "The Big Hole",
+          "summary": "Añade una abertura cubierta para desechar cosas en el vacío ilimitado."
+        },
+        "reality-the-loft": {
+          "name": "THE LOFT",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-lofty-loft": {
+          "name": "Lofty Loft",
+          "summary": "Añade un área del tamaño del espacio inicial reservada para vivienda y lujo."
+        },
+        "reality-underside": {
+          "name": "Underside",
+          "summary": "Permite construir sótanos debajo de Lofty Loft."
+        },
+        "reality-playing-with-portals": {
+          "name": "Playing With Portals",
+          "summary": "Abre portales a la Realidad personal en superficies adecuadas sin depender de la Llave de acceso."
+        },
+        "reality-portal-link": {
+          "name": "Portal Link",
+          "summary": "Abre portales desde el interior de la Realidad hacia lugares visitados anteriormente."
+        },
+        "reality-portal-control-rod": {
+          "name": "Portal Control Rod",
+          "summary": "Abre portales a distancia mediante un dispositivo de control invocado."
+        },
+        "reality-free-portal": {
+          "name": "Free Portal",
+          "summary": "Abre portales sin una superficie de apoyo y dirígelos a cualquier parte de la Realidad."
+        },
+        "reality-portal-aperture": {
+          "name": "Portal Aperture",
+          "summary": "Aumenta el tamaño y la velocidad de apertura de los portales."
+        },
+        "reality-security-system": {
+          "name": "Security System",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "reality-detainment": {
+          "name": "Detainment",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-security-personnel": {
+          "name": "Security Personnel",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-force-wall": {
+          "name": "Force Wall",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-partition-plan": {
+          "name": "Partition Plan",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-automated-weapons-security-system": {
+          "name": "Automated Weapons Security System",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-environmentally-neutral": {
+          "name": "Environmentally Neutral",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "reality-environmental-controls": {
+          "name": "Environmental Controls",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-improved-regulation": {
+          "name": "Improved Regulation",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-the-question-of-shelving": {
+          "name": "THE QUESTION OF SHELVING",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-storage-solutions": {
+          "name": "Storage Solutions",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-whos-got-the-powa": {
+          "name": "Who’s Got the Powa",
+          "summary": "Suministra electricidad estable suficiente para una gran ciudad."
+        },
+        "reality-power-overwhelming": {
+          "name": "POWER OVERWHELMING",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-an-intervention": {
+          "name": "An Intervention",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-tashi-station": {
+          "name": "Tashi Station",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-digital-extranet": {
+          "name": "Digital Extranet",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-voice-over-warehouse-protocol-cellular-service": {
+          "name": "Voice Over Warehouse Protocol Cellular Service",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-neutral-lighting": {
+          "name": "Neutral Lighting",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "reality-natural-lighting": {
+          "name": "Natural Lighting",
+          "summary": "Proporciona iluminación realista de sol, luna y estrellas."
+        },
+        "reality-recyclotron": {
+          "name": "RECYCLOTRON",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-fabricator": {
+          "name": "Fabricator",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-a-week-a-button": {
+          "name": "A Week & A Button",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "reality-a-month": {
+          "name": "A Month",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-a-months-return": {
+          "name": "A Month’s Return",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-pipes-pipes-pipes": {
+          "name": "Pipes Pipes Pipes",
+          "summary": "Proporciona una enorme capacidad de agua, fontanería y alcantarillado."
+        },
+        "reality-waterworld": {
+          "name": "Waterworld",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-dynamic-waterworks": {
+          "name": "Dynamic Waterworks",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-basic-accommodations": {
+          "name": "BASIC ACCOMMODATIONS",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-basic-nutrition": {
+          "name": "BASIC NUTRITION",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-a-little-less-basic": {
+          "name": "A Little Less Basic",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-a-lot-less-basic": {
+          "name": "A Lot Less Basic",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-hallowed-earth": {
+          "name": "HALLOWED EARTH",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-temporal-controls": {
+          "name": "Temporal Controls",
+          "summary": "Cambia el flujo del tiempo mientras el propietario está fuera de la Realidad."
+        },
+        "reality-stasis": {
+          "name": "Stasis",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-sectional-time": {
+          "name": "Sectional Time",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-eternalizer": {
+          "name": "Eternalizer",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-eternal-eternalizer": {
+          "name": "Eternal Eternalizer",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-reality-extruder": {
+          "name": "REALITY EXTRUDER",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-central-control": {
+          "name": "Central Control",
+          "summary": "Instala un sistema de control e inventario seudointeligente."
+        },
+        "reality-your-robots": {
+          "name": "Your Robots",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-maintenance-systems": {
+          "name": "Maintenance Systems",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-calendar-change": {
+          "name": "CALENDAR CHANGE",
+          "summary": "Modifica la configuración de servicios de la Realidad personal al precio indicado."
+        },
+        "reality-sky-simulator": {
+          "name": "Sky Simulator",
+          "summary": "Reemplaza el techo por un cielo simulado."
+        },
+        "reality-fly-a-kite": {
+          "name": "Fly a Kite",
+          "summary": "Modifica la configuración de apariencia de la Realidad personal al precio indicado."
+        },
+        "reality-realistic-ground-cover": {
+          "name": "Realistic Ground Cover",
+          "summary": "Añade tierra y cobertura del suelo de aspecto natural."
+        },
+        "reality-dig-it": {
+          "name": "Dig It",
+          "summary": "Modifica la configuración de apariencia de la Realidad personal al precio indicado."
+        },
+        "reality-treeline-timber": {
+          "name": "Treeline & Timber",
+          "summary": "Rodea las áreas adecuadas con un límite de bosque convincente."
+        },
+        "reality-wildlife-for-your-wild-life": {
+          "name": "Wildlife for Your Wild Life",
+          "summary": "Modifica la configuración de apariencia de la Realidad personal al precio indicado."
+        },
+        "reality-the-pond": {
+          "name": "The Pond",
+          "summary": "Reemplaza una pared por un elemento acuático configurable."
+        },
+        "reality-the-meaning-of-life": {
+          "name": "The Meaning of Life",
+          "summary": "Modifica la configuración de apariencia de la Realidad personal al precio indicado."
+        },
+        "reality-hollow-earth": {
+          "name": "Hollow Earth",
+          "summary": "Crea una enorme extensión de mundo interior."
+        },
+        "reality-basic-thematics": {
+          "name": "Basic Thematics",
+          "summary": "Aplica un tema cosmético coherente a las áreas seleccionadas."
+        },
+        "reality-advanced-thematics": {
+          "name": "Advanced Thematics",
+          "summary": "Haz que la presentación temática sea dinámica e inmersiva."
+        },
+        "reality-theme-park": {
+          "name": "Theme Park",
+          "summary": "Aplica temas independientes y administrables en distintas partes de la Realidad."
+        },
+        "reality-entrance-hall": {
+          "name": "Entrance Hall",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "reality-the-benefactor-lounge": {
+          "name": "The Benefactor Lounge",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "reality-companion-calibration-unit": {
+          "name": "Companion Calibration Unit",
+          "summary": "Adapta compañeros válidos a formas importadas y condiciones locales."
+        },
+        "reality-the-reality-development-board": {
+          "name": "THE REALITY DEVELOPMENT BOARD",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-the-medical-bay": {
+          "name": "The Medical Bay",
+          "summary": "Trata problemas médicos y dentales de pacientes vivos."
+        },
+        "reality-the-better-bay": {
+          "name": "The Better Bay",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-the-counseling-bay": {
+          "name": "The Counseling Bay",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-the-cybernetics-bay": {
+          "name": "The Cybernetics Bay",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-the-nano-medical-lab": {
+          "name": "The Nano-Medical Lab",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-the-bio-synthesis-lab": {
+          "name": "The Bio-Synthesis Lab",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-the-microbiome-replacement-lab": {
+          "name": "The Microbiome Replacement Lab",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-personal-body-mod-pods": {
+          "name": "Personal Body Mod Pods",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-connecting-doors": {
+          "name": "Connecting Doors",
+          "summary": "Añade pares de puertas que conectan dos partes de la Realidad."
+        },
+        "reality-inter-reality-connecting-doors": {
+          "name": "Inter-Reality Connecting Doors",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-high-security-inter-reality-connecting-doors": {
+          "name": "High Security Inter-Reality Connecting Doors",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-servants-quarters": {
+          "name": "SERVANTS’ QUARTERS",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-unique-servants": {
+          "name": "Unique Servants",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-housing-complex": {
+          "name": "Housing Complex",
+          "summary": "Proporciona vivienda para el séquito sapiente del Jumper."
+        },
+        "reality-rooms-for-cheap": {
+          "name": "Rooms for Cheap",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-choice-apartments": {
+          "name": "Choice Apartments",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-luxury-apartments": {
+          "name": "Luxury Apartments",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-opulent-apartments": {
+          "name": "Opulent Apartments",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-downsizing": {
+          "name": "Downsizing",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-upscaling": {
+          "name": "Upscaling",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-the-commons": {
+          "name": "The Commons",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-the-quadrangle": {
+          "name": "The Quadrangle",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-the-esplanade": {
+          "name": "The Esplanade",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-a-stellar-nursery": {
+          "name": "A Stellar Nursery",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-seraglio-a-gogo": {
+          "name": "SERAGLIO-A-GOGO",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-grand-dining-hall": {
+          "name": "GRAND DINING HALL",
+          "summary": "Modifica la configuración de instalaciones de la Realidad personal al precio indicado."
+        },
+        "reality-workshop-row": {
+          "name": "WORKSHOP ROW",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-infinite-office-worx": {
+          "name": "INFINITE OFFICE WORX",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-the-library-jumpxandria": {
+          "name": "The Library Jumpxandria",
+          "summary": "Añade una biblioteca protegida para los escritos reunidos a lo largo de la Chain."
+        },
+        "reality-library-services": {
+          "name": "Library Services",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-digital-database": {
+          "name": "Digital Database",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-starting-collection": {
+          "name": "Starting Collection",
+          "summary": "Abastece la Biblioteca con las obras de consulta esperadas."
+        },
+        "reality-expanded-collection": {
+          "name": "Expanded Collection",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-esoteric-collection": {
+          "name": "Esoteric Collection",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-printing-precious": {
+          "name": "Printing Precious",
+          "summary": "Añade maquinaria especializada de fabricación e impresión."
+        },
+        "reality-a-classy-classroom": {
+          "name": "A Classy Classroom",
+          "summary": "Añade un espacio de enseñanza bien equipado."
+        },
+        "reality-gym-nice-ium": {
+          "name": "GYM-NICE-IUM",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-gym-nasty-um": {
+          "name": "Gym-Nasty-Um",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-gym-classy-um": {
+          "name": "Gym-Classy-Um",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-the-big-pool": {
+          "name": "The Big Pool",
+          "summary": "Añade un parque acuático olímpico cuando haya fontanería disponible."
+        },
+        "reality-the-bigger-pool": {
+          "name": "The Bigger Pool",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-lets-have-fun": {
+          "name": "Let’s Have Fun",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-wellness-centre": {
+          "name": "WELLNESS CENTRE",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-baf-and-booty-works": {
+          "name": "Baf and Booty Works",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-a-room-for-your-trophies-and-cigars": {
+          "name": "A ROOM FOR YOUR TROPHIES AND CIGARS",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-pilot-simulator": {
+          "name": "PILOT SIMULATOR",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-entertainment-room": {
+          "name": "Entertainment Room",
+          "summary": "Añade salas para consumir medios y relajarse."
+        },
+        "reality-kit-and-kaboodle": {
+          "name": "Kit and Kaboodle",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-the-audacious-auditorium": {
+          "name": "The Audacious Auditorium",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-costume-closet": {
+          "name": "Costume Closet",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-propshop-scenery": {
+          "name": "Propshop & Scenery",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-watch-your-arsenal": {
+          "name": "Watch Your Arsenal",
+          "summary": "Añade una armería organizada para armas y armaduras."
+        },
+        "reality-the-semi-secret-garden": {
+          "name": "THE SEMI-SECRET GARDEN",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-parkland-paradise": {
+          "name": "Parkland Paradise",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-meditatiation-corners": {
+          "name": "Meditatiation Corners",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-high-courts-low": {
+          "name": "High Courts & Low",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-im-game-room": {
+          "name": "I’m Game Room",
+          "summary": "Añade instalaciones conectadas para videojuegos y juegos de mesa."
+        },
+        "reality-a-range-of-ranges": {
+          "name": "A RANGE OF RANGES",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-the-garage-of-the-gods": {
+          "name": "The Garage of the Gods",
+          "summary": "Añade espacios adaptables y mantenimiento para vehículos."
+        },
+        "reality-wide-berth-expansion": {
+          "name": "Wide Berth Expansion",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-getcha-berths-here-boyo": {
+          "name": "Getcha Berths Here, Boyo!",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-adaptor-adaptation": {
+          "name": "Adaptor Adaptation",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-fueling-station": {
+          "name": "Fueling Station",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-eldritch-fueling-station": {
+          "name": "Eldritch Fueling Station",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-the-big-garage": {
+          "name": "The Big Garage",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-the-titans-mall": {
+          "name": "The Titan’s Mall",
+          "summary": "Añade un centro comercial con tiendas configurables."
+        },
+        "reality-more-for-more": {
+          "name": "More for More",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-mall-of-all": {
+          "name": "Mall of All",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-jump-topic": {
+          "name": "Jump Topic",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-the-mall-of-mystery": {
+          "name": "The Mall of Mystery",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-guardians-greenhouse": {
+          "name": "Guardian’s Greenhouse",
+          "summary": "Añade un invernadero controlado cuando haya agua y electricidad disponibles."
+        },
+        "reality-seeds-and-seedlings": {
+          "name": "Seeds and Seedlings",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-the-mystical-menagerie": {
+          "name": "The Mystical Menagerie",
+          "summary": "Modifica la configuración de extensiones de la Realidad personal al precio indicado."
+        },
+        "reality-cleaning-supplies": {
+          "name": "Cleaning Supplies",
+          "summary": "Proporciona suministros de limpieza comunes ilimitados."
+        },
+        "reality-windows": {
+          "name": "WINDOWS",
+          "summary": "Modifica la configuración de objetos de la Realidad personal al precio indicado."
+        },
+        "reality-windows-of-nostalgia": {
+          "name": "Windows of Nostalgia",
+          "summary": "Modifica la configuración de objetos de la Realidad personal al precio indicado."
+        },
+        "reality-computer-hub": {
+          "name": "COMPUTER HUB",
+          "summary": "Modifica la configuración de objetos de la Realidad personal al precio indicado."
+        },
+        "reality-music-collection": {
+          "name": "Music Collection",
+          "summary": "Mantiene una amplia colección de música grabada."
+        },
+        "reality-movie-tv-series-collection": {
+          "name": "Movie & TV Series Collection",
+          "summary": "Mantiene una amplia colección de contenido visual grabado."
+        },
+        "reality-pod-rack": {
+          "name": "POD RACK",
+          "summary": "Modifica la configuración de objetos de la Realidad personal al precio indicado."
+        },
+        "reality-pod-override-exclusion": {
+          "name": "Pod Override Exclusion",
+          "summary": "Modifica la configuración de objetos de la Realidad personal al precio indicado."
+        },
+        "reality-one-art-please": {
+          "name": "One Art Please",
+          "summary": "Añade obras de arte elegidas a la colección de la Realidad."
+        },
+        "reality-its-a-small-multiverse": {
+          "name": "IT'S A SMALL MULTIVERSE",
+          "summary": "Modifica la configuración de compañeros de la Realidad personal al precio indicado."
+        },
+        "reality-my-school": {
+          "name": "MY SCHOOL",
+          "summary": "Modifica la configuración de compañeros de la Realidad personal al precio indicado."
+        },
+        "reality-my-harem": {
+          "name": "My Harem",
+          "summary": "Combina amantes o cónyuges válidos en espacios compartidos de compañeros."
+        },
+        "reality-my-family": {
+          "name": "MY FAMILY",
+          "summary": "Modifica la configuración de compañeros de la Realidad personal al precio indicado."
+        },
+        "reality-many-happy-returns": {
+          "name": "Many Happy Returns",
+          "summary": "Pasa otros diez años en un mundo visitado anteriormente, según el ritmo de la fuente."
+        },
+        "reality-more-happy-more-returns": {
+          "name": "More Happy, More Returns",
+          "summary": "Modifica la configuración de elementos varios de la Realidad personal al precio indicado."
+        },
+        "reality-macro-happy-micro-returns": {
+          "name": "Macro Happy, Micro Returns",
+          "summary": "Modifica la configuración de elementos varios de la Realidad personal al precio indicado."
+        },
+        "reality-flex-happy-flex-returns": {
+          "name": "Flex Happy, Flex Returns",
+          "summary": "Modifica la configuración de elementos varios de la Realidad personal al precio indicado."
+        },
+        "reality-eye-spy": {
+          "name": "Eye Spy",
+          "summary": "Observa todo lo que ocurre dentro de la Realidad personal."
+        },
+        "reality-jump-recording": {
+          "name": "Jump Recording",
+          "summary": "Modifica la configuración de elementos varios de la Realidad personal al precio indicado."
+        },
+        "reality-semi-euclidean": {
+          "name": "SEMI-EUCLIDEAN",
+          "summary": "Modifica la configuración de elementos varios de la Realidad personal al precio indicado."
+        },
+        "reality-non-euclidean": {
+          "name": "Non-Euclidean",
+          "summary": "Modifica la configuración de elementos varios de la Realidad personal al precio indicado."
+        },
+        "reality-all-your-stuff": {
+          "name": "All Your Stuff",
+          "summary": "Trae posesiones de la Realidad de origen y otórgales respaldo fiat."
+        },
+        "reality-all-your-pets": {
+          "name": "ALL YOUR PETS",
+          "summary": "Modifica la configuración de elementos varios de la Realidad personal al precio indicado."
+        },
+        "reality-companions-stuff": {
+          "name": "COMPANION’S STUFF",
+          "summary": "Modifica la configuración de elementos varios de la Realidad personal al precio indicado."
+        },
+        "reality-all-your-peeps": {
+          "name": "All Your Peeps",
+          "summary": "Trae personas elegidas de la Realidad de origen o compra el plan ilimitado."
+        },
+        "reality-personal-realty": {
+          "name": "PERSONAL REALTY",
+          "summary": "Modifica la configuración de elementos varios de la Realidad personal al precio indicado."
+        },
+        "reality-personal-mini-realty": {
+          "name": "Personal Mini-Realty",
+          "summary": "Modifica la configuración de elementos varios de la Realidad personal al precio indicado."
+        },
+        "reality-shell-by-dyson": {
+          "name": "Shell By Dyson",
+          "summary": "Convierte una Minirrealidad personal en un sistema a escala de Dyson."
+        },
+        "reality-he-abides": {
+          "name": "HE ABIDES",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-astor-hilton": {
+          "name": "ASTOR & HILTON",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-weregild": {
+          "name": "WEREGILD",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-bat-cave": {
+          "name": "BAT CAVE",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-real-bat-cave": {
+          "name": "Real Bat Cave",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-crowd-scene": {
+          "name": "Crowd Scene",
+          "summary": "Llena la Realidad con multitudes metropolitanas anónimas."
+        },
+        "reality-fluorescent-lighting": {
+          "name": "FLUORESCENT LIGHTING",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-lost-and-found-section": {
+          "name": "LOST AND FOUND SECTION",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-zero-time": {
+          "name": "ZERO TIME",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-warehouse-funk": {
+          "name": "WAREHOUSE FUNK",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-whorehouse": {
+          "name": "WHOREHOUSE",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-dangerous-wildlife": {
+          "name": "Dangerous Wildlife",
+          "summary": "Hace que la vida silvestre de la Realidad sea activamente hostil."
+        },
+        "reality-infestation": {
+          "name": "Infestation",
+          "summary": "Provoca colonias recurrentes de alimañas y plagas adaptables."
+        },
+        "reality-nasty-creepy-ugh": {
+          "name": "Nasty Creepy Ugh",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-journeying-spirits": {
+          "name": "Journeying Spirits",
+          "summary": "Hace que los espíritus de los fallecidos recientes pasen por la Realidad."
+        },
+        "reality-haunted": {
+          "name": "Haunted",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-ghost-town": {
+          "name": "GHOST TOWN",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-warehouse-clock": {
+          "name": "Warehouse Clock",
+          "summary": "Limita el tiempo diario dentro de la Realidad."
+        },
+        "reality-museum-tours": {
+          "name": "MUSEUM TOURS",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-interstitial-lighting": {
+          "name": "INTERSTITIAL LIGHTING",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-maintenance-issues": {
+          "name": "Maintenance Issues",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-unsecured": {
+          "name": "Unsecured",
+          "summary": "Permite que intrusos con suficiente poder o habilidad penetren en la Realidad."
+        },
+        "reality-real-world-location": {
+          "name": "Real World Location",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-uncontrolled-portal": {
+          "name": "Uncontrolled Portal",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-natural-disasters": {
+          "name": "Natural Disasters",
+          "summary": "Somete la Realidad a desastres destructivos recurrentes."
+        },
+        "reality-dont-look-down": {
+          "name": "DON’T LOOK DOWN",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-the-labyrinth-of-jumpnos": {
+          "name": "The Labyrinth of Jumpnos",
+          "summary": "Distribuye las compras por un laberinto que cambia de forma."
+        },
+        "reality-jumpotaur": {
+          "name": "Jumpotaur",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "reality-never-the-twain-shall-meet": {
+          "name": "Never the Twain Shall Meet",
+          "summary": "Convierte la Realidad en un espacio virtual e impide las transferencias físicas."
+        },
+        "reality-big-benefactor": {
+          "name": "Big Benefactor",
+          "summary": "Convierte la Chain en un espectáculo constante con desafíos asignados."
+        },
+        "reality-the-woods-are-lovely-dark-and-deep": {
+          "name": "THE WOODS ARE LOVELY DARK AND DEEP",
+          "summary": "Modifica la configuración de limitaciones de la Realidad personal al precio indicado."
+        },
+        "cosmic-warehouse": {
+          "name": "Cosmic Warehouse",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "boxes-and-boxes-and-boxes": {
+          "name": "Boxes and Boxes and Boxes",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "access-key": {
+          "name": "Access Key",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "starting-space": {
+          "name": "Starting Space",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "neutral-lighting": {
+          "name": "Neutral Lighting",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "shelving": {
+          "name": "Shelving",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "environmentally-neutral": {
+          "name": "Environmentally Neutral",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "a-week-a-button": {
+          "name": "A Week & A Button",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "security-system": {
+          "name": "Security System",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "loft": {
+          "name": "Loft",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "entrance-hall": {
+          "name": "Entrance Hall",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "the-benefactor-lounge": {
+          "name": "The Benefactor Lounge",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "cleaning-supplies": {
+          "name": "Cleaning Supplies",
+          "summary": "Proporciona suministros de limpieza comunes ilimitados."
+        },
+        "antibiotic-field": {
+          "name": "Antibiotic Field",
+          "summary": "Está incluido con la Realidad personal inicial."
+        },
+        "second-reality": {
+          "name": "Second Reality",
+          "summary": "Crea una segunda Realidad personal independiente, con sus propias compras y las mismas Limitaciones."
+        },
+        "additional-space": {
+          "name": "Additional Space",
+          "summary": "Multiplica por diez cada dimensión estándar con cada compra."
+        },
+        "discount-space": {
+          "name": "Discount Additional Space",
+          "summary": "Multiplica por tres cada dimensión; dos compras cuentan como una expansión completa."
+        },
+        "adaptive-storage": {
+          "name": "Adaptive Inactive Storage",
+          "summary": "Crea almacenamiento inactivo seguro para posesiones respaldadas por CP."
+        },
+        "additional-keys": {
+          "name": "Additional Keys",
+          "summary": "Añade cuatro llaves sintonizadas con la Realidad personal por compra."
+        },
+        "key-link": {
+          "name": "Key Link",
+          "summary": "Vincula el Vestíbulo con puertas abiertas anteriormente mediante una Llave de acceso."
+        },
+        "big-hole": {
+          "name": "The Big Hole",
+          "summary": "Añade una abertura cubierta para desechar cosas en el vacío ilimitado."
+        },
+        "lofty-loft": {
+          "name": "Lofty Loft",
+          "summary": "Añade un área del tamaño del espacio inicial reservada para vivienda y lujo."
+        },
+        "underside": {
+          "name": "Underside",
+          "summary": "Permite construir sótanos debajo de Lofty Loft."
+        },
+        "playing-portals": {
+          "name": "Playing With Portals",
+          "summary": "Abre portales a la Realidad personal en superficies adecuadas sin depender de la Llave de acceso."
+        },
+        "portal-link": {
+          "name": "Portal Link",
+          "summary": "Abre portales desde el interior de la Realidad hacia lugares visitados anteriormente."
+        },
+        "portal-control": {
+          "name": "Portal Control Rod",
+          "summary": "Abre portales a distancia mediante un dispositivo de control invocado."
+        },
+        "free-portal": {
+          "name": "Free Portal",
+          "summary": "Abre portales sin una superficie de apoyo y dirígelos a cualquier parte de la Realidad."
+        },
+        "portal-aperture": {
+          "name": "Portal Aperture",
+          "summary": "Aumenta el tamaño y la velocidad de apertura de los portales."
+        },
+        "power": {
+          "name": "Who’s Got the Powa",
+          "summary": "Suministra electricidad estable suficiente para una gran ciudad."
+        },
+        "pipes": {
+          "name": "Pipes Pipes Pipes",
+          "summary": "Proporciona una enorme capacidad de agua, fontanería y alcantarillado."
+        },
+        "temporal-controls": {
+          "name": "Temporal Controls",
+          "summary": "Cambia el flujo del tiempo mientras el propietario está fuera de la Realidad."
+        },
+        "central-control": {
+          "name": "Central Control",
+          "summary": "Instala un sistema de control e inventario seudointeligente."
+        },
+        "sky-simulator": {
+          "name": "Sky Simulator",
+          "summary": "Reemplaza el techo por un cielo simulado."
+        },
+        "natural-lighting": {
+          "name": "Natural Lighting",
+          "summary": "Proporciona iluminación realista de sol, luna y estrellas."
+        },
+        "treeline": {
+          "name": "Treeline & Timber",
+          "summary": "Rodea las áreas adecuadas con un límite de bosque convincente."
+        },
+        "pond": {
+          "name": "The Pond",
+          "summary": "Reemplaza una pared por un elemento acuático configurable."
+        },
+        "ground-cover": {
+          "name": "Realistic Ground Cover",
+          "summary": "Añade tierra y cobertura del suelo de aspecto natural."
+        },
+        "basic-thematics": {
+          "name": "Basic Thematics",
+          "summary": "Aplica un tema cosmético coherente a las áreas seleccionadas."
+        },
+        "advanced-thematics": {
+          "name": "Advanced Thematics",
+          "summary": "Haz que la presentación temática sea dinámica e inmersiva."
+        },
+        "theme-park": {
+          "name": "Theme Park",
+          "summary": "Aplica temas independientes y administrables en distintas partes de la Realidad."
+        },
+        "medical-bay": {
+          "name": "The Medical Bay",
+          "summary": "Trata problemas médicos y dentales de pacientes vivos."
+        },
+        "connecting-doors": {
+          "name": "Connecting Doors",
+          "summary": "Añade pares de puertas que conectan dos partes de la Realidad."
+        },
+        "housing-complex": {
+          "name": "Housing Complex",
+          "summary": "Proporciona vivienda para el séquito sapiente del Jumper."
+        },
+        "classroom": {
+          "name": "A Classy Classroom",
+          "summary": "Añade un espacio de enseñanza bien equipado."
+        },
+        "big-pool": {
+          "name": "The Big Pool",
+          "summary": "Añade un parque acuático olímpico cuando haya fontanería disponible."
+        },
+        "entertainment-room": {
+          "name": "Entertainment Room",
+          "summary": "Añade salas para consumir medios y relajarse."
+        },
+        "arsenal": {
+          "name": "Watch Your Arsenal",
+          "summary": "Añade una armería organizada para armas y armaduras."
+        },
+        "game-room": {
+          "name": "I’m Game Room",
+          "summary": "Añade instalaciones conectadas para videojuegos y juegos de mesa."
+        },
+        "garage": {
+          "name": "The Garage of the Gods",
+          "summary": "Añade espacios adaptables y mantenimiento para vehículos."
+        },
+        "mall": {
+          "name": "The Titan’s Mall",
+          "summary": "Añade un centro comercial con tiendas configurables."
+        },
+        "greenhouse": {
+          "name": "Guardian’s Greenhouse",
+          "summary": "Añade un invernadero controlado cuando haya agua y electricidad disponibles."
+        },
+        "library": {
+          "name": "The Library Jumpxandria",
+          "summary": "Añade una biblioteca protegida para los escritos reunidos a lo largo de la Chain."
+        },
+        "starting-collection": {
+          "name": "Starting Collection",
+          "summary": "Abastece la Biblioteca con las obras de consulta esperadas."
+        },
+        "parking-station": {
+          "name": "Parking Station",
+          "summary": "Añade aparcamiento y asistencia de transporte para vehículos."
+        },
+        "village": {
+          "name": "The Village",
+          "summary": "Añade una extensión poblada del tamaño de un asentamiento."
+        },
+        "small-multiverse": {
+          "name": "It’s a Small Multiverse",
+          "summary": "Vincula varios entornos de bolsillo temáticos."
+        },
+        "hollow-earth": {
+          "name": "Hollow Earth",
+          "summary": "Crea una enorme extensión de mundo interior."
+        },
+        "music-collection": {
+          "name": "Music Collection",
+          "summary": "Mantiene una amplia colección de música grabada."
+        },
+        "movie-collection": {
+          "name": "Movie & TV Series Collection",
+          "summary": "Mantiene una amplia colección de contenido visual grabado."
+        },
+        "printing-precious": {
+          "name": "Printing Precious",
+          "summary": "Añade maquinaria especializada de fabricación e impresión."
+        },
+        "one-art": {
+          "name": "One Art Please",
+          "summary": "Añade obras de arte elegidas a la colección de la Realidad."
+        },
+        "calibration-unit": {
+          "name": "Companion Calibration Unit",
+          "summary": "Adapta compañeros válidos a formas importadas y condiciones locales."
+        },
+        "my-harem": {
+          "name": "My Harem",
+          "summary": "Combina amantes o cónyuges válidos en espacios compartidos de compañeros."
+        },
+        "all-your-peeps": {
+          "name": "All Your Peeps",
+          "summary": "Trae personas elegidas de la Realidad de origen o compra el plan ilimitado."
+        },
+        "podpanion": {
+          "name": "Podpanion Support",
+          "summary": "Proporciona alojamiento protegido y asistencia para compañeros basados en cápsulas."
+        },
+        "happy-returns": {
+          "name": "Many Happy Returns",
+          "summary": "Pasa otros diez años en un mundo visitado anteriormente, según el ritmo de la fuente."
+        },
+        "eye-spy": {
+          "name": "Eye Spy",
+          "summary": "Observa todo lo que ocurre dentro de la Realidad personal."
+        },
+        "all-your-stuff": {
+          "name": "All Your Stuff",
+          "summary": "Trae posesiones de la Realidad de origen y otórgales respaldo fiat."
+        },
+        "mini-reality": {
+          "name": "Personal Mini-Reality",
+          "summary": "Crea un dominio personal más pequeño conectado con la Realidad principal."
+        },
+        "dyson-shell": {
+          "name": "Shell By Dyson",
+          "summary": "Convierte una Minirrealidad personal en un sistema a escala de Dyson."
+        },
+        "crowd-scene": {
+          "name": "Crowd Scene",
+          "summary": "Llena la Realidad con multitudes metropolitanas anónimas."
+        },
+        "dangerous-wildlife": {
+          "name": "Dangerous Wildlife",
+          "summary": "Hace que la vida silvestre de la Realidad sea activamente hostil."
+        },
+        "infestation": {
+          "name": "Infestation",
+          "summary": "Provoca colonias recurrentes de alimañas y plagas adaptables."
+        },
+        "air-fresheners": {
+          "name": "Air Fresheners Needed",
+          "summary": "Requiere ventilación o limpieza periódica para controlar los olores acumulados."
+        },
+        "journeying-spirits": {
+          "name": "Journeying Spirits",
+          "summary": "Hace que los espíritus de los fallecidos recientes pasen por la Realidad."
+        },
+        "warehouse-clock": {
+          "name": "Warehouse Clock",
+          "summary": "Limita el tiempo diario dentro de la Realidad."
+        },
+        "unsecured": {
+          "name": "Unsecured",
+          "summary": "Permite que intrusos con suficiente poder o habilidad penetren en la Realidad."
+        },
+        "natural-disasters": {
+          "name": "Natural Disasters",
+          "summary": "Somete la Realidad a desastres destructivos recurrentes."
+        },
+        "labyrinth": {
+          "name": "The Labyrinth of Jumpnos",
+          "summary": "Distribuye las compras por un laberinto que cambia de forma."
+        },
+        "never-twain": {
+          "name": "Never the Twain Shall Meet",
+          "summary": "Convierte la Realidad en un espacio virtual e impide las transferencias físicas."
+        },
+        "big-benefactor": {
+          "name": "Big Benefactor",
+          "summary": "Convierte la Chain en un espectáculo constante con desafíos asignados."
+        },
+        "woods": {
+          "name": "The Woods Are Lovely, Dark and Deep",
+          "summary": "Sitúa la Realidad en un bosque primigenio hostil; no se puede eliminar pagando."
+        }
+      },
+      "drawbacks": {
+        "random-chan": {
+          "name": "Random-Chan",
+          "summary": "El orden de los Jumps se genera a partir de un gran conjunto aleatorio en lugar de elegirse libremente."
+        },
+        "pseudo-random-chan": {
+          "name": "Pseudo-Random-Chan",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "sadist-chan": {
+          "name": "Sadist-Chan",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "variant-sadist-chan": {
+          "name": "Variant Sadist-Chan",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "bitch-chan": {
+          "name": "Bitch-Chan",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "no-drawbacks-for-you-san": {
+          "name": "No Drawbacks for You!-San",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "and-only-you": {
+          "name": "And Only You!",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "gauntlet-kun": {
+          "name": "Gauntlet-Kun",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "the-thomas-wolfe-rule": {
+          "name": "The Thomas Wolfe Rule",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "the-river-corollary": {
+          "name": "The River Corollary",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "retail-rocker": {
+          "name": "Retail Rocker",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "old-home-week": {
+          "name": "Old Home Week",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "benefits-package": {
+          "name": "Benefits Package",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "refresher-course": {
+          "name": "Refresher Course",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "sadistic-bitch-chan": {
+          "name": "Sadistic Bitch-Chan",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "cyclopes-psi-ops": {
+          "name": "Cyclopes Psi-Ops",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "shut-up-jumper": {
+          "name": "Shut Up Jumper!",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "age-of-descent": {
+          "name": "Age of Descent",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "we-see-you": {
+          "name": "We See You",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "a-giant-adventure": {
+          "name": "A Giant Adventure!",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "a-little-drawback": {
+          "name": "A Little Drawback",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "a-giant-among-jumpers": {
+          "name": "A Giant Among Jumpers",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "a-petite-problem": {
+          "name": "A Petite Problem",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "stochastic-scalar-suckage": {
+          "name": "Stochastic Scalar Suckage",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "ferret-lady": {
+          "name": "Ferret Lady",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "un-bearable": {
+          "name": "Un-Bearable",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "pose-of-the-day": {
+          "name": "Pose of the Day!!!!",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "do-you-oowoo": {
+          "name": "Do You OoWoo?",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "stone-sober": {
+          "name": "Stone Sober",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "in-deep-water": {
+          "name": "In Deep Water",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "all-the-hats": {
+          "name": "All the Hats",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "gunshy": {
+          "name": "Gunshy",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "milk-white-eyes": {
+          "name": "Milk White Eyes",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "would-you-like-ketchup-with-that": {
+          "name": "Would You Like Ketchup With That?",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "i-suppose-its-possible-i-was-drunk": {
+          "name": "I Suppose It’s Possible I was Drunk",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "the-jumper-with-no-name": {
+          "name": "The Jumper With No Name",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "trigger-warning": {
+          "name": "Trigger Warning",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "a-pleasant-headache": {
+          "name": "A Pleasant Headache",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "crippling-phobia": {
+          "name": "Crippling Phobia",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "porn-be-gone": {
+          "name": "Porn-Be-Gone",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "universal-punching-bag": {
+          "name": "Universal Punching Bag",
+          "summary": "Mientras está activa, aplica la restricción de la Chain y el ajuste de CP indicados."
+        },
+        "economic-impact": {
+          "name": "Economic Impact",
+          "summary": "La riqueza importada afecta las economías locales de forma normal; las protecciones contra la inflación o las alteraciones ya no eliminan esas consecuencias."
+        },
+        "two-player-jumpchain": {
+          "name": "Two Player Jumpchain",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "all-by-yourself": {
+          "name": "All By Yourself",
+          "summary": "Los compañeros no están disponibles en el ámbito afectado y no pueden incorporarse nuevos compañeros permanentes durante ese periodo."
+        },
+        "alone-and-unloved": {
+          "name": "Alone and Unloved",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "scattered-to-the-winds": {
+          "name": "Scattered to the Winds",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "and-8-shall-be-the-number-of-the-chosen": {
+          "name": "And 8 Shall be the Number of the Chosen",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "single-shot": {
+          "name": "Single-Shot",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "one-and-done": {
+          "name": "One and Done",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "one-life-to-lose": {
+          "name": "One Life to Lose",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "courting-disaster": {
+          "name": "Courting Disaster",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "why": {
+          "name": "WHY?!",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "kidnapper-san": {
+          "name": "Kidnapper-San",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "hate-squad": {
+          "name": "Hate Squad",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "vortex-of-enemies": {
+          "name": "Vortex of Enemies",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "dere-for-all": {
+          "name": "Dere for All",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "companion-lockdown": {
+          "name": "Companion Lockdown",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "party-limit": {
+          "name": "Party Limit",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "blythe-of-clive": {
+          "name": "Blythe of Clive",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "clyde-the-blithe": {
+          "name": "Clyde the Blithe",
+          "summary": "Mientras está activa, aplica la restricción de compañeros y el ajuste de CP indicados."
+        },
+        "obviously-fake": {
+          "name": "Obviously Fake",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "blatantly-uncool": {
+          "name": "Blatantly Uncool",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "that-cant-be-good": {
+          "name": "That Can’t Be Good",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "shipping-ban": {
+          "name": "Shipping Ban",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "limited-storage": {
+          "name": "Limited Storage",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "warehouse-brand-backpack": {
+          "name": "Warehouse Brand Backpack",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "limited-access": {
+          "name": "Limited Access",
+          "summary": "El acceso al Warehouse se limita a un intervalo periódico o a una propiedad propia que cumpla los requisitos; encadenarlo también proporciona una vez su beneficio de Warehouse."
+        },
+        "really-limited-access": {
+          "name": "Really Limited Access",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "no-access": {
+          "name": "No Access",
+          "summary": "No se puede acceder al Warehouse durante el Jump afectado y las desventajas de Warehouse incompatibles no están disponibles."
+        },
+        "share-and-share-alike": {
+          "name": "Share and Share Alike",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "ppppp": {
+          "name": "PPPPP",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "remember-the-little-people": {
+          "name": "Remember the Little People",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "ready-access": {
+          "name": "Ready Access",
+          "summary": "Las entradas del Warehouse permanecen vulnerables a intrusiones externas y Force Wall no está disponible."
+        },
+        "no-insurance": {
+          "name": "No Insurance",
+          "summary": "El contenido robado del Warehouse deja de volver automáticamente; encadenarlo dirige una asignación adicional a objetos."
+        },
+        "limited-warranty": {
+          "name": "Limited Warranty",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "voided-warranty": {
+          "name": "Voided Warranty",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "embargo": {
+          "name": "Embargo",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "old-ways-are-best": {
+          "name": "Old Ways Are Best",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "reservations-needed": {
+          "name": "Reservations Needed",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "shuffle": {
+          "name": "SHUFFLE!",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "the-warehouse-always-wins": {
+          "name": "The Warehouse Always Wins",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "real-shuffle": {
+          "name": "Real Shuffle",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "oh-god-make-it-stop": {
+          "name": "Oh God Make it STOP!",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "environmental-impact": {
+          "name": "Environmental Impact",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "open-door-policy": {
+          "name": "Open Door Policy",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "interjump-limbo": {
+          "name": "InterJump Limbo",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "the-waiting-room": {
+          "name": "The Waiting Room",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "the-great-interjump-labyrinth": {
+          "name": "The Great InterJump Labyrinth",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "the-hub": {
+          "name": "The Hub",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "perpetual-hubworks": {
+          "name": "Perpetual HubWorks",
+          "summary": "Mientras está activa, aplica la restricción de Warehouse y el ajuste de CP indicados."
+        },
+        "hot-water": {
+          "name": "Hot Water",
+          "summary": "El Jump comienza en la ubicación indicada menos deseable que no sea mortal, mediante una inserción desagradable."
+        },
+        "hotter-water": {
+          "name": "Hotter Water",
+          "summary": "La mala ubicación inicial se vuelve activamente peligrosa y es más difícil escapar de ella."
+        },
+        "super-hot": {
+          "name": "Super Hot",
+          "summary": "Cada Jump comienza en la peor ubicación donde se pueda sobrevivir, con una crisis inicial prolongada."
+        },
+        "soup": {
+          "name": "Soup",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "flex-start": {
+          "name": "Flex Start",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "dietary-restrictions": {
+          "name": "Dietary Restrictions",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "meal-plan": {
+          "name": "Meal Plan",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "food-drink": {
+          "name": "Food & Drink",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "counting-calories": {
+          "name": "Counting Calories",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "not-quite-bread-water": {
+          "name": "Not Quite Bread & Water",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "lightweight": {
+          "name": "Lightweight",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "all-you-can-eat": {
+          "name": "All You Can Eat",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "random-food-allergy": {
+          "name": "Random Food Allergy",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "plague-of-butterflies": {
+          "name": "Plague of Butterflies",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "law-of-unintended-consequences": {
+          "name": "Law of Unintended Consequences",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "no-exit": {
+          "name": "No Exit",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "bitch-of-destiny": {
+          "name": "Bitch of Destiny",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "trouble-magnet": {
+          "name": "Trouble Magnet",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "trouble-central": {
+          "name": "Trouble Central",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "trouble-blackhole": {
+          "name": "Trouble Blackhole",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "central-casting": {
+          "name": "Central Casting",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "echoed-changes": {
+          "name": "Echoed Changes",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "unjump": {
+          "name": "UnJump",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "humiliation-conga": {
+          "name": "Humiliation Conga",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "victim-complex": {
+          "name": "Victim Complex",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "the-prisoners-dilemma": {
+          "name": "The Prisoner’s Dilemma",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "there-will-be-a-quiz-on-this": {
+          "name": "There Will Be a Quiz on This",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "soundtrack-by-jumpchan": {
+          "name": "Soundtrack by Jumpchan",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "aft-gang-agley": {
+          "name": "Aft Gang Agley",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "not-so-out-of-context": {
+          "name": "Not-So Out Of Context",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "contagious-context": {
+          "name": "Contagious Context",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "its-the-little-things-that-matter": {
+          "name": "It’s The Little Things That Matter",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "semper-preparatus": {
+          "name": "Semper Preparatus",
+          "summary": "Mientras está activa, aplica la restricción de inicio y el ajuste de CP indicados."
+        },
+        "youve-gotta-want-it": {
+          "name": "You’ve Gotta Want It!",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "one-to-one": {
+          "name": "One to One",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "out-of-context-you-say": {
+          "name": "Out of Context, You Say?",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "you-need-a-minute": {
+          "name": "You Need a Minute?",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "sleep-changer": {
+          "name": "Sleep Changer",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "alt-form-lockdown": {
+          "name": "Alt-form Lockdown",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "changing-room": {
+          "name": "Changing Room",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "maintain-the-change": {
+          "name": "Maintain the Change",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "powerscaling": {
+          "name": "Powerscaling",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "slot-o-matic": {
+          "name": "Slot-o-matic",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "unemployment": {
+          "name": "Unemployment",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "slot-locker": {
+          "name": "Slot-Locker",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "slot-o-matic-jr": {
+          "name": "Slot-o-Matic Jr.",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "crybaby": {
+          "name": "Crybaby",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "mindlock": {
+          "name": "Mindlock",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "freakish": {
+          "name": "Freakish",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "canned-laughter": {
+          "name": "Canned Laughter",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "is-my-life-funny-to-you": {
+          "name": "Is My Life Funny to You?",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "pool-segregation": {
+          "name": "Pool Segregation",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "the-great-power-down": {
+          "name": "The Great Power Down",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "bigger-fish": {
+          "name": "Bigger Fish",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "power-cap": {
+          "name": "Power Cap",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "existential-doubt": {
+          "name": "Existential Doubt",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "respect-my-authority": {
+          "name": "Respect My Authority",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "shell-your-own-nuts": {
+          "name": "Shell Your Own Nuts",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "life-is-your-oyster": {
+          "name": "Life Is Your Oyster",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "charge-it": {
+          "name": "Charge It",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "luckless": {
+          "name": "Luckless",
+          "summary": "Las ventajas de suerte y los efectos equivalentes no pueden beneficiar al actor afectado."
+        },
+        "degenerate": {
+          "name": "Degenerate",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "adorkable": {
+          "name": "Adorkable",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "slow-learner": {
+          "name": "Slow Learner",
+          "summary": "Los efectos de aprendizaje acelerado no pueden beneficiar al actor afectado."
+        },
+        "copyright-protection": {
+          "name": "Copyright Protection",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "arbitrary-skepticism": {
+          "name": "Arbitrary Skepticism",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "no-alibi": {
+          "name": "No Alibi",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "smart-as-you-are": {
+          "name": "Smart as You Are",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "vow-of-poverty": {
+          "name": "Vow of Poverty",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "the-kindness-of-strangers": {
+          "name": "The Kindness of Strangers",
+          "summary": "Mientras está activa, aplica la restricción de poderes y el ajuste de CP indicados."
+        },
+        "genre-lock": {
+          "name": "Genre Lock",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "in-the-grim-darkness-of-jumpchain": {
+          "name": "In The Grim Darkness of Jumpchain",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "jumpchain-is-magic": {
+          "name": "Jumpchain is Magic",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "edge-for-the-edgelord": {
+          "name": "Edge for the Edgelord",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "insert-laugh-track-here": {
+          "name": "Insert Laugh Track Here",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "the-always-ticking-clock": {
+          "name": "The Always Ticking Clock",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "cut-and-paste": {
+          "name": "Cut and Paste",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "exit-light-enter-night": {
+          "name": "Exit Light, Enter Night",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "romeo-jumper-ette": {
+          "name": "Romeo & Jumper-ette",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "madcap-and-slapstick": {
+          "name": "Madcap and Slapstick",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "everybody-was-kung-fu-fighting": {
+          "name": "Everybody was Kung-Fu Fighting",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "enter-the-weirdness": {
+          "name": "Enter the Weirdness",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "escalation": {
+          "name": "ESCALATION!",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "pow-zap-bang": {
+          "name": "POW! ZAP! BANG!",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "internet-rules-jumpchain": {
+          "name": "Internet Rules Jumpchain",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "informed-villainy": {
+          "name": "Informed Villainy",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "without-why": {
+          "name": "Without Why",
+          "summary": "El Jumper no sabe que está en una Jumpchain ni recibe las explicaciones habituales."
+        },
+        "without-why-2": {
+          "name": "Without, Why?",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "lost-cause": {
+          "name": "Lost Cause",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "why-not-without": {
+          "name": "Why Not Without",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "earlier-beginning": {
+          "name": "Earlier Beginning",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "setting-amnesia": {
+          "name": "Setting Amnesia",
+          "summary": "Mientras se aplica la desventaja, no está disponible el conocimiento previo de la ambientación actual ni de su trama."
+        },
+        "soft-setting-amnesia": {
+          "name": "Soft Setting Amnesia",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "thats-not-canon": {
+          "name": "That’s not Canon!",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "total-amnesia": {
+          "name": "Total Amnesia",
+          "summary": "Durante el Jump afectado dejan de estar disponibles los recuerdos anteriores, no solo el conocimiento de la ambientación."
+        },
+        "stronger-imprint": {
+          "name": "Stronger Imprint",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "language-block": {
+          "name": "Language Block",
+          "summary": "La inserción solo proporciona nociones mínimas del idioma común en lugar de fluidez automática."
+        },
+        "3d6-six-times": {
+          "name": "3d6 Six Times",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "cannot-into-drop-cid": {
+          "name": "Cannot Into Drop (CID)",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "drop-out": {
+          "name": "Drop-Out",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "the-long-road": {
+          "name": "The Long Road",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "the-winding-road": {
+          "name": "The Winding Road",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "coin-flip": {
+          "name": "Coin Flip",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "pocket-change": {
+          "name": "Pocket Change",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "dissing-that-phoria": {
+          "name": "Dissing that Phoria",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "yen-for-yang": {
+          "name": "Yen for Yang",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "is-this-your-story": {
+          "name": "Is This Your Story?",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "must-be-their-story": {
+          "name": "Must be Their Story!",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "invasion-of-the-body-snatcher": {
+          "name": "Invasion of the Body Snatcher",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "dark-stormy-past": {
+          "name": "Dark & Stormy Past",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "drawback-keeper": {
+          "name": "Drawback Keeper",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "wrath-of-the-living-drawbacks": {
+          "name": "Wrath of the Living Drawbacks",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "what-are-drawbacks": {
+          "name": "What are Drawbacks?",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "everything-is-worse": {
+          "name": "Everything is Worse!",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "no-cheese-please": {
+          "name": "No Cheese Please",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "and-thats-terrible": {
+          "name": "And That’s Terrible",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "candyman": {
+          "name": "Candyman",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "that-bitch": {
+          "name": "That Bitch!",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "you-bitch": {
+          "name": "You Bitch!",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "simple-biology": {
+          "name": "Simple Biology",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "rated-x-for-xylophone": {
+          "name": "Rated X for Xylophone",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "nap-time-for-jumper": {
+          "name": "Nap-Time for Jumper",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "long-dark-nap-time-of-the-soul": {
+          "name": "Long Dark Nap-Time of the Soul",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "the-jumper-sleep": {
+          "name": "The Jumper-Sleep",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "none-so-fabulous": {
+          "name": "None So Fabulous",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "absolutely-fabulous": {
+          "name": "Absolutely Fabulous",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "peevish-pets": {
+          "name": "Peevish Pets",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "thats-my-waffle": {
+          "name": "THAT’S MY WAFFLE!",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "all-the-shiny": {
+          "name": "All the Shiny",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "for-the-hoard": {
+          "name": "For the Hoard!",
+          "summary": "Mientras está activa, aplica la restricción de ambientación y el ajuste de CP indicados."
+        },
+        "oath-of-truth": {
+          "name": "Oath of Truth",
+          "summary": "Mientras está activa, aplica la restricción de conducta y el ajuste de CP indicados."
+        },
+        "oath-of-humility": {
+          "name": "Oath of Humility",
+          "summary": "Mientras está activa, aplica la restricción de conducta y el ajuste de CP indicados."
+        },
+        "oath-of-celibacy": {
+          "name": "Oath of Celibacy",
+          "summary": "Mientras está activa, aplica la restricción de conducta y el ajuste de CP indicados."
+        },
+        "oath-of-diligence": {
+          "name": "Oath of Diligence",
+          "summary": "Mientras está activa, aplica la restricción de conducta y el ajuste de CP indicados."
+        },
+        "oath-of-compassion": {
+          "name": "Oath of Compassion",
+          "summary": "Mientras está activa, aplica la restricción de conducta y el ajuste de CP indicados."
+        },
+        "oath-of-patience": {
+          "name": "Oath of Patience",
+          "summary": "Mientras está activa, aplica la restricción de conducta y el ajuste de CP indicados."
+        },
+        "oath-of-temperance": {
+          "name": "Oath of Temperance",
+          "summary": "Mientras está activa, aplica la restricción de conducta y el ajuste de CP indicados."
+        },
+        "oath-of-the-jackass": {
+          "name": "Oath of the Jackass",
+          "summary": "Mientras está activa, aplica la restricción de conducta y el ajuste de CP indicados."
+        },
+        "insane-and-legendary": {
+          "name": "Insane and Legendary",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "fair-and-balanced": {
+          "name": "Fair and Balanced",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "fission-dance": {
+          "name": "Fission Dance",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "fragmented-psyche": {
+          "name": "Fragmented Psyche",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "im-a-jumper": {
+          "name": "I’m a Jumper!",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "always-expect-ninjas": {
+          "name": "Always Expect Ninjas",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "first-rule": {
+          "name": "First Rule",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "possessed-possessive-possessions": {
+          "name": "Possessed Possessive Possessions",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "we-are-all-together": {
+          "name": "We Are All Together",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "you-wanted-worthy-opponents": {
+          "name": "You Wanted Worthy Opponents?",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "so-many-teef": {
+          "name": "SO MANY TEEF!",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "npc-reality-check": {
+          "name": "NPC Reality Check",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "bio-equipment": {
+          "name": "Bio-Equipment",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "npc-blues": {
+          "name": "NPC Blues",
+          "summary": "Un desafío punitivo obliga al Jumper a llevar una vida laboral común durante una cantidad limitada de Jumps."
+        },
+        "down-out-in-npc-ville": {
+          "name": "Down & Out in NPC-Ville",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "the-best-worst-blessing-curse-evar": {
+          "name": "The Best Worst Blessing-Curse EVAR",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "jumpchain-with-bernie": {
+          "name": "Jumpchain with Bernie",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "jumper-of-many-worlds": {
+          "name": "Jumper of Many Worlds",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "stranger-in-a-strange-land": {
+          "name": "Stranger in a Strange Land",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "soft-stranger": {
+          "name": "Soft Stranger",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "my-jumper-is-an-idiot": {
+          "name": "My Jumper is an Idiot",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "sealed-jumper-in-a-can": {
+          "name": "Sealed Jumper in a Can",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "password-locked": {
+          "name": "Password Locked",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "jumpseed": {
+          "name": "JumpSeed",
+          "summary": "Existen otros Jumpers en el mundo de origen y regresan según sus propios calendarios, lo que reestructura las consecuencias generales de la Chain."
+        },
+        "so-many-teef-2": {
+          "name": "So Many Teef",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "if-at-first": {
+          "name": "If At First",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "if-at-second": {
+          "name": "If At Second",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "strangler-in-a-strange-land": {
+          "name": "Strangler in a Strange Land",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "mistaken-identity": {
+          "name": "Mistaken Identity?",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "stalking-the-jumper": {
+          "name": "Stalking the Jumper",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "the-darkness-inside": {
+          "name": "The Darkness Inside",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "bad-touch": {
+          "name": "Bad Touch",
+          "summary": "Mientras está activa, aplica la restricción de desafío y el ajuste de CP indicados."
+        },
+        "pseudo-random": {
+          "name": "Pseudo-Random-Chan",
+          "summary": "El autor elige la ruta, pero el Jumper no controla el destino ni el momento."
+        },
+        "two-player": {
+          "name": "Two Player Jumpchain",
+          "summary": "Crea dos Jumpers vinculados con presupuestos divididos y condiciones de fracaso de la Chain compartidas."
+        },
+        "why-glowing": {
+          "name": "Why Is It Glowing?",
+          "summary": "El equipo respaldado por CP que proviene de otra ambientación se vuelve visiblemente anómalo; su opción encadenada superior dirige la recompensa a objetos."
+        },
+        "not-so-ooc": {
+          "name": "Not-So Out of Context",
+          "summary": "Las habilidades traídas de ambientaciones anteriores adquieren equivalentes locales, reconocimiento y contramedidas en ambientaciones posteriores."
+        },
+        "oath-truth": {
+          "name": "Oath of Truth",
+          "summary": "El actor no debe comunicar falsedades deliberadas; las variantes superiores también incluyen las omisiones engañosas."
+        },
+        "oath-humility": {
+          "name": "Oath of Humility",
+          "summary": "El actor no debe atribuirse méritos ni aceptar recompensas fuera de lo estrictamente permitido por la variante seleccionada."
+        }
+      }
+    },
+    "bodyMod": {
+      "stats": {
+        "Strength": {
+          "label": "Fuerza",
+          "descriptions": {
+            "0": "Promedio humano.",
+            "1": "Press de banca de aproximadamente 180 libras.",
+            "2": "Press de banca de aproximadamente 250 libras.",
+            "3": "Levanta aproximadamente el doble de tu peso corporal.",
+            "4": "Levanta aproximadamente el triple de tu peso corporal."
+          }
+        },
+        "Endurance": {
+          "label": "Resistencia",
+          "descriptions": {
+            "0": "Promedio humano.",
+            "1": "Corre una milla sin respirar con dificultad.",
+            "2": "Completa una carrera de 5 km y se recupera fácilmente.",
+            "3": "Corre un maratón, descansa y vuelve a hacerlo.",
+            "4": "Permanece activo todo el día sin fatiga."
+          }
+        },
+        "Speed": {
+          "label": "Velocidad",
+          "descriptions": {
+            "0": "Promedio humano.",
+            "1": "Corre de forma sostenida a unos 10 km/h.",
+            "2": "Corre de forma sostenida a unos 24 km/h.",
+            "3": "Comparable con Usain Bolt.",
+            "4": "Velocidad de esprint comparable con una motocicleta."
+          }
+        },
+        "Dexterity": {
+          "label": "Destreza",
+          "descriptions": {
+            "0": "Promedio humano.",
+            "1": "Salta una valla mientras corre a toda velocidad.",
+            "2": "Hace parkour básico sin perder velocidad.",
+            "3": "Mantiene el equilibrio durante movimientos difíciles y precisos.",
+            "4": "Corre por paredes, usa tirolesas y se recupera de caídas a nivel avanzado."
+          }
+        },
+        "Appeal": {
+          "label": "Atractivo",
+          "descriptions": {
+            "0": "Promedio humano.",
+            "1": "Piel limpia y sin acné.",
+            "2": "Pelo y piel limpios y saludables.",
+            "3": "Sin arrugas, cicatrices ni imperfecciones.",
+            "4": "Piel perfectamente lisa e impecable."
+          }
+        },
+        "Shape": {
+          "label": "Figura",
+          "descriptions": {
+            "0": "Promedio humano.",
+            "1": "Distribución uniforme y saludable de la grasa.",
+            "2": "Elige una proporción plausible entre piernas y torso.",
+            "3": "Proporciones marcadas, suaves o rígidas.",
+            "4": "Un físico idealizado y llamativo."
+          }
+        },
+        "Sense": {
+          "label": "Sentido",
+          "descriptions": {
+            "0": "Promedio humano.",
+            "1": "Visión 20/20 y sentidos normales saludables.",
+            "2": "Visión más nítida y mayor agudeza sensorial.",
+            "3": "Duplica la potencia y el alcance de tres sentidos.",
+            "4": "Percibe más allá del espectro humano normal."
+          }
+        }
+      },
+      "perks": {
+        "Height": {
+          "label": "Alto",
+          "descriptions": {
+            "0": "Sin ajuste de altura.",
+            "1": "Ajusta la altura hasta 30 cm por encima o debajo del promedio del grupo de edad actual.",
+            "2": "Ajusta la altura hasta 60 cm por encima o debajo del promedio del grupo de edad actual."
+          }
+        },
+        "Flexibility": {
+          "label": "Flexibilidad",
+          "descriptions": {
+            "0": "Flexibilidad normal.",
+            "1": "Alcanza el límite físico natural del cuerpo actual.",
+            "2": "Se vuelve más flexible de lo que normalmente permitiría el cuerpo."
+          }
+        },
+        "Endowed": {
+          "label": "Bien dotado",
+          "descriptions": {
+            "0": "Sin ajustes.",
+            "1": "Ajusta en un nivel las proporciones físicas primarias o secundarias."
+          }
+        },
+        "Color": {
+          "label": "Color",
+          "descriptions": {
+            "0": "Coloración natural.",
+            "1": "Elige cualquier color natural posible de piel, pelo u ojos.",
+            "2": "Elige cualquier coloración imaginable."
+          }
+        },
+        "Winged": {
+          "label": "Alado",
+          "descriptions": {
+            "0": "Sin alas.",
+            "1": "Alas funcionales que se pliegan contra la espalda cuando no se usan."
+          }
+        },
+        "Metavore": {
+          "label": "Metávoro",
+          "descriptions": {
+            "0": "Mantenimiento físico normal.",
+            "1": "Conserva el físico elegido con una nutrición adecuada."
+          }
+        },
+        "Evercleansed": {
+          "label": "Siempre limpio",
+          "descriptions": {
+            "0": "Limpieza normal.",
+            "1": "Repele de forma natural la suciedad, el lodo y el olor corporal."
+          }
+        },
+        "Genderswap": {
+          "label": "Cambio de género",
+          "descriptions": {
+            "0": "Sin cambio de género por Body Mod.",
+            "1": "Cambia de género hasta dos veces durante un Jump."
+          }
+        }
+      },
+      "types": {
+        "None": {
+          "label": "Cuerpo actual",
+          "included": "No incluye rangos"
+        },
+        "Bodybuilder": {
+          "label": "Fisicoculturista",
+          "included": "Fuerza 2 · Resistencia 2 · Altura 1"
+        },
+        "Athlete": {
+          "label": "Atleta",
+          "included": "Velocidad 2 · Destreza 2 · Flexibilidad 1"
+        },
+        "Charmer": {
+          "label": "Encantador",
+          "included": "Atractivo 2 · Figura 2 · Bien dotado 3"
+        },
+        "Bestial": {
+          "label": "Bestial",
+          "included": "Sentidos 2 · Color 1"
+        }
+      }
+    },
+    "warehouse": {
+      "electricity": {
+        "label": "Electricidad",
+        "description": "Tomacorrientes, cableado, luces e interruptores."
+      },
+      "plumbing": {
+        "label": "Fontanería",
+        "description": "Agua corriente y conexiones de alcantarillado."
+      },
+      "heat-a-c-": {
+        "label": "Calefacción / aire acondicionado",
+        "description": "Termostatos y control de temperatura."
+      },
+      "local-net": {
+        "label": "Red local",
+        "description": "Acceso seguro a internet del universo actual."
+      },
+      "forcewall": {
+        "label": "ForceWall",
+        "description": "Sella el portal detrás de ti con un campo de fuerza."
+      },
+      "gravitylink": {
+        "label": "GravityLink",
+        "description": "Reduce o desactiva la gravedad para levantar objetos pesados."
+      },
+      "shelving": {
+        "label": "Estanterías",
+        "description": "Estantes metálicos numerados para organizar posesiones."
+      },
+      "terminal": {
+        "label": "Terminal",
+        "description": "Un catálogo informático de objetos almacenados."
+      },
+      "robots": {
+        "label": "Robots",
+        "description": "Los robots guardan y recuperan posesiones."
+      },
+      "housing": {
+        "label": "Vivienda",
+        "description": "Una vivienda amueblada dentro del Warehouse."
+      },
+      "workshop": {
+        "label": "Taller",
+        "description": "Herramientas y piezas para fabricar."
+      },
+      "medbay": {
+        "label": "Enfermería",
+        "description": "Un centro de tratamiento médico."
+      },
+      "portal": {
+        "label": "Portal",
+        "description": "Abre el portal en una superficie adecuada."
+      },
+      "link": {
+        "label": "Enlace",
+        "description": "Abre dos portales para viajar."
+      },
+      "food-supply": {
+        "label": "Suministro de alimentos",
+        "description": "Un suministro de alimentos comunes que se repone."
+      },
+      "loft": {
+        "label": "Loft",
+        "description": "Un nivel elevado para vivienda y almacenamiento."
+      },
+      "free-space": {
+        "label": "Espacio libre",
+        "description": "Duplica la superficie disponible."
+      },
+      "stasis-pod": {
+        "label": "Cápsula de estasis",
+        "description": "Transporta con seguridad a una persona por cápsula."
+      }
+    },
+    "quests": {
+      "expert": {
+        "label": "Convertirse en experto",
+        "description": "Domina los fundamentos de una tecnología, magia u otro poder propio de esta ambientación."
+      },
+      "setup": {
+        "label": "Preparar la trama habitual",
+        "description": "Reúne a los personajes principales y asegúrate de que ocurra el incidente inicial."
+      },
+      "cast": {
+        "label": "Unirse al elenco principal",
+        "description": "Conviértete en su amigo, rival o enemigo."
+      },
+      "master": {
+        "label": "Convertirse en maestro",
+        "description": "Alcanza el dominio de una tecnología, magia o poder propio de esta ambientación."
+      },
+      "form-org": {
+        "label": "Formar una organización local",
+        "description": "Crea una organización con una presencia local significativa."
+      },
+      "join-org": {
+        "label": "Unirse a una organización importante",
+        "description": "Intégrate en una organización o gobierno conocidos."
+      },
+      "beats": {
+        "label": "Conservar los momentos principales de la trama",
+        "description": "Asegúrate de que la trama habitual alcance todos sus momentos principales conocidos."
+      },
+      "authority": {
+        "label": "Obtener autoridad destacada",
+        "description": "Ocupa un puesto de autoridad en una organización o gobierno conocidos."
+      },
+      "local-tone": {
+        "label": "Transformar una zona local",
+        "description": "Haz que su tono general sea mucho mejor o peor."
+      },
+      "fame": {
+        "label": "Volverse famoso en toda la ambientación",
+        "description": "Obtén fama en toda la ambientación."
+      },
+      "lead-org": {
+        "label": "Dirigir una organización importante",
+        "description": "Toma el mando de una organización o gobierno conocidos."
+      },
+      "setting-tone": {
+        "label": "Transformar la ambientación",
+        "description": "Haz que el tono general de la ambientación sea mucho mejor o peor."
+      }
+    }
+  },
+  "ui": {
+    "dialogs": {
+      "title": {
+        "bodyModAtAGlance": "Resumen de Body Mod"
+      },
+      "text": {
+        "build": " de configuración física",
+        "jumpSpecies": "Especie del Jump",
+        "currentAge": "Edad actual",
+        "bodyMod": "Body Mod",
+        "openFullBodyMod": "Abrir Body Mod completo",
+        "persistentBaseline": "Base persistente",
+        "statistics": "Estadísticas",
+        "rank": "Rango ",
+        "bodyModPerks": "Ventajas de Body Mod ",
+        "chooseABadgeForDetails": "Elige una insignia para ver los detalles",
+        "noBodyModPerks": "Sin ventajas de Body Mod",
+        "anAuthoredOriginSpeciesIsUsedWhenPresentOtherwise": "Se usa la especie de Origen indicada cuando existe. De lo contrario se muestra el tipo Bestial activo o Humano. Body Mod permanece visible por separado."
+      }
+    },
+    "modulePages": {
+      "ariaLabel": {
+        "interactiveClassicBodyModFullSupplementPage": "Página interactiva completa del suplemento Body Mod clásico",
+        "build": "Configuración física",
+        "bodyType": "Tipo de cuerpo",
+        "bestialAnimal": "Animal bestial",
+        "bestialTraitTier": "Nivel de rasgos bestiales",
+        "bestialAssociatedStat": "Estadística bestial relacionada"
+      },
+      "text": {
+        "foundationSupplement": "Suplemento base",
+        "classicBodyMod": "Body Mod clásico",
+        "quicksilverEdition600CP": "Edición Quicksilver · 600 CP",
+        "remaining": "Restantes",
+        "cp": " CP",
+        "currentFoundation": "Base actual",
+        "build": " de configuración física",
+        "bodyType": "Tipo de cuerpo",
+        "stats": "Estadísticas",
+        "perks": "Ventajas",
+        "includedWith": "Incluido con",
+        "whatThisChanges": "Qué modifica",
+        "yourPersistentDefaultBody": "Tu cuerpo persistente predeterminado",
+        "bodyModChangesTheJumperSDefaultAppearanceAnd": "Body Mod cambia la apariencia predeterminada y las habilidades base del Jumper a lo largo de la Chain. El físico elegido se presenta de forma adecuada para la edad actual del Jumper.",
+        "600CP": "600 CP",
+        "oneIndependentSupplementBudget": "Un presupuesto independiente para el suplemento.",
+        "fitsCurrentAge": "Se adapta a la edad actual",
+        "thePhysiqueFollowsTheCurrentAge": "El físico se adapta a la edad actual.",
+        "adaptsToOtherForms": "Se adapta a otras formas",
+        "traitsAreInterpretedForTheActiveBody": "Los rasgos se interpretan para el cuerpo activo.",
+        "persistent": "Persistente",
+        "theBaselineRemainsAvailable": "La base sigue disponible.",
+        "step1": "Paso 1",
+        "chooseBuildAndBodyType": "Elige la configuración física y el tipo de cuerpo",
+        "buildPrefix": "Configuración física: ",
+        "freeChooseOne": "Gratis · elige una",
+        "bodyTypePrefix": "Tipo de cuerpo: ",
+        "optionalChooseOne": "Opcional · elige uno",
+        "animal": "Animal",
+        "traitTier": "Nivel de rasgos",
+        "minorTraits": "Rasgos menores",
+        "majorTraits": "Rasgos mayores",
+        "fullAnthro": "Antropomorfo completo",
+        "animalAssociatedStat": "Estadística relacionada con el animal",
+        "theSelectedStatReceivesIncludedRanksEqualToThe": "La estadística seleccionada recibe tantos rangos incluidos como el nivel del rasgo.",
+        "step2": "Paso 2",
+        "chooseStats": "Elige estadísticas",
+        "everyPurchasedRankCosts50CPRequiresThePrevious": "Cada rango comprado cuesta 50 CP, requiere el rango anterior y tiene un máximo de 4.",
+        "persistentBaseline": "Base persistente: ",
+        "step3": "Paso 3",
+        "choosePerks": "Elige ventajas",
+        "perksRetainTheSourceDocumentSRepeatLimitsAnd": "Las ventajas conservan los límites de repetición y el precio por nivel del documento fuente.",
+        "cpEach": " CP cada una",
+        "review": "Revisión",
+        "yourBodyMod": "Tu Body Mod",
+        "buildHeading": "Configuración física",
+        "spent": "Gastados"
+      },
+      "label": {
+        "bodyModPageSection": "Sección de la página Body Mod"
+      },
+      "placeholder": {
+        "chooseARealAnimal": "Elige un animal real"
+      }
+    },
+    "parityDialogs": {
+      "text": {
+        "startingMode": "Modo inicial",
+        "advancement": "Progreso",
+        "epAccess": "Acceso a EP",
+        "epRemaining": "EP restantes",
+        "openFullEssentialBodyMod": "Abrir Body Mod esencial completo",
+        "persistentCapabilities": "Capacidades persistentes",
+        "morganSBuild": "Configuración física de Morgan",
+        "regularJump": "Jump normal",
+        "gauntletProjection": "Proyección de Gauntlet:",
+        "baseFormAndSkillCapabilitiesRemainAvailableSupernaturalPurchases": " las capacidades de forma base y habilidades siguen disponibles; las compras sobrenaturales no.",
+        "netEPChange": "Cambio neto de EP",
+        "ep": " EP",
+        "epInfusion": "Infusión de EP",
+        "epSpentHere": "EP gastados aquí",
+        "jumpCPSpent": "CP del Jump gastados",
+        "cp": " CP",
+        "newEPBalance": "Nuevo saldo de EP",
+        "openStartingBuild": "Abrir configuración inicial",
+        "selectedJumpRecord": "Registro del Jump seleccionado",
+        "progressionSourcesAndPurchases": "Fuentes de progreso y compras",
+        "advancementMode": "Modo de progreso",
+        "questingChallenges": "Desafíos de misiones",
+        "recordChallengesCompletedDuring": "Registrar desafíos completados durante ",
+        "epInfusionPurchasedIn": "Infusión de EP comprada en ",
+        "spendEPIn": "Gastar EP en ",
+        "epAvailable": " EP disponibles",
+        "purchasesMadeHereRemainAttributedTo": "Las compras realizadas aquí siguen atribuidas a ",
+        "category": "Categoría",
+        "find": "Buscar",
+        "changingThisRecordRecalculatesTheCurrentEssentialEPBalance": "Cambiar este registro vuelve a calcular el saldo actual de EP esenciales y el saldo de CP del Jump seleccionado.",
+        "squareFeet": "pies cuadrados",
+        "access": "Acceso",
+        "wpRemaining": "WP restantes",
+        "entrance": "Entrada",
+        "oneAtATime": "Una a la vez",
+        "closedState": "Estado cerrado",
+        "timeStopped": "Tiempo detenido",
+        "openFullWarehouse": "Abrir Warehouse completo",
+        "configuredInterior": "Interior configurado",
+        "floorPlanSummary": "Resumen de la planta",
+        "features": " características",
+        "mainStorage": "Almacén principal",
+        "ft²Total": " ft² en total",
+        "theWarehouseSGeneralPurposeStorageFloor": "El área de almacenamiento general del Warehouse.",
+        "installedFeatures": "Características instaladas: ",
+        "chooseABadgeForDetails": "Elige una insignia para ver los detalles",
+        "stasisPod": "Cápsula de estasis ×",
+        "theGatewayUses": "El portal usa",
+        "utilitiesAndFacilitiesExistOnlyInsideTheWarehouseUnless": " . Los servicios y las instalaciones solo existen dentro del Warehouse, salvo que se indique lo contrario.",
+        "coreModeControlsStartingAndProgressionWP": " El Modo central controla los WP iniciales y de progreso.",
+        "mode": " Modo",
+        "accumulatedReality": "Realidad acumulada",
+        "currentWP": "WP actuales",
+        "volume": "Volumen",
+        "upgrades": "Mejoras",
+        "openStartingReality": "Abrir Realidad inicial",
+        "accumulatedConfiguration": "Configuración acumulada",
+        "morganSPersonalReality": "Realidad personal de Morgan",
+        "mainWarehouse": "Warehouse principal",
+        "loftyLoft": "Lofty Loft",
+        "housingArea": "Zona residencial",
+        "entranceHall": "Vestíbulo",
+        "primaryAccess": "Acceso principal",
+        "noAccumulatedCapabilitiesInThisCategory": "No hay capacidades acumuladas en esta categoría.",
+        "netWPChange": "Cambio neto de WP",
+        "wp": " WP",
+        "modeAward": "Recompensa del modo",
+        "cpConversion": "Conversión de CP",
+        "wpSpentHere": "WP gastados aquí",
+        "wpSourcesAndPurchases": "Fuentes de WP y compras",
+        "coreMode": " Modo central",
+        "coreModeAward": "Recompensa del Modo central",
+        "convert": "Convertir ",
+        "cpToWP": " CP a WP",
+        "outsideUnlimitedModeEvery50CPConvertsTo2": "Fuera del Modo ilimitado, cada 50 CP se convierten en 2 WP.",
+        "cpConversionSeparator": " CP · +",
+        "spendWPIn": "Gastar WP en ",
+        "wpAvailable": " WP disponibles",
+        "completedPurchasesRemainAttributedTo": "Las compras completadas siguen atribuidas a ",
+        "budgetAdjustment": "Ajuste del presupuesto",
+        "chainCP": "CP de la Chain",
+        "singleJumpCP": "CP de un solo Jump",
+        "restrictedCP": "CP restringidos",
+        "activeEffects": "Efectos activos",
+        "openChainSetup": "Abrir configuración de la Chain",
+        "calculatedForJump": "Calculado para el Jump ",
+        "activeRulesAndBudget": "Reglas activas y presupuesto",
+        "noConflicts": "Sin conflictos",
+        "base": "Base ",
+        "chain": " + Chain ",
+        "single": " + Individual",
+        "findASingleJumpDrawback": "Buscar una desventaja de un solo Jump",
+        "noNativeOrUniversalDrawbackConflictsWereDetectedFor": "No se detectaron conflictos entre las desventajas nativas y las universales para Arcane Realms.",
+        "availableThisJump": "Disponible en este Jump",
+        "startingCP": "CP iniciales",
+        "drawbackCP": "CP de desventajas",
+        "questCP": "CP de misiones",
+        "drawbackQuests": " Misiones de desventaja",
+        "switchingOutQuests": " Misiones de sustitución",
+        "questsComplete": "misiones completadas",
+        "openFullQuestMode": "Abrir Modo de misiones completo",
+        "currentJumpChecklist": "Lista de comprobación del Jump actual",
+        "chooseCompletedQuests": "Elige las misiones completadas",
+        "awardsUpdateImmediately": "Las recompensas se actualizan de inmediato",
+        "selectedDrawbacks": "Desventajas seleccionadas",
+        "workThemOffToReceiveTheirWithheldCP": "Complétalas para recibir los CP retenidos.",
+        "switchingOutQuestsSuffix": " misiones de sustitución",
+        "addedOnlyToThisJumpSQuestList": "Se añade únicamente a la lista de misiones de este Jump.",
+        "quest": "Misión",
+        "award": "Recompensa",
+        "addQuest": "Añadir misión",
+        "switchingOutObjectiveDeclaredForThisJump": "Objetivo de sustitución declarado para este Jump.",
+        "checkingAQuestRecordsTheUserSDeclarationOf": "Marcar una misión registra la declaración del usuario de que la completó. Las compras pueden ayudar, pero nunca la marcan automáticamente.",
+        "currentStory": "Historia actual",
+        "jump": "Jump ",
+        "words": "Palabras",
+        "chapters": "Capítulos",
+        "openFullStory": "Abrir Historia completa",
+        "color": "Color",
+        "addChapter": "+ Añadir capítulo",
+        "areYouSureYouWantToRemove": "¿Seguro que quieres quitar “ "
+      },
+      "ariaLabel": {
+        "filterEssentialBodyModificationAbilities": "Filtrar habilidades de Modificación corporal esencial",
+        "epInfusionPurchase": "Compra de Infusión de EP",
+        "filterPersonalRealityCapabilities": "Filtrar capacidades de Realidad personal",
+        "cpToWPConversion": "Conversión de CP a WP",
+        "optionalRuleStatus": "Estado de la regla opcional",
+        "switchingOutQuestName": "Nombre de la misión de sustitución",
+        "switchingOutQuestAward": "Recompensa de la misión de sustitución",
+        "storyFormatting": "Formato de la historia",
+        "textColor": "Color del texto",
+        "jumpStoryChapters": "Capítulos de la historia del Jump"
+      },
+      "placeholder": {
+        "findAnUpgrade": "Buscar una mejora",
+        "nameEffectOrRestriction": "Nombre, efecto o restricción",
+        "describeTheObjective": "Describe el objetivo",
+        "untitledChapter": "Capítulo sin título"
+      },
+      "title": {
+        "dragToReorder": "Arrastra para reordenar",
+        "removeChapter": "¿Quitar capítulo?",
+        "essentialBodyModAtAGlance": "Resumen de Body Mod esencial",
+        "essentialBodyModProgression": "Progreso de Body Mod esencial",
+        "warehouseAtAGlance": "Resumen de Warehouse",
+        "personalRealityAtAGlance": "Resumen de Realidad personal",
+        "personalRealityProgression": "Progreso de Realidad personal",
+        "universalDrawbacksThisJump": "Desventajas universales de este Jump",
+        "questProgress": "Progreso de misiones"
+      }
+    },
+    "parityPages": {
+      "text": {
+        "requires": "Requiere ",
+        "notSelected": "No seleccionado",
+        "foundationSupplement": "Suplemento base",
+        "essentialBodyModification": "Modificación corporal esencial",
+        "sourceEdition100Morgan": "Edición fuente 1.00 · Morgan",
+        "initialEPRemaining": "EP iniciales restantes",
+        "ep": " EP",
+        "build": "Configuración física",
+        "findInCategory": "Buscar en la categoría",
+        "variantsAndAccessModifiers": "Variantes y modificadores de acceso",
+        "essenceOfThe": "Esencia de ",
+        "itDiscountsEverySourcePerkMarkedForThisEssence": " Reduce en un 50 % todas las ventajas de la fuente marcadas para esta Esencia; una ventaja de 50 EP con descuento se vuelve gratuita. En el Modo de Esencia única, elegirla reemplaza la Esencia actual.",
+        "persistentSpaceSupplement": "Suplemento de espacio persistente",
+        "cosmicWarehouse": "Cosmic Warehouse",
+        "updatedQuicksilverEdition40000Ft²": "Edición Quicksilver actualizada · 40 000 ft²",
+        "remaining": "Restantes",
+        "wp": " WP",
+        "currentSpace": "Espacio actual",
+        "cw": "CW",
+        "ft²": " ft²",
+        "utilities": "Servicios públicos",
+        "structures": "Estructuras",
+        "otherUpgrades": "Otras mejoras",
+        "entryMethod": "Método de entrada",
+        "whatThisProvides": "Qué proporciona",
+        "aPersistentStorageDimension": "Una dimensión de almacenamiento persistente",
+        "theWarehouseIsAChainWideSpaceReachedThrough": "El Warehouse es un espacio para toda la Chain al que se accede mediante una llave especial o mediante Portal si se compra. Guarda posesiones entre Jumps y sigue siendo accesible entre universos.",
+        "40000Ft²": "40 000 ft²",
+        "updatedStartingFloorArea": "Superficie inicial actualizada.",
+        "150WP": "150 WP",
+        "independentWarehouseBudget": "Presupuesto independiente del Warehouse.",
+        "oneGateway": "Un portal",
+        "onlyOneEntranceMayBeOpen": "Solo puede haber una entrada abierta.",
+        "timeStops": "El tiempo se detiene",
+        "whenItsGatewayCloses": "Cuando se cierra su portal.",
+        "operatingRules": "Reglas de funcionamiento",
+        "theGatewayRemainsOpenWhileTheOwnerIsInside": "El portal permanece abierto mientras el propietario está dentro.",
+        "livingPeopleCannotBeStoredInTheClosedWarehouse": "No se pueden guardar personas vivas en el Warehouse cerrado.",
+        "visitorsMayEnterWithTheOwnerAndLeaveWhen": "Los visitantes pueden entrar con el propietario y salir cuando este lo haga.",
+        "timeStopsInsideWheneverTheEntranceCloses": "El tiempo se detiene dentro cuando se cierra la entrada.",
+        "onlyOneWarehouseGatewayMayBeOpenAtOnce": "Solo puede haber un portal del Warehouse abierto a la vez.",
+        "review": "Revisión",
+        "yourCosmicWarehouse": "Tu Cosmic Warehouse",
+        "floorArea": "Superficie",
+        "access": "Acceso",
+        "spent": "Gastados",
+        "installedFeatures": "Características instaladas",
+        "stasisPod": "Cápsula de estasis ×",
+        "wpEach": " WP cada uno",
+        "personalReality": "Realidad personal",
+        "sourceEdition17Morgan": "Edición fuente 1.7 · Morgan",
+        "initialWPRemaining": "WP iniciales restantes",
+        "startingReality": "Realidad inicial",
+        "coreMode": " Modo central",
+        "extraModes": "Modos adicionales",
+        "rulesSupplementSJChan": "Suplemento de reglas · SJ-Chan",
+        "universalDrawbacks": "Desventajas universales",
+        "sourceEdition112MorganSChain": "Edición fuente 1.12 · Chain de Morgan",
+        "chainWideAdjustment": "Ajuste para toda la Chain",
+        "cp": " CP",
+        "drawbackFamilies": "Familias de desventajas",
+        "selected": " seleccionadas",
+        "findDrawbacks": "Buscar desventajas",
+        "currentRule": "Regla actual:",
+        "rulesSupplement": "Suplemento de reglas",
+        "questMode": "Modo de misiones",
+        "chainWideRulesPerJumpProgress": "Reglas para toda la Chain · progreso por Jump",
+        "startingBalance": "Saldo inicial",
+        "0CP": "0 CP",
+        "currentRules": "Reglas actuales",
+        "questModeActive": "Modo de misiones activo",
+        "optionalRules": " reglas opcionales",
+        "jumpStart": "Inicio del Jump",
+        "awardTiers": "Niveles de recompensa",
+        "standardQuests": "Misiones estándar",
+        "howItChangesAJump": "Cómo cambia un Jump",
+        "earnTheBudgetThroughQuests": "Obtén el presupuesto mediante misiones",
+        "everyJumpBeginsWithNoOrdinaryStartingCPCompleting": "Cada Jump comienza sin los CP iniciales normales. Completar una misión indicada añade su recompensa al saldo del Jump actual. Las desventajas aún pueden proporcionar CP al inicio del Jump.",
+        "defaultStartingBalance": "Saldo inicial predeterminado",
+        "100600CP": "100–600 CP",
+        "awardedPerCompletedQuest": "Otorgados por misión completada",
+        "perJump": "Por Jump",
+        "eachEntryTracksItsOwnProgress": "Cada entrada registra su propio progreso",
+        "effortIsTheRequirement": "El esfuerzo es el requisito",
+        "aPerkPowerOriginOrOtherPurchaseCannotComplete": "Una ventaja, poder, Origen u otra compra no puede completar una misión automáticamente.",
+        "awardStructure": "Estructura de recompensas",
+        "standardQuestTiers": "Niveles de misiones estándar",
+        "sourceDefinedVariants": "Variantes definidas por la fuente",
+        "optionalRulesHeading": "Reglas opcionales",
+        "narrativeSupplement": "Suplemento narrativo",
+        "morganSStory": "Historia de Morgan",
+        "3Jumps": "3 Jumps ·",
+        "chaptersWritten": " capítulos escritos",
+        "oldestToNewest": "Del más antiguo al más reciente",
+        "jump": "Jump ",
+        "oneOrderedStoryForEveryJump": "Una historia ordenada para cada Jump",
+        "readEveryChapterHereOrUseSuppStoryTo": "Lee todos los capítulos aquí o usa Supl. → Historia para editar el Jump actual.",
+        "chapter": "Capítulo ",
+        "openThisJumpAndChooseSuppStoryToAdd": "Abre este Jump y elige Supl. → Historia para añadir su primer capítulo."
+      },
+      "ariaLabel": {
+        "interactiveEssentialBodyModificationFullSupplementPage": "Página interactiva completa del suplemento Modificación corporal esencial",
+        "essentialBodyModificationCategories": "Categorías de Modificación corporal esencial",
+        "cosmicWarehousePageSection": "Sección de la página Cosmic Warehouse",
+        "removeStasisPod": "Quitar cápsula de estasis",
+        "addStasisPod": "Añadir cápsula de estasis",
+        "personalRealityCategories": "Categorías de Realidad personal",
+        "universalDrawbackCategories": "Categorías de Desventajas universales",
+        "catalogFilter": "Filtro del catálogo",
+        "questModePageSection": "Sección de la página Modo de misiones",
+        "storyJumpAndChapterIndex": "Índice de Jumps y capítulos de la historia"
+      },
+      "placeholder": {
+        "findAPerkOrAbility": "Buscar una ventaja o habilidad",
+        "findAnUpgrade": "Buscar una mejora",
+        "nameEffectOrRestriction": "Nombre, efecto o restricción"
+      }
+    },
+    "trackerSupplements": {
+      "ariaLabel": {
+        "supplementPages": "Páginas de suplementos",
+        "closeCurrentJumpSupplements": "Cerrar suplementos del Jump actual",
+        "enabledSupplementTools": "Herramientas de suplementos activados"
+      },
+      "text": {
+        "supplementLibrary": "Biblioteca de suplementos",
+        "manageSupplements": "Administrar suplementos",
+        "supportedModulesRemainListedEnabledModulesReceivePagesAnd": "Los módulos compatibles permanecen en la lista; los módulos activados reciben páginas y herramientas para el Jump actual.",
+        "enabled": "Activado",
+        "openPage": "Abrir página",
+        "currentJumpSupplements": "Suplementos del Jump actual",
+        "selectedJump": "Jump seleccionado · "
+      }
+    }
+  }
+}

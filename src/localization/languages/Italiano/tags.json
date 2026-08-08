@@ -1,0 +1,1179 @@
+{
+  "builtinTags": {
+    "social": {
+      "label": "Sociale",
+      "aliases": {}
+    },
+    "mental": {
+      "label": "Mentale",
+      "aliases": {}
+    },
+    "spiritual": {
+      "label": "Spirituale",
+      "aliases": {}
+    },
+    "magic": {
+      "label": "Magia",
+      "aliases": {}
+    },
+    "meta": {
+      "label": "Meta",
+      "aliases": {}
+    },
+    "stealth": {
+      "label": "Furtività",
+      "aliases": {}
+    },
+    "physical": {
+      "label": "Fisico",
+      "aliases": {}
+    },
+    "combat": {
+      "label": "Combattimento",
+      "aliases": {}
+    },
+    "defense": {
+      "label": "Difesa",
+      "aliases": {}
+    },
+    "crafting": {
+      "label": "Creazione",
+      "aliases": {}
+    },
+    "technology": {
+      "label": "Tecnologia",
+      "aliases": {}
+    },
+    "miscellaneous": {
+      "label": "Varie",
+      "aliases": {}
+    },
+    "charisma": {
+      "label": "Carisma",
+      "aliases": {
+        "0": "Fascino"
+      }
+    },
+    "leadership": {
+      "label": "Comando",
+      "aliases": {
+        "0": "Autorità"
+      }
+    },
+    "diplomacy": {
+      "label": "Diplomazia",
+      "aliases": {
+        "0": "Negoziazione"
+      }
+    },
+    "deception": {
+      "label": "Inganno",
+      "aliases": {
+        "0": "Depistaggio"
+      }
+    },
+    "empathy": {
+      "label": "Empatia",
+      "aliases": {
+        "0": "Intuito emotivo"
+      }
+    },
+    "reputation": {
+      "label": "Reputazione",
+      "aliases": {
+        "0": "Fama"
+      }
+    },
+    "companionship": {
+      "label": "Compagnia",
+      "aliases": {
+        "0": "Amicizia"
+      }
+    },
+    "teaching": {
+      "label": "Insegnamento",
+      "aliases": {
+        "0": "Istruzione"
+      }
+    },
+    "performance": {
+      "label": "Esibizione",
+      "aliases": {
+        "0": "Arti performative"
+      }
+    },
+    "commerce": {
+      "label": "Commercio",
+      "aliases": {
+        "0": "Scambi"
+      }
+    },
+    "politics": {
+      "label": "Politica",
+      "aliases": {
+        "0": "Governo"
+      }
+    },
+    "intimidation": {
+      "label": "Intimidazione",
+      "aliases": {
+        "0": "Coercizione"
+      }
+    },
+    "memory": {
+      "label": "Memoria",
+      "aliases": {
+        "0": "Rievocazione"
+      }
+    },
+    "learning": {
+      "label": "Apprendimento",
+      "aliases": {
+        "0": "Istruzione"
+      }
+    },
+    "intelligence": {
+      "label": "Intelligenza",
+      "aliases": {
+        "0": "Intelletto"
+      }
+    },
+    "willpower": {
+      "label": "Forza di volontà",
+      "aliases": {
+        "0": "Determinazione"
+      }
+    },
+    "creativity": {
+      "label": "Creatività",
+      "aliases": {
+        "0": "Immaginazione"
+      }
+    },
+    "calculation": {
+      "label": "Calcolo",
+      "aliases": {
+        "0": "Matematica"
+      }
+    },
+    "awareness": {
+      "label": "Consapevolezza",
+      "aliases": {
+        "0": "Vigilanza"
+      }
+    },
+    "multitasking": {
+      "label": "Multitasking",
+      "aliases": {
+        "0": "Pensiero parallelo"
+      }
+    },
+    "planning": {
+      "label": "Pianificazione",
+      "aliases": {
+        "0": "Preparazione"
+      }
+    },
+    "emotion-control": {
+      "label": "Controllo delle emozioni",
+      "aliases": {
+        "0": "Regolazione emotiva"
+      }
+    },
+    "language": {
+      "label": "Lingua",
+      "aliases": {
+        "0": "Lingue",
+        "1": "Linguistica"
+      }
+    },
+    "investigation": {
+      "label": "Indagine",
+      "aliases": {
+        "0": "Deduzione"
+      }
+    },
+    "soul": {
+      "label": "Anima",
+      "aliases": {
+        "0": "Anime",
+        "1": "Essenza"
+      }
+    },
+    "faith": {
+      "label": "Fede",
+      "aliases": {
+        "0": "Devozione"
+      }
+    },
+    "ki": {
+      "label": "Ki",
+      "aliases": {
+        "0": "Chi",
+        "1": "Qi"
+      }
+    },
+    "meditation": {
+      "label": "Meditazione",
+      "aliases": {
+        "0": "Contemplazione"
+      }
+    },
+    "afterlife": {
+      "label": "Aldilà",
+      "aliases": {
+        "0": "Vite ultraterrene"
+      }
+    },
+    "spirit-interaction": {
+      "label": "Interazione con gli spiriti",
+      "aliases": {
+        "0": "Comunione con gli spiriti"
+      }
+    },
+    "reincarnation": {
+      "label": "Reincarnazione",
+      "aliases": {
+        "0": "Rinascita"
+      }
+    },
+    "purification": {
+      "label": "Purificazione",
+      "aliases": {
+        "0": "Purificazione"
+      }
+    },
+    "corruption": {
+      "label": "Corruzione",
+      "aliases": {
+        "0": "Contaminazione"
+      }
+    },
+    "karma": {
+      "label": "Karma",
+      "aliases": {
+        "0": "Karmico"
+      }
+    },
+    "exorcism": {
+      "label": "Esorcismo",
+      "aliases": {
+        "0": "Bando"
+      }
+    },
+    "elemental-magic": {
+      "label": "Magia elementale",
+      "aliases": {
+        "0": "Elementalismo"
+      }
+    },
+    "pyrokinesis": {
+      "label": "Pirocinesi",
+      "aliases": {
+        "0": "Controllo del fuoco",
+        "1": "Arte delle fiamme"
+      }
+    },
+    "fire-projection": {
+      "label": "Proiezione del fuoco",
+      "aliases": {
+        "0": "Proiezione delle fiamme"
+      }
+    },
+    "heat-control": {
+      "label": "Controllo del calore",
+      "aliases": {
+        "0": "Termocinesi"
+      }
+    },
+    "flame-immunity": {
+      "label": "Immunità alle fiamme",
+      "aliases": {
+        "0": "Immunità al fuoco"
+      }
+    },
+    "cryokinesis": {
+      "label": "Criocinesi",
+      "aliases": {
+        "0": "Controllo del ghiaccio"
+      }
+    },
+    "hydrokinesis": {
+      "label": "Idrocinesi",
+      "aliases": {
+        "0": "Controllo dell'acqua"
+      }
+    },
+    "aerokinesis": {
+      "label": "Aerocinesi",
+      "aliases": {
+        "0": "Controllo dell'aria"
+      }
+    },
+    "geokinesis": {
+      "label": "Geocinesi",
+      "aliases": {
+        "0": "Controllo della terra"
+      }
+    },
+    "telekinesis": {
+      "label": "Telecinesi",
+      "aliases": {
+        "0": "Psicocinesi"
+      }
+    },
+    "healing-magic": {
+      "label": "Magia curativa",
+      "aliases": {
+        "0": "Magia di ripristino"
+      }
+    },
+    "enchantment": {
+      "label": "Incantamento",
+      "aliases": {
+        "0": "Incantamenti"
+      }
+    },
+    "divination": {
+      "label": "Divinazione",
+      "aliases": {
+        "0": "Scrutamento"
+      }
+    },
+    "summoning": {
+      "label": "Evocazione",
+      "aliases": {
+        "0": "Congiurazione"
+      }
+    },
+    "necromancy": {
+      "label": "Necromanzia",
+      "aliases": {
+        "0": "Magia della morte"
+      }
+    },
+    "illusion": {
+      "label": "Illusione",
+      "aliases": {
+        "0": "Illusioni"
+      }
+    },
+    "runes": {
+      "label": "Runa",
+      "aliases": {
+        "0": "Rune",
+        "1": "Arte runica"
+      }
+    },
+    "alchemy": {
+      "label": "Alchimia",
+      "aliases": {
+        "0": "Trasmutazione"
+      }
+    },
+    "curse": {
+      "label": "Maledizione",
+      "aliases": {
+        "0": "Maledizioni",
+        "1": "Maleficio"
+      }
+    },
+    "ward": {
+      "label": "Protezione",
+      "aliases": {
+        "0": "Protezioni",
+        "1": "Magia protettiva"
+      }
+    },
+    "ritual-magic": {
+      "label": "Magia rituale",
+      "aliases": {
+        "0": "Rituali"
+      }
+    },
+    "time-magic": {
+      "label": "Magia temporale",
+      "aliases": {
+        "0": "Cronomanzia"
+      }
+    },
+    "space-magic": {
+      "label": "Magia spaziale",
+      "aliases": {
+        "0": "Magia dello spazio"
+      }
+    },
+    "nature-magic": {
+      "label": "Magia naturale",
+      "aliases": {
+        "0": "Druidismo"
+      }
+    },
+    "blood-magic": {
+      "label": "Magia del sangue",
+      "aliases": {
+        "0": "Emomanzia"
+      }
+    },
+    "chain-rules": {
+      "label": "Regole della Chain",
+      "aliases": {
+        "0": "Meccaniche della Chain"
+      }
+    },
+    "choice-points": {
+      "label": "Punto Scelta",
+      "aliases": {
+        "0": "Punti Scelta",
+        "1": "CP"
+      }
+    },
+    "fiat": {
+      "label": "Fiat",
+      "aliases": {
+        "0": "Garanzia Fiat"
+      }
+    },
+    "perk-interaction": {
+      "label": "Interazione tra Vantaggi",
+      "aliases": {
+        "0": "Sinergia tra Vantaggi"
+      }
+    },
+    "drawback-interaction": {
+      "label": "Interazione tra Svantaggi",
+      "aliases": {
+        "0": "Sinergia tra Svantaggi"
+      }
+    },
+    "narrative-control": {
+      "label": "Controllo narrativo",
+      "aliases": {
+        "0": "Controllo della storia"
+      }
+    },
+    "probability": {
+      "label": "Probabilità",
+      "aliases": {
+        "0": "Caso"
+      }
+    },
+    "reality-warping": {
+      "label": "Alterazione della realtà",
+      "aliases": {
+        "0": "Modifica della realtà"
+      }
+    },
+    "dimensional-travel": {
+      "label": "Viaggio dimensionale",
+      "aliases": {
+        "0": "Viaggio tra mondi"
+      }
+    },
+    "out-of-context": {
+      "label": "Fuori contesto",
+      "aliases": {
+        "0": "OOC"
+      }
+    },
+    "concealment": {
+      "label": "Occultamento",
+      "aliases": {
+        "0": "Nascondersi"
+      }
+    },
+    "infiltration": {
+      "label": "Infiltrazione",
+      "aliases": {
+        "0": "Penetrazione"
+      }
+    },
+    "disguise": {
+      "label": "Travestimento",
+      "aliases": {
+        "0": "Travestimenti"
+      }
+    },
+    "evasion": {
+      "label": "Elusione",
+      "aliases": {
+        "0": "Evitamento"
+      }
+    },
+    "espionage": {
+      "label": "Spionaggio",
+      "aliases": {
+        "0": "Spionaggio"
+      }
+    },
+    "lockpicking": {
+      "label": "Scasso",
+      "aliases": {
+        "0": "Apertura di serrature"
+      }
+    },
+    "sabotage": {
+      "label": "Sabotaggio",
+      "aliases": {
+        "0": "Sovversione"
+      }
+    },
+    "surveillance": {
+      "label": "Sorveglianza",
+      "aliases": {
+        "0": "Osservazione"
+      }
+    },
+    "escape": {
+      "label": "Fuga",
+      "aliases": {
+        "0": "Fughe"
+      }
+    },
+    "theft": {
+      "label": "Furto",
+      "aliases": {
+        "0": "Ladrocinio"
+      }
+    },
+    "assassination": {
+      "label": "Assassinio",
+      "aliases": {
+        "0": "Assassinii"
+      }
+    },
+    "tracking": {
+      "label": "Tracciamento",
+      "aliases": {
+        "0": "Arte delle piste"
+      }
+    },
+    "strength": {
+      "label": "Forza",
+      "aliases": {
+        "0": "Potenza"
+      }
+    },
+    "endurance": {
+      "label": "Resistenza fisica",
+      "aliases": {
+        "0": "Tempra"
+      }
+    },
+    "speed": {
+      "label": "Velocità",
+      "aliases": {
+        "0": "Rapidità"
+      }
+    },
+    "agility": {
+      "label": "Agilità",
+      "aliases": {
+        "0": "Destrezza"
+      }
+    },
+    "senses": {
+      "label": "Senso",
+      "aliases": {
+        "0": "Sensi",
+        "1": "Sensoriale"
+      }
+    },
+    "healing": {
+      "label": "Guarigione",
+      "aliases": {
+        "0": "Recupero fisico"
+      }
+    },
+    "regeneration": {
+      "label": "Rigenerazione",
+      "aliases": {
+        "0": "Ricrescita"
+      }
+    },
+    "adaptation": {
+      "label": "Adattamento",
+      "aliases": {
+        "0": "Adattabilità"
+      }
+    },
+    "shapeshifting": {
+      "label": "Mutaforma",
+      "aliases": {
+        "0": "Trasformazione"
+      }
+    },
+    "size-change": {
+      "label": "Cambio di dimensione",
+      "aliases": {
+        "0": "Alterazione della dimensione"
+      }
+    },
+    "flight": {
+      "label": "Volo",
+      "aliases": {
+        "0": "Volare"
+      }
+    },
+    "aquatic": {
+      "label": "Acquatico",
+      "aliases": {
+        "0": "Subacqueo"
+      }
+    },
+    "biology": {
+      "label": "Biologia",
+      "aliases": {
+        "0": "Biologico"
+      }
+    },
+    "longevity": {
+      "label": "Longevità",
+      "aliases": {
+        "0": "Durata della vita"
+      }
+    },
+    "movement": {
+      "label": "Movimento",
+      "aliases": {
+        "0": "Mobilità"
+      }
+    },
+    "martial-arts": {
+      "label": "Arte marziale",
+      "aliases": {
+        "0": "Arti marziali"
+      }
+    },
+    "weapons": {
+      "label": "Arma",
+      "aliases": {
+        "0": "Armi",
+        "1": "Armamenti"
+      }
+    },
+    "melee-weapons": {
+      "label": "Arma da mischia",
+      "aliases": {
+        "0": "Armi da mischia"
+      }
+    },
+    "ranged-weapons": {
+      "label": "Arma a distanza",
+      "aliases": {
+        "0": "Armi a distanza"
+      }
+    },
+    "firearms": {
+      "label": "Arma da fuoco",
+      "aliases": {
+        "0": "Armi da fuoco",
+        "1": "Fucili"
+      }
+    },
+    "tactics": {
+      "label": "Tattica",
+      "aliases": {
+        "0": "Tattiche di battaglia"
+      }
+    },
+    "strategy": {
+      "label": "Strategia",
+      "aliases": {
+        "0": "Grande strategia"
+      }
+    },
+    "grappling": {
+      "label": "Lotta",
+      "aliases": {
+        "0": "Lotta libera"
+      }
+    },
+    "dueling": {
+      "label": "Duello",
+      "aliases": {
+        "0": "Duelli"
+      }
+    },
+    "marksmanship": {
+      "label": "Tiro di precisione",
+      "aliases": {
+        "0": "Tiratore scelto"
+      }
+    },
+    "battlefield-control": {
+      "label": "Controllo del campo di battaglia",
+      "aliases": {
+        "0": "Controllo della zona"
+      }
+    },
+    "unarmed-combat": {
+      "label": "Combattimento disarmato",
+      "aliases": {
+        "0": "Corpo a corpo"
+      }
+    },
+    "military": {
+      "label": "Militare",
+      "aliases": {
+        "0": "Guerra"
+      }
+    },
+    "resistance": {
+      "label": "Resistenza",
+      "aliases": {
+        "0": "Resistenze"
+      }
+    },
+    "elemental-resistance": {
+      "label": "Resistenza elementale",
+      "aliases": {
+        "0": "Protezione elementale"
+      }
+    },
+    "mental-resistance": {
+      "label": "Resistenza mentale",
+      "aliases": {
+        "0": "Protezione mentale"
+      }
+    },
+    "magical-resistance": {
+      "label": "Resistenza magica",
+      "aliases": {
+        "0": "Resistenza alla magia"
+      }
+    },
+    "immunity": {
+      "label": "Immunità",
+      "aliases": {
+        "0": "Immunità"
+      }
+    },
+    "barriers": {
+      "label": "Barriera",
+      "aliases": {
+        "0": "Barriere",
+        "1": "Scudo"
+      }
+    },
+    "armor": {
+      "label": "Armatura",
+      "aliases": {
+        "0": "Corazza"
+      }
+    },
+    "recovery": {
+      "label": "Recupero",
+      "aliases": {
+        "0": "Ristabilimento"
+      }
+    },
+    "survival": {
+      "label": "Sopravvivenza",
+      "aliases": {
+        "0": "Capacità di sopravvivenza"
+      }
+    },
+    "invulnerability": {
+      "label": "Invulnerabilità",
+      "aliases": {
+        "0": "Invincibilità"
+      }
+    },
+    "damage-reduction": {
+      "label": "Riduzione del danno",
+      "aliases": {
+        "0": "Mitigazione del danno"
+      }
+    },
+    "hazard-protection": {
+      "label": "Protezione dai pericoli",
+      "aliases": {
+        "0": "Protezione ambientale"
+      }
+    },
+    "anti-corruption": {
+      "label": "Anticorruzione",
+      "aliases": {
+        "0": "Resistenza alla corruzione"
+      }
+    },
+    "engineering": {
+      "label": "Ingegneria",
+      "aliases": {
+        "0": "Arte ingegneristica"
+      }
+    },
+    "enchanting": {
+      "label": "Incantamento",
+      "aliases": {
+        "0": "Incantamento degli Oggetti"
+      }
+    },
+    "smithing": {
+      "label": "Forgiatura",
+      "aliases": {
+        "0": "Arte fabbrile"
+      }
+    },
+    "cooking": {
+      "label": "Cucina",
+      "aliases": {
+        "0": "Arte culinaria"
+      }
+    },
+    "art": {
+      "label": "Arte",
+      "aliases": {
+        "0": "Arti"
+      }
+    },
+    "repair": {
+      "label": "Riparazione",
+      "aliases": {
+        "0": "Riparazioni",
+        "1": "Manutenzione"
+      }
+    },
+    "architecture": {
+      "label": "Architettura",
+      "aliases": {
+        "0": "Progettazione edilizia"
+      }
+    },
+    "chemistry": {
+      "label": "Chimica",
+      "aliases": {
+        "0": "Arte chimica"
+      }
+    },
+    "tailoring": {
+      "label": "Sartoria",
+      "aliases": {
+        "0": "Cucito"
+      }
+    },
+    "woodworking": {
+      "label": "Lavorazione del legno",
+      "aliases": {
+        "0": "Falegnameria"
+      }
+    },
+    "agriculture": {
+      "label": "Agricoltura",
+      "aliases": {
+        "0": "Coltivazione"
+      }
+    },
+    "resource-production": {
+      "label": "Produzione di risorse",
+      "aliases": {
+        "0": "Produzione"
+      }
+    },
+    "invention": {
+      "label": "Invenzione",
+      "aliases": {
+        "0": "Inventiva"
+      }
+    },
+    "computing": {
+      "label": "Informatica",
+      "aliases": {
+        "0": "Scienze informatiche"
+      }
+    },
+    "artificial-intelligence": {
+      "label": "Intelligenza artificiale",
+      "aliases": {
+        "0": "IA",
+        "1": "IA"
+      }
+    },
+    "cybernetics": {
+      "label": "Cibernetica",
+      "aliases": {
+        "0": "Cibernetico"
+      }
+    },
+    "robotics": {
+      "label": "Robotica",
+      "aliases": {
+        "0": "Ingegneria robotica"
+      }
+    },
+    "vehicles": {
+      "label": "Veicolo",
+      "aliases": {
+        "0": "Veicoli"
+      }
+    },
+    "spacecraft": {
+      "label": "Veicolo spaziale",
+      "aliases": {
+        "0": "Astronave",
+        "1": "Astronavi"
+      }
+    },
+    "aircraft": {
+      "label": "Velivolo",
+      "aliases": {
+        "0": "Aeroplano",
+        "1": "Aeroplani"
+      }
+    },
+    "watercraft": {
+      "label": "Imbarcazione",
+      "aliases": {
+        "0": "Nave",
+        "1": "Navi"
+      }
+    },
+    "science": {
+      "label": "Scienza",
+      "aliases": {
+        "0": "Scienze"
+      }
+    },
+    "automation": {
+      "label": "Automazione",
+      "aliases": {
+        "0": "Sistemi automatizzati"
+      }
+    },
+    "energy": {
+      "label": "Energia",
+      "aliases": {
+        "0": "Sistemi energetici"
+      }
+    },
+    "weapons-technology": {
+      "label": "Tecnologia delle armi",
+      "aliases": {
+        "0": "Tecnologia bellica"
+      }
+    },
+    "biotechnology": {
+      "label": "Biotecnologia",
+      "aliases": {
+        "0": "Biotecnologie"
+      }
+    },
+    "nanotechnology": {
+      "label": "Nanotecnologia",
+      "aliases": {
+        "0": "Nanotecnologie"
+      }
+    },
+    "communications": {
+      "label": "Tecnologia delle comunicazioni",
+      "aliases": {
+        "0": "Comunicazioni"
+      }
+    },
+    "sensors": {
+      "label": "Sensore",
+      "aliases": {
+        "0": "Sensori"
+      }
+    },
+    "virtual-reality": {
+      "label": "Realtà virtuale",
+      "aliases": {
+        "0": "VR"
+      }
+    },
+    "infrastructure": {
+      "label": "Infrastruttura",
+      "aliases": {
+        "0": "Servizi pubblici"
+      }
+    },
+    "convenience": {
+      "label": "Comodità",
+      "aliases": {
+        "0": "Qualità della vita"
+      }
+    },
+    "novelty": {
+      "label": "Originalità",
+      "aliases": {
+        "0": "Curiosità"
+      }
+    },
+    "hobby": {
+      "label": "Hobby",
+      "aliases": {
+        "0": "Passatempi"
+      }
+    },
+    "aesthetic": {
+      "label": "Estetica",
+      "aliases": {
+        "0": "Cosmetico"
+      }
+    },
+    "lifestyle": {
+      "label": "Stile di vita",
+      "aliases": {
+        "0": "Vita quotidiana"
+      }
+    },
+    "wealth": {
+      "label": "Ricchezza",
+      "aliases": {
+        "0": "Denaro"
+      }
+    },
+    "property": {
+      "label": "Proprietà",
+      "aliases": {
+        "0": "Beni"
+      }
+    },
+    "storage": {
+      "label": "Deposito",
+      "aliases": {
+        "0": "Spazio nell'inventario"
+      }
+    },
+    "clothing": {
+      "label": "Abbigliamento",
+      "aliases": {
+        "0": "Vestiti"
+      }
+    },
+    "pet": {
+      "label": "Animale domestico",
+      "aliases": {
+        "0": "Animali domestici"
+      }
+    },
+    "travel": {
+      "label": "Viaggio",
+      "aliases": {
+        "0": "Trasporto"
+      }
+    },
+    "environment": {
+      "label": "Ambiente",
+      "aliases": {
+        "0": "Ambientale"
+      }
+    },
+    "drawback": {
+      "label": "Svantaggio",
+      "aliases": {
+        "0": "Svantaggi"
+      }
+    },
+    "companion": {
+      "label": "Compagno",
+      "aliases": {
+        "0": "Compagni"
+      }
+    },
+    "item": {
+      "label": "Oggetto",
+      "aliases": {
+        "0": "Oggetti"
+      }
+    },
+    "perk": {
+      "label": "Vantaggio",
+      "aliases": {
+        "0": "Vantaggi"
+      }
+    }
+  },
+  "ui": {
+    "tagProfileEditor": {
+      "text": {
+        "userTagProfile": "Profilo tag dell'utente",
+        "categoryRelationship": "Categoria, relazione, ",
+        "andBadgeEditor": " ed editor dei badge",
+        "import": "Importa ",
+        "json": " JSON",
+        "export": "Esporta ",
+        "portableUserConfiguration": "Configurazione utente portatile",
+        "tagProfileJSON": " JSON del profilo tag",
+        "jsonDocument": "Documento JSON",
+        "importBehavior": "Comportamento dell'importazione",
+        "mergeWithThisProfile": "Unisci a questo profilo",
+        "replaceManualImportedTagsAndOverrides": "Sostituisci tag manuali/importati e sostituzioni",
+        "close": "Chiudi",
+        "tags": "Tag",
+        "findTag": "Trova tag",
+        "noTagsMatchThisSearch": "Nessun tag corrisponde alla ricerca.",
+        "refreshAcquiredTags": "Aggiorna tag acquisiti",
+        "enterTagManually": "Inserisci tag manualmente",
+        "newlyDetectedTags": "Tag appena rilevati",
+        "everyNormalizedTagStringFromInstalledJumpsIsAlready": "Ogni stringa tag normalizzata dei Jump installati è già presente in questo profilo.",
+        "missingStringsBeginUnderMiscellaneousExistingNamesAndAliases": "Le stringhe mancanti iniziano sotto Varie. I nomi e gli alias esistenti non vengono mai duplicati.",
+        "add": "Aggiungi ",
+        "detected": " rilevati",
+        "enterTagString": "Inserisci stringa tag",
+        "tag": "Tag",
+        "addTag": "Aggiungi tag",
+        "cancel": "Annulla",
+        "delete": "Elimina",
+        "reset": "Reimposta",
+        "identityAndCategory": "Identità e categoria",
+        "tagString": "Stringa tag",
+        "parent": "Genitore",
+        "topLevelFixed": "Primo livello (fisso)",
+        "primaryTagsAreAlwaysTopLevel": "🔒 I tag principali sono sempre di primo livello.",
+        "aliases": "Alias",
+        "noAliasesLinked": "Nessun alias collegato.",
+        "chooseATag": "Scegli un tag",
+        "linkAlias": "Collega alias",
+        "aliasLinksAreReciprocalLinkingTwoTagsOnceUpdates": "I collegamenti tra alias sono reciproci. Collegare due tag una volta aggiorna entrambe le voci.",
+        "backgroundAndBorder": "Sfondo e bordo",
+        "solidColor": "Colore uniforme",
+        "availableWhenBackgroundIsSolid": "🔒 Disponibile quando Sfondo è Uniforme.",
+        "gradientStops": "Punti della sfumatura",
+        "dragInteriorNodesToPositionThem": "Trascina i nodi interni per posizionarli.",
+        "addStop": "+ Aggiungi punto",
+        "selectedColor": "Colore selezionato",
+        "position": "Posizione",
+        "endpointPositionsStayAt0And100": "🔒 Le posizioni degli estremi restano a 0% e 100%.",
+        "removeStop": "Rimuovi punto",
+        "angle": "Angolo",
+        "gradientControlsAreAvailableWhenBackgroundIsGradient": "🔒 I controlli della sfumatura sono disponibili quando Sfondo è Sfumatura.",
+        "borderColor": "Colore del bordo",
+        "text": "Testo",
+        "textColor": "Colore del testo",
+        "chooseCustomTextColorModeToEdit": "🔒 Scegli la modalità colore del testo Personalizzato per modificare.",
+        "textEffectsAreStaticPresetsAnimationIsConfiguredSeparately": "Gli effetti del testo sono preimpostazioni statiche. L'animazione viene configurata separatamente.",
+        "animation": "Animazione",
+        "reducedMotionShowsTheOriginalTextColorAtFull": "Movimento ridotto mostra il colore originale del testo alla massima opacità senza movimento.",
+        "liveBadgePreview": "Anteprima del badge in tempo reale",
+        "source": "Origine",
+        "appearance": "Aspetto",
+        "changesAffectThisUserProfileOnlyTheSourceJump": "Le modifiche interessano solo questo profilo utente. Il Jump di origine rimane invariato."
+      },
+      "placeholder": {
+        "findTag": "Trova tag",
+        "exampleSummoning": "Esempio: Evocazione"
+      },
+      "ariaLabel": {
+        "parent": "Genitore",
+        "tagToLinkAsAnAlias": "Tag da collegare come alias",
+        "tagAnimation": "Animazione del tag",
+        "gradientStopPositions": "Posizioni dei punti della sfumatura",
+        "tagActions": "Azioni del tag {{tag}}"
+      },
+      "label": {
+        "background": "Sfondo",
+        "borderWidth": "Spessore del bordo",
+        "cornerStyle": "Stile degli angoli",
+        "padding": "Spaziatura interna",
+        "textColorMode": "Modalità colore del testo",
+        "weight": "Spessore",
+        "style": "Stile",
+        "decoration": "Decorazione",
+        "textEffect": "Effetto del testo"
+      }
+    }
+  }
+}

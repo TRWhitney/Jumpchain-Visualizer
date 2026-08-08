@@ -1,0 +1,512 @@
+{
+  "language": {
+    "description": "Scegli la lingua usata dall'applicazione. La piattaforma la usa come indicazione per il dizionario del controllo ortografico quando è installato un dizionario corrispondente."
+  },
+  "settings": {
+    "categories": {
+      "general": "Generali",
+      "editor": "Editor",
+      "chain": "Chain Tracker",
+      "notifications": "Notifiche",
+      "tags": "Tag",
+      "keys": "Associazioni tasti",
+      "accessibility": "Accessibilità",
+      "developer": "Sviluppatore"
+    },
+    "searchResults": "Risultati della ricerca",
+    "result_one": "{{count}} risultato",
+    "result_other": "{{count}} risultati",
+    "noResults": "Nessuna impostazione corrisponde alla ricerca."
+  },
+  "settingsSearch": {
+    "interfaceExperience": {
+      "label": "Esperienza dell'interfaccia",
+      "aliases": "interfaccia esperienza preimpostazione avanzata principianti personalizzata introduzione semplice esperto nuovo utente amichevole"
+    },
+    "general_hideTechnicalLocations": {
+      "label": "Posizioni tecniche",
+      "aliases": "generali nascondi tecnica posizione percorso path identificatore navigazione"
+    },
+    "general_collapseOptionalSectionsByDefault": {
+      "label": "Impostazioni predefinite delle Sezioni facoltative",
+      "aliases": "generali comprimi Sezioni facoltative predefinito dettagli aspetto esploratore tag"
+    },
+    "editor_showExplanatoryText": {
+      "label": "Mostra testo esplicativo",
+      "aliases": "editor spiegazioni descrittivo aiuto indicazioni principianti nuovo utente amichevole testo"
+    },
+    "language_tag": {
+      "label": "Lingua",
+      "aliases": "lingua impostazioni locali traduzione controllo ortografico dizionario"
+    },
+    "appearance_theme": {
+      "label": "Aspetto",
+      "aliases": "aspetto tema sistema chiaro scuro colore modalità"
+    },
+    "appearance_accentColor": {
+      "label": "Colore in risalto",
+      "aliases": "risalto colore hex oro tema aspetto"
+    },
+    "editor_saveMode": {
+      "label": "Salvataggio",
+      "aliases": "salvataggio salva automatico esplicito persistenza editor"
+    },
+    "editor_layoutPreviewPlaceholderCharacterLimit": {
+      "label": "Lunghezza del segnaposto nell'anteprima del layout",
+      "aliases": "editor layout anteprima segnaposto esempio testo rappresentativo tronca carattere limite"
+    },
+    "editor_warnMissingImageAlt": {
+      "label": "Avviso per testo alternativo immagine mancante",
+      "aliases": "editor immagine alt alternativo testo accessibilità avviso"
+    },
+    "editor_warnMissingLayoutTargets": {
+      "label": "Avviso per destinazione layout mancante",
+      "aliases": "editor layout destinazione riutilizzabile avviso"
+    },
+    "editor_permanentlyDeleteSidebarItems": {
+      "label": "Eliminazione elementi della barra laterale",
+      "aliases": "editor barra laterale clic destro elimina permanente conferma cestino rimuovi"
+    },
+    "editor_collapseAdvancedViews": {
+      "label": "Viste avanzate dell'Editor",
+      "aliases": "editor comprimi avanzate viste file sorgente proprietà schede espansione"
+    },
+    "editor_collapsePreviewInspectionTools": {
+      "label": "Strumenti di ispezione dell'anteprima",
+      "aliases": "editor comprimi anteprima strumenti ispezione limiti rimuovi colore espansione"
+    },
+    "chain_allowMultiplePackageVersions": {
+      "label": "Aggiungi un'altra versione del pacchetto",
+      "aliases": "chain importa installa aggiungi seconda pacchetto versione multiple parallele autore nome"
+    },
+    "chain_allowDuplicateJumps": {
+      "label": "Consenti Jump duplicati",
+      "aliases": "chain aggiungi stesso identico jump pacchetto duplicato ripeti ancora"
+    },
+    "chain_allowNegativePointBalances": {
+      "label": "Saldi punti negativi",
+      "aliases": "chain negativo punti saldo spesa eccessiva valuta"
+    },
+    "chain_allowRerolls": {
+      "label": "Consenti nuovi tiri",
+      "aliases": "chain ritira casuale sostituisci risultato"
+    },
+    "chain_includeItemTagsInRadar": {
+      "label": "Includi i tag degli Oggetti nel radar",
+      "aliases": "chain radar statistiche conteggio oggetto tag jumper forme inventario"
+    },
+    "chain_aggregateSimilarInventory": {
+      "label": "Aggrega Vantaggi e Oggetti simili",
+      "aliases": "chain inventario aggrega simili stesso nome grado vantaggio oggetto copie origini descrizioni"
+    },
+    "chain_warnUpstreamChanges": {
+      "label": "Avvisi per modifiche a monte",
+      "aliases": "chain monte modifica avviso riordina rimuovi dipendenza"
+    },
+    "chain_colorNamesByPrimaryTag": {
+      "label": "Colora i nomi delle Chain in base al tag principale",
+      "aliases": "chain colora nomi principale più alto vantaggio tag"
+    },
+    "chain_compactJumpActions": {
+      "label": "Azioni delle righe Jump",
+      "aliases": "chain compatte jump riga azioni sposta indietro avanti rimuovi menu"
+    },
+    "chain_collapseInventoryTagFilters": {
+      "label": "Filtri dei tag dell'inventario",
+      "aliases": "chain comprimi inventario tag filtro relazioni barra strumenti espansione"
+    },
+    "notifications_": {
+      "label": "Notifiche popup",
+      "aliases": "notifiche popup abilitate massimo durata conferme editor chain convalida errori"
+    },
+    "tags_profile": {
+      "label": "Profilo tag",
+      "aliases": "tag profilo categoria padre alias badge colori sfumature presentazione importa esporta"
+    },
+    "keybindings_overrides": {
+      "label": "Associazioni tasti",
+      "aliases": "tastiera tasti associazioni scorciatoie aggiunta rapida correzione rapida trova formatta tutto completamenti sostituzioni"
+    },
+    "accessibility_motion": {
+      "label": "Movimento",
+      "aliases": "movimento animazione ridotta completa sistema accessibilità"
+    },
+    "accessibility_imageAltTextHover": {
+      "label": "Testo alternativo al passaggio sulle immagini",
+      "aliases": "immagine alt alternativo testo passaggio tooltip anteprima editor chain tracker accessibilità"
+    },
+    "Developer_Logs": {
+      "label": "Log della sessione",
+      "aliases": "sviluppatore log registrazione visualizzatore analisi stack arresto anomalo rapporto debug sessione esporta cancella"
+    },
+    "developer_showMockData": {
+      "label": "Visualizza dati simulati",
+      "aliases": "sviluppatore simulati fixture dimostrazione Morgan reimposta dati esempio"
+    },
+    "developer_showAdditionalJumpInformation": {
+      "label": "Mostra informazioni aggiuntive sul Jump",
+      "aliases": "sviluppatore jump formato aggiuntive informazioni diagnostica format 1"
+    },
+    "developer_showOpenProjectFolder": {
+      "label": "Mostra Apri cartella del progetto",
+      "aliases": "sviluppatore editor apri progetto cartella desktop file system esterni file"
+    },
+    "developer_packageSizeLimits": {
+      "label": "Limiti di dimensione dei pacchetti",
+      "aliases": "sviluppatore pacchetto archivio definizione risorsa espanso dimensione limiti mib importa esporta rischio"
+    }
+  },
+  "logging": {
+    "app_crashed": "L'applicazione ha riscontrato un errore imprevisto.",
+    "storage_write_failed": "Non è stato possibile salvare una preferenza locale.",
+    "storage_recovery_used": "Le preferenze locali non valide sono state sostituite con valori predefiniti sicuri.",
+    "settings_value_changed": "Preferenze aggiornate.",
+    "settings_value_rejected": "Non è stato possibile applicare la preferenza.",
+    "settings_tag_profile_imported": "Profilo tag importato.",
+    "settings_tag_profile_exported": "Esportazione del profilo tag preparata.",
+    "settings_notification_previewed": "Preferenze delle notifiche aggiornate.",
+    "chain_created": "Chain creata.",
+    "chain_details_updated": "Dettagli della Chain aggiornati.",
+    "chain_package_added": "Jump aggiunto alla Chain.",
+    "chain_package_blocked": "Questa versione del pacchetto non può essere aggiunta con la preferenza corrente.",
+    "chain_choice_overspend_blocked": "Scelta rifiutata, saldo negativo",
+    "chain_reordered": "Riordinamento completato.",
+    "chain_removed": "Rimozione del Jump completata.",
+    "editor_format_succeeded": "Formattazione riuscita",
+    "editor_format_noop": "Niente da formattare",
+    "editor_quick_fix_succeeded": "Correzione rapida riuscita",
+    "editor_quick_fix_noop": "Niente da correggere",
+    "editor_format_failed": "Formattazione non riuscita. Il sorgente non è stato modificato.",
+    "editor_quick_fix_failed": "Correzione rapida non riuscita. Il sorgente non è stato modificato.",
+    "editor_asset_added": "Risorsa aggiunta",
+    "editor_asset_rejected_unsupported_type": "Risorsa rifiutata: il nome file deve usare PNG, JPEG, SVG, GIF, WebP o AVIF.",
+    "editor_asset_rejected_file_too_large": "Risorsa rifiutata: il file supera il limite di dimensione configurato per singola risorsa.",
+    "editor_asset_rejected_invalid_path": "Risorsa rifiutata: il nome file non può essere rappresentato come percorso sicuro di una risorsa del pacchetto.",
+    "editor_asset_rejected_duplicate_path": "Risorsa rifiutata: un'altra risorsa usa già questo nome file.",
+    "editor_asset_rejected_signature_mismatch": "Risorsa rifiutata: il contenuto del file non corrisponde all'estensione del nome file immagine.",
+    "editor_asset_rejected_decode_failed": "Risorsa rifiutata: l'immagine è danneggiata o non è stato possibile decodificarla completamente.",
+    "editor_asset_rejected_png_integrity": "Risorsa rifiutata: il controllo di integrità dei blocchi PNG non è riuscito.",
+    "editor_asset_rejected_trailing_data": "Risorsa rifiutata: il controllo di sicurezza per la terminazione dell'immagine o i dati finali non è riuscito.",
+    "editor_asset_rejected_geometry_limit": "Risorsa rifiutata: la geometria dell'immagine decodificata supera il limite di sicurezza.",
+    "editor_asset_rejected_dimension_mismatch": "Risorsa rifiutata: durante la decodifica l'immagine indica dimensioni incoerenti.",
+    "editor_asset_rejected_read_failed": "Risorsa rifiutata: non è stato possibile leggere il file selezionato.",
+    "editor_asset_rejected_validation_failed": "Risorsa rifiutata: si è verificato un errore imprevisto durante la convalida dell'immagine.",
+    "editor_asset_removed": "Risorsa rimossa",
+    "package_parse_failed": "Non è stato possibile analizzare un pacchetto."
+  },
+  "errors": {
+    "SETTINGS_DATABASE_LOCK_FAILED": "Blocco del database delle impostazioni non riuscito",
+    "SETTINGS_READ_FAILED": "Lettura delle impostazioni non riuscita",
+    "STORED_SETTINGS_ARE_INVALID_JSON": "Le impostazioni memorizzate contengono JSON non valido",
+    "SETTINGS_WRITE_FAILED": "Scrittura delle impostazioni non riuscita",
+    "CHAIN_DATABASE_LOCK_FAILED": "Blocco del database delle Chain non riuscito",
+    "CHAIN_READ_FAILED": "Lettura della Chain non riuscita",
+    "STORED_CHAINS_ARE_INVALID_JSON": "Le Chain memorizzate contengono JSON non valido",
+    "CHAIN_ID_IS_MISSING": "L'id della Chain è assente",
+    "CHAIN_SERIALIZATION_FAILED": "Serializzazione della Chain non riuscita",
+    "CHAIN_WRITE_FAILED": "Scrittura della Chain non riuscita",
+    "EDITOR_REGISTRY_READ_FAILED": "Lettura del registro dell'Editor non riuscita",
+    "STORED_EDITOR_REGISTRY_IS_INVALID_JSON": "Il registro dell'Editor memorizzato contiene JSON non valido",
+    "EDITOR_RECOVERY_PAYLOAD_EXCEEDS_THE_APPLICATION_LIMIT": "Il payload di ripristino dell'Editor supera il limite dell'applicazione",
+    "EDITOR_PAYLOAD_IS_INVALID_JSON": "Il payload dell'Editor contiene JSON non valido",
+    "EDITOR_SCHEMA_VERSION_IS_UNSUPPORTED": "La versione dello schema dell'Editor non è supportata",
+    "EDITOR_WORKSPACE_ID_IS_INVALID": "L'id dell'area di lavoro dell'Editor non è valido",
+    "EDITOR_SOURCE_FILES_ARE_MISSING": "I file sorgente dell'Editor sono assenti",
+    "EDITOR_REGISTRY_LOCK_FAILED": "Blocco del registro dell'Editor non riuscito",
+    "PROJECT_FILE_NAME_IS_INVALID": "Il nome del file di progetto non è valido",
+    "TEMPORARY_PROJECT_WRITE_FAILED": "Scrittura del progetto temporaneo non riuscita",
+    "ATOMIC_PROJECT_REPLACEMENT_FAILED": "Sostituzione atomica del progetto non riuscita",
+    "DESKTOP_PROJECT_FOLDER_IS_MISSING": "La cartella del progetto desktop è assente",
+    "DESKTOP_PROJECT_FOLDER_IS_UNAVAILABLE": "La cartella del progetto desktop non è disponibile",
+    "DESKTOP_PROJECT_CONTAINS_AN_INVALID_SOURCE_PATH": "Il progetto desktop contiene un percorso sorgente non valido",
+    "EDITOR_ASSETS_ARE_MISSING": "Le risorse dell'Editor sono assenti",
+    "DESKTOP_ASSET_FOLDER_COULD_NOT_BE_CREATED": "Non è stato possibile creare la cartella delle risorse desktop",
+    "DESKTOP_PROJECT_CONTAINS_AN_INVALID_ASSET_PATH": "Il progetto desktop contiene un percorso risorsa non valido",
+    "DESKTOP_ASSET_NAME_IS_INVALID": "Il nome della risorsa desktop non è valido",
+    "DESKTOP_ASSET_BYTES_ARE_INVALID": "I byte della risorsa desktop non sono validi",
+    "EDITOR_WORKSPACE_ID_IS_MISSING": "L'id dell'area di lavoro dell'Editor è assente",
+    "APPLICATION_RECOVERY_PATH_IS_UNAVAILABLE": "Il percorso di ripristino dell'applicazione non è disponibile",
+    "EDITOR_RECOVERY_DIRECTORY_COULD_NOT_BE_CREATED": "Non è stato possibile creare la directory di ripristino dell'Editor",
+    "EDITOR_REGISTRY_ENCODING_FAILED": "Codifica del registro dell'Editor non riuscita",
+    "EDITOR_REGISTRY_WRITE_FAILED": "Scrittura del registro dell'Editor non riuscita",
+    "EDITOR_RECOVERY_DATA_COULD_NOT_BE_STAGED_FOR_REMOVAL": "Non è stato possibile predisporre per la rimozione i dati di ripristino dell'Editor",
+    "EDITOR_RECOVERY_DATA_COULD_NOT_BE_REMOVED": "Non è stato possibile rimuovere i dati di ripristino dell'Editor",
+    "PROJECT_ENTRY_ESCAPES_ITS_ROOT": "La voce del progetto esce dalla propria radice",
+    "PROJECT_ENTRY_PATH_IS_INVALID": "Il percorso della voce del progetto non è valido",
+    "PROJECT_FOLDER_CANNOT_BE_READ": "La cartella del progetto non può essere letta",
+    "PROJECT_FOLDER_CONTAINS_AN_UNREADABLE_ENTRY": "La cartella del progetto contiene una voce illeggibile",
+    "PROJECT_ENTRY_TYPE_CANNOT_BE_READ": "Il tipo della voce del progetto non può essere letto",
+    "PROJECT_FOLDERS_CANNOT_CONTAIN_SYMBOLIC_LINKS": "Le cartelle del progetto non possono contenere collegamenti simbolici",
+    "PROJECT_ASSETS_CANNOT_BE_READ": "Le risorse del progetto non possono essere lette",
+    "PROJECT_ASSET_CANNOT_BE_READ": "La risorsa del progetto non può essere letta",
+    "PROJECT_ASSET_TYPE_CANNOT_BE_READ": "Il tipo della risorsa del progetto non può essere letto",
+    "PROJECT_ASSETS_CANNOT_CONTAIN_LINKS_OR_DIRECTORIES": "Le risorse del progetto non possono contenere collegamenti o directory",
+    "PROJECT_FOLDER_CONTAINS_AN_UNEXPECTED_ENTRY": "La cartella del progetto contiene una voce imprevista",
+    "PROJECT_FOLDER_ENTRY_COUNT_IS_INVALID": "Il numero di voci nella cartella del progetto non è valido",
+    "PROJECT_FOLDER_CONTAINS_COLLIDING_PATHS": "La cartella del progetto contiene percorsi in conflitto",
+    "PROJECT_ENTRY_CANNOT_BE_READ": "La voce del progetto non può essere letta",
+    "PROJECT_FOLDER_EXCEEDS_THE_EXPANDED_PACKAGE_LIMIT": "La cartella del progetto supera il limite del pacchetto espanso",
+    "PROJECT_DEFINITION_EXCEEDS_ITS_EFFECTIVE_LIMIT": "La definizione del progetto supera il proprio limite effettivo",
+    "PROJECT_DEFINITION_IS_NOT_VALID_UTF_8": "La definizione del progetto non è in formato UTF-8 valido",
+    "PROJECT_ASSET_EXCEEDS_ITS_EFFECTIVE_LIMIT": "La risorsa del progetto supera il proprio limite effettivo",
+    "PROJECT_IMAGES_EXCEED_THE_MANDATORY_PIXEL_LIMIT": "Le immagini del progetto superano il limite obbligatorio di pixel",
+    "PROJECT_FOLDER_CONTAINS_AN_UNSUPPORTED_FILE": "La cartella del progetto contiene un file non supportato",
+    "PROJECT_FOLDER_IS_MISSING_JUMP_JDEF": "Nella cartella del progetto manca jump.jdef",
+    "THE_SELECTED_PROJECT_IS_NOT_A_LOCAL_FOLDER": "Il progetto selezionato non è una cartella locale",
+    "THE_SELECTED_PROJECT_FOLDER_IS_UNAVAILABLE": "La cartella del progetto selezionato non è disponibile",
+    "SYSTEM_TIME_IS_UNAVAILABLE": "L'ora di sistema non è disponibile",
+    "CHAIN_PAYLOAD_EXCEEDS_THE_APPLICATION_LIMIT": "Il payload della Chain supera il limite dell'applicazione",
+    "CHAIN_PAYLOAD_IS_INVALID_JSON": "Il payload della Chain contiene JSON non valido",
+    "CHAIN_SCHEMA_VERSION_IS_UNSUPPORTED": "La versione dello schema della Chain non è supportata",
+    "CHAIN_ID_IS_INVALID": "L'id della Chain non è valido",
+    "SETTINGS_PAYLOAD_EXCEEDS_THE_APPLICATION_LIMIT": "Il payload delle impostazioni supera il limite dell'applicazione",
+    "SETTINGS_PAYLOAD_IS_INVALID_JSON": "Il payload delle impostazioni contiene JSON non valido",
+    "SETTINGS_SCHEMA_VERSION_IS_UNSUPPORTED": "La versione dello schema delle impostazioni non è supportata",
+    "DIAGNOSTIC_REPORT_EXCEEDS_THE_APPLICATION_LIMIT": "Il rapporto diagnostico supera il limite dell'applicazione",
+    "THE_SELECTED_REPORT_DESTINATION_IS_NOT_A_LOCAL_PATH": "La destinazione selezionata per il rapporto non è un percorso locale",
+    "DIAGNOSTIC_REPORT_WRITE_FAILED": "Scrittura del rapporto diagnostico non riuscita",
+    "THE_SELECTED_PACKAGE_DESTINATION_IS_NOT_A_LOCAL_PATH": "La destinazione selezionata per il pacchetto non è un percorso locale",
+    "FAILED_TO_RUN_JUMPCHAIN_VISUALIZER": "Avvio di Jumpchain Visualizer non riuscito",
+    "UNSAFE": "Non sicuro",
+    "UNKNOWN_COMMAND_ERROR": "Non è stato possibile completare l'operazione desktop.",
+    "EDITOR_PROJECTS_LOAD_FAILED": "Non è stato possibile caricare i progetti dell'Editor salvati.",
+    "SAVED_CHAINS_LOAD_FAILED": "Non è stato possibile caricare le Chain salvate.",
+    "AUTOSAVE_FAILED_MEMORY_RETAINED": "Salvataggio automatico non riuscito. Le modifiche in memoria sono ancora disponibili.",
+    "PROJECT_FOLDER_OPEN_FAILED": "Non è stato possibile aprire in sicurezza la cartella del progetto oppure l'autorizzazione è stata revocata.",
+    "EXPORT_FAILED": "Non è stato possibile completare l'esportazione in sicurezza.",
+    "EDITOR_AUTOSAVE_FAILED_MEMORY_RETAINED": "Salvataggio automatico dell'Editor non riuscito. Il sorgente in memoria è ancora disponibile.",
+    "DESKTOP_EDITOR_FOLDER_PERMISSION_LOST": "La cartella del progetto desktop non è disponibile oppure l'autorizzazione è stata revocata. I buffer dell'Editor e la copia di ripristino vengono conservati."
+  },
+  "ui": {
+    "crashBoundary": {
+      "text": {
+        "applicationRecovery": "Ripristino dell'applicazione",
+        "jumpchainVisualizerEncounteredAnError": "Jumpchain Visualizer ha riscontrato un errore",
+        "theCurrentDiagnosticSessionIsStillMemoryOnlyReview": "La sessione diagnostica corrente è ancora conservata solo in memoria. Esamina il rapporto prima di copiarlo o salvarlo; contenuti importati, credenziali e percorsi dell'utente sono esclusi.",
+        "application": "Applicazione",
+        "applicationVersion": "Jumpchain Visualizer 0.1.0",
+        "route": "Percorso",
+        "runtime": "Runtime",
+        "error": "Errore",
+        "copyReport": "Copia rapporto",
+        "saveReport": "Salva rapporto…",
+        "returnHome": "Torna alla Home",
+        "reload": "Ricarica"
+      }
+    },
+    "loggingViewer": {
+      "text": {
+        "sessionDiagnostics": "Diagnostica della sessione",
+        "recentEvents": "Eventi recenti",
+        "export": "Esporta…",
+        "clearSession": "Cancella sessione",
+        "searchLoggedEvents": "Cerca negli eventi registrati",
+        "redactionPreview": "Anteprima dell'occultamento",
+        "exportSessionEvents": "Esporta eventi della sessione",
+        "eventsToInclude": "Eventi da includere",
+        "currentFilteredEvents": " Eventi filtrati correnti",
+        "completeSession": " Sessione completa",
+        "importedContentFilesystemNamesCredentialsAndURLSecretsAre": "Contenuti importati, nomi del file system, credenziali e segreti negli URL sono esclusi. Gli attributi provengono esclusivamente dal catalogo di eventi registrato.",
+        "saveJSONLines": "Salva JSON Lines",
+        "cancel": "Annulla",
+        "selectedEvent": "Evento selezionato",
+        "severity": "Gravità",
+        "category": "Categoria",
+        "correlation": "Correlazione",
+        "safeAttributes": "Attributi sicuri",
+        "stackTrace": "Analisi dello stack",
+        "copyReport": "Copia rapporto",
+        "saveReport": "Salva rapporto…"
+      },
+      "placeholder": {
+        "findEventOrCategory": "Trova evento o categoria"
+      },
+      "ariaLabel": {
+        "minimumSeverity": "Gravità minima",
+        "filteredSessionDiagnosticEvents": "Eventi diagnostici filtrati della sessione",
+        "selectedLogEventDetails": "Dettagli dell'evento di log selezionato",
+        "eventActions": "Azioni dell'evento {{event}}"
+      }
+    },
+    "settingsSurface": {
+      "ariaLabel": {
+        "settingCategory": "Categoria delle impostazioni",
+        "developerSettingsPages": "Pagine delle impostazioni per sviluppatori"
+      },
+      "text": {
+        "destructiveReset": "Reimpostazione distruttiva",
+        "reset": "Reimposta",
+        "cancel": "Annulla",
+        "developerOverride": "Sostituzione dello sviluppatore",
+        "increasePackageLimitsAtYourOwnRisk": "Aumenta i limiti dei pacchetti a tuo rischio",
+        "largerPackagesCanConsumeSubstantialMemoryDiskSpaceAnd": "I pacchetti più grandi possono consumare quantità considerevoli di memoria, spazio su disco e tempo di elaborazione. Questi limiti incidono su importazione ed esportazione nell'Editor, caricamento dei progetti desktop e installazione dei pacchetti nel Chain Tracker.",
+        "pathFileTypeCompressionRatioImageSchemaAndAtomicity": "Le protezioni relative a percorsi, tipi di file, rapporti di compressione, immagini, schema e atomicità restano obbligatorie e non possono essere disabilitate.",
+        "iUnderstandEnable": "Comprendo, abilita",
+        "general": "Generali",
+        "essentials": "Elementi essenziali",
+        "interfaceBehavior": "Comportamento dell'interfaccia",
+        "experienced": "Avanzata",
+        "newUserFriendly": "Adatta ai principianti",
+        "custom": "Personalizzata",
+        "restartWelcomeTour": "Riavvia il tour di benvenuto",
+        "hideTechnicalLocations": "Nascondi posizioni tecniche non elaborate",
+        "collapseOptionalSectionsByDefault": "Comprimi per impostazione predefinita le Sezioni facoltative",
+        "useSystemSetting": "Usa impostazione di sistema",
+        "light": "Chiaro",
+        "dark": "Scuro",
+        "homeIsAlwaysTheRootDestinationStartupRedirectionIs": "La Home è sempre la destinazione radice. Il reindirizzamento all'avvio è un comportamento stabilito dell'applicazione, non una preferenza configurabile.",
+        "editor": "Editor",
+        "workflow": "Flusso di lavoro",
+        "displayAndGuidance": "Visualizzazione e indicazioni",
+        "warnings": "Avvisi",
+        "collapseAdvancedViews": "Avvia con le viste avanzate compresse",
+        "collapsePreviewInspectionTools": "Avvia con gli strumenti di ispezione dell'anteprima compressi",
+        "showExplanatoryText": "Mostra testo esplicativo",
+        "autosave": "Salvataggio automatico",
+        "explicitSave": "Salvataggio esplicito",
+        "showAccessibilityWarning": "Mostra avviso di accessibilità",
+        "showMissingTargetWarning": "Mostra avviso di destinazione mancante",
+        "permanentlyDeleteSidebarItems": "Elimina definitivamente gli elementi della barra laterale",
+        "editorPreferencesApplyImmediatelyAndPersist": "Le preferenze dell'Editor vengono applicate immediatamente alle aree di lavoro aperte e persistono tra gli avvii.",
+        "chainTracker": "Chain Tracker",
+        "controlsAndRules": "Controlli e regole",
+        "inventoryAndAppearance": "Inventario e aspetto",
+        "changeWarnings": "Avvisi di modifica",
+        "compactJumpActions": "Usa menu compatti per le azioni Jump",
+        "collapseInventoryTagFilters": "Avvia con i filtri dei tag dell'inventario compressi",
+        "allowSecondVersion": "Consenti seconda versione",
+        "allowDuplicateJumps": "Consenti Jump duplicati",
+        "allowNegativeBalances": "Consenti saldi negativi",
+        "allowRerolls": "Consenti nuovi tiri",
+        "aggregateSimilarRecords": "Aggrega record simili",
+        "countItemTags": "Conteggia i tag degli Oggetti",
+        "warnAboutUpstreamChanges": "Avvisa delle modifiche a monte",
+        "colorChainNames": "Colora i nomi delle Chain",
+        "similarInventoryAggregationIsOnByDefaultTheOther": "L'aggregazione degli elementi simili dell'inventario è attiva per impostazione predefinita; le altre nove impostazioni sono disattivate. Le versioni identiche non vengono mai duplicate e la revisione a monte resta limitata alle modifiche sostanziali e annullabile.",
+        "keyBindings": "Associazioni tasti",
+        "sourceEditorShortcuts": "Editor del sorgente",
+        "assetEditorShortcuts": "Strumenti dell'editor delle risorse",
+        "overridesAreUserLocalDuplicateOrPlatformReservedBindings": "Le sostituzioni sono locali all'utente. Le associazioni duplicate o riservate dalla piattaforma vengono segnalate prima che una modifica sia accettata. I comandi dell'Editor vengono aggiornati immediatamente, anche quando un'area di lavoro resta montata dietro a Impostazioni.",
+        "accessibility": "Accessibilità",
+        "reduceMotion": "Riduci movimento",
+        "fullMotion": "Movimento completo",
+        "showAltTextOnHover": "Mostra testo alternativo al passaggio del puntatore",
+        "reducedMotionRemovesNonessentialMovementWithoutHidingStateChanges": "Il movimento ridotto elimina gli spostamenti non essenziali senza nascondere i cambiamenti di stato o le indicazioni di avanzamento.",
+        "overview": "Panoramica",
+        "logs": "Log",
+        "developer": "Sviluppatore",
+        "showMockFixtures": "Mostra fixture simulate",
+        "resetMockData": "Reimposta dati simulati",
+        "resettingMockData": "Reimpostazione dei dati simulati…",
+        "mockDataReset": "Dati simulati reimpostati.",
+        "mockDataResetFailed": "Non è stato possibile reimpostare i dati simulati. Non è stato modificato nulla.",
+        "enableExtraInformation": "Abilita informazioni aggiuntive",
+        "showFolderAction": "Mostra azione cartella",
+        "packageSizeLimits": "Limiti di dimensione dei pacchetti",
+        "byteBudgetsSharedByEditorImportExportDesktopProjects": "Limiti in byte condivisi da importazione/esportazione dell'Editor, progetti desktop e installazione nel Chain Tracker.",
+        "archive": "Archivio",
+        "mib": " MiB",
+        "definition": "Definizione",
+        "asset": "Risorsa",
+        "expanded": "Espanso",
+        "useCustomPackageLimits": "Usa limiti personalizzati per i pacchetti",
+        "absoluteCeiling": "Limite massimo assoluto: ",
+        "atYourOwnRisk": "A tuo rischio.",
+        "increasedByteBudgetsMayUseSubstantiallyMoreMemoryDisk": " Limiti in byte maggiori possono utilizzare quantità considerevolmente superiori di memoria, spazio su disco e tempo di elaborazione. Le altre protezioni dai file dannosi restano attive.",
+        "resetPackageLimits": "Reimposta limiti dei pacchetti",
+        "debugEvents": "Eventi di debug",
+        "includeDetailedDebugEventsUntilTheApplicationExits": "Includi eventi di debug dettagliati fino all'uscita dall'applicazione.",
+        "sessionOnly": "Solo per la sessione",
+        "captureDebugEvents": "Acquisisci eventi di debug",
+        "logsAreNeverPersistedBetweenLaunchesThisSessionControl": "I log non persistono mai tra gli avvii. Questo controllo di sessione non viene memorizzato come preferenza.",
+        "notifications": "Notifiche",
+        "enableToastNotifications": "Abilita notifiche popup",
+        "3Seconds": "3 secondi",
+        "5Seconds": "5 secondi",
+        "8Seconds": "8 secondi",
+        "15Seconds": "15 secondi",
+        "triggerClasses": "Classi di attivazione",
+        "previewToast": "Anteprima notifica",
+        "inputDrivenCandidatesWait500MsRepeatedMatchingEvents": "Gli eventi candidati generati dall'input attendono 500 ms. Gli eventi corrispondenti ripetuti aggiornano un'unica notifica e il relativo conteggio delle occorrenze."
+      },
+      "label": {
+        "interfaceExperience": "Esperienza dell'interfaccia",
+        "welcomeTour": "Tour di benvenuto",
+        "technicalLocations": "Posizioni tecniche",
+        "optionalSectionDefaults": "Impostazioni predefinite delle Sezioni facoltative",
+        "appearance": "Aspetto",
+        "accentColor": "Colore in risalto",
+        "saving": "Salvataggio",
+        "layoutPreviewPlaceholderCharacterLimit": "Lunghezza del segnaposto nell'anteprima del layout",
+        "missingImageAltWarning": "Avviso per testo alternativo immagine mancante",
+        "missingLayoutTargetWarning": "Avviso per destinazione layout mancante",
+        "sidebarItemDeletion": "Eliminazione elementi della barra laterale",
+        "advancedEditorViews": "Viste avanzate dell'Editor",
+        "previewInspectionTools": "Strumenti di ispezione dell'anteprima",
+        "editorExplanations": "Spiegazioni dell'Editor",
+        "addAnotherPackageVersion": "Aggiungi un'altra versione del pacchetto",
+        "allowDuplicateJumps": "Consenti Jump duplicati",
+        "negativePointBalances": "Saldi punti negativi",
+        "rerolls": "Nuovi tiri",
+        "aggregateSimilarPerksAndItems": "Aggrega Vantaggi e Oggetti simili",
+        "includeItemTagsInRadar": "Includi i tag degli Oggetti nel radar",
+        "upstreamChangeWarnings": "Avvisi per modifiche a monte",
+        "colorChainNamesByPrimaryTag": "Colora i nomi delle Chain in base al tag principale",
+        "jumpRowActions": "Azioni delle righe Jump",
+        "inventoryTagFilters": "Filtri dei tag dell'inventario",
+        "motion": "Movimento",
+        "altTextHoverForImages": "Testo alternativo al passaggio sulle immagini",
+        "seeMockData": "Visualizza dati simulati",
+        "showAdditionalJumpInformation": "Mostra informazioni aggiuntive sul Jump",
+        "showOpenProjectFolder": "Mostra Apri cartella del progetto",
+        "toastNotifications": "Notifiche popup",
+        "maximumVisible": "Numero massimo visibile",
+        "toastDuration": "Durata della notifica"
+      },
+      "description": {
+        "applyAStartingCollectionOfPresentationPreferences": "Applica una raccolta iniziale di preferenze di presentazione. Modificare in seguito una preferenza inclusa contrassegna l'esperienza come Personalizzata.",
+        "restartTheGuidedWelcomeTour": "Apri di nuovo l'introduzione guidata con una nuova area di lavoro e una nuova Chain temporanee.",
+        "hideRawRouteIdentifiersWhileKeepingNavigationLabels": "Nascondi gli identificatori dei percorsi non elaborati, mantenendo etichette di navigazione, nomi dei progetti e intestazioni delle pagine.",
+        "startFineGrainedEditorAndTagSectionsCollapsed": "Avvia le Sezioni dettagliate selezionate dell'Editor e dell'aspetto dei tag compresse, senza rimuoverne i controlli.",
+        "chooseTheApplicationColorTheme": "Scegli il tema cromatico dell'applicazione.",
+        "chooseTheBaseColorUsedToDeriveAccessibleApplication": "Scegli il colore di base usato per ricavare colori in risalto accessibili per l'applicazione.",
+        "chooseWhetherEditorChangesSaveAutomatically": "Scegli se salvare automaticamente le modifiche dell'Editor.",
+        "limitGeneratedLayoutPreviewPlaceholderText": "Facoltativamente, tronca il testo segnaposto generato per l'anteprima del layout a questo numero di caratteri. Lascia vuoto per mostrare l'intero testo rappresentativo.",
+        "warnWhenAnImageBlockOmitsAlternativeText": "Avvisa quando un blocco immagine omette il testo alternativo.",
+        "warnWhenAReusableLayoutTargetIsAbsent": "Avvisa quando manca una destinazione di layout riutilizzabile.",
+        "chooseWhetherSidebarDeleteUsesTrashOrPermanentRemoval": "Scegli se Elimina nel menu di scelta rapida sposta gli elementi della barra laterale nel Cestino o li rimuove definitivamente dopo una conferma.",
+        "startFilesSourceAndPropertiesBehindAdvancedViews": "Avvia File, Sorgente e Proprietà dietro l'espansione Viste avanzate dell'Editor. Gli strumenti della tela restano visibili dopo l'apertura di Sorgente.",
+        "startInspectAndStripColorBehindPreviewTools": "Avvia Ispeziona e Rimuovi colore dietro l'espansione Strumenti anteprima, mantenendo visibile la modalità di anteprima principale.",
+        "showOptionalEditorGuidance": "Mostra indicazioni facoltative sotto i campi dell'Editor e descrizioni sotto le scelte complesse. Avvisi, stato, informazioni sulla sicurezza e istruzioni obbligatorie restano sempre visibili.",
+        "allowAddToPlaceASecondInstalledVersionOf": "Consenti di importare e aggiungere una versione diversa dello stesso Jump, con gli stessi autore e nome. La stessa versione non viene mai installata due volte.",
+        "allowTheSameExactJumpPackageToBeAdded": "Consenti di aggiungere più volte alla Chain, come voci indipendenti, lo stesso identico pacchetto Jump.",
+        "permitActiveChoiceSelectionsThatWouldMakePrimaryJump": "Consenti selezioni attive delle Scelte che renderebbero negativi i punti principali del Jump. La cancellazione delle scelte e il ricalcolo non vengono mai bloccati.",
+        "allowARecordedRandomResultToBeReplacedFor": "Consenti di sostituire un risultato casuale registrato per la stessa voce della Chain.",
+        "combineRecordsWithTheSameOwnerKindResolvedName": "Combina i record con lo stesso proprietario, tipo, nome calcolato e grado, mantenendo ogni origine, descrizione e tag.",
+        "countTagsFromJumperAndFormItemsInRadar": "Conteggia nelle statistiche radar i tag degli Oggetti del Jumper e delle forme. I Vantaggi e gli Oggetti dei Compagni non contribuiscono mai.",
+        "reviewReorderOrDeletionOnlyWhenAnExplicitActive": "Esamina il riordinamento o l'eliminazione solo quando una dipendenza esplicita e attiva a valle diventerebbe non valida.",
+        "colorSavedChainNamesFromTheCategoryWithThe": "Colora i nomi delle Chain salvate in base alla categoria con il maggior conteggio radar idoneo.",
+        "replaceRepeatedMoveAndRemoveButtonsWithAnActionsMenu": "Sostituisci i pulsanti ripetuti Sposta e Rimuovi in ogni riga Jump con un unico menu azioni.",
+        "startInventoryTagRelationshipsBehindAToolbarDisclosure": "Avvia le relazioni tra tag dell'inventario dietro un'espansione nella barra degli strumenti, mantenendo visibili i filtri attivi.",
+        "controlNonessentialInterfaceAnimation": "Controlla le animazioni non essenziali dell'interfaccia.",
+        "showAuthoredAlternativeTextWhenHoveringImagesInPreviews": "Mostra il testo alternativo creato dall'autore quando si passa sulle immagini nelle anteprime dell'Editor e nel Chain Tracker. Se questa opzione è disattivata, le immagini mantengono il proprio testo di accessibilità.",
+        "showApplicationOwnedMockJumpsAndChains": "Mostra nella Libreria i Jump simulati di proprietà dell'applicazione e negli elenchi delle Chain salvate la Chain simulata di Morgan.",
+        "restoreMorganAndDefaultMockChoices": "Ripristina Morgan se è stato eliminato e sostituisci il suo stato corrente con le scelte simulate canoniche già compilate.",
+        "showTheEvaluatedPackageFormatAboveOrdinaryRenderedJumps": "Mostra il formato del pacchetto valutato sopra i normali Jump visualizzati.",
+        "showTheDesktopOnlyExternalFolderWorkflowOnThe": "Mostra nel centro dell'Editor il flusso di lavoro con cartelle esterne disponibile solo su desktop.",
+        "showUserFacingProjectionsOfSelectedSessionLogEvents": "Mostra proiezioni rivolte all'utente di eventi selezionati nel log della sessione.",
+        "additionalNotificationsWaitInTheQueue": "Le notifiche aggiuntive attendono nella coda.",
+        "interactionPausesAutomaticDismissal": "L'interazione sospende la chiusura automatica."
+      },
+      "placeholder": {
+        "unlimitedCharacters": "Illimitato"
+      }
+    },
+    "toastHost": {
+      "ariaLabel": {
+        "applicationNotifications": "Notifiche dell'applicazione",
+        "dismissNotification": "Ignora notifica"
+      }
+    }
+  }
+}

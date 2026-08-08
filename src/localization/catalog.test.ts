@@ -21,10 +21,25 @@ describe("translation catalog", () => {
   it("discovers the canonical English resource and defaults unknown tags", () => {
     expect(translationCatalog.languages.map((pack) => pack.name)).toEqual([
       "English",
+      "Español (España)",
       "Español (Latinoamérica)",
+      "Italiano",
       "Português (Brasil)",
     ]);
     expect(translationCatalog.english.languageTag).toBe("en");
+    expect(packForLanguage("es-ES")).toMatchObject({
+      name: "Español (España)",
+      languageTag: "es-ES",
+      direction: "ltr",
+    });
+    expect(
+      (
+        packForLanguage("es-ES").messages.settingsSearch as Record<
+          string,
+          Record<string, string>
+        >
+      ).chain_allowMultiplePackageVersions.label,
+    ).toBe("Añadir otra versión del paquete");
     expect(packForLanguage("es-419")).toMatchObject({
       name: "Español (Latinoamérica)",
       languageTag: "es-419",
@@ -34,6 +49,15 @@ describe("translation catalog", () => {
       (packForLanguage("es-419").messages.common as Record<string, string>)
         .settings,
     ).toBe("Configuración");
+    expect(packForLanguage("it-IT")).toMatchObject({
+      name: "Italiano",
+      languageTag: "it-IT",
+      direction: "ltr",
+    });
+    expect(
+      (packForLanguage("it-IT").messages.common as Record<string, string>)
+        .settings,
+    ).toBe("Impostazioni");
     expect(packForLanguage("pt-BR")).toMatchObject({
       name: "Português (Brasil)",
       languageTag: "pt-BR",

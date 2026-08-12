@@ -16,31 +16,42 @@ That's where this idea came from. Jumpchains without the work. My only hope is t
 
 <!-- PROJECT PREAMBLE: END -->
 
-Jumpchain Visualizer is an offline-first editor and chain tracker for creating, inspecting, playing, and managing Jumpchain packages. The packaged Tauri desktop application is the primary target; the same React application also runs in a browser for development and testing.
+Jumpchain Visualizer is an offline-first editor and chain tracker for authoring Jump packages and playing complete chains. The packaged Tauri desktop application is the primary target; the same React application also runs in a browser for development and testing.
 
 ## Feature showcase
 
 ### Build complete Jump packages
 
-Author with structured forms or edit Format 1 source directly. Both views share live validation, contextual diagnostics, project assets, undo/redo, and a rendered preview, then export the result as a `.jmp` package.
+Author with structured forms or edit Format 1 source directly. Both views share live validation, contextual diagnostics, project assets, undo/redo, and the same rendered preview used during play. Build responsive layouts, add raster or SVG artwork, inspect appearance roles, and export the finished work as a `.jmp` package.
 
 ![The Jump editor showing structured controls for a populated section beside its live rendered preview](documentation/assets/readme/jump-editor.png)
 
 ### Play and track a whole chain
 
-Import Jump packages, arrange a chain, make choices for the Jumper or companions, and follow each Jump's resources and selections without losing the wider journey.
+Import Jump packages into a versioned library, arrange them into a chain, and make persistent choices or rolls for the Jumper and imported companions. Costs, grants, identities, forms, and companion availability recalculate as choices change, while every Jump remains editable and every historical inspection point remains available.
 
-![The Chain Tracker showing Morgan's three-Jump chain and the active Gauntlet](documentation/assets/readme/chain-tracker.png)
+![The Chain Tracker showing Morgan's three-Jump chain with ranked perks and items selected in the first Jump](documentation/assets/readme/chain-tracker.png)
 
 ### Search everything acquired along the way
 
-Inspect inventory at any point in the chain, search by name or source Jump, separate perks from items, and filter with hierarchical Tags whose presentation belongs to the user's active Tag profile.
+Inspect inventory at any point in the chain, search by name or source Jump, separate perks from items, and filter with hierarchical Tags whose presentation belongs to the user's active Tag profile. Repeated acquisitions can aggregate without losing their individual sources, ranked and quantity-bearing grants retain their measurements, and the Stats view turns Tag totals into interactive radar and category views.
 
 ![The accrued inventory view showing historical controls, search, Tag filters, and ranked records](documentation/assets/readme/inventory.png)
 
 ### Keep supplements in the same workspace
 
-Eight built-in supplement modules cover Body Mod alternatives, persistent spaces, Universal Drawbacks, Quest Mode, Story, and Limited Inheritance while sharing state with the active chain. Limited Inheritance can restrict future Inventory, Forms, and Companion profiles to configurable per-Jump pools without hiding acquisitions in their source Jump.
+Eight built-in modules share state with the active chain and expose contextual tools inside each Jump:
+
+- Classic Body Mod
+- Essential Body Modification
+- Cosmic Warehouse
+- Personal Reality
+- Universal Drawbacks
+- Quest Mode
+- Story
+- Limited Inheritance
+
+The two Body Mods are alternative foundations, while Cosmic Warehouse and Personal Reality are alternative persistent spaces. Limited Inheritance can restrict future Inventory, Forms, and Companion profiles to configurable per-Jump pools without hiding acquisitions in their source Jump.
 
 ![The Classic Body Mod supplement showing an Athlete build and remaining point budget](documentation/assets/readme/supplements.png)
 
@@ -48,7 +59,10 @@ Eight built-in supplement modules cover Body Mod alternatives, persistent spaces
 
 - Local-first operation with no account, hosted backend, paid service, or telemetry dependency.
 - Secure package inspection before import, including archive, image, source, schema, reference, and size validation.
-- Accrued forms and companion rosters alongside perks and items.
+- Exact installed package versions remain pinned to their chain entries; optional parallel versions and duplicate Jumps keep independent chronology, choices, rolls, and grants.
+- Accrued forms and companion rosters sit alongside perks and items. Companion profiles retain their acquired records and complete Jump import history.
+- Chain reordering and removal understand downstream companion dependencies and offer review, autosave, and Undo without finalizing or locking earlier Jumps.
+- Choice costs, discounts, awards, multiple currencies, ranked selections, quantities, rolls, Gauntlet rules, and conditional grants are evaluated from the authored package.
 - Light and dark themes, keyboard-accessible interactions, and interfaces in English, Italian, Brazilian Portuguese, European Spanish, and Latin American Spanish.
 - One Format 1 renderer shared by Editor previews and the Chain Tracker.
 

@@ -1,4 +1,5 @@
 import type { ModuleId, ToolId } from "./model";
+import { translate } from "../localization";
 
 export const supplementTools: readonly {
   id: ToolId;
@@ -55,4 +56,14 @@ export const supplementTools: readonly {
     job: "Quest checklist",
   },
   { id: "story", module: "story", name: "Story", job: "Write this Jump" },
+  {
+    id: "limited-inheritance",
+    module: "limited-inheritance",
+    get name() {
+      return translate("ui.limitedInheritance.name");
+    },
+    get job() {
+      return translate("ui.limitedInheritance.contextualJob");
+    },
+  },
 ];

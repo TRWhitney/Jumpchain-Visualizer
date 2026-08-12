@@ -27,6 +27,11 @@ import {
   type InventoryTagNode,
 } from "./model";
 import { evaluateTracker, projectEvaluation } from "./evaluateTracker";
+import {
+  assignCandidate,
+  inheritanceCandidates,
+  inheritanceRecordIsVisible,
+} from "../supplements/limitedInheritance";
 
 function heroAcademyState(
   choices: Record<string, boolean | string | number | null>,
@@ -101,6 +106,144 @@ function firstStepWithoutSupplementPoints() {
 }
 
 describe("Chain Tracker aggregate", () => {
+  it("projects Limited Inheritance through inventory aggregation, radar, forms, companions, and profile records", () => {
+    const base = projectedFixture();
+    const records = [
+      {
+        id: "inherit-perk-a",
+        kind: "perk" as const,
+        name: "Shared Name",
+        sourceEntryId: "entry-0",
+        ownerActorId: "jumper",
+        tags: ["mental"],
+        description: "First separately granted perk.",
+      },
+      {
+        id: "inherit-perk-b",
+        kind: "perk" as const,
+        name: "Shared Name",
+        sourceEntryId: "entry-0",
+        ownerActorId: "jumper",
+        tags: ["mental"],
+        description: "Second separately granted perk.",
+      },
+      {
+        id: "inherit-form-perk",
+        kind: "perk" as const,
+        name: "Form Mind",
+        sourceEntryId: "entry-0",
+        ownerActorId: "jumper",
+        ownerFormId: "inherit-form",
+        tags: ["mental"],
+        description: "Attached to the inherited form.",
+      },
+      {
+        id: "inherit-companion-update",
+        kind: "perk" as const,
+        name: "Imported Training",
+        sourceEntryId: "entry-1",
+        ownerActorId: "inherit-companion",
+        tags: ["mental"],
+        description: "Granted by an import.",
+      },
+    ];
+    const state = {
+      ...base,
+      records,
+      forms: [
+        {
+          id: "inherit-form",
+          name: "Inherited Form",
+          sourceEntryId: "entry-0",
+          subtitle: "Granted form",
+          description: "A bundled form.",
+          initials: "IF",
+          details: [],
+          perkRecordIds: ["inherit-form-perk"],
+        },
+      ],
+      companions: [
+        {
+          actorId: "inherit-companion",
+          sourceEntryId: "entry-0",
+          tags: [],
+          perkRecordIds: ["inherit-companion-update"],
+          itemRecordIds: [],
+          importedEntryIds: ["entry-1"],
+        },
+      ],
+      actors: {
+        ...base.actors,
+        "inherit-companion": {
+          id: "inherit-companion",
+          name: "Lyra",
+          role: "Companion" as const,
+          joinedEntryId: "entry-0",
+          initials: "LY",
+          summary: "A tested companion.",
+        },
+      },
+      enabledSupplements: {
+        ...base.enabledSupplements,
+        "limited-inheritance": true,
+      },
+      inspectionPointId: "entry-2",
+    };
+
+    expect(filteredInventory(state)).toEqual([]);
+    expect(visibleForms(state)).toEqual([]);
+    expect(visibleCompanions(state).map((item) => item.actorId)).toEqual([
+      "inherit-companion",
+    ]);
+    expect(radarCounts(state).mental).toBe(0);
+    expect(inheritanceRecordIsVisible(state, records[3])).toBe(false);
+
+    const entryZero = inheritanceCandidates(state, "entry-0");
+    const entryOne = inheritanceCandidates(state, "entry-1");
+    let limited = state.supplements.limitedInheritance;
+    for (const item of entryZero.filter(
+      (candidate) => candidate.kind === "perk",
+    ))
+      limited = assignCandidate(limited, "entry-0", "pool-1", item);
+    limited = assignCandidate(
+      limited,
+      "entry-0",
+      "pool-3",
+      entryZero.find((candidate) => candidate.kind === "form")!,
+    );
+    limited = assignCandidate(limited, "entry-1", "pool-2", entryOne[0]);
+    const inherited = {
+      ...state,
+      supplements: {
+        ...state.supplements,
+        limitedInheritance: limited,
+      },
+    };
+
+    expect(filteredInventory(inherited)).toMatchObject([
+      { name: "Shared Name", aggregateQuantity: 2 },
+    ]);
+    expect(visibleForms(inherited).map((item) => item.id)).toEqual([
+      "inherit-form",
+    ]);
+    expect(radarCounts(inherited).mental).toBe(3);
+    expect(inheritanceRecordIsVisible(inherited, records[3])).toBe(true);
+
+    const current = { ...state, inspectionPointId: "entry-0" };
+    expect(filteredInventory(current)).toHaveLength(1);
+    expect(visibleForms(current)).toHaveLength(1);
+    const disabled = {
+      ...state,
+      enabledSupplements: {
+        ...state.enabledSupplements,
+        "limited-inheritance": false,
+      },
+    };
+    expect(filteredInventory(disabled)).toHaveLength(1);
+    expect(visibleForms(disabled)).toHaveLength(1);
+    expect(inheritanceRecordIsVisible(disabled, records[3])).toBe(true);
+  });
+
   it("returns the identical state object for guarded no-op actions", () => {
     const state = createDenseTrackerFixture();
     expect(trackerReducer(state, { type: "undo" })).toBe(state);
@@ -352,7 +495,17 @@ describe("Chain Tracker aggregate", () => {
   });
 
   it("reviews destructive removal, restores it through undo, and re-adds a fresh entry", () => {
-    const initial = createDenseTrackerFixture({ warnUpstreamChanges: true });
+    const base = createDenseTrackerFixture({ warnUpstreamChanges: true });
+    const initial = {
+      ...base,
+      supplements: {
+        ...base.supplements,
+        limitedInheritance: {
+          ...base.supplements.limitedInheritance,
+          assignments: { "entry-0": { "record:test": "pool-1" } },
+        },
+      },
+    };
     const requested = trackerReducer(initial, {
       type: "request-remove",
       entryId: "entry-0",
@@ -366,9 +519,15 @@ describe("Chain Tracker aggregate", () => {
     const removed = trackerReducer(requested, { type: "commit-mutation" });
     expect(removed.entries["entry-0"]).toBeUndefined();
     expect(removed.jumpState["entry-0"]).toBeUndefined();
+    expect(
+      removed.supplements.limitedInheritance.assignments["entry-0"],
+    ).toBeUndefined();
     const restored = trackerReducer(removed, { type: "undo" });
     expect(restored.entries["entry-0"].packageId).toBe("threshold-roads");
     expect(restored.jumpState["entry-0"]).toBeDefined();
+    expect(
+      restored.supplements.limitedInheritance.assignments["entry-0"],
+    ).toEqual({ "record:test": "pool-1" });
     const removedAgain = trackerReducer(
       trackerReducer(restored, {
         type: "request-remove",

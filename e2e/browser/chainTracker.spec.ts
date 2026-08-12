@@ -1518,6 +1518,93 @@ test("populated and empty companion profiles reflect imports and owned records",
   await attachScreenshot(testInfo, "empty-companion-profile", empty);
 });
 
+test("Limited Inheritance keeps companion import history while projecting import upgrades", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await page.goto(
+    "/review/chain-tracker?duplicateJumps=on&negativeBalances=on",
+  );
+  const tracker = trackerFor(page);
+  await tracker.getByRole("tab", { name: "Supplements" }).click();
+  const inheritanceRow = tracker
+    .locator(".supplement-manage-list article")
+    .filter({ hasText: "Limited Inheritance" });
+  await inheritanceRow.getByRole("checkbox").check();
+
+  await tracker.getByRole("tab", { name: "Chain & Jump" }).click();
+  await tracker.getByRole("tab", { name: "Library" }).click();
+  await tracker.getByPlaceholder("Find a jump").fill("The Confluence Engine");
+  await tracker
+    .getByRole("button", { name: "Add to chain again (x2)" })
+    .click();
+
+  const selectJump = async (name: RegExp) => {
+    await tracker.getByRole("tab", { name: "Chain & Jump" }).click();
+    await tracker.getByRole("tab", { name: "Chain", exact: true }).click();
+    await tracker.getByRole("button", { name }).click();
+  };
+  const openLyraProfile = async () => {
+    await tracker.getByRole("tab", { name: /^Companions/ }).click();
+    const lyra = tracker.locator(".chain-companion-grid article").filter({
+      hasText: "Lyra",
+    });
+    await lyra.getByRole("button", { name: "View" }).click();
+    await tracker.getByRole("button", { name: "Full profile" }).click();
+    return page.getByRole("dialog", { name: "Companion profile: Lyra" });
+  };
+
+  let profile = await openLyraProfile();
+  await expect(profile).toContainText("Imported into");
+  await expect(profile).toContainText("The Last Trial");
+  await expect(profile).not.toContainText("Participant Resilience");
+  await profile
+    .getByRole("button", { name: "Close companion profile" })
+    .click();
+
+  await selectJump(/3\. The Last Trial/);
+  await tracker.getByRole("button", { name: "Supp" }).click();
+  let supp = page.getByRole("dialog", {
+    name: "The Last Trial current-Jump supplements",
+  });
+  await supp
+    .getByRole("button", { name: /Limited Inheritance.*Choose what continues/ })
+    .click();
+  const update = supp
+    .locator(".limited-candidate-list article")
+    .filter({ hasText: "Lyra" });
+  await update.getByRole("button", { name: "Keep" }).click();
+  await page.keyboard.press("Escape");
+
+  await selectJump(/4\. The Confluence Engine/);
+  profile = await openLyraProfile();
+  await expect(profile).toContainText("Participant Resilience");
+  await expect(profile).toContainText("The Last Trial");
+  await profile
+    .getByRole("button", { name: "Close companion profile" })
+    .click();
+
+  await selectJump(/3\. The Last Trial/);
+  await tracker.getByRole("button", { name: "Supp" }).click();
+  supp = page.getByRole("dialog", {
+    name: "The Last Trial current-Jump supplements",
+  });
+  await supp
+    .getByRole("button", { name: /Limited Inheritance.*Choose what continues/ })
+    .click();
+  await supp
+    .locator(".limited-candidate-list article")
+    .filter({ hasText: "Lyra" })
+    .getByRole("button", { name: "Unselect" })
+    .click();
+  await page.keyboard.press("Escape");
+
+  await selectJump(/4\. The Confluence Engine/);
+  profile = await openLyraProfile();
+  await expect(profile).not.toContainText("Participant Resilience");
+  await expect(profile).toContainText("The Last Trial");
+});
+
 test("the imported companion is selectable only in the funded Last Trial", async ({
   page,
 }, testInfo) => {
@@ -1617,11 +1704,11 @@ test(
       })
       .getByRole("menuitem", { name: "Remove from chain…" })
       .click();
-    await expect(threshold).toHaveCount(0);
     const removalToast = page.locator(".app-toast-host .app-toast").filter({
       hasText: "Remove Jump complete.",
     });
     await expect(removalToast).toBeVisible();
+    await expect(threshold).toHaveCount(0);
     await removalToast.getByRole("button", { name: "Undo" }).click();
     await expect(threshold).toBeVisible();
   },

@@ -45,6 +45,7 @@ export function Modal({
   className,
   onClose,
   embedded = false,
+  showCloseButton = true,
   children,
 }: {
   title: string;
@@ -52,6 +53,7 @@ export function Modal({
   className: string;
   onClose: () => void;
   embedded?: boolean;
+  showCloseButton?: boolean;
   children: ReactNode;
 }) {
   const layer = useRef<HTMLDivElement>(null);
@@ -84,9 +86,15 @@ export function Modal({
             <p>{kicker}</p>
             <h4>{title}</h4>
           </div>
-          <button type="button" aria-label={`Close ${title}`} onClick={onClose}>
-            ×
-          </button>
+          {showCloseButton && (
+            <button
+              type="button"
+              aria-label={`Close ${title}`}
+              onClick={onClose}
+            >
+              ×
+            </button>
+          )}
         </header>
         {children}
       </section>

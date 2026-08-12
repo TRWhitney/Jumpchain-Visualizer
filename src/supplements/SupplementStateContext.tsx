@@ -10,10 +10,12 @@ export function SupplementStateProvider({
   children,
   state: controlledState,
   dispatch: controlledDispatch,
+  entryLabels = {},
 }: {
   children: ReactNode;
   state?: SupplementState;
   dispatch?: Dispatch<SupplementAction>;
+  entryLabels?: Readonly<Record<string, string>>;
 }) {
   const [localState, localDispatch] = useReducer(
     supplementReducer,
@@ -21,7 +23,10 @@ export function SupplementStateProvider({
   );
   const state = controlledState ?? localState;
   const dispatch = controlledDispatch ?? localDispatch;
-  const value = useMemo(() => ({ state, dispatch }), [dispatch, state]);
+  const value = useMemo(
+    () => ({ state, dispatch, entryLabels }),
+    [dispatch, entryLabels, state],
+  );
   return (
     <SupplementStateContext.Provider value={value}>
       {children}

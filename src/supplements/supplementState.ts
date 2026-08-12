@@ -1,4 +1,15 @@
 import type { CatalogEntry } from "./model";
+import {
+  addInheritancePool,
+  assignCandidate,
+  initialLimitedInheritanceState,
+  removeInheritancePool,
+  unassignCandidate,
+  updateInheritancePool,
+  type InheritanceCandidate,
+  type InheritancePool,
+  type LimitedInheritanceState,
+} from "./limitedInheritance";
 
 export type PurchaseMap = Record<string, number>;
 export type EssentialState = {
@@ -85,6 +96,7 @@ export type SupplementState = {
   uds: UdsState;
   quest: QuestState;
   story: StoryState;
+  limitedInheritance: LimitedInheritanceState;
 };
 
 export const initialSupplementState: SupplementState = {
@@ -217,6 +229,7 @@ export const initialSupplementState: SupplementState = {
       },
     ],
   },
+  limitedInheritance: initialLimitedInheritanceState(),
 };
 
 export const createUntouchedSupplementState = (): SupplementState => ({
@@ -270,6 +283,7 @@ export const createUntouchedSupplementState = (): SupplementState => ({
     saved: "",
     jumps: [],
   },
+  limitedInheritance: initialLimitedInheritanceState(),
 });
 
 export type SupplementAction =
@@ -283,12 +297,67 @@ export type SupplementAction =
   | { type: "realityProgress"; update: Partial<RealityState["progression"]> }
   | { type: "uds"; update: Partial<UdsState> }
   | { type: "quest"; update: Partial<QuestState> }
-  | { type: "story"; update: Partial<StoryState> };
+  | { type: "story"; update: Partial<StoryState> }
+  | { type: "limited-add-pool" }
+  | {
+      type: "limited-update-pool";
+      poolId: string;
+      update: Partial<Pick<InheritancePool, "kinds" | "limit" | "unlimited">>;
+    }
+  | { type: "limited-remove-pool"; poolId: string }
+  | {
+      type: "limited-assign";
+      entryId: string;
+      poolId: string;
+      candidate: InheritanceCandidate;
+    }
+  | { type: "limited-unassign"; entryId: string; candidateId: string };
 
 export function supplementReducer(
   state: SupplementState,
   action: SupplementAction,
 ): SupplementState {
+  if (action.type === "limited-add-pool")
+    return {
+      ...state,
+      limitedInheritance: addInheritancePool(state.limitedInheritance),
+    };
+  if (action.type === "limited-update-pool")
+    return {
+      ...state,
+      limitedInheritance: updateInheritancePool(
+        state.limitedInheritance,
+        action.poolId,
+        action.update,
+      ),
+    };
+  if (action.type === "limited-remove-pool")
+    return {
+      ...state,
+      limitedInheritance: removeInheritancePool(
+        state.limitedInheritance,
+        action.poolId,
+      ),
+    };
+  if (action.type === "limited-assign")
+    return {
+      ...state,
+      limitedInheritance: assignCandidate(
+        state.limitedInheritance,
+        action.entryId,
+        action.poolId,
+        action.candidate,
+      ),
+    };
+  if (action.type === "limited-unassign")
+    return {
+      ...state,
+      limitedInheritance: unassignCandidate(
+        state.limitedInheritance,
+        action.entryId,
+        action.candidateId,
+      ),
+    };
   if (action.type === "essentialProgress")
     return {
       ...state,

@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="supplements-essential.css">
   <link rel="stylesheet" href="supplements-personal-reality.css">
   <link rel="stylesheet" href="supplements-universal-drawbacks.css">
+  <link rel="stylesheet" href="supplements-limited-inheritance.css">
+  <link rel="stylesheet" href="supplements-typography.css">
   <script src="../assets/documentation.js" defer></script>
   <script src="supplements-design.js" defer></script>
   <script src="supplements-essential.js" defer></script>
@@ -45,7 +47,7 @@
         <h1>Supplements design</h1>
         <p class="lede">A bounded set of application-defined, chain-wide modules for persistent foundations, storage spaces, and rules that cannot be represented as ordinary Jump packages.</p>
 
-        <div class="supplement-status" role="note"><strong>Status: supported set agreed and every module has a detailed mockup.</strong> Classic Body Mod, Essential Body Modification, Cosmic Warehouse, Personal Reality, Universal Drawbacks, Quest Mode, and the application-owned Story supplement are in scope. The linked Quicksilver folders are the selected Classic Body Mod and Cosmic Warehouse sources; Essential Body Modification is pinned to v1.00, Personal Reality to v1.7, and Universal Drawbacks to SJ-Chan’s v1.12.</div>
+        <div class="supplement-status" role="note"><strong>Status: supported set agreed and every module has a detailed mockup.</strong> Classic Body Mod, Essential Body Modification, Cosmic Warehouse, Personal Reality, Universal Drawbacks, Quest Mode, Story, and the application-owned Limited Inheritance supplement are in scope. The linked Quicksilver folders are the selected Classic Body Mod and Cosmic Warehouse sources; Essential Body Modification is pinned to v1.00, Personal Reality to v1.7, and Universal Drawbacks to SJ-Chan’s v1.12.</div>
 
         <h2>Decided Boundary</h2>
         <ul>
@@ -53,6 +55,7 @@
           <li>Only an explicit supported list appears in the application; there is no generic supplement importer.</li>
           <li>Supplement state belongs to the chain, not a particular Jump entry or application-wide setting.</li>
           <li>Each enabled module receives a subtab under Chain Tracker → Supplements and uses the shared renderer where its choices resemble Jump content.</li>
+          <li>Every application-owned supplement uses the shared semantic type scale: 1.3–1.35rem page titles, 1–1.15rem section headings, 0.75rem body copy, 0.7–0.72rem controls and descriptions, 0.65rem labels, and a 0.6rem floor for secondary metadata.</li>
           <li>The Chain &amp; Jump sidebar places a <strong>Supp</strong> button beside <strong>+ Add</strong>. It opens an overlay listing only enabled supplements and their contextual tools for the currently selected Jump.</li>
           <li>Disabling a module hides its page and contextual tools, suspends its rules and grants, and preserves every selection. Re-enabling restores that state and recalculates the whole chain.</li>
           <li>Module-specific behavior may integrate with forms, inventory, companions, resources, or every Jump, but must do so through explicit application interfaces.</li>
@@ -75,6 +78,7 @@
               <button type="button" data-supplement-candidate="universal-drawbacks" data-family="rules" aria-pressed="false"><span><strong>Universal Drawbacks</strong><small>Rules · Very high integration</small></span><em>Supported</em></button>
               <button type="button" data-supplement-candidate="quest-mode" data-family="rules" aria-pressed="false"><span><strong>Quest Mode</strong><small>Rules · Per-Jump integration</small></span><em>Supported</em></button>
               <button type="button" data-supplement-candidate="story" data-family="narrative" aria-pressed="false"><span><strong>Story</strong><small>Narrative · Per-Jump writing</small></span><em>First-party</em></button>
+              <button type="button" data-supplement-candidate="limited-inheritance" data-family="rules" aria-pressed="false"><span><strong>Limited Inheritance</strong><small>Rules · Historical projection</small></span><em>First-party</em></button>
             </div>
             <section class="supplement-candidate-detail" aria-labelledby="supplement-detail-title"><p id="supplement-detail-family">Foundation family</p><h4 id="supplement-detail-title">Classic Body Mod</h4><span id="supplement-detail-recommendation">Supported</span><p id="supplement-detail-summary">A compact persistent baseline body configured independently from ordinary Jump forms.</p><dl><div><dt>State</dt><dd id="supplement-detail-state">Body selections, point balance, derived baseline form</dd></div><div><dt>Integrations</dt><dd id="supplement-detail-integrations">Forms, power-loss rendering, shared choice controls, contextual statistics</dd></div><div><dt>Main risk</dt><dd id="supplement-detail-risk">Selecting an exact edition and securing permission to distribute its content</dd></div></dl></section>
           </div>
@@ -90,6 +94,7 @@
           <tr><td>Universal Drawbacks</td><td>Rules</td><td>Explanation and the full supplement choice surface.</td><td>A concise summary of active drawbacks and their current-Jump effects.</td></tr>
           <tr><td>Quest Mode</td><td>Rules</td><td>Explanation of Quest Mode and its point rules.</td><td>A checklist of quests for the current Jump; checking a quest adds its listed CP award to that Jump.</td></tr>
           <tr><td>Story</td><td>Narrative</td><td>Explanation followed by every Jump’s story, oldest to newest.</td><td>A Live Preview story editor for the current Jump.</td></tr>
+          <tr><td>Limited Inheritance</td><td>Rules</td><td>Configure finite or unlimited pools and their eligible acquisition categories.</td><td>Assign current-Jump perks, items, companion bundles, and form bundles to pools.</td></tr>
         </tbody></table></div>
 
         <h2>Detailed Module Mockup: Classic Body Mod</h2>
@@ -344,6 +349,45 @@
           <li>A rule such as Gauntlet-Kun may contribute a supplement-owned Gauntlet source to the selected entry. It does not edit package markup or duplicate a manual entry source. Disabling or removing that rule removes only its source, and the entry remains a Gauntlet if another source is still active.</li>
           <li>Current-Jump budget calculation uses the evaluated Gauntlet starting contribution before adding Chain and Single-Jump drawback awards. A Gauntlet base of 0 never suppresses those awards or restricted pools.</li>
           <li>Companion targeting is implemented only where the source explicitly permits it or a purchased rule grants it; there is no global assumption that supplements apply separately to Companions.</li>
+        </ul>
+
+        <h2>Detailed Module Mockup: Limited Inheritance</h2>
+        <p>Limited Inheritance is an application-owned continuity rule. Every evaluated acquisition remains visible while its source Jump is the inspection point. At later inspection points, only candidates claimed by a configured pool remain in Inventory, Forms, Companions, and attached profile records. Ranked perks and measured item quantities each consume one slot without losing their full rank or quantity.</p>
+
+        <h3>Full supplement page</h3>
+        <p>The three defaults allow two combined Perks/Items, one Companion bundle, and one Form bundle per Jump. Pools are independent and cumulative. Category pills are whole-button toggles; Unlimited is a checkbox that disables but preserves the adjacent finite value. The pool-card region scrolls independently so all 32 bounded pools remain reachable.</p>
+        <div class="limited-full-mock" data-toc-ignore aria-label="Limited Inheritance pool configuration mockup">
+          <header><div><p>Continuity supplement</p><h4>Limited Inheritance</h4><span>Per-Jump inheritance pools</span></div><strong>3 pools</strong></header>
+          <div class="limited-full-body">
+            <section class="limited-explanation"><p>What this changes</p><h5>Keep only what you choose</h5><p>Source-Jump acquisitions all remain visible. Later Jumps project only inherited candidates.</p><div><article><strong>Current Jump</strong><span>All evaluated acquisitions remain visible.</span></article><article><strong>Future Jumps</strong><span>Finite pools keep explicit choices; unlimited pools claim eligible choices automatically.</span></article><article><strong>Companion history</strong><span>Every import remains recorded even when its new perks and items are not inherited.</span></article></div></section>
+            <section class="limited-pool-workspace">
+              <div class="limited-pool-heading"><div><p>Allowances</p><h5>Inheritance pools</h5></div><button type="button">+ Add pool</button></div>
+              <div class="limited-pool-list">
+                <article class="limited-pool-card"><header><div><span>Pool 1</span><strong>2 · Perks and Items</strong></div><button type="button">Remove</button></header><fieldset><legend>Eligible categories</legend><button type="button" aria-pressed="true">Perks</button><button type="button" aria-pressed="true">Items</button><button type="button" aria-pressed="false">Companions</button><button type="button" aria-pressed="false">Forms</button></fieldset><div class="limited-limit-controls"><label class="limited-unlimited-control"><span>Allowance type</span><span class="limited-unlimited-toggle"><input type="checkbox"><b>Unlimited</b></span></label><label><span>Per-Jump limit</span><span class="number-stepper"><label><input type="number" min="0" max="99" value="2" aria-label="Per-Jump limit"></label><span class="number-stepper-buttons"><button type="button" aria-label="Increase"><svg aria-hidden="true" viewBox="0 0 8 12" style="transform:rotate(270deg)"><path d="m2 2 4 4-4 4"></path></svg></button><button type="button" aria-label="Decrease"><svg aria-hidden="true" viewBox="0 0 8 12" style="transform:rotate(90deg)"><path d="m2 2 4 4-4 4"></path></svg></button></span></span></label></div><p class="limited-pool-usage">4 historical assignments</p></article>
+                <article class="limited-pool-card"><header><div><span>Pool 2</span><strong>1 · Companions</strong></div><button type="button">Remove</button></header><fieldset><legend>Eligible categories</legend><button type="button" aria-pressed="false">Perks</button><button type="button" aria-pressed="false">Items</button><button type="button" aria-pressed="true">Companions</button><button type="button" aria-pressed="false">Forms</button></fieldset><div class="limited-limit-controls"><label><span>Allowance type</span><span class="limited-unlimited-toggle"><input type="checkbox"><b>Unlimited</b></span></label><label><span>Per-Jump limit</span><span class="number-stepper"><label><input type="number" min="0" max="99" value="1" aria-label="Per-Jump limit"></label><span class="number-stepper-buttons"><button type="button" aria-label="Increase"><svg aria-hidden="true" viewBox="0 0 8 12" style="transform:rotate(270deg)"><path d="m2 2 4 4-4 4"></path></svg></button><button type="button" aria-label="Decrease"><svg aria-hidden="true" viewBox="0 0 8 12" style="transform:rotate(90deg)"><path d="m2 2 4 4-4 4"></path></svg></button></span></span></label></div><p class="limited-pool-usage">2 historical assignments</p></article>
+                <article class="limited-pool-card"><header><div><span>Pool 3</span><strong>1 · Forms</strong></div><button type="button">Remove</button></header><fieldset><legend>Eligible categories</legend><button type="button" aria-pressed="false">Perks</button><button type="button" aria-pressed="false">Items</button><button type="button" aria-pressed="false">Companions</button><button type="button" aria-pressed="true">Forms</button></fieldset><div class="limited-limit-controls"><label><span>Allowance type</span><span class="limited-unlimited-toggle"><input type="checkbox"><b>Unlimited</b></span></label><label><span>Per-Jump limit</span><span class="number-stepper"><label><input type="number" min="0" max="99" value="1" aria-label="Per-Jump limit"></label><span class="number-stepper-buttons"><button type="button" aria-label="Increase"><svg aria-hidden="true" viewBox="0 0 8 12" style="transform:rotate(270deg)"><path d="m2 2 4 4-4 4"></path></svg></button><button type="button" aria-label="Decrease"><svg aria-hidden="true" viewBox="0 0 8 12" style="transform:rotate(90deg)"><path d="m2 2 4 4-4 4"></path></svg></button></span></span></label></div><p class="limited-pool-usage">1 historical assignment</p></article>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <h3>Current-Jump dialogue</h3>
+        <p>Only pools with assigned or eligible candidates appear. Each pool is independently collapsible and retains its selected/capacity summary in the collapsed header. A new companion is one bundle with its attachments; an import is offered only when that Jump gives the companion at least one perk or item.</p>
+        <div class="limited-dialog-mock" data-toc-ignore aria-label="Limited Inheritance current-Jump mockup">
+          <header><div><p>Arcane Realms · Current Jump</p><h4>Choose inheritance</h4></div></header>
+          <div class="limited-dialog-body"><aside><p>Future loadout</p><strong>2</strong><span>explicit selections</span><p>Choose which acquisitions continue. Companion and form attachments stay with their owner.</p><button type="button">Configure pools</button></aside><section>
+            <section class="limited-dialog-pool"><header><button type="button" class="limited-pool-disclosure" aria-expanded="true"><svg aria-hidden="true" viewBox="0 0 8 12" style="transform:rotate(90deg)"><path d="m2 2 4 4-4 4"></path></svg><div><h5>2 · Perks and Items</h5><span>2 of 2 selected</span></div></button></header><div class="limited-candidate-list"><article class="is-selected"><div><span>Perks</span><strong>Gate Scholar</strong><small class="limited-candidate-source">Source · Arcane Realms</small><p>A complete ranked perk.</p></div><button type="button" aria-pressed="true">Unselect</button></article><article class="is-selected"><div><span>Items</span><strong>Traveler's Pack</strong><small class="limited-candidate-source">Source · Arcane Realms</small><p>All three acquired copies remain together.</p></div><button type="button" aria-pressed="true">Unselect</button></article></div></section>
+            <section class="limited-dialog-pool"><header><button type="button" class="limited-pool-disclosure" aria-expanded="false"><svg aria-hidden="true" viewBox="0 0 8 12"><path d="m2 2 4 4-4 4"></path></svg><div><h5>1 · Companions</h5><span>0 of 1 selected</span></div></button></header></section>
+          </section></div>
+        </div>
+
+        <h4>Rules and state boundary</h4>
+        <ul>
+          <li>Finite additions must fit current categories and capacity. Existing assignments are grandfathered after later pool changes; unselection is always allowed.</li>
+          <li>The first eligible unlimited pool claims overlapping candidates automatically. Separately granted identical records remain separate candidates.</li>
+          <li>Removing an unassigned pool is immediate. Removing an assigned pool confirms the affected Jumps and removes only that pool and its assignments. Removing a Jump removes its own assignments and import-history entries; reorder only recalculates chronology.</li>
+          <li>Companion import history is permanent independently of update inheritance. Current-Jump update records remain visible; unkept records disappear from later profiles while the import stays listed.</li>
+          <li>Disabling the supplement restores unrestricted ordinary tracking while preserving configuration and assignments. It adds no Format 1 syntax.</li>
         </ul>
 
         <h2>Detailed Module Mockup: Story</h2>

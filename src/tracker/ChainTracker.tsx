@@ -69,7 +69,6 @@ import {
   trackerTagDefinitions,
   visibleCompanions,
   visibleForms,
-  visibleAtInspection,
   type FormRecord,
   type InventoryRecord,
   type InventoryTagNode,
@@ -79,6 +78,10 @@ import {
   type EvaluatedJumpRuntime,
   supplementStateForEntry,
 } from "./model";
+import {
+  inheritanceCandidates,
+  inheritanceRecordIsVisible,
+} from "../supplements/limitedInheritance";
 import { installedPackageFromReview } from "./importedPackage";
 import {
   ChainHeader,
@@ -1180,7 +1183,10 @@ function JumpWorkspace({
                     actor.role === "Companion" &&
                     Boolean(actor.joinedEntryId) &&
                     state.order.indexOf(actor.joinedEntryId!) <
-                      state.order.indexOf(entryId),
+                      state.order.indexOf(entryId) &&
+                    visibleCompanions(state).some(
+                      (companion) => companion.actorId === actor.id,
+                    ),
                 )
                 .map((actor) => ({ id: actor.id, name: actor.name }))}
               gauntletActive={Boolean(gauntlet?.active)}
@@ -1793,9 +1799,7 @@ function RecordModal({
   applicationOverlay,
 }: TrackerProps & { applicationOverlay: boolean }) {
   const record = aggregateInventoryRecords(
-    state.records.filter((item) =>
-      visibleAtInspection(state, item.sourceEntryId),
-    ),
+    state.records.filter((item) => inheritanceRecordIsVisible(state, item)),
     state.preferences.aggregateSimilarInventory,
   ).find((item) => item.id === state.selectedRecordId);
   if (!record) return null;
@@ -2010,8 +2014,7 @@ function ProfileRecords({
   const records = aggregateInventoryRecords(
     state.records.filter(
       (record) =>
-        ids.includes(record.id) &&
-        visibleAtInspection(state, record.sourceEntryId),
+        ids.includes(record.id) && inheritanceRecordIsVisible(state, record),
     ),
     state.preferences.aggregateSimilarInventory,
   );
@@ -2060,7 +2063,10 @@ function ProfileImports({
   ids: readonly string[];
 }) {
   const entries = ids.flatMap((id) =>
-    state.entries[id] ? [{ id, name: packageForEntry(state, id).name }] : [],
+    state.entries[id] &&
+    state.order.indexOf(id) <= state.order.indexOf(state.inspectionPointId)
+      ? [{ id, name: packageForEntry(state, id).name }]
+      : [],
   );
   return (
     <section>
@@ -2380,6 +2386,11 @@ export function ChainTracker({
         jumpNumber={selectedNumber ?? 0}
         gauntlet={Boolean(selectedGauntlet?.active)}
         enabled={enabled}
+        inheritanceCandidates={inheritanceCandidates(
+          evaluation,
+          projectedState.selectedEntryId,
+        )}
+        tagDefinitions={projectedState.tags}
         onClose={closeSupplement}
         onOpenPage={(id: ModuleId) => {
           setSuppOpen(false);
@@ -2430,6 +2441,12 @@ export function ChainTracker({
       supplementDispatch={(action) =>
         dispatch({ type: "supplement-action", action })
       }
+      entryLabels={Object.fromEntries(
+        projectedState.order.map((entryId) => [
+          entryId,
+          packageForEntry(projectedState, entryId).name,
+        ]),
+      )}
     >
       <div
         className={`chain-mockup tracker-review-frame${showApplicationHeader ? "" : " is-shell-embedded"}`}

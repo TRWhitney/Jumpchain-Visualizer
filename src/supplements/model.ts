@@ -7,7 +7,8 @@ export type ModuleId =
   | "personal-reality"
   | "universal-drawbacks"
   | "quest-mode"
-  | "story";
+  | "story"
+  | "limited-inheritance";
 
 export type ToolId =
   | "body"
@@ -18,7 +19,8 @@ export type ToolId =
   | "reality-progress"
   | "drawbacks"
   | "quests"
-  | "story";
+  | "story"
+  | "limited-inheritance";
 export const toolModule: Record<ToolId, ModuleId> = {
   body: "body-mod",
   essential: "essential-body-mod",
@@ -29,6 +31,7 @@ export const toolModule: Record<ToolId, ModuleId> = {
   drawbacks: "universal-drawbacks",
   quests: "quest-mode",
   story: "story",
+  "limited-inheritance": "limited-inheritance",
 };
 
 export type SupplementModule = {
@@ -64,6 +67,7 @@ export const modules: readonly SupplementModule[] = [
   supplementModule("universal-drawbacks"),
   supplementModule("quest-mode"),
   supplementModule("story"),
+  supplementModule("limited-inheritance"),
 ];
 
 export type EnabledModules = Record<ModuleId, boolean>;
@@ -76,6 +80,7 @@ export const initialEnabled: EnabledModules = {
   "universal-drawbacks": true,
   "quest-mode": true,
   story: true,
+  "limited-inheritance": false,
 };
 
 export const createUntouchedEnabledModules = (): EnabledModules =>

@@ -35,6 +35,11 @@
         "shortName": "Story",
         "name": "Story",
         "description": "Una narrazione in Anteprima in tempo reale per ogni Jump."
+      },
+      "limited-inheritance": {
+        "shortName": "Eredità limitata",
+        "name": "Eredità limitata",
+        "description": "Scegli quali acquisizioni continuano oltre il Jump di origine."
       }
     },
     "catalogDiagnostics": {
@@ -3582,6 +3587,63 @@
         "findAnUpgrade": "Trova un miglioramento",
         "nameEffectOrRestriction": "Nome, effetto o restrizione"
       }
+    },
+    "limitedInheritance": {
+      "name": "Eredità limitata",
+      "contextualJob": "Scegli cosa continua",
+      "rulesSupplement": "Supplemento di continuità",
+      "mainSubtitle": "Pool di eredità per Jump",
+      "poolCount": "{{count}} pool",
+      "whatChanges": "Cosa cambia",
+      "explanationTitle": "Conserva solo ciò che scegli",
+      "explanation": "Ogni acquisizione resta visibile nel Jump di origine. Nei Jump successivi, solo le scelte assegnate a un pool continuano in Inventario, Forme e Compagni.",
+      "currentJump": "Jump corrente",
+      "currentJumpExplanation": "Tutti i perk, oggetti, compagni, forme e miglioramenti acquisiti restano visibili.",
+      "futureJumps": "Jump futuri",
+      "futureJumpExplanation": "I pool finiti conservano scelte esplicite. Quelli illimitati conservano automaticamente ogni scelta idonea.",
+      "companionHistory": "Cronologia dei compagni",
+      "companionHistoryExplanation": "Le importazioni vengono sempre ricordate. Solo i nuovi perk e oggetti richiedono eredità.",
+      "allowances": "Disponibilità",
+      "inheritancePools": "Pool di eredità",
+      "addPool": "+ Aggiungi pool",
+      "poolNumber": "Pool {{number}}",
+      "removePoolLabel": "Rimuovi pool {{number}}",
+      "remove": "Rimuovi",
+      "eligibleCategories": "Categorie idonee",
+      "allowanceType": "Tipo di disponibilità",
+      "finite": "Finita",
+      "unlimited": "Illimitata",
+      "perJumpLimit": "Limite per Jump",
+      "historicalAssignments": "{{count}} assegnazioni storiche",
+      "grandfatheredUsage": "{{count}} Jump superano il limite attuale; le assegnazioni esistenti restano ereditate.",
+      "poolSummary": "{{limit}} · {{kinds}}",
+      "noCategories": "Nessuna categoria",
+      "kind": {
+        "perk": "Perk",
+        "item": "Oggetti",
+        "companion": "Compagni",
+        "form": "Forme"
+      },
+      "removePoolTitle": "Rimuovere il pool di eredità?",
+      "confirmation": "Conferma",
+      "removePoolExplanation": "Rimuovere {{pool}} e le sue assegnazioni da {{count}} Jump? Le scelte e la cronologia delle importazioni restano invariate.",
+      "cancel": "Annulla",
+      "removePool": "Rimuovi pool",
+      "chooseInheritance": "Scegli l'eredità",
+      "futureLoadout": "Dotazione futura",
+      "explicitSelections": "scelte esplicite",
+      "dialogExplanation": "Scegli quali acquisizioni del Jump corrente continuano. Gli elementi collegati restano con il compagno o la forma.",
+      "configurePools": "Configura pool",
+      "expandPool": "Espandi pool",
+      "collapsePool": "Comprimi pool",
+      "automatic": "Automatica",
+      "poolCapacity": "{{selected}} di {{limit}} selezionati",
+      "source": "Fonte · {{jump}}",
+      "bundledRecords": "Include {{count}} elementi collegati",
+      "poolFull": "Questo pool non può accettare un'altra scelta.",
+      "removeSelection": "Deseleziona",
+      "keep": "Conserva",
+      "noEligibleChoices": "Nessun pool di eredità ha una scelta idonea in questo Jump."
     },
     "trackerSupplements": {
       "ariaLabel": {

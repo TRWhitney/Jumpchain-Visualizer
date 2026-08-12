@@ -147,7 +147,7 @@ test("the chain hub creates and renames records from the single demo chain", asy
     .querySelectorAll<HTMLInputElement>(
       ".supplement-manage-list input[type='checkbox']",
     );
-  expect(supplementToggles).toHaveLength(7);
+  expect(supplementToggles).toHaveLength(8);
   expect([...supplementToggles].every((toggle) => !toggle.checked)).toBe(true);
   expect(
     [

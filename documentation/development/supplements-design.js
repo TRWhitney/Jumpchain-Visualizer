@@ -9,6 +9,7 @@
     "personal-reality": { family: "Persistent-space family", title: "Personal Reality", recommendation: "Supported alternative", summary: "A larger home-and-storage system intended to replace several overlapping space supplements.", state: "Initial choices, expansions, accrued points, facilities, integration choices", integrations: "Inventory, companions, housing, at-a-glance and spend-points contextual tools", risk: "Replacement rules and incompatibility with other persistent spaces" },
     "universal-drawbacks": { family: "Rules family", title: "Universal Drawbacks", recommendation: "Supported", summary: "Chain-long and recurring drawbacks that alter budgets, restrictions, and other supplement resources.", state: "Active drawbacks, duration, awards and cancellations", integrations: "Every-Jump budget, validation, other supplement resources, contextual effects", risk: "Requires an explicit cross-Jump rule-effect engine" },
     "quest-mode": { family: "Rules family", title: "Quest Mode", recommendation: "Supported", summary: "Replaces ordinary starting CP with quest awards earned independently within each Jump.", state: "Per-Jump quest checklist, optional rules, earned-CP provenance", integrations: "Actor budgets, current-Jump contextual checklist, purchase revalidation", risk: "Unchecked quests can create deficits without automatically undoing purchases" },
+    "limited-inheritance": { family: "Rules family", title: "Limited Inheritance", recommendation: "First-party", summary: "Limits which current-Jump acquisitions remain visible in later Jumps through configurable inheritance pools.", state: "Stable pools, category allowances, per-entry candidate assignments", integrations: "Inventory, radar, Forms, Companions, profiles, import history", risk: "Keeping source visibility, inherited projection, and permanent import history distinct" },
     story: { family: "Narrative family", title: "Story", recommendation: "First-party", summary: "Stores and presents one rich narrative document for every Jump in the chain.", state: "Per-entry story source, formatting, text colors", integrations: "Current-Jump Live Preview editor, oldest-to-newest supplement page", risk: "Live Preview parsing and strict sanitization must share one deterministic document model" },
   };
   const filterButtons = [...explorer.querySelectorAll("[data-supplement-filter]")];
@@ -38,6 +39,30 @@
     if (!visible.some((candidate) => candidate.getAttribute("aria-pressed") === "true")) selectCandidate(visible[0]);
   }));
   candidateButtons.forEach((button) => button.addEventListener("click", () => selectCandidate(button)));
+
+  document.querySelectorAll(".limited-pool-card fieldset button").forEach((button) => {
+    button.addEventListener("click", () => {
+      button.setAttribute("aria-pressed", String(button.getAttribute("aria-pressed") !== "true"));
+    });
+  });
+  document.querySelectorAll(".limited-limit-controls").forEach((controls) => {
+    const unlimited = controls.querySelector("input[type='checkbox']");
+    const limit = controls.querySelector("input[type='number']");
+    unlimited?.addEventListener("change", () => {
+      limit.disabled = unlimited.checked;
+      limit.closest(".limited-limit-field")?.classList.toggle("is-disabled", unlimited.checked);
+    });
+  });
+  document.querySelectorAll(".limited-pool-disclosure").forEach((button) => {
+    button.addEventListener("click", () => {
+      const expanded = button.getAttribute("aria-expanded") === "true";
+      button.setAttribute("aria-expanded", String(!expanded));
+      const list = button.closest(".limited-dialog-pool")?.querySelector(".limited-candidate-list");
+      if (list) list.hidden = expanded;
+      const svg = button.querySelector("svg");
+      if (svg) svg.style.transform = expanded ? "rotate(0deg)" : "rotate(90deg)";
+    });
+  });
 
   const bodymod = document.querySelector(".bodymod-full-mock");
   const bodymodDialog = document.querySelector(".bodymod-dialog-mock");

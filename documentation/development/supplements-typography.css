@@ -1,0 +1,455 @@
+/* Shared semantic type scale for every application-owned supplement surface. */
+:is(
+  .bodymod-full-mock,
+  .bodymod-dialog-mock,
+  .warehouse-full-mock,
+  .warehouse-dialog-mock,
+  .essential-full-mock,
+  .essential-dialog-mock,
+  .essential-progression-mock,
+  .reality-full-mock,
+  .reality-dialog-mock,
+  .reality-progression-mock,
+  .uds-full-mock,
+  .uds-dialog-mock,
+  .quest-full-mock,
+  .quest-dialog-mock,
+  .story-full-mock,
+  .story-dialog-mock,
+  .limited-full-mock,
+  .limited-dialog-mock,
+  .limited-confirm-dialog
+) {
+  --supp-type-title: 1.3rem;
+  --supp-type-display: 1.15rem;
+  --supp-type-section: 1rem;
+  --supp-type-subheading: 0.8rem;
+  --supp-type-body: 0.75rem;
+  --supp-type-description: 0.72rem;
+  --supp-type-control: 0.7rem;
+  --supp-type-label: 0.65rem;
+  --supp-type-meta: 0.6rem;
+  --supp-type-eyebrow: 0.66rem;
+  font-size: var(--supp-type-body);
+}
+
+:is(.quest-full-mock, .quest-dialog-mock, .story-full-mock, .story-dialog-mock) {
+  --supp-type-title: 1.35rem;
+}
+
+:is(
+  .bodymod-full-header,
+  .bodymod-dialog-mock > header,
+  .warehouse-full-header,
+  .warehouse-dialog-mock > header,
+  .essential-full-mock > header,
+  .essential-dialog-mock > header,
+  .essential-progression-mock > header,
+  .reality-full-mock > header,
+  .reality-dialog-mock > header,
+  .reality-progression-mock > header,
+  .uds-full-mock > header,
+  .uds-dialog-mock > header,
+  .quest-full-header,
+  .quest-dialog-mock > header,
+  .story-full-mock > header,
+  .story-dialog-mock > header,
+  .limited-full-mock > header,
+  .limited-dialog-mock > header,
+  .limited-confirm-dialog > header
+)
+  h4 {
+  font-size: var(--supp-type-title) !important;
+}
+
+:is(
+  .bodymod-full-header,
+  .warehouse-full-header,
+  .essential-full-mock > header,
+  .reality-full-mock > header,
+  .uds-full-mock > header,
+  .quest-full-header,
+  .story-full-mock > header,
+  .limited-full-mock > header
+)
+  > div:first-child
+  > span {
+  font-size: var(--supp-type-control) !important;
+}
+
+:is(
+  .bodymod-full-header p,
+  .bodymod-kicker,
+  .bodymod-build-summary > p,
+  .warehouse-full-header p,
+  .warehouse-kicker,
+  .warehouse-summary > p,
+  .essential-full-mock > header p,
+  .essential-full-body > aside > p,
+  .essential-workspace > header p,
+  .reality-full-mock > header p,
+  .reality-full-body > aside > p,
+  .reality-workspace > header p,
+  .uds-full-mock > header p,
+  .uds-full-body > aside > p,
+  .uds-workspace > header p,
+  .quest-full-header p,
+  .quest-kicker,
+  .quest-summary > p,
+  .story-full-mock > header p,
+  .story-full-layout > aside > p,
+  .limited-full-mock > header p,
+  .limited-explanation > p:first-child,
+  .limited-pool-heading p
+) {
+  font-size: var(--supp-type-eyebrow) !important;
+}
+
+/* Classic Body Mod and Cosmic Warehouse establish the roomy baseline. */
+:is(.bodymod-panel, .warehouse-panel) > h5 {
+  font-size: var(--supp-type-display) !important;
+}
+
+:is(.bodymod-build-summary, .warehouse-summary) h5 {
+  font-size: var(--supp-type-section) !important;
+}
+
+:is(.bodymod-panel, .warehouse-panel) h6 {
+  font-size: var(--supp-type-subheading) !important;
+}
+
+:is(.bodymod-panel, .warehouse-panel) > p:not(.bodymod-kicker, .warehouse-kicker),
+:is(.bodymod-card-detail, .warehouse-card-detail) {
+  font-size: var(--supp-type-body) !important;
+}
+
+:is(.bodymod-full-tabs, .warehouse-full-tabs) button,
+:is(.bodymod-full-mock, .warehouse-full-mock) :is(input, select) {
+  font-size: var(--supp-type-body) !important;
+}
+
+:is(
+  .bodymod-budget span,
+  .bodymod-dialog-heading p,
+  .bodymod-dialog-body > section h6 span,
+  .warehouse-budget span,
+  .warehouse-dialog-heading p,
+  .warehouse-dialog-body > section h6 span,
+  .warehouse-floorplan span
+) {
+  font-size: var(--supp-type-meta) !important;
+}
+
+/* Essential Body Modification */
+:is(.essential-workspace > header h5, .essential-dialog-heading h5) {
+  font-size: var(--supp-type-section) !important;
+}
+
+:is(.essential-setup-group, .essential-progress-section) h6 {
+  font-size: var(--supp-type-subheading) !important;
+}
+
+:is(
+  .essential-mode-field p,
+  .essential-toggle-list label,
+  .essential-essence-detail,
+  .essential-essence-detail p,
+  .essential-perk-detail,
+  .essential-dialog-detail,
+  .essential-dialog-detail p,
+  .essential-gauntlet-note,
+  .essential-progress-section > p,
+  .essential-progress-note
+) {
+  font-size: var(--supp-type-body) !important;
+}
+
+:is(
+  #essential-category-nav strong,
+  .essential-mode-field > span,
+  .essential-essence-grid strong,
+  .essential-perk-copy strong,
+  .essential-progress-panel strong,
+  .essential-questing-panel label,
+  .essential-infusion-options strong,
+  .essential-progress-purchase strong
+) {
+  font-size: var(--supp-type-control) !important;
+}
+
+:is(
+  .essential-mode-field small,
+  .essential-toggle-list small,
+  .essential-essence-grid small,
+  .essential-perk-copy span,
+  .essential-progress-panel small,
+  .essential-infusion-options span,
+  .essential-progress-purchase span
+) {
+  font-size: var(--supp-type-description) !important;
+}
+
+:is(
+  #essential-search,
+  .essential-mode-field select,
+  .essential-perk-row select,
+  .essential-dialog-body > aside button,
+  .essential-dialog-filters button,
+  .essential-dialog-abilities button,
+  .essential-progress-panel > button,
+  .essential-progression-body > aside button,
+  .essential-spend-tools :is(select, input),
+  .essential-progress-purchase button
+) {
+  font-size: var(--supp-type-control) !important;
+}
+
+:is(#essential-search-label, .essential-spend-tools label) {
+  font-size: var(--supp-type-label) !important;
+}
+
+:is(
+  #essential-category-nav small,
+  .essential-perk-copy em,
+  .essential-perk-cost,
+  .essential-dialog-essence [role="tooltip"],
+  .essential-dialog-body :is(dt, dd),
+  .essential-dialog-heading > span,
+  .essential-progress-heading > span,
+  .essential-questing-panel b,
+  .essential-progress-purchase em
+) {
+  font-size: var(--supp-type-meta) !important;
+}
+
+/* Personal Reality */
+:is(.reality-workspace > header h5, .reality-dialog-heading h5, .reality-progress-heading h5) {
+  font-size: var(--supp-type-section) !important;
+}
+
+:is(.reality-extra-group, .reality-progress-section) h6 {
+  font-size: var(--supp-type-subheading) !important;
+}
+
+:is(
+  .reality-extra-list label,
+  .reality-purchase-detail,
+  .reality-dialog-detail,
+  .reality-dialog-detail p,
+  .reality-progress-section > p,
+  .reality-progress-note
+) {
+  font-size: var(--supp-type-body) !important;
+}
+
+:is(
+  #reality-category-nav strong,
+  .reality-mode-grid strong,
+  .reality-purchase-copy strong,
+  .reality-floorplan strong,
+  .reality-progress-panel strong,
+  .reality-conversion-options strong,
+  .reality-progress-purchase strong
+) {
+  font-size: var(--supp-type-control) !important;
+}
+
+:is(
+  .reality-mode-grid span,
+  .reality-extra-list small,
+  .reality-purchase-copy span,
+  .reality-floorplan span,
+  .reality-progress-panel small,
+  .reality-conversion-options span,
+  .reality-progress-purchase span
+) {
+  font-size: var(--supp-type-description) !important;
+}
+
+:is(
+  #reality-search,
+  .reality-purchase-row select,
+  .reality-dialog-body > aside > button,
+  .reality-dialog-filters button,
+  .reality-dialog-capabilities button,
+  .reality-progress-panel > button,
+  .reality-progression-body > aside button,
+  .reality-spend-tools :is(select, input),
+  .reality-progress-purchase button
+) {
+  font-size: var(--supp-type-control) !important;
+}
+
+:is(#reality-search-label, .reality-spend-tools label) {
+  font-size: var(--supp-type-label) !important;
+}
+
+:is(
+  #reality-category-nav small,
+  .reality-purchase-copy em,
+  .reality-purchase-cost,
+  .reality-mode-badge [role="tooltip"],
+  .reality-dialog-body :is(dt, dd),
+  .reality-dialog-heading > span,
+  .reality-progress-heading > span,
+  .reality-progress-purchase em
+) {
+  font-size: var(--supp-type-meta) !important;
+}
+
+/* Universal Drawbacks */
+:is(.uds-workspace > header h5, .uds-dialog-heading h5) {
+  font-size: var(--supp-type-section) !important;
+}
+
+:is(
+  .uds-full-body nav strong,
+  .uds-card-copy strong,
+  .uds-effect strong,
+  .uds-jump-choice strong
+) {
+  font-size: var(--supp-type-control) !important;
+}
+
+:is(
+  .uds-card-copy span,
+  .uds-card-detail,
+  .uds-effect small,
+  .uds-effect-detail,
+  .uds-jump-choice span
+) {
+  font-size: var(--supp-type-body) !important;
+}
+
+:is(
+  .uds-workspace > header input,
+  .uds-filter-bar button,
+  .uds-card-actions button,
+  .uds-dialog-body > aside > button,
+  .uds-dialog-filters button,
+  .uds-hiatus button,
+  .uds-jump-choice button,
+  .uds-jump-search input
+) {
+  font-size: var(--supp-type-control) !important;
+}
+
+:is(.uds-workspace > header label, .uds-jump-search) {
+  font-size: var(--supp-type-label) !important;
+}
+
+:is(
+  .uds-full-body nav small,
+  .uds-workspace > header div > span,
+  .uds-card-copy b,
+  .uds-card-tags em,
+  .uds-dialog-body :is(dt, dd),
+  .uds-dialog-heading > span,
+  .uds-budget-strip span,
+  .uds-effect em,
+  .uds-effect > b,
+  .uds-effect-open > b,
+  .uds-hiatus span,
+  .uds-jump-choice small
+) {
+  font-size: var(--supp-type-meta) !important;
+}
+
+/* Quest Mode */
+:is(.quest-panel h5) {
+  font-size: var(--supp-type-display) !important;
+}
+
+:is(.quest-panel h6) {
+  font-size: var(--supp-type-subheading) !important;
+}
+
+.quest-panel > p:not(.quest-kicker, .quest-guideline) {
+  font-size: var(--supp-type-body) !important;
+}
+
+:is(.quest-full-tabs button, .quest-card button, .quest-dialog-mock button) {
+  font-size: var(--supp-type-control) !important;
+}
+
+:is(.quest-summary dt, .quest-dialog-body dt) {
+  font-size: var(--supp-type-meta) !important;
+}
+
+.quest-dialog-rule-status b {
+  font-size: var(--supp-type-meta) !important;
+}
+
+/* Story */
+:is(.story-reader-intro p, .story-full-copy p, .story-rendered) {
+  font-size: var(--supp-type-body) !important;
+}
+
+:is(.story-full-layout > aside button strong, .story-chapter-index button) {
+  font-size: var(--supp-type-control) !important;
+}
+
+:is(
+  .story-full-layout > aside button span,
+  .story-full-layout > aside button small,
+  .story-full-chapter > header :is(span, small),
+  .story-full-section > span,
+  .story-writer > footer span
+) {
+  font-size: var(--supp-type-meta) !important;
+}
+
+/* Limited Inheritance */
+:is(.limited-explanation h5, .limited-pool-heading h5) {
+  font-size: var(--supp-type-section) !important;
+}
+
+:is(
+  .limited-explanation > p:last-of-type,
+  .limited-explanation article span,
+  .limited-dialog-body > aside > span,
+  .limited-dialog-body > aside > p:not(:first-child),
+  .limited-candidate-list article > div > p,
+  .limited-confirm-body p
+) {
+  font-size: var(--supp-type-body) !important;
+}
+
+:is(
+  .limited-explanation article strong,
+  .limited-pool-card > header strong,
+  .limited-dialog-pool h5,
+  .limited-candidate-list article > div > strong
+) {
+  font-size: var(--supp-type-control) !important;
+}
+
+:is(
+  .limited-pool-heading button,
+  .limited-pool-card > header button,
+  .limited-pool-card fieldset button,
+  .limited-unlimited-toggle,
+  .limited-limit-controls .number-stepper input,
+  .limited-dialog-body > aside button,
+  .limited-candidate-list button,
+  .limited-confirm-body button
+) {
+  font-size: var(--supp-type-control) !important;
+}
+
+:is(
+  .limited-pool-card > header span,
+  .limited-dialog-pool header span,
+  .limited-pool-usage,
+  .limited-candidate-list article > div > span,
+  .limited-candidate-list article > div > small
+) {
+  font-size: var(--supp-type-meta) !important;
+}
+
+:is(
+  .limited-pool-card legend,
+  .limited-limit-controls > :is(label, .limited-limit-field) > span
+) {
+  font-size: var(--supp-type-label) !important;
+}

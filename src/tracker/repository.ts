@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { BodyModState } from "../supplements/bodyMod";
 import type { EnabledModules, ModuleId } from "../supplements/model";
 import type { SupplementState } from "../supplements/supplementState";
+import { normalizeLimitedInheritanceState } from "../supplements/limitedInheritance";
 import {
   EARTH_ENTRY_ID,
   EARTH_ENTRY_STATUS,
@@ -112,10 +113,19 @@ export function applyAggregate(
     entries: normalizeSystemEntries(aggregate.entries),
     order: aggregate.order,
     jumpState: aggregate.jumpState,
-    enabledSupplements: aggregate.enabledSupplements,
+    enabledSupplements: {
+      ...base.enabledSupplements,
+      ...aggregate.enabledSupplements,
+    },
     supplementPage: aggregate.supplementPage,
     bodyMod: aggregate.bodyMod,
-    supplements: aggregate.supplements,
+    supplements: {
+      ...base.supplements,
+      ...aggregate.supplements,
+      limitedInheritance: normalizeLimitedInheritanceState(
+        aggregate.supplements.limitedInheritance,
+      ),
+    },
     entrySupplements: aggregate.entrySupplements ?? {},
     lastValidatedEvaluation: aggregate.lastValidatedEvaluation,
     selectedEntryId: aggregate.selectedEntryId,

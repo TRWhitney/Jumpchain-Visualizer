@@ -35,6 +35,11 @@
         "shortName": "História",
         "name": "História",
         "description": "Uma narrativa de Prévia ao vivo para cada Jump."
+      },
+      "limited-inheritance": {
+        "shortName": "Herança limitada",
+        "name": "Herança limitada",
+        "description": "Escolha quais aquisições continuam além do Jump de origem."
       }
     },
     "catalogDiagnostics": {
@@ -3582,6 +3587,63 @@
         "findAnUpgrade": "Encontrar um upgrade",
         "nameEffectOrRestriction": "Nome, efeito ou restrição"
       }
+    },
+    "limitedInheritance": {
+      "name": "Herança limitada",
+      "contextualJob": "Escolha o que continua",
+      "rulesSupplement": "Suplemento de continuidade",
+      "mainSubtitle": "Reservas de herança por Jump",
+      "poolCount": "{{count}} reservas",
+      "whatChanges": "O que muda",
+      "explanationTitle": "Mantenha apenas o que escolher",
+      "explanation": "Cada aquisição permanece visível no Jump de origem. Nos Jumps seguintes, só as escolhas atribuídas a uma reserva continuam no Inventário, Formas e Companheiros.",
+      "currentJump": "Jump atual",
+      "currentJumpExplanation": "Todos os perks, itens, companheiros, formas e aprimoramentos adquiridos permanecem visíveis.",
+      "futureJumps": "Jumps futuros",
+      "futureJumpExplanation": "Reservas finitas mantêm escolhas explícitas. Reservas ilimitadas mantêm automaticamente toda escolha elegível.",
+      "companionHistory": "Histórico de companheiros",
+      "companionHistoryExplanation": "Importações são sempre lembradas. Apenas novos perks e itens exigem herança.",
+      "allowances": "Permissões",
+      "inheritancePools": "Reservas de herança",
+      "addPool": "+ Adicionar reserva",
+      "poolNumber": "Reserva {{number}}",
+      "removePoolLabel": "Remover reserva {{number}}",
+      "remove": "Remover",
+      "eligibleCategories": "Categorias elegíveis",
+      "allowanceType": "Tipo de permissão",
+      "finite": "Finita",
+      "unlimited": "Ilimitada",
+      "perJumpLimit": "Limite por Jump",
+      "historicalAssignments": "{{count}} atribuições históricas",
+      "grandfatheredUsage": "{{count}} Jumps excedem o limite atual; as atribuições existentes continuam herdadas.",
+      "poolSummary": "{{limit}} · {{kinds}}",
+      "noCategories": "Sem categorias",
+      "kind": {
+        "perk": "Perks",
+        "item": "Itens",
+        "companion": "Companheiros",
+        "form": "Formas"
+      },
+      "removePoolTitle": "Remover a reserva de herança?",
+      "confirmation": "Confirmação",
+      "removePoolExplanation": "Remover {{pool}} e suas atribuições de {{count}} Jumps? As escolhas e o histórico de importações permanecem inalterados.",
+      "cancel": "Cancelar",
+      "removePool": "Remover reserva",
+      "chooseInheritance": "Escolher herança",
+      "futureLoadout": "Equipamento futuro",
+      "explicitSelections": "escolhas explícitas",
+      "dialogExplanation": "Escolha quais aquisições do Jump atual continuam. Elementos vinculados permanecem com seu companheiro ou forma.",
+      "configurePools": "Configurar reservas",
+      "expandPool": "Expandir reserva",
+      "collapsePool": "Recolher reserva",
+      "automatic": "Automática",
+      "poolCapacity": "{{selected}} de {{limit}} selecionados",
+      "source": "Origem · {{jump}}",
+      "bundledRecords": "Inclui {{count}} registros vinculados",
+      "poolFull": "Esta reserva não aceita outra escolha.",
+      "removeSelection": "Desmarcar",
+      "keep": "Manter",
+      "noEligibleChoices": "Nenhuma reserva de herança tem uma escolha elegível neste Jump."
     },
     "trackerSupplements": {
       "ariaLabel": {

@@ -22,6 +22,8 @@ import type { SupplementAction, SupplementState } from "./supplementState";
 import { translate } from "../localization";
 import { handleRovingTabKeyDown } from "../ui/rovingTabs";
 import { supplementTools } from "./toolCatalog";
+import type { InheritanceCandidate } from "./limitedInheritance";
+import type { TagDefinition } from "../domain/tags";
 
 export type SupplementPageId = "manage" | ModuleId;
 
@@ -31,18 +33,21 @@ export function SupplementProviders({
   onBodyModChange,
   supplementState,
   supplementDispatch,
+  entryLabels,
 }: {
   children: ReactNode;
   bodyMod?: BodyModState;
   onBodyModChange?: (value: BodyModState) => void;
   supplementState?: SupplementState;
   supplementDispatch?: Dispatch<SupplementAction>;
+  entryLabels?: Readonly<Record<string, string>>;
 }) {
   return (
     <BodyModProvider state={bodyMod} onChange={onBodyModChange}>
       <SupplementStateProvider
         state={supplementState}
         dispatch={supplementDispatch}
+        entryLabels={entryLabels}
       >
         {children}
       </SupplementStateProvider>
@@ -175,6 +180,8 @@ export function TrackerSupplementContext({
   onClose,
   onOpenPage,
   gauntlet = false,
+  inheritanceCandidates = [],
+  tagDefinitions = {},
 }: {
   jumpName: string;
   jumpEntryId: string;
@@ -183,6 +190,8 @@ export function TrackerSupplementContext({
   onClose: () => void;
   onOpenPage: (id: ModuleId) => void;
   gauntlet?: boolean;
+  inheritanceCandidates?: readonly InheritanceCandidate[];
+  tagDefinitions?: Readonly<Record<string, TagDefinition>>;
 }) {
   const root = useRef<HTMLElement>(null);
   const available = supplementTools.filter((tool) => enabled[tool.module]);
@@ -292,6 +301,8 @@ export function TrackerSupplementContext({
             jumpEntryId={jumpEntryId}
             jumpNumber={jumpNumber}
             gauntlet={gauntlet}
+            inheritanceCandidates={inheritanceCandidates}
+            tagDefinitions={tagDefinitions}
             openPage={(id) => {
               onClose();
               onOpenPage(id);

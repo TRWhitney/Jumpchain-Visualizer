@@ -18,6 +18,9 @@ import {
 } from "./bodyMod";
 import { ParityDialog } from "./ParityDialogs";
 import { translate } from "../localization";
+import { LimitedInheritanceDialog } from "./LimitedInheritance";
+import type { InheritanceCandidate } from "./limitedInheritance";
+import type { TagDefinition } from "../domain/tags";
 
 export function SupplementDialog({
   tool,
@@ -28,6 +31,8 @@ export function SupplementDialog({
   jumpEntryId = "entry-1",
   jumpNumber = 2,
   gauntlet = false,
+  inheritanceCandidates = [],
+  tagDefinitions = {},
 }: {
   tool: ToolId;
   close: () => void;
@@ -37,9 +42,23 @@ export function SupplementDialog({
   jumpEntryId?: string;
   jumpNumber?: number;
   gauntlet?: boolean;
+  inheritanceCandidates?: readonly InheritanceCandidate[];
+  tagDefinitions?: Readonly<Record<string, TagDefinition>>;
 }) {
   const { state } = useBodyMod();
   const [bodyDetail, setBodyDetail] = useState<string | null>(null);
+  if (tool === "limited-inheritance")
+    return (
+      <LimitedInheritanceDialog
+        candidates={inheritanceCandidates}
+        tagDefinitions={tagDefinitions}
+        entryId={jumpEntryId}
+        jumpName={jumpName}
+        close={close}
+        embedded={embedded}
+        openPage={() => openPage("limited-inheritance")}
+      />
+    );
   if (tool === "body") {
     const remaining = bodyModRemaining(state);
     const bodyType = bodyModTypeLabel(state.type);

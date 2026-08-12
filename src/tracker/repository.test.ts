@@ -92,6 +92,24 @@ describe("chain repository", () => {
     ).toBe(EARTH_ENTRY_STATUS);
   });
 
+  it("hydrates Limited Inheritance fields missing from older aggregates", () => {
+    const base = createDenseTrackerFixture();
+    const stale = structuredClone(
+      aggregateFromTracker("before-limited-inheritance", base),
+    );
+    delete (
+      stale.enabledSupplements as Partial<typeof stale.enabledSupplements>
+    )["limited-inheritance"];
+    delete (stale.supplements as Partial<typeof stale.supplements>)
+      .limitedInheritance;
+
+    const hydrated = applyAggregate(base, stale);
+
+    expect(hydrated.enabledSupplements["limited-inheritance"]).toBe(false);
+    expect(hydrated.supplements.limitedInheritance.pools).toHaveLength(3);
+    expect(hydrated.supplements.limitedInheritance.assignments).toEqual({});
+  });
+
   it("rebinds only the canonical demonstration packages while preserving state", () => {
     const base = createDenseTrackerFixture();
     const stale = aggregateFromTracker(DEMONSTRATION_CHAIN_ID, base);

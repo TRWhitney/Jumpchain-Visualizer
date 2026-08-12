@@ -40,7 +40,7 @@ Inspect inventory at any point in the chain, search by name or source Jump, sepa
 
 ### Keep supplements in the same workspace
 
-Built-in supplement tools cover Body Mod, Personal Reality, Universal Drawbacks, Quest Mode, and Story workflows while sharing state with the active chain.
+Eight built-in supplement modules cover Body Mod alternatives, persistent spaces, Universal Drawbacks, Quest Mode, Story, and Limited Inheritance while sharing state with the active chain. Limited Inheritance can restrict future Inventory, Forms, and Companion profiles to configurable per-Jump pools without hiding acquisitions in their source Jump.
 
 ![The Classic Body Mod supplement showing an Athlete build and remaining point budget](documentation/assets/readme/supplements.png)
 

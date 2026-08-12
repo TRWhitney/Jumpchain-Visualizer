@@ -337,7 +337,7 @@ test("See Mock Data gates Morgan and the explicit Mock Library source", async ({
   const untouchedSupplements = tracker.locator(
     ".supplement-manage-list input[type='checkbox']",
   );
-  await expect(untouchedSupplements).toHaveCount(7);
+  await expect(untouchedSupplements).toHaveCount(8);
   expect(
     await untouchedSupplements.evaluateAll((items) =>
       items.every((item) => !(item as HTMLInputElement).checked),
@@ -345,7 +345,7 @@ test("See Mock Data gates Morgan and the explicit Mock Library source", async ({
   ).toBe(true);
   await expect(
     tracker.locator(".supplement-manage-list button", { hasText: "Open Page" }),
-  ).toHaveCount(7);
+  ).toHaveCount(8);
   expect(
     await tracker
       .locator(".supplement-manage-list button", { hasText: "Open Page" })

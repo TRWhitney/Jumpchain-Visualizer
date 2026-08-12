@@ -17,8 +17,10 @@ import "./jumpRenderer.css";
 import "../../documentation/development/tags-design.css";
 import "../../documentation/development/supplements-design.css";
 import "../../documentation/development/supplements-essential.css";
+import "../../documentation/development/supplements-limited-inheritance.css";
 import "../../documentation/development/supplements-personal-reality.css";
 import "../../documentation/development/supplements-universal-drawbacks.css";
+import "../../documentation/development/supplements-typography.css";
 import "../supplements/review.css";
 import "./review.css";
 

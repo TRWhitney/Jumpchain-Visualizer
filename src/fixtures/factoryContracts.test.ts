@@ -46,5 +46,7 @@ describe("fixture factory contracts", () => {
     expect(state.supplements.quest.rules).toEqual([]);
     expect(state.supplements.quest.checked).toEqual([]);
     expect(state.supplements.story.jumps).toEqual([]);
+    expect(state.supplements.limitedInheritance.pools).toHaveLength(3);
+    expect(state.supplements.limitedInheritance.assignments).toEqual({});
   });
 });

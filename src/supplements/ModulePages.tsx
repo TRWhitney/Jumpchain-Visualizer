@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Stepper, Tabs } from "../ui/SupplementWidgets";
+import { LimitedInheritancePage } from "./LimitedInheritance";
 import type { ModuleId } from "./model";
 import { useBodyMod } from "./useBodyMod";
 import {
@@ -478,6 +479,8 @@ export function ModulePage({ id }: { id: ModuleId }) {
     <UdsParityPage />
   ) : id === "quest-mode" ? (
     <QuestParityPage />
+  ) : id === "limited-inheritance" ? (
+    <LimitedInheritancePage />
   ) : (
     <StoryParityPage />
   );

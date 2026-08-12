@@ -20,6 +20,52 @@ import "../../documentation/development/supplements-design.css";
 import "../../documentation/development/supplements-essential.css";
 import "../../documentation/development/supplements-personal-reality.css";
 import "../../documentation/development/supplements-universal-drawbacks.css";
+import "../../documentation/development/supplements-limited-inheritance.css";
+import "../../documentation/development/supplements-typography.css";
+import type { InheritanceCandidate } from "./limitedInheritance";
+
+const reviewInheritanceCandidates: readonly InheritanceCandidate[] = [
+  {
+    id: "record:review-perk",
+    kind: "perk",
+    sourceEntryId: "entry-1",
+    entityId: "review-perk",
+    name: "Gate Scholar",
+    description: "A current-Jump perk that can continue through the chain.",
+    tags: [],
+    bundledRecordIds: ["review-perk"],
+  },
+  {
+    id: "record:review-item",
+    kind: "item",
+    sourceEntryId: "entry-1",
+    entityId: "review-item",
+    name: "Traveler's Pack",
+    description: "A current-Jump item with its complete acquired quantity.",
+    tags: [],
+    bundledRecordIds: ["review-item"],
+  },
+  {
+    id: "companion:review-companion",
+    kind: "companion",
+    sourceEntryId: "entry-1",
+    entityId: "review-companion",
+    name: "Lyra",
+    description: "A companion bundled with attached acquisitions.",
+    tags: [],
+    bundledRecordIds: ["review-companion-perk"],
+  },
+  {
+    id: "form:review-form",
+    kind: "form",
+    sourceEntryId: "entry-1",
+    entityId: "review-form",
+    name: "Prism Form",
+    description: "A form bundled with every attached record.",
+    tags: [],
+    bundledRecordIds: ["review-form-perk"],
+  },
+];
 import "./review.css";
 
 type PageId = "manage" | ModuleId;
@@ -331,6 +377,7 @@ function JumpScenario({
                         tool={tool.id}
                         embedded
                         close={closeMenu}
+                        inheritanceCandidates={reviewInheritanceCandidates}
                         openPage={(id) => {
                           closeMenu();
                           openPage(id);

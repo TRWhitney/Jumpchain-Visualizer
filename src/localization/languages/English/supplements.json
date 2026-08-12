@@ -35,6 +35,11 @@
         "shortName": "Story",
         "name": "Story",
         "description": "One Live Preview narrative for every Jump."
+      },
+      "limited-inheritance": {
+        "shortName": "Limited Inheritance",
+        "name": "Limited Inheritance",
+        "description": "Choose which acquisitions continue beyond their source Jump."
       }
     },
     "catalogDiagnostics": {
@@ -3582,6 +3587,63 @@
         "findAnUpgrade": "Find an upgrade",
         "nameEffectOrRestriction": "Name, effect, or restriction"
       }
+    },
+    "limitedInheritance": {
+      "name": "Limited Inheritance",
+      "contextualJob": "Choose what continues",
+      "rulesSupplement": "Continuity supplement",
+      "mainSubtitle": "Per-Jump inheritance pools",
+      "poolCount": "{{count}} pools",
+      "whatChanges": "What this changes",
+      "explanationTitle": "Keep only what you choose",
+      "explanation": "Every acquisition remains visible in its source Jump. In later Jumps, only choices assigned to an inheritance pool continue through Inventory, Forms, and Companions.",
+      "currentJump": "Current Jump",
+      "currentJumpExplanation": "All acquired perks, items, companions, forms, and companion upgrades remain visible.",
+      "futureJumps": "Future Jumps",
+      "futureJumpExplanation": "Finite pools keep explicit selections. Unlimited pools automatically keep every eligible choice.",
+      "companionHistory": "Companion history",
+      "companionHistoryExplanation": "Imports are always remembered. Only new companion perks and items require inheritance.",
+      "allowances": "Allowances",
+      "inheritancePools": "Inheritance pools",
+      "addPool": "+ Add pool",
+      "poolNumber": "Pool {{number}}",
+      "removePoolLabel": "Remove pool {{number}}",
+      "remove": "Remove",
+      "eligibleCategories": "Eligible categories",
+      "allowanceType": "Allowance type",
+      "finite": "Finite",
+      "unlimited": "Unlimited",
+      "perJumpLimit": "Per-Jump limit",
+      "historicalAssignments": "{{count}} historical assignments",
+      "grandfatheredUsage": "{{count}} Jumps exceed the current limit; existing assignments remain inherited.",
+      "poolSummary": "{{limit}} · {{kinds}}",
+      "noCategories": "No categories",
+      "kind": {
+        "perk": "Perks",
+        "item": "Items",
+        "companion": "Companions",
+        "form": "Forms"
+      },
+      "removePoolTitle": "Remove inheritance pool?",
+      "confirmation": "Confirmation",
+      "removePoolExplanation": "Remove {{pool}} and its assignments from {{count}} Jumps? Jump choices and companion import history remain unchanged.",
+      "cancel": "Cancel",
+      "removePool": "Remove pool",
+      "chooseInheritance": "Choose inheritance",
+      "futureLoadout": "Future loadout",
+      "explicitSelections": "explicit selections",
+      "dialogExplanation": "Choose which current-Jump acquisitions continue. Companion and form attachments stay with their owner.",
+      "configurePools": "Configure pools",
+      "expandPool": "Expand pool",
+      "collapsePool": "Collapse pool",
+      "automatic": "Automatic",
+      "poolCapacity": "{{selected}} of {{limit}} selected",
+      "source": "Source · {{jump}}",
+      "bundledRecords": "Includes {{count}} attached records",
+      "poolFull": "This pool cannot accept another selection.",
+      "removeSelection": "Unselect",
+      "keep": "Keep",
+      "noEligibleChoices": "No inheritance pool has an eligible choice in this Jump."
     },
     "trackerSupplements": {
       "ariaLabel": {

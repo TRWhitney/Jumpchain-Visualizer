@@ -13,6 +13,11 @@ import type {
   TrackerState,
   UndoSnapshot,
 } from "./types";
+import {
+  inheritanceCompanionIsVisible,
+  inheritanceFormIsVisible,
+  inheritanceRecordIsVisible,
+} from "../supplements/limitedInheritance";
 
 export type * from "./types";
 
@@ -239,7 +244,7 @@ function inventoryRecordPool(state: TrackerState) {
     state.records.filter((record) => {
       if (record.ownerActorId !== "jumper") return false;
       if (record.ownerFormId) return false;
-      if (!visibleAtInspection(state, record.sourceEntryId)) return false;
+      if (!inheritanceRecordIsVisible(state, record)) return false;
       if (state.inventoryKind !== "all" && record.kind !== state.inventoryKind)
         return false;
       return true;
@@ -451,14 +456,12 @@ export function aggregateInventoryRecords(
 }
 
 export function visibleForms(state: TrackerState) {
-  return state.forms.filter((form) =>
-    visibleAtInspection(state, form.sourceEntryId),
-  );
+  return state.forms.filter((form) => inheritanceFormIsVisible(state, form));
 }
 
 export function visibleCompanions(state: TrackerState) {
   return state.companions.filter((companion) =>
-    visibleAtInspection(state, companion.sourceEntryId),
+    inheritanceCompanionIsVisible(state, companion),
   );
 }
 
@@ -485,9 +488,7 @@ export function recordContributesToRadar(
     record.kind === "perk" ||
     (record.kind === "item" && state.preferences.includeItemTagsInRadar);
   return (
-    eligibleOwner &&
-    eligibleKind &&
-    visibleAtInspection(state, record.sourceEntryId)
+    eligibleOwner && eligibleKind && inheritanceRecordIsVisible(state, record)
   );
 }
 
@@ -826,6 +827,7 @@ function snapshot(state: TrackerState, label: string): UndoSnapshot {
     inspectionPointId: state.inspectionPointId,
     jumpState: state.jumpState,
     entrySupplements: state.entrySupplements,
+    supplements: state.supplements,
     label,
   };
 }
@@ -1001,6 +1003,8 @@ function applyRemove(state: TrackerState, entryId: string) {
   delete jumpState[entryId];
   const entrySupplements = { ...state.entrySupplements };
   delete entrySupplements[entryId];
+  const assignments = { ...state.supplements.limitedInheritance.assignments };
+  delete assignments[entryId];
   const fallback = order[Math.min(removedIndex, order.length - 1)];
   return {
     ...state,
@@ -1008,6 +1012,13 @@ function applyRemove(state: TrackerState, entryId: string) {
     order,
     jumpState,
     entrySupplements,
+    supplements: {
+      ...state.supplements,
+      limitedInheritance: {
+        ...state.supplements.limitedInheritance,
+        assignments,
+      },
+    },
     selectedEntryId:
       state.selectedEntryId === entryId ? fallback : state.selectedEntryId,
     inspectionPointId:
@@ -1187,6 +1198,7 @@ export function trackerReducer(
             inspectionPointId: state.undo.inspectionPointId,
             jumpState: state.undo.jumpState,
             entrySupplements: state.undo.entrySupplements,
+            supplements: state.undo.supplements,
             undo: null,
           }
         : state;

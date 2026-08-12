@@ -169,6 +169,7 @@ export type UndoSnapshot = {
   inspectionPointId: string;
   jumpState: JumpRuntimeState;
   entrySupplements: TrackerState["entrySupplements"];
+  supplements: SupplementState;
   label: string;
 };
 

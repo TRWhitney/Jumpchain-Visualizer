@@ -23,7 +23,7 @@ test("renders both exact Chain Tracker review scenarios", async ({ page }) => {
   ).toBeVisible();
   await expect(
     workspace.locator(".supplement-manage-list > article"),
-  ).toHaveCount(7);
+  ).toHaveCount(8);
 });
 
 test(
@@ -110,6 +110,269 @@ test("hides Supp when every supplement is disabled and restores it when one is e
     .getByRole("checkbox");
   await storyToggle.check();
   await expect(jump.getByRole("button", { name: "Supp" })).toBeVisible();
+});
+
+test("Limited Inheritance pool controls align, retain their limit, and keep later pools reachable", async ({
+  page,
+}) => {
+  const workspace = page.getByLabel(
+    "Chain Tracker Supplements workspace scenario",
+  );
+  const row = workspace
+    .locator(".supplement-manage-list article")
+    .filter({ hasText: "Limited Inheritance" });
+  await row.getByRole("checkbox").check();
+  await row.getByRole("button", { name: "Open page" }).click();
+
+  const supplement = workspace.locator(".limited-full-mock");
+  await expect
+    .poll(() =>
+      supplement.evaluate((element) => {
+        const body = element.querySelector(".limited-full-body");
+        if (!(body instanceof HTMLElement)) return Number.POSITIVE_INFINITY;
+        const supplementBox = element.getBoundingClientRect();
+        const bodyBox = body.getBoundingClientRect();
+        return Math.abs(supplementBox.bottom - bodyBox.bottom);
+      }),
+    )
+    .toBeLessThan(1);
+  const firstPool = supplement.locator(".limited-pool-card").first();
+  await expect(firstPool.locator("fieldset input")).toHaveCount(0);
+  const perkPill = firstPool.getByRole("button", { name: "Perks" });
+  await expect(perkPill).toHaveAttribute("aria-pressed", "true");
+  await perkPill.click();
+  await expect(perkPill).toHaveAttribute("aria-pressed", "false");
+
+  const allowance = firstPool.locator(".limited-unlimited-toggle");
+  const stepper = firstPool.locator(".number-stepper");
+  const [allowanceBox, stepperBox] = await Promise.all([
+    allowance.boundingBox(),
+    stepper.boundingBox(),
+  ]);
+  expect(Math.abs((allowanceBox?.y ?? 0) - (stepperBox?.y ?? 0))).toBeLessThan(
+    1,
+  );
+  expect(
+    Math.abs((allowanceBox?.height ?? 0) - (stepperBox?.height ?? 0)),
+  ).toBeLessThan(1);
+
+  const limit = firstPool.getByRole("spinbutton", {
+    name: "Per-Jump limit",
+  });
+  const unlimited = firstPool.getByRole("checkbox", { name: "Unlimited" });
+  await expect(limit).toHaveValue("2");
+  await unlimited.check();
+  await expect(limit).toBeDisabled();
+  await expect(limit).toHaveValue("2");
+  await unlimited.uncheck();
+  await firstPool.getByTitle("Increase Per-Jump limit").click();
+  await expect(limit).toHaveValue("3");
+
+  for (let index = 0; index < 8; index += 1)
+    await supplement.getByRole("button", { name: "+ Add pool" }).click();
+  const poolList = supplement.locator(".limited-pool-list");
+  const expectStepperRailInsideInput = async (pool: typeof firstPool) => {
+    const [inputBox, railBox] = await Promise.all([
+      pool.getByRole("spinbutton", { name: "Per-Jump limit" }).boundingBox(),
+      pool.locator(".number-stepper-buttons").boundingBox(),
+    ]);
+    expect(railBox?.y ?? 0).toBeGreaterThanOrEqual(inputBox?.y ?? 0);
+    expect((railBox?.y ?? 0) + (railBox?.height ?? 0)).toBeLessThanOrEqual(
+      (inputBox?.y ?? 0) + (inputBox?.height ?? 0),
+    );
+    expect(
+      Math.abs(
+        (inputBox?.x ?? 0) +
+          (inputBox?.width ?? 0) -
+          ((railBox?.x ?? 0) + (railBox?.width ?? 0)),
+      ),
+    ).toBeLessThan(2);
+  };
+  await expect
+    .poll(() =>
+      poolList.evaluate((element) => ({
+        scrollable: element.scrollHeight > element.clientHeight,
+        overflow: getComputedStyle(element).overflowY,
+      })),
+    )
+    .toEqual({ scrollable: true, overflow: "auto" });
+  const lastPool = supplement.locator(".limited-pool-card").last();
+  await lastPool.scrollIntoViewIfNeeded();
+  await expect(lastPool).toBeInViewport();
+  const lastLimit = lastPool.getByRole("spinbutton", {
+    name: "Per-Jump limit",
+  });
+  await lastPool.getByTitle("Increase Per-Jump limit").click();
+  await expect(lastLimit).toHaveValue("2");
+  await expectStepperRailInsideInput(lastPool);
+  const lastPerkPill = lastPool.getByRole("button", { name: "Perks" });
+  await lastPerkPill.click();
+  await expect(lastPerkPill).toHaveAttribute("aria-pressed", "true");
+  await lastPool.getByRole("button", { name: "Remove" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Remove inheritance pool?" }),
+  ).toHaveCount(0);
+  await expect(supplement.locator(".limited-pool-card")).toHaveCount(10);
+  const finalPool = supplement.locator(".limited-pool-card").last();
+  await expectStepperRailInsideInput(finalPool);
+
+  await page.evaluate(() => {
+    document.documentElement.dataset.appTheme = "light";
+  });
+  await expect(supplement.locator(".limited-pool-heading p")).toHaveCSS(
+    "color",
+    "rgb(165, 43, 100)",
+  );
+  await page.setViewportSize({ width: 720, height: 900 });
+  await expect
+    .poll(() =>
+      supplement.locator(".limited-full-body").evaluate((element) => ({
+        columns:
+          getComputedStyle(element).gridTemplateColumns.split(" ").length,
+        contained: element.scrollWidth <= element.clientWidth,
+      })),
+    )
+    .toEqual({ columns: 1, contained: true });
+});
+
+test("Limited Inheritance confirms only assigned pool removal and uses its Cancel action", async ({
+  page,
+}) => {
+  const workspace = page.getByLabel(
+    "Chain Tracker Supplements workspace scenario",
+  );
+  const row = workspace
+    .locator(".supplement-manage-list article")
+    .filter({ hasText: "Limited Inheritance" });
+  await row.getByRole("checkbox").check();
+
+  const scenario = page.getByLabel(
+    "Chain and Jump contextual supplement scenario",
+  );
+  await scenario.getByRole("button", { name: "Supp" }).click();
+  let dialog = scenario.getByRole("dialog");
+  await dialog
+    .getByRole("button", { name: /Limited Inheritance.*Choose what continues/ })
+    .click();
+  await dialog
+    .locator(".limited-candidate-list article")
+    .filter({ hasText: "Gate Scholar" })
+    .getByRole("button", { name: "Keep" })
+    .click();
+  await page.keyboard.press("Escape");
+
+  await row.getByRole("button", { name: "Open page" }).click();
+  const supplement = workspace.locator(".limited-full-mock");
+  const firstPool = supplement.locator(".limited-pool-card").first();
+  await firstPool.getByRole("button", { name: "Remove" }).click();
+  dialog = page.getByRole("dialog", { name: "Remove inheritance pool?" });
+  await expect(dialog).toContainText(
+    "Jump choices and companion import history remain unchanged.",
+  );
+  await expect(
+    dialog.getByRole("button", { name: "Close Remove inheritance pool?" }),
+  ).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(supplement.locator(".limited-pool-card")).toHaveCount(3);
+
+  await firstPool.getByRole("button", { name: "Remove" }).click();
+  dialog = page.getByRole("dialog", { name: "Remove inheritance pool?" });
+  await dialog.getByRole("button", { name: "Remove pool" }).click();
+  await expect(supplement.locator(".limited-pool-card")).toHaveCount(2);
+});
+
+test("Limited Inheritance Supp pools collapse and retain their selection summaries", async ({
+  page,
+}) => {
+  const workspace = page.getByLabel(
+    "Chain Tracker Supplements workspace scenario",
+  );
+  const row = workspace
+    .locator(".supplement-manage-list article")
+    .filter({ hasText: "Limited Inheritance" });
+  await row.getByRole("checkbox").check();
+
+  const scenario = page.getByLabel(
+    "Chain and Jump contextual supplement scenario",
+  );
+  await scenario.getByRole("button", { name: "Supp" }).click();
+  const dialog = scenario.getByRole("dialog");
+  await dialog
+    .getByRole("button", { name: /Limited Inheritance.*Choose what continues/ })
+    .click();
+
+  const pools = dialog.locator(".limited-dialog-pool");
+  await expect(pools).toHaveCount(3);
+  const firstPool = pools.first();
+  const disclosure = firstPool.locator(".limited-pool-disclosure");
+  await expect(disclosure).toHaveAttribute("aria-expanded", "true");
+  await expect(firstPool).toContainText("0 of 2 selected");
+  await disclosure.click();
+  await expect(disclosure).toHaveAttribute("aria-expanded", "false");
+  await expect(firstPool.locator(".limited-candidate-list")).toBeHidden();
+  await expect(firstPool).toContainText("0 of 2 selected");
+  await disclosure.click();
+
+  for (const name of ["Gate Scholar", "Traveler's Pack", "Lyra", "Prism Form"])
+    await pools
+      .locator(".limited-candidate-list article")
+      .filter({ hasText: name })
+      .getByRole("button", { name: "Keep" })
+      .click();
+  await expect(dialog.getByText("Unselect")).toHaveCount(4);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(scenario.getByRole("button", { name: "Supp" })).toBeFocused();
+});
+
+test("Limited Inheritance suppresses empty pools, explains capacity, and applies unlimited pools automatically", async ({
+  page,
+}) => {
+  const workspace = page.getByLabel(
+    "Chain Tracker Supplements workspace scenario",
+  );
+  const row = workspace
+    .locator(".supplement-manage-list article")
+    .filter({ hasText: "Limited Inheritance" });
+  await row.getByRole("checkbox").check();
+  await row.getByRole("button", { name: "Open page" }).click();
+  const supplement = workspace.locator(".limited-full-mock");
+  await supplement.getByRole("button", { name: "+ Add pool" }).click();
+  const firstPool = supplement.locator(".limited-pool-card").first();
+  await firstPool.getByTitle("Decrease Per-Jump limit").click();
+
+  const scenario = page.getByLabel(
+    "Chain and Jump contextual supplement scenario",
+  );
+  await scenario.getByRole("button", { name: "Supp" }).click();
+  let dialog = scenario.getByRole("dialog");
+  await dialog
+    .getByRole("button", { name: /Limited Inheritance.*Choose what continues/ })
+    .click();
+  await expect(dialog.locator(".limited-dialog-pool")).toHaveCount(3);
+  await dialog
+    .locator(".limited-candidate-list article")
+    .filter({ hasText: "Gate Scholar" })
+    .getByRole("button", { name: "Keep" })
+    .click();
+  const blocked = dialog
+    .locator(".limited-candidate-list article")
+    .filter({ hasText: "Traveler's Pack" });
+  await expect(blocked.getByRole("button", { name: "Keep" })).toBeDisabled();
+  await expect(blocked).toContainText(
+    "This pool cannot accept another selection.",
+  );
+  await page.keyboard.press("Escape");
+
+  await firstPool.getByRole("checkbox", { name: "Unlimited" }).check();
+  await scenario.getByRole("button", { name: "Supp" }).click();
+  dialog = scenario.getByRole("dialog");
+  await expect(
+    dialog
+      .locator(".limited-candidate-list article")
+      .filter({ hasText: "Traveler's Pack" }),
+  ).toContainText("Automatic");
 });
 
 test("context overlay highlights and switches its embedded supplement tool without a second dialog", async ({
@@ -839,6 +1102,10 @@ test(
     await assertBottomReachable(".story-full-reader");
     await attach("story-reader-bottom");
 
+    await open("Limited Inheritance");
+    await attach("limited-inheritance");
+    await assertBottomReachable(".limited-pool-list");
+
     await scenario.getByRole("button", { name: "Supp" }).click();
     const dialog = scenario.getByRole("dialog");
     for (const tool of [
@@ -849,6 +1116,7 @@ test(
       /Universal Drawbacks/,
       /Quest Mode/,
       /Story/,
+      /Limited Inheritance/,
     ]) {
       await dialog.getByRole("button", { name: tool }).click();
       if (shouldCaptureReviewArtifacts(testInfo, false)) {
